@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud Data — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="cookbook/cloud"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Cookbook</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Cloud Data</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Cloud Data</h1>
+        <p>BioLang supports direct interaction with cloud storage services for
+        downloading reference data, uploading results, and working with remote
+        datasets without manual transfer steps.</p>
+
+        <h2>AWS S3</h2>
+
+        <h3>Downloading from S3</h3>
+        <pre><code class="language-biolang"># Download a file from S3 (uses s3:// URL syntax)
+s3_download("s3://my-genomics-bucket/references/GRCh38.fa", "refs/GRCh38.fa")
+
+# If dest is omitted, downloads to ~/.biolang/data/downloads/
+s3_download("s3://my-genomics-bucket/data/large_file.bam", "data/sample.bam")
+print("Download complete")</code></pre>
+
+        <h3>Uploading to S3</h3>
+        <pre><code class="language-biolang"># Upload results to S3
+s3_upload("results/analysis.tsv", "s3://my-results-bucket/project_001/analysis.tsv")
+
+# Upload multiple files
+let files = glob("results/*.tsv")
+for f in files {
+  s3_upload("results/#{f}", "s3://my-results-bucket/project_001/#{f}")
+  print("Uploaded #{f}")
+}</code></pre>
+
+        <h3>Listing and filtering S3 objects</h3>
+        <pre><code class="language-biolang"># List objects in a bucket with prefix
+let objects = s3_list("s3://genomics-data/samples/batch_001/")
+
+for obj in objects {
+  print("#{obj.name} (#{obj.size} bytes)")
+}
+
+# Find all FASTQ files in a bucket
+let fastq_files = s3_list("s3://genomics-data/fastq/")
+  |> filter(|obj| ends_with(obj.name, ".fq.gz"))
+
+print("Found #{len(fastq_files)} FASTQ files")
+
+# Download, then process locally
+s3_download("s3://my-bucket/data/counts.csv", "counts.csv")
+let data = csv("counts.csv")
+  |> filter(|row| int(row["count"]) > 10)
+print("Filtered rows: #{len(data)}")</code></pre>
+
+        <h3>Working with public S3 buckets</h3>
+        <pre><code class="language-biolang"># Access public datasets via download (HTTP URLs for public data)
+# 1000 Genomes Project data
+download(
+  "https://s3.amazonaws.com/1000genomes/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz",
+  "1000g_chr22.vcf.gz"
+)
+
+# Or use s3_download with s3:// URL
+s3_download(
+  "s3://1000genomes/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz",
+  "1000g_chr22.vcf.gz"
+)</code></pre>
+
+        <h2>Google Cloud Storage</h2>
+
+        <h3>GCS operations</h3>
+        <pre><code class="language-biolang"># Download from GCS (uses gs:// URL syntax)
+gcs_download("gs://my-gcs-bucket/data/sample.bam", "sample.bam")
+
+# Upload to GCS
+gcs_upload("results/variants.vcf.gz", "gs://my-gcs-bucket/results/run_001/variants.vcf.gz")
+
+# Process GCS data locally after download
+gcs_download("gs://my-gcs-bucket/data/counts.tsv", "counts.tsv")
+let data = tsv("counts.tsv")
+print("Loaded #{len(data)} rows")</code></pre>
+
+        <h3>Accessing public GCS datasets</h3>
+        <pre><code class="language-biolang"># Access public genomics datasets on GCS
+# gnomAD data
+gcs_download(
+  "gs://gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.chr22.vcf.bgz",
+  "gnomad_chr22.vcf.bgz"
+)
+
+# ENCODE via GCS
+gcs_download(
+  "gs://encode-public/2023/ENCFF001XYZ.bed.gz",
+  "peaks.bed.gz"
+)</code></pre>
+
+        <h2>Azure Blob Storage</h2>
+
+        <h3>Azure operations</h3>
+        <pre><code class="language-biolang"># Azure Blob Storage via shell + az CLI
+let account = env("AZURE_STORAGE_ACCOUNT")
+
+# Download from Azure Blob Storage
+shell("az storage blob download --account-name #{account} --container-name genomics-data --name references/GRCh38.fa --file refs/GRCh38.fa")
+
+# Upload to Azure
+shell("az storage blob upload --account-name #{account} --container-name results --name project_001/report.html --file results/report.html")
+
+# List blobs
+let result = shell("az storage blob list --account-name #{account} --container-name genomics-data --prefix samples/ --output json")
+print(result.stdout)</code></pre>
+
+        <h2>HTTP/FTP Downloads</h2>
+
+        <h3>Downloading reference data</h3>
+        <pre><code class="language-biolang"># Download reference genomes and databases
+download(
+  "https://ftp.ensembl.org/pub/release-112/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz",
+  "refs/GRCh38.fa.gz"
+)
+
+# Download from NCBI
+download(
+  "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz",
+  "refs/clinvar.vcf.gz"
+)
+
+# FTP download
+ftp_download(
+  "ftp://ftp.ensembl.org/pub/release-112/gtf/homo_sapiens/Homo_sapiens.GRCh38.112.gtf.gz",
+  "refs/GRCh38.gtf.gz"
+)</code></pre>
+
+        <h3>Batch downloads</h3>
+        <pre><code class="language-biolang"># Download multiple files in parallel
+let urls = [
+  { url: "https://example.com/chr1.fa.gz", dest: "refs/chr1.fa.gz" },
+  { url: "https://example.com/chr2.fa.gz", dest: "refs/chr2.fa.gz" },
+  { url: "https://example.com/chr3.fa.gz", dest: "refs/chr3.fa.gz" }
+]
+
+par_map(urls, |item| {
+  download(item.url, item.dest)
+  print("Downloaded #{item.dest}")
+})
+
+print("All downloads complete")</code></pre>
+
+        <h2>Remote File Access</h2>
+
+        <h3>Streaming from URLs</h3>
+        <pre><code class="language-biolang"># Read directly from a URL without downloading the full file
+let vcf_count = vcf("https://example.com/data/variants.vcf.gz")
+  |> filter(|v| v.chrom == "chr22" && v.filter == "PASS")
+  |> count
+
+print("PASS variants on chr22: #{vcf_count}")
+
+# Stream FASTA from a URL
+let genes = fasta("https://ftp.ensembl.org/pub/current/fasta/homo_sapiens/cds/Homo_sapiens.GRCh38.cds.all.fa.gz")
+  |> filter(|r| contains(r.id, "BRCA1"))
+  |> collect
+
+print("BRCA1 transcripts: #{len(genes)}")</code></pre>
+
+        <h3>Working with signed URLs</h3>
+        <pre><code class="language-biolang"># Generate a pre-signed URL using the AWS CLI
+let result = shell("aws s3 presign s3://my-results/analysis/report.html --expires-in 3600")
+let signed_url = trim(result.stdout)
+print("Share this link: #{signed_url}")
+
+# Download from a pre-signed URL
+download(signed_url, "downloaded_report.html")</code></pre>
+
+        <h2>Cloud Configuration</h2>
+
+        <h3>Credential management</h3>
+        <pre><code class="language-biolang"># BioLang's cloud builtins use standard CLI tools under the hood:
+# AWS: aws CLI reads ~/.aws/credentials, AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
+# GCS: gsutil reads GOOGLE_APPLICATION_CREDENTIALS, gcloud auth
+# Azure: az CLI reads AZURE_STORAGE_ACCOUNT + AZURE_STORAGE_KEY
+
+# Verify credentials are configured
+let aws_check = shell("aws sts get-caller-identity")
+if aws_check.exit_code == 0 {
+  print("AWS credentials configured")
+} else {
+  print("AWS credentials not found, set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+}</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="containers.html" class="text-violet-400 hover:text-violet-300">&larr; Containers</a>
+        <a href="batch.html" class="text-violet-400 hover:text-violet-300">Batch Processing &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# Reactome Pathway Database API Examples
+# Biological pathways — EU (EBI/OEAW/OICR/NYUMC)
+
+# Search Reactome for entries
+# reactome_search(query) -> list of {id, name, schema_class, species}
+let results = reactome_search("apoptosis")
+println("=== Apoptosis in Reactome ===")
+println("Total results:", len(results))
+for r in head(results, 10) {
+    println("  [", r.schema_class, "]", r.id, "-", r.name)
+    println("    Species:", r.species)
+}
+
+# Get pathways for a specific gene
+# reactome_pathways(gene_symbol, species?) -> list of pathway records
+# Default species: "Homo sapiens"
+let tp53_pathways = reactome_pathways("TP53")
+println("\n=== TP53 Pathways ===")
+println("Total pathways:", len(tp53_pathways))
+for p in tp53_pathways {
+    println("  ", p.id, "-", p.name)
+}
+
+# Compare pathway involvement across genes
+let genes = ["TP53", "BRCA1", "EGFR", "KRAS"]
+println("\n=== Pathway Count per Gene ===")
+for g in genes {
+    let paths = reactome_pathways(g)
+    println(g, ":", len(paths), "pathways")
+}
+
+# Non-human species
+let mouse_paths = reactome_pathways("Tp53", "Mus musculus")
+println("\nMouse Tp53 pathways:", len(mouse_paths))
+for p in head(mouse_paths, 5) {
+    println("  ", p.name)
+}

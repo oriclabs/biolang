@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — BioLang</title>
+  <link rel="icon" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path=".."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path=".." data-active="getting-started/install"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Documentation</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Documentation</h1>
+        <p>
+          Everything you need to learn BioLang &mdash; from installation to advanced pipelines.
+        </p>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8 not-prose">
+          <a href="getting-started/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <h3 class="text-white font-semibold">Getting Started</h3>
+            </div>
+            <p class="text-sm text-slate-400">Install BioLang, write your first script, set up your editor.</p>
+          </a>
+          <a href="language/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+              <h3 class="text-white font-semibold">Language Reference</h3>
+            </div>
+            <p class="text-sm text-slate-400">Variables, pipes, functions, control flow, pattern matching, modules.</p>
+          </a>
+          <a href="builtins/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+              <h3 class="text-white font-semibold">270+ Builtins</h3>
+            </div>
+            <p class="text-sm text-slate-400">Math, stats, collections, tables, I/O, HTTP, plotting, and more.</p>
+          </a>
+          <a href="bio/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+              <h3 class="text-white font-semibold">Bio Reference</h3>
+            </div>
+            <p class="text-sm text-slate-400">Sequences, file formats, intervals, k-mers, alignment, motifs.</p>
+          </a>
+          <a href="apis/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+              <h3 class="text-white font-semibold">12 API Clients</h3>
+            </div>
+            <p class="text-sm text-slate-400">NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, and more.</p>
+          </a>
+          <a href="tools/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <h3 class="text-white font-semibold">Tools</h3>
+            </div>
+            <p class="text-sm text-slate-400">CLI, REPL, Language Server, compiler, JIT, plugins.</p>
+          </a>
+          <a href="tutorials/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+              <h3 class="text-white font-semibold">Tutorials</h3>
+            </div>
+            <p class="text-sm text-slate-400">Step-by-step guides from Hello Genomics to RNA-seq and beyond.</p>
+          </a>
+          <a href="examples/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              <h3 class="text-white font-semibold">Examples</h3>
+            </div>
+            <p class="text-sm text-slate-400">One-liners, genomics, proteomics, clinical variants, metagenomics.</p>
+          </a>
+          <a href="cookbook/index.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+              <h3 class="text-white font-semibold">Cookbook</h3>
+            </div>
+            <p class="text-sm text-slate-400">Patterns, performance tips, interop, batch processing, testing.</p>
+          </a>
+        </div>
+      </article>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path=".."></div>
+  <script src="../js/main.js"></script>
+  <script src="../js/copy-code.js"></script>
+</body>
+</html>

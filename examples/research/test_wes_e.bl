@@ -1,0 +1,8 @@
+# Simplest if/then no-else inside block lambda
+let x = [1, 2, 3] |> map(|v| {
+    let y = 0
+    if v > 1 then
+        y = v * 2
+    y
+})
+println(x)

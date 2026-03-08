@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Population Genetics — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/popgen"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Population Genetics</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Population Genetics</h1>
+        <p>Population genetics analysis in BioLang covers allele frequency computation,
+        Hardy-Weinberg equilibrium testing, population differentiation metrics, and
+        principal component analysis on genotype matrices.</p>
+
+        <h2>Allele Frequencies</h2>
+
+        <h3>Computing allele frequencies from a VCF</h3>
+        <pre><code class="language-biolang"># Calculate allele frequencies across all samples
+let vcf = read_vcf("population.vcf.gz")
+
+let freqs = vcf
+  |> filter(|v| { v.filter == "PASS" && is_snp(v) })
+  |> map(|v| {
+    let genotypes = v.genotypes
+    let allele_count = genotypes |> flat_map(|g| { g.alleles }) |> len
+    let alt_count = genotypes |> flat_map(|g| { g.alleles }) |> filter(|a| { a == 1 }) |> len
+    {
+      chrom: v.chrom,
+      pos: v.pos,
+      ref: v.ref,
+      alt: v.alt,
+      af: alt_count |> float / allele_count |> float,
+      an: allele_count,
+      ac: alt_count
+    }
+  })
+
+freqs |> write_tsv("allele_frequencies.tsv")
+print(f"Computed frequencies for {freqs |> len} variants")</code></pre>
+
+        <h3>Minor allele frequency spectrum</h3>
+        <pre><code class="language-biolang"># Generate a site frequency spectrum (SFS)
+let freqs = tsv("allele_frequencies.tsv")
+
+let maf = freqs
+  |> map(|f| {
+    let af = f["af"] |> float
+    if af > 0.5 { 1.0 - af } else { af }
+  })
+
+# Bin into MAF categories
+let bins = [0.0, 0.01, 0.05, 0.10, 0.20, 0.30, 0.50]
+let sfs = maf |> histogram(edges: bins)
+
+print("Minor Allele Frequency Spectrum:")
+for bin in sfs {
+  let bar = "*" |> repeat(bin.count / 100)
+  print(f"  {bin.label}: {bin.count} {bar}")
+}</code></pre>
+
+        <h2>Hardy-Weinberg Equilibrium</h2>
+
+        <h3>HWE exact test</h3>
+        <pre><code class="language-biolang"># Test each variant for Hardy-Weinberg equilibrium
+let vcf = read_vcf("population.vcf.gz")
+
+let hwe_results = vcf
+  |> filter(|v| { v.filter == "PASS" && is_snp(v) })
+  |> map(|v| {
+    let gts = v.genotypes |> map(|g| { g |> to_string })
+    let n_hom_ref = gts |> filter(|g| { g == "0/0" }) |> len
+    let n_het = gts |> filter(|g| { g == "0/1" || g == "1/0" }) |> len
+    let n_hom_alt = gts |> filter(|g| { g == "1/1" }) |> len
+    let hwe = hardy_weinberg_test(n_hom_ref, n_het, n_hom_alt)
+    {
+      chrom: v.chrom,
+      pos: v.pos,
+      obs_het: n_het |> float / (n_hom_ref + n_het + n_hom_alt) |> float,
+      exp_het: hwe.expected_het,
+      p_value: hwe.pvalue,
+      in_hwe: hwe.pvalue > 0.001
+    }
+  })
+
+let out_of_hwe = hwe_results |> filter(|r| { !r.in_hwe }) |> len
+print(f"Variants out of HWE (p < 0.001): {out_of_hwe}")
+hwe_results |> write_tsv("hwe_results.tsv")</code></pre>
+
+        <h3>Observed vs expected heterozygosity</h3>
+        <pre><code class="language-biolang">let hwe = tsv("hwe_results.tsv")
+
+let obs_mean = hwe |> map(|r| { r["obs_het"] |> float }) |> mean
+let exp_mean = hwe |> map(|r| { r["exp_het"] |> float }) |> mean
+let f_is = 1.0 - (obs_mean / exp_mean)
+
+print(f"Mean observed heterozygosity: {obs_mean |> round(4)}")
+print(f"Mean expected heterozygosity: {exp_mean |> round(4)}")
+print(f"Inbreeding coefficient (Fis): {f_is |> round(4)}")</code></pre>
+
+        <h2>Population Differentiation</h2>
+
+        <h3>Weir-Cockerham Fst</h3>
+        <pre><code class="language-biolang"># Calculate Fst between two populations
+let vcf = read_vcf("merged_populations.vcf.gz")
+let pop_map = tsv("population_map.tsv")  # sample_id, population
+
+let pop1_samples = pop_map |> filter(|r| { r["population"] == "POP1" }) |> map(|x| x.sample_id) |> collect
+let pop2_samples = pop_map |> filter(|r| { r["population"] == "POP2" }) |> map(|x| x.sample_id) |> collect
+
+let fst_values = vcf
+  |> filter(|v| { v.filter == "PASS" && is_snp(v) })
+  |> map(|v| {
+    let fst = weir_cockerham_fst(v, [pop1_samples, pop2_samples])
+    {
+      chrom: v.chrom,
+      pos: v.pos,
+      fst: fst
+    }
+  })
+  |> filter(|r| { r.fst != None })
+
+let genome_fst = fst_values |> map(|x| x.fst) |> mean
+print(f"Genome-wide Fst: {genome_fst |> round(4)}")
+
+# Find high-Fst outlier regions
+let outliers = fst_values |> filter(|r| { r.fst > 0.5 })
+print(f"High-Fst outlier SNPs (>0.5): {outliers |> len}")
+outliers |> write_tsv("fst_outliers.tsv")</code></pre>
+
+        <h3>Windowed Fst</h3>
+        <pre><code class="language-biolang"># Fst in sliding windows for selection scans
+let fst_data = tsv("fst_per_snp.tsv")
+
+let windowed = fst_data
+  |> group_by_window(chrom: .chrom, pos: .pos, window_size: 50000, step: 25000)
+  |> map(|w| { {
+    chrom: w.chrom,
+    mid: (w.start + w.end) / 2,
+    n_snps: w.items |> len,
+    mean_fst: w.items |> map(|x| x.fst) |> mean,
+    max_fst: w.items |> map(|x| x.fst) |> max
+  }})
+  |> filter(|w| { w.n_snps >= 5 })
+
+windowed |> write_tsv("windowed_fst.tsv")
+
+# Report top windows
+windowed
+  |> sort_by(|a, b| b.mean_fst - a.mean_fst)
+  |> take(10)
+  |> each(|w| { print(f"{w.chrom}:{w.mid} Fst={w.mean_fst |> round(3)} (n={w.n_snps})") })</code></pre>
+
+        <h2>Principal Component Analysis</h2>
+
+        <h3>PCA on genotype matrix</h3>
+        <pre><code class="language-biolang"># Build genotype matrix and run PCA
+let vcf = read_vcf("population.vcf.gz")
+
+# Build numeric genotype matrix (0, 1, 2 encoding)
+let geno_matrix = vcf
+  |> filter(|v| { v.filter == "PASS" && is_snp(v) && v.af > 0.05 && v.af < 0.95 })
+  |> map(|v| {
+    v.genotypes |> map(|g| {
+      match g |> to_string {
+        "0/0" => 0,
+        "0/1" => 1,
+        "1/0" => 1,
+        "1/1" => 2,
+        _ => None
+      }
+    })
+  })
+  |> to_matrix
+
+# Run PCA
+let pca = geno_matrix |> pca(n_components: 10)
+
+print("Variance explained:")
+for i, var_pct in pca.variance_ratio |> enumerate {
+  print(f"  PC{i + 1}: {(var_pct * 100.0) |> round(2)}%")
+}
+
+# Export PC coordinates for plotting
+let samples = vcf |> sample_names
+let pc_data = samples |> enumerate |> map(|i, name| { {
+  sample: name,
+  pc1: pca.components[i][0],
+  pc2: pca.components[i][1],
+  pc3: pca.components[i][2]
+}})
+pc_data |> write_tsv("pca_coordinates.tsv")</code></pre>
+
+        <h3>Admixture-style analysis</h3>
+        <pre><code class="language-biolang"># Estimate ancestry proportions using graph-based clustering
+let pc_data = tsv("pca_coordinates.tsv")
+let pop_map = tsv("population_map.tsv")
+
+let labeled = pc_data |> left_join(pop_map, on: "sample")
+
+# Build a k-NN adjacency matrix from PC space, then cluster with Leiden
+let coords = labeled
+  |> select("pc1", "pc2", "pc3")
+  |> to_matrix
+
+let adj = knn_adjacency(coords, k: 15)
+let clusters = leiden(adj, resolution: 0.8)
+
+# Compare clusters to known populations
+let comparison = labeled
+  |> mutate("cluster", |i, _| { clusters[i] })
+  |> group_by(.population, .cluster)
+  |> summarize(n: count)
+  |> sort_by(.population, .cluster)
+
+comparison |> print</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="proteomics.html" class="text-violet-400 hover:text-violet-300">&larr; Proteomics</a>
+        <a href="clinical.html" class="text-violet-400 hover:text-violet-300">Clinical Variants &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

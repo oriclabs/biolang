@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-mers — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/kmers"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">K-mers</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>K-mer Analysis</h1>
+        <p>
+          K-mers are contiguous subsequences of length <em>k</em> extracted from a longer
+          sequence. They are foundational to many bioinformatics algorithms including genome
+          assembly, sequence comparison, metagenomic classification, and error correction.
+          BioLang provides optimized k-mer functions that use 2-bit encoding for k &le; 32,
+          enabling memory-efficient counting of billions of k-mers.
+        </p>
+
+        <h2>kmer_encode / kmer_decode</h2>
+        <p>
+          Convert between k-mer strings and their integer encodings. Each base is encoded
+          as 2 bits (A=00, C=01, G=10, T=11), so a k-mer of length k requires 2k bits:
+        </p>
+        <pre><code class="language-biolang"># Encode a k-mer to its integer representation
+# kmer_encode(sequence, k)
+let code = kmer_encode(dna"ATCG", 4)     # => 27
+code = kmer_encode(dna"AAAA", 4)     # => 0
+code = kmer_encode(dna"TTTT", 4)     # => 255
+
+# Decode back to a string
+let seq = kmer_decode(27)                # => "ATCG"
+seq = kmer_decode(0)                 # => "AAAA"</code></pre>
+
+        <h2>kmer_count</h2>
+        <p>
+          Count all k-mer occurrences in a sequence. Returns a map from k-mer strings to
+          their counts:
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCGATCG"
+
+# Count all 4-mers — returns a map from k-mer string to count
+let counts = kmer_count(seq, 4)
+# => { "ATCG": 4, "TCGA": 3, "CGAT": 3, "GATC": 3 }
+
+# Access specific counts
+print(counts["ATCG"])   # => 4
+
+# Most frequent k-mers
+kmer_count(seq, 6)
+  |> to_table()
+  |> head(10)
+  |> print()</code></pre>
+
+        <h2>kmer_spectrum</h2>
+        <p>
+          The k-mer spectrum (frequency-of-frequencies) shows how many k-mers appear exactly
+          1 time, 2 times, etc. This is useful for genome size estimation and error rate
+          analysis. Pass a counts map from <code>kmer_count</code>:
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCGATCGATCG"
+
+# Compute k-mer frequency spectrum
+let spectrum = kmer_spectrum(seq, 4)
+# => Table with frequency and count columns
+
+spectrum |> print()</code></pre>
+
+        <h2>minimizers</h2>
+        <p>
+          Minimizers are a subsampling scheme that selects the lexicographically smallest k-mer
+          within each window of size w. They are used in minimap2, Kraken, and many other tools
+          for efficient sequence comparison and indexing:
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCGATCGATCGATCG"
+
+# Extract minimizers: minimizers(seq, k, window)
+let mins = minimizers(seq, 7, 11)
+# Returns a list of { kmer, position } records
+
+mins |> map(|m| print(m.position, m.kmer))
+
+# Minimizer density (minimizers per base)
+let density = float(len(mins)) / float(seq_len(seq))
+print("Minimizer density:", density)</code></pre>
+
+        <h2>kmer_encode / kmer_decode</h2>
+        <p>
+          Convert between k-mer strings and their compact integer encodings, useful for
+          efficient storage and comparison:
+        </p>
+        <pre><code class="language-biolang"># Encode a k-mer to its 2-bit integer representation
+let code = kmer_encode(dna"ATCG", 4)
+print(code)   # integer encoding
+
+# Decode back to string
+let seq = kmer_decode(code)
+print(seq)</code></pre>
+
+        <h2>Practical Example: Metagenomic Classification</h2>
+        <p>
+          K-mer analysis enables fast taxonomic classification without alignment:
+        </p>
+        <pre><code class="language-biolang"># Build k-mer profiles for reference genomes
+let refs = fasta("reference_genomes.fa")
+  |> map(|r| { id: r.id, profile: kmer_count(r.seq, 21) })
+  |> collect()
+
+# Analyze k-mer composition of reads
+fastq("metagenome.fq.gz")
+  |> map(|read| {
+    id: read.id,
+    counts: kmer_count(read.seq, 21)
+  })
+  |> collect()
+  |> map(|r| {
+    id: r.id,
+    unique_kmers: len(r.counts)
+  })
+  |> to_table()
+  |> print()</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="intervals.html" class="text-violet-400 hover:text-violet-300">&larr; Intervals</a>
+        <a href="alignment.html" class="text-violet-400 hover:text-violet-300">Alignment &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

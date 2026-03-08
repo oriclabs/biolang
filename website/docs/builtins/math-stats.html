@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math &amp; Statistics — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/math-stats"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Math &amp; Statistics</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Math &amp; Statistics</h1>
+        <p class="text-lg text-slate-400 mb-8">27 functions for descriptive statistics, hypothesis testing, mathematical operations, and ODE integration. Built for bioinformatics data analysis workflows.</p>
+
+        <!-- Descriptive Stats -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Descriptive Statistics</h2>
+
+        <section class="mb-12" id="mean">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">mean</span></h2>
+          <p class="text-slate-400 mt-2">Arithmetic mean of a numeric list.</p>
+          <pre><code class="language-biolang">mean(list) -> float</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody><tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">list</td><td class="py-2 px-3">list&lt;number&gt;</td><td class="py-2 px-3">Numeric values</td></tr></tbody>
+          </table>
+          <pre><code class="language-biolang">mean([30, 28, 35, 22, 31])   # 29.2
+
+let coverage = [12, 45, 89, 102, 67, 54]
+println("Mean coverage:", mean(coverage))   # Mean coverage: 61.5</code></pre>
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mt-4">
+            <p class="text-sm text-amber-300"><strong>Edge case:</strong> Empty list returns <code>NaN</code>. Filter out <code>nil</code> values before computing.</p>
+          </div>
+        </section>
+
+        <section class="mb-12" id="median">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">median</span></h2>
+          <p class="text-slate-400 mt-2">Middle value of a sorted list. For even-length lists, returns the mean of the two middle values.</p>
+          <pre><code class="language-biolang">median(list) -> float</code></pre>
+          <pre><code class="language-biolang">median([1, 3, 5, 7, 9])   # 5.0
+median([1, 3, 5, 7])      # 4.0  (mean of 3 and 5)</code></pre>
+        </section>
+
+        <section class="mb-12" id="stdev">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">stdev</span> / <span class="text-violet-400 font-mono">variance</span></h2>
+          <p class="text-slate-400 mt-2">Sample standard deviation and variance (Bessel-corrected, divides by n-1).</p>
+          <pre><code class="language-biolang">stdev(list) -> float
+variance(list) -> float</code></pre>
+          <pre><code class="language-biolang">let data = [10, 12, 23, 23, 16, 23, 21, 16]
+stdev(data)      # 5.2372...
+variance(data)   # 27.4285...</code></pre>
+        </section>
+
+        <section class="mb-12" id="sum">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sum</span></h2>
+          <p class="text-slate-400 mt-2">Sum all elements in a numeric list.</p>
+          <pre><code class="language-biolang">sum(list) -> number</code></pre>
+          <pre><code class="language-biolang">sum([1, 2, 3, 4, 5])    # 15
+
+let reads_per_sample = [1200000, 980000, 1500000, 870000]
+println("Total reads:", sum(reads_per_sample))   # Total reads: 4550000</code></pre>
+        </section>
+
+        <section class="mb-12" id="quantile">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">quantile</span></h2>
+          <p class="text-slate-400 mt-2">Compute the q-th quantile (0.0 to 1.0) using linear interpolation.</p>
+          <pre><code class="language-biolang">quantile(list, q) -> float</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">list</td><td class="py-2 px-3">list&lt;number&gt;</td><td class="py-2 px-3">Numeric values</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">q</td><td class="py-2 px-3">float</td><td class="py-2 px-3">Quantile (0.0 to 1.0)</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">let data = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+quantile(data, 0.25)   # 5.5  (Q1)
+quantile(data, 0.50)   # 11.0 (median)
+quantile(data, 0.75)   # 16.5 (Q3)
+quantile(data, 0.95)   # 19.1</code></pre>
+        </section>
+
+        <!-- Hypothesis Testing -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Hypothesis Testing</h2>
+
+        <section class="mb-12" id="ttest">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">ttest</span></h2>
+          <p class="text-slate-400 mt-2">Two-sample Student's t-test. Returns a map with t-statistic, p-value, and degrees of freedom.</p>
+          <pre><code class="language-biolang">ttest(a, b) -> map</code></pre>
+          <pre><code class="language-biolang">let control = [5.1, 4.9, 5.3, 5.0, 4.8]
+let treated = [6.2, 5.8, 6.5, 6.1, 5.9]
+let result = ttest(control, treated)
+# {"t_stat": -5.27, "p_value": 0.0006, "df": 8, "significant": true}
+
+if result.p_value < 0.05 {
+  println("Significant difference (p =", result.p_value, ")")
+}</code></pre>
+        </section>
+
+        <section class="mb-12" id="anova">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">anova</span></h2>
+          <p class="text-slate-400 mt-2">One-way ANOVA test across multiple groups.</p>
+          <pre><code class="language-biolang">anova(groups) -> map</code></pre>
+          <pre><code class="language-biolang">let g1 = [23, 25, 28, 22]
+let g2 = [30, 32, 35, 29]
+let g3 = [18, 20, 22, 19]
+let result = anova([g1, g2, g3])
+# {"f_stat": 15.8, "p_value": 0.001, "df_between": 2, "df_within": 9}</code></pre>
+        </section>
+
+        <section class="mb-12" id="chi_square">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">chi_square</span></h2>
+          <p class="text-slate-400 mt-2">Chi-squared test for independence on a contingency table (2D list).</p>
+          <pre><code class="language-biolang">chi_square(observed, expected) -> map</code></pre>
+          <pre><code class="language-biolang">let observed = [45, 55, 30, 70]
+let expected = [50, 50, 50, 50]
+let result = chi_square(observed, expected)
+# {"chi2": 4.76, "p_value": 0.029, "df": 1}</code></pre>
+        </section>
+
+        <section class="mb-12" id="cor">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">cor</span></h2>
+          <p class="text-slate-400 mt-2">Pearson correlation coefficient between two numeric lists of equal length.</p>
+          <pre><code class="language-biolang">cor(a, b) -> float</code></pre>
+          <pre><code class="language-biolang">let expression = [2.1, 4.3, 3.8, 6.1, 5.5]
+let methylation = [0.8, 0.3, 0.4, 0.1, 0.2]
+cor(expression, methylation)   # -0.956 (strong negative)</code></pre>
+        </section>
+
+        <!-- Math Functions -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Mathematical Functions</h2>
+
+        <section class="mb-12" id="math-funcs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Function</th><th class="text-left py-2 px-3 text-slate-400">Signature</th><th class="text-left py-2 px-3 text-slate-400">Description</th><th class="text-left py-2 px-3 text-slate-400">Example</th></tr></thead>
+              <tbody>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">sqrt</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">sqrt(n) -> float</td><td class="py-2 px-3">Square root</td><td class="py-2 px-3 font-mono text-xs">sqrt(16) # 4.0</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">pow</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">pow(base, exp) -> float</td><td class="py-2 px-3">Exponentiation</td><td class="py-2 px-3 font-mono text-xs">pow(2, 10) # 1024.0</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">log</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">log(n) -> float</td><td class="py-2 px-3">Natural logarithm (ln)</td><td class="py-2 px-3 font-mono text-xs">log(2.718) # ~1.0</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">log2</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">log2(n) -> float</td><td class="py-2 px-3">Base-2 logarithm</td><td class="py-2 px-3 font-mono text-xs">log2(1024) # 10.0</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">log10</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">log10(n) -> float</td><td class="py-2 px-3">Base-10 logarithm</td><td class="py-2 px-3 font-mono text-xs">log10(1000) # 3.0</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">exp</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">exp(n) -> float</td><td class="py-2 px-3">e raised to the power n</td><td class="py-2 px-3 font-mono text-xs">exp(1) # 2.718...</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">sin</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">sin(radians) -> float</td><td class="py-2 px-3">Sine</td><td class="py-2 px-3 font-mono text-xs">sin(0) # 0.0</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">cos</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">cos(radians) -> float</td><td class="py-2 px-3">Cosine</td><td class="py-2 px-3 font-mono text-xs">cos(0) # 1.0</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">tan</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">tan(radians) -> float</td><td class="py-2 px-3">Tangent</td><td class="py-2 px-3 font-mono text-xs">tan(0) # 0.0</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">ceil</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">ceil(n) -> int</td><td class="py-2 px-3">Round up to integer</td><td class="py-2 px-3 font-mono text-xs">ceil(3.2) # 4</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">floor</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">floor(n) -> int</td><td class="py-2 px-3">Round down to integer</td><td class="py-2 px-3 font-mono text-xs">floor(3.8) # 3</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">round</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">round(n, places?) -> float</td><td class="py-2 px-3">Round to decimal places</td><td class="py-2 px-3 font-mono text-xs">round(3.14159, 2) # 3.14</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">random</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">random() -> float</td><td class="py-2 px-3">Random float in [0, 1)</td><td class="py-2 px-3 font-mono text-xs">random() # 0.7321...</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">sample</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">sample(list, n) -> list</td><td class="py-2 px-3">Random sample without replacement</td><td class="py-2 px-3 font-mono text-xs">sample([1,2,3,4,5], 3)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mb-12" id="bio-math">
+          <h3 class="text-xl font-bold text-white">Common Bioinformatics Patterns</h3>
+          <pre><code class="language-biolang"># log2 fold change
+let control_mean = mean([5.1, 4.9, 5.3])
+let treated_mean = mean([10.2, 9.8, 10.5])
+let log2fc = log2(treated_mean / control_mean)
+println("log2FC:", round(log2fc, 3))   # log2FC: 0.989
+
+# -log10 p-value for volcano plots
+let pvals = [0.001, 0.05, 0.0001, 0.5]
+let neg_log10 = map(pvals, |p| -log10(p))
+# [3.0, 1.301, 4.0, 0.301]
+
+# Phred quality score conversion
+let error_rate = 0.001
+let phred = -10 * log10(error_rate)   # 30.0
+
+# Bootstrap confidence interval
+let data = [23, 25, 28, 22, 30, 27]
+let boots = range(0, 1000) |> map(|_| {
+  let s = sample(data, len(data))
+  mean(s)
+})
+println("95% CI:", quantile(boots, 0.025), "-", quantile(boots, 0.975))</code></pre>
+        </section>
+
+        <section id="into" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4"><span class="text-violet-400 font-mono">into</span></h2>
+          <p class="text-slate-400 mb-4">Convert a value between types. Supports conversion to <code>"List"</code>, <code>"Set"</code>, <code>"Table"</code>, <code>"Str"</code>, <code>"Int"</code>, <code>"Float"</code>, and <code>"Record"</code>.</p>
+          <pre><code class="language-biolang">into(value, type_str) -> value</code></pre>
+          <pre><code class="language-biolang">into([1, 2, 3], "Set")        # {1, 2, 3}
+into({a: 1, b: 2}, "List")    # [["a", 1], ["b", 2]]
+into(3.14, "Int")              # 3
+into(42, "Str")                # "42"
+into("3.14", "Float")          # 3.14</code></pre>
+        </section>
+
+        <section id="ks-test" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Kolmogorov-Smirnov Test</h2>
+          <p class="text-slate-400 mb-4">Two-sample KS test &mdash; tests whether two samples come from the same distribution.</p>
+          <pre><code class="language-biolang">let result = ks_test(sample_a, sample_b)
+println("KS statistic:", result.statistic)
+println("p-value:", result.pvalue)
+
+# Compare quality distributions between lanes
+let lane1_quals = map(reads_lane1, |r| r.mean_quality) |> collect()
+let lane2_quals = map(reads_lane2, |r| r.mean_quality) |> collect()
+let ks = ks_test(lane1_quals, lane2_quals)
+if ks.pvalue < 0.05 { println("Significant difference between lanes") }</code></pre>
+        </section>
+
+        <section id="correlation" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Correlation: Spearman &amp; Kendall</h2>
+          <p class="text-slate-400 mb-4">Rank-based correlation coefficients for non-linear relationships.</p>
+          <pre><code class="language-biolang"># Spearman rank correlation
+let sp = spearman(expression_a, expression_b)
+println("Spearman rho:", sp.coefficient, "p:", sp.pvalue)
+
+# Kendall's tau — robust to outliers
+let kt = kendall(drug_dose, response)
+println("Kendall tau:", kt.coefficient, "p:", kt.pvalue)
+
+# Quick comparison — reassigning sp and kt
+sp = spearman(x, y)
+kt = kendall(x, y)
+println("Spearman:", sp.coefficient, "Kendall:", kt.coefficient)</code></pre>
+        </section>
+
+        <section id="survival" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Survival Analysis</h2>
+          <p class="text-slate-400 mb-4">Kaplan-Meier estimator and Cox proportional hazards regression for time-to-event data.</p>
+          <pre><code class="language-biolang"># Kaplan-Meier survival curve
+let km = kaplan_meier(times, events)
+# Returns: {times, survival, ci_lower, ci_upper, at_risk}
+
+# Access survival probabilities
+for i in range(0, len(km.times)) {
+  println("t=", km.times[i], " S=", km.survival[i],
+          " [", km.ci_lower[i], ",", km.ci_upper[i], "]",
+          " n=", km.at_risk[i])
+}
+
+# Cox proportional hazards
+let cox = cox_ph(time, event, covariates_table)
+# Returns: {coefficients, hazard_ratios, pvalues, concordance}
+println("Concordance:", cox.concordance)
+for i in range(0, len(cox.coefficients)) {
+  println("HR:", cox.hazard_ratios[i], "p:", cox.pvalues[i])
+}</code></pre>
+        </section>
+
+        <section id="formula-lm" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Formula-Based Linear Models</h2>
+          <p class="text-slate-400 mb-4">The <code class="text-cyan-400">lm</code> function fits a linear model from response and predictor data.</p>
+          <pre><code class="language-biolang"># Linear model: lm(response, predictors)
+let model = lm(expression_vec, predictor_matrix)
+
+# Returns: {coefficients, r_squared, adj_r_squared, residuals, predictions, ...}
+println("R²:", model.r_squared)
+println("Coefficients:", model.coefficients)</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="collections.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span>&larr;</span> Collections &amp; HOFs
+        </a>
+        <a href="string.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          String Operations <span>&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

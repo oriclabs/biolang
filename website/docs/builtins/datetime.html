@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DateTime — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/datetime"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">DateTime</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">DateTime</h1>
+        <p class="text-lg text-slate-400 mb-8">7 functions for date and time manipulation. Useful for timestamping pipeline runs, parsing sample collection dates, and computing experiment durations.</p>
+
+        <section class="mb-12" id="now">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">now</span></h2>
+          <p class="text-slate-400 mt-2">Return the current date and time as a datetime object (UTC).</p>
+          <pre><code class="language-biolang">now() -> datetime</code></pre>
+          <pre><code class="language-biolang">let start = now()
+# ... run analysis ...
+let elapsed = date_diff(start, now(), "seconds")
+println("Analysis took", elapsed, "seconds")</code></pre>
+        </section>
+
+        <section class="mb-12" id="timestamp">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">timestamp</span></h2>
+          <p class="text-slate-400 mt-2">Return current Unix timestamp (seconds since epoch) as an integer.</p>
+          <pre><code class="language-biolang">timestamp() -> int</code></pre>
+          <pre><code class="language-biolang">let ts = timestamp()   # 1709654400
+let outfile = format("results_{}.csv", ts)   # "results_1709654400.csv"</code></pre>
+        </section>
+
+        <section class="mb-12" id="date_format">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">date_format</span></h2>
+          <p class="text-slate-400 mt-2">Format a datetime as a string using strftime-style directives.</p>
+          <pre><code class="language-biolang">date_format(dt, format) -> string</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Directive</th><th class="text-left py-2 px-3 text-slate-400">Output</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">%Y</td><td class="py-2 px-3">4-digit year (2026)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">%m</td><td class="py-2 px-3">Month 01-12</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">%d</td><td class="py-2 px-3">Day 01-31</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">%H:%M:%S</td><td class="py-2 px-3">Time (14:30:00)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">%F</td><td class="py-2 px-3">ISO date (2026-03-05)</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">let dt = now()
+date_format(dt, "%Y-%m-%d")         # "2026-03-05"
+date_format(dt, "%F %H:%M:%S")      # "2026-03-05 14:30:00"
+date_format(dt, "run_%Y%m%d_%H%M")  # "run_20260305_1430"</code></pre>
+        </section>
+
+        <section class="mb-12" id="date_parse">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">date_parse</span></h2>
+          <p class="text-slate-400 mt-2">Parse a date string into a datetime object.</p>
+          <pre><code class="language-biolang">date_parse(s, format?) -> datetime</code></pre>
+          <pre><code class="language-biolang">date_parse("2026-03-05")                    # ISO auto-detected
+date_parse("05/03/2026", "%d/%m/%Y")         # explicit format
+date_parse("March 5, 2026", "%B %d, %Y")    # natural format
+
+# Parse sample collection dates
+let dates = ["2025-01-15", "2025-02-20", "2025-03-10"]
+let parsed = map(dates, |d| date_parse(d))</code></pre>
+        </section>
+
+        <section class="mb-12" id="date_add">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">date_add</span></h2>
+          <p class="text-slate-400 mt-2">Add a duration to a datetime.</p>
+          <pre><code class="language-biolang">date_add(dt, amount, unit) -> datetime</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Unit</th><th class="text-left py-2 px-3 text-slate-400">Values</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">"seconds", "minutes", "hours", "days", "weeks", "months", "years"</td><td class="py-2 px-3">Positive or negative integers</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">let collection_date = date_parse("2026-01-15")
+let follow_up = date_add(collection_date, 90, "days")
+println(date_format(follow_up, "%F"))   # "2026-04-15"
+
+let deadline = date_add(now(), -7, "days")   # one week ago</code></pre>
+        </section>
+
+        <section class="mb-12" id="date_diff">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">date_diff</span></h2>
+          <p class="text-slate-400 mt-2">Compute the difference between two datetimes in the specified unit.</p>
+          <pre><code class="language-biolang">date_diff(a, b, unit) -> int</code></pre>
+          <pre><code class="language-biolang">let start = date_parse("2025-06-01")
+let end = date_parse("2026-03-05")
+date_diff(start, end, "days")     # 277
+date_diff(start, end, "months")   # 9</code></pre>
+        </section>
+
+        <section class="mb-12" id="date_parts">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">year</span> / <span class="text-violet-400 font-mono">month</span> / <span class="text-violet-400 font-mono">day</span> / <span class="text-violet-400 font-mono">weekday</span></h2>
+          <p class="text-slate-400 mt-2">Extract components from a datetime.</p>
+          <pre><code class="language-biolang">year(dt) -> int
+month(dt) -> int
+day(dt) -> int
+weekday(dt) -> int</code></pre>
+          <pre><code class="language-biolang">let dt = date_parse("2026-03-05 14:30:00")
+year(dt)      # 2026
+month(dt)     # 3
+day(dt)       # 5
+weekday(dt)   # 4 (Thursday, 0=Monday)</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="json.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> JSON</a>
+        <a href="hash.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">Hash &amp; Encoding <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# BioMart API Examples
+# Ensembl BioMart bulk data retrieval — EU
+
+# Query BioMart with attributes and filters
+# biomart_query(dataset, attributes, filters) -> list of row lists
+# Filters are [key, value] pairs
+
+# Get gene info for specific genes
+let results = biomart_query(
+    "hsapiens_gene_ensembl",
+    ["ensembl_gene_id", "external_gene_name", "chromosome_name", "start_position", "end_position"],
+    [["external_gene_name", "TP53,BRCA1,EGFR"]]
+)
+println("=== BioMart Gene Query ===")
+for row in results {
+    println("  ", join(row, "\t"))
+}
+
+# Get all protein-coding genes on chromosome 17
+let chr17_genes = biomart_query(
+    "hsapiens_gene_ensembl",
+    ["external_gene_name", "ensembl_gene_id", "gene_biotype"],
+    [["chromosome_name", "17"], ["biotype", "protein_coding"]]
+)
+println("\n=== Chr17 protein-coding genes ===")
+println("Total:", len(chr17_genes))
+println("First 5:")
+for row in head(chr17_genes, 5) {
+    println("  ", row[0], "(", row[1], ")")
+}
+
+# Get ortholog information
+let orthologs = biomart_query(
+    "hsapiens_gene_ensembl",
+    ["external_gene_name", "mmusculus_homolog_associated_gene_name", "mmusculus_homolog_perc_id"],
+    [["external_gene_name", "TP53,BRCA1,KRAS"]]
+)
+println("\n=== Human-Mouse Orthologs ===")
+for row in orthologs {
+    println("  Human:", row[0], "-> Mouse:", row[1], "(", row[2], "% identity)")
+}

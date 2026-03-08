@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sequences — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/sequences"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Sequences</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Sequences</h1>
+        <p>
+          BioLang has three native sequence types &mdash; <code>DNA</code>, <code>RNA</code>, and
+          <code>Protein</code>. Each is a distinct type with its own literal syntax, validation
+          rules, and specialized operations. Sequences are immutable values; all transformation
+          functions return new sequences.
+        </p>
+
+        <h2>DNA Sequences</h2>
+        <p>
+          DNA literals use the <code>dna"..."</code> syntax and accept the characters
+          <code>A</code>, <code>C</code>, <code>G</code>, <code>T</code> (case-insensitive). IUPAC
+          ambiguity codes (<code>N</code>, <code>R</code>, <code>Y</code>, etc.) are also accepted.
+        </p>
+        <pre><code class="language-biolang"># Create a DNA sequence
+let seq = dna"ATCGATCGATCG"
+
+# Length
+seq_len(seq)              # => 12
+
+# GC content as a fraction between 0.0 and 1.0
+gc_content(seq)           # => 0.5
+
+# Reverse complement
+reverse_complement(seq)   # => dna"CGATCGATCGAT"
+
+# Complement (without reversing)
+complement(seq)           # => dna"TAGCTAGCTAGC"
+
+# Transcribe DNA to RNA (T → U)
+transcribe(seq)           # => rna"AUCGAUCGAUCG"
+
+# Base counts
+base_counts(seq)          # => {A: 3, T: 3, C: 3, G: 3}</code></pre>
+
+        <h3>Subsequence Extraction</h3>
+        <p>
+          Use <code>subseq(seq, start, end)</code> for zero-based, half-open substring extraction:
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCG"
+
+subseq(seq, 0, 4)     # => dna"ATCG"
+subseq(seq, 4, 8)     # => dna"ATCG"</code></pre>
+
+        <h3>Concatenation</h3>
+        <p>
+          DNA sequences can be concatenated with the <code>+</code> operator. Both operands must
+          be the same type &mdash; concatenating DNA with RNA is a type error:
+        </p>
+        <pre><code class="language-biolang">let left = dna"ATCG"
+let right = dna"GCTA"
+
+let combined = left + right    # => dna"ATCGGCTA"
+
+# Type error: cannot concatenate DNA and RNA
+# mixed = left + rna"AUCG"   # Error!</code></pre>
+
+        <h2>RNA Sequences</h2>
+        <p>
+          RNA literals use <code>rna"..."</code> syntax and accept <code>A</code>, <code>U</code>,
+          <code>C</code>, <code>G</code>. The key RNA-specific operation is translation to protein:
+        </p>
+        <pre><code class="language-biolang"># Create an RNA sequence
+let mrna = rna"AUGAAACUGUUGGUCUUU"
+
+# Translate to protein (standard genetic code)
+let prot = translate(mrna)        # => protein"MKLVVF"
+
+# RNA also supports reverse complement
+reverse_complement(mrna)       # => rna"AAAGACCAACAGUUUCAU"
+
+# Length and subsequence work identically to DNA
+seq_len(mrna)              # => 18
+subseq(mrna, 0, 3)        # => rna"AUG"</code></pre>
+
+        <h3>Translation Details</h3>
+        <p>
+          Translation reads the sequence in triplets (codons) starting from position 0. Stop
+          codons (<code>UAA</code>, <code>UAG</code>, <code>UGA</code> in the standard table)
+          terminate translation. Incomplete trailing codons are ignored:
+        </p>
+        <pre><code class="language-biolang"># Stop codon terminates translation
+translate(rna"AUGAAAUAAGGGUUU")   # => protein"MK"
+
+# Trailing bases after last complete codon are ignored
+translate(rna"AUGAAAC")           # => protein"MK"  (trailing C ignored)</code></pre>
+
+        <h2>Protein Sequences</h2>
+        <p>
+          Protein literals use <code>protein"..."</code> syntax and accept the 20 standard amino
+          acid one-letter codes plus <code>X</code> (unknown) and <code>*</code> (stop):
+        </p>
+        <pre><code class="language-biolang"># Create a protein sequence
+let prot = protein"MKTLVFGADRHWYCNQEIPS"
+
+# Length
+seq_len(prot)                 # => 20
+
+# Subsequence
+subseq(prot, 0, 5)           # => protein"MKTLV"
+
+# Convert to string
+prot |> to_string()           # => "MKTLVFGADRHWYCNQEIPS"</code></pre>
+
+        <h2>The Central Dogma as a Pipeline</h2>
+        <p>
+          BioLang's pipe syntax makes it natural to express the central dogma of molecular
+          biology as a data transformation pipeline:
+        </p>
+        <pre><code class="language-biolang"># DNA → RNA → Protein in one pipeline
+let gene = dna"ATGAAACTGTTGGTCTTT"
+
+let protein = gene
+  |> transcribe()       # DNA → RNA
+  |> translate()        # RNA → Protein
+  # => protein"MKLVVF"
+
+# GC content check
+gc_content(gene) |> print()   # => 0.389</code></pre>
+
+        <h2>Validation and Error Handling</h2>
+        <p>
+          Sequence literals are validated at parse time for the basic alphabet. Invalid
+          characters produce a clear error pointing to the offending position:
+        </p>
+        <pre><code class="language-biolang"># Parse-time validation catches invalid characters
+# let seq = dna"ATCGXYZ"   # Parse Error: invalid DNA character 'X' at position 4
+
+# Runtime introspection
+let seq = dna"ATCGATCG"
+print(type(seq))              # => "DNA"
+print(seq_len(seq))           # => 8
+print(base_counts(seq))       # => {A: 2, T: 2, C: 2, G: 2}</code></pre>
+
+        <h2>Working with Sequence Collections</h2>
+        <p>
+          Sequences integrate seamlessly with BioLang's table and streaming systems:
+        </p>
+        <pre><code class="language-biolang"># Build a table of sequence properties
+let sequences = [
+  dna"ATCGATCGATCG",
+  dna"GCGCGCGCGCGC",
+  dna"ATATATATATATAT",
+  dna"GGGCCCAAATTT",
+]
+
+let stats = sequences
+  |> map(|s| {
+    length: seq_len(s),
+    gc: gc_content(s),
+    revcomp: reverse_complement(s) |> to_string()
+  })
+  |> to_table()
+  |> print()
+
+# Filter sequences by GC content
+let gc_rich = sequences
+  |> filter(|s| gc_content(s) > 0.6)
+  |> collect()</code></pre>
+
+        <h2>Type Conversion</h2>
+        <p>
+          Explicit conversions between types are available where biologically meaningful.
+          Implicit conversions are never performed:
+        </p>
+        <pre><code class="language-biolang"># String to sequence (use the type-name function)
+let seq = dna("ATCGATCG")
+let rna_seq = rna("AUCGAUCG")
+let prot = protein("MKTLVF")
+
+# Sequence to string
+let str = to_string(seq)        # => "ATCGATCG"
+
+# Biologically meaningful: DNA → RNA via transcribe()
+let rna_from_dna = transcribe(seq)</code></pre>
+
+        <section id="quality" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Quality Scores</h2>
+          <p class="text-slate-400 mb-4">The <code class="text-violet-400">Quality</code> type represents Phred+33 encoded base quality scores, with a dedicated literal syntax.</p>
+          <pre><code class="language-biolang"># Quality literal (Phred+33 ASCII encoding)
+let q = qual"FFFFFFFF"
+
+# Quality analysis functions
+println("Mean Phred:", mean_phred(q))
+println("Min Phred:", min_phred(q))
+println("Error rate:", error_rate(q))
+
+# Trim low-quality bases
+let trimmed = trim_quality(q, 20)  # trim below Q20
+
+# FASTQ records include quality scores
+let reads = fastq("sample.fq")
+for read in reads {
+  if mean_phred(read.quality) < 25 {
+    println("Low quality read:", read.id)
+  }
+}</code></pre>
+          <table class="w-full text-sm mb-4 mt-4">
+            <thead class="border-b border-slate-800 text-left">
+              <tr>
+                <th class="py-2 px-3">Function</th>
+                <th class="py-2 px-3">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">mean_phred(q)</code></td><td class="py-2 px-3">Average Phred score across all positions</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">min_phred(q)</code></td><td class="py-2 px-3">Minimum Phred score</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">error_rate(q)</code></td><td class="py-2 px-3">Mean per-base error probability</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">trim_quality(q, min)</code></td><td class="py-2 px-3">Trim trailing bases below threshold</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="genomic-units" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Genomic Units</h2>
+          <p class="text-slate-400 mb-4">Unit helpers return integer base-pair counts for composable arithmetic.</p>
+          <pre><code class="language-biolang">let window = kb(500)           # 500000
+let offset = bp(200)           # 200
+let total = window + offset    # 500200
+let genome = gb(3.1)           # 3100000000
+
+# Use with intervals
+let start = mb(10)
+let end = start + kb(500)
+interval("chr1", start, end)</code></pre>
+        </section>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="index.html" class="text-violet-400 hover:text-violet-300">&larr; Overview</a>
+        <a href="formats.html" class="text-violet-400 hover:text-violet-300">Formats &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

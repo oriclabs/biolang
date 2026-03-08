@@ -1,0 +1,72 @@
+# strings.bl — String operations in BioLang
+# Strings are immutable sequences of characters
+
+let dna = "  ATGCGATCGA  "
+
+# Trimming whitespace
+println("trim: '" + trim(dna) + "'")
+println("trim_left: '" + trim_left(dna) + "'")
+println("trim_right: '" + trim_right(dna) + "'")
+
+# Case conversion
+let seq = "AtGcGa"
+println("upper: " + upper(seq))
+println("lower: " + lower(seq))
+
+# Length
+println("str_len: " + str(str_len("ATGC")))
+
+# Searching
+let header = ">sample_001|Homo sapiens|mRNA"
+println("starts_with '>': " + str(starts_with(header, ">")))
+println("ends_with 'mRNA': " + str(ends_with(header, "mRNA")))
+println("index_of '|': " + str(index_of(header, "|")))
+
+# Substrings and characters
+println("substr(1, 11): " + substr(header, 1, 11))
+println("char_at(0): " + char_at(header, 0))
+
+# Replacement
+let rna = str_replace("ATGCGATCGA", "T", "U")
+println("DNA to RNA: " + rna)
+
+# Splitting and joining
+let fields = split(header, "|")
+println("split on '|': " + str(fields))
+let rejoined = join(fields, " -- ")
+println("rejoined: " + rejoined)
+
+# Repetition and padding
+println("repeat: " + str_repeat("AT", 4))
+println("pad_left: '" + pad_left("42", 8, "0") + "'")
+println("pad_right: '" + pad_right("hi", 10, ".") + "'")
+
+# Format strings
+let name = "BRCA1"
+let pos = 43044295
+println(format("{} is at position {}", name, pos))
+
+# String comparison
+println("ABC < DEF: " + str("ABC" < "DEF"))
+println("equal: " + str("ATG" == "ATG"))
+
+# Multi-line strings
+let fasta = ">seq1 test sequence
+ATGCGATCGATCG
+GCTAGCTAGCTAG"
+println(fasta)
+
+# Practical: parse a FASTA header
+let parts = ">gi|123|ref|NM_001|description here"
+    |> substr(1)
+    |> split("|")
+println("GI: " + parts[1])
+println("Accession: " + parts[3])
+
+# String interpolation with pipes
+let gc = "ATGCGCTA"
+    |> chars()
+    |> filter(|c| c == "G" || c == "C")
+    |> len()
+let total = str_len("ATGCGCTA")
+println(format("GC content: {}/{} = {:.1}%", gc, total, gc * 100.0 / total))

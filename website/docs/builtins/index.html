@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Builtins Reference — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/index"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Builtins Reference</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-4">Builtins Reference</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          BioLang ships with <strong class="text-violet-400">270+ built-in functions</strong> spanning
+          bioinformatics, statistics, data wrangling, visualization, and systems programming.
+          Every function is available without imports &mdash; just call it.
+        </p>
+
+        <!-- Search / Filter -->
+        <div class="mb-8">
+          <div class="relative">
+            <input
+              type="text"
+              id="builtin-search"
+              placeholder="Search builtins by name, category, or description..."
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 pl-10 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+            >
+            <svg class="absolute left-3 top-3.5 w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <div class="flex gap-2 mt-3 flex-wrap" id="category-filters">
+            <button class="filter-btn active px-3 py-1 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 transition" data-cat="all">All</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="core">Core</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="collections">Collections</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="math">Math &amp; Stats</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="string">String</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="table">Tables</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="matrix">Matrix</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="sparse">Sparse</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="regex">Regex</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="json">JSON</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="datetime">DateTime</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="hash">Hash</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="filesystem">Filesystem</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="http">HTTP</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="viz">Visualization</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="plotting">Plotting</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="bio-plots">Bio Plots</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="containers">Containers</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="llm">LLM</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="transfer">Transfer</button>
+            <button class="filter-btn px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition" data-cat="advanced">Advanced</button>
+          </div>
+        </div>
+
+        <p class="text-sm text-slate-500 mb-4" id="result-count">Showing all 270+ builtins</p>
+
+        <!-- Master Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="builtins-table">
+            <thead>
+              <tr class="border-b border-slate-800 text-left">
+                <th class="py-3 px-3 text-slate-400 font-semibold w-48">Name</th>
+                <th class="py-3 px-3 text-slate-400 font-semibold w-32">Category</th>
+                <th class="py-3 px-3 text-slate-400 font-semibold w-72">Signature</th>
+                <th class="py-3 px-3 text-slate-400 font-semibold">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Core -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">print</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">print(values...) -> nil</td><td class="py-2 px-3 text-slate-400">Print values to stdout without newline</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">println</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">println(values...) -> nil</td><td class="py-2 px-3 text-slate-400">Print values to stdout with newline</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">len</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">len(value) -> int</td><td class="py-2 px-3 text-slate-400">Return length of string, list, or map</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">type</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">type(value) -> string</td><td class="py-2 px-3 text-slate-400">Return type name as string</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">range</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">range(start, end, step?) -> list</td><td class="py-2 px-3 text-slate-400">Generate integer sequence</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">abs</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">abs(n) -> number</td><td class="py-2 px-3 text-slate-400">Absolute value</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">min</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">min(a, b) -> number</td><td class="py-2 px-3 text-slate-400">Return smaller of two values</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">max</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">max(a, b) -> number</td><td class="py-2 px-3 text-slate-400">Return larger of two values</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">int</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">int(value) -> int</td><td class="py-2 px-3 text-slate-400">Cast to integer</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">float</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">float(value) -> float</td><td class="py-2 px-3 text-slate-400">Cast to float</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">str</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">str(value) -> string</td><td class="py-2 px-3 text-slate-400">Cast to string</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">bool</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">bool(value) -> bool</td><td class="py-2 px-3 text-slate-400">Cast to boolean</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">assert</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">assert(cond, msg?) -> nil</td><td class="py-2 px-3 text-slate-400">Assert condition is truthy or abort</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">debug</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">debug(value) -> value</td><td class="py-2 px-3 text-slate-400">Print debug representation, return value</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">typeof</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">typeof(value) -> string</td><td class="py-2 px-3 text-slate-400">Alias for type()</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">is_nil</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">is_nil(value) -> bool</td><td class="py-2 px-3 text-slate-400">Check if value is nil</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="core"><td class="py-2 px-3"><a href="core.html" class="text-violet-400 hover:text-violet-300 font-mono">to_string</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">Core</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">to_string(value) -> string</td><td class="py-2 px-3 text-slate-400">Convert any value to its string representation</td></tr>
+
+              <!-- Collections -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">map</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">map(list, fn) -> list</td><td class="py-2 px-3 text-slate-400">Apply function to each element</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">filter</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">filter(list, fn) -> list</td><td class="py-2 px-3 text-slate-400">Keep elements where fn returns true</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">reduce</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">reduce(list, fn, init?) -> value</td><td class="py-2 px-3 text-slate-400">Accumulate list into single value</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">sort</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">sort(list) -> list</td><td class="py-2 px-3 text-slate-400">Sort in ascending order</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">sort_by</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">sort_by(list, fn) -> list</td><td class="py-2 px-3 text-slate-400">Sort with custom comparator</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">push</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">push(list, value) -> list</td><td class="py-2 px-3 text-slate-400">Append element to end of list</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">pop</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">pop(list) -> value</td><td class="py-2 px-3 text-slate-400">Remove and return last element</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">shift</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">shift(list) -> value</td><td class="py-2 px-3 text-slate-400">Remove and return first element</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">zip</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">zip(a, b) -> list</td><td class="py-2 px-3 text-slate-400">Pair elements from two lists</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">enumerate</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">enumerate(list) -> list</td><td class="py-2 px-3 text-slate-400">Pair each element with its index</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">flatten</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">flatten(list) -> list</td><td class="py-2 px-3 text-slate-400">Flatten nested lists one level</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">reverse</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">reverse(list) -> list</td><td class="py-2 px-3 text-slate-400">Reverse element order</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">unique</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">unique(list) -> list</td><td class="py-2 px-3 text-slate-400">Remove duplicate elements</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">first</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">first(list) -> value</td><td class="py-2 px-3 text-slate-400">Return first element</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">last</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">last(list) -> value</td><td class="py-2 px-3 text-slate-400">Return last element</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">take</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">take(list, n) -> list</td><td class="py-2 px-3 text-slate-400">Take first n elements</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">drop</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">drop(list, n) -> list</td><td class="py-2 px-3 text-slate-400">Drop first n elements</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">any</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">any(list, fn) -> bool</td><td class="py-2 px-3 text-slate-400">True if any element matches predicate</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">all</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">all(list, fn) -> bool</td><td class="py-2 px-3 text-slate-400">True if all elements match predicate</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">find</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">find(list, fn) -> value|nil</td><td class="py-2 px-3 text-slate-400">Find first matching element</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">find_index</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">find_index(list, fn) -> int|nil</td><td class="py-2 px-3 text-slate-400">Find index of first match</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">chunk</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">chunk(list, size) -> list</td><td class="py-2 px-3 text-slate-400">Split list into chunks of given size</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">window_slide</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">window_slide(list, size) -> list</td><td class="py-2 px-3 text-slate-400">Sliding window over list</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="collections"><td class="py-2 px-3"><a href="collections.html" class="text-violet-400 hover:text-violet-300 font-mono">group_by</a></td><td class="py-2 px-3"><span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Collections</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">group_by(list, fn) -> map</td><td class="py-2 px-3 text-slate-400">Group elements by key function</td></tr>
+
+              <!-- Math & Stats -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">mean</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">mean(list) -> float</td><td class="py-2 px-3 text-slate-400">Arithmetic mean</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">median</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">median(list) -> float</td><td class="py-2 px-3 text-slate-400">Middle value of sorted list</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">stdev</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">stdev(list) -> float</td><td class="py-2 px-3 text-slate-400">Standard deviation (sample)</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">variance</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">variance(list) -> float</td><td class="py-2 px-3 text-slate-400">Variance (sample)</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">sum</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">sum(list) -> number</td><td class="py-2 px-3 text-slate-400">Sum of all elements</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">quantile</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">quantile(list, q) -> float</td><td class="py-2 px-3 text-slate-400">Q-th quantile (0.0 to 1.0)</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">ttest</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">ttest(a, b) -> map</td><td class="py-2 px-3 text-slate-400">Two-sample t-test</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">correlation</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">correlation(a, b) -> float</td><td class="py-2 px-3 text-slate-400">Pearson correlation coefficient</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">sqrt</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">sqrt(n) -> float</td><td class="py-2 px-3 text-slate-400">Square root</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">log</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">log(n) -> float</td><td class="py-2 px-3 text-slate-400">Natural logarithm</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="math"><td class="py-2 px-3"><a href="math-stats.html" class="text-violet-400 hover:text-violet-300 font-mono">random</a></td><td class="py-2 px-3"><span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Math</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">random() -> float</td><td class="py-2 px-3 text-slate-400">Random float in [0, 1)</td></tr>
+
+              <!-- String -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="string"><td class="py-2 px-3"><a href="string.html" class="text-violet-400 hover:text-violet-300 font-mono">upper</a></td><td class="py-2 px-3"><span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">String</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">upper(s) -> string</td><td class="py-2 px-3 text-slate-400">Convert to uppercase</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="string"><td class="py-2 px-3"><a href="string.html" class="text-violet-400 hover:text-violet-300 font-mono">lower</a></td><td class="py-2 px-3"><span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">String</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">lower(s) -> string</td><td class="py-2 px-3 text-slate-400">Convert to lowercase</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="string"><td class="py-2 px-3"><a href="string.html" class="text-violet-400 hover:text-violet-300 font-mono">split</a></td><td class="py-2 px-3"><span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">String</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">split(s, delim) -> list</td><td class="py-2 px-3 text-slate-400">Split string by delimiter</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="string"><td class="py-2 px-3"><a href="string.html" class="text-violet-400 hover:text-violet-300 font-mono">join</a></td><td class="py-2 px-3"><span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">String</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">join(list, sep) -> string</td><td class="py-2 px-3 text-slate-400">Join list elements into string</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="string"><td class="py-2 px-3"><a href="string.html" class="text-violet-400 hover:text-violet-300 font-mono">replace</a></td><td class="py-2 px-3"><span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">String</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">replace(s, old, new) -> string</td><td class="py-2 px-3 text-slate-400">Replace all occurrences</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="string"><td class="py-2 px-3"><a href="string.html" class="text-violet-400 hover:text-violet-300 font-mono">contains</a></td><td class="py-2 px-3"><span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">String</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">contains(s, sub) -> bool</td><td class="py-2 px-3 text-slate-400">Check if string contains substring</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="string"><td class="py-2 px-3"><a href="string.html" class="text-violet-400 hover:text-violet-300 font-mono">format</a></td><td class="py-2 px-3"><span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">String</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">format(template, args...) -> string</td><td class="py-2 px-3 text-slate-400">Format string with placeholders</td></tr>
+
+              <!-- Tables -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="table"><td class="py-2 px-3"><a href="tables.html" class="text-violet-400 hover:text-violet-300 font-mono">table</a></td><td class="py-2 px-3"><span class="text-xs bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">Tables</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">table(columns) -> table</td><td class="py-2 px-3 text-slate-400">Create table from column map</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="table"><td class="py-2 px-3"><a href="tables.html" class="text-violet-400 hover:text-violet-300 font-mono">csv</a></td><td class="py-2 px-3"><span class="text-xs bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">Tables</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">csv(path, opts?) -> table</td><td class="py-2 px-3 text-slate-400">Read CSV file into table</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="table"><td class="py-2 px-3"><a href="tables.html" class="text-violet-400 hover:text-violet-300 font-mono">select</a></td><td class="py-2 px-3"><span class="text-xs bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">Tables</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">select(tbl, cols...) -> table</td><td class="py-2 px-3 text-slate-400">Select columns from table</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="table"><td class="py-2 px-3"><a href="tables.html" class="text-violet-400 hover:text-violet-300 font-mono">mutate</a></td><td class="py-2 px-3"><span class="text-xs bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">Tables</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">mutate(tbl, name, fn) -> table</td><td class="py-2 px-3 text-slate-400">Add or modify column</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="table"><td class="py-2 px-3"><a href="tables.html" class="text-violet-400 hover:text-violet-300 font-mono">left_join</a></td><td class="py-2 px-3"><span class="text-xs bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">Tables</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">left_join(a, b, on) -> table</td><td class="py-2 px-3 text-slate-400">Left join two tables</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="table"><td class="py-2 px-3"><a href="tables.html" class="text-violet-400 hover:text-violet-300 font-mono">pivot_wider</a></td><td class="py-2 px-3"><span class="text-xs bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">Tables</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">pivot_wider(tbl, names, vals) -> table</td><td class="py-2 px-3 text-slate-400">Pivot from long to wide format</td></tr>
+
+              <!-- Matrix -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="matrix"><td class="py-2 px-3"><a href="matrix.html" class="text-violet-400 hover:text-violet-300 font-mono">matrix</a></td><td class="py-2 px-3"><span class="text-xs bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded">Matrix</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">matrix(rows) -> matrix</td><td class="py-2 px-3 text-slate-400">Create matrix from nested lists</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="matrix"><td class="py-2 px-3"><a href="matrix.html" class="text-violet-400 hover:text-violet-300 font-mono">matmul</a></td><td class="py-2 px-3"><span class="text-xs bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded">Matrix</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">matmul(a, b) -> matrix</td><td class="py-2 px-3 text-slate-400">Matrix multiplication</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="matrix"><td class="py-2 px-3"><a href="matrix.html" class="text-violet-400 hover:text-violet-300 font-mono">pca</a></td><td class="py-2 px-3"><span class="text-xs bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded">Matrix</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">pca(mat, n_components) -> map</td><td class="py-2 px-3 text-slate-400">Principal Component Analysis</td></tr>
+
+              <!-- Sparse -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="sparse"><td class="py-2 px-3"><a href="sparse.html" class="text-violet-400 hover:text-violet-300 font-mono">sparse_matrix</a></td><td class="py-2 px-3"><span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded">Sparse</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">sparse_matrix(entries, r, c) -> sparse</td><td class="py-2 px-3 text-slate-400">Create sparse matrix from triplets</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="sparse"><td class="py-2 px-3"><a href="sparse.html" class="text-violet-400 hover:text-violet-300 font-mono">log1p_cpm</a></td><td class="py-2 px-3"><span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded">Sparse</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">log1p_cpm(mat) -> sparse</td><td class="py-2 px-3 text-slate-400">log(1 + CPM) normalization for scRNA-seq</td></tr>
+
+              <!-- Regex -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="regex"><td class="py-2 px-3"><a href="regex.html" class="text-violet-400 hover:text-violet-300 font-mono">regex_match</a></td><td class="py-2 px-3"><span class="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">Regex</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">regex_match(s, pattern) -> bool</td><td class="py-2 px-3 text-slate-400">Test if pattern matches string</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="regex"><td class="py-2 px-3"><a href="regex.html" class="text-violet-400 hover:text-violet-300 font-mono">regex_captures</a></td><td class="py-2 px-3"><span class="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">Regex</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">regex_captures(s, pattern) -> list</td><td class="py-2 px-3 text-slate-400">Extract capture groups</td></tr>
+
+              <!-- JSON -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="json"><td class="py-2 px-3"><a href="json.html" class="text-violet-400 hover:text-violet-300 font-mono">json_parse</a></td><td class="py-2 px-3"><span class="text-xs bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded">JSON</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">json_parse(s) -> value</td><td class="py-2 px-3 text-slate-400">Parse JSON string</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="json"><td class="py-2 px-3"><a href="json.html" class="text-violet-400 hover:text-violet-300 font-mono">json_keys</a></td><td class="py-2 px-3"><span class="text-xs bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded">JSON</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">json_keys(value) -> list</td><td class="py-2 px-3 text-slate-400">Get keys from a JSON object</td></tr>
+
+              <!-- DateTime -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="datetime"><td class="py-2 px-3"><a href="datetime.html" class="text-violet-400 hover:text-violet-300 font-mono">now</a></td><td class="py-2 px-3"><span class="text-xs bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded">DateTime</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">now() -> datetime</td><td class="py-2 px-3 text-slate-400">Current date and time</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="datetime"><td class="py-2 px-3"><a href="datetime.html" class="text-violet-400 hover:text-violet-300 font-mono">date_diff</a></td><td class="py-2 px-3"><span class="text-xs bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded">DateTime</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">date_diff(a, b, unit) -> int</td><td class="py-2 px-3 text-slate-400">Difference between two dates</td></tr>
+
+              <!-- Hash -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="hash"><td class="py-2 px-3"><a href="hash.html" class="text-violet-400 hover:text-violet-300 font-mono">verify_checksum</a></td><td class="py-2 px-3"><span class="text-xs bg-lime-500/20 text-lime-400 px-2 py-0.5 rounded">Hash</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">verify_checksum(path, expected, algorithm?) -> bool</td><td class="py-2 px-3 text-slate-400">Verify file checksum (MD5, SHA-1, SHA-256)</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="hash"><td class="py-2 px-3"><a href="hash.html" class="text-violet-400 hover:text-violet-300 font-mono">sketch</a></td><td class="py-2 px-3"><span class="text-xs bg-lime-500/20 text-lime-400 px-2 py-0.5 rounded">Hash</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">sketch(sequence, k, sketch_size) -> list</td><td class="py-2 px-3 text-slate-400">MinHash sketch for sequence similarity</td></tr>
+
+              <!-- Filesystem -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="filesystem"><td class="py-2 px-3"><a href="filesystem.html" class="text-violet-400 hover:text-violet-300 font-mono">read_text</a></td><td class="py-2 px-3"><span class="text-xs bg-stone-500/20 text-stone-400 px-2 py-0.5 rounded">Filesystem</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">read_text(path) -> string</td><td class="py-2 px-3 text-slate-400">Read file contents as string</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="filesystem"><td class="py-2 px-3"><a href="filesystem.html" class="text-violet-400 hover:text-violet-300 font-mono">glob</a></td><td class="py-2 px-3"><span class="text-xs bg-stone-500/20 text-stone-400 px-2 py-0.5 rounded">Filesystem</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">glob(pattern) -> list</td><td class="py-2 px-3 text-slate-400">Find files matching glob pattern</td></tr>
+
+              <!-- HTTP -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="http"><td class="py-2 px-3"><a href="http.html" class="text-violet-400 hover:text-violet-300 font-mono">http_get</a></td><td class="py-2 px-3"><span class="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">HTTP</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">http_get(url, opts?) -> response</td><td class="py-2 px-3 text-slate-400">HTTP GET request</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="http"><td class="py-2 px-3"><a href="http.html" class="text-violet-400 hover:text-violet-300 font-mono">bio_fetch</a></td><td class="py-2 px-3"><span class="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">HTTP</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">bio_fetch(db, id) -> map</td><td class="py-2 px-3 text-slate-400">Fetch record from biological database</td></tr>
+
+              <!-- Visualization -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="viz"><td class="py-2 px-3"><a href="visualization.html" class="text-violet-400 hover:text-violet-300 font-mono">sparkline</a></td><td class="py-2 px-3"><span class="text-xs bg-fuchsia-500/20 text-fuchsia-400 px-2 py-0.5 rounded">Viz</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">sparkline(data) -> string</td><td class="py-2 px-3 text-slate-400">Unicode sparkline chart</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="viz"><td class="py-2 px-3"><a href="visualization.html" class="text-violet-400 hover:text-violet-300 font-mono">boxplot</a></td><td class="py-2 px-3"><span class="text-xs bg-fuchsia-500/20 text-fuchsia-400 px-2 py-0.5 rounded">Viz</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">boxplot(data, opts?) -> string</td><td class="py-2 px-3 text-slate-400">ASCII boxplot</td></tr>
+
+              <!-- Plotting -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="plotting"><td class="py-2 px-3"><a href="plotting.html" class="text-violet-400 hover:text-violet-300 font-mono">plot</a></td><td class="py-2 px-3"><span class="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Plotting</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">plot(data, opts?) -> svg</td><td class="py-2 px-3 text-slate-400">Generic plot dispatcher</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="plotting"><td class="py-2 px-3"><a href="plotting.html" class="text-violet-400 hover:text-violet-300 font-mono">heatmap</a></td><td class="py-2 px-3"><span class="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Plotting</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">heatmap(mat, opts?) -> svg</td><td class="py-2 px-3 text-slate-400">Heatmap from matrix data</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="plotting"><td class="py-2 px-3"><a href="plotting.html" class="text-violet-400 hover:text-violet-300 font-mono">volcano</a></td><td class="py-2 px-3"><span class="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Plotting</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">volcano(tbl, opts?) -> svg</td><td class="py-2 px-3 text-slate-400">Volcano plot for DE analysis</td></tr>
+
+              <!-- Bio Plots -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="bio-plots"><td class="py-2 px-3"><a href="bio-plots.html" class="text-violet-400 hover:text-violet-300 font-mono">manhattan</a></td><td class="py-2 px-3"><span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Bio Plots</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">manhattan(tbl, opts?) -> svg</td><td class="py-2 px-3 text-slate-400">Manhattan plot for GWAS</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="bio-plots"><td class="py-2 px-3"><a href="bio-plots.html" class="text-violet-400 hover:text-violet-300 font-mono">circos</a></td><td class="py-2 px-3"><span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Bio Plots</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">circos(tracks, opts?) -> svg</td><td class="py-2 px-3 text-slate-400">Circos plot for genomic data</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="bio-plots"><td class="py-2 px-3"><a href="bio-plots.html" class="text-violet-400 hover:text-violet-300 font-mono">cell_embedding</a></td><td class="py-2 px-3"><span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Bio Plots</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">cell_embedding(coords, labels) -> svg</td><td class="py-2 px-3 text-slate-400">UMAP/tSNE cell embedding plot</td></tr>
+
+              <!-- Containers -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="containers"><td class="py-2 px-3"><a href="containers.html" class="text-violet-400 hover:text-violet-300 font-mono">container_run</a></td><td class="py-2 px-3"><span class="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">Containers</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">container_run(image, cmd, opts?) -> map</td><td class="py-2 px-3 text-slate-400">Run command in container</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="containers"><td class="py-2 px-3"><a href="containers.html" class="text-violet-400 hover:text-violet-300 font-mono">biocontainer</a></td><td class="py-2 px-3"><span class="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">Containers</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">biocontainer(tool, cmd) -> map</td><td class="py-2 px-3 text-slate-400">Run BioContainers tool</td></tr>
+
+              <!-- LLM -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="llm"><td class="py-2 px-3"><a href="llm.html" class="text-violet-400 hover:text-violet-300 font-mono">chat</a></td><td class="py-2 px-3"><span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">LLM</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">chat(prompt, opts?) -> string</td><td class="py-2 px-3 text-slate-400">Send prompt to LLM</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="llm"><td class="py-2 px-3"><a href="llm.html" class="text-violet-400 hover:text-violet-300 font-mono">llm_models</a></td><td class="py-2 px-3"><span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">LLM</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">llm_models() -> list</td><td class="py-2 px-3 text-slate-400">List available LLM models</td></tr>
+
+              <!-- Transfer -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="transfer"><td class="py-2 px-3"><a href="transfer.html" class="text-violet-400 hover:text-violet-300 font-mono">s3_download</a></td><td class="py-2 px-3"><span class="text-xs bg-slate-500/20 text-slate-400 px-2 py-0.5 rounded">Transfer</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">s3_download(bucket, key, path) -> string</td><td class="py-2 px-3 text-slate-400">Download from S3</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="transfer"><td class="py-2 px-3"><a href="transfer.html" class="text-violet-400 hover:text-violet-300 font-mono">sra_fastq</a></td><td class="py-2 px-3"><span class="text-xs bg-slate-500/20 text-slate-400 px-2 py-0.5 rounded">Transfer</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">sra_fastq(accession, outdir) -> list</td><td class="py-2 px-3 text-slate-400">Download FASTQ from SRA</td></tr>
+
+              <!-- Advanced -->
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="advanced"><td class="py-2 px-3"><a href="advanced.html" class="text-violet-400 hover:text-violet-300 font-mono">par_map</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded">Advanced</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">par_map(list, fn, threads?) -> list</td><td class="py-2 px-3 text-slate-400">Parallel map across threads</td></tr>
+              <tr class="border-b border-slate-800/50 hover:bg-slate-900/50" data-cat="advanced"><td class="py-2 px-3"><a href="advanced.html" class="text-violet-400 hover:text-violet-300 font-mono">provenance</a></td><td class="py-2 px-3"><span class="text-xs bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded">Advanced</span></td><td class="py-2 px-3 font-mono text-xs text-cyan-400">provenance(value) -> map</td><td class="py-2 px-3 text-slate-400">Get data provenance/lineage</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Category Cards -->
+        <h2 class="text-2xl font-bold text-white mt-12 mb-6">Browse by Category</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 not-prose">
+          <a href="core.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Core</h3>
+            <p class="text-sm text-slate-500 mt-1">17 functions &mdash; print, len, type, range, casting</p>
+          </a>
+          <a href="collections.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Collections &amp; HOFs</h3>
+            <p class="text-sm text-slate-500 mt-1">24 functions &mdash; map, filter, reduce, sort, zip</p>
+          </a>
+          <a href="math-stats.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Math &amp; Statistics</h3>
+            <p class="text-sm text-slate-500 mt-1">25 functions &mdash; mean, stdev, ttest, sqrt, log</p>
+          </a>
+          <a href="string.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">String Operations</h3>
+            <p class="text-sm text-slate-500 mt-1">18 functions &mdash; split, join, replace, format</p>
+          </a>
+          <a href="tables.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Table Operations</h3>
+            <p class="text-sm text-slate-500 mt-1">32 functions &mdash; csv, select, join, pivot</p>
+          </a>
+          <a href="matrix.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Matrix</h3>
+            <p class="text-sm text-slate-500 mt-1">18 functions &mdash; matmul, svd, pca, eigenvalues</p>
+          </a>
+          <a href="sparse.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Sparse Matrix</h3>
+            <p class="text-sm text-slate-500 mt-1">9 functions &mdash; sparse ops, log1p_cpm, tfidf</p>
+          </a>
+          <a href="regex.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Regex</h3>
+            <p class="text-sm text-slate-500 mt-1">6 functions &mdash; match, find, replace, captures</p>
+          </a>
+          <a href="json.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">JSON</h3>
+            <p class="text-sm text-slate-500 mt-1">6 functions &mdash; parse, stringify, read, path</p>
+          </a>
+          <a href="datetime.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">DateTime</h3>
+            <p class="text-sm text-slate-500 mt-1">7 functions &mdash; now, format, parse, add, diff</p>
+          </a>
+          <a href="hash.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Hash &amp; Encoding</h3>
+            <p class="text-sm text-slate-500 mt-1">10 functions &mdash; sha256, base64, sketch</p>
+          </a>
+          <a href="filesystem.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">File System</h3>
+            <p class="text-sm text-slate-500 mt-1">18 functions &mdash; read, write, glob, mkdir</p>
+          </a>
+          <a href="http.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">HTTP &amp; Network</h3>
+            <p class="text-sm text-slate-500 mt-1">10 functions &mdash; get, post, download, bio_fetch</p>
+          </a>
+          <a href="visualization.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">ASCII Plots</h3>
+            <p class="text-sm text-slate-500 mt-1">8 functions &mdash; sparkline, bar_chart, boxplot</p>
+          </a>
+          <a href="plotting.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">SVG Plots</h3>
+            <p class="text-sm text-slate-500 mt-1">14 functions &mdash; scatter, heatmap, volcano</p>
+          </a>
+          <a href="bio-plots.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Bio Plots</h3>
+            <p class="text-sm text-slate-500 mt-1">21 functions &mdash; manhattan, circos, oncoprint</p>
+          </a>
+          <a href="containers.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Containers</h3>
+            <p class="text-sm text-slate-500 mt-1">5 functions &mdash; container_run, container_pull, tool_search, tool_info, tool_pull</p>
+          </a>
+          <a href="llm.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">LLM Chat</h3>
+            <p class="text-sm text-slate-500 mt-1">5 functions &mdash; chat, analyze, code, config</p>
+          </a>
+          <a href="transfer.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Transfer</h3>
+            <p class="text-sm text-slate-500 mt-1">10 functions &mdash; ftp, s3, gcs, sra_fastq</p>
+          </a>
+          <a href="advanced.html" class="block p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition group">
+            <h3 class="font-semibold text-white group-hover:text-violet-400 transition">Advanced</h3>
+            <p class="text-sm text-slate-500 mt-1">20 functions &mdash; par_map, spawn, provenance</p>
+          </a>
+        </div>
+
+        <p class="text-sm text-slate-500 mt-6 italic">
+          New in recent releases: additional sequence utilities, expanded sparse matrix ops, and new bio plot types bring the total to 270+ functions. Check the individual category pages for the latest additions.
+        </p>
+      </article>
+
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <div></div>
+        <a href="core.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Core Functions <span>&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const search = document.getElementById('builtin-search');
+      const rows = document.querySelectorAll('#builtins-table tbody tr');
+      const count = document.getElementById('result-count');
+      const filterBtns = document.querySelectorAll('.filter-btn');
+      let activeCat = 'all';
+
+      function applyFilters() {
+        const q = search.value.toLowerCase();
+        let visible = 0;
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          const cat = row.dataset.cat;
+          const matchCat = activeCat === 'all' || cat === activeCat;
+          const matchSearch = !q || text.includes(q);
+          row.style.display = matchCat && matchSearch ? '' : 'none';
+          if (matchCat && matchSearch) visible++;
+        });
+        count.textContent = `Showing ${visible} builtin${visible !== 1 ? 's' : ''}`;
+      }
+
+      search.addEventListener('input', applyFilters);
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach(b => {
+            b.classList.remove('active', 'bg-violet-500/20', 'text-violet-400', 'border-violet-500/30');
+            b.classList.add('bg-slate-800', 'text-slate-400', 'border-slate-700');
+          });
+          btn.classList.add('active', 'bg-violet-500/20', 'text-violet-400', 'border-violet-500/30');
+          btn.classList.remove('bg-slate-800', 'text-slate-400', 'border-slate-700');
+          activeCat = btn.dataset.cat;
+          applyFilters();
+        });
+      });
+    });
+  </script>
+</body>
+</html>

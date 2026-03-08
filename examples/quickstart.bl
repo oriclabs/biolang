@@ -1,0 +1,56 @@
+# BioLang Quickstart — run from the project root:
+#   bl examples/quickstart.bl
+#
+# All sample data is in examples/sample-data/
+
+# ── FASTA: read and analyze contigs ──
+let contigs = fasta("examples/sample-data/contigs.fa", "table")
+print("Contigs loaded: " + str(nrow(contigs)))
+contigs |> select("id") |> print()
+
+# ── FASTQ: quality check ──
+let reads = fastq("examples/sample-data/reads.fq", "table")
+print("\nReads loaded: " + str(nrow(reads)))
+
+# Filter high-quality reads (mean quality > 30)
+let hq = reads |> filter(|r| mean(r.qual) > 30)
+print("High-quality reads: " + str(nrow(hq)))
+
+# ── VCF: variant analysis ──
+let variants = vcf("examples/sample-data/calls.vcf", "table")
+print("\nVariants loaded: " + str(nrow(variants)))
+
+# Filter PASS variants with quality > 50
+let pass_vars = variants |> filter(|v| v.filter == "PASS" and v.qual > 50)
+print("PASS variants (qual > 50): " + str(nrow(pass_vars)))
+
+# ── BED: genomic regions ──
+let promoters = bed("examples/sample-data/promoters.bed", "table")
+print("\nPromoter regions: " + str(nrow(promoters)))
+
+# ── CSV: gene expression ──
+let counts = read_csv("examples/sample-data/gene_counts.csv")
+print("\nGenes in expression matrix: " + str(nrow(counts)))
+
+# Show top 5 genes by control mean expression
+counts
+  |> mutate(|row| {ctrl_mean: mean([row.CTRL_1, row.CTRL_2, row.CTRL_3])})
+  |> sort_by(|row| row.ctrl_mean)
+  |> reverse()
+  |> take(5)
+  |> select("gene_name", "ctrl_mean")
+  |> print()
+
+# ── GFF: gene annotations ──
+let features = gff("examples/sample-data/annotations.gff", "table")
+let genes = features |> filter(|f| f.type == "gene")
+print("\nAnnotated genes: " + str(nrow(genes)))
+
+# ── DNA sequence operations ──
+let seq = dna"ATCGATCGATCGTAGCTAGCTAGCTAGCTGATCGATCG"
+print("\nSequence: " + str(seq))
+print("Length: " + str(len(seq)))
+print("GC content: " + str(gc(seq)))
+print("Reverse complement: " + str(rev_comp(seq)))
+
+print("\n--- Quickstart complete! ---")

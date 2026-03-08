@@ -1,0 +1,209 @@
+# ── Tumor Microenvironment Cell Type Identification from scRNA-seq ──
+# Analyze a simulated 10x Chromium dataset from a solid tumor biopsy.
+# Goal: identify immune, stromal, and epithelial populations via unsupervised
+# clustering and canonical marker expression.
+
+# ── 1. Simulated Count Matrix (20 cells x 10 marker genes) ──
+# Columns: CD3E  CD4  CD8A  MS4A1  CD14  FCGR3A  NKG7  COL1A1  EPCAM  PECAM1
+
+let counts = matrix([
+  # CD4 T cells (cells 0-2): CD3E+, CD4+
+  [82, 45, 1, 0, 0, 0, 3, 0, 0, 0],
+  [91, 52, 2, 1, 0, 0, 1, 0, 0, 0],
+  [76, 39, 0, 0, 1, 0, 2, 0, 1, 0],
+  # CD8 T cells (cells 3-5): CD3E+, CD8A+
+  [88, 2, 61, 0, 0, 0, 12, 0, 0, 0],
+  [79, 1, 55, 0, 0, 0, 9, 0, 0, 0],
+  [93, 0, 68, 1, 0, 0, 15, 0, 0, 0],
+  # B cells (cells 6-8): MS4A1+
+  [1, 0, 0, 74, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 88, 1, 0, 0, 0, 0, 0],
+  [2, 1, 0, 69, 0, 0, 0, 0, 1, 0],
+  # Monocytes (cells 9-11): CD14+, FCGR3A+
+  [0, 0, 0, 0, 65, 34, 0, 0, 0, 0],
+  [1, 0, 0, 0, 78, 41, 0, 0, 0, 0],
+  [0, 0, 0, 1, 71, 28, 1, 0, 0, 0],
+  # NK cells (cells 12-13): NKG7+, FCGR3A+
+  [3, 0, 0, 0, 0, 22, 95, 0, 0, 0],
+  [1, 0, 0, 0, 0, 18, 87, 0, 0, 0],
+  # Fibroblasts (cells 14-16): COL1A1+
+  [0, 0, 0, 0, 0, 0, 0, 112, 2, 1],
+  [0, 0, 0, 0, 1, 0, 0, 98, 1, 0],
+  [0, 0, 0, 0, 0, 0, 0, 105, 3, 2],
+  # Epithelial (cells 17-18): EPCAM+
+  [0, 0, 0, 0, 0, 0, 0, 1, 84, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 91, 1],
+  # Endothelial (cell 19): PECAM1+
+  [0, 0, 0, 0, 0, 0, 0, 2, 1, 76]
+])
+
+let genes = ["CD3E","CD4","CD8A","MS4A1","CD14","FCGR3A","NKG7","COL1A1","EPCAM","PECAM1"]
+let n_cells = 20
+let n_genes = 10
+
+# ── 2. Quality Control ──
+# Total UMI counts per cell (row sums)
+let row_data = range(0, n_cells) |> map(|i| counts.row(i))
+let total_umi = row_data |> map(|row| sum(row))
+let genes_detected = row_data |> map(|row| row |> filter(|x| x > 0.0) |> len())
+
+println("=== QC Summary ===")
+println("Total UMI per cell:", total_umi)
+println("Genes detected:", genes_detected)
+
+# All 20 cells pass QC in this small example (real cutoff: 200-5000 genes)
+let pass_qc = range(0, n_cells) |> filter(|i| genes_detected[i] >= 2)
+println("Cells passing QC:", len(pass_qc), "/", n_cells)
+
+# ── 3. Normalization (log-CPM) ──
+# log(1 + count / total * 10000) per cell
+let norm_rows = range(0, n_cells) |> map(|i|
+  let row = counts.row(i)
+  let total = total_umi[i]
+  row |> map(|x| log(1.0 + x / total * 10000.0))
+)
+let norm = matrix(norm_rows)
+println("\n=== Normalized matrix:", n_cells, "x", n_genes, "===")
+
+# ── 4. Feature Selection — Highly Variable Genes ──
+let gene_means = range(0, n_genes) |> map(|j|
+  range(0, n_cells) |> map(|i| norm_rows[i][j]) |> mean()
+)
+let gene_vars = range(0, n_genes) |> map(|j|
+  let vals = range(0, n_cells) |> map(|i| norm_rows[i][j])
+  let mu = mean(vals)
+  vals |> map(|x| (x - mu) * (x - mu)) |> mean()
+)
+let dispersion = range(0, n_genes) |> map(|j| gene_vars[j] / (gene_means[j] + 0.001))
+
+let hvg_table = table([
+  {gene: genes[0], disp: dispersion[0]}, {gene: genes[1], disp: dispersion[1]},
+  {gene: genes[2], disp: dispersion[2]}, {gene: genes[3], disp: dispersion[3]},
+  {gene: genes[4], disp: dispersion[4]}, {gene: genes[5], disp: dispersion[5]},
+  {gene: genes[6], disp: dispersion[6]}, {gene: genes[7], disp: dispersion[7]},
+  {gene: genes[8], disp: dispersion[8]}, {gene: genes[9], disp: dispersion[9]}
+]) |> arrange("-disp")
+println("\nTop variable genes:")
+println(hvg_table)
+
+# ── 5. Dimensionality Reduction ──
+# UMAP: non-linear embedding to 2D
+let umap_coords = umap(norm, 2)
+println("\n=== UMAP embedding:", n_cells, "cells -> 2D ===")
+
+# t-SNE: alternative reduction
+let tsne_coords = tsne(norm, 2)
+println("t-SNE embedding complete")
+
+# ── 6. Clustering — Leiden Community Detection ──
+# Build adjacency from pairwise distances (simple threshold-based)
+let adj_data = range(0, n_cells) |> map(|i|
+  range(0, n_cells) |> map(|j|
+    if i == j then 0.0
+    else {
+      let ri = norm_rows[i]
+      let rj = norm_rows[j]
+      let dist = range(0, n_genes) |> map(|k| (ri[k] - rj[k]) * (ri[k] - rj[k])) |> sum() |> sqrt()
+      if dist < 5.0 then 1.0 else 0.0
+    }
+  )
+)
+let adj = matrix(adj_data)
+let clusters = leiden(adj)
+let unique_clusters = clusters |> unique() |> sort()
+println("\n=== Leiden clusters found:", len(unique_clusters), "===")
+println("Cluster assignments:", clusters)
+
+# ── 7. Cell Type Annotation by Marker Expression ──
+# Annotate each cell based on its highest-expressed marker
+let cell_types = range(0, n_cells) |> map(|i|
+  let row = norm_rows[i]
+  # Find which marker has max expression
+  let cd3e = row[0]
+  let cd4 = row[1]
+  let cd8a = row[2]
+  let ms4a1 = row[3]
+  let cd14 = row[4]
+  let nkg7 = row[6]
+  let col1a1 = row[7]
+  let epcam = row[8]
+  let pecam1 = row[9]
+
+  if cd3e > 3.0 && cd4 > 3.0 then "CD4_T"
+  else if cd3e > 3.0 && cd8a > 3.0 then "CD8_T"
+  else if ms4a1 > 3.0 then "B_cell"
+  else if cd14 > 3.0 then "Monocyte"
+  else if nkg7 > 3.0 then "NK_cell"
+  else if col1a1 > 3.0 then "Fibroblast"
+  else if epcam > 3.0 then "Epithelial"
+  else if pecam1 > 3.0 then "Endothelial"
+  else "Unknown"
+)
+
+println("\n=== Cell Type Annotations ===")
+range(0, n_cells) |> each(|i|
+  println("  Cell", i, "-> cluster", clusters[i], "-> type:", cell_types[i])
+)
+
+# Count each type
+let type_counts = cell_types |> unique() |> sort() |> map(|t|
+  {cell_type: t, count: cell_types |> filter(|ct| ct == t) |> len()}
+)
+println("\nCell type counts:")
+println(table(type_counts))
+
+# ── 8. Database Validation of Key Markers ──
+let cd3e_info = ncbi_gene("CD3E")
+println("\n=== CD3E (T cell marker) ===")
+println("NCBI Gene IDs:", cd3e_info.ids, "(", cd3e_info.count, "results)")
+
+try {
+  let cd3e_go = go_annotations("P09693")  # UniProt accession for human CD3E
+  println("GO annotations:", len(cd3e_go))
+} catch e {
+  println("GO annotations: (skipped -", e, ")")
+}
+
+try {
+  let cd3e_network = string_network("CD3E", 9606)
+  println("STRING interaction partners:", len(cd3e_network))
+} catch e {
+  println("STRING network: (skipped -", e, ")")
+}
+
+# ── 9. Visualizations ──
+# UMAP scatter colored by cell type
+let umap_table = table(range(0, n_cells) |> map(|i|
+  {pc1: umap_coords.row(i)[0], pc2: umap_coords.row(i)[1], group: cell_types[i]}
+))
+println("\nUMAP scatter:")
+pca_plot(umap_table, {title: "UMAP — Tumor Microenvironment"})
+
+# Marker expression heatmap
+println("\nMarker expression heatmap:")
+clustered_heatmap(norm, {title: "Marker Gene Expression"})
+
+# Shared markers Venn
+println("\nShared markers:")
+venn({
+  data: {T_cell: ["CD3E","CD4","CD8A"], NK: ["NKG7","FCGR3A"], Mono: ["CD14","FCGR3A"]},
+  title: "Shared Markers"
+})
+
+# ── 10. Sparse Matrix Demo ──
+# Real scRNA-seq is >90% zeros — demonstrate sparse support
+let entries = range(0, n_cells) |> map(|i|
+  range(0, n_genes) |> filter(|j| counts.row(i)[j] > 0.0) |> map(|j|
+    {row: i, col: j, val: counts.row(i)[j]}
+  )
+) |> flatten()
+let sp = sparse_matrix(n_cells, n_genes, entries)
+println("\n=== Sparse Matrix ===")
+println("Shape:", n_cells, "x", n_genes, "  nnz:", nnz(sp))
+let sparsity = (1.0 - nnz(sp) / (n_cells * n_genes)) * 100.0
+println("Sparsity:", round(sparsity, 1), "%")
+
+# ── Summary ──
+println("\n=== Analysis Complete ===")
+println("Identified", len(unique_clusters), "clusters and", len(type_counts), "cell types")
+println("Cell types:", cell_types |> unique() |> sort() |> join(", "))

@@ -1,0 +1,17 @@
+##gff-version 3
+chr1	BioLang	gene	11874	14409	.	+	.	ID=DDX11L1;Name=DDX11L1;biotype=transcribed_unprocessed_pseudogene
+chr1	BioLang	exon	11874	12227	.	+	.	Parent=DDX11L1;Name=DDX11L1_exon1
+chr1	BioLang	exon	12613	12721	.	+	.	Parent=DDX11L1;Name=DDX11L1_exon2
+chr1	BioLang	exon	13221	14409	.	+	.	Parent=DDX11L1;Name=DDX11L1_exon3
+chr1	BioLang	gene	14362	29370	.	-	.	ID=WASH7P;Name=WASH7P;biotype=unprocessed_pseudogene
+chr1	BioLang	exon	14362	14829	.	-	.	Parent=WASH7P;Name=WASH7P_exon1
+chr7	BioLang	gene	55019017	55211628	.	+	.	ID=EGFR;Name=EGFR;biotype=protein_coding
+chr7	BioLang	mRNA	55019017	55211628	.	+	.	Parent=EGFR;Name=EGFR_mRNA
+chr7	BioLang	exon	55019017	55019365	.	+	.	Parent=EGFR;Name=EGFR_exon1
+chr7	BioLang	CDS	55019278	55019365	.	+	0	Parent=EGFR;Name=EGFR_CDS1
+chr13	BioLang	gene	32315480	32400268	.	+	.	ID=BRCA2;Name=BRCA2;biotype=protein_coding
+chr13	BioLang	exon	32315480	32315667	.	+	.	Parent=BRCA2;Name=BRCA2_exon1
+chr17	BioLang	gene	7661779	7687550	.	-	.	ID=TP53;Name=TP53;biotype=protein_coding
+chr17	BioLang	exon	7661779	7662155	.	-	.	Parent=TP53;Name=TP53_exon11
+chr17	BioLang	gene	43044295	43170245	.	-	.	ID=BRCA1;Name=BRCA1;biotype=protein_coding
+chr17	BioLang	exon	43044295	43045802	.	-	.	Parent=BRCA1;Name=BRCA1_exon24

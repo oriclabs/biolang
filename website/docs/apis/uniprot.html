@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniProt — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="apis/uniprot"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">API Clients</a><span class="mx-2">/</span>
+        <span class="text-slate-300">UniProt</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>UniProt</h1>
+        <p>
+          The UniProt client provides access to the Universal Protein Resource, the most
+          comprehensive protein knowledge base. It supports protein entry retrieval, full-text
+          search, sequence BLAST, feature annotations, GO terms, and ID mapping between
+          databases. No API key is required.
+        </p>
+
+        <h2>uniprot_entry</h2>
+        <p>
+          Fetch a complete UniProt entry by accession number. Returns detailed protein
+          information including sequence, function, features, and cross-references:
+        </p>
+        <pre><code class="language-biolang"># Fetch BRCA1 protein
+let entry = uniprot_entry("P38398")
+
+print(entry.accession)        # => "P38398"
+print(entry.name)             # => "BRCA1_HUMAN"
+print(entry.protein_name)     # => "Breast cancer type 1 susceptibility protein"
+print(entry.gene_name)        # => "BRCA1"
+print(entry.organism)         # => "Homo sapiens"
+print(entry.length)           # => 1863
+print(entry.sequence)         # => protein"MDLSA..."
+
+# Function annotation
+print(entry.function)
+
+# Subcellular localization
+entry.locations |> map(|l| print(l))
+
+# Features (domains, variants, etc.)
+entry.features
+  |> filter(|f| f.type == "Domain")
+  |> map(|f| { type: f.type, start: f.start, end: f.end, description: f.description })
+  |> to_table()
+  |> print()
+
+# Disease associations
+entry.diseases |> map(|d| print(d.name, d.description))</code></pre>
+
+        <h2>uniprot_search</h2>
+        <p>
+          Search UniProt using free text or structured queries. Takes a query string
+          and an optional max results limit. Supports the full UniProt query syntax:
+        </p>
+        <pre><code class="language-biolang"># Simple text search (query, [max_results])
+let results = uniprot_search("BRCA1 AND organism_id:9606")
+results |> map(|r| print(r.accession, r.protein_name))
+
+# Structured query with limit
+results = uniprot_search("kinase AND reviewed:true AND organism_id:9606", 50)
+
+# Search by gene name
+results = uniprot_search("gene:TP53 AND organism_id:9606 AND reviewed:true")
+
+# Search by GO term — Apoptosis
+results = uniprot_search("go:0006915 AND organism_id:9606")
+results
+  |> map(|r| { accession: r.accession, name: r.protein_name, length: r.length })
+  |> to_table()
+  |> print()
+
+# Broad kinase search
+results = uniprot_search("kinase AND organism_id:9606 AND reviewed:true", 100)
+results |> to_table() |> print()</code></pre>
+
+        <h2>Features and Annotations</h2>
+        <p>
+          UniProt entries contain rich feature annotations including domains, active sites,
+          binding sites, variants, and post-translational modifications:
+        </p>
+        <pre><code class="language-biolang"># Get all features for a protein
+let entry = uniprot_entry("P38398")
+
+# Filter by feature type
+let domains = entry.features |> filter(|f| f.type == "Domain")
+domains |> map(|d| print(d.description, ":", d.start, "-", d.end))
+
+# Variants (natural variants and disease-associated)
+let variants = entry.features |> filter(|f| f.type == "Natural variant")
+variants |> map(|v| {
+  position: v.start,
+  change: v.description,
+  disease: v.note
+}) |> to_table() |> print()
+
+# Post-translational modifications
+let ptms = entry.features |> filter(|f| f.type in ["Modified residue", "Glycosylation site"])
+ptms |> map(|p| print(p.type, "at position", p.start, ":", p.description))
+
+# GO terms
+entry.go_terms
+  |> filter(|g| g.aspect == "F")   # Molecular Function
+  |> map(|g| print(g.id, g.name))
+
+# Cross-references to other databases
+entry.xrefs
+  |> filter(|x| x.database == "PDB")
+  |> map(|x| print("PDB:", x.id, x.properties))
+  |> to_table()
+  |> print()</code></pre>
+
+        <h2>Practical Example: Protein Comparison</h2>
+        <pre><code class="language-biolang"># Compare properties of cancer-related proteins
+let cancer_genes = ["BRCA1", "TP53", "EGFR", "KRAS", "PIK3CA", "PTEN"]
+
+let comparison = cancer_genes |> map(|gene| {
+  let results = uniprot_search("gene:{gene} AND organism_id:9606 AND reviewed:true")
+  let entry = uniprot_entry(results[0].accession)
+
+  {
+    gene: gene,
+    accession: entry.accession,
+    length: entry.length,
+    weight: entry.sequence |> molecular_weight(),
+    domains: entry.features |> filter(|f| f.type == "Domain") |> len(),
+    variants: entry.features |> filter(|f| f.type == "Natural variant") |> len(),
+    go_terms: entry.go_terms |> len(),
+    pdb_structures: entry.xrefs |> filter(|x| x.database == "PDB") |> len()
+  }
+})
+
+comparison |> to_table() |> print()
+comparison |> to_table() |> write_csv("protein_comparison.csv")</code></pre>
+
+        <h2>ID Mapping</h2>
+        <pre><code class="language-biolang"># Map between database identifiers
+# UniProt accession → Ensembl gene ID
+let entry = uniprot_entry("P38398")
+let ensembl_ids = entry.xrefs
+  |> filter(|x| x.database == "Ensembl")
+  |> map(|x| x.id)
+print("Ensembl IDs:", ensembl_ids)
+
+# Batch ID mapping
+let accessions = ["P38398", "P04637", "P00533"]
+accessions |> map(|acc| {
+  let entry = uniprot_entry(acc)
+  {
+    uniprot: acc,
+    gene: entry.gene_name,
+    refseq: entry.xrefs |> filter(|x| x.database == "RefSeq") |> map(.id) |> first()
+  }
+}) |> to_table() |> print()</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="ensembl.html" class="text-violet-400 hover:text-violet-300">&larr; Ensembl</a>
+        <a href="ucsc.html" class="text-violet-400 hover:text-violet-300">UCSC &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

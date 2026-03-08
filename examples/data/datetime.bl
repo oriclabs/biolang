@@ -1,0 +1,36 @@
+# datetime.bl — Date/time operations for experiment tracking
+
+# ── Current time ────────────────────────────────────────────────
+let current = now()
+println("Current: " + str(current))
+println("Unix timestamp: " + str(timestamp()))
+
+# ── Formatting ──────────────────────────────────────────────────
+println("Formatted: " + date_format(current, "%Y-%m-%d %H:%M:%S"))
+println("ISO 8601:  " + date_format(current, "%Y-%m-%dT%H:%M:%S%z"))
+println("Human:     " + date_format(current, "%B %d, %Y"))
+
+# ── Parsing ─────────────────────────────────────────────────────
+let run_date = date_parse("2025-06-15 14:30:00", "%Y-%m-%d %H:%M:%S")
+println("Parsed: " + str(run_date))
+
+# ── Date arithmetic ────────────────────────────────────────────
+let run_start = date_add(current, -3, "days")
+let collection = date_add(run_start, -14, "days")
+println("Run started:  " + date_format(run_start, "%Y-%m-%d"))
+println("Collected:    " + date_format(collection, "%Y-%m-%d"))
+println("Days elapsed: " + str(date_diff(collection, current, "days")))
+println("Next QC:      " + date_format(date_add(current, 6, "hours"), "%Y-%m-%d %H:%M"))
+
+# ── Extracting components ──────────────────────────────────────
+println("Year=" + str(year(current)) + " Month=" + str(month(current))
+      + " Day=" + str(day(current)) + " Weekday=" + str(weekday(current)))
+
+# ── Practical: timestamped filename ────────────────────────────
+let stamp = date_format(current, "%Y%m%d_%H%M%S")
+println("Output file: results_" + stamp + ".csv")
+
+# ── Practical: check if overdue ────────────────────────────────
+let deadline = date_add(run_start, 2, "days")
+let overdue_hrs = date_diff(deadline, current, "hours")
+println("Hours past deadline: " + str(overdue_hrs) + "  Overdue: " + str(overdue_hrs > 0))

@@ -1,0 +1,12 @@
+[package]
+name = "bl-apis"
+version.workspace = true
+edition.workspace = true
+license = "MIT"
+description = "Typed bioinformatics API clients for NCBI, Ensembl, UniProt, KEGG, and more"
+
+[dependencies]
+bio-core = { workspace = true }
+ureq = { version = "2", default-features = false, features = ["tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

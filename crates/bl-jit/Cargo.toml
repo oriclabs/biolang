@@ -1,0 +1,22 @@
+[package]
+name = "bl-jit"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = []
+jit = [
+    "dep:cranelift-codegen",
+    "dep:cranelift-frontend",
+    "dep:cranelift-module",
+    "dep:cranelift-jit",
+]
+
+[dependencies]
+bl-core = { workspace = true }
+bl-compiler = { workspace = true }
+
+cranelift-codegen = { version = "0.112", optional = true }
+cranelift-frontend = { version = "0.112", optional = true }
+cranelift-module = { version = "0.112", optional = true }
+cranelift-jit = { version = "0.112", optional = true }

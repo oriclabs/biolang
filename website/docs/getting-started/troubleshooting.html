@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Troubleshooting — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="getting-started/troubleshooting"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a>
+        <span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Getting Started</a>
+        <span class="mx-2">/</span>
+        <span class="text-slate-300">Troubleshooting</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Troubleshooting</h1>
+        <p>
+          Common issues and their solutions. If you don't find your answer here, please
+          <a href="https://github.com/bioras/biolang/issues" class="text-violet-400 hover:text-violet-300">open an issue</a>.
+        </p>
+
+        <!-- Installation -->
+        <h2 id="installation">Installation</h2>
+
+        <h3><code>bl: command not found</code></h3>
+        <p>
+          The BioLang binary is not on your <code>PATH</code>. After installing, ensure the install
+          directory is in your shell's path:
+        </p>
+        <pre><code class="language-bash"># Check where bl was installed
+which bl    # macOS/Linux
+where bl    # Windows (PowerShell)
+
+# If installed via cargo:
+export PATH="$HOME/.cargo/bin:$PATH"    # add to ~/.bashrc or ~/.zshrc
+
+# If installed to a custom location:
+export PATH="/path/to/biolang/bin:$PATH"</code></pre>
+        <p>After editing your shell config, restart the terminal or run <code>source ~/.bashrc</code>.</p>
+
+        <h3>Build from source fails with <code>rustc</code> version error</h3>
+        <p>
+          BioLang requires Rust 1.75 or later. Check your version and update:
+        </p>
+        <pre><code class="language-bash">rustc --version
+rustup update stable</code></pre>
+
+        <h3>Build fails with missing system libraries</h3>
+        <p>
+          On Linux, you may need development headers for OpenSSL and pkg-config:
+        </p>
+        <pre><code class="language-bash"># Debian/Ubuntu
+sudo apt install pkg-config libssl-dev
+
+# Fedora/RHEL
+sudo dnf install openssl-devel pkg-config
+
+# macOS (via Homebrew)
+brew install openssl pkg-config</code></pre>
+
+        <!-- REPL -->
+        <h2 id="repl">REPL Issues</h2>
+
+        <h3>REPL won't start / crashes on launch</h3>
+        <p>
+          If the REPL crashes immediately, try running with verbose output to see the error:
+        </p>
+        <pre><code class="language-bash">bl repl --verbose</code></pre>
+        <p>
+          On Windows, if you see errors about terminal capabilities, ensure you are using
+          Windows Terminal or PowerShell 7+, not the legacy <code>cmd.exe</code> console.
+        </p>
+
+        <h3>Arrow keys print escape codes instead of navigating</h3>
+        <p>
+          This happens in terminals that don't support ANSI escape sequences. Use a modern
+          terminal emulator (Windows Terminal, iTerm2, Alacritty, kitty).
+        </p>
+
+        <h3>REPL history not persisting</h3>
+        <p>
+          History is saved to <code>~/.biolang/history</code>. Ensure the directory exists and
+          is writable:
+        </p>
+        <pre><code class="language-bash">mkdir -p ~/.biolang
+ls -la ~/.biolang/</code></pre>
+
+        <!-- File I/O -->
+        <h2 id="file-io">File I/O</h2>
+
+        <h3><code>File not found</code> when the file exists</h3>
+        <p>
+          BioLang resolves paths relative to the current working directory, not the script
+          location. Either use absolute paths or <code>cd</code> to the data directory before running:
+        </p>
+        <pre><code class="language-biolang"># Relative path — depends on where you run bl from
+let reads = read_fastq("data/sample.fastq")
+
+# Absolute path — always works
+let reads = read_fastq("/home/user/data/sample.fastq")</code></pre>
+
+        <h3>Reading large files runs out of memory</h3>
+        <p>
+          Use streaming instead of loading the entire file into memory:
+        </p>
+        <pre><code class="language-biolang"># Bad: loads entire file into a list
+let all = read_fastq("big.fastq")
+
+# Good: stream and filter
+let filtered = read_fastq("big.fastq")
+  |> filter_reads(30)</code></pre>
+        <p>
+          Streams process one record at a time, so memory usage stays constant regardless of
+          file size. Avoid <code>collect()</code> on large datasets unless you need random access.
+        </p>
+
+        <h3>Gzipped file not detected</h3>
+        <p>
+          BioLang auto-detects <code>.gz</code> extensions. If your file is gzipped but has a
+          non-standard extension, use the explicit decompression:
+        </p>
+        <pre><code class="language-biolang"># Auto-detected
+let reads = read_fastq("reads.fastq.gz")
+
+# Manual decompression for non-standard names
+let reads = read_fastq("reads.fq.compressed")</code></pre>
+
+        <!-- API Clients -->
+        <h2 id="api-clients">API Clients</h2>
+
+        <h3>NCBI queries are slow or return <code>429 Too Many Requests</code></h3>
+        <p>
+          Without an API key, NCBI limits you to 3 requests per second. Set your API key to
+          increase to 10 req/s:
+        </p>
+        <pre><code class="language-bash"># Get a free key at https://www.ncbi.nlm.nih.gov/account/settings/
+export NCBI_API_KEY="your-key-here"</code></pre>
+        <p>
+          Add this to your <code>~/.bashrc</code> or <code>~/.zshrc</code> to persist it.
+        </p>
+
+        <h3>COSMIC queries fail with <code>unauthorized</code></h3>
+        <p>
+          COSMIC requires a separate API key. Register at
+          <a href="https://cancer.sanger.ac.uk/cosmic/register" class="text-violet-400 hover:text-violet-300">COSMIC</a>
+          and set:
+        </p>
+        <pre><code class="language-bash">export COSMIC_API_KEY="your-cosmic-key"</code></pre>
+
+        <h3>Ensembl / UniProt queries timeout</h3>
+        <p>
+          Public APIs can be slow during peak hours. BioLang uses a default 30-second timeout.
+          If you're behind a corporate or institutional proxy, ensure the proxy environment
+          variables are set correctly.
+        </p>
+
+        <h3>HTTP proxy configuration (with authentication)</h3>
+        <p>
+          University, hospital, and corporate networks often require an authenticated proxy.
+          All BioLang API clients (NCBI, Ensembl, UniProt, UCSC, etc.) respect standard proxy
+          environment variables:
+        </p>
+        <pre><code class="language-bash"># Basic proxy (no auth)
+export HTTP_PROXY="http://proxy.example.com:8080"
+export HTTPS_PROXY="http://proxy.example.com:8080"
+
+# Authenticated proxy (username:password)
+export HTTP_PROXY="http://username:password@proxy.example.com:8080"
+export HTTPS_PROXY="http://username:password@proxy.example.com:8080"
+
+# Skip proxy for local addresses (system convention, used by curl/wget/etc.)
+export NO_PROXY="localhost,127.0.0.1,.internal.university.edu"</code></pre>
+        <p>
+          Add these to your <code>~/.bashrc</code>, <code>~/.zshrc</code>, or
+          <code>~/.profile</code> to persist across sessions. On HPC clusters, you may also
+          need to include them in your SLURM job scripts.
+        </p>
+        <p><strong>Common proxy pitfalls:</strong></p>
+        <ul>
+          <li>
+            <strong>HTTPS_PROXY value still uses <code>http://</code></strong> — this is correct.
+            The variable name says which traffic to proxy; the value is the proxy's own address
+            (which is usually plain HTTP).
+          </li>
+          <li>
+            <strong>Special characters in password</strong> — URL-encode them.
+            <code>@</code> becomes <code>%40</code>, <code>#</code> becomes <code>%23</code>,
+            <code>:</code> becomes <code>%3A</code>.
+          </li>
+          <li>
+            <strong>SSL certificate errors behind proxy</strong> — institutional proxies often
+            use a custom CA certificate. BioLang uses compiled-in Mozilla root certificates,
+            so custom CAs need to be added to the system trust store:
+            <pre><code class="language-bash"># Linux (Debian/Ubuntu) — add your institution's CA
+sudo cp institution-ca.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+
+# macOS — add to system keychain
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain institution-ca.crt</code></pre>
+          </li>
+          <li>
+            <strong>Proxy blocks certain ports</strong> — some proxies only allow ports 80 and
+            443. If an API uses a non-standard port, it may be silently blocked.
+          </li>
+        </ul>
+
+        <!-- Type Errors -->
+        <h2 id="type-errors">Common Type Errors</h2>
+
+        <h3><code>expected DNA, got String</code></h3>
+        <p>
+          Plain strings and DNA sequences are different types. Use a DNA literal or the
+          <code>dna()</code> constructor:
+        </p>
+        <pre><code class="language-biolang"># Wrong: plain string
+let seq = "ATCG"
+reverse_complement(seq)  # Error: expected DNA, got String
+
+# Right: DNA literal
+let seq = dna"ATCG"
+reverse_complement(seq)  # Works
+
+# Right: runtime conversion
+let seq = dna("ATCG")
+reverse_complement(seq)  # Works</code></pre>
+
+        <h3><code>cannot add Int and Float</code></h3>
+        <p>
+          BioLang does not implicitly coerce numeric types. Convert explicitly:
+        </p>
+        <pre><code class="language-biolang"># Error
+let x = 1 + 1.5
+
+# Fix
+let x = float(1) + 1.5   # 2.5
+let y = 1 + int(1.5)     # 2 (truncates)</code></pre>
+
+        <h3><code>stream already consumed</code></h3>
+        <p>
+          Streams can only be iterated once. Use <code>read_fasta()</code> / <code>read_fastq()</code>
+          for a reusable table, or <code>collect()</code> the stream:
+        </p>
+        <pre><code class="language-biolang"># Error: second use fails
+let s = fastq("data.fq")
+let count = len(s)
+let avg_q = s |> map(|r| mean_phred(r.quality)) |> mean()  # Error!
+
+# Fix: use read_fastq() for a reusable list
+let records = read_fastq("data.fq")
+let count = len(records)
+let avg_q = records |> map(|r| mean_phred(r.quality)) |> mean()</code></pre>
+
+        <!-- Pipes -->
+        <h2 id="pipes">Pipes</h2>
+
+        <h3>Pipe result is unexpected</h3>
+        <p>
+          Remember: <code>|&gt;</code> inserts the left side as the <strong>first</strong> argument.
+          If the function you're calling expects the data in a different position, use a lambda:
+        </p>
+        <pre><code class="language-biolang"># |> inserts as first arg
+[1, 2, 3] |> map(|x| x * 2)    # map([1,2,3], |x| x * 2)
+
+# If you need it in a different position, use a lambda
+"hello" |> (|s| replace(s, "h", "H"))</code></pre>
+
+        <h3>Newline breaks a pipe chain</h3>
+        <p>
+          BioLang uses newlines as statement terminators. The lexer automatically suppresses
+          newlines after <code>|&gt;</code>, so this works:
+        </p>
+        <pre><code class="language-biolang"># Works: newline after |>
+data
+  |> filter(|x| x > 0)
+  |> map(|x| x * 2)
+
+# Breaks: newline before |>
+data
+|> filter(|x| x > 0)    # Error: |> at start of line</code></pre>
+        <p>
+          Always put <code>|&gt;</code> at the end of the line, not the beginning.
+        </p>
+
+        <!-- Plugins -->
+        <h2 id="plugins">Plugins</h2>
+
+        <h3>Plugin not found after installation</h3>
+        <p>
+          Plugins must be in <code>~/.biolang/plugins/&lt;name&gt;/</code> with a valid
+          <code>plugin.json</code> manifest. Verify the structure:
+        </p>
+        <pre><code class="language-bash">ls ~/.biolang/plugins/my-plugin/
+# Should contain: plugin.json, and the executable/script
+
+# Check if BioLang sees it
+bl plugins</code></pre>
+
+        <h3>Python plugin fails with <code>ModuleNotFoundError</code></h3>
+        <p>
+          Ensure the Python environment used by BioLang has the required packages. BioLang
+          uses the system <code>python3</code> by default. If you use virtual environments:
+        </p>
+        <pre><code class="language-bash"># Activate your venv first, then run bl
+source myenv/bin/activate
+bl run script.bl</code></pre>
+
+        <!-- Performance -->
+        <h2 id="performance">Performance</h2>
+
+        <h3>Script is slower than expected</h3>
+        <p>
+          Common performance pitfalls:
+        </p>
+        <ul>
+          <li>
+            <strong>Unnecessary <code>collect()</code>:</strong> Converting streams to lists
+            forces all data into memory. Keep data in streams as long as possible.
+          </li>
+          <li>
+            <strong>Repeated file reads:</strong> Store the result in a variable instead of
+            reading the same file multiple times.
+          </li>
+          <li>
+            <strong>Large string concatenation in loops:</strong> Use <code>join()</code> on a
+            list instead of repeatedly appending strings.
+          </li>
+        </ul>
+        <p>Use the REPL's <code>:time</code> command or <code>:profile</code> to identify bottlenecks:</p>
+        <pre><code class="language-biolang"># In the REPL
+:time read_fastq("big.fq") |> filter(|r| mean_phred(r.quality) >= 30) |> len()
+
+:profile my_function(data)</code></pre>
+
+        <h3>Parallel operations not faster</h3>
+        <p>
+          <code>par_map</code> and <code>par_filter</code> have overhead from thread spawning.
+          They're only beneficial when:
+        </p>
+        <ul>
+          <li>The per-item computation is non-trivial (more than a simple field access)</li>
+          <li>The dataset has enough items to amortize thread overhead (typically 1000+)</li>
+          <li>The operation is CPU-bound, not I/O-bound</li>
+        </ul>
+
+        <!-- Genomic Coordinates -->
+        <h2 id="coordinates">Coordinate Systems</h2>
+
+        <h3>Off-by-one errors between BED, VCF, and GFF</h3>
+        <p>
+          This is the single most common bug in bioinformatics. Different formats use different
+          coordinate conventions:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Format</th>
+              <th>System</th>
+              <th>Example (first 10 bases)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>BED, BAM</td>
+              <td>0-based, half-open</td>
+              <td><code>chr1  0  10</code></td>
+            </tr>
+            <tr>
+              <td>VCF, GFF, SAM</td>
+              <td>1-based, inclusive</td>
+              <td><code>chr1  1  10</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          BioLang's <code>GenomicInterval</code> uses <strong>0-based half-open</strong> internally
+          (matching BED/BAM). When reading VCF or GFF, coordinates are automatically converted.
+          Be careful when constructing intervals manually:
+        </p>
+        <pre><code class="language-biolang"># From a VCF position (1-based) — subtract 1 for 0-based
+let vcf_pos = 12345
+let start = vcf_pos - 1
+
+# Built-in readers handle this for you
+let variants = read_vcf("data.vcf")  # positions auto-converted
+let regions = read_bed("regions.bed") # already 0-based</code></pre>
+
+        <h3>Strand-unaware interval operations</h3>
+        <p>
+          By default, <code>query_overlaps</code> and <code>query_nearest</code> ignore strand.
+          If your analysis is strand-specific, filter afterwards:
+        </p>
+        <pre><code class="language-biolang"># Strand-aware filtering
+let hits = regions
+  |> filter(|iv| iv.strand == my_interval.strand)</code></pre>
+        <p>
+          For genes on the minus strand, remember that the "start" is still the leftmost
+          (smallest) coordinate — <code>start &lt; end</code> always holds, regardless of strand.
+        </p>
+
+        <!-- Genome Builds -->
+        <h2 id="genome-builds">Genome Builds</h2>
+
+        <h3>Mixing GRCh37/hg19 and GRCh38/hg38 data</h3>
+        <p>
+          Combining data from different genome builds silently produces wrong results — coordinates
+          don't match, variants map to wrong genes, intervals don't overlap when they should.
+          Common symptoms:
+        </p>
+        <ul>
+          <li>Zero overlaps when you expect many</li>
+          <li>Variants not found in annotation databases</li>
+          <li>Chromosome names don't match (<code>chr1</code> vs <code>1</code>)</li>
+        </ul>
+        <p>Always verify your genome build before combining datasets:</p>
+        <pre><code class="language-biolang"># Check VCF header for assembly
+# ##reference=GRCh38 or ##assembly=hg38
+
+# Check BAM header
+# @SQ SN:chr1 LN:248956422  ← GRCh38
+# @SQ SN:chr1 LN:249250621  ← GRCh37
+# Chromosome 1 length is a reliable indicator</code></pre>
+
+        <h3>Chromosome naming: <code>chr1</code> vs <code>1</code></h3>
+        <p>
+          UCSC uses <code>chr1</code> prefix, Ensembl/NCBI uses <code>1</code>. Mixing them
+          causes zero matches in joins and overlaps. Normalize before combining:
+        </p>
+        <pre><code class="language-biolang"># Strip "chr" prefix
+let normalized = intervals |> map(|iv| replace(iv.chrom, "chr", ""))
+replace("chr1", "chr", "")   # "1"
+replace("chrX", "chr", "")   # "X"
+
+# Add "chr" prefix
+let ucsc_style = intervals |> map(|iv| "chr" + iv.chrom)
+
+# Normalize chromosome names with string functions
+lower("CHR1") |> replace("chr", "") |> (|c| "chr" + c)  # "chr1"</code></pre>
+
+        <!-- Index Files -->
+        <h2 id="index-files">Missing Index Files</h2>
+
+        <h3>BAM operations fail with "index not found"</h3>
+        <p>
+          Many BAM operations (region queries, random access) require an index file. The index
+          must be in the same directory with the correct name:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Data file</th>
+              <th>Index file</th>
+              <th>Created by</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>sample.bam</code></td>
+              <td><code>sample.bam.bai</code> or <code>sample.bai</code></td>
+              <td><code>samtools index sample.bam</code></td>
+            </tr>
+            <tr>
+              <td><code>ref.fa</code></td>
+              <td><code>ref.fa.fai</code></td>
+              <td><code>samtools faidx ref.fa</code></td>
+            </tr>
+            <tr>
+              <td><code>variants.vcf.gz</code></td>
+              <td><code>variants.vcf.gz.tbi</code></td>
+              <td><code>tabix -p vcf variants.vcf.gz</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          If you see index errors, check that the index exists and was built for the current
+          version of the data file. Rebuilding the data file without re-indexing is a common mistake.
+        </p>
+
+        <h3>BAM must be coordinate-sorted</h3>
+        <p>
+          Index-based access and many downstream tools require coordinate-sorted BAM.
+          Name-sorted BAM (from aligners) won't work:
+        </p>
+        <pre><code class="language-biolang"># Check sort order — look for SO:coordinate in header
+# @HD VN:1.6 SO:coordinate  ← good
+# @HD VN:1.6 SO:queryname   ← needs re-sorting</code></pre>
+        <pre><code class="language-bash"># Sort and index
+samtools sort input.bam -o sorted.bam
+samtools index sorted.bam</code></pre>
+
+        <!-- Quality Scores -->
+        <h2 id="quality-scores">Quality Score Encodings</h2>
+
+        <h3>Quality scores look wrong or out of range</h3>
+        <p>
+          FASTQ quality scores use ASCII encoding. Modern Illumina (1.8+) uses
+          <strong>Phred+33</strong> (ASCII 33–126, scores 0–93). Older Illumina (1.3–1.7) used
+          <strong>Phred+64</strong> (ASCII 64–126, scores 0–62).
+        </p>
+        <p>
+          BioLang assumes Phred+33 by default. If you see suspiciously high quality scores or
+          encounter old data:
+        </p>
+        <pre><code class="language-biolang"># Check the ASCII range in your FASTQ
+read_fastq("old_data.fastq")
+  |> take(100)
+  |> map(|r| r.quality)
+  |> map(|q| print(q))
+
+# Phred+33 quality chars start at '!' (ASCII 33)
+# Phred+64 quality chars start at '@' (ASCII 64)
+# If you see mostly uppercase letters and no '!' or '#', it's likely Phred+64</code></pre>
+        <p>
+          Almost all data generated after ~2011 uses Phred+33. If you're working with archival
+          SRA data, check the original publication date.
+        </p>
+
+        <!-- VCF Gotchas -->
+        <h2 id="vcf">VCF Gotchas</h2>
+
+        <h3>Multi-allelic records give unexpected results</h3>
+        <p>
+          A single VCF line can contain multiple alternate alleles (<code>ALT=G,T</code>).
+          This affects how you interpret genotypes, allele frequencies, and variant classification:
+        </p>
+        <pre><code class="language-biolang"># A multi-allelic variant
+# chr1  100  .  A  G,T  .  PASS  AF=0.3,0.1
+
+# Check before processing
+let variants = read_vcf("data.vcf")
+variants
+  |> filter(|v| len(split(v["alt"], ",")) > 1)
+  |> map(|v| print("Multi-allelic: " + v["chrom"] + ":" + v["pos"]))</code></pre>
+
+        <h3>INFO field parsing surprises</h3>
+        <p>
+          VCF INFO fields have multiple value types. Use <code>parse_vcf_info()</code> for
+          reliable parsing:
+        </p>
+        <pre><code class="language-biolang"># VCF records from read_vcf have parsed INFO fields
+let variants = read_vcf("data.vcf")
+let v = first(variants)
+# v["info"]["DP"] → 30 (Int)
+# v["info"]["AF"] → 0.5 (Float)</code></pre>
+
+        <!-- Conda/HPC -->
+        <h2 id="conda-hpc">Conda &amp; HPC Clusters</h2>
+
+        <h3>Conda environment conflicts with BioLang</h3>
+        <p>
+          Conda can override system libraries (especially <code>libssl</code>, <code>libz</code>,
+          <code>libcurl</code>) causing unexpected link errors or crashes. If BioLang works
+          outside conda but fails inside:
+        </p>
+        <pre><code class="language-bash"># Test outside conda
+conda deactivate
+bl --version  # works?
+
+# If yes, the conda env is overriding a system library.
+# Option 1: Install BioLang into the conda env
+conda activate myenv
+cargo install --path . --root $CONDA_PREFIX
+
+# Option 2: Use a dedicated env
+conda create -n biolang
+conda activate biolang
+# install bl here</code></pre>
+
+        <h3>Running BioLang on SLURM / PBS clusters</h3>
+        <p>
+          HPC job scripts need the correct PATH and environment. A minimal SLURM script:
+        </p>
+        <pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=biolang-qc
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=8G
+#SBATCH --time=01:00:00
+
+# Load modules or set PATH
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# If using conda
+source activate biolang
+
+# Run your script
+bl run qc_pipeline.bl</code></pre>
+        <p>
+          For interactive development on a compute node:
+        </p>
+        <pre><code class="language-bash"># Request an interactive session
+srun --pty --cpus-per-task=4 --mem=8G --time=02:00:00 bash
+
+# Then start the REPL
+bl repl</code></pre>
+
+        <h3>Headless terminal / no color support</h3>
+        <p>
+          Some HPC login nodes and <code>screen</code>/<code>tmux</code> sessions don't
+          advertise color support. If the REPL output looks garbled:
+        </p>
+        <pre><code class="language-bash"># Force TERM type
+export TERM=xterm-256color
+
+# Or disable colors entirely
+bl repl --no-color</code></pre>
+
+        <!-- Containers -->
+        <h2 id="containers">Containers &amp; External Tools</h2>
+
+        <h3><code>docker: command not found</code> / <code>podman: command not found</code></h3>
+        <p>
+          Container builtins require Docker or Podman installed and on your <code>PATH</code>.
+          BioLang auto-detects the available runtime. Verify:
+        </p>
+        <pre><code class="language-bash">docker --version   # or podman --version</code></pre>
+
+        <h3>BioContainers image pull fails</h3>
+        <p>
+          Check your network connection and that you can reach <code>quay.io</code>:
+        </p>
+        <pre><code class="language-bash">curl -I https://quay.io/v2/</code></pre>
+        <p>
+          If you're behind a firewall, you may need to configure your container runtime's proxy
+          settings separately from shell environment variables.
+        </p>
+
+        <!-- Environment -->
+        <h2 id="environment">Environment Variables Reference</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Variable</th>
+              <th>Purpose</th>
+              <th>Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>BIOLANG_PATH</code></td>
+              <td>Additional module search paths (colon-separated)</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>BIOLANG_DATA_DIR</code></td>
+              <td>Default directory for file I/O (reads fall back here, writes go here)</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>NCBI_API_KEY</code></td>
+              <td>NCBI E-utilities API key (higher rate limits)</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>COSMIC_API_KEY</code></td>
+              <td>COSMIC database access</td>
+              <td>For COSMIC queries</td>
+            </tr>
+            <tr>
+              <td><code>HTTP_PROXY</code> / <code>HTTPS_PROXY</code></td>
+              <td>Proxy for API calls (supports <code>user:pass@host</code> auth)</td>
+              <td>If behind proxy</td>
+            </tr>
+            <tr>
+              <td><code>NO_PROXY</code></td>
+              <td>Comma-separated hosts to bypass proxy (system convention, used by external tools)</td>
+              <td>If behind proxy</td>
+            </tr>
+            <tr>
+              <td><code>ANTHROPIC_API_KEY</code></td>
+              <td>Anthropic (Claude) for <code>chat()</code> / <code>chat_code()</code></td>
+              <td>For LLM features</td>
+            </tr>
+            <tr>
+              <td><code>OPENAI_API_KEY</code></td>
+              <td>OpenAI (GPT) for <code>chat()</code> / <code>chat_code()</code></td>
+              <td>For LLM features</td>
+            </tr>
+            <tr>
+              <td><code>OLLAMA_MODEL</code></td>
+              <td>Ollama local model name (no API key needed)</td>
+              <td>For LLM features</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Still Stuck?</h2>
+        <ul>
+          <li>
+            <strong>Search existing issues:</strong>
+            <a href="https://github.com/bioras/biolang/issues" class="text-violet-400 hover:text-violet-300">GitHub Issues</a>
+          </li>
+          <li>
+            <strong>Ask in discussions:</strong>
+            <a href="https://github.com/bioras/biolang/discussions" class="text-violet-400 hover:text-violet-300">GitHub Discussions</a>
+          </li>
+          <li>
+            <strong>Check the REPL:</strong> Use <code>:type expr</code> to inspect types and
+            <code>:env</code> to see all bindings in scope.
+          </li>
+        </ul>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="from-python-r.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> From Python/R
+        </a>
+        <div></div>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

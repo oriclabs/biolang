@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REPL — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/repl"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">REPL</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Interactive REPL</h1>
+        <p>
+          The BioLang REPL (Read-Eval-Print Loop) is an interactive environment for
+          exploratory data analysis, testing code snippets, and learning the language.
+          Launch it with <code>bl repl</code>. It features syntax highlighting, tab
+          completion, multi-line editing, persistent history, and a suite of introspection
+          commands.
+        </p>
+
+        <h2>Getting Started</h2>
+        <pre><code class="language-bash"># Launch the REPL
+bl repl</code></pre>
+        <pre><code class="language-text">BioLang v0.1.0 REPL — Type :help for commands, Ctrl+D to exit
+>>> let seq = dna"ATCGATCG"
+=> dna"ATCGATCG"
+
+>>> seq |> gc_content()
+=> 0.5
+
+>>> seq |> reverse_complement()
+=> dna"CGATCGAT"</code></pre>
+        <p>
+          The REPL evaluates each line and prints the result. Variables persist across
+          lines within a session. The last expression's value is also available as
+          <code>_</code> (underscore).
+        </p>
+
+        <h2>REPL Commands</h2>
+        <p>
+          Commands start with <code>:</code> and provide environment introspection and
+          session management:
+        </p>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Command</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">:help</td><td class="py-3 px-4">Show all available commands</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:env</td><td class="py-3 px-4">List all variables in the current environment with their types</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:type &lt;expr&gt;</td><td class="py-3 px-4">Show the type of an expression without evaluating it</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:time &lt;expr&gt;</td><td class="py-3 px-4">Evaluate and print execution time</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:profile &lt;expr&gt;</td><td class="py-3 px-4">Run expression with profiling (call counts, hot paths)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:load &lt;file&gt;</td><td class="py-3 px-4">Load and execute a .bl file into the current environment</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:save &lt;file&gt;</td><td class="py-3 px-4">Save the current session's input history to a .bl file</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:reset</td><td class="py-3 px-4">Clear all variables and reset the environment</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:plugins</td><td class="py-3 px-4">List loaded plugins</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:clear</td><td class="py-3 px-4">Clear the screen</td></tr>
+              <tr><td class="py-3 px-4 font-mono">:quit</td><td class="py-3 px-4">Exit the REPL (also Ctrl+D)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>:env — Environment Inspection</h3>
+        <pre><code class="language-text">>>> let seq = dna"ATCGATCG"
+>>> let gc = seq |> gc_content()
+>>> let reads = fastq("sample.fq.gz")
+
+>>> :env
+Name     Type       Value
+seq      DNA        dna"ATCGATCG"
+gc       Float      0.5
+reads    Stream     Stream&lt;FastqRecord&gt; (unconsumed)</code></pre>
+
+        <h3>:type — Type Inspection</h3>
+        <pre><code class="language-text">>>> :type dna"ATCG"
+DNA
+
+>>> :type dna"ATCG" |> gc_content()
+Float
+
+>>> :type [1, 2, 3] |> map(|x| x * 2)
+List&lt;Int&gt;
+
+>>> :type fasta("genome.fa")
+Stream&lt;FastaRecord&gt;</code></pre>
+
+        <h3>:time — Benchmarking</h3>
+        <pre><code class="language-text">>>> :time dna"ATCGATCG" * 1000000 |> gc_content()
+=> 0.5
+Time: 12.3ms
+
+>>> :time fastq("big.fq.gz") |> map(|r| r.seq |> gc_content()) |> mean()
+=> 0.423
+Time: 3.41s</code></pre>
+
+        <h3>:profile — Profiling</h3>
+        <pre><code class="language-text">>>> :profile fasta("genome.fa") |> map(|r| r.seq |> kmer_count(21)) |> collect()
+
+Profile Results:
+  kmer_count      called 24x    total: 890ms   avg: 37.1ms
+  map             called 1x     total: 891ms
+  fasta      called 1x     total: 45ms
+  collect         called 1x     total: 936ms
+
+Total: 936ms</code></pre>
+
+        <h2>Tab Completion</h2>
+        <p>
+          The REPL provides context-aware tab completion for variables, functions, methods,
+          file paths, and command arguments:
+        </p>
+        <pre><code class="language-text"># Variable names
+>>> se&lt;TAB&gt;
+seq    sequence    sequences
+
+# Method completion on typed values
+>>> seq |> gc_&lt;TAB&gt;
+gc_content
+
+# Builtin function completion
+>>> ncbi_&lt;TAB&gt;
+ncbi_search    ncbi_fetch    ncbi_gene    ncbi_pubmed    ncbi_sequence
+
+# File path completion (after quotes)
+>>> fasta("data/&lt;TAB&gt;
+data/genome.fa    data/reads.fa    data/reference.fa.gz
+
+# Command completion
+>>> :&lt;TAB&gt;
+:help  :env  :type  :time  :profile  :load  :save  :reset  :plugins  :clear  :quit</code></pre>
+
+        <h2>Multi-Line Input</h2>
+        <p>
+          The REPL automatically detects incomplete expressions and continues on the next
+          line. Open braces, brackets, and parentheses trigger multi-line mode. You can
+          also explicitly enter multi-line mode:
+        </p>
+        <pre><code class="language-text"># Automatic multi-line detection
+>>> let results = [1, 2, 3]
+...   |> map(|x| {
+...     value: x,
+...     squared: x * x
+...   })
+...   |> to_table()
+=> Table(3 rows x 2 cols)
+
+# Pipe chains continue automatically
+>>> dna"ATCGATCG"
+...   |> reverse_complement()
+...   |> transcribe()
+...   |> translate()
+=> protein"RI"</code></pre>
+
+        <h2>History</h2>
+        <p>
+          The REPL maintains persistent history across sessions, stored in
+          <code>~/.biolang/history</code>:
+        </p>
+        <ul>
+          <li><strong>Up/Down arrows</strong> &mdash; navigate through previous inputs</li>
+          <li><strong>Ctrl+R</strong> &mdash; reverse search through history</li>
+          <li><strong>:save session.bl</strong> &mdash; save current session inputs to a file</li>
+        </ul>
+        <pre><code class="language-text"># Reverse search
+>>> &lt;Ctrl+R&gt;
+(reverse-i-search)`kmer': seq |> kmer_count(21)
+
+# Save your exploration as a script
+>>> :save my_analysis.bl
+Saved 42 inputs to my_analysis.bl</code></pre>
+
+        <h2>Rich Output</h2>
+        <p>
+          The REPL formats different value types with appropriate visual representations:
+        </p>
+        <pre><code class="language-text"># DNA sequences show with color coding
+>>> dna"ATCGATCG"
+=> dna"ATCGATCG"
+
+# Tables render with borders and alignment
+>>> csv("data.csv") |> head(3)
+=> ┌────────┬───────┬──────────┐
+   │ sample │ gene  │ expr     │
+   ├────────┼───────┼──────────┤
+   │ S001   │ BRCA1 │ 12.45    │
+   │ S002   │ BRCA1 │ 8.91     │
+   │ S003   │ BRCA1 │ 15.23    │
+   └────────┴───────┴──────────┘
+   3 rows x 3 columns
+
+# Maps show key-value pairs
+>>> dna"ATCGATCG" |> kmer_count(2)
+=> { "AT": 2, "TC": 2, "CG": 2, "GA": 1, "TG": 0, ... }
+
+# Streams show type information
+>>> fastq("reads.fq.gz")
+=> Stream&lt;FastqRecord&gt; (unconsumed)</code></pre>
+
+        <h2>Loading Scripts</h2>
+        <p>
+          Use <code>:load</code> to execute a script and bring its definitions into scope.
+          This is useful for setting up helper functions or loading data:
+        </p>
+        <pre><code class="language-text"># Load a utility script
+>>> :load utils.bl
+Loaded 5 functions, 2 variables from utils.bl
+
+# Now use the loaded functions
+>>> my_custom_filter(data)
+
+# Load fresh data
+>>> :load setup.bl
+>>> :env
+Name       Type         Value
+samples    Table        Table(100 rows x 8 cols)
+metadata   Table        Table(100 rows x 3 cols)
+config     Map          { genome: "hg38", ... }</code></pre>
+
+        <h2>REPL Tips</h2>
+        <ul>
+          <li>
+            Use <code>_</code> to reference the last result: <code>_ |> len()</code>
+          </li>
+          <li>
+            Prefix an expression with <code>;</code> to suppress output:
+            <code>;let data = csv("big_file.csv")</code>
+          </li>
+          <li>
+            Use <code>:time</code> before committing to a full analysis to estimate
+            runtime on a subset of data
+          </li>
+          <li>
+            Save exploratory sessions with <code>:save</code> to convert them into
+            reproducible scripts
+          </li>
+        </ul>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="cli.html" class="text-violet-400 hover:text-violet-300">&larr; CLI</a>
+        <a href="lsp.html" class="text-violet-400 hover:text-violet-300">LSP &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

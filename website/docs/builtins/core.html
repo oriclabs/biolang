@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Core Functions — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/core"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Core Functions</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Core Functions</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          Fundamental operations available everywhere: I/O, type casting, assertions, and basic arithmetic.
+          These 17 functions form the bedrock of every BioLang program.
+        </p>
+
+        <!-- print -->
+        <section class="mb-12" id="print">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">print</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Write values to standard output without a trailing newline. Multiple arguments are separated by a single space.</p>
+          <pre><code class="language-biolang">print(values...) -> nil</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">values</td><td class="py-2 px-3">any (variadic)</td><td class="py-2 px-3">One or more values to print</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">nil</code></p>
+          <pre><code class="language-biolang">print("GC content: ", 0.42)   # GC content: 0.42
+print("chr", 1)                # chr1</code></pre>
+        </section>
+
+        <!-- println -->
+        <section class="mb-12" id="println">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">println</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Write values to standard output followed by a newline. The primary output function in BioLang.</p>
+          <pre><code class="language-biolang">println(values...) -> nil</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">values</td><td class="py-2 px-3">any (variadic)</td><td class="py-2 px-3">One or more values to print</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">nil</code></p>
+          <pre><code class="language-biolang">println("Hello, BioLang!")           # Hello, BioLang!\n
+println("Reads:", 1_000_000)          # Reads: 1000000\n
+println([1, 2, 3])                    # [1, 2, 3]\n</code></pre>
+        </section>
+
+        <!-- len -->
+        <section class="mb-12" id="len">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">len</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Return the length of a string (bytes), list (elements), or map (keys). Raises an error on types without a meaningful length.</p>
+          <pre><code class="language-biolang">len(value) -> int</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">string | list | map</td><td class="py-2 px-3">Value to measure</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">int</code></p>
+          <pre><code class="language-biolang">len("ATCGATCG")        # 8
+len([10, 20, 30])       # 3
+len({"a": 1, "b": 2})   # 2</code></pre>
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mt-4">
+            <p class="text-sm text-amber-300"><strong>Edge case:</strong> For strings, <code>len</code> returns byte count, not character count. For multibyte UTF-8 characters, use <code>len(split(s, ""))</code> to get grapheme count.</p>
+          </div>
+        </section>
+
+        <!-- type -->
+        <section class="mb-12" id="type">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">type</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Return the type name of a value as a string. Useful for runtime type checks and debugging.</p>
+          <pre><code class="language-biolang">type(value) -> string</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Any value</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">string</code> &mdash; one of: <code>"int"</code>, <code>"float"</code>, <code>"string"</code>, <code>"bool"</code>, <code>"list"</code>, <code>"map"</code>, <code>"nil"</code>, <code>"function"</code>, <code>"table"</code>, <code>"matrix"</code>, <code>"sparse"</code>, <code>"datetime"</code>, <code>"svg"</code></p>
+          <pre><code class="language-biolang">type(42)         # "int"
+type(3.14)       # "float"
+type("ACGT")     # "string"
+type([1, 2])     # "list"
+type(nil)        # "nil"
+type(len)        # "function"</code></pre>
+        </section>
+
+        <!-- range -->
+        <section class="mb-12" id="range">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">range</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Generate a list of integers from <code>start</code> (inclusive) to <code>end</code> (exclusive) with an optional step.</p>
+          <pre><code class="language-biolang">range(start, end, step?) -> list</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">start</td><td class="py-2 px-3">int</td><td class="py-2 px-3">Start value (inclusive)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">end</td><td class="py-2 px-3">int</td><td class="py-2 px-3">End value (exclusive)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">step</td><td class="py-2 px-3">int (optional)</td><td class="py-2 px-3">Step increment (default: 1)</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">list&lt;int&gt;</code></p>
+          <pre><code class="language-biolang">range(0, 5)        # [0, 1, 2, 3, 4]
+range(1, 10, 2)    # [1, 3, 5, 7, 9]
+range(10, 0, -2)   # [10, 8, 6, 4, 2]
+range(0, 0)        # []</code></pre>
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mt-4">
+            <p class="text-sm text-amber-300"><strong>Edge case:</strong> A step of 0 raises an error. Mismatched signs (e.g., <code>range(0, 5, -1)</code>) return an empty list.</p>
+          </div>
+        </section>
+
+        <!-- abs -->
+        <section class="mb-12" id="abs">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">abs</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Return the absolute value of a number.</p>
+          <pre><code class="language-biolang">abs(n) -> number</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">n</td><td class="py-2 px-3">int | float</td><td class="py-2 px-3">Numeric value</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">number</code> (same type as input)</p>
+          <pre><code class="language-biolang">abs(-42)      # 42
+abs(3.14)     # 3.14
+abs(-2.5)     # 2.5
+
+# Common use: fold-change magnitude
+let fc = -3.2
+println("Magnitude:", abs(fc))   # Magnitude: 3.2</code></pre>
+        </section>
+
+        <!-- min -->
+        <section class="mb-12" id="min">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">min</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Return the smaller of two values. Also accepts a list to find the minimum element.</p>
+          <pre><code class="language-biolang">min(a, b) -> number
+min(list) -> number</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">a, b</td><td class="py-2 px-3">number</td><td class="py-2 px-3">Two values to compare</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">list</td><td class="py-2 px-3">list&lt;number&gt;</td><td class="py-2 px-3">List of numbers</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">number</code></p>
+          <pre><code class="language-biolang">min(3, 7)              # 3
+min([28, 15, 42, 3])   # 3
+
+let quality_scores = [30, 28, 35, 22, 31]
+println("Min Q:", min(quality_scores))   # Min Q: 22</code></pre>
+        </section>
+
+        <!-- max -->
+        <section class="mb-12" id="max">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">max</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Return the larger of two values. Also accepts a list to find the maximum element.</p>
+          <pre><code class="language-biolang">max(a, b) -> number
+max(list) -> number</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">a, b</td><td class="py-2 px-3">number</td><td class="py-2 px-3">Two values to compare</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">list</td><td class="py-2 px-3">list&lt;number&gt;</td><td class="py-2 px-3">List of numbers</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">number</code></p>
+          <pre><code class="language-biolang">max(3, 7)              # 7
+max([28, 15, 42, 3])   # 42
+
+let coverage = [12, 45, 89, 102, 67]
+println("Peak coverage:", max(coverage))   # Peak coverage: 102</code></pre>
+        </section>
+
+        <!-- int -->
+        <section class="mb-12" id="int">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">int</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Cast a value to integer. Floats are truncated. Strings are parsed. Booleans become 0/1.</p>
+          <pre><code class="language-biolang">int(value) -> int</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Value to convert</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">int</code></p>
+          <pre><code class="language-biolang">int(3.7)       # 3  (truncates, does not round)
+int("42")      # 42
+int(true)      # 1
+int(false)     # 0
+int("0xFF")    # 255 (hex literals supported)</code></pre>
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mt-4">
+            <p class="text-sm text-amber-300"><strong>Edge case:</strong> <code>int("abc")</code> raises a parse error. Use <code>is_num()</code> to guard conversions from untrusted input.</p>
+          </div>
+        </section>
+
+        <!-- float -->
+        <section class="mb-12" id="float">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">float</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Cast a value to a 64-bit floating point number.</p>
+          <pre><code class="language-biolang">float(value) -> float</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Value to convert</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">float</code></p>
+          <pre><code class="language-biolang">float(42)        # 42.0
+float("3.14")    # 3.14
+float("1e-5")    # 0.00001
+float(true)      # 1.0</code></pre>
+        </section>
+
+        <!-- str -->
+        <section class="mb-12" id="str">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">str</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Convert any value to its string representation.</p>
+          <pre><code class="language-biolang">str(value) -> string</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Value to convert</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">string</code></p>
+          <pre><code class="language-biolang">str(42)            # "42"
+str(3.14)          # "3.14"
+str(true)          # "true"
+str([1, 2, 3])     # "[1, 2, 3]"
+str(nil)           # "nil"</code></pre>
+        </section>
+
+        <!-- bool -->
+        <section class="mb-12" id="bool">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">bool</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Cast a value to boolean. Falsy values: <code>nil</code>, <code>false</code>, <code>0</code>, <code>0.0</code>, <code>""</code>, <code>[]</code>. Everything else is truthy.</p>
+          <pre><code class="language-biolang">bool(value) -> bool</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Value to convert</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">bool</code></p>
+          <pre><code class="language-biolang">bool(1)        # true
+bool(0)        # false
+bool("")       # false
+bool("ACGT")   # true
+bool([])       # false
+bool([1])      # true
+bool(nil)      # false</code></pre>
+        </section>
+
+        <!-- assert -->
+        <section class="mb-12" id="assert">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">assert</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Assert that a condition is truthy. If the condition is falsy, execution halts with an error message.</p>
+          <pre><code class="language-biolang">assert(condition, message?) -> nil</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">condition</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Value to test for truthiness</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">message</td><td class="py-2 px-3">string (optional)</td><td class="py-2 px-3">Custom error message</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">nil</code> (or halts on failure)</p>
+          <pre><code class="language-biolang">let reads = 1_000_000
+assert(reads > 0, "Expected positive read count")
+
+let seq = "ATCGATCG"
+assert(len(seq) % 3 == 0, "Sequence length not divisible by 3")
+# Error: Assertion failed: Sequence length not divisible by 3</code></pre>
+        </section>
+
+        <!-- debug -->
+        <section class="mb-12" id="debug">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">debug</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Print the debug representation of a value to stderr and return the value unchanged. Useful for inspecting intermediate values in pipelines.</p>
+          <pre><code class="language-biolang">debug(value) -> value</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Value to inspect</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">any</code> (passthrough)</p>
+          <pre><code class="language-biolang"># Inspect inside a pipeline
+let result = [1, 2, 3]
+  |> map(|x| x * 2)
+  |> debug              # stderr: [2, 4, 6]
+  |> filter(|x| x > 3)
+  |> debug              # stderr: [4, 6]</code></pre>
+        </section>
+
+        <!-- typeof -->
+        <section class="mb-12" id="typeof">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">typeof</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Alias for <code>type()</code>. Returns the type name of a value as a string.</p>
+          <pre><code class="language-biolang">typeof(value) -> string</code></pre>
+          <pre><code class="language-biolang">typeof(42)       # "int"
+typeof("ACGT")   # "string"</code></pre>
+        </section>
+
+        <!-- is_nil -->
+        <section class="mb-12" id="is_nil">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">is_nil</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Check if a value is <code>nil</code>. More explicit than <code>value == nil</code>.</p>
+          <pre><code class="language-biolang">is_nil(value) -> bool</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Value to check</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">bool</code></p>
+          <pre><code class="language-biolang">is_nil(nil)      # true
+is_nil(0)        # false
+is_nil("")       # false
+is_nil(false)    # false
+
+let result = find([1, 2, 3], |x| x > 10)
+if is_nil(result) {
+  println("Not found")
+}</code></pre>
+        </section>
+
+        <!-- to_string -->
+        <section class="mb-12" id="to_string">
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span class="text-violet-400 font-mono">to_string</span>
+          </h2>
+          <p class="text-slate-400 mt-2">Alias for <code>str()</code>. Convert any value to its string representation.</p>
+          <pre><code class="language-biolang">to_string(value) -> string</code></pre>
+          <pre><code class="language-biolang">to_string(42)          # "42"
+to_string([1, 2, 3])   # "[1, 2, 3]"</code></pre>
+        </section>
+
+        <section id="tap" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">tap</h2>
+          <p class="text-slate-400 mb-4">Passes a value through a callback as a side effect, then returns the original value unchanged. Useful for logging or debugging inside pipelines.</p>
+          <pre><code class="language-biolang"># Debug a pipeline without breaking the chain
+reads
+  |> filter(|r| r.quality > 20)
+  |> tap(|x| println("After filter:", len(x), "reads"))
+  |> map(|r| r.sequence)
+  |> tap(|x| println("Sequences:", len(x)))
+
+# Inspect intermediate value
+let result = data
+  |> tap(|d| println("Input rows:", nrow(d)))
+  |> mutate("score", |r| r.val * 2)</code></pre>
+        </section>
+
+        <section id="units" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Genomic Units</h2>
+          <p class="text-slate-400 mb-4">Unit conversion functions return integer base-pair counts, so arithmetic composes naturally.</p>
+          <table class="w-full text-sm mb-4">
+            <thead class="border-b border-slate-800 text-left">
+              <tr>
+                <th class="py-2 px-3">Function</th>
+                <th class="py-2 px-3">Description</th>
+                <th class="py-2 px-3">Example</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">bp(n)</code></td><td class="py-2 px-3">Base pairs (identity)</td><td class="py-2 px-3"><code>bp(500)</code> &rarr; <code>500</code></td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">kb(n)</code></td><td class="py-2 px-3">Kilobases &times; 1,000</td><td class="py-2 px-3"><code>kb(1.5)</code> &rarr; <code>1500</code></td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">mb(n)</code></td><td class="py-2 px-3">Megabases &times; 1,000,000</td><td class="py-2 px-3"><code>mb(3)</code> &rarr; <code>3000000</code></td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">gb(n)</code></td><td class="py-2 px-3">Gigabases &times; 1,000,000,000</td><td class="py-2 px-3"><code>gb(3.1)</code> &rarr; <code>3100000000</code></td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang"># Composable arithmetic
+let window = kb(500) + bp(200)   # 500200
+let genome_size = gb(3.1)        # 3100000000
+
+# Use in interval operations
+let region_size = mb(1)
+let start = kb(100)
+let end = start + region_size    # 1100000</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="index.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span>&larr;</span> Builtins Index
+        </a>
+        <a href="collections.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Collections &amp; HOFs <span>&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

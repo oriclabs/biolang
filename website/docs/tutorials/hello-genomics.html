@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello Genomics — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/hello-genomics"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Hello Genomics</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">Beginner</span>
+          <span class="text-sm text-slate-500">~15 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Hello Genomics</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          Your first steps with BioLang. In this tutorial you will create DNA and RNA
+          sequences, perform basic operations like GC content and reverse complement,
+          and build a small sequence-analysis script.
+        </p>
+
+        <!-- What you will learn -->
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Creating DNA and RNA sequences with the <code>dna"..."</code> and <code>rna"..."</code> literals</li>
+            <li>Computing GC content, length, and base composition</li>
+            <li>Reverse complement, transcription, and translation</li>
+            <li>Using the pipe operator <code>|&gt;</code> to chain operations</li>
+            <li>Variables with <code>let</code></li>
+          </ul>
+        </div>
+
+        <!-- Prerequisites -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Prerequisites</h2>
+        <p>Make sure BioLang is installed. Open a terminal and check:</p>
+        <pre><code class="language-bash">bl --version
+# bl 0.1.0</code></pre>
+        <p>If you do not have it yet, follow the <a href="../getting-started/installation.html" class="text-violet-400 hover:underline">Installation Guide</a>.</p>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Create Your First DNA Sequence</h2>
+        <p>
+          BioLang has first-class support for biological sequences. The <code>dna"..."</code>
+          literal creates a validated DNA sequence at parse time. Any invalid bases will cause
+          a compile error, not a runtime error.
+        </p>
+        <pre><code class="language-biolang"># hello.bio — your first BioLang program
+
+let seq = dna"ATGCGATCGATCGATCG"
+print(seq)               # ATGCGATCGATCGATCG
+print(len(seq))          # 17
+print(type(seq))         # DNA</code></pre>
+        <p>Save the file as <code>hello.bio</code> and run it:</p>
+        <pre><code class="language-bash">bl run hello.bio</code></pre>
+        <p>
+          The <code>dna"..."</code> literal accepts uppercase A, T, G, C and the IUPAC
+          ambiguity codes (N, R, Y, etc.). Lowercase letters are automatically uppercased.
+        </p>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Base Composition and GC Content</h2>
+        <p>
+          BioLang provides free functions for composition analysis.
+          No imports needed.
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATGCGATCGATCGATCG"
+
+# Base counts
+let counts = base_counts(seq)
+print(counts)
+# {A: 4, T: 4, G: 5, C: 4}
+
+# GC content as a fraction 0..1
+let gc = gc_content(seq)
+print(gc)          # 0.5294
+print(gc * 100.0)  # 52.94
+
+# AT content is the complement
+let at = 1.0 - gc
+print(f"AT content: {at * 100.0}%")  # AT content: 47.06%</code></pre>
+        <p>
+          The <code>gc_content()</code> function returns a <code>Float</code>. BioLang uses
+          f-string interpolation with <code>f"...{expr}..."</code> syntax.
+        </p>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Reverse Complement</h2>
+        <p>
+          The reverse complement is fundamental in molecular biology. BioLang makes it a
+          single function call.
+        </p>
+        <pre><code class="language-biolang">let forward = dna"ATGCGATCG"
+let revcomp = reverse_complement(forward)
+
+print(forward)  # ATGCGATCG
+print(revcomp)  # CGATCGCAT
+
+# Verify: reverse complement of reverse complement is the original
+assert(reverse_complement(revcomp) == forward)</code></pre>
+        <p>
+          The <code>reverse_complement()</code> function handles IUPAC ambiguity codes
+          correctly: R becomes Y, S stays S, and so on.
+        </p>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Transcription: DNA to RNA</h2>
+        <p>
+          Transcription converts a DNA sequence to its RNA equivalent, replacing T with U.
+        </p>
+        <pre><code class="language-biolang">let dna_seq = dna"ATGCGATCG"
+
+# Transcribe DNA -> RNA
+let rna_seq = transcribe(dna_seq)
+print(rna_seq)          # AUGCGAUCG
+print(type(rna_seq))    # RNA
+
+# You can also create RNA directly
+let direct_rna = rna"AUGCGAUCG"
+assert(rna_seq == direct_rna)</code></pre>
+        <p>
+          Notice how the return type changes from <code>Dna</code> to <code>Rna</code>.
+          BioLang's type system tracks molecule types so you cannot accidentally mix them
+          in operations that only accept one kind.
+        </p>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Translation: RNA to Protein</h2>
+        <p>
+          Translation converts an RNA sequence into a protein sequence using the standard
+          genetic code. BioLang reads codons (three bases at a time) and maps each to an
+          amino acid.
+        </p>
+        <pre><code class="language-biolang"># A classic ORF: ATG ... stop
+let gene = dna"ATGGCTAGCAAATGA"
+
+# Transcribe then translate
+let protein = gene
+  |> transcribe()
+  |> translate()
+
+print(protein)          # MASK*
+print(type(protein))    # Protein</code></pre>
+        <p>
+          Here we introduced the <strong>pipe operator</strong> <code>|&gt;</code>.
+          It takes the result of the left side and passes it as the first argument of the
+          right-side function call. You can chain as many pipes as you like.
+        </p>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Subsequences and Slicing</h2>
+        <p>
+          Extract portions of a sequence with slice syntax. Indices are zero-based and
+          the end is exclusive, matching most programming languages.
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATGCGATCGATCGATCG"
+
+# Slice: [start..end)
+let first_five = seq[0..5]
+print(first_five)  # ATGCG
+
+# From position 5 to the end
+let rest = seq[5..]
+print(rest)        # ATCGATCGATCG
+
+# Last 4 bases
+let tail = seq[-4..]
+print(tail)        # ATCG
+
+# You can also use subseq() for named clarity
+let codon = subseq(seq, 0, 3)
+print(codon)       # ATG</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Pattern Matching on Sequences</h2>
+        <p>
+          BioLang's <code>match</code> expression works with sequence patterns, making it
+          easy to classify sequences.
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATGCGATCG"
+
+# Classify by GC content
+let gc_class = match gc_content(seq) {
+  gc if gc > 0.6  => "high GC",
+  gc if gc > 0.4  => "medium GC",
+  _ => "low GC",
+}
+print(gc_class)  # medium GC
+
+# Check for a start codon
+let has_start = match seq[0..3] {
+  dna"ATG" => true,
+  _        => false,
+}
+print(f"Starts with ATG: {has_start}")  # true</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Putting It All Together</h2>
+        <p>
+          Let us write a small analysis script that takes a DNA sequence, computes several
+          properties, and prints a summary report.
+        </p>
+        <pre><code class="language-biolang"># analysis.bio — basic sequence analysis report
+
+let seq = dna"ATGGCTAGCAAATTTCCCGGGATCGATCGATCGATGA"
+
+# Compute properties using pipes
+let gc      = seq |> gc_content()
+let length  = seq |> len()
+let protein = seq |> transcribe() |> translate()
+
+# Find all ATG positions (potential start codons)
+let starts = find_motif(seq, dna"ATG")
+
+# Print report
+print("=== Sequence Analysis Report ===")
+print(f"Length:      {length} bp")
+print(f"GC content:  {round(gc * 100.0, 2)}%")
+print(f"Protein:     {protein}")
+print(f"Protein len: {len(protein)} aa")
+print(f"ATG sites:   {starts}")
+print("")
+
+# Base composition bar chart
+let counts = base_counts(seq)
+for base in ["A", "T", "G", "C"] {
+  let count = counts[base]
+  let bar = repeat("#", count)
+  print(f"{base}: {bar} ({count})")
+}</code></pre>
+        <p>Run it:</p>
+        <pre><code class="language-bash">bl run analysis.bio</code></pre>
+        <p>Expected output:</p>
+        <pre><code class="language-bash">=== Sequence Analysis Report ===
+Length:      37 bp
+GC content:  48.65%
+Protein:     MASKFPGIDRSM*
+Protein len: 13 aa
+ATG sites:   [0]
+
+A: ########## (10)
+T: ######### (9)
+G: ########## (10)
+C: ######## (8)</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Reassigning Variables</h2>
+        <p>
+          Variables declared with <code>let</code> can be reassigned freely.
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATG"
+print(seq)  # ATG
+
+seq = concat(seq, dna"CCC")
+print(seq)  # ATGCCC
+
+seq = concat(seq, dna"GGG")
+print(seq)  # ATGCCCGGG
+
+# Build a sequence in a loop
+let result = dna""
+for codon in [dna"ATG", dna"GCT", dna"TAA"] {
+  result = concat(result, codon)
+}
+print(result)  # ATGGCTTAA</code></pre>
+
+        <!-- Step 10 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Writing Functions</h2>
+        <p>
+          You can define reusable functions with the <code>fn</code> keyword.
+        </p>
+        <pre><code class="language-biolang"># Define a function to classify GC content
+fn classify_gc(seq: Dna) -> String {
+  let gc = gc_content(seq)
+  match gc {
+    g if g >= 0.6  => "high",
+    g if g >= 0.4  => "medium",
+    _ => "low",
+  }
+}
+
+# Define a function to summarize a sequence
+fn summarize(seq: Dna) -> Map {
+  {
+    length:     len(seq),
+    gc_content: gc_content(seq),
+    gc_class:   classify_gc(seq),
+    has_start:  seq[0..3] == dna"ATG",
+  }
+}
+
+# Use the functions
+let sequences = [
+  dna"ATGCCCGGGAAATTT",
+  dna"GGCGCGCGCGCGCGC",
+  dna"AAATTTAAATTTAAAT",
+]
+
+for seq in sequences {
+  let info = summarize(seq)
+  print(f"{seq[0..6]}... => GC: {info.gc_class}, len: {info.length}")
+}</code></pre>
+
+        <!-- Next steps -->
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Now that you are comfortable with sequences and basic operations, move on to
+            the <a href="fastq-pipeline.html" class="text-violet-400 hover:underline">FASTQ QC Pipeline</a>
+            tutorial to learn how to read files and build a real analysis pipeline.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="index.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Tutorials Index</a>
+        <a href="fastq-pipeline.html" class="text-violet-400 hover:text-violet-300 text-sm">FASTQ QC Pipeline &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

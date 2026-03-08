@@ -1,0 +1,75 @@
+# statistics.bl — Descriptive stats, math, statistical tests, normalization
+
+# ── Sample data ─────────────────────────────────────────────────
+let control  = [5.2, 4.8, 5.1, 5.5, 4.9, 5.3, 5.0, 4.7, 5.4, 5.2]
+let treated  = [7.1, 6.8, 7.3, 6.5, 7.0, 6.9, 7.2, 6.7, 7.4, 7.1]
+let paired_a = [10.2, 11.5, 9.8, 12.1, 10.7]
+let paired_b = [12.4, 13.1, 11.9, 14.0, 12.8]
+
+# ── Descriptive statistics ──────────────────────────────────────
+println("=== Descriptive Stats ===")
+println("Mean:     " + str(mean(control)))
+println("Median:   " + str(median(control)))
+println("Stdev:    " + str(stdev(control)))
+println("Variance: " + str(variance(control)))
+println("Sum:      " + str(sum(control)))
+println("Q1 / Q3:  " + str(quantile(control, 0.25)) + " / " + str(quantile(control, 0.75)))
+println("Unique:   " + str(len(unique(control))))
+println("Summary:  " + str(summary(control)))
+println("Cumsum:   " + str(cumsum([1, 2, 3, 4, 5])))
+
+# ── Correlation ────────────────────────────────────────────────
+let x = [1.0, 2.0, 3.0, 4.0, 5.0]
+let y = [2.1, 3.9, 6.2, 7.8, 10.1]
+println("Cor(x,y): " + str(cor(x, y)))
+
+# ── Math functions ──────────────────────────────────────────────
+println("\n=== Math ===")
+println("sqrt(144)=" + str(sqrt(144)) + "  pow(2,10)=" + str(pow(2, 10)))
+println("log(e)=" + str(log(euler())) + "  exp(1)=" + str(exp(1)))
+println("ceil(3.2)=" + str(ceil(3.2)) + "  floor(3.8)=" + str(floor(3.8)))
+println("round(3.456)=" + str(round(3.456)))
+
+# ── Trigonometry ───────────────────────────────────────────────
+println("pi=" + str(pi()) + "  sin(pi/2)=" + str(sin(pi() / 2)))
+println("cos(0)=" + str(cos(0)) + "  tan(pi/4)=" + str(tan(pi() / 4)))
+
+# ── Utility math ───────────────────────────────────────────────
+println("sign(-5)=" + str(sign(-5)) + "  clamp(15,0,10)=" + str(clamp(15, 0, 10)))
+println("is_nan(0/0)=" + str(is_nan(0.0 / 0.0)) + "  is_finite(1)=" + str(is_finite(1.0)))
+
+# ── Statistical tests ──────────────────────────────────────────
+println("\n=== Statistical Tests ===")
+let tt = ttest(control, treated)
+println("Two-sample t: t=" + str(tt.t_stat) + " p=" + str(tt.p_value))
+
+let tp = ttest_paired(paired_a, paired_b)
+println("Paired t:     t=" + str(tp.t_stat) + " p=" + str(tp.p_value))
+
+let t1 = ttest_one(control, 5.0)
+println("One-sample t: t=" + str(t1.t_stat) + " p=" + str(t1.p_value))
+
+let group_c = [3.1, 3.5, 3.3, 3.7, 3.2]
+let av = anova(control, treated, group_c)
+println("ANOVA:  F=" + str(av.f_stat) + " p=" + str(av.p_value))
+
+let chi = chi_square([50, 30, 20], [40, 35, 25])
+println("Chi-sq: X2=" + str(chi.statistic) + " p=" + str(chi.p_value))
+
+let fe = fisher_exact(10, 5, 3, 12)
+println("Fisher: p=" + str(fe.p_value) + " OR=" + str(fe.odds_ratio))
+
+let wt = wilcoxon(paired_a, paired_b)
+println("Wilcox: W=" + str(wt.statistic) + " p=" + str(wt.p_value))
+
+# ── P-value adjustment ─────────────────────────────────────────
+let pvals = [0.001, 0.01, 0.03, 0.05, 0.10, 0.50]
+println("\nRaw p:      " + str(pvals))
+println("BH-adjusted: " + str(p_adjust(pvals, "BH")))
+
+# ── Normalization and random numbers ───────────────────────────
+let normed = normalize([100, 200, 150, 300, 250])
+println("Normalized: " + str(normed))
+println("Histogram:  " + str(hist(control, 5)))
+println("Random:     " + str(random()) + "  RandInt: " + str(random_int(1, 100)))
+println("Scatter:    " + str(scatter(x, y)))

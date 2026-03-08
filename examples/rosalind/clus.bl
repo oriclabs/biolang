@@ -1,0 +1,41 @@
+# Rosalind: CLUS — Global Multiple Alignment
+# https://rosalind.info/problems/clus/
+#
+# Given: Set of DNA strings in FASTA format.
+# Return: ID of the string most different from the others.
+#
+# We compute pairwise edit distances and find the sequence with
+# the highest average distance to all others.
+
+let sequences = [
+    {id: "Rosalind_18", seq: dna"GACATGTTTGTTTGCCTTAAACTCGTGGCGGCCTAGCCGTAAGTTAAG"},
+    {id: "Rosalind_23", seq: dna"ACTCATGTTTGTTTGCCTTAAACTCTTGGCGGCTTAGCCGTAACTTAAG"},
+    {id: "Rosalind_51", seq: dna"TCCTATGTTTGTTTGCCTCAAACTCTTGGCGGCCTAGCCGTAAGGTAAG"},
+    {id: "Rosalind_7",  seq: dna"CACGTCTGTTCGCCTAAAACTTTGATTGCCGGCCTACGCTAGTTAGTTA"},
+    {id: "Rosalind_28", seq: dna"GGGGTCATGGCTGTTTGCCTTAAACCCTTGGCGGCCTAGCCGTAATGTTT"}
+]
+
+# Compute pairwise distances and find the most distant sequence
+let most_different_id = ""
+let max_avg_dist = 0
+
+for i_seq in sequences {
+    let total_dist = 0
+    let count = 0
+    for j_seq in sequences {
+        if i_seq.id != j_seq.id then {
+            let dist = edit_distance(str(i_seq.seq), str(j_seq.seq))
+            total_dist = total_dist + dist
+            count = count + 1
+        }
+    }
+    let avg_dist = total_dist / count
+    if avg_dist > max_avg_dist then {
+        max_avg_dist = avg_dist
+        most_different_id = i_seq.id
+    }
+}
+
+println("Result:   " + most_different_id)
+println("Expected: Rosalind_7")
+println("Match:    " + str(most_different_id == "Rosalind_7"))

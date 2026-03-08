@@ -1,0 +1,44 @@
+# NCBI API Examples
+# US National Center for Biotechnology Information
+# Optional: set NCBI_API_KEY env var for higher rate limits (10 req/s vs 3 req/s)
+
+# Search any NCBI database
+# ncbi_search(database, query, max_results?)
+let results = ncbi_search("gene", "BRCA1 human", 5)
+println("Gene search hits:", results.count)
+println("Gene IDs:", results.ids)
+
+# Search PubMed for publications
+# ncbi_pubmed(query, max_results?)
+let papers = ncbi_pubmed("CRISPR genome editing 2024", 5)
+println("\nPubMed hits:", papers.count)
+println("PubMed IDs:", papers.ids)
+
+# Get gene details
+# ncbi_gene(query, max_results?)
+let genes = ncbi_gene("TP53")
+println("\nTP53 gene IDs:", genes.ids)
+
+# Fetch raw sequence by accession
+# ncbi_sequence(accession) -> FASTA text
+let seq = ncbi_sequence("NM_007294.4")
+println("\nBRCA1 mRNA (first 100 chars):", substr(seq, 0, 100))
+
+# Fetch any record in any format
+# ncbi_fetch(database, id_list, return_type)
+let fasta = ncbi_fetch("nucleotide", ["NM_007294.4"], "fasta")
+println("\nFetched FASTA length:", len(fasta))
+
+# Get document summaries
+# ncbi_summary(database, id_list) -> list of records
+let summaries = ncbi_summary("gene", ["672", "7157"])
+for s in summaries {
+    println("Gene:", s.uid, "-", s.Name)
+}
+
+# Pipeline: search -> fetch -> analyze
+let brca = ncbi_search("nucleotide", "BRCA2 Homo sapiens mRNA", 1)
+if len(brca.ids) > 0 {
+    let seq_text = ncbi_fetch("nucleotide", brca.ids, "fasta")
+    println("\nBRCA2 sequence fetched, length:", len(seq_text))
+}

@@ -1,0 +1,83 @@
+# control_flow.bl — Conditionals, loops, match, and error handling
+# BioLang uses newlines as statement terminators
+
+# if / else
+let score = 85
+if score >= 90 {
+    println("Grade: A")
+} else if score >= 80 {
+    println("Grade: B")
+} else {
+    println("Grade: C or below")
+}
+
+# if as an expression (returns a value)
+let status = if score >= 60 { "pass" } else { "fail" }
+println("Status: " + status)
+
+# while loop
+let i = 0
+while i < 5 {
+    println("while i = " + str(i))
+    i = i + 1
+}
+
+# for loop over a list
+let bases = ["A", "T", "G", "C"]
+for base in bases {
+    println("Base: " + base)
+}
+
+# for loop over a range
+for n in range(1, 6) {
+    println("range n = " + str(n))
+}
+
+# break and continue
+for x in range(1, 20) {
+    if x % 2 == 0 { continue }
+    if x > 10 { break }
+    println("odd: " + str(x))
+}
+
+# for loop with enumerate (index + value)
+let codons = ["ATG", "GCA", "TAA"]
+for i, codon in enumerate(codons) {
+    println(str(i) + ": " + codon)
+}
+
+# match expression — pattern matching
+let nucleotide = "G"
+let full_name = match nucleotide {
+    "A" => "Adenine"
+    "T" => "Thymine"
+    "G" => "Guanine"
+    "C" => "Cytosine"
+    _ => "Unknown"
+}
+println(nucleotide + " = " + full_name)
+
+# match on types / values
+let val = 42
+match val {
+    0 => println("zero")
+    n if n > 0 => println("positive: " + str(n))
+    _ => println("negative")
+}
+
+# try / catch for error handling
+try {
+    let result = 10 / 0
+    println("This won't print")
+} catch e {
+    println("Caught error: " + str(e))
+}
+
+# Nested control flow
+for row in range(1, 4) {
+    for col in range(1, 4) {
+        if row == col {
+            println(str(row) + "," + str(col) + " is diagonal")
+        }
+    }
+}

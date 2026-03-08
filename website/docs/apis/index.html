@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Clients Overview — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="apis/overview"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">API Clients</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Overview</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>API Clients Overview</h1>
+        <p>
+          BioLang ships with built-in clients for 15 major bioinformatics databases, registries, and web
+          services. These clients are available as global functions &mdash; no imports needed.
+          They handle authentication, rate limiting, response parsing, and caching automatically,
+          so you can focus on the biology rather than HTTP plumbing.
+        </p>
+
+        <h2>Available Clients</h2>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Client</th>
+                <th class="py-3 px-4">Service</th>
+                <th class="py-3 px-4">Key Functions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">NCBI</td>
+                <td class="py-3 px-4">NCBI E-utilities</td>
+                <td class="py-3 px-4">ncbi_search, ncbi_fetch, ncbi_summary, ncbi_gene, ncbi_pubmed, ncbi_sequence</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">Ensembl</td>
+                <td class="py-3 px-4">Ensembl REST API</td>
+                <td class="py-3 px-4">ensembl_gene, ensembl_symbol, ensembl_sequence, ensembl_vep</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">UniProt</td>
+                <td class="py-3 px-4">UniProt REST API</td>
+                <td class="py-3 px-4">uniprot_search, uniprot_entry, uniprot_fasta, uniprot_features, uniprot_go</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">UCSC</td>
+                <td class="py-3 px-4">UCSC Genome Browser</td>
+                <td class="py-3 px-4">ucsc_genomes, ucsc_sequence, ucsc_tracks</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">KEGG</td>
+                <td class="py-3 px-4">KEGG Pathway Database</td>
+                <td class="py-3 px-4">kegg_find, kegg_get, kegg_link</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">STRING</td>
+                <td class="py-3 px-4">STRING Protein Network</td>
+                <td class="py-3 px-4">string_network, string_enrichment</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">PDB</td>
+                <td class="py-3 px-4">RCSB Protein Data Bank</td>
+                <td class="py-3 px-4">pdb_entry, pdb_search</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">Reactome</td>
+                <td class="py-3 px-4">Reactome Pathway DB</td>
+                <td class="py-3 px-4">reactome_search, reactome_pathways</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">GO</td>
+                <td class="py-3 px-4">Gene Ontology (QuickGO)</td>
+                <td class="py-3 px-4">go_term, go_annotations, go_children, go_parents</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">COSMIC</td>
+                <td class="py-3 px-4">COSMIC Somatic Mutations</td>
+                <td class="py-3 px-4">cosmic_gene</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">BioMart</td>
+                <td class="py-3 px-4">Ensembl BioMart</td>
+                <td class="py-3 px-4">biomart_query</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">NCBI Datasets</td>
+                <td class="py-3 px-4">NCBI Datasets v2</td>
+                <td class="py-3 px-4">datasets_gene</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">nf-core</td>
+                <td class="py-3 px-4">nf-core Pipeline Catalog</td>
+                <td class="py-3 px-4">nfcore_list, nfcore_search, nfcore_info, nfcore_params, nfcore_releases</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">BioContainers</td>
+                <td class="py-3 px-4">BioContainers Registry</td>
+                <td class="py-3 px-4">biocontainers_search, biocontainers_info, biocontainers_versions, biocontainers_popular</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">Galaxy ToolShed</td>
+                <td class="py-3 px-4">Galaxy ToolShed Registry</td>
+                <td class="py-3 px-4">galaxy_search, galaxy_popular, galaxy_categories, galaxy_tool</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Configuration</h2>
+        <p>
+          Most API clients work without any configuration. For services that offer higher
+          rate limits with an API key, set the corresponding environment variable:
+        </p>
+        <pre><code class="language-biolang"># NCBI: optional API key for higher rate limits (10 req/s vs 3 req/s)
+# Set NCBI_API_KEY environment variable
+
+# COSMIC: API key required
+# Set COSMIC_API_KEY environment variable
+
+# No configuration needed for:
+# Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, GO, BioMart</code></pre>
+
+        <h3>Environment Variables</h3>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Variable</th>
+                <th class="py-3 px-4">Service</th>
+                <th class="py-3 px-4">Required</th>
+                <th class="py-3 px-4">Effect</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4 font-mono">NCBI_API_KEY</td>
+                <td class="py-3 px-4">NCBI</td>
+                <td class="py-3 px-4">Optional</td>
+                <td class="py-3 px-4">Increases rate limit from 3 to 10 requests/second</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono">COSMIC_API_KEY</td>
+                <td class="py-3 px-4">COSMIC</td>
+                <td class="py-3 px-4">Required</td>
+                <td class="py-3 px-4">Authentication for COSMIC database access</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Rate Limiting</h2>
+        <p>
+          BioLang automatically respects rate limits for each service. If a rate limit is
+          exceeded, the client transparently retries with exponential backoff. You do not
+          need to add any delay between calls:
+        </p>
+        <pre><code class="language-biolang"># This works fine even though it makes many requests —
+# BioLang handles rate limiting internally
+let gene_ids = ["BRCA1", "TP53", "EGFR", "MYC", "KRAS", "PIK3CA"]
+
+let results = gene_ids
+  |> map(|id| {
+    gene: id,
+    ncbi: ncbi_search("gene", id),
+    ensembl: ensembl_symbol("human", id),
+    uniprot: uniprot_search("gene:{id} AND organism_id:9606")
+  })
+  |> to_table()
+  |> print()</code></pre>
+
+        <h2>Caching</h2>
+        <p>
+          API responses are cached in memory for the duration of a script execution. Identical
+          requests return cached results instantly. For persistent caching across runs, use
+          the <code>cache</code> parameter:
+        </p>
+        <pre><code class="language-biolang"># API responses are cached in memory for the duration of a script.
+# Identical calls return cached results instantly.
+let gene = ncbi_search("gene", "BRCA1")
+let gene2 = ncbi_search("gene", "BRCA1")   # cached — no network request</code></pre>
+
+        <h2>Error Handling</h2>
+        <p>
+          API functions return structured results. Network errors and API errors are
+          propagated as BioLang errors that can be caught:
+        </p>
+        <pre><code class="language-biolang"># Errors propagate naturally
+let result = ncbi_search("gene", "BRCA1")
+
+# Use try/catch for graceful error handling
+result = try {
+  ncbi_search("gene", "BRCA1")
+} catch err {
+  print("API error:", err.message)
+  nil
+}
+
+# Batch operations with error tolerance
+let genes = ["BRCA1", "TP53", "INVALID_GENE", "EGFR"]
+let results = genes |> map(|g| {
+  gene: g,
+  result: try { ncbi_gene(g) } catch _ { nil }
+}) |> filter(|r| r.result != nil)</code></pre>
+
+        <h2>Quick Examples</h2>
+        <pre><code class="language-biolang"># Search a gene from NCBI
+let gene = ncbi_search("gene", "BRCA1")
+print(gene)
+
+# Get protein info from UniProt
+let protein = uniprot_entry("P38398")
+print(protein.name, protein.length)
+
+# Query Ensembl for variant effects
+let vep = ensembl_vep("1:g.230710048A>G")
+vep |> first() |> print()
+
+# Get KEGG pathway (returns raw text)
+let pathway = kegg_get("hsa04110")    # Cell cycle
+print(pathway)
+
+# Search protein structures
+let structure = pdb_entry("4HHB")    # Hemoglobin
+print(structure.title, structure.resolution)</code></pre>
+
+        <h2>Explore Each Client</h2>
+        <ul>
+          <li><a href="ncbi.html" class="text-violet-400 hover:text-violet-300">NCBI</a> &mdash; E-utilities, BLAST, Datasets</li>
+          <li><a href="ensembl.html" class="text-violet-400 hover:text-violet-300">Ensembl</a> &mdash; Genes, variants, sequences, homology</li>
+          <li><a href="uniprot.html" class="text-violet-400 hover:text-violet-300">UniProt</a> &mdash; Protein knowledge base</li>
+          <li><a href="ucsc.html" class="text-violet-400 hover:text-violet-300">UCSC</a> &mdash; Genome browser, tracks, BLAT</li>
+          <li><a href="others.html" class="text-violet-400 hover:text-violet-300">Others</a> &mdash; KEGG, STRING, PDB, Reactome, GO, COSMIC, BioMart, NCBI Datasets</li>
+          <li><a href="nfcore.html" class="text-violet-400 hover:text-violet-300">nf-core</a> &mdash; Browse, search, and inspect 100+ curated bioinformatics pipelines</li>
+          <li><a href="biocontainers.html" class="text-violet-400 hover:text-violet-300">BioContainers</a> &mdash; Search and discover 9,000+ containerized bioinformatics tools</li>
+          <li><a href="galaxy.html" class="text-violet-400 hover:text-violet-300">Galaxy ToolShed</a> &mdash; Browse and search Galaxy ToolShed repositories</li>
+        </ul>
+
+        <h2>Workflow Parsing &amp; Code Generation</h2>
+        <p>
+          BioLang can parse external workflow files and generate BioLang pipeline code:
+        </p>
+        <p>
+          See the <a href="nfcore.html" class="text-violet-400 hover:text-violet-300">nf-core</a>
+          page for details on browsing the pipeline catalog.
+        </p>
+
+        <h2>Configurable Endpoints</h2>
+        <p>
+          All API base URLs can be overridden for mirrors, proxies, or internal deployments:
+        </p>
+        <ul>
+          <li><strong>Environment variable</strong>: <code>BIOLANG_NCBI_URL</code>, <code>BIOLANG_ENSEMBL_URL</code>, etc.</li>
+          <li><strong>Config file</strong>: <code>~/.biolang/apis.yaml</code></li>
+          <li><strong>Inspect current config</strong>: <code>api_endpoints()</code></li>
+        </ul>
+        <pre><code class="language-biolang"># Check current API endpoints
+let endpoints = api_endpoints()
+print(endpoints.ncbi)
+print(endpoints.biocontainers)</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <div></div>
+        <a href="ncbi.html" class="text-violet-400 hover:text-violet-300">NCBI &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Querying Databases — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/databases"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Querying Databases</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-sm text-slate-500">~30 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Querying Biological Databases</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          BioLang has built-in functions for major biological databases: NCBI, Ensembl,
+          UniProt, KEGG, PDB, and more. This tutorial shows how to query each one and combine
+          results across databases.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Querying NCBI (Entrez) for genes, sequences, and publications</li>
+            <li>Using the Ensembl REST API for gene annotations and variant effects</li>
+            <li>Fetching protein data from UniProt</li>
+            <li>Exploring pathways with KEGG</li>
+            <li>Looking up protein structures from PDB</li>
+            <li>Cross-database queries that combine multiple sources</li>
+          </ul>
+        </div>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8">
+          <p class="text-sm text-slate-400 mb-0">
+            <strong class="text-white">Network access:</strong> All database functions make
+            HTTP requests to public APIs. Set <code>NCBI_API_KEY</code> for higher NCBI rate
+            limits (10 req/s vs 3 req/s). See the
+            <a href="../apis/index.html" class="text-violet-400 hover:underline">API Reference</a>
+            for full details on each function.
+          </p>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — NCBI: Gene Search</h2>
+        <p>
+          Use <code>ncbi_gene()</code> to search for a gene by symbol. If a single gene matches,
+          it returns a record with gene details. For multiple matches, it returns a list of IDs.
+        </p>
+        <pre><code class="language-biolang"># databases.bio — querying biological databases
+
+# Search for a gene by symbol
+let gene = ncbi_gene("TP53")
+print(f"Gene ID:     {gene.id}")
+print(f"Symbol:      {gene.symbol}")
+print(f"Name:        {gene.name}")
+print(f"Organism:    {gene.organism}")
+print(f"Chromosome:  {gene.chromosome}")
+print(f"Location:    {gene.location}")
+print(f"Description: {gene.description}")
+
+# For broader searches, use ncbi_search(db, query)
+# Returns a list of IDs
+let ids = ncbi_search("gene", "BRCA1 human")
+print(f"Found {len(ids)} gene IDs")
+print(f"First ID: {ids[0]}")
+
+# Get summaries for those IDs
+let summaries = ncbi_summary(ids, "gene")
+for s in summaries {
+  print(f"  {s.uid}: {s}"  )
+}</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — NCBI: Sequences and PubMed</h2>
+        <pre><code class="language-biolang"># Fetch a sequence by accession (returns FASTA text)
+let fasta = ncbi_sequence("NM_000546.6")
+print(f"FASTA (first 200 chars): {fasta[0..200]}...")
+
+# Or use ncbi_fetch for more control over database and return type
+let xml = ncbi_fetch("7157", "gene")  # fetch gene XML by ID
+print(f"Gene XML length: {len(xml)} chars")
+
+# Fetch nucleotide sequences
+let seq_fasta = ncbi_fetch("NM_000546.6", "nucleotide")
+print(seq_fasta[0..100])
+
+# Search PubMed — returns list of PMIDs
+let pmids = ncbi_pubmed("TP53 mutation cancer", 5)
+print(f"Found {len(pmids)} PubMed IDs: {pmids}")
+
+# Get summaries for the publications
+let papers = ncbi_summary(pmids, "pubmed")
+for p in papers {
+  print(f"  PMID {p.uid}: {p}")
+}</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Ensembl: Gene Annotations</h2>
+        <p>
+          Use <code>ensembl_symbol(species, symbol)</code> to look up a gene by symbol, or
+          <code>ensembl_gene(id)</code> to look up by Ensembl ID. Both return a record with
+          gene location and metadata.
+        </p>
+        <pre><code class="language-biolang"># Look up a gene by symbol
+let gene = ensembl_symbol("human", "TP53")
+print(f"Ensembl ID:  {gene.id}")
+print(f"Symbol:      {gene.symbol}")
+print(f"Biotype:     {gene.biotype}")
+print(f"Chromosome:  {gene.chromosome}")
+print(f"Location:    {gene.chromosome}:{gene.start}-{gene.end}")
+print(f"Strand:      {gene.strand}")
+print(f"Description: {gene.description}")
+
+# Look up by Ensembl ID directly
+let gene2 = ensembl_gene("ENSG00000141510")
+print(f"Same gene: {gene2.symbol}")
+
+# Get the coding sequence for a transcript
+let seq = ensembl_sequence("ENST00000269305", "cds")
+print(f"CDS ID:     {seq.id}")
+print(f"Molecule:   {seq.molecule}")
+print(f"CDS length: {len(seq.seq)} nt")
+print(f"Sequence:   {seq.seq[0..60]}...")</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Ensembl: Variant Effect Predictor</h2>
+        <p>
+          Use <code>ensembl_vep(hgvs)</code> to predict the effect of a variant using HGVS
+          notation. This queries Ensembl's VEP REST API and returns transcript consequences
+          with impact predictions.
+        </p>
+        <pre><code class="language-biolang"># Predict variant effect using HGVS notation
+let results = ensembl_vep("17:g.7675088C>T")
+
+for r in results {
+  print(f"Alleles: {r.allele_string}")
+  print(f"Most severe: {r.most_severe_consequence}")
+
+  # Each result has transcript consequences
+  for tc in r.transcript_consequences {
+    print(f"  Gene:        {tc.gene_id}")
+    print(f"  Transcript:  {tc.transcript_id}")
+    print(f"  Impact:      {tc.impact}")
+    print(f"  Consequences: {tc.consequences}")
+  }
+}
+
+# Try another variant — BRCA1 pathogenic variant
+let brca1_vep = ensembl_vep("17:g.43091434C>T")
+for r in brca1_vep {
+  print(f"\nBRCA1 variant: {r.allele_string}")
+  print(f"Consequence: {r.most_severe_consequence}")
+}</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — UniProt: Protein Data</h2>
+        <p>
+          Use <code>uniprot_search(query)</code> to search and <code>uniprot_entry(accession)</code>
+          to fetch a full protein record. Additional functions provide FASTA sequences, features,
+          and GO annotations.
+        </p>
+        <pre><code class="language-biolang"># Search UniProt for human TP53
+let results = uniprot_search("TP53 AND organism_id:9606", 5)
+for entry in results {
+  print(f"{entry.accession}: {entry.name} — {entry.organism}")
+}
+
+# Fetch full entry for p53
+let p53 = uniprot_entry("P04637")
+print(f"Protein:   {p53.name}")
+print(f"Accession: {p53.accession}")
+print(f"Length:    {p53.sequence_length} aa")
+print(f"Organism:  {p53.organism}")
+print(f"Genes:     {p53.gene_names}")
+print(f"Function:  {p53.function}")
+
+# Get the FASTA sequence
+let fasta = uniprot_fasta("P04637")
+print(f"\nFASTA:\n{fasta[0..200]}...")
+
+# Get protein features (domains, modifications, etc.)
+let features = uniprot_features("P04637")
+print(f"\nFeatures: {len(features)}")
+for f in take(features, 10) {
+  print(f"  {f.type}: {f.location} — {f.description}")
+}
+
+# Get GO annotations
+let go_terms = uniprot_go("P04637")
+print(f"\nGO terms: {len(go_terms)}")
+for t in take(go_terms, 10) {
+  print(f"  {t.id} [{t.aspect}]: {t.term}")
+}</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — KEGG: Pathways</h2>
+        <p>
+          KEGG provides three main functions: <code>kegg_find(db, query)</code> to search,
+          <code>kegg_get(entry)</code> to fetch details, and <code>kegg_link(target, source)</code>
+          to find relationships between databases.
+        </p>
+        <pre><code class="language-biolang"># Search KEGG pathways
+let pathways = kegg_find("pathway", "p53 signaling")
+for p in pathways {
+  print(f"{p.id}: {p.description}")
+}
+
+# Get full pathway details (returns text record)
+let p53_pathway = kegg_get("hsa04115")
+print(f"Pathway details:\n{p53_pathway[0..500]}...")
+
+# Find genes linked to a pathway
+let genes = kegg_link("hsa", "hsa04115")
+print(f"\nGenes in p53 pathway: {len(genes)}")
+for g in take(genes, 10) {
+  print(f"  {g.source} -> {g.target}")
+}
+
+# Find all pathways for a specific gene (TP53 = hsa:7157)
+let tp53_pathways = kegg_link("pathway", "hsa:7157")
+print(f"\nTP53 participates in {len(tp53_pathways)} pathways:")
+for p in tp53_pathways {
+  print(f"  {p.target}")
+}
+
+# Search KEGG compounds
+let compounds = kegg_find("compound", "ATP")
+for c in compounds {
+  print(f"{c.id}: {c.description}")
+}</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — PDB: Protein Structures</h2>
+        <p>
+          Use <code>pdb_search(query)</code> to find structures and <code>pdb_entry(id)</code>
+          to get details about a specific PDB entry.
+        </p>
+        <pre><code class="language-biolang"># Search PDB for TP53 structures
+let pdb_ids = pdb_search("TP53")
+print(f"Found {len(pdb_ids)} PDB structures for TP53")
+
+# Get details for a specific structure
+let entry = pdb_entry("1TUP")
+print(f"PDB ID:     {entry.id}")
+print(f"Title:      {entry.title}")
+print(f"Method:     {entry.method}")
+print(f"Resolution: {entry.resolution}")
+print(f"Released:   {entry.release_date}")
+print(f"Organism:   {entry.organism}")</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Cross-Database Queries</h2>
+        <pre><code class="language-biolang"># Gather information about a gene from multiple databases
+
+fn gene_report(symbol: String) {
+  print(f"\n=== Report for {symbol} ===\n")
+
+  # NCBI: basic gene info
+  let ncbi = ncbi_gene(symbol)
+  print(f"NCBI Gene ID: {ncbi.id}")
+  print(f"Name:         {ncbi.name}")
+  print(f"Chromosome:   {ncbi.chromosome}")
+  print(f"Summary:      {ncbi.summary[0..200]}...")
+
+  # Ensembl: genomic coordinates
+  let ens = ensembl_symbol("human", symbol)
+  print(f"\nEnsembl ID:   {ens.id}")
+  print(f"Location:     {ens.chromosome}:{ens.start}-{ens.end}")
+  print(f"Biotype:      {ens.biotype}")
+
+  # UniProt: protein info
+  let up_results = uniprot_search(f"gene:{symbol} AND organism_id:9606", 1)
+  if len(up_results) > 0 {
+    let up = uniprot_entry(up_results[0].accession)
+    print(f"\nUniProt:      {up.accession}")
+    print(f"Protein:      {up.name}")
+    print(f"Length:       {up.sequence_length} aa")
+
+    # Features
+    let feats = uniprot_features(up.accession)
+    print(f"Features:     {len(feats)}")
+
+    # GO terms
+    let go = uniprot_go(up.accession)
+    print(f"GO terms:     {len(go)}")
+  }
+
+  # KEGG: pathways
+  let kegg_paths = kegg_link("pathway", f"hsa:{ncbi.id}")
+  print(f"\nKEGG pathways: {len(kegg_paths)}")
+  for p in take(kegg_paths, 5) {
+    print(f"  {p.target}")
+  }
+
+  # PDB: structures
+  let structures = pdb_search(symbol)
+  print(f"PDB structures: {len(structures)}")
+}
+
+# Run report for a cancer-related gene
+gene_report("TP53")</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Batch Queries</h2>
+        <p>
+          When working with multiple genes, you can build batch pipelines that query each
+          database and combine results into a table.
+        </p>
+        <pre><code class="language-biolang"># Annotate a list of genes from multiple databases
+let gene_symbols = ["TP53", "BRCA1", "EGFR", "KRAS", "MYC"]
+
+let annotations = gene_symbols |> map(|symbol| {
+  # Ensembl: location
+  let ens = ensembl_symbol("human", symbol)
+
+  # UniProt: protein info
+  let up_hits = uniprot_search(f"gene:{symbol} AND organism_id:9606", 1)
+  let prot_len = if len(up_hits) > 0 {
+    up_hits[0].sequence_length
+  } else {
+    0
+  }
+
+  # KEGG: pathway count
+  let ncbi = ncbi_gene(symbol)
+  let paths = kegg_link("pathway", f"hsa:{ncbi.id}")
+
+  {
+    symbol:     symbol,
+    ensembl_id: ens.id,
+    chromosome: ens.chromosome,
+    start:      ens.start,
+    end:        ens.end,
+    biotype:    ens.biotype,
+    protein_aa: prot_len,
+    n_pathways: len(paths),
+  }
+}) |> to_table()
+
+print("\n=== Gene Annotation Summary ===")
+print(annotations)</code></pre>
+
+        <!-- Step 10 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Tips and Best Practices</h2>
+
+        <div class="rounded-xl border border-cyan-400/30 bg-cyan-400/5 p-6 mb-6">
+          <h3 class="text-white font-semibold mb-3">Rate Limits</h3>
+          <ul class="space-y-2 text-slate-400 text-sm">
+            <li>
+              <strong class="text-white">NCBI:</strong> 3 requests/second without an API key,
+              10 requests/second with one. Set <code>NCBI_API_KEY</code> in your environment.
+            </li>
+            <li>
+              <strong class="text-white">Ensembl:</strong> 15 requests/second. BioLang
+              automatically throttles to stay within limits.
+            </li>
+            <li>
+              <strong class="text-white">UniProt:</strong> No hard rate limit, but be
+              considerate with batch queries.
+            </li>
+            <li>
+              <strong class="text-white">KEGG:</strong> No authentication required. Moderate
+              request rates are expected.
+            </li>
+          </ul>
+        </div>
+
+        <pre><code class="language-biolang"># Set your NCBI API key for higher rate limits
+# In your shell: export NCBI_API_KEY="your-key-here"
+
+# For large batch queries, use sleep() between requests
+let gene_ids = ncbi_search("gene", "cancer human", 100)
+print(f"Found {len(gene_ids)} genes")
+
+# Process in chunks to be respectful of rate limits
+let chunk_size = 10
+let chunks = chunk(gene_ids, chunk_size)
+
+for i, batch in enumerate(chunks) {
+  let summaries = ncbi_summary(batch, "gene")
+  print(f"Batch {i + 1}: processed {len(summaries)} genes")
+  sleep(500)  # half-second pause between batches
+}</code></pre>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mt-6 mb-6">
+          <h3 class="text-white font-semibold mb-2">Available API Functions</h3>
+          <div class="text-sm text-slate-400 space-y-2">
+            <p><strong class="text-cyan-400">NCBI:</strong>
+              <code>ncbi_search(db, query)</code>,
+              <code>ncbi_fetch(ids, db)</code>,
+              <code>ncbi_summary(ids, db)</code>,
+              <code>ncbi_gene(symbol)</code>,
+              <code>ncbi_pubmed(query)</code>,
+              <code>ncbi_sequence(accession)</code>
+            </p>
+            <p><strong class="text-cyan-400">Ensembl:</strong>
+              <code>ensembl_gene(id)</code>,
+              <code>ensembl_symbol(species, symbol)</code>,
+              <code>ensembl_sequence(id, type?)</code>,
+              <code>ensembl_vep(hgvs)</code>
+            </p>
+            <p><strong class="text-cyan-400">UniProt:</strong>
+              <code>uniprot_search(query, limit?)</code>,
+              <code>uniprot_entry(accession)</code>,
+              <code>uniprot_fasta(accession)</code>,
+              <code>uniprot_features(accession)</code>,
+              <code>uniprot_go(accession)</code>
+            </p>
+            <p><strong class="text-cyan-400">KEGG:</strong>
+              <code>kegg_find(db, query)</code>,
+              <code>kegg_get(entry)</code>,
+              <code>kegg_link(target, source)</code>
+            </p>
+            <p><strong class="text-cyan-400">PDB:</strong>
+              <code>pdb_entry(id)</code>,
+              <code>pdb_search(query)</code>
+            </p>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Dive into statistical methods in the
+            <a href="statistics.html" class="text-violet-400 hover:underline">Statistical Analysis</a> tutorial.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="streaming.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Streaming Large Files</a>
+        <a href="statistics.html" class="text-violet-400 hover:text-violet-300 text-sm">Statistical Analysis &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

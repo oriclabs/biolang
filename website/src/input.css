@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  .hero-gradient {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+  }
+  html:not(.dark) .hero-gradient {
+    background: linear-gradient(135deg, #f8fafc 0%, #ede9fe 50%, #ddd6fe 100%);
+  }
+  .dna-a { color: #e74c3c; }
+  .dna-t { color: #3498db; }
+  .dna-g { color: #2ecc71; }
+  .dna-c { color: #f1c40f; }
+
+  /* ── Light mode overrides ──
+     Pages use hardcoded dark classes (bg-slate-950, text-slate-300, etc.).
+     When html.dark is removed, these CSS rules override the inline classes. */
+
+  /* Body & text */
+  html:not(.dark) body {
+    background-color: #ffffff !important;
+    color: #334155 !important; /* slate-700 */
+  }
+
+  /* All white text → slate-900 in light mode */
+  html:not(.dark) .text-white {
+    color: #0f172a !important; /* slate-900 */
+  }
+  html:not(.dark) .text-slate-300 {
+    color: #475569 !important; /* slate-600 */
+  }
+  html:not(.dark) .text-slate-400 {
+    color: #64748b !important; /* slate-500 */
+  }
+  html:not(.dark) .text-slate-500 {
+    color: #94a3b8 !important; /* slate-400 */
+  }
+  html:not(.dark) .text-slate-600 {
+    color: #94a3b8 !important;
+  }
+
+  /* Backgrounds */
+  html:not(.dark) .bg-slate-950 {
+    background-color: #ffffff !important;
+  }
+  html:not(.dark) .bg-slate-950\/90 {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+  }
+  html:not(.dark) .bg-slate-900 {
+    background-color: #f8fafc !important; /* slate-50 */
+  }
+  html:not(.dark) .bg-slate-900\/80 {
+    background-color: rgba(248, 250, 252, 0.9) !important;
+  }
+  html:not(.dark) .bg-slate-900\/50 {
+    background-color: rgba(248, 250, 252, 0.7) !important;
+  }
+  html:not(.dark) .bg-slate-900\/30 {
+    background-color: rgba(248, 250, 252, 0.5) !important;
+  }
+  html:not(.dark) .bg-slate-900\/20 {
+    background-color: rgba(248, 250, 252, 0.3) !important;
+  }
+  html:not(.dark) .bg-slate-800 {
+    background-color: #f1f5f9 !important; /* slate-100 */
+  }
+  html:not(.dark) .bg-slate-800\/60 {
+    background-color: rgba(241, 245, 249, 0.8) !important;
+  }
+  html:not(.dark) .bg-slate-800\/50 {
+    background-color: rgba(241, 245, 249, 0.7) !important;
+  }
+  html:not(.dark) .bg-slate-800\/30 {
+    background-color: rgba(241, 245, 249, 0.5) !important;
+  }
+  html:not(.dark) .bg-slate-700\/50 {
+    background-color: rgba(226, 232, 240, 0.5) !important;
+  }
+
+  /* Borders */
+  html:not(.dark) .border-slate-800 {
+    border-color: #e2e8f0 !important; /* slate-200 */
+  }
+  html:not(.dark) .border-slate-800\/50 {
+    border-color: rgba(226, 232, 240, 0.5) !important;
+  }
+  html:not(.dark) .border-slate-700 {
+    border-color: #cbd5e1 !important; /* slate-300 */
+  }
+  html:not(.dark) .border-slate-700\/50 {
+    border-color: rgba(203, 213, 225, 0.5) !important;
+  }
+
+  /* Sidebar */
+  html:not(.dark) #sidebar {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Header */
+  html:not(.dark) header {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Footer */
+  html:not(.dark) footer {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Code blocks in light mode */
+  html:not(.dark) pre {
+    background-color: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+  }
+  html:not(.dark) pre code {
+    color: #334155 !important;
+  }
+  html:not(.dark) code:not(pre code) {
+    background-color: rgba(139, 92, 246, 0.08) !important;
+    color: #7c3aed !important; /* violet-600 for contrast */
+  }
+
+  /* Cards — hover borders stay violet */
+  html:not(.dark) .hover\:border-violet-500\/30:hover {
+    border-color: rgba(139, 92, 246, 0.3) !important;
+  }
+
+  /* Accent badges */
+  html:not(.dark) .bg-violet-500\/10 {
+    background-color: rgba(139, 92, 246, 0.08) !important;
+  }
+  html:not(.dark) .bg-cyan-500\/10 {
+    background-color: rgba(34, 211, 238, 0.08) !important;
+  }
+  html:not(.dark) .bg-violet-600\/10 {
+    background-color: rgba(124, 58, 237, 0.08) !important;
+  }
+
+  /* Gradient text stays readable */
+  html:not(.dark) .from-violet-400 {
+    --tw-gradient-from: #7c3aed;
+  }
+  html:not(.dark) .to-cyan-400 {
+    --tw-gradient-to: #0891b2;
+  }
+
+  /* Search results dropdown */
+  html:not(.dark) #search-results {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Copy button */
+  html:not(.dark) .copy-btn {
+    background-color: rgba(226, 232, 240, 0.9) !important;
+    color: #64748b !important;
+  }
+  html:not(.dark) .copy-btn:hover {
+    background-color: #e2e8f0 !important;
+    color: #0f172a !important;
+  }
+
+  /* Stats bar numbers — keep gradient vibrant */
+  html:not(.dark) .text-orange-400 {
+    color: #ea580c !important; /* orange-600 */
+  }
+
+  /* ── Prose article styling ── */
+  article.prose h1 {
+    @apply text-3xl font-bold text-white mb-4;
+  }
+  article.prose h2 {
+    @apply text-2xl font-semibold text-white mt-10 mb-4 pb-2 border-b border-slate-800;
+  }
+  article.prose h3 {
+    @apply text-lg font-semibold text-white mt-8 mb-3;
+  }
+  article.prose h4 {
+    @apply text-base font-semibold text-white mt-6 mb-2;
+  }
+  article.prose p {
+    @apply mb-4 leading-relaxed;
+  }
+  article.prose pre {
+    @apply bg-slate-900 border border-slate-800 rounded-lg p-4 mb-6 overflow-x-auto text-sm;
+  }
+  article.prose code:not(pre code) {
+    @apply text-violet-400 bg-slate-800/50 px-1.5 py-0.5 rounded text-sm;
+  }
+  article.prose ul {
+    @apply list-disc list-inside mb-4 space-y-1;
+  }
+  article.prose ol {
+    @apply list-decimal list-inside mb-4 space-y-1;
+  }
+  article.prose li {
+    @apply leading-relaxed;
+  }
+  article.prose table {
+    @apply w-full mb-6 text-sm;
+  }
+  article.prose thead th {
+    @apply text-left text-slate-300 font-semibold px-3 py-2 border-b border-slate-700 bg-slate-900/50;
+  }
+  article.prose tbody td {
+    @apply px-3 py-2 border-b border-slate-800;
+  }
+  article.prose tbody tr:hover {
+    @apply bg-slate-800/30;
+  }
+  article.prose a {
+    @apply text-violet-400 hover:text-violet-300 underline decoration-violet-400/30 hover:decoration-violet-400 transition-colors;
+  }
+  article.prose blockquote {
+    @apply border-l-4 border-violet-500/30 pl-4 italic text-slate-400 mb-4;
+  }
+  article.prose hr {
+    @apply border-slate-800 my-8;
+  }
+  article.prose strong {
+    @apply text-white font-semibold;
+  }
+
+  /* ── FOUC guard ── */
+  /* Hide content until components are injected by main.js.
+     The reveal-fallback animation guarantees the page becomes
+     visible after 2s even if JS stalls or component fetch fails. */
+  @keyframes reveal-fallback {
+    to { opacity: 1; }
+  }
+  body:not(.components-loaded) > *:not(script):not(link):not(style):not(noscript) {
+    opacity: 0;
+    animation: reveal-fallback 0s 2s forwards;
+  }
+  body.components-loaded > * {
+    opacity: 1;
+    animation: none;
+    transition: opacity 0.15s ease-in;
+  }
+  /* Immediately show content when JS is disabled */
+  noscript + * { opacity: 1 !important; animation: none !important; }
+}

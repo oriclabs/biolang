@@ -1,0 +1,87 @@
+# Multi-Database Pipeline Example
+# Cross-reference a gene across US, EU, and JP databases
+
+let gene_symbol = "TP53"
+println("=== Multi-Database Report for", gene_symbol, "===\n")
+
+# 1. NCBI (US) — get gene ID and basic info
+let ncbi = ncbi_gene(gene_symbol)
+println("1. NCBI Gene")
+println("   Gene IDs:", ncbi.ids)
+
+# 2. NCBI Datasets (US) — modern gene info
+let datasets = datasets_gene(gene_symbol)
+if len(datasets) > 0 {
+    let g = datasets[0]
+    println("\n2. NCBI Datasets")
+    println("   Description:", g.description)
+    println("   Chromosome:", g.chromosome)
+    println("   Type:", g.gene_type)
+}
+
+# 3. Ensembl (EU) — cross-reference
+let ensembl = ensembl_symbol("homo_sapiens", gene_symbol)
+println("\n3. Ensembl (EU)")
+println("   Ensembl ID:", ensembl.id)
+println("   Location:", ensembl.chromosome, ":", ensembl.start, "-", ensembl.end)
+println("   Biotype:", ensembl.biotype)
+
+# 4. UniProt (EU) — protein info
+let proteins = uniprot_search(gene_symbol + " human reviewed:true", 1)
+if len(proteins) > 0 {
+    let p = proteins[0]
+    println("\n4. UniProt (EU)")
+    println("   Accession:", p.accession)
+    println("   Protein name:", p.name)
+    println("   Length:", p.sequence_length, "aa")
+
+    # Get GO terms
+    let go = uniprot_go(p.accession)
+    let bp = filter(go, |t| t.aspect == "biological_process")
+    println("   GO Biological Process terms:", len(bp))
+}
+
+# 5. KEGG (Japan) — pathway info
+let kegg_paths = kegg_link("pathway", "hsa:7157")
+println("\n5. KEGG (Japan)")
+println("   Pathways:", len(kegg_paths))
+for p in head(kegg_paths, 3) {
+    println("   ", p.target)
+}
+
+# 6. Reactome (EU) — pathway details
+let pathways = reactome_pathways(gene_symbol)
+println("\n6. Reactome (EU)")
+println("   Pathways:", len(pathways))
+for p in head(pathways, 3) {
+    println("   ", p.name)
+}
+
+# 7. STRING (EU) — interaction partners
+let network = string_network([gene_symbol], 9606)
+println("\n7. STRING (EU)")
+println("   Interactions:", len(network))
+let top_partners = head(sort(network, |a, b| b.score - a.score), 5)
+for i in top_partners {
+    println("   ", i.protein_a, "<->", i.protein_b, "(", i.score, ")")
+}
+
+# 8. PDB (US) — structural data
+let structures = pdb_search(gene_symbol + " human")
+println("\n8. PDB (US)")
+println("   Structures:", len(structures))
+if len(structures) > 0 {
+    let best = pdb_entry(structures[0])
+    println("   Top hit:", best.title)
+    println("   Method:", best.method)
+}
+
+# 9. GO (EU/EBI) — ontology
+let go_annot = go_annotations(gene_symbol, 10)
+println("\n9. Gene Ontology (EU)")
+println("   Top annotations:")
+for a in head(go_annot, 5) {
+    println("   [", a.aspect, "]", a.go_name)
+}
+
+println("\n=== Report Complete ===")

@@ -1,0 +1,212 @@
+# cancer_genomics.bl — Identifying Actionable Mutations in a Tumor Sample
+#
+# A clinical bioinformatics workflow: starting from somatic VCF calls,
+# filter for high-confidence variants, cross-reference cancer databases,
+# and produce a report suitable for molecular tumor board review.
+
+# ── 1. Load Somatic Mutation Calls ──────────────────────────────────
+# Simulated VCF output from Mutect2 somatic calling (tumor vs matched normal).
+# These represent real hotspot loci frequently mutated in solid tumors.
+
+println("=== Loading somatic variants ===")
+
+let somatic = table([
+    {chrom: "chr17", pos: 7578406,  ref: "C",    alt: "T",    qual: 312.0, af: 0.42, dp: 186, gene: "TP53",   aa: "R248W"},
+    {chrom: "chr17", pos: 7577121,  ref: "G",    alt: "A",    qual: 287.0, af: 0.38, dp: 210, gene: "TP53",   aa: "R175H"},
+    {chrom: "chr7",  pos: 55259515, ref: "G",    alt: "T",    qual: 198.0, af: 0.31, dp: 142, gene: "EGFR",   aa: "L858R"},
+    {chrom: "chr7",  pos: 55249071, ref: "GAATTAAGAGAAGC", alt: "G", qual: 245.0, af: 0.27, dp: 164, gene: "EGFR", aa: "del746-750"},
+    {chrom: "chr12", pos: 25398284, ref: "C",    alt: "A",    qual: 156.0, af: 0.18, dp: 98,  gene: "KRAS",   aa: "G12V"},
+    {chrom: "chr3",  pos: 178936091,ref: "G",    alt: "A",    qual: 89.0,  af: 0.09, dp: 56,  gene: "PIK3CA", aa: "H1047R"},
+    {chrom: "chr7",  pos: 140453136,ref: "A",    alt: "T",    qual: 342.0, af: 0.55, dp: 224, gene: "BRAF",   aa: "V600E"},
+    {chrom: "chr17", pos: 43094692, ref: "A",    alt: "G",    qual: 42.0,  af: 0.04, dp: 32,  gene: "BRCA1",  aa: "C61G"},
+    {chrom: "chr13", pos: 32914438, ref: "GT",   alt: "G",    qual: 67.0,  af: 0.06, dp: 44,  gene: "BRCA2",  aa: "fs1023"},
+    {chrom: "chr10", pos: 89692905, ref: "C",    alt: "T",    qual: 23.0,  af: 0.02, dp: 18,  gene: "PTEN",   aa: "R130Q"},
+    {chrom: "chr5",  pos: 112175770,ref: "G",    alt: "A",    qual: 31.0,  af: 0.03, dp: 22,  gene: "APC",    aa: "R1450*"},
+    {chrom: "chr2",  pos: 209113112,ref: "C",    alt: "T",    qual: 275.0, af: 0.35, dp: 190, gene: "IDH1",   aa: "R132H"}
+])
+
+println("Loaded", count(somatic), "somatic variant calls")
+
+println("\n=== Filtering variants ===")
+
+# ── 2. Quality and Allele Frequency Filtering ──────────────────────
+# Clinical thresholds: QUAL >= 50 to exclude sequencing artifacts,
+# AF >= 0.05 (5%) to focus on clonal / subclonal variants above noise.
+
+let filtered = somatic
+    |> filter(|v| v.qual >= 50.0)
+    |> filter(|v| v.af >= 0.05)
+
+println("Variants passing QC (QUAL>=50, AF>=5%):", count(filtered))
+
+# ── 3. Classify Variant Type ───────────────────────────────────────
+# SNVs have equal-length ref/alt; indels differ in length.
+# This distinction matters for downstream annotation and druggability.
+
+println("\n=== Classifying variant types ===")
+
+let classified = filtered |> mutate("var_type", |row| {
+    if len(row.ref) == 1 && len(row.alt) == 1 then "SNV"
+    else if len(row.alt) > len(row.ref) then "INS"
+    else "DEL"
+})
+
+let snvs = classified |> filter(|v| v.var_type == "SNV")
+let indels = classified |> filter(|v| v.var_type != "SNV")
+println("  SNVs:", count(snvs), " Indels:", count(indels))
+
+# ── 4. Flag Known Cancer Driver Genes ──────────────────────────────
+# Cross-reference against curated driver gene list (COSMIC Cancer Gene Census).
+# Tier 1 drivers have strong causal evidence in oncogenesis.
+
+println("\n=== Flagging cancer driver genes ===")
+
+let tier1_drivers = ["TP53", "KRAS", "EGFR", "BRAF", "PIK3CA", "BRCA1", "BRCA2", "PTEN", "IDH1"]
+
+let drivers = classified |> filter(|v| tier1_drivers |> contains(v.gene))
+println("Tier-1 driver mutations:", count(drivers))
+drivers |> each(|v| {
+    println("  " + v.gene + " " + v.aa + " (AF=" + str(v.af) + ", " + v.var_type + ")")
+})
+
+# ── 5. COSMIC Mutation Frequency ───────────────────────────────────
+# Query COSMIC to see how frequently TP53 is mutated across cancers.
+# High recurrence suggests functional importance (loss of tumor suppression).
+
+println("\n=== Querying COSMIC ===")
+let tp53_cosmic = cosmic_gene("TP53")
+println("TP53 COSMIC entries:", len(tp53_cosmic))
+let top_tp53 = sort(tp53_cosmic, |a, b| b.count - a.count) |> head(3)
+for m in top_tp53 {
+    println("  " + m.aa + " (" + m.primary_site + ") —", m.count, "tumors")
+}
+
+# ── 6. ClinVar Pathogenicity Check ─────────────────────────────────
+# ClinVar aggregates clinical significance assertions from labs worldwide.
+# "Pathogenic" or "Likely pathogenic" variants are actionable.
+
+println("\n=== Querying ClinVar ===")
+let clinvar_tp53 = ncbi_search("clinvar", "TP53[gene] AND pathogenic[clinsig]")
+println("TP53 pathogenic ClinVar records:", len(clinvar_tp53.ids))
+
+let clinvar_brca1 = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
+println("BRCA1 pathogenic ClinVar records:", len(clinvar_brca1.ids))
+
+# ── 7. UniProt Protein Domain Annotation ───────────────────────────
+# p53 (UniProt P04637): check if mutations fall in functional domains.
+# R248W and R175H are in the DNA-binding domain — critical for function.
+
+println("\n=== Querying UniProt ===")
+let p53_entry = uniprot_entry("P04637")
+println("Protein:", p53_entry.name, "(" + str(p53_entry.sequence_length) + " aa)")
+
+let p53_features = uniprot_features("P04637")
+let domains = filter(p53_features, |f| f.type == "Domain")
+println("Found", len(domains), "domains")
+for d in domains {
+    println("  Domain: " + d.description + " [" + str(d.start) + "-" + str(d.end) + "]")
+}
+
+# ── 8. Drug Target Lookup via KEGG ─────────────────────────────────
+# EGFR L858R is a classic target for tyrosine kinase inhibitors (TKIs).
+# Osimertinib (3rd-gen TKI) is first-line for EGFR-mutant NSCLC.
+
+println("\n=== Querying KEGG drug targets ===")
+let egfr_drugs = kegg_find("drug", "EGFR inhibitor")
+println("EGFR-targeted drugs in KEGG:", len(egfr_drugs))
+for d in head(egfr_drugs, 5) {
+    println("  " + d.id + ": " + d.name)
+}
+
+let braf_drugs = kegg_find("drug", "BRAF inhibitor")
+println("BRAF-targeted drugs:", len(braf_drugs))
+
+# ── 9. Volcano Plot: Tumor vs Normal Expression ────────────────────
+# Differential expression context — genes with large fold-change
+# and significant p-values cluster in the upper corners.
+
+let de_results = table([
+    {gene: "TP53",   log2fc: -2.1, pvalue: 0.00003, significant: true},
+    {gene: "EGFR",   log2fc:  3.4, pvalue: 0.00001, significant: true},
+    {gene: "KRAS",   log2fc:  1.8, pvalue: 0.001,   significant: true},
+    {gene: "BRAF",   log2fc:  2.9, pvalue: 0.00005, significant: true},
+    {gene: "IDH1",   log2fc:  1.2, pvalue: 0.01,    significant: true},
+    {gene: "PIK3CA", log2fc:  1.5, pvalue: 0.008,   significant: true},
+    {gene: "GAPDH",  log2fc:  0.1, pvalue: 0.82,    significant: false},
+    {gene: "ACTB",   log2fc: -0.2, pvalue: 0.65,    significant: false},
+    {gene: "MYC",    log2fc:  2.5, pvalue: 0.0002,  significant: true},
+    {gene: "RB1",    log2fc: -1.9, pvalue: 0.0008,  significant: true},
+    {gene: "CDKN2A", log2fc: -3.1, pvalue: 0.00001, significant: true},
+    {gene: "BRCA1",  log2fc: -0.8, pvalue: 0.04,    significant: false}
+])
+
+println("\n=== Generating visualizations ===")
+println("Creating volcano plot...")
+let volcano_svg = volcano(de_results, {title: "Tumor vs Normal: Differential Expression"})
+save_svg(volcano_svg, "output/volcano_tumor_normal.svg")
+println("Volcano plot saved to output/volcano_tumor_normal.svg")
+
+# ── 10. Oncoprint: Mutation Landscape ──────────────────────────────
+# Visualize the alteration pattern across a simulated cohort.
+# Each row is a gene, each column is a patient sample.
+
+let onco_data = table([
+    {gene: "TP53",   sample: "PT-001", type: "missense"},
+    {gene: "TP53",   sample: "PT-002", type: "missense"},
+    {gene: "TP53",   sample: "PT-003", type: "nonsense"},
+    {gene: "EGFR",   sample: "PT-001", type: "missense"},
+    {gene: "EGFR",   sample: "PT-004", type: "missense"},
+    {gene: "KRAS",   sample: "PT-002", type: "missense"},
+    {gene: "KRAS",   sample: "PT-005", type: "missense"},
+    {gene: "BRAF",   sample: "PT-003", type: "missense"},
+    {gene: "BRAF",   sample: "PT-006", type: "missense"},
+    {gene: "PIK3CA", sample: "PT-004", type: "missense"},
+    {gene: "IDH1",   sample: "PT-005", type: "missense"},
+    {gene: "BRCA1",  sample: "PT-006", type: "missense"},
+    {gene: "PTEN",   sample: "PT-001", type: "mutation"},
+    {gene: "CDKN2A", sample: "PT-002", type: "mutation"},
+    {gene: "CDKN2A", sample: "PT-003", type: "mutation"}
+])
+
+println("Creating oncoprint...")
+let onco_svg = oncoprint(onco_data, {format: "svg"})
+save_svg(onco_svg, "output/oncoprint_cohort.svg")
+println("Oncoprint saved to output/oncoprint_cohort.svg")
+
+# ── 11. Summary Report ─────────────────────────────────────────────
+# Compile findings into a structured markdown report for tumor board.
+
+println("\n=== Generating summary report ===")
+
+let actionable = drivers |> filter(|v| v.af >= 0.10)
+let actionable_summary = actionable |> map(|v| {
+    v.gene + " " + v.aa + " (VAF " + str(v.af * 100.0) + "%)"
+})
+
+let report = "# Molecular Tumor Board Report — Patient PT-001\n\n" +
+    "## Sample Overview\n\n" +
+    "Whole-exome sequencing of FFPE tumor biopsy (lung adenocarcinoma) with matched normal blood. " +
+    "Mean target coverage: 180x. Somatic calling via Mutect2.\n\n" +
+    "## Variant Summary\n\n" +
+    "Total somatic calls: " + str(somatic |> count()) + "\n" +
+    "After QC filtering: " + str(filtered |> count()) + "\n" +
+    "Tier-1 driver mutations: " + str(drivers |> count()) + "\n" +
+    "SNVs: " + str(snvs |> count()) + " | Indels: " + str(indels |> count()) + "\n\n" +
+    "## Actionable Mutations (AF >= 10%)\n\n" +
+    (actionable_summary |> join("\n")) + "\n\n" +
+    "## Therapeutic Implications\n\n" +
+    "EGFR L858R — Sensitive to osimertinib (3rd-gen TKI). First-line NSCLC.\n" +
+    "EGFR del746-750 — Exon 19 deletion, also TKI-responsive.\n" +
+    "BRAF V600E — Dabrafenib + trametinib combination approved.\n" +
+    "KRAS G12V — Sotorasib (G12C-specific) not applicable; consider MEK inhibitors.\n" +
+    "IDH1 R132H — Ivosidenib approved for cholangiocarcinoma and AML.\n\n" +
+    "## Recommendations\n\n" +
+    "1. Confirm EGFR mutations by orthogonal testing (ddPCR).\n" +
+    "2. Consider combination EGFR + BRAF inhibition given co-occurrence.\n" +
+    "3. Refer for BRCA1/2 germline testing (C61G variant, low AF may indicate germline).\n" +
+    "4. Enroll in basket trial if standard therapy progression.\n"
+
+write_text("output/tumor_board_report.md", report)
+println("Report saved to output/tumor_board_report.md")
+
+println("\n=== Analysis complete ===")

@@ -1,0 +1,40 @@
+[package]
+name = "bl-runtime"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = ["native"]
+native = ["dep:flate2", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite"]
+bytecode = ["dep:bl-compiler", "dep:bl-jit"]
+jit = ["bytecode", "bl-jit/jit"]
+
+[dependencies]
+bl-core = { workspace = true }
+bl-lexer = { workspace = true }
+bl-parser = { workspace = true }
+bl-bio = { workspace = true, optional = true }
+bl-apis = { workspace = true, optional = true }
+bl-compiler = { workspace = true, optional = true }
+bl-jit = { workspace = true, optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+ureq = { version = "2", optional = true }
+flate2 = { version = "1", optional = true }
+chrono = "0.4"
+glob = { version = "0.3", optional = true }
+suppaftp = { version = "6", optional = true, features = ["native-tls"] }
+md-5 = "0.10"
+sha1 = "0.10"
+sha2 = "0.10"
+crc32fast = "1"
+hmac = "0.12"
+hex = "0.4"
+base64 = "0.22"
+toml = { version = "0.8", optional = true }
+dirs = { version = "5", optional = true }
+rusqlite = { version = "0.31", features = ["bundled"], optional = true }
+
+[dev-dependencies]
+tempfile = "3"

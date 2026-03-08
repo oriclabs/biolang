@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language Server (LSP) — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/lsp"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">LSP</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Language Server (LSP)</h1>
+        <p>
+          BioLang includes a full Language Server Protocol implementation that provides
+          intelligent editor support. The LSP server (<code>bl-lsp</code>) supports
+          diagnostics, code completion, hover information, go-to-definition, symbol
+          renaming, and document formatting. It works with any LSP-compatible editor.
+        </p>
+
+        <h2>Features</h2>
+        <ul>
+          <li>
+            <strong class="text-violet-400">Diagnostics</strong> &mdash; Real-time error
+            and warning underlines as you type. Catches undefined variables, type mismatches,
+            unused bindings, and invalid sequence literals.
+          </li>
+          <li>
+            <strong class="text-violet-400">Completion</strong> &mdash; Context-aware
+            suggestions for variables, builtins, methods, file paths, and API function
+            arguments. Includes documentation snippets and type signatures.
+          </li>
+          <li>
+            <strong class="text-violet-400">Hover</strong> &mdash; Hover over any
+            identifier to see its type, documentation, and signature. For bio functions,
+            shows parameter descriptions and return types.
+          </li>
+          <li>
+            <strong class="text-violet-400">Go to Definition</strong> &mdash; Jump to where
+            a variable or function was defined, including across imported files.
+          </li>
+          <li>
+            <strong class="text-violet-400">Rename Symbol</strong> &mdash; Rename a variable
+            or function across all references in the file and its imports.
+          </li>
+          <li>
+            <strong class="text-violet-400">Document Formatting</strong> &mdash; Format the
+            entire file or a selection using the same formatter as <code>bl fmt</code>.
+          </li>
+        </ul>
+
+        <h2>VS Code Setup</h2>
+        <p>
+          Install the BioLang extension from the VS Code marketplace, or configure manually:
+        </p>
+        <h3>Option 1: Extension (Recommended)</h3>
+        <pre><code class="language-bash"># Install from the marketplace
+code --install-extension bioras.biolang-vscode</code></pre>
+        <p>
+          The extension includes syntax highlighting, the LSP client, snippet support, and
+          a file icon for <code>.bl</code> files.
+        </p>
+
+        <h3>Option 2: Manual Configuration</h3>
+        <p>
+          Add to your VS Code <code>settings.json</code>:
+        </p>
+        <pre><code class="language-json">{
+  "biolang.server.path": "bl-lsp",
+  "biolang.server.args": [],
+  "biolang.trace.server": "messages",
+  "[biolang]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "bioras.biolang-vscode"
+  }
+}</code></pre>
+
+        <h2>Neovim Setup</h2>
+        <p>
+          Using <code>nvim-lspconfig</code>:
+        </p>
+        <pre><code class="language-lua">-- In your Neovim LSP configuration (e.g., init.lua)
+local lspconfig = require('lspconfig')
+local configs = require('lspconfig.configs')
+
+-- Register the BioLang LSP
+if not configs.biolang then
+  configs.biolang = {
+    default_config = {
+      cmd = { 'bl-lsp' },
+      filetypes = { 'biolang' },
+      root_dir = lspconfig.util.root_pattern('biolang.toml', '.git'),
+      settings = {},
+    },
+  }
+end
+
+lspconfig.biolang.setup({
+  on_attach = function(client, bufnr)
+    -- Enable completion triggered by &lt;c-x>&lt;c-o>
+    vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
+
+    -- Keybindings
+    local opts = { noremap = true, silent = true, buffer = bufnr }
+    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+    vim.keymap.set('n', '&lt;leader>rn', vim.lsp.buf.rename, opts)
+    vim.keymap.set('n', '&lt;leader>f', vim.lsp.buf.format, opts)
+  end,
+})</code></pre>
+        <p>
+          For file type detection, add to <code>~/.config/nvim/ftdetect/biolang.lua</code>:
+        </p>
+        <pre><code class="language-lua">vim.filetype.add({
+  extension = {
+    bl = 'biolang',
+  },
+})</code></pre>
+
+        <h2>Emacs Setup</h2>
+        <p>
+          Using <code>lsp-mode</code> and <code>eglot</code>:
+        </p>
+        <h3>With lsp-mode</h3>
+        <pre><code class="language-lisp">;; Add BioLang major mode (from MELPA or manual)
+(require 'biolang-mode)
+
+;; Register the LSP server
+(with-eval-after-load 'lsp-mode
+  (add-to-list 'lsp-language-id-configuration '(biolang-mode . "biolang"))
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("bl-lsp"))
+    :activation-fn (lsp-activate-on "biolang")
+    :server-id 'biolang-ls)))
+
+;; Enable LSP for BioLang files
+(add-hook 'biolang-mode-hook #'lsp)</code></pre>
+
+        <h3>With eglot (Emacs 29+)</h3>
+        <pre><code class="language-lisp">(require 'biolang-mode)
+(add-to-list 'eglot-server-programs
+             '(biolang-mode "bl-lsp"))
+(add-hook 'biolang-mode-hook #'eglot-ensure)</code></pre>
+
+        <h2>Helix Setup</h2>
+        <p>
+          Add to <code>~/.config/helix/languages.toml</code>:
+        </p>
+        <pre><code class="language-toml">[[language]]
+name = "biolang"
+scope = "source.biolang"
+file-types = ["bl"]
+language-servers = ["bl-lsp"]
+indent = { tab-width = 2, unit = "  " }
+comment-token = "#"
+
+[language-server.bl-lsp]
+command = "bl-lsp"</code></pre>
+
+        <h2>Completion Details</h2>
+        <p>
+          The LSP provides rich completion across several categories:
+        </p>
+        <pre><code class="language-text"># After typing "seq |> ", completions show:
+  gc_content()          Float — GC content as fraction 0.0-1.0
+  reverse_complement()  DNA — Reverse complement of sequence
+  complement()          DNA — Complement without reversing
+  transcribe()          RNA — Transcribe DNA to RNA
+  len()                 Int — Sequence length
+  slice(start, end)     DNA — Extract subsequence
+  validate()            Bool — Validate sequence alphabet
+  kmer_count(k)         Map — Count all k-mers
+
+# After typing "ncbi_", completions show:
+  ncbi_search(db, term)     — Search an NCBI database
+  ncbi_fetch(ids, db)       — Fetch records by ID list
+  ncbi_summary(db, id)      — Get document summary
+  ncbi_gene(term)           — Quick gene lookup
+  ncbi_sequence(id)         — Fetch sequence as FASTA text
+  ncbi_pubmed(term)         — Search PubMed</code></pre>
+
+        <h2>Hover Information</h2>
+        <p>
+          Hovering over identifiers shows contextual information:
+        </p>
+        <pre><code class="language-text"># Hovering over gc_content shows:
+┌──────────────────────────────────────────────┐
+│ gc_content() -> Float                        │
+│                                              │
+│ Calculate the GC content (fraction of G+C    │
+│ bases) of a DNA or RNA sequence.             │
+│                                              │
+│ Returns: Float between 0.0 and 1.0           │
+│                                              │
+│ Example:                                     │
+│   dna"ATCGATCG" |> gc_content()  # => 0.5   │
+└──────────────────────────────────────────────┘
+
+# Hovering over a variable shows its inferred type:
+┌──────────────────────────────────────────────┐
+│ seq: DNA                                     │
+│ Defined at line 3                            │
+│ Value: dna"ATCGATCG"                         │
+└──────────────────────────────────────────────┘</code></pre>
+
+        <h2>Diagnostics</h2>
+        <p>
+          The LSP reports errors and warnings in real time:
+        </p>
+        <pre><code class="language-text"># Undefined variable (red underline)
+  samplse |> print()
+  ^^^^^^^
+  error: undefined variable 'samplse' (did you mean 'samples'?)
+
+# Type mismatch (red underline)
+  dna"ATCG" |> translate()
+             ^^^^^^^^^^
+  error: 'translate' expects RNA, got DNA (did you mean to call 'transcribe' first?)
+
+# Unused variable (yellow underline)
+  let temp = compute_something()
+  ^^^^
+  warning: unused variable 'temp'
+
+# Invalid sequence literal (red underline)
+  let seq = dna"ATCXYZ"
+            ^^^
+  error: invalid DNA characters 'XYZ' at position 3</code></pre>
+
+        <h2>Debug Logging</h2>
+        <p>
+          For troubleshooting LSP issues, enable debug logging:
+        </p>
+        <pre><code class="language-bash"># Start LSP with debug output
+bl lsp --log-level debug --log-file /tmp/bl-lsp.log
+
+# Watch the log
+tail -f /tmp/bl-lsp.log</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="repl.html" class="text-violet-400 hover:text-violet-300">&larr; REPL</a>
+        <a href="compiler.html" class="text-violet-400 hover:text-violet-300">Compiler &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

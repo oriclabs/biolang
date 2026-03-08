@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioContainers — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="apis/biocontainers"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">API Clients</a><span class="mx-2">/</span>
+        <span class="text-slate-300">BioContainers</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>BioContainers Registry</h1>
+        <p>
+          BioLang provides native access to the BioContainers registry — over 9,000
+          containerized bioinformatics tools with versioned Docker and Singularity images.
+          Search, browse, and inspect tools directly from BioLang with built-in functions.
+          No import needed.
+        </p>
+
+        <h2>Searching Tools</h2>
+        <p>
+          Use <code>biocontainers_search()</code> to find tools by name or keyword.
+          Results include the tool name, description, organization, version count,
+          and the latest image URI:
+        </p>
+        <pre><code class="language-biolang"># Search for samtools
+let results = biocontainers_search("samtools")
+results |> print()
+# => [{ name: "samtools", description: "...", organization: "biocontainers",
+#        version_count: 42, latest_version: "1.19", latest_image: "quay.io/..." }, ...]
+
+# Search with a result limit
+biocontainers_search("bwa", 5) |> print()
+
+# Search for alignment tools
+biocontainers_search("alignment") |> print()</code></pre>
+        <p>
+          Returns a List of Records: <code>{name, description, organization, version_count, latest_version, latest_image}</code>.
+          Default limit is 25.
+        </p>
+
+        <h2>Popular Tools</h2>
+        <p>
+          Browse the most popular tools in the registry with <code>biocontainers_popular()</code>:
+        </p>
+        <pre><code class="language-biolang"># Get top 20 most popular tools (default)
+let popular = biocontainers_popular()
+popular |> print()
+
+# Get top 50
+biocontainers_popular(50)
+  |> map(|t| { name: t.name, versions: t.version_count })
+  |> print()</code></pre>
+        <p>
+          Returns a List of Records with the same fields as <code>biocontainers_search</code>.
+          Default limit is 20.
+        </p>
+
+        <h2>Tool Details</h2>
+        <p>
+          Get detailed metadata for a specific tool with <code>biocontainers_info()</code>,
+          including all available versions and container images:
+        </p>
+        <pre><code class="language-biolang"># Get full details for samtools
+let info = biocontainers_info("samtools")
+print(info)
+
+# Access nested version data
+print("Latest version:", info.latest_version)
+print("Total versions:", info.version_count)
+
+# List all available images for the latest version
+info.versions
+  |> first()
+  |> get("images")
+  |> print()</code></pre>
+        <p>
+          Returns a Record with nested versions and images.
+        </p>
+
+        <h2>Version Management</h2>
+        <p>
+          List all versions and their container image URIs for a tool with
+          <code>biocontainers_versions()</code>:
+        </p>
+        <pre><code class="language-biolang"># List all versions of gatk4
+let versions = biocontainers_versions("gatk4")
+versions |> print()
+# => [{ version: "4.5.0.0", images: ["quay.io/biocontainers/gatk4:4.5.0.0--...", ...] },
+#     { version: "4.4.0.0", images: ["quay.io/biocontainers/gatk4:4.4.0.0--...", ...] },
+#     ...]
+
+# Get the latest version image
+let latest = versions |> first()
+print("Version:", latest.version)
+print("Image:", latest.images |> first())</code></pre>
+        <p>
+          Returns a List of Records: <code>{version, images}</code>, where
+          <code>images</code> is a List of URI strings.
+        </p>
+
+        <h2>Configuration</h2>
+        <p>
+          The BioContainers API URL is configurable via <code>~/.biolang/apis.yaml</code>
+          or the <code>BIOLANG_BIOCONTAINERS_URL</code> environment variable.
+        </p>
+
+        <h2>Builtin Reference</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Function</th>
+              <th>Args</th>
+              <th>Returns</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>biocontainers_search</code></td>
+              <td>query, limit?</td>
+              <td>List&lt;Record&gt;</td>
+              <td>Search tools by name (default limit 25)</td>
+            </tr>
+            <tr>
+              <td><code>biocontainers_popular</code></td>
+              <td>limit?</td>
+              <td>List&lt;Record&gt;</td>
+              <td>List popular tools (default limit 20)</td>
+            </tr>
+            <tr>
+              <td><code>biocontainers_info</code></td>
+              <td>tool_name</td>
+              <td>Record</td>
+              <td>Detailed tool info with versions and images</td>
+            </tr>
+            <tr>
+              <td><code>biocontainers_versions</code></td>
+              <td>tool_name</td>
+              <td>List&lt;Record&gt;</td>
+              <td>All versions with container image URIs</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Practical Examples</h2>
+        <h3>Find Container Images for a Workflow</h3>
+        <pre><code class="language-biolang"># Find containers for common variant calling tools
+let tools = ["samtools", "bcftools", "gatk4", "bwa-mem2", "deepvariant"]
+
+tools
+  |> map(|name| {
+    let versions = biocontainers_versions(name)
+    let latest = versions |> first()
+    { tool: name, version: latest.version, image: latest.images |> first() }
+  })
+  |> to_table()
+  |> print()</code></pre>
+
+        <h3>Compare Tool Versions</h3>
+        <pre><code class="language-biolang"># See how many versions are available for popular tools
+biocontainers_popular(10)
+  |> map(|t| { name: t.name, versions: t.version_count, latest: t.latest_version })
+  |> sort(.versions)
+  |> reverse()
+  |> print()</code></pre>
+
+        <h3>Search and Inspect a Tool</h3>
+        <pre><code class="language-biolang"># Find a tool and get its full details
+let results = biocontainers_search("minimap2", 1)
+let tool_name = results |> first() |> get("name")
+
+# Get detailed info
+let info = biocontainers_info(tool_name)
+print("Tool:", info.name)
+print("Description:", info.description)
+print("Versions available:", info.version_count)
+
+# List the 5 most recent versions
+biocontainers_versions(tool_name)
+  |> take(5)
+  |> map(|v| { version: v.version, images: v.images |> len() })
+  |> print()</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="nfcore.html" class="text-violet-400 hover:text-violet-300">&larr; nf-core</a>
+        <a href="galaxy.html" class="text-violet-400 hover:text-violet-300">Galaxy ToolShed &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

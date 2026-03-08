@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioContainers — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="cookbook/containers"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Cookbook</a><span class="mx-2">/</span>
+        <span class="text-slate-300">BioContainers</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>BioContainers</h1>
+        <p>BioLang integrates with BioContainers to run any bioinformatics tool
+        in an isolated container environment. This provides reproducibility,
+        avoids installation headaches, and ensures version-pinned tool execution.</p>
+
+        <h2>Running Tools in Containers</h2>
+
+        <h3>Basic container execution</h3>
+        <pre><code class="language-biolang"># Run a tool from a BioContainers image
+# container_run(image, command, options?)
+let result = container_run(
+  "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
+  "samtools flagstat /data/aligned.bam",
+  { mount: "./data" }
+)
+
+print(result.stdout)</code></pre>
+
+        <h3>Common bioinformatics tools in containers</h3>
+        <pre><code class="language-biolang"># Run samtools in a container
+let stats = container_run(
+  "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
+  "samtools flagstat /data/aligned.bam"
+)
+print(stats.stdout)
+
+# BWA alignment in a container (redirect stdout to file)
+container_run(
+  "quay.io/biocontainers/bwa-mem2:2.2.1--he513fc3_0",
+  "bwa-mem2 mem -t 8 /data/GRCh38.fa /data/sample_R1.fq.gz /data/sample_R2.fq.gz > /data/aligned.sam"
+)
+
+# GATK variant calling
+container_run(
+  "quay.io/biocontainers/gatk:4.4.0.0--py36hdfd78af_0",
+  "gatk HaplotypeCaller -R /data/GRCh38.fa -I /data/aligned.bam -O /data/variants.g.vcf.gz --emit-ref-confidence GVCF"
+)</code></pre>
+
+        <h2>Managing Container Images</h2>
+
+        <h3>Pulling and caching images</h3>
+        <pre><code class="language-biolang"># Pull an image before use (cached locally)
+container_pull("quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0")
+
+# Check if a container runtime is available
+if container_available() {
+  print("Container runtime is ready")
+} else {
+  print("No container runtime found (Docker/Podman/Singularity)")
+}
+
+# List cached tool images
+let images = tool_list()
+for img in images {
+  print("#{img}")
+}</code></pre>
+
+        <h3>Searching BioContainers registry</h3>
+        <pre><code class="language-biolang"># Search for tools
+let results = tool_search("samtools")
+for tool in take(results, 5) {
+  print("#{tool.name} - #{tool.description}")
+}
+
+# Get detailed info for a tool
+let info = tool_info("bwa-mem2")
+print("#{info.name}: #{info.description}")
+print("Image: #{info.image}")</code></pre>
+
+        <h2>Multi-Tool Pipelines</h2>
+
+        <h3>Chaining container tools</h3>
+        <pre><code class="language-biolang"># Run a full alignment pipeline using containers
+let sample = "sample_001"
+let ref = "refs/GRCh38.fa"
+let r1 = "fastq/#{sample}_R1.fq.gz"
+let r2 = "fastq/#{sample}_R2.fq.gz"
+let out_dir = "results/#{sample}"
+
+mkdir(out_dir)
+
+# Step 1: Quality control
+print("Running FastQC...")
+container_run(
+  "quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0",
+  "fastqc /data/#{r1} /data/#{r2} -o /data/#{out_dir}"
+)
+
+# Step 2: Trimming
+print("Trimming adapters...")
+container_run(
+  "quay.io/biocontainers/fastp:0.23.4--hadf994f_2",
+  "fastp -i /data/#{r1} -I /data/#{r2} -o /data/#{out_dir}/trimmed_R1.fq.gz -O /data/#{out_dir}/trimmed_R2.fq.gz --json /data/#{out_dir}/fastp.json --thread 4"
+)
+
+# Step 3: Alignment
+print("Aligning reads...")
+container_run(
+  "quay.io/biocontainers/bwa-mem2:2.2.1--he513fc3_0",
+  "bwa-mem2 mem -t 8 /data/#{ref} /data/#{out_dir}/trimmed_R1.fq.gz /data/#{out_dir}/trimmed_R2.fq.gz > /data/#{out_dir}/aligned.sam"
+)
+
+# Step 4: SAM to sorted BAM
+print("Sorting BAM...")
+container_run(
+  "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
+  "samtools sort -@ 4 -o /data/#{out_dir}/sorted.bam /data/#{out_dir}/aligned.sam"
+)
+
+# Step 5: Index
+container_run(
+  "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
+  "samtools index /data/#{out_dir}/sorted.bam"
+)
+
+print("Pipeline complete for #{sample}")</code></pre>
+
+        <h2>Custom Containers</h2>
+
+        <h3>Using custom Docker images</h3>
+        <pre><code class="language-biolang"># Use any Docker/OCI image, not just BioContainers
+container_run(
+  "my-registry.com/custom-pipeline:v2.1",
+  "run_analysis.sh /data/input /data/output",
+  { mount: "./data", env: { "THREADS": "8", "REFERENCE": "/data/refs/genome.fa" } }
+)
+
+# container_run auto-detects runtime (Docker, Podman, Singularity, Apptainer)
+container_run(
+  "library://user/collection/tool:1.0",
+  "tool --input /data/file.bam"
+)</code></pre>
+
+        <h3>Building a container from BioLang</h3>
+        <pre><code class="language-biolang"># Generate a Dockerfile for a custom tool set
+let dockerfile = "
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install -y \\
+    samtools=1.19-1 \\
+    bcftools=1.19-1 \\
+    bedtools=2.31.0
+WORKDIR /data
+"
+
+write_text(dockerfile, "Dockerfile")
+let build = shell("docker build -t my-biotools:latest .")
+if build.exit_code == 0 {
+  print("Custom container built successfully")
+}</code></pre>
+
+        <h2>Resource Management</h2>
+
+        <h3>Container resource limits</h3>
+        <pre><code class="language-biolang"># For resource limits, use shell with docker flags directly
+shell("docker run --rm --memory=16g --cpus=4 -v $(pwd):/data -w /data quay.io/biocontainers/gatk:4.4.0.0--py36hdfd78af_0 gatk HaplotypeCaller -R /data/ref.fa -I /data/in.bam -O /data/out.vcf")
+
+# Or use container_run for simpler cases
+container_run(
+  "quay.io/biocontainers/gatk:4.4.0.0--py36hdfd78af_0",
+  "gatk HaplotypeCaller -R /data/ref.fa -I /data/in.bam -O /data/out.vcf"
+)</code></pre>
+
+        <h3>Cleaning up</h3>
+        <pre><code class="language-biolang"># List cached tool images
+let cached = tool_list()
+print("Cached images: #{len(cached)}")
+
+# Remove a specific cached image via shell
+shell("docker rmi quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0")
+
+# Prune unused images
+let result = shell("docker image prune -f")
+print("Cleanup: #{result.stdout}")</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="interop.html" class="text-violet-400 hover:text-violet-300">&larr; Interop</a>
+        <a href="cloud.html" class="text-violet-400 hover:text-violet-300">Cloud Data &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

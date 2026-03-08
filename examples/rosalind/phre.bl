@@ -1,0 +1,28 @@
+# Rosalind: PHRE — Read Quality Distribution
+# https://rosalind.info/problems/phre/
+#
+# Given: A quality threshold and FASTQ entries.
+# Return: Number of reads whose average quality is below the threshold.
+
+let threshold = 28
+
+# Sample reads with Phred33 quality strings
+let quality_strings = [
+    "6.3536354;.151<211/0?::6/-2051)-*\"40/.,+%)",
+    "AH@FGGGJ<GB<<9:GD=D@GG9=?A@DC=;:?>839/4856",
+    "@DJEJEA?JHJ@8?F?IA3=;8@C95=;=?;>D/:;74792."
+]
+
+# Parse Phred33: each character's ASCII value minus 33 gives quality score
+let below_count = 0
+for qual_str in quality_strings {
+    let chars = split(qual_str, "")
+    let scores = chars |> filter(|c| c != "") |> map(|c| ascii(c) - 33)
+    let avg = (scores |> reduce(|a, b| a + b)) / len(scores)
+    if avg < threshold then
+        below_count = below_count + 1
+}
+
+println("Result:   " + str(below_count))
+println("Expected: 1")
+println("Match:    " + str(below_count == 1))

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genomics — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/genomics"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Genomics</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Genomics</h1>
+        <p>Genome-scale analysis is where BioLang shines. These examples cover common
+        genomics tasks from read quality assessment to variant analysis, using BioLang's
+        native format support and streaming capabilities.</p>
+
+        <h2>Alignment Statistics</h2>
+
+        <h3>BAM file summary</h3>
+        <pre><code class="language-biolang"># Comprehensive alignment statistics
+let bam = read_bam("aligned.bam")
+
+let stats = bam |> flagstat
+print(f"Total reads:    {stats.total}")
+print(f"Mapped reads:   {stats.mapped} ({stats.mapped_pct}%)")
+print(f"Duplicates:     {stats.duplicates}")
+print(f"Mean MAPQ:      {stats.mean_mapq}")
+print(f"Mean insert:    {stats.mean_insert_size}")</code></pre>
+
+        <h3>Per-chromosome read counts</h3>
+        <pre><code class="language-biolang">let bam = read_bam("aligned.bam")
+
+bam
+  |> filter(|r| r.is_mapped)
+  |> map(|r| r.chrom)
+  |> frequencies
+  |> print</code></pre>
+
+        <h3>Mapping quality distribution</h3>
+        <pre><code class="language-biolang">let bam = read_bam("aligned.bam")
+
+let mapq_dist = bam
+  |> filter(|r| r.is_mapped)
+  |> map(|r| r.mapq)
+  |> histogram(bins: 60)
+
+mapq_dist |> write_tsv("mapq_distribution.tsv")
+print(f"Reads with MAPQ >= 30: {bam |> filter(|r| { r.mapq >= 30 }) |> len}")</code></pre>
+
+        <h2>Coverage Analysis</h2>
+
+        <h3>Windowed coverage</h3>
+        <pre><code class="language-biolang"># Calculate coverage in fixed-size windows
+let bam = read_bam("aligned.bam")
+
+let coverage = bam
+  |> coverage_windows(window_size: 10000, chrom: "chr1")
+  |> map(|w| { {
+    chrom: w.chrom,
+    start: w.start,
+    end: w.end,
+    mean_depth: w.mean_depth,
+    breadth: w.bases_covered / (w.end - w.start) |> float
+  }})
+
+coverage |> write_tsv("coverage_windows.tsv")
+
+let avg = coverage |> map(|c| c.mean_depth) |> mean
+print(f"Average genome-wide depth: {avg |> round(1)}x")</code></pre>
+
+        <h3>Coverage at specific regions</h3>
+        <pre><code class="language-biolang"># Check coverage over target regions (e.g., exome capture)
+let bam = read_bam("aligned.bam")
+let targets = read_bed("capture_targets.bed")
+
+let region_cov = targets
+  |> map(|t| {
+    let cov = bam |> coverage_at(t.chrom, t.start, t.end)
+    {
+      gene: t.name,
+      mean_depth: cov.mean,
+      pct_10x: cov.pct_above(10),
+      pct_20x: cov.pct_above(20),
+      pct_30x: cov.pct_above(30)
+    }
+  })
+
+# Find under-covered regions
+let low_cov = region_cov |> filter(|r| { r.pct_20x < 0.90 })
+print(f"Regions below 90% at 20x: {low_cov |> len}")
+low_cov |> write_tsv("low_coverage_regions.tsv")</code></pre>
+
+        <h2>Variant Analysis</h2>
+
+        <h3>Variant density across the genome</h3>
+        <pre><code class="language-biolang"># Calculate variant density in sliding windows
+let vcf = read_vcf("variants.vcf.gz")
+
+let density = vcf
+  |> filter(|v| { v.filter == "PASS" })
+  |> group_by_window(chrom: .chrom, pos: .pos, window_size: 100000)
+  |> map(|w| { {
+    chrom: w.chrom,
+    start: w.start,
+    end: w.end,
+    n_variants: w.items |> len,
+    density: w.items |> len |> float / 100000.0
+  }})
+
+density |> write_tsv("variant_density.tsv")</code></pre>
+
+        <h3>Variant type summary</h3>
+        <pre><code class="language-biolang">let vcf = read_vcf("variants.vcf.gz")
+
+let summary = vcf
+  |> filter(|v| { v.filter == "PASS" })
+  |> map(|v| {
+    match {
+      is_snp(v) => "SNP",
+      is_indel(v) && len(v.alt) > len(v.ref) => "INS",
+      is_indel(v) && len(v.alt) < len(v.ref) => "DEL",
+      len(v.ref) > 1 && len(v.alt) == len(v.ref) => "MNP",
+      _ => "OTHER"
+    }
+  })
+  |> frequencies
+
+for type, count in summary {
+  print(f"{type}: {count}")
+}</code></pre>
+
+        <h3>Heterozygosity rate</h3>
+        <pre><code class="language-biolang">let vcf = read_vcf("sample.vcf.gz")
+
+let genotypes = vcf
+  |> filter(|v| { v.filter == "PASS" && is_snp(v) })
+  |> map(|v| { v.genotype(0) })
+
+let het_count = genotypes |> filter(|g| { g == "0/1" || g == "0|1" }) |> len
+let total = genotypes |> len
+let het_rate = het_count |> float / total |> float
+
+print(f"Heterozygosity rate: {het_rate |> round(4)}")</code></pre>
+
+        <h2>FASTA Analysis</h2>
+
+        <h3>Assembly statistics</h3>
+        <pre><code class="language-biolang">let contigs = fasta("assembly.fa")
+  |> map(|r| len(r.seq))
+  |> sort_by(|a, b| b - a)
+  |> collect
+
+let total = contigs |> sum
+let longest = contigs |> first
+let n_contigs = contigs |> len
+
+print("Assembly Statistics:")
+print(f"  Contigs:    {n_contigs}")
+print(f"  Total bp:   {total |> str}")
+print(f"  Longest:    {longest |> str}")
+print(f"  GC content: {fasta("assembly.fa") |> map(|r| gc_content(r.seq)) |> mean |> round(3)}")</code></pre>
+
+        <h3>Find motifs in a genome</h3>
+        <pre><code class="language-biolang"># Search for a restriction enzyme site (EcoRI: GAATTC)
+let genome = fasta("genome.fa")
+
+for record in genome {
+  let sites = find_motif(record.seq, "GAATTC")
+  if sites |> len > 0 {
+    print(f"{record.name}: {sites |> len} EcoRI sites")
+    sites |> take(5) |> each(|pos| {
+      print(f"  Position: {pos}")
+    })
+  }
+}</code></pre>
+
+        <h2>GFF/GTF Annotation</h2>
+
+        <h3>Gene counts per chromosome</h3>
+        <pre><code class="language-biolang">let gff = read_gff("annotations.gff3")
+
+gff
+  |> filter(|f| f.type == "gene")
+  |> map(|f| f.seqid)
+  |> frequencies
+  |> each(|chrom, n| print(f"{chrom}: {n} genes"))</code></pre>
+
+        <h3>Exon size distribution</h3>
+        <pre><code class="language-biolang">let gff = read_gff("annotations.gff3")
+
+let exon_sizes = gff
+  |> filter(|f| f.type == "exon")
+  |> map(|f| f.end - f.start + 1)
+
+print(f"Exon count:   {exon_sizes |> len}")
+print(f"Mean size:    {exon_sizes |> mean |> round(1)} bp")
+print(f"Median size:  {exon_sizes |> median} bp")
+print(f"Max size:     {exon_sizes |> max} bp")</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="data-wrangling.html" class="text-violet-400 hover:text-violet-300">&larr; Data Wrangling</a>
+        <a href="proteomics.html" class="text-violet-400 hover:text-violet-300">Proteomics &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

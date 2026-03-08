@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Wrangling — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/data-wrangling"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Data Wrangling</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Data Wrangling</h1>
+        <p>Bioinformatics involves heavy data manipulation. BioLang provides first-class
+        support for CSV, TSV, JSON, and tabular data with pipe-friendly transforms that
+        feel natural for data processing workflows.</p>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8">
+          <p class="text-sm text-slate-400 mb-0">
+            <strong class="text-white">Sample data:</strong> BioLang includes CSV, TSV, and other
+            sample files in <code>examples/sample-data/</code>. Use
+            <code>examples/sample-data/samples.csv</code>,
+            <code>examples/sample-data/gene_counts.csv</code>, and
+            <code>examples/sample-data/counts.tsv</code> to follow along.
+          </p>
+        </div>
+
+        <h2>Loading Data</h2>
+
+        <h3>CSV files</h3>
+        <pre><code class="language-biolang"># Load a CSV with automatic header detection
+let samples = csv("examples/sample-data/samples.csv")
+samples |> head(5) |> print
+
+# TSV is tab-delimited
+let data = tsv("data.txt")
+data |> describe |> print</code></pre>
+
+        <h3>TSV files</h3>
+        <pre><code class="language-biolang"># Read a TSV file (e.g., gene expression matrix)
+let expr = tsv("expression_matrix.tsv")
+print(f"Rows: {len(expr)}")
+expr |> describe |> print</code></pre>
+
+        <h3>Reading text files</h3>
+        <pre><code class="language-biolang"># Load lines from a text file
+let lines = read_lines("sample_ids.txt")
+lines |> take(5) |> print
+
+# Count entries
+len(lines) |> print</code></pre>
+
+        <h2>Column Operations</h2>
+
+        <h3>Selecting columns</h3>
+        <pre><code class="language-biolang">let data = csv("examples/sample-data/gene_counts.csv")
+
+# Select specific columns
+data |> select("gene_id", "sample_1", "sample_2") |> head(10) |> print
+
+# Drop columns
+data |> drop_cols("internal_id", "notes") |> write_csv("clean.csv")</code></pre>
+
+        <h3>Renaming columns</h3>
+        <pre><code class="language-biolang">let data = tsv("results.tsv")
+data
+  |> rename("chr" => "chrom", "pos" => "position")
+  |> write_tsv("renamed.tsv")</code></pre>
+
+        <h3>Adding computed columns</h3>
+        <pre><code class="language-biolang">let variants = tsv("variants.tsv")
+variants
+  |> mutate("length", |row| { row["end"] - row["start"] })
+  |> mutate("label", |row| {
+    match row["type"] {
+      "SNP" => "Single Nucleotide",
+      "INS" => "Insertion",
+      "DEL" => "Deletion",
+      _ => "Other"
+    }
+  })
+  |> write_tsv("annotated.tsv")</code></pre>
+
+        <h2>Filtering and Sorting</h2>
+
+        <h3>Row filtering</h3>
+        <pre><code class="language-biolang">let data = csv("deseq2_results.csv")
+
+# Filter significant genes
+let sig = data
+  |> filter(|row| { row["padj"] |> float < 0.05 })
+  |> filter(|row| { (row["log2FoldChange"] |> float) |> abs > 1.0 })
+
+print(f"Significant DE genes: {sig |> len}")
+sig |> write_csv("significant_genes.csv")</code></pre>
+
+        <h3>Sorting</h3>
+        <pre><code class="language-biolang">let data = csv("scores.csv")
+
+# Sort by a single column
+data |> sort_by(|a, b| a.p_value - b.p_value) |> head(20) |> print
+
+# Sort descending
+data |> sort_by(|a, b| b.fold_change - a.fold_change) |> head(10) |> print
+
+# Multi-column sort
+data |> sort_by(|a, b| [a.chromosome, a.position]) |> write_csv("sorted.csv")</code></pre>
+
+        <h2>Grouping and Aggregation</h2>
+
+        <h3>Group by and summarize</h3>
+        <pre><code class="language-biolang">let counts = tsv("gene_counts.tsv")
+
+# Count genes per chromosome
+counts
+  |> group_by(|r| r.chrom)
+  |> summarize(
+    n_genes: |rows| len(rows),
+    avg_length: |rows| rows |> map(|r| r.length) |> mean,
+    max_expr: |rows| rows |> map(|r| r.expression) |> max
+  )
+  |> sort_by(|a, b| b.n_genes - a.n_genes)
+  |> print</code></pre>
+
+        <h3>Pivot / reshape</h3>
+        <pre><code class="language-biolang"># Wide to long format
+let wide = csv("expression_wide.csv")
+wide
+  |> pivot_longer(
+    cols: ["sample_a", "sample_b", "sample_c"],
+    names_to: "sample",
+    values_to: "expression"
+  )
+  |> write_csv("expression_long.csv")
+
+# Long to wide format
+let long_data = csv("expression_long.csv")
+long_data
+  |> pivot_wider(
+    names_from: "sample",
+    values_from: "expression"
+  )
+  |> write_csv("expression_wide_again.csv")</code></pre>
+
+        <h2>Merging and Joining</h2>
+
+        <h3>Join tables</h3>
+        <pre><code class="language-biolang">let genes = tsv("genes.tsv")        # gene_id, gene_name, chrom
+let counts = tsv("examples/sample-data/counts.tsv")  # chrom, start, end, count
+
+# Inner join on gene_id
+let merged = genes |> inner_join(counts, on: "gene_id")
+merged |> head(5) |> print
+
+# Left join to keep all genes (unmatched get None)
+let full = genes |> left_join(counts, on: "gene_id")
+let missing = full |> filter(|row| { row["count"] == None })
+print(f"Genes without counts: {missing |> len}")</code></pre>
+
+        <h3>Concatenating tables</h3>
+        <pre><code class="language-biolang"># Stack tables vertically
+let batch1 = csv("batch1_results.csv")
+let batch2 = csv("batch2_results.csv")
+let combined = concat([batch1, batch2])
+combined |> write_csv("all_results.csv")
+
+# Add a batch label
+let labeled = concat([
+  batch1 |> mutate("batch", |_| "batch1"),
+  batch2 |> mutate("batch", |_| "batch2")
+])
+labeled |> write_csv("labeled_results.csv")</code></pre>
+
+        <h2>String Operations on Data</h2>
+
+        <pre><code class="language-biolang">let data = tsv("annotations.tsv")
+
+# Extract gene symbol from description
+data
+  |> mutate("symbol", |row| {
+    row["description"] |> split(";") |> first |> trim
+  })
+  |> filter(|row| { row["symbol"] |> starts_with("BRC") })
+  |> print</code></pre>
+
+        <h2>Writing Output</h2>
+
+        <pre><code class="language-biolang">let results = csv("raw.csv")
+  |> filter(|row| { row["quality"] |> float > 30.0 })
+  |> sort_by(|a, b| b.score - a.score)
+
+# Write in multiple formats
+results |> write_csv("output.csv")
+results |> write_tsv("output.tsv")
+print(f"Wrote {results |> len} rows")</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="oneliners.html" class="text-violet-400 hover:text-violet-300">&larr; One-Liners</a>
+        <a href="genomics.html" class="text-violet-400 hover:text-violet-300">Genomics &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

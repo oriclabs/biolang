@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>String Operations — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/string"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">String Operations</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">String Operations</h1>
+        <p class="text-lg text-slate-400 mb-8">18 functions for string manipulation, searching, and formatting. All string functions are immutable and return new strings.</p>
+
+        <section class="mb-12" id="upper">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">upper</span> / <span class="text-violet-400 font-mono">lower</span></h2>
+          <p class="text-slate-400 mt-2">Convert string to uppercase or lowercase.</p>
+          <pre><code class="language-biolang">upper(s) -> string
+lower(s) -> string</code></pre>
+          <pre><code class="language-biolang">upper("atcg")   # "ATCG"
+lower("BRCA1")  # "brca1"
+
+# Normalize sequence input
+let seq = "atcGATcg"
+let normalized = upper(seq)   # "ATCGATCG"</code></pre>
+        </section>
+
+        <section class="mb-12" id="trim">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">trim</span> / <span class="text-violet-400 font-mono">trim_left</span> / <span class="text-violet-400 font-mono">trim_right</span></h2>
+          <p class="text-slate-400 mt-2">Remove whitespace from both ends, start, or end of a string.</p>
+          <pre><code class="language-biolang">trim(s) -> string
+trim_left(s) -> string
+trim_right(s) -> string</code></pre>
+          <pre><code class="language-biolang">trim("  ATCG  ")        # "ATCG"
+trim_left("  ATCG  ")   # "ATCG  "
+trim_right("  ATCG  ")  # "  ATCG"
+
+# Clean FASTA header
+let header = ">NM_001256799.3  Homo sapiens BRCA1  \n"
+trim(header)   # ">NM_001256799.3  Homo sapiens BRCA1"</code></pre>
+        </section>
+
+        <section class="mb-12" id="split">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">split</span></h2>
+          <p class="text-slate-400 mt-2">Split a string by a delimiter into a list of substrings.</p>
+          <pre><code class="language-biolang">split(s, delimiter) -> list</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">s</td><td class="py-2 px-3">string</td><td class="py-2 px-3">String to split</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">delimiter</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Delimiter (empty string splits into characters)</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">split("A,T,C,G", ",")     # ["A", "T", "C", "G"]
+split("ATCG", "")          # ["A", "T", "C", "G"]
+split("chr1:1000-2000", ":") # ["chr1", "1000-2000"]
+
+# Parse SAM fields
+let sam_line = "read1\t0\tchr1\t100\t60\t50M\t*\t0\t0\tATCG\tFFFF"
+let fields = split(sam_line, "\t")
+println("RNAME:", fields[2])   # RNAME: chr1</code></pre>
+        </section>
+
+        <section class="mb-12" id="join">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">join</span></h2>
+          <p class="text-slate-400 mt-2">Join a list of strings with a separator.</p>
+          <pre><code class="language-biolang">join(list, separator) -> string</code></pre>
+          <pre><code class="language-biolang">join(["A", "T", "C", "G"], "")      # "ATCG"
+join(["chr1", "1000", "2000"], ":")   # "chr1:1000:2000"
+join(["BRCA1", "TP53", "EGFR"], ", ") # "BRCA1, TP53, EGFR"</code></pre>
+        </section>
+
+        <section class="mb-12" id="replace">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">replace</span></h2>
+          <p class="text-slate-400 mt-2">Replace all occurrences of a substring.</p>
+          <pre><code class="language-biolang">replace(s, old, new) -> string</code></pre>
+          <pre><code class="language-biolang">replace("ATCGATCG", "T", "U")   # "AUCGAUCG"  (DNA to RNA)
+replace("chr1:1000-2000", "chr", "")  # "1:1000-2000"</code></pre>
+        </section>
+
+        <section class="mb-12" id="starts_with">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">starts_with</span> / <span class="text-violet-400 font-mono">ends_with</span> / <span class="text-violet-400 font-mono">contains</span></h2>
+          <p class="text-slate-400 mt-2">Test for substring presence at start, end, or anywhere.</p>
+          <pre><code class="language-biolang">starts_with(s, prefix) -> bool
+ends_with(s, suffix) -> bool
+contains(s, substring) -> bool</code></pre>
+          <pre><code class="language-biolang">starts_with("NM_001256", "NM_")   # true
+ends_with("sample.fastq.gz", ".gz") # true
+contains("BRCA1 DNA repair", "repair") # true
+
+# Filter FASTA headers
+let headers = [">NM_001", ">XM_002", ">NM_003"]
+filter(headers, |h| starts_with(h, ">NM_"))
+# [">NM_001", ">NM_003"]</code></pre>
+        </section>
+
+        <section class="mb-12" id="repeat">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">repeat</span></h2>
+          <p class="text-slate-400 mt-2">Repeat a string n times.</p>
+          <pre><code class="language-biolang">repeat(s, n) -> string</code></pre>
+          <pre><code class="language-biolang">repeat("AT", 4)    # "ATATATAT"
+repeat("-", 40)    # "----------------------------------------"</code></pre>
+        </section>
+
+        <section class="mb-12" id="pad">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">pad_left</span> / <span class="text-violet-400 font-mono">pad_right</span></h2>
+          <p class="text-slate-400 mt-2">Pad a string to a target length with a fill character.</p>
+          <pre><code class="language-biolang">pad_left(s, width, fill?) -> string
+pad_right(s, width, fill?) -> string</code></pre>
+          <pre><code class="language-biolang">pad_left("42", 5, "0")    # "00042"
+pad_right("BRCA1", 10)    # "BRCA1     "
+
+# Align output columns
+let genes = ["TP53", "BRCA1", "EGFR"]
+let pvals = [0.001, 0.05, 0.003]
+zip(genes, pvals) |> map(|pair| {
+  pad_right(pair[0], 8) + str(pair[1])
+}) |> map(println)</code></pre>
+        </section>
+
+        <section class="mb-12" id="char_at">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">char_at</span> / <span class="text-violet-400 font-mono">substr</span> / <span class="text-violet-400 font-mono">index_of</span></h2>
+          <p class="text-slate-400 mt-2">Positional access into strings.</p>
+          <pre><code class="language-biolang">char_at(s, index) -> string
+substr(s, start, length?) -> string
+index_of(s, substr) -> int | nil</code></pre>
+          <pre><code class="language-biolang">char_at("ATCG", 2)           # "C"
+substr("ATCGATCG", 2, 4)    # "CGAT"
+substr("ATCGATCG", 4)       # "ATCG"  (to end)
+index_of("ATCGATCG", "GAT")  # 3
+index_of("ATCGATCG", "XYZ")  # nil
+
+# Extract codon
+let seq = "ATGCGATCGTAA"
+let codon_start = 3
+let codon = substr(seq, codon_start, 3)   # "CGA"</code></pre>
+        </section>
+
+        <section class="mb-12" id="format">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">format</span></h2>
+          <p class="text-slate-400 mt-2">Format a string with <code>{}</code> placeholders, replaced in order by arguments.</p>
+          <pre><code class="language-biolang">format(template, args...) -> string</code></pre>
+          <pre><code class="language-biolang">format("chr{}:{}-{}", 1, 1000, 2000)
+# "chr1:1000-2000"
+
+format("{} has {} reads ({}% mapped)", "sample1", 1500000, 95.3)
+# "sample1 has 1500000 reads (95.3% mapped)"
+
+# Named placeholders with maps
+format("Gene: {name}, p-value: {pval}", {"name": "BRCA1", "pval": 0.001})
+# "Gene: BRCA1, p-value: 0.001"</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="math-stats.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span>&larr;</span> Math &amp; Statistics
+        </a>
+        <a href="tables.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Table Operations <span>&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

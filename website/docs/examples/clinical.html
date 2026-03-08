@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinical Variants — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/clinical"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Clinical Variants</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Clinical Variants</h1>
+        <p>Clinical variant analysis requires careful filtering, annotation matching,
+        and classification. BioLang streamlines these workflows with built-in ClinVar
+        integration and ACMG-compatible classification helpers.</p>
+
+        <h2>ClinVar Queries</h2>
+
+        <h3>Query ClinVar for a gene</h3>
+        <pre><code class="language-biolang"># Search ClinVar for variants in BRCA1
+let results = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
+
+print(f"Pathogenic BRCA1 variants: {results |> len}")
+results |> take(10) |> each(|v| {
+  print(f"  {v.variant_id}: {v.name} - {v.clinical_significance}")
+  print(f"    Condition: {v.condition}")
+  print(f"    Review status: {v.review_status}")
+})</code></pre>
+
+        <h3>Batch ClinVar annotation</h3>
+        <pre><code class="language-biolang"># Annotate a VCF with ClinVar data
+let vcf = read_vcf("patient_variants.vcf")
+
+let annotated = vcf
+  |> map(|v| {
+    let clinvar = ncbi_search("clinvar", f"{v.chrom}:{v.pos}[chrpos] AND {v.alt}[alt]") |> first
+    {
+      chrom: v.chrom,
+      pos: v.pos,
+      ref: v.ref,
+      alt: v.alt,
+      gene: v.info("gene"),
+      clinvar_id: clinvar?.variant_id,
+      significance: clinvar?.clinical_significance ?? "not_found",
+      review_stars: clinvar?.review_stars ?? 0,
+      condition: clinvar?.condition ?? ""
+    }
+  })
+
+let pathogenic = annotated |> filter(|v| { v.significance |> contains("athogenic") })
+print(f"Pathogenic/Likely pathogenic variants: {pathogenic |> len}")
+pathogenic |> write_tsv("clinvar_pathogenic.tsv")</code></pre>
+
+        <h2>Pathogenicity Filtering</h2>
+
+        <h3>Multi-tier variant filtering</h3>
+        <pre><code class="language-biolang"># Clinical-grade variant filtering pipeline
+let vcf = read_vcf("annotated.vcf.gz")
+
+# Tier 1: Known pathogenic
+let tier1 = vcf
+  |> filter(|v| { v.filter == "PASS" })
+  |> filter(|v| {
+    let sig = v.info("CLNSIG") ?? ""
+    sig |> contains("Pathogenic") && !(sig |> contains("Conflicting"))
+  })
+  |> filter(|v| {
+    let revstat = v.info("CLNREVSTAT") ?? ""
+    revstat |> contains("criteria_provided") && !(revstat |> contains("conflicting"))
+  })
+
+# Tier 2: Likely pathogenic or uncertain with strong evidence
+let tier2 = vcf
+  |> filter(|v| { v.filter == "PASS" })
+  |> filter(|v| {
+    let sig = v.info("CLNSIG") ?? ""
+    sig |> contains("Likely_pathogenic")
+  })
+
+# Tier 3: Rare variants in disease genes
+let disease_genes = read_text("disease_gene_panel.txt") |> split("
+") |> collect
+let tier3 = vcf
+  |> filter(|v| { v.filter == "PASS" })
+  |> filter(|v| { disease_genes |> contains(v.info("gene")) })
+  |> filter(|v| { (v.info("gnomAD_AF") ?? "0") |> float < 0.001 })
+  |> filter(|v| { v.info("IMPACT") == "HIGH" || v.info("IMPACT") == "MODERATE" })
+
+print(f"Tier 1 (known pathogenic):  {tier1 |> len}")
+print(f"Tier 2 (likely pathogenic): {tier2 |> len}")
+print(f"Tier 3 (rare, high impact): {tier3 |> len}")
+
+tier1 |> write_vcf("tier1_pathogenic.vcf")
+tier2 |> write_vcf("tier2_likely_pathogenic.vcf")
+tier3 |> write_vcf("tier3_candidate.vcf")</code></pre>
+
+        <h3>Population frequency filtering</h3>
+        <pre><code class="language-biolang"># Filter variants by population allele frequency
+let vcf = read_vcf("patient.vcf.gz")
+
+# Remove common variants across all gnomAD populations
+let rare = vcf
+  |> filter(|v| { v.filter == "PASS" })
+  |> filter(|v| {
+    let af_all = (v.info("gnomAD_AF") ?? "0") |> float
+    let af_max = (v.info("gnomAD_AF_popmax") ?? "0") |> float
+    af_all < 0.01 && af_max < 0.01
+  })
+
+print(f"Total PASS variants: {vcf |> filter(|v| { v.filter == "PASS" }) |> len}")
+print(f"After frequency filter: {rare |> len}")
+rare |> write_vcf("rare_variants.vcf")</code></pre>
+
+        <h2>ACMG Classification</h2>
+
+        <h3>Applying ACMG criteria</h3>
+        <pre><code class="language-biolang"># Simplified ACMG variant classification
+let classify_variant = |v| {
+  let evidence = []
+
+  # PVS1: Null variant in a gene where LOF is a known mechanism
+  let lof_genes = read_text("lof_genes.txt") |> split("
+") |> collect
+  if contains(["nonsense", "frameshift", "splice"], v.consequence) && lof_genes |> contains(v.gene) {
+    evidence |> push("PVS1")
+  }
+
+  # PS1: Same amino acid change as established pathogenic
+  if v.clinvar_aa_match == true {
+    evidence |> push("PS1")
+  }
+
+  # PM2: Absent from controls (or extremely rare)
+  if (v.gnomad_af ?? 0.0) < 0.0001 {
+    evidence |> push("PM2")
+  }
+
+  # PP3: Computational evidence supports deleterious
+  if (v.cadd_phred ?? 0.0) > 25.0 && (v.revel ?? 0.0) > 0.7 {
+    evidence |> push("PP3")
+  }
+
+  # BP1: Missense in gene where only truncating cause disease
+  let trunc_only = read_text("truncating_only_genes.txt") |> split("
+") |> collect
+  if v.consequence == "missense" && trunc_only |> contains(v.gene) {
+    evidence |> push("BP1")
+  }
+
+  # Classify based on evidence combination
+  let has_pvs = evidence |> any(|e| starts_with(e, "PVS"))
+  let has_ps = evidence |> any(|e| starts_with(e, "PS"))
+  let n_pm = evidence |> filter(|e| starts_with(e, "PM")) |> len
+  let n_pp = evidence |> filter(|e| starts_with(e, "PP")) |> len
+  let n_bp = evidence |> filter(|e| starts_with(e, "BP")) |> len
+  let classification = if has_pvs && has_ps { "Pathogenic" }
+    else if has_pvs && n_pm >= 1 { "Likely pathogenic" }
+    else if n_bp >= 2 { "Likely benign" }
+    else if len(evidence) == 0 { "Benign" }
+    else { "VUS" }
+  { variant: v, evidence: evidence, classification: classification }
+}
+
+let variants = tsv("annotated_variants.tsv")
+let classified = variants |> map(classify_variant)
+
+for class in ["Pathogenic", "Likely pathogenic", "VUS", "Likely benign", "Benign"] {
+  let n = classified |> filter(|c| { c.classification == class }) |> len
+  print(f"{class}: {n}")
+}
+
+classified |> write_csv("acmg_classifications.csv")</code></pre>
+
+        <h2>Clinical Report Generation</h2>
+
+        <h3>Variant summary report</h3>
+        <pre><code class="language-biolang"># Generate a clinical variant summary
+let tier1 = tsv("tier1_pathogenic.tsv")
+let tier2 = tsv("tier2_likely_pathogenic.tsv")
+let patient = csv("patient_metadata.csv") |> first
+
+let report = {
+  patient_id: patient["id"],
+  analysis_date: now(),
+  reference_genome: "GRCh38",
+  total_variants_analyzed: read_vcf("patient.vcf.gz") |> len,
+  reportable_findings: tier1 |> len + tier2 |> len,
+  tier1_variants: tier1 |> map(|v| { {
+    gene: v["gene"],
+    variant: v["chrom"] + ":" + str(v["pos"]) + " " + v["ref"] + ">" + v["alt"],
+    hgvs: v["hgvs_c"],
+    protein: v["hgvs_p"],
+    significance: v["significance"],
+    condition: v["condition"],
+    zygosity: v["zygosity"],
+    inheritance: v["inheritance"]
+  }}),
+  tier2_variants: tier2 |> map(|v| { {
+    gene: v["gene"],
+    variant: v["chrom"] + ":" + str(v["pos"]) + " " + v["ref"] + ">" + v["alt"],
+    significance: v["significance"]
+  }})
+}
+
+report |> write_csv("clinical_report.csv")
+print(f"Report generated: {report.reportable_findings} reportable findings")</code></pre>
+
+        <h3>Pharmacogenomics lookup</h3>
+        <pre><code class="language-biolang"># Check pharmacogenomic variants
+let pgx_variants = tsv("pgx_reference.tsv")  # star alleles and rsIDs
+let patient_vcf = read_vcf("patient.vcf.gz")
+
+let pgx_hits = pgx_variants |> map(|pgx| {
+  let match = patient_vcf
+    |> filter(|v| { v.chrom == pgx["chrom"] && v.pos == pgx["pos"] |> int })
+    |> first
+
+  {
+    gene: pgx["gene"],
+    star_allele: pgx["star_allele"],
+    rsid: pgx["rsid"],
+    drug: pgx["drug"],
+    genotype: match?.genotype(0) ?? "ref/ref",
+    phenotype: pgx["phenotype"]
+  }
+})
+
+print("Pharmacogenomic Report:")
+for hit in pgx_hits |> filter(|h| { h.genotype != "ref/ref" }) {
+  print(f"  {hit.gene} {hit.star_allele}: {hit.genotype}")
+  print(f"    Drug: {hit.drug} - {hit.phenotype}")
+}</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="popgen.html" class="text-violet-400 hover:text-violet-300">&larr; Population Genetics</a>
+        <a href="metagenomics.html" class="text-violet-400 hover:text-violet-300">Metagenomics &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

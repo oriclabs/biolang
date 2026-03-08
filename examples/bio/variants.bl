@@ -1,0 +1,62 @@
+# variants.bl — Variant analysis with VCF files
+#
+# Demonstrates: reading VCF files, creating variant records,
+# filtering by quality and type, and variant analysis workflows.
+
+# ── Reading VCF Files ─────────────────────────────────────────
+let vcf_stream = vcf("tests/data/test.vcf")
+
+println("=== VCF Records (stream) ===")
+vcf_stream |> each(|v| {
+    println("  ", v.chrom, ":", v.pos, " ", v.ref, "->", v.alt, " QUAL=", v.qual)
+})
+
+# ── Table Mode for Filtering ─────────────────────────────────
+let variants = vcf("tests/data/test.vcf", "table")
+println("\nTotal variants: ", variants |> count())
+
+# ── Creating Variant Records ─────────────────────────────────
+let snp = variant({
+    chrom: "chr1",
+    pos:   12345,
+    ref:   "A",
+    alt:   "G",
+    qual:  99.0,
+    filter: "PASS",
+    info:  { DP: 42, AF: 0.5 }
+})
+println("\nManual SNP: ", snp.chrom, ":", snp.pos, " ", snp.ref, "->", snp.alt)
+
+# ── Quality Filtering ────────────────────────────────────────
+# Keep only high-confidence variants (QUAL >= 30)
+let hq_vars = variants |> filter(|v| v.qual >= 30)
+println("High-quality variants (QUAL>=30): ", hq_vars |> count())
+
+# Keep only PASS variants
+let pass_vars = variants |> filter(|v| v.filter == "PASS")
+println("PASS variants: ", pass_vars |> count())
+
+# ── SNP vs Indel Classification ──────────────────────────────
+let snps = variants |> filter(|v| v.ref.length == 1 && v.alt.length == 1)
+let indels = variants |> filter(|v| v.ref.length != v.alt.length)
+println("SNPs:   ", snps |> count())
+println("Indels: ", indels |> count())
+
+# ── Transition / Transversion Analysis ────────────────────────
+let transitions   = ["AG", "GA", "CT", "TC"]
+let ti = snps |> filter(|v| transitions |> contains(v.ref + v.alt))
+let tv = snps |> filter(|v| !(transitions |> contains(v.ref + v.alt)))
+println("Transitions (Ti):   ", ti |> count())
+println("Transversions (Tv): ", tv |> count())
+
+# ── Variant Density per Chromosome ────────────────────────────
+let chroms = variants |> map(|v| v.chrom) |> unique()
+chroms |> each(|c| {
+    let n = variants |> filter(|v| v.chrom == c) |> count()
+    println("  ", c, ": ", n, " variants")
+})
+
+# ── Writing Filtered Variants ────────────────────────────────
+# hq_vars |> write_vcf("/tmp/high_quality.vcf")
+# println("Wrote high-quality variants to /tmp/high_quality.vcf")
+println("\n(write commands commented out — uncomment to produce output files)")

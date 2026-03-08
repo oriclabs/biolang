@@ -1,0 +1,71 @@
+# pipes.bl — The pipe operator, BioLang's core feature
+# Syntax: a |> f(b) desugars to f(a, b)
+# The left side becomes the FIRST argument of the right side
+
+# Basic pipe — value flows into function
+let result = 16 |> sqrt()
+println("16 |> sqrt() = " + str(result))
+
+# Chaining pipes — reads left to right
+let text = "  Hello, BioLang!  "
+let cleaned = text |> trim() |> lower()
+println("cleaned: " + cleaned)
+
+# How desugaring works:
+#   x |> f(y)    becomes  f(x, y)
+#   x |> f()     becomes  f(x)
+#   x |> f(y, z) becomes  f(x, y, z)
+let padded = "hi" |> pad_right(10, ".")
+println("padded: '" + padded + "'")
+
+# Multi-step pipeline
+let sentence = "the quick brown fox"
+let words = sentence |> split(" ") |> len()
+println("word count: " + str(words))
+
+# Pipes with map, filter, reduce
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+let evens = numbers |> filter(|n| n % 2 == 0)
+println("evens: " + str(evens))
+
+let doubled = numbers |> map(|n| n * 2)
+println("doubled: " + str(doubled))
+
+let total = numbers |> reduce(0, |acc, n| acc + n)
+println("sum 1..10: " + str(total))
+
+# Complex pipeline — filter, transform, collect
+let result = range(1, 21)
+    |> filter(|n| n % 3 == 0)
+    |> map(|n| n * n)
+    |> reduce(0, |acc, n| acc + n)
+println("sum of squares of multiples of 3 (1-20): " + str(result))
+
+# Pipes with named args
+let seq = "ATGCGATCGA"
+let replaced = seq |> str_replace(from: "T", to: "U")
+println("DNA to RNA: " + replaced)
+
+# Pipes into string operations
+let header = ">gi|12345|ref|NM_001.2| Homo sapiens actin"
+let accession = header
+    |> substr(1)
+    |> split("|")
+    |> at(3)
+println("accession: " + accession)
+
+# Pipeline with lambdas for custom transforms
+let gc_content = "ATGCGCTAGC"
+    |> chars()
+    |> filter(|c| c == "G" || c == "C")
+    |> len()
+println("GC bases: " + str(gc_content))
+
+# Pipe assignment — build up results step by step
+let data = [3, 1, 4, 1, 5, 9, 2, 6]
+let processed = data
+    |> sort()
+    |> reverse()
+    |> slice(0, 4)
+println("top 4: " + str(processed))

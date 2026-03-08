@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hash &amp; Sketching — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/hash"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Hash &amp; Sketching</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Hash &amp; Sketching</h1>
+        <p class="text-lg text-slate-400 mb-8">3 functions for checksums and sequence sketching. Essential for data integrity verification and approximate sequence comparison.</p>
+
+        <section class="mb-12" id="verify_checksum">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">verify_checksum</span></h2>
+          <p class="text-slate-400 mt-2">Verify a file's checksum against an expected value. Supports MD5, SHA-1, and SHA-256 algorithms.</p>
+          <pre><code class="language-biolang">verify_checksum(path, expected, algorithm?) -> bool</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">path</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Path to file</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">expected</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Expected checksum (hex string)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">algorithm</td><td class="py-2 px-3">string (optional)</td><td class="py-2 px-3">"md5", "sha1", or "sha256" (default: "sha256")</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang"># Verify downloaded reference genome
+let ok = verify_checksum("GRCh38.fa.gz", "abc123def...", "sha256")
+assert(ok, "Checksum mismatch!")
+
+# Verify with MD5
+let valid = verify_checksum("data.bam", "d41d8cd98f00b204e9800998ecf8427e", "md5")
+println("File integrity:", valid)</code></pre>
+        </section>
+
+        <section class="mb-12" id="sketch">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sketch</span></h2>
+          <p class="text-slate-400 mt-2">Create a bottom-sketch (sorted MinHash) of k-mer hashes from a sequence. Compact representation for approximate sequence comparison.</p>
+          <pre><code class="language-biolang">sketch(sequence, k, sketch_size) -> list</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">sequence</td><td class="py-2 px-3">string</td><td class="py-2 px-3">DNA/RNA/protein sequence</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">k</td><td class="py-2 px-3">int</td><td class="py-2 px-3">K-mer size (e.g., 21 for DNA, 10 for protein)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">sketch_size</td><td class="py-2 px-3">int</td><td class="py-2 px-3">Number of minimum hashes to keep</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">let s1 = sketch("ATCGATCGATCGATCGATCGATCG", 7, 100)
+let s2 = sketch("ATCGATCGATCGATCGATCGATCG", 7, 100)
+# s1 == s2 (identical sequences)
+
+# Compare two sequences with sketch_dist
+let d = sketch_dist(s1, s2)
+println("Distance:", d)</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="datetime.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> DateTime</a>
+        <a href="filesystem.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">File System <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervals — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/intervals"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Intervals</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Genomic Intervals</h1>
+        <p>
+          Genomic intervals are a fundamental abstraction in bioinformatics, representing
+          regions on a chromosome or contig. BioLang provides the <code>Interval</code> type
+          as a first-class value with set-theoretic operations, an implicit interval tree for
+          efficient overlap queries, and windowing functions for sliding-window analyses.
+        </p>
+
+        <h2>Creating Intervals</h2>
+        <p>
+          Use the <code>interval()</code> constructor to create individual intervals. Coordinates
+          are zero-based, half-open (matching BED convention):
+        </p>
+        <pre><code class="language-biolang"># Basic interval: chromosome, start, end
+let region = interval("chr1", 1000, 2000)
+
+# With strand information (4th positional argument)
+let exon = interval("chr1", 1000, 2000, "+")
+let antisense = interval("chr1", 1000, 2000, "-")
+
+# Access fields
+print(region.chrom)    # => "chr1"
+print(region.start)    # => 1000
+print(region.end)      # => 2000
+print(exon.strand)     # => "+"
+
+# Width/length
+region |> len()        # => 1000</code></pre>
+
+        <h2>Intersect</h2>
+        <p>
+          <code>intersect()</code> returns the overlapping portion of two intervals. If they do
+          not overlap, it returns <code>nil</code>:
+        </p>
+        <pre><code class="language-biolang"># Intersect two BED tables (tables with chrom, start, end columns)
+let exons = bed("exons.bed")
+let peaks = bed("peaks.bed")
+
+# Find all pairwise intersections
+let shared = intersect(exons, peaks)
+print(nrow(shared), "overlapping regions")</code></pre>
+
+        <h2>Merge</h2>
+        <p>
+          <code>merge()</code> combines overlapping or book-ended intervals into a single
+          contiguous interval. On collections, it merges all overlapping intervals:
+        </p>
+        <pre><code class="language-biolang"># Merge overlapping intervals in a table (collapses overlapping rows)
+# The table must have chrom, start, end columns
+let regions = bed("regions.bed")
+let merged = merge_intervals(regions)
+print(nrow(merged), "merged regions")</code></pre>
+
+        <h2>Subtract</h2>
+        <p>
+          <code>subtract()</code> removes the portion of one interval that overlaps with another.
+          The result may be zero, one, or two intervals:
+        </p>
+        <pre><code class="language-biolang"># Subtract one table's intervals from another
+let exons = bed("exons.bed")
+let repeats = bed("repeats.bed")
+
+# Remove repeat-overlapping portions from exons
+let clean_exons = subtract(exons, repeats)
+print(nrow(clean_exons), "clean exon regions")</code></pre>
+
+        <h2>Closest</h2>
+        <p>
+          <code>closest()</code> finds the nearest interval in a collection to a query interval.
+          Returns both the interval and the distance:
+        </p>
+        <pre><code class="language-biolang"># Find closest intervals between two tables
+# Returns a table with the closest match for each row in the first table
+let queries = bed("regions_of_interest.bed")
+let genes = bed("genes.bed")
+
+let result = closest(queries, genes)
+print(result)</code></pre>
+
+        <h2>Interval Tree</h2>
+        <p>
+          For repeated overlap queries against a large collection, build an interval tree
+          for O(log n + k) query time instead of O(n):
+        </p>
+        <pre><code class="language-biolang"># Build an interval tree from a BED file
+let tree = bed("annotations.bed") |> interval_tree()
+
+# Query the tree for overlapping intervals
+let hits = query_overlaps(tree, "chr1", 50000, 51000)
+print(nrow(hits), "annotations overlap the query region")
+
+# Find nearest interval to a region
+let nearest = query_nearest(tree, "chr1", 50000, 51000)
+print(nearest)</code></pre>
+
+        <h2>Sliding Window Analysis</h2>
+        <p>
+          Use <code>kmers()</code> to extract sliding windows of a given size for
+          genome-wide analyses:
+        </p>
+        <pre><code class="language-biolang"># Sliding window GC content using kmers
+let seq = dna"ATCGATCGATCGATCGATCGATCG"
+kmers(seq, 6)
+  |> map(|k| gc_content(k))
+  |> to_table()
+  |> print()</code></pre>
+
+        <h2>Combining Operations</h2>
+        <p>
+          Interval operations compose naturally with BioLang's pipe syntax:
+        </p>
+        <pre><code class="language-biolang"># Find promoter regions that overlap with ChIP-seq peaks
+# but not with known repeat elements
+let genes = bed("genes.bed")
+let peaks = bed("chip_peaks.bed")
+let repeats = bed("repeats.bed")
+
+# Use flank() to get upstream regions (2kb)
+let promoters = flank(genes, 2000)
+
+# Intersect with peaks, then subtract repeats, then merge
+let result = intersect(promoters, peaks)
+result = subtract(result, repeats)
+result = merge_intervals(result)
+write_bed(result, "clean_promoter_peaks.bed")</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="formats.html" class="text-violet-400 hover:text-violet-300">&larr; Formats</a>
+        <a href="kmers.html" class="text-violet-400 hover:text-violet-300">K-mers &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

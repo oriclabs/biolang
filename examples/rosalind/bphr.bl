@@ -1,0 +1,36 @@
+# Rosalind: BPHR — Base Quality Distribution
+# https://rosalind.info/problems/bphr/
+#
+# Given: FASTQ file and quality threshold q.
+# Return: Number of positions where mean base quality falls below q.
+
+let threshold = 26
+
+let quality_strings = [
+    ">?F?@6<C<HF?<85486B;85:8488/2/",
+    "@J@H@>B9:B;<D==:<;:,<::?463-,,",
+    "=88;99637@5,4664-65)/?4-2+)$)$",
+    "<@BGE@8C9=B9:B<>>>7?B>7:02+33."
+]
+
+# All reads should be the same length
+let read_len = len(split(quality_strings[0], "") |> filter(|c| c != ""))
+
+# Calculate mean quality at each position across all reads
+let below_count = 0
+let i = 0
+while i < read_len {
+    let total = 0
+    for qual_str in quality_strings {
+        let chars = split(qual_str, "") |> filter(|c| c != "")
+        total = total + ascii(chars[i]) - 33
+    }
+    let mean = total / len(quality_strings)
+    if mean < threshold then
+        below_count = below_count + 1
+    i = i + 1
+}
+
+println("Result:   " + str(below_count))
+println("Expected: 17")
+println("Match:    " + str(below_count == 17))

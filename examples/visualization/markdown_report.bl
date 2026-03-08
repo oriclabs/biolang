@@ -1,0 +1,51 @@
+# markdown_report.bl — Generate a Markdown analysis report with BioLang
+# Uses md_* builtins to produce a well-structured document
+
+# ── Header and Introduction ─────────────────────────────────────
+
+md_header("Sample QC Report", 1) |> println()
+md_header("Experiment: RNA-Seq Mouse Cortex", 2) |> println()
+
+md_bold("Date:") ++ " 2026-03-06" |> println()
+md_bold("Analyst:") ++ " " ++ md_italic("Automated Pipeline v2.1") |> println()
+println("")
+
+md_quote("All samples passed minimum quality thresholds.") |> println()
+println("")
+
+# ── Summary Statistics Table ────────────────────────────────────
+
+md_header("Read Statistics", 2) |> println()
+
+let stats_table = [
+    ["Sample",    "Total Reads", "Mapped %", "Mean Q", "Duplication %"],
+    ["Cortex_R1", "42,310,881",  "96.3",     "35.2",  "12.4"],
+    ["Cortex_R2", "38,904,512",  "95.8",     "34.9",  "11.7"],
+    ["Cortex_R3", "44,112,009",  "97.1",     "36.0",  "13.1"]
+]
+stats_table |> md_table() |> println()
+println("")
+
+# ── Methods ─────────────────────────────────────────────────────
+
+md_header("Methods", 2) |> println()
+
+let steps = [
+    "Adapter trimming with " ++ md_code("fastp --qualified_quality_phred 20"),
+    "Alignment to GRCm39 using " ++ md_code("STAR 2.7.11b"),
+    "Duplicate marking with " ++ md_code("picard MarkDuplicates"),
+    "Quantification with " ++ md_code("featureCounts")
+]
+steps |> md_list() |> println()
+println("")
+
+# ── Links and References ────────────────────────────────────────
+
+md_header("References", 2) |> println()
+
+md_link("GRCm39 Reference", "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001635.27/") |> println()
+md_link("STAR Aligner", "https://github.com/alexdobin/STAR") |> println()
+println("")
+
+md_header("Pipeline Code", 3) |> println()
+md_code("somer submit rnaseq --input cortex_R*.fq.gz --genome GRCm39") |> println()

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visualization — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/visualization"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Visualization</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-sm text-slate-500">~25 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Visualization</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          BioLang has built-in plotting functions that produce SVG output for
+          publication-quality figures. This tutorial covers general-purpose plots,
+          biology-specific visualizations like volcano plots, MA plots, and heatmaps,
+          genome track rendering, and saving results to SVG files.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>General-purpose scatter and line plots with <code>plot()</code></li>
+            <li>Histograms of value distributions with <code>histogram()</code></li>
+            <li>Volcano plots for differential expression with <code>volcano()</code></li>
+            <li>MA plots for expression data with <code>ma_plot()</code></li>
+            <li>Heatmaps of matrices and tables with <code>heatmap()</code></li>
+            <li>Genome track visualization with <code>genome_track()</code></li>
+            <li>Saving any plot to SVG files with <code>save_svg()</code></li>
+          </ul>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — General-Purpose Plotting with <code>plot()</code></h2>
+        <p>
+          The <code>plot()</code> builtin is your go-to for scatter and line plots. Pass it a
+          data table and an options record to control axes, colors, and labels.
+        </p>
+        <pre><code class="language-biolang"># scatter.bl — scatter and line plots
+
+# Build a simple data table
+let data = table({
+  dose:     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  response: [2.1, 4.3, 5.8, 8.1, 9.9, 12.2, 13.8, 16.1, 18.0, 20.2],
+})
+
+# Basic scatter plot
+let p = plot(data, {
+  x:      "dose",
+  y:      "response",
+  title:  "Dose-Response Relationship",
+  xlabel: "Dose (mg)",
+  ylabel: "Response",
+})
+
+# Line plot — set the mode option
+let time_data = table({
+  hour:       [0, 1, 2, 4, 8, 12, 24],
+  expression: [1.0, 1.2, 2.5, 5.1, 8.3, 6.2, 3.1],
+})
+
+let p2 = plot(time_data, {
+  x:      "hour",
+  y:      "expression",
+  mode:   "line",
+  title:  "Expression Over Time",
+  xlabel: "Time (hours)",
+  ylabel: "Relative Expression",
+  color:  "#8b5cf6",
+})
+
+# Scatter with color grouping
+let expr = table({
+  gene_a:    [3.2, 5.1, 7.0, 2.8, 6.4, 8.1, 4.5, 7.3],
+  gene_b:    [4.1, 6.0, 8.2, 3.5, 7.1, 9.0, 5.2, 8.1],
+  treatment: ["ctrl", "ctrl", "ctrl", "ctrl", "treat", "treat", "treat", "treat"],
+})
+
+let p3 = plot(expr, {
+  x:        "gene_a",
+  y:        "gene_b",
+  color_by: "treatment",
+  title:    "Gene A vs Gene B by Treatment",
+  xlabel:   "Gene A (CPM)",
+  ylabel:   "Gene B (CPM)",
+})</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Histograms with <code>histogram()</code></h2>
+        <p>
+          Use <code>histogram()</code> to visualize the distribution of a list of numeric values.
+          Control the number of bins and appearance through the options record.
+        </p>
+        <pre><code class="language-biolang"># histogram.bl — distribution plots
+
+# GC content values from a FASTQ analysis
+let gc_values = [
+  0.38, 0.42, 0.45, 0.47, 0.49, 0.50, 0.51, 0.52, 0.48, 0.44,
+  0.41, 0.53, 0.55, 0.46, 0.43, 0.50, 0.49, 0.47, 0.51, 0.39,
+  0.56, 0.44, 0.48, 0.52, 0.46, 0.41, 0.50, 0.53, 0.47, 0.45,
+]
+
+# Basic histogram
+let h = histogram(gc_values, {
+  bins:   15,
+  title:  "GC Content Distribution",
+  xlabel: "GC Content",
+  ylabel: "Frequency",
+  color:  "#8b5cf6",
+})
+
+# Quality scores histogram
+let quality_scores = [28, 30, 32, 35, 36, 37, 38, 34, 33, 31,
+                      29, 36, 37, 35, 38, 39, 40, 33, 32, 30]
+
+let h2 = histogram(quality_scores, {
+  bins:   10,
+  title:  "Read Quality Score Distribution",
+  xlabel: "Phred Quality Score",
+  ylabel: "Count",
+  color:  "#22d3ee",
+})</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Volcano Plots with <code>volcano()</code></h2>
+        <p>
+          Volcano plots are essential for visualizing differential expression results. The
+          <code>volcano()</code> builtin takes a table of DE results and highlights significant
+          genes based on fold-change and p-value thresholds.
+        </p>
+        <pre><code class="language-biolang"># volcano.bl — differential expression visualization
+
+# Simulated DE results table
+let de = table({
+  gene:   ["TP53", "BRCA1", "MYC", "EGFR", "KRAS",
+           "ACTB", "GAPDH", "RPS6", "CDH1", "VEGFA",
+           "PTEN", "RB1", "APC", "NRAS", "RAF1"],
+  log2fc: [2.5, -3.1, 4.2, 1.8, -0.3,
+           0.1, -0.05, 0.2, -2.8, 3.5,
+           -1.9, 0.4, -0.1, 0.6, 0.15],
+  pvalue: [1e-12, 5e-10, 1e-15, 2e-6, 0.45,
+           0.82, 0.91, 0.55, 3e-8, 1e-11,
+           5e-5, 0.12, 0.73, 0.08, 0.65],
+})
+
+# Basic volcano plot
+let v = volcano(de, {
+  x:             "log2fc",
+  y:             "pvalue",
+  label:         "gene",
+  fc_threshold:  1.0,
+  p_threshold:   0.05,
+  title:         "Treated vs Control",
+  xlabel:        "log2 Fold Change",
+  ylabel:        "-log10(p-value)",
+  colors: {
+    up:   "#22d3ee",
+    down: "#8b5cf6",
+    ns:   "#475569",
+  },
+})
+
+# Highlight specific genes of interest
+let v2 = volcano(de, {
+  x:          "log2fc",
+  y:          "pvalue",
+  label:      "gene",
+  highlight:  ["TP53", "MYC", "VEGFA"],
+  fc_threshold: 1.5,
+  p_threshold:  1e-4,
+  title:      "Key Oncogenes Highlighted",
+})</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — MA Plots with <code>ma_plot()</code></h2>
+        <p>
+          MA plots show the relationship between average expression (A) and log fold change (M).
+          They are complementary to volcano plots for QC of differential expression analyses.
+        </p>
+        <pre><code class="language-biolang"># ma.bl — MA plot for differential expression
+
+let de = table({
+  gene:      ["TP53", "BRCA1", "MYC", "EGFR", "KRAS",
+              "ACTB", "GAPDH", "RPS6", "CDH1", "VEGFA"],
+  log2fc:    [2.5, -3.1, 4.2, 1.8, -0.3,
+              0.1, -0.05, 0.2, -2.8, 3.5],
+  mean_expr: [8.2, 6.5, 10.1, 7.8, 9.3,
+              12.5, 13.1, 11.8, 5.2, 7.0],
+  pvalue:    [1e-12, 5e-10, 1e-15, 2e-6, 0.45,
+              0.82, 0.91, 0.55, 3e-8, 1e-11],
+})
+
+# Basic MA plot
+let m = ma_plot(de, {
+  x:      "mean_expr",
+  y:      "log2fc",
+  title:  "MA Plot — Treated vs Control",
+  xlabel: "Average Expression (log2 CPM)",
+  ylabel: "log2 Fold Change",
+})
+
+# MA plot with significance coloring
+let m2 = ma_plot(de, {
+  x:           "mean_expr",
+  y:           "log2fc",
+  label:       "gene",
+  pvalue:      "pvalue",
+  p_threshold: 0.05,
+  title:       "MA Plot with Significance",
+  colors: {
+    sig: "#8b5cf6",
+    ns:  "#475569",
+  },
+})</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Heatmaps with <code>heatmap()</code></h2>
+        <p>
+          Heatmaps are ideal for visualizing expression matrices, correlation tables, and
+          any 2D numeric data. Pass a table and specify which columns to render.
+        </p>
+        <pre><code class="language-biolang"># heatmap.bl — expression heatmap
+
+# Expression matrix: rows = genes, columns = samples
+let expr = table({
+  gene:    ["TP53", "BRCA1", "MYC", "EGFR", "KRAS", "VEGFA"],
+  ctrl_1:  [5.2, 3.1, 8.5, 4.2, 7.1, 2.8],
+  ctrl_2:  [5.5, 3.4, 8.2, 4.0, 7.3, 3.0],
+  ctrl_3:  [5.0, 3.0, 8.8, 4.5, 6.9, 2.6],
+  treat_1: [8.1, 1.2, 12.5, 6.8, 7.0, 6.5],
+  treat_2: [7.8, 1.5, 12.1, 7.0, 7.2, 6.2],
+  treat_3: [8.5, 1.0, 13.0, 6.5, 6.8, 7.0],
+})
+
+let sample_cols = ["ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3"]
+
+# Basic heatmap
+let h = heatmap(expr, {
+  row_labels:   "gene",
+  col_labels:   sample_cols,
+  color_scale:  "blue_white_red",
+  title:        "Gene Expression Heatmap",
+})
+
+# Heatmap with clustering and z-score normalization
+let h2 = heatmap(expr, {
+  row_labels:    "gene",
+  col_labels:    sample_cols,
+  cluster_rows:  true,
+  cluster_cols:  true,
+  color_scale:   "blue_white_red",
+  color_range:   [-3, 3],
+  title:         "Top DE Genes (z-scored)",
+})</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Genome Tracks with <code>genome_track()</code></h2>
+        <p>
+          The <code>genome_track()</code> builtin visualizes genomic intervals such as gene
+          annotations, peaks, or coverage regions along a chromosome coordinate axis.
+        </p>
+        <pre><code class="language-biolang"># tracks.bl — genome track visualization
+
+# Genomic intervals as a table
+let peaks = table({
+  chrom:  ["chr1", "chr1", "chr1", "chr1", "chr1"],
+  start:  [1000, 5000, 12000, 18000, 25000],
+  end:    [2500, 7500, 14000, 19500, 28000],
+  name:   ["peak_1", "peak_2", "peak_3", "peak_4", "peak_5"],
+  score:  [45.2, 82.1, 33.5, 91.0, 55.8],
+})
+
+# Basic genome track
+let t = genome_track(peaks, {
+  chrom:  "chrom",
+  start:  "start",
+  end:    "end",
+  label:  "name",
+  title:  "ChIP-seq Peaks — chr1",
+})
+
+# Genome track with score-based coloring
+let t2 = genome_track(peaks, {
+  chrom:    "chrom",
+  start:    "start",
+  end:      "end",
+  label:    "name",
+  score:    "score",
+  color_by: "score",
+  title:    "ChIP-seq Peak Scores",
+})
+
+# Gene annotations
+let genes = table({
+  chrom:  ["chr17", "chr17", "chr17"],
+  start:  [7661779, 7676594, 7687490],
+  end:    [7687538, 7687538, 7688012],
+  name:   ["TP53_exon1", "TP53_exon2", "TP53_exon3"],
+  strand: ["-", "-", "-"],
+})
+
+let t3 = genome_track(genes, {
+  chrom:  "chrom",
+  start:  "start",
+  end:    "end",
+  label:  "name",
+  strand: "strand",
+  title:  "TP53 Gene Structure",
+})</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Saving Plots with <code>save_svg()</code></h2>
+        <p>
+          Every plot builtin returns a plot object. Use <code>save_svg()</code> to write any
+          plot to an SVG file on disk.
+        </p>
+        <pre><code class="language-biolang"># save.bl — persisting plots to SVG files
+
+let data = table({
+  x: [1, 2, 3, 4, 5],
+  y: [2.1, 4.0, 6.2, 7.9, 10.1],
+})
+
+# Create a plot and save it
+let p = plot(data, { x: "x", y: "y", title: "My Plot" })
+save_svg(p, "results/my_plot.svg")
+
+# Pipe a plot directly into save_svg
+let values = [28, 30, 32, 35, 36, 37, 38, 34, 33, 31]
+histogram(values, { bins: 8, title: "Quality Scores" })
+  |> save_svg("results/quality_hist.svg")
+
+# Save a volcano plot
+let de = table({
+  gene:   ["TP53", "MYC", "ACTB"],
+  log2fc: [2.5, 4.2, 0.1],
+  pvalue: [1e-12, 1e-15, 0.82],
+})
+
+volcano(de, { x: "log2fc", y: "pvalue", label: "gene" })
+  |> save_svg("results/volcano.svg")
+
+print("All plots saved to results/")</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Complete Workflow</h2>
+        <p>
+          Here is a full example that loads data, creates multiple visualizations, and saves
+          them all to SVG files.
+        </p>
+        <pre><code class="language-biolang"># workflow.bl — complete visualization pipeline
+
+# Load differential expression results
+let de = csv("results/de_results.csv")
+
+# 1. Volcano plot of DE results
+let v = volcano(de, {
+  x:             "log2fc",
+  y:             "pvalue",
+  label:         "gene",
+  fc_threshold:  1.0,
+  p_threshold:   0.05,
+  title:         "Differential Expression",
+  colors: { up: "#22d3ee", down: "#8b5cf6", ns: "#475569" },
+})
+save_svg(v, "figures/volcano.svg")
+
+# 2. MA plot of the same results
+let m = ma_plot(de, {
+  x:           "mean_expr",
+  y:           "log2fc",
+  pvalue:      "pvalue",
+  p_threshold: 0.05,
+  title:       "MA Plot",
+})
+save_svg(m, "figures/ma_plot.svg")
+
+# 3. Histogram of fold-change distribution
+let fc_values = col(de, "log2fc")
+histogram(fc_values, {
+  bins:   30,
+  title:  "log2 Fold Change Distribution",
+  xlabel: "log2FC",
+  ylabel: "Count",
+}) |> save_svg("figures/fc_distribution.svg")
+
+# 4. Heatmap of top significant genes
+let top_genes = de
+  |> filter(|r| r.pvalue < 0.01)
+  |> arrange("pvalue")
+  |> head(20)
+
+let expr_matrix = csv("data/expression_matrix.csv")
+  |> filter(|r| r.gene in col(top_genes, "gene"))
+
+let samples = ["ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3"]
+
+heatmap(expr_matrix, {
+  row_labels:   "gene",
+  col_labels:   samples,
+  cluster_rows: true,
+  color_scale:  "blue_white_red",
+  title:        "Top 20 DE Genes",
+}) |> save_svg("figures/heatmap.svg")
+
+# 5. Genome track of significant regions
+let regions = de
+  |> filter(|r| r.pvalue < 1e-8)
+
+genome_track(regions, {
+  chrom: "chrom",
+  start: "start",
+  end:   "end",
+  label: "gene",
+  score: "log2fc",
+  title: "Genome-wide Significant Loci",
+}) |> save_svg("figures/genome_track.svg")
+
+# 6. General scatter plot of expression correlation
+let scatter_data = csv("data/expression.csv")
+plot(scatter_data, {
+  x:      "ctrl_mean",
+  y:      "treat_mean",
+  title:  "Control vs Treatment Expression",
+  xlabel: "Control (log2 CPM)",
+  ylabel: "Treatment (log2 CPM)",
+  color:  "#8b5cf6",
+}) |> save_svg("figures/expression_scatter.svg")
+
+print("All 6 figures saved to figures/")</code></pre>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Ready for advanced topics? Try the
+            <a href="multispecies.html" class="text-violet-400 hover:underline">Multi-species Comparative Genomics</a>
+            tutorial.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="statistics.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Statistical Analysis</a>
+        <a href="multispecies.html" class="text-violet-400 hover:text-violet-300 text-sm">Multi-species Genomics &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

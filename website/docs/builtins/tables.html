@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Table Operations — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/tables"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Table Operations</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Table Operations</h1>
+        <p class="text-lg text-slate-400 mb-8">32 dplyr-inspired functions for columnar data. Tables are BioLang's primary data structure for CSV files, variant calls, and expression matrices. All operations are immutable and pipeable.</p>
+
+        <section class="mb-12" id="table">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">table</span></h2>
+          <p class="text-slate-400 mt-2">Create a table from a column map. Each key is a column name, each value is a list of equal length.</p>
+          <pre><code class="language-biolang">table(columns) -> table</code></pre>
+          <pre><code class="language-biolang">let t = table({
+  "gene":   ["BRCA1", "TP53", "EGFR", "KRAS"],
+  "log2fc": [2.3, -1.5, 3.1, -0.8],
+  "pvalue": [0.001, 0.05, 0.0001, 0.3]
+})</code></pre>
+        </section>
+
+        <section class="mb-12" id="read_csv">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">csv</span> / <span class="text-violet-400 font-mono">write_csv</span></h2>
+          <p class="text-slate-400 mt-2">Read a CSV/TSV file into a table or write a table to file.</p>
+          <pre><code class="language-biolang">csv(path, opts?) -> table
+write_csv(tbl, path, opts?) -> string</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Default</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">separator</td><td class="py-2 px-3">string</td><td class="py-2 px-3">","</td><td class="py-2 px-3">Field delimiter</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">header</td><td class="py-2 px-3">bool</td><td class="py-2 px-3">true</td><td class="py-2 px-3">First row is header</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">comment</td><td class="py-2 px-3">string</td><td class="py-2 px-3">nil</td><td class="py-2 px-3">Comment prefix to skip lines</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">skip</td><td class="py-2 px-3">int</td><td class="py-2 px-3">0</td><td class="py-2 px-3">Lines to skip before header</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang"># Read CSV
+let de = csv("deseq2_results.csv")
+
+# Read TSV (e.g., VCF or BED)
+let bed = csv("regions.bed", {separator: "\t", header: false})
+
+# Write filtered results
+de |> filter(|row| row.padj < 0.05)
+   |> write_csv("significant.csv")</code></pre>
+        </section>
+
+        <section class="mb-12" id="select">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">select</span></h2>
+          <p class="text-slate-400 mt-2">Select a subset of columns by name.</p>
+          <pre><code class="language-biolang">select(tbl, columns...) -> table</code></pre>
+          <pre><code class="language-biolang">de |> select("gene", "log2fc", "padj")</code></pre>
+        </section>
+
+        <section class="mb-12" id="filter-table">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">filter</span> <span class="text-sm text-slate-500">(table)</span></h2>
+          <p class="text-slate-400 mt-2">Filter rows where a predicate returns true. The callback receives each row as a map.</p>
+          <pre><code class="language-biolang">filter(tbl, fn) -> table</code></pre>
+          <pre><code class="language-biolang">de |> filter(|row| row.padj < 0.05 and abs(row.log2fc) > 1.0)</code></pre>
+        </section>
+
+        <section class="mb-12" id="arrange">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">arrange</span></h2>
+          <p class="text-slate-400 mt-2">Sort table rows by one or more columns. Prefix with <code>"-"</code> for descending.</p>
+          <pre><code class="language-biolang">arrange(tbl, columns...) -> table</code></pre>
+          <pre><code class="language-biolang">de |> arrange("padj")           # ascending by p-value
+de |> arrange("-log2fc")        # descending by fold change
+de |> arrange("chrom", "start") # multi-column sort</code></pre>
+        </section>
+
+        <section class="mb-12" id="group_by_table">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">group_by</span> / <span class="text-violet-400 font-mono">summarize</span></h2>
+          <p class="text-slate-400 mt-2">Group rows and compute aggregate statistics per group.</p>
+          <pre><code class="language-biolang">group_by(tbl, columns...) -> grouped_table
+summarize(grouped, aggregations) -> table</code></pre>
+          <pre><code class="language-biolang">let counts = csv("gene_counts.csv")
+
+counts
+  |> group_by("sample")
+  |> summarize({
+    "total_reads": |g| sum(g.count),
+    "num_genes":   |g| len(unique(g.gene)),
+    "mean_count":  |g| mean(g.count)
+  })</code></pre>
+        </section>
+
+        <section class="mb-12" id="mutate">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">mutate</span></h2>
+          <p class="text-slate-400 mt-2">Add or modify a column using a row-wise function.</p>
+          <pre><code class="language-biolang">mutate(tbl, name, fn) -> table</code></pre>
+          <pre><code class="language-biolang">de |> mutate("neg_log10p", |row| -log10(row.padj))
+   |> mutate("significant", |row| row.padj < 0.05 and abs(row.log2fc) > 1)
+   |> mutate("direction", |row| if row.log2fc > 0 { "up" } else { "down" })</code></pre>
+        </section>
+
+        <section class="mb-12" id="joins">
+          <h2 class="text-2xl font-bold text-white">Joins</h2>
+          <p class="text-slate-400 mt-2">SQL-style table joins. The <code>on</code> parameter specifies the join key column(s).</p>
+          <pre><code class="language-biolang">left_join(a, b, on) -> table
+inner_join(a, b, on) -> table
+right_join(a, b, on) -> table
+outer_join(a, b, on) -> table
+semi_join(a, b, on) -> table    # rows in a that have a match in b
+anti_join(a, b, on) -> table    # rows in a that have NO match in b
+cross_join(a, b) -> table       # cartesian product</code></pre>
+          <pre><code class="language-biolang">let expression = csv("expression.csv")   # gene, log2fc, padj
+let annotation = csv("annotation.csv")    # gene, chrom, start, end, biotype
+
+# Annotate DE results with genomic coordinates
+let annotated = left_join(expression, annotation, "gene")
+
+# Keep only protein-coding genes with significant changes
+annotated
+  |> filter(|row| row.biotype == "protein_coding" and row.padj < 0.05)
+
+# Anti-join: find genes in expression but NOT in annotation
+let missing = anti_join(expression, annotation, "gene")</code></pre>
+        </section>
+
+        <section class="mb-12" id="pivot">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">pivot_wider</span> / <span class="text-violet-400 font-mono">pivot_longer</span></h2>
+          <p class="text-slate-400 mt-2">Reshape between long and wide formats.</p>
+          <pre><code class="language-biolang">pivot_wider(tbl, names_from, values_from) -> table
+pivot_longer(tbl, cols, names_to, values_to) -> table</code></pre>
+          <pre><code class="language-biolang"># Long to wide: one column per sample
+let long_counts = csv("counts_long.csv")   # gene, sample, count
+let wide = pivot_wider(long_counts, "sample", "count")
+# gene | sample_A | sample_B | sample_C
+
+# Wide to long for plotting
+let wide_expr = csv("expression_matrix.csv")
+let long = pivot_longer(wide_expr, ["S1", "S2", "S3"], "sample", "expression")</code></pre>
+        </section>
+
+        <section class="mb-12" id="window">
+          <h2 class="text-2xl font-bold text-white">Window Functions</h2>
+          <p class="text-slate-400 mt-2">Ordered operations computed within groups or the full table.</p>
+          <pre><code class="language-biolang">window(tbl, name, fn, opts?) -> table
+row_number(tbl, name, order_by) -> table
+rank(tbl, name, order_by) -> table
+lead(tbl, col, n?) -> table
+lag(tbl, col, n?) -> table</code></pre>
+          <pre><code class="language-biolang"># Rank genes by p-value per chromosome
+de |> group_by("chrom")
+   |> rank("rank", "padj")
+
+# Compute running difference
+de |> arrange("padj")
+   |> lag("prev_padj", "padj", 1)
+   |> mutate("delta", |row| row.padj - (row.prev_padj ?? 0))</code></pre>
+        </section>
+
+        <section class="mb-12" id="utility">
+          <h2 class="text-2xl font-bold text-white">Utility Functions</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Function</th><th class="text-left py-2 px-3 text-slate-400">Signature</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+              <tbody>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">rename</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">rename(tbl, old, new) -> table</td><td class="py-2 px-3">Rename a column</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">distinct</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">distinct(tbl, cols?) -> table</td><td class="py-2 px-3">Remove duplicate rows</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">head</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">head(tbl, n?) -> table</td><td class="py-2 px-3">First n rows (default 10)</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">tail</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">tail(tbl, n?) -> table</td><td class="py-2 px-3">Last n rows (default 10)</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">nrow</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">nrow(tbl) -> int</td><td class="py-2 px-3">Number of rows</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">ncol</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">ncol(tbl) -> int</td><td class="py-2 px-3">Number of columns</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">colnames</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">colnames(tbl) -> list</td><td class="py-2 px-3">List of column names</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">to_records</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">to_records(tbl) -> list</td><td class="py-2 px-3">Convert to list of row maps</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <pre><code class="language-biolang">let de = csv("results.csv")
+println("Rows:", nrow(de), "Cols:", ncol(de))
+println("Columns:", colnames(de))
+de |> head(5)   # preview first 5 rows</code></pre>
+        </section>
+
+        <section id="where" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">where</h2>
+          <p class="text-slate-400 mb-4">Alias for <code class="text-violet-400">filter</code> with a more SQL-like feel. Filters rows where a condition is true.</p>
+          <pre><code class="language-biolang"># Filter rows where score exceeds threshold
+data |> where(|r| r.score > 30)
+
+# Equivalent to filter
+data |> filter(|r| r.score > 30)
+
+# Chain multiple where clauses
+variants
+  |> where(|r| r.quality > 20)
+  |> where(|r| r.af < 0.01)
+  |> where(|r| r.impact == "HIGH")</code></pre>
+        </section>
+
+        <section id="case-when" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">case_when</h2>
+          <p class="text-slate-400 mb-4">Conditional value mapping &mdash; returns the value for the first matching condition. Takes alternating condition/value lambda pairs.</p>
+          <pre><code class="language-biolang"># Classify variants by allele frequency
+data |> mutate("impact", |r| case_when(
+  |_| r.af > 0.05, "common",
+  |_| r.af > 0.01, "low_freq",
+  |_| true, "rare"
+))
+
+# Assign risk levels
+patients |> mutate("risk", |r| case_when(
+  |_| r.score > 90, "critical",
+  |_| r.score > 60, "high",
+  |_| r.score > 30, "moderate",
+  |_| true, "low"
+))</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="string.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> String Operations</a>
+        <a href="matrix.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">Matrix <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

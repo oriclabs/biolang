@@ -1,0 +1,21 @@
+# Ternary forms
+let a = if true then 1 else 0
+println("same line:", a)
+
+let b = if true then 42
+    else 99
+println("split line:", b)
+
+let c = if false then "yes"
+    else "no"
+println("false branch:", c)
+
+# Expression ternary (postfix)
+let d = "hello" if true else "bye"
+println("postfix:", d)
+
+# Nested
+let e = if true then
+    if false then "inner-true" else "inner-false"
+else "outer-false"
+println("nested:", e)

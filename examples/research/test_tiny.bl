@@ -1,0 +1,8 @@
+println("start")
+let m = matrix([
+  [1, 2, 3],
+  [4, 5, 6]
+])
+println("matrix ok:", m.nrow, "x", m.ncol)
+println("row 0:", m.row(0))
+println("row 1:", m.row(1))

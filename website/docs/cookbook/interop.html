@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python/R Interop — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="cookbook/interop"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Cookbook</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Python/R Interop</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Python/R Interop</h1>
+        <p>BioLang interoperates with Python and R through subprocess execution,
+        file-based data exchange, and JSON communication. This lets you leverage
+        existing libraries like scanpy, DESeq2, or ggplot2 from BioLang scripts.</p>
+
+        <h2>Calling Python</h2>
+
+        <h3>Running a Python script</h3>
+        <pre><code class="language-biolang"># Run a Python script and capture output
+let result = shell("python3 analyze.py --input data.csv")
+print("Exit code: #{result.exit_code}")
+print("Output: #{result.stdout}")</code></pre>
+
+        <h3>Inline Python with data exchange</h3>
+        <pre><code class="language-biolang"># Prepare data in BioLang, process in Python, read results back
+let counts = csv("gene_counts.csv")
+write_tsv(counts, "_temp_counts.tsv")
+
+let metadata = csv("sample_info.csv")
+write_tsv(metadata, "_temp_metadata.tsv")
+
+# Run DESeq2-like analysis via Python
+# Write Python script to a temp file and run it
+let py_script = "
+import pandas as pd
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.ds import DeseqStats
+
+counts = pd.read_csv('_temp_counts.tsv', sep='\\t', index_col=0)
+metadata = pd.read_csv('_temp_metadata.tsv', sep='\\t', index_col=0)
+
+dds = DeseqDataSet(counts=counts, metadata=metadata, design_factors='condition')
+dds.deseq2()
+
+stat_res = DeseqStats(dds, contrast=['condition', 'treated', 'control'])
+stat_res.summary()
+stat_res.results_df.to_csv('_temp_deseq_results.tsv', sep='\\t')
+"
+write_text(py_script, "_temp_deseq.py")
+let result = shell("python3 _temp_deseq.py")
+
+if result.exit_code != 0 {
+  print("Python error: #{result.stderr}")
+  exit(1)
+}
+
+# Read results back into BioLang
+let de_results = tsv("_temp_deseq_results.tsv")
+let significant = de_results
+  |> filter(|r| float(r["padj"]) < 0.05)
+  |> filter(|r| abs(float(r["log2FoldChange"])) > 1.0)
+
+print("Significant DE genes: #{len(significant)}")
+write_tsv(significant, "significant_genes.tsv")
+
+# Clean up temp files
+remove("_temp_counts.tsv")
+remove("_temp_metadata.tsv")
+remove("_temp_deseq_results.tsv")
+remove("_temp_deseq.py")</code></pre>
+
+        <h3>Python via JSON exchange</h3>
+        <pre><code class="language-biolang"># Pass structured data to Python via JSON
+let params = {
+  input_file: "counts.csv",
+  min_counts: 10,
+  normalization: "TPM",
+  output_file: "normalized.csv"
+}
+write_json(params, "_params.json")
+
+let result = shell("python3 normalize.py --params _params.json")
+
+if result.exit_code == 0 {
+  let output = read_json("_params_result.json")
+  print("Normalized #{output["n_genes"]} genes across #{output["n_samples"]} samples")
+} else {
+  print("Normalization failed: #{result.stderr}")
+}</code></pre>
+
+        <h2>Calling R</h2>
+
+        <h3>Running an R script</h3>
+        <pre><code class="language-biolang"># Run R script for statistical analysis
+let result = shell("Rscript analysis.R input.csv output.csv")
+
+if result.exit_code != 0 {
+  print("R error: #{result.stderr}")
+  exit(1)
+}
+
+let output = csv("output.csv")
+print("R analysis produced #{len(output)} results")</code></pre>
+
+        <h3>Inline R for DESeq2</h3>
+        <pre><code class="language-biolang"># Prepare count matrix and run DESeq2 in R
+let counts = csv("raw_counts.csv")
+write_csv(counts, "_deseq_input.csv")
+
+let r_script = "
+library(DESeq2)
+
+counts <- read.csv('_deseq_input.csv', row.names=1)
+coldata <- data.frame(
+  condition = factor(c(rep('control', 3), rep('treated', 3)))
+)
+
+dds <- DESeqDataSetFromMatrix(countData=counts, colData=coldata, design=~condition)
+dds <- DESeq(dds)
+res <- results(dds, contrast=c('condition', 'treated', 'control'))
+
+write.csv(as.data.frame(res), '_deseq_output.csv')
+"
+
+write_text(r_script, "_deseq.R")
+let result = shell("Rscript _deseq.R")
+
+if result.exit_code == 0 {
+  let de = csv("_deseq_output.csv")
+  let sig = de |> filter(|r| float(r["padj"]) < 0.05)
+  print("DESeq2 found #{len(sig)} significant genes")
+  write_csv(sig, "deseq2_significant.csv")
+}
+
+remove("_deseq.R")
+remove("_deseq_input.csv")
+remove("_deseq_output.csv")</code></pre>
+
+        <h3>R for plotting</h3>
+        <pre><code class="language-biolang"># Generate publication-quality plots with ggplot2
+let data = tsv("pca_coordinates.tsv")
+write_tsv(data, "_plot_data.tsv")
+
+let r_plot = '
+library(ggplot2)
+
+data <- read.delim("_plot_data.tsv")
+p <- ggplot(data, aes(x=pc1, y=pc2, color=population)) +
+  geom_point(size=2, alpha=0.7) +
+  theme_minimal() +
+  labs(x="PC1", y="PC2", title="Population Structure") +
+  scale_color_brewer(palette="Set2")
+
+ggsave("pca_plot.png", p, width=8, height=6, dpi=300)
+cat("Plot saved")
+'
+
+write_text(r_plot, "_plot.R")
+shell("Rscript _plot.R")
+print("PCA plot saved to pca_plot.png")
+remove("_plot.R")
+remove("_plot_data.tsv")</code></pre>
+
+        <h2>Bidirectional Pipes</h2>
+
+        <h3>Streaming data to external tools</h3>
+        <pre><code class="language-biolang"># Write data then process with an external tool
+write_fastq(fastq("reads.fq"), "_temp.fq")
+let result = shell("seqkit stats -T _temp.fq")
+print(result.stdout)
+remove("_temp.fq")</code></pre>
+
+        <h3>Using samtools via pipe</h3>
+        <pre><code class="language-biolang"># Use samtools for operations BioLang does not natively support
+let flagstat = shell("samtools flagstat aligned.bam")
+print(flagstat.stdout)
+
+# Filter BED then pass to samtools
+let bed_regions = bed("targets.bed")
+  |> filter(|r| r.end - r.start > 100)
+
+write_bed(bed_regions, "_filtered.bed")
+let result = shell("samtools view -L _filtered.bed -b aligned.bam -o targeted.bam")
+remove("_filtered.bed")</code></pre>
+
+        <h2>Data Format Exchange</h2>
+
+        <h3>AnnData exchange with Python</h3>
+        <pre><code class="language-biolang"># Exchange data with scanpy via CSV/JSON
+# Export from scanpy: adata.obs.to_csv("obs.csv")
+let obs = csv("obs.csv")
+
+# Do something in BioLang
+let cluster_sizes = frequencies(map(obs, |row| row["leiden"]))
+print("Cluster sizes: #{to_string(cluster_sizes)}")
+
+# Compute custom scores
+let scores = map(obs, |cell| {
+  float(cell["n_genes"]) / float(cell["total_counts"])
+})
+write_json(scores, "custom_scores.json")
+# Import back in scanpy: scores = json.load(open("custom_scores.json"))</code></pre>
+
+        <h3>Parquet for large datasets</h3>
+        <pre><code class="language-biolang"># Use CSV/TSV for data exchange with Python/R
+let data = csv("huge_table.csv")
+
+# Write as TSV for efficient exchange
+write_tsv(data, "data.tsv")
+
+# Python can read it:
+# pd.read_csv("data.tsv", sep="\t")
+
+# Read TSV back
+let loaded = tsv("data.tsv")
+print("Loaded #{len(loaded)} rows from TSV")</code></pre>
+
+        <h2>Best Practices</h2>
+
+        <h3>Temporary file management</h3>
+        <pre><code class="language-biolang"># Use a temp directory for clean interop
+let tmp = "_tmp_interop"
+mkdir(tmp)
+
+try {
+  let input_path = "#{tmp}/input.tsv"
+  let output_path = "#{tmp}/output.tsv"
+
+  write_tsv(data, input_path)
+  shell("python3 process.py #{input_path} #{output_path}")
+
+  let result = tsv(output_path)
+  write_tsv(result, "final_output.tsv")
+} catch e {
+  print("Error: #{to_string(e)}")
+}
+
+# Clean up
+remove(tmp)</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="performance.html" class="text-violet-400 hover:text-violet-300">&larr; Performance</a>
+        <a href="containers.html" class="text-violet-400 hover:text-violet-300">Containers &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

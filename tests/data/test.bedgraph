@@ -1,0 +1,5 @@
+track type=bedGraph name="coverage"
+chr1	10000	10100	25.5
+chr1	10100	10200	42.0
+chr1	10200	10300	18.3
+chr2	50000	50100	7

@@ -1,0 +1,71 @@
+# functions.bl — Function definitions, closures, and higher-order functions
+# Functions are first-class values in BioLang
+
+# Basic function definition
+fn greet(name) {
+    println("Hello, " + name + "!")
+}
+greet("Biologist")
+
+# Functions with return values
+fn square(x) {
+    return x * x
+}
+println("square(7) = " + str(square(7)))
+
+# Default parameters
+fn repeat_str(s, times = 3) {
+    return str_repeat(s, times)
+}
+println(repeat_str("ab"))
+println(repeat_str("xy", 5))
+
+# Named arguments
+fn describe(name, role: "researcher", org: "unknown") {
+    println(name + " is a " + role + " at " + org)
+}
+describe("Alice", role: "bioinformatician", org: "Sanger")
+describe("Bob")
+
+# Recursion — factorial
+fn factorial(n) {
+    if n <= 1 { return 1 }
+    return n * factorial(n - 1)
+}
+println("5! = " + str(factorial(5)))
+
+# Recursion — fibonacci
+fn fib(n) {
+    if n <= 1 { return n }
+    return fib(n - 1) + fib(n - 2)
+}
+println("fib(10) = " + str(fib(10)))
+
+# Closures — functions that capture their environment
+fn make_adder(x) {
+    return |y| x + y
+}
+let add5 = make_adder(5)
+println("add5(3) = " + str(add5(3)))
+
+# Higher-order functions — passing functions as arguments
+fn apply_twice(f, x) {
+    return f(f(x))
+}
+println("apply_twice(square, 3) = " + str(apply_twice(square, 3)))
+
+# Early return for guard clauses
+fn safe_divide(a, b) {
+    if b == 0 { return nil }
+    return a / b
+}
+println("10 / 3 = " + str(safe_divide(10, 3)))
+println("10 / 0 = " + str(safe_divide(10, 0)))
+
+# Multi-line lambda
+let classify = |n| {
+    if n > 0 { "positive" }
+    else if n < 0 { "negative" }
+    else { "zero" }
+}
+println("classify(-4) = " + classify(-4))

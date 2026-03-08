@@ -1,0 +1,76 @@
+# tables.bl — Comprehensive table operations in BioLang
+
+# ── Table creation ──────────────────────────────────────────────
+let samples = table([
+    {id: "S1", gene: "BRCA1", expr: 12.4, group: "tumor",   batch: 1},
+    {id: "S2", gene: "TP53",  expr:  8.1, group: "normal",  batch: 1},
+    {id: "S3", gene: "BRCA1", expr: 15.7, group: "tumor",   batch: 2},
+    {id: "S4", gene: "EGFR",  expr:  3.2, group: "normal",  batch: 2},
+    {id: "S5", gene: "TP53",  expr:  9.9, group: "tumor",   batch: 1},
+    {id: "S6", gene: "EGFR",  expr:  4.8, group: "normal",  batch: 2},
+    {id: "S7", gene: "BRCA1", expr: 14.0, group: "tumor",   batch: 3},
+    {id: "S8", gene: "TP53",  expr:  7.3, group: "normal",  batch: 3},
+])
+println("Rows: " + str(nrow(samples)) + "  Cols: " + str(ncol(samples)))
+println("Columns: " + str(colnames(samples)))
+
+# ── Select, drop, rename ───────────────────────────────────────
+println("select:  " + str(colnames(select(samples, "id", "gene", "expr"))))
+println("drop:    " + str(colnames(drop_cols(samples, "batch"))))
+println("rename:  " + str(colnames(rename(samples, "expr", "expression"))))
+
+# ── Filter, mutate, arrange ────────────────────────────────────
+let tumors = samples |> filter(|r| r.group == "tumor")
+println("Tumor count: " + str(nrow(tumors)))
+let with_log = samples |> mutate("log_expr", |r| log(r.expr))
+let sorted = samples |> arrange("expr")
+println("Lowest expr: " + str(head(sorted, 1)))
+
+# ── Head, tail, distinct, slice ─────────────────────────────────
+println("First 2: " + str(head(samples, 2)))
+println("Distinct genes: " + str(distinct(samples, "gene")))
+println("Slice [1,3): " + str(slice(samples, 1, 3)))
+
+# ── Null handling ───────────────────────────────────────────────
+let nulls = table([{id: "A", v: 10}, {id: "B", v: null}, {id: "C", v: 30}])
+println("fill_null: " + str(nrow(fill_null(nulls, "v", 0))))
+println("drop_null: " + str(nrow(drop_null(nulls, "v"))))
+
+# ── Group by + summarize ───────────────────────────────────────
+let by_gene = samples |> group_by("gene") |> summarize(|g| {
+    mean_expr: mean(g.expr), count: nrow(g),
+})
+println("Summary: " + str(by_gene))
+println("Counts:  " + str(value_counts(samples, "gene")))
+
+# ── All join types ──────────────────────────────────────────────
+let annot = table([{gene: "BRCA1", pw: "DNA repair"}, {gene: "TP53", pw: "Apoptosis"},
+                   {gene: "MYC", pw: "Proliferation"}])
+println("inner=" + str(nrow(inner_join(samples, annot, "gene")))
+      + " left=" + str(nrow(left_join(samples, annot, "gene")))
+      + " right=" + str(nrow(right_join(samples, annot, "gene")))
+      + " outer=" + str(nrow(outer_join(samples, annot, "gene")))
+      + " anti=" + str(nrow(anti_join(samples, annot, "gene")))
+      + " semi=" + str(nrow(semi_join(samples, annot, "gene"))))
+
+# ── Pivot operations ────────────────────────────────────────────
+let wide = table([{s: "S1", gene: "BRCA1", e: 12.4}, {s: "S1", gene: "TP53", e: 8.1},
+                  {s: "S2", gene: "BRCA1", e: 15.7}, {s: "S2", gene: "TP53", e: 9.9}])
+let pivoted = wide |> pivot_wider("gene", "e")
+println("Wide: " + str(pivoted))
+println("Long: " + str(pivoted |> pivot_longer(["BRCA1", "TP53"], "gene", "e")))
+
+# ── Window functions ────────────────────────────────────────────
+println("row_number: " + str(head(samples |> row_number(), 3)))
+println("rank:       " + str(head(samples |> rank("expr"), 3)))
+println("lag(1):     " + str(head(samples |> lag("expr", 1), 3)))
+println("lead(1):    " + str(head(samples |> lead("expr", 1), 3)))
+println("cumsum:     " + str(head(samples |> cumsum("expr"), 4)))
+println("rolling(3): " + str(head(samples |> rolling_mean("expr", 3), 4)))
+
+# ── Concat, bind, describe ─────────────────────────────────────
+println("Concat: " + str(nrow(concat(head(samples, 4), tail(samples, 4)))))
+let ex = table([{f:1},{f:2},{f:3},{f:4},{f:5},{f:6},{f:7},{f:8}])
+println("Bind cols: " + str(colnames(bind_cols(samples, ex))))
+println("Describe: " + str(describe(samples)))
+println("Records round-trip: " + str(from_records(to_records(head(samples, 2)))))

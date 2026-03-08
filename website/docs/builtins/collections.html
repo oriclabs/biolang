@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collections &amp; HOFs — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/collections"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Collections &amp; HOFs</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Collections &amp; Higher-Order Functions</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          24 functions for transforming, searching, and restructuring lists.
+          All collection functions are immutable &mdash; they return new lists rather than modifying the originals.
+        </p>
+
+        <!-- map -->
+        <section class="mb-12" id="map">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">map</span></h2>
+          <p class="text-slate-400 mt-2">Apply a function to each element and return a new list of results.</p>
+          <pre><code class="language-biolang">map(list, fn) -> list</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">list</td><td class="py-2 px-3">list</td><td class="py-2 px-3">Input list</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">fn</td><td class="py-2 px-3">function(elem) -> value</td><td class="py-2 px-3">Transformation function</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">list</code></p>
+          <pre><code class="language-biolang">let scores = [30, 28, 35, 22]
+map(scores, |q| q - 33)   # [-3, -5, 2, -11]
+
+# Pipeline style
+["ATCG", "GCTA", "TTAA"]
+  |> map(|s| len(s))      # [4, 4, 4]
+
+# With index (two-arg callback)
+map(["A", "B", "C"], |elem, i| format("{}: {}", i, elem))
+# ["0: A", "1: B", "2: C"]</code></pre>
+        </section>
+
+        <!-- filter -->
+        <section class="mb-12" id="filter">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">filter</span></h2>
+          <p class="text-slate-400 mt-2">Return a new list containing only elements for which the predicate returns true.</p>
+          <pre><code class="language-biolang">filter(list, fn) -> list</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">list</td><td class="py-2 px-3">list</td><td class="py-2 px-3">Input list</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">fn</td><td class="py-2 px-3">function(elem) -> bool</td><td class="py-2 px-3">Predicate function</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">let quality = [30, 12, 35, 8, 28]
+filter(quality, |q| q >= 20)   # [30, 35, 28]
+
+# Filter sequences by GC content
+let seqs = ["ATATATAT", "GCGCGCGC", "ATGCATGC"]
+seqs |> filter(|s| {
+  let gc = len(filter(split(s, ""), |b| b == "G" or b == "C"))
+  gc / len(s) > 0.4
+})
+# ["GCGCGCGC", "ATGCATGC"]</code></pre>
+        </section>
+
+        <!-- reduce -->
+        <section class="mb-12" id="reduce">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">reduce</span></h2>
+          <p class="text-slate-400 mt-2">Accumulate a list into a single value using a reducer function.</p>
+          <pre><code class="language-biolang">reduce(list, fn, init?) -> value</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">list</td><td class="py-2 px-3">list</td><td class="py-2 px-3">Input list</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">fn</td><td class="py-2 px-3">function(acc, elem) -> value</td><td class="py-2 px-3">Reducer function</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">init</td><td class="py-2 px-3">any (optional)</td><td class="py-2 px-3">Initial accumulator value</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">reduce([1, 2, 3, 4], |acc, x| acc + x, 0)   # 10
+
+# Count nucleotide frequencies
+let seq = split("ATCGATCGAA", "")
+let counts = reduce(seq, |acc, base| {
+  acc[base] = (acc[base] ?? 0) + 1
+  acc
+}, {})
+# {"A": 4, "T": 2, "C": 2, "G": 2}</code></pre>
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mt-4">
+            <p class="text-sm text-amber-300"><strong>Edge case:</strong> Without <code>init</code>, the first element is used as the initial accumulator. Calling <code>reduce</code> on an empty list without <code>init</code> raises an error.</p>
+          </div>
+        </section>
+
+        <!-- sort -->
+        <section class="mb-12" id="sort">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sort</span></h2>
+          <p class="text-slate-400 mt-2">Return a new list sorted in ascending order. Numbers sort numerically, strings sort lexicographically.</p>
+          <pre><code class="language-biolang">sort(list) -> list</code></pre>
+          <pre><code class="language-biolang">sort([3, 1, 4, 1, 5])         # [1, 1, 3, 4, 5]
+sort(["chr2", "chr10", "chr1"]) # ["chr1", "chr10", "chr2"] (lexicographic!)</code></pre>
+        </section>
+
+        <!-- sort_by -->
+        <section class="mb-12" id="sort_by">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sort_by</span></h2>
+          <p class="text-slate-400 mt-2">Sort with a custom key or comparator function.</p>
+          <pre><code class="language-biolang">sort_by(list, fn) -> list</code></pre>
+          <pre><code class="language-biolang"># Sort by string length
+sort_by(["ATCG", "AT", "ATCGATCG"], |s| len(s))
+# ["AT", "ATCG", "ATCGATCG"]
+
+# Natural chromosome sort
+let chroms = ["chr2", "chr10", "chr1", "chrX"]
+sort_by(chroms, |c| {
+  let n = replace(c, "chr", "")
+  if n == "X" { 23 }
+  else if n == "Y" { 24 }
+  else { int(n) }
+})
+# ["chr1", "chr2", "chr10", "chrX"]</code></pre>
+        </section>
+
+        <!-- push / pop -->
+        <section class="mb-12" id="push">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">push</span> / <span class="text-violet-400 font-mono">pop</span></h2>
+          <p class="text-slate-400 mt-2">List manipulation primitives.</p>
+          <pre><code class="language-biolang">push(list, value) -> list   # append to end
+pop(list) -> value          # remove + return last element</code></pre>
+          <pre><code class="language-biolang">let samples = ["S1", "S2"]
+let updated = push(samples, "S3")   # ["S1", "S2", "S3"]
+
+let last = pop(updated)       # "S3"</code></pre>
+        </section>
+
+        <!-- zip -->
+        <section class="mb-12" id="zip">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">zip</span></h2>
+          <p class="text-slate-400 mt-2">Pair elements from two lists into a list of two-element lists. Stops at the shorter list.</p>
+          <pre><code class="language-biolang">zip(a, b) -> list</code></pre>
+          <pre><code class="language-biolang">zip(["A", "T", "C"], [1, 2, 3])
+# [["A", 1], ["T", 2], ["C", 3]]
+
+let genes = ["BRCA1", "TP53", "EGFR"]
+let pvals = [0.001, 0.05, 0.003]
+zip(genes, pvals) |> filter(|pair| pair[1] < 0.01)
+# [["BRCA1", 0.001], ["EGFR", 0.003]]</code></pre>
+        </section>
+
+        <!-- enumerate -->
+        <section class="mb-12" id="enumerate">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">enumerate</span></h2>
+          <p class="text-slate-400 mt-2">Pair each element with its zero-based index.</p>
+          <pre><code class="language-biolang">enumerate(list) -> list</code></pre>
+          <pre><code class="language-biolang">enumerate(["A", "B", "C"])
+# [[0, "A"], [1, "B"], [2, "C"]]
+
+# Find position of first 'N' base
+let seq = split("ATCNGATCG", "")
+let n_pos = enumerate(seq) |> find(|pair| pair[1] == "N")
+println("N at position:", n_pos[0])   # N at position: 3</code></pre>
+        </section>
+
+        <!-- flatten -->
+        <section class="mb-12" id="flatten">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">flatten</span></h2>
+          <p class="text-slate-400 mt-2">Flatten one level of nesting from a list of lists.</p>
+          <pre><code class="language-biolang">flatten(list) -> list</code></pre>
+          <pre><code class="language-biolang">flatten([[1, 2], [3, 4], [5]])   # [1, 2, 3, 4, 5]
+flatten([[1, [2, 3]], [4]])       # [1, [2, 3], 4]  (one level only)</code></pre>
+        </section>
+
+        <!-- reverse -->
+        <section class="mb-12" id="reverse">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">reverse</span></h2>
+          <p class="text-slate-400 mt-2">Return a new list with elements in reverse order.</p>
+          <pre><code class="language-biolang">reverse(list) -> list</code></pre>
+          <pre><code class="language-biolang">reverse([1, 2, 3])   # [3, 2, 1]
+
+# Reverse complement helper
+let seq = "ATCGATCG"
+let complement = {"A": "T", "T": "A", "C": "G", "G": "C"}
+split(seq, "") |> map(|b| complement[b]) |> reverse |> join("")
+# "CGATCGAT"</code></pre>
+        </section>
+
+        <!-- unique -->
+        <section class="mb-12" id="unique">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">unique</span></h2>
+          <p class="text-slate-400 mt-2">Remove duplicate elements, preserving first occurrence order.</p>
+          <pre><code class="language-biolang">unique(list) -> list</code></pre>
+          <pre><code class="language-biolang">unique([1, 2, 2, 3, 1])           # [1, 2, 3]
+unique(["chr1", "chr2", "chr1"])   # ["chr1", "chr2"]</code></pre>
+        </section>
+
+        <!-- first / last -->
+        <section class="mb-12" id="first">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">first</span> / <span class="text-violet-400 font-mono">last</span></h2>
+          <p class="text-slate-400 mt-2">Return the first or last element of a list. Returns <code>nil</code> for empty lists.</p>
+          <pre><code class="language-biolang">first(list) -> value | nil
+last(list) -> value | nil</code></pre>
+          <pre><code class="language-biolang">first([10, 20, 30])   # 10
+last([10, 20, 30])    # 30
+first([])             # nil</code></pre>
+        </section>
+
+        <!-- take / skip -->
+        <section class="mb-12" id="take">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">take</span> / <span class="text-violet-400 font-mono">drop</span></h2>
+          <p class="text-slate-400 mt-2">Slice a list from the beginning (<code>take</code>) or remove leading elements (<code>drop</code>).</p>
+          <pre><code class="language-biolang">take(list, n) -> list
+drop(list, n) -> list</code></pre>
+          <pre><code class="language-biolang">take([1, 2, 3, 4, 5], 3)   # [1, 2, 3]
+drop([1, 2, 3, 4, 5], 2)   # [3, 4, 5]
+take([1, 2], 10)            # [1, 2]  (safe: no error)
+
+# Paginate results
+let all_genes = range(0, 100) |> map(|i| format("gene_{}", i))
+let page2 = all_genes |> drop(20) |> take(10)   # genes 20..29</code></pre>
+        </section>
+
+        <!-- any / all -->
+        <section class="mb-12" id="any">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">any</span> / <span class="text-violet-400 font-mono">all</span></h2>
+          <p class="text-slate-400 mt-2">Test if any or all elements satisfy a predicate. Short-circuits on first match/failure.</p>
+          <pre><code class="language-biolang">any(list, fn) -> bool
+all(list, fn) -> bool</code></pre>
+          <pre><code class="language-biolang">any([10, 20, 30], |x| x > 25)    # true
+all([10, 20, 30], |x| x > 5)     # true
+all([10, 20, 30], |x| x > 15)    # false
+
+let quality_scores = [30, 28, 35, 22, 31]
+if all(quality_scores, |q| q >= 20) {
+  println("All reads pass QC")
+}</code></pre>
+        </section>
+
+        <!-- find / find_index -->
+        <section class="mb-12" id="find">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">find</span> / <span class="text-violet-400 font-mono">find_index</span></h2>
+          <p class="text-slate-400 mt-2">Find the first element (or its index) that matches a predicate.</p>
+          <pre><code class="language-biolang">find(list, fn) -> value | nil
+find_index(list, fn) -> int | nil</code></pre>
+          <pre><code class="language-biolang">find([10, 25, 30], |x| x > 20)         # 25
+find_index([10, 25, 30], |x| x > 20)   # 1
+
+let genes = ["BRCA1", "TP53", "EGFR", "KRAS"]
+find(genes, |g| starts_with(g, "EG"))   # "EGFR"
+find(genes, |g| starts_with(g, "XX"))   # nil</code></pre>
+        </section>
+
+        <!-- chunk -->
+        <section class="mb-12" id="chunk">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">chunk</span></h2>
+          <p class="text-slate-400 mt-2">Split a list into sub-lists of the given size. The last chunk may be shorter.</p>
+          <pre><code class="language-biolang">chunk(list, size) -> list</code></pre>
+          <pre><code class="language-biolang">chunk([1, 2, 3, 4, 5], 2)   # [[1, 2], [3, 4], [5]]
+
+# Process reads in batches
+let reads = range(0, 1000)
+let batches = chunk(reads, 100)   # 10 batches of 100</code></pre>
+        </section>
+
+        <!-- window -->
+        <section class="mb-12" id="window">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">window</span></h2>
+          <p class="text-slate-400 mt-2">Return overlapping windows (sublists) of the given size.</p>
+          <pre><code class="language-biolang">window(list, size) -> list</code></pre>
+          <pre><code class="language-biolang">window([1, 2, 3, 4, 5], 3)
+# [[1, 2, 3], [2, 3, 4], [3, 4, 5]]
+
+# Sliding average of coverage
+let cov = [10, 12, 8, 15, 20, 18]
+window(cov, 3) |> map(|w| mean(w))
+# [10.0, 11.67, 14.33, 17.67]</code></pre>
+        </section>
+
+        <!-- group_by -->
+        <section class="mb-12" id="group_by">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">group_by</span></h2>
+          <p class="text-slate-400 mt-2">Group list elements by a key function. Returns a map of key to list of matching elements.</p>
+          <pre><code class="language-biolang">group_by(list, fn) -> map</code></pre>
+          <pre><code class="language-biolang">group_by([1, 2, 3, 4, 5, 6], |x| if x % 2 == 0 { "even" } else { "odd" })
+# {"odd": [1, 3, 5], "even": [2, 4, 6]}
+
+# Group sequences by length
+let seqs = ["AT", "GC", "ATCG", "CG", "ATCGATCG"]
+group_by(seqs, |s| len(s))
+# {2: ["AT", "GC", "CG"], 4: ["ATCG"], 8: ["ATCGATCG"]}</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="core.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span>&larr;</span> Core Functions
+        </a>
+        <a href="math-stats.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Math &amp; Statistics <span>&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

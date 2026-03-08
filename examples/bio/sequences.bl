@@ -1,0 +1,72 @@
+# sequences.bl — DNA, RNA, and Protein sequence analysis toolkit
+#
+# Demonstrates: literals, transcription, translation, reverse complement,
+# GC content, subsequences, motif finding, and k-mer generation.
+
+# ── DNA Literals ──────────────────────────────────────────────
+let my_gene = dna"ATGGCGTACCTGAAATTTCCCGGG"
+println("Gene:    ", my_gene)
+println("Length:  ", my_gene.length)
+
+# Build a sequence from a string variable
+let raw = "TTAGCCAATGCTTGA"
+let frag = dna(raw)
+println("Fragment:", frag)
+
+# ── Complement & Reverse Complement ──────────────────────────
+let comp  = my_gene |> complement()
+let rcomp = my_gene |> reverse_complement()
+println("Complement:         ", comp)
+println("Reverse complement: ", rcomp)
+
+# ── GC Content ────────────────────────────────────────────────
+let gc = my_gene |> gc_content()
+println("GC content: ", gc)          # fraction 0..1
+
+# ── Subsequences ──────────────────────────────────────────────
+# Extract positions 3..9 (0-based, half-open)
+let sub = my_gene |> subseq(3, 9)
+println("Subseq [3..9): ", sub)
+
+# ── Transcription (DNA -> RNA) ────────────────────────────────
+let mrna = my_gene |> transcribe()
+println("mRNA: ", mrna)
+
+# RNA literal for comparison
+let known_rna = rna"AUGGCGUACCUGAAAUUUCCCGGG"
+println("Known RNA: ", known_rna)
+
+# ── Translation (RNA -> Protein) ─────────────────────────────
+let peptide = mrna |> translate()
+println("Protein: ", peptide)
+
+# Full pipeline: DNA -> RNA -> Protein in one expression
+let one_shot = dna"ATGAAACCCGGGTTT" |> transcribe() |> translate()
+println("One-shot translate: ", one_shot)
+
+# Protein literal
+let ref_prot = protein"MAYLKFPG"
+println("Ref protein: ", ref_prot)
+
+# ── Motif Finding ─────────────────────────────────────────────
+# Find all occurrences of "GCG" in the gene
+let hits = my_gene |> find_motif("GCG")
+println("GCG motif positions: ", hits)
+
+# Find a restriction site (EcoRI = GAATTC)
+let eco_seq = dna"AAGAATTCTTGAATTCAA"
+let eco_hits = eco_seq |> find_motif("GAATTC")
+println("EcoRI sites: ", eco_hits)
+
+# ── K-mer Generation ─────────────────────────────────────────
+let trimers = dna"ATGCATGC" |> kmers(3)
+println("3-mers: ", trimers)
+
+# Pipeline: extract a region, then get its 4-mers
+let region_kmers = my_gene |> subseq(0, 12) |> kmers(4)
+println("4-mers of first 12 bp: ", region_kmers)
+
+# ── Type Checks ───────────────────────────────────────────────
+println("is_dna(my_gene)?    ", is_dna(my_gene))
+println("is_rna(mrna)?       ", is_rna(mrna))
+println("is_protein(peptide)?", is_protein(peptide))

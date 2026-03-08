@@ -1,0 +1,34 @@
+# LLM Chat Integration Examples
+# Requires: ANTHROPIC_API_KEY or OPENAI_API_KEY or OLLAMA_MODEL env var
+
+# ── Check available models ──
+let models = llm_models()
+println("=== LLM Configuration ===")
+println("Provider:", models.provider)
+println("Model:", models.model)
+
+# ── Basic chat ──
+# chat(prompt) -> string response
+let answer = chat("What is the GC content of DNA and why does it matter in bioinformatics?")
+println("\n=== Chat Response ===")
+println(answer)
+
+# ── Code generation ──
+# chat_code(prompt) -> string (code-focused response)
+let code = chat_code("Write a BioLang script to read a FASTA file and compute GC content per sequence")
+println("\n=== Generated Code ===")
+println(code)
+
+# ── Use in pipelines ──
+# Analyze data, then ask LLM to interpret results
+let data = [0.45, 0.52, 0.38, 0.61, 0.55]
+let avg = mean(data)
+let sd = stdev(data)
+
+let interpretation = chat(
+    "I have GC content values from 5 sequences: " + str(data) +
+    ". Mean=" + str(avg) + ", StdDev=" + str(sd) +
+    ". What does this suggest about the organisms?"
+)
+println("\n=== Data Interpretation ===")
+println(interpretation)

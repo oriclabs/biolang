@@ -1,0 +1,246 @@
+# clinical_wes.bl — Rare Disease Diagnosis from Trio Whole-Exome Sequencing
+#
+# Clinical scenario: 3-year-old male with undiagnosed developmental delay,
+# seizures, and microcephaly. Trio WES performed on proband + unaffected
+# parents. Goal: identify causal variant(s) using inheritance filtering,
+# population frequency, ACMG evidence framework, and gene-phenotype matching.
+
+# ── 1. Trio Variant Calls ────────────────────────────────────────────────────
+# Merged VCF output from GATK HaplotypeCaller joint genotyping.
+# Genotypes: 0/0 = homozygous ref, 0/1 = het, 1/1 = homozygous alt.
+# allele_freq = gnomAD v4 global AF; quality = GATK QUAL score.
+println("=== Trio Variant Calls ===")
+
+let trio = table([
+    {chrom: "chrX", pos: 153296777, ref: "C",  alt: "T",  gene: "MECP2",  consequence: "nonsense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 892.0, allele_freq: 0.0},
+    {chrom: "chr2", pos: 165992332, ref: "C",  alt: "T",  gene: "SCN1A",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 743.0, allele_freq: 0.00002},
+    {chrom: "chr7", pos: 114086327, ref: "C",  alt: "T",  gene: "FOXP2",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 512.0, allele_freq: 0.003},
+    {chrom: "chr21",pos: 37766822,  ref: "G",  alt: "A",  gene: "DYRK1A", consequence: "frameshift", gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 678.0, allele_freq: 0.0},
+    {chrom: "chr9", pos: 140101204, ref: "T",  alt: "C",  gene: "EHMT1",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 415.0, allele_freq: 0.0001},
+    {chrom: "chr12",pos: 49420834,  ref: "A",  alt: "G",  gene: "KMT2D",  consequence: "synonymous", gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 310.0, allele_freq: 0.08},
+    {chrom: "chr5", pos: 177558478, ref: "G",  alt: "T",  gene: "NSD1",   consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 289.0, allele_freq: 0.02},
+    {chrom: "chr16",pos: 89805520,  ref: "C",  alt: "A",  gene: "ANKRD11", consequence: "missense",  gt_child: "1/1", gt_mother: "0/1", gt_father: "0/1", quality: 624.0, allele_freq: 0.0003},
+    {chrom: "chr17",pos: 29527482,  ref: "GA", alt: "G",  gene: "NF1",    consequence: "frameshift", gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 567.0, allele_freq: 0.0},
+    {chrom: "chr17",pos: 29556789,  ref: "T",  alt: "C",  gene: "NF1",    consequence: "missense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/1", quality: 498.0, allele_freq: 0.00005},
+    {chrom: "chr1", pos: 155205634, ref: "G",  alt: "A",  gene: "ASH1L",  consequence: "intronic",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 145.0, allele_freq: 0.04},
+    {chrom: "chr2", pos: 166070550, ref: "T",  alt: "G",  gene: "SCN1A",  consequence: "intronic",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/1", quality: 201.0, allele_freq: 0.12},
+    {chrom: "chr11",pos: 66082000,  ref: "A",  alt: "C",  gene: "ALG9",   consequence: "synonymous", gt_child: "0/1", gt_mother: "0/0", gt_father: "0/1", quality: 380.0, allele_freq: 0.05},
+    {chrom: "chr15",pos: 75012899,  ref: "C",  alt: "T",  gene: "UBE3A",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 355.0, allele_freq: 0.001},
+    {chrom: "chrX", pos: 153297200, ref: "G",  alt: "C",  gene: "MECP2",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 410.0, allele_freq: 0.0}
+])
+
+println("=== Clinical Trio WES Analysis ===")
+println("Proband: 3-year-old male | Phenotype: developmental delay, seizures, microcephaly")
+println("Total exonic/splice variants in trio: " + str(trio |> count()))
+
+# ── 2. Inheritance Pattern Filtering ─────────────────────────────────────────
+# De novo: variant present in child (het) but absent in both parents.
+# These arise spontaneously and are strong candidates for dominant disorders.
+println("=== Inheritance Pattern Filtering ===")
+
+let de_novo = trio |> filter(|v| v.gt_child == "0/1" && v.gt_mother == "0/0" && v.gt_father == "0/0")
+println("\nDe novo variants: " + str(de_novo |> count()))
+de_novo |> each(|v| println("  " + v.gene + " " + v.chrom + ":" + str(v.pos) + " " + v.consequence))
+
+# Autosomal recessive (homozygous): child hom-alt, both parents het carriers
+let ar_hom = trio |> filter(|v| v.gt_child == "1/1" && v.gt_mother == "0/1" && v.gt_father == "0/1")
+println("\nAutosomal recessive (homozygous): " + str(ar_hom |> count()))
+ar_hom |> each(|v| println("  " + v.gene + " " + v.consequence + " (both parents carriers)"))
+
+# Compound heterozygous: child het at 2+ positions in same gene, each from one parent.
+# NF1 has one maternal (pos 29527482) and one paternal (pos 29556789) variant.
+let genes_with_multiple = trio
+    |> filter(|v| v.gt_child == "0/1")
+    |> map(|v| v.gene)
+let compound_het = trio |> filter(|v| v.gene == "NF1" && v.gt_child == "0/1")
+println("\nCompound heterozygous candidates (NF1):")
+compound_het |> each(|v| {
+    let parent = if v.gt_mother == "0/1" then "maternal" else "paternal"
+    println("  " + v.consequence + " at " + str(v.pos) + " (" + parent + ")")
+})
+
+# X-linked: variant on chrX in affected male (hemizygous — 0/1 in VCF conventions)
+let x_linked = trio |> filter(|v| v.chrom == "chrX" && v.gt_child == "0/1")
+println("\nX-linked variants: " + str(x_linked |> count()))
+
+# ── 3. Variant Prioritization ────────────────────────────────────────────────
+println("=== Variant Prioritization ===")
+# Step 1: Remove common polymorphisms (gnomAD AF > 1% are unlikely disease-causing)
+let rare = trio |> filter(|v| v.allele_freq <= 0.01)
+println("\nAfter common-variant filter (AF<=0.01): " + str(rare |> count()))
+
+# Step 2: Keep only protein-altering consequences
+let protein_altering = ["missense", "nonsense", "frameshift", "splice"]
+let functional = rare |> filter(|v| protein_altering |> contains(v.consequence))
+println("Protein-altering rare variants: " + str(functional |> count()))
+
+# Step 3: Assign pathogenicity prediction scores (CADD-like, simulated)
+let scored = functional |> mutate("cadd_score", |v| {
+    if v.consequence == "nonsense" then 38.0
+    else if v.consequence == "frameshift" then 35.0
+    else if v.consequence == "splice" then 28.0
+    else if v.allele_freq == 0.0 then 26.0
+    else 22.0
+})
+
+println("\nRanked candidates (by CADD score):")
+scored |> each(|v| println("  " + v.gene + " " + v.consequence + " CADD=" + str(v.cadd_score)))
+let ranked = scored
+
+# ── 4. Gene-Disease Association Lookup ───────────────────────────────────────
+# Query biological databases for clinical relevance of top candidates.
+println("=== Gene-Disease Association Lookup ===")
+
+println("\n--- Database Lookups ---")
+try {
+    let mecp2_gene = ncbi_gene("MECP2")
+    println("MECP2 NCBI Gene IDs: " + str(mecp2_gene.ids) + " (" + str(mecp2_gene.count) + " results)")
+} catch e { println("MECP2 NCBI lookup: " + str(e)) }
+
+try {
+    let mecp2_clinvar = ncbi_search("clinvar", "MECP2[gene] AND pathogenic[clinsig]")
+    println("MECP2 pathogenic ClinVar records: " + str(len(mecp2_clinvar.ids)))
+} catch e { println("ClinVar lookup: " + str(e)) }
+
+try {
+    let vep_results = ensembl_vep("2:g.165992332C>T")
+    let vep_result = vep_results[0]
+    println("VEP for SCN1A missense: " + vep_result.most_severe_consequence)
+} catch e { println("VEP lookup: " + str(e)) }
+
+try {
+    let mecp2_protein = uniprot_entry("P51608")
+    println("MECP2 protein: " + mecp2_protein.name + " (" + str(mecp2_protein.sequence_length) + " aa)")
+    let mecp2_features = uniprot_features("P51608")
+    let mecp2_domains = filter(mecp2_features, |f| f.type == "Domain")
+    println("MECP2 functional domains:")
+    for d in mecp2_domains {
+        println("  " + d.description + " [" + d.location + "]")
+    }
+} catch e { println("UniProt lookup: " + str(e)) }
+
+# ── 5. ACMG Evidence Classification ─────────────────────────────────────────
+# American College of Medical Genetics framework for variant interpretation.
+# Combine evidence codes to reach clinical classification.
+println("=== ACMG Evidence Classification ===")
+
+let acmg_classified = ranked |> mutate("acmg_codes", |v| {
+    let codes = []
+    # PVS1: null variant in a gene where loss-of-function is a known disease mechanism
+    if (v.consequence == "nonsense" || v.consequence == "frameshift") && v.gene == "MECP2" then
+        codes = codes + ["PVS1"]
+    # PS2: de novo (confirmed) in a patient with disease, no family history
+    if v.gt_mother == "0/0" && v.gt_father == "0/0" then
+        codes = codes + ["PS2"]
+    # PM2: absent from controls (or extremely low frequency in gnomAD)
+    if v.allele_freq <= 0.0001 then
+        codes = codes + ["PM2"]
+    # PP3: multiple lines of computational evidence support a deleterious effect
+    if v.cadd_score >= 25.0 then
+        codes = codes + ["PP3"]
+    codes
+})
+
+let acmg_final = acmg_classified |> mutate("classification", |v| {
+    let codes = v.acmg_codes
+    let has_pvs1 = codes |> contains("PVS1")
+    let has_ps2  = codes |> contains("PS2")
+    let has_pm2  = codes |> contains("PM2")
+    let n = len(codes)
+    if has_pvs1 && has_ps2 then "Pathogenic"
+    else if has_pvs1 && has_pm2 then "Likely Pathogenic"
+    else if has_ps2 && has_pm2 && n >= 3 then "Likely Pathogenic"
+    else if n >= 2 then "VUS"
+    else "Benign"
+})
+
+println("\n=== ACMG Classification ===")
+acmg_final |> each(|v| {
+    let codes_str = v.acmg_codes |> join(", ")
+    println("  " + v.gene + " " + v.consequence + " → " + v.classification + " [" + codes_str + "]")
+})
+
+# ── 6. Protein Impact Analysis ───────────────────────────────────────────────
+# Structural and network context for the top candidate.
+println("=== Protein Impact Analysis ===")
+
+try {
+    let mecp2_structure = pdb_entry("3C2I")
+    println("\nMECP2 MBD structure (PDB 3C2I): resolution " + str(mecp2_structure.resolution) + " A")
+} catch e { println("PDB lookup: " + str(e)) }
+
+try {
+    let mecp2_network = string_network(["MECP2"], 9606)
+    println("MECP2 protein interactors (STRING): " + str(len(mecp2_network)))
+} catch e { println("STRING lookup: " + str(e)) }
+
+# ── 7. Phenotype Matching ────────────────────────────────────────────────────
+# Patient HPO phenotypes compared to known gene-disease associations.
+println("=== Phenotype Matching ===")
+
+let patient_phenotypes = ["developmental delay", "seizures", "microcephaly"]
+let gene_phenotypes = table([
+    {gene: "MECP2",  disease: "Rett syndrome",             phenotypes: ["developmental delay", "seizures", "microcephaly", "stereotypies"]},
+    {gene: "SCN1A",  disease: "Dravet syndrome",            phenotypes: ["seizures", "developmental delay", "ataxia"]},
+    {gene: "DYRK1A", disease: "DYRK1A-related ID",          phenotypes: ["developmental delay", "microcephaly", "feeding difficulties"]},
+    {gene: "EHMT1",  disease: "Kleefstra syndrome",         phenotypes: ["developmental delay", "hypotonia", "behavioral issues"]},
+    {gene: "ANKRD11",disease: "KBG syndrome",               phenotypes: ["developmental delay", "macrodontia", "skeletal anomalies"]}
+])
+
+println("\nPhenotype overlap scores:")
+gene_phenotypes |> each(|g| {
+    let overlap = g.phenotypes |> filter(|p| patient_phenotypes |> contains(p))
+    let score = len(overlap)
+    println("  " + g.gene + " (" + g.disease + "): " + str(score) + "/" + str(len(patient_phenotypes)) + " match")
+})
+
+# ── 8. Visualizations ────────────────────────────────────────────────────────
+println("=== Visualizations ===")
+
+# Venn diagram of inheritance patterns
+println("\nInheritance pattern distribution:")
+venn({
+    "De novo": de_novo |> map(|v| v.gene),
+    "AR homozygous": ar_hom |> map(|v| v.gene),
+    "Compound het": compound_het |> map(|v| v.gene),
+    "X-linked": x_linked |> map(|v| v.gene)
+})
+
+# ── 9. Clinical Report ──────────────────────────────────────────────────────
+println("=== Clinical Report ===")
+
+let pathogenic = acmg_final |> filter(|v| v.classification == "Pathogenic" || v.classification == "Likely Pathogenic")
+let pathogenic_summary = pathogenic |> map(|v| {
+    v.gene + " " + v.consequence + " (" + v.chrom + ":" + str(v.pos) + ") — " + v.classification
+})
+
+let report = "# Clinical WES Report — Trio Analysis for Developmental Delay\n\n" +
+    "## Patient Information\n\n" +
+    "Proband: 3-year-old male. Referral: undiagnosed developmental delay, seizures since age 8 months, " +
+    "progressive microcephaly. Family history unremarkable. Trio WES performed on proband and both unaffected parents.\n\n" +
+    "## Variant Summary\n\n" +
+    "Total variants called: " + str(trio |> count()) + "\n" +
+    "Rare (AF<=0.01): " + str(rare |> count()) + "\n" +
+    "Protein-altering: " + str(functional |> count()) + "\n" +
+    "De novo: " + str(de_novo |> count()) + " | AR homozygous: " + str(ar_hom |> count()) +
+    " | Compound het: " + str(compound_het |> count()) + "\n\n" +
+    "## Primary Finding\n\n" +
+    "MECP2 c.502C>T p.(Arg168*) — de novo nonsense variant. Classified as PATHOGENIC " +
+    "(PVS1 + PS2 + PM2 + PP3). Absent from gnomAD. CADD score 38. Located in the methyl-CpG " +
+    "binding domain (MBD). This variant introduces a premature stop codon and is predicted to " +
+    "undergo nonsense-mediated decay, consistent with loss-of-function mechanism in Rett syndrome.\n\n" +
+    "## Secondary Findings\n\n" +
+    (pathogenic_summary |> join("\n")) + "\n\n" +
+    "## Phenotype Correlation\n\n" +
+    "Patient phenotypes (developmental delay, seizures, microcephaly) show 3/3 overlap with " +
+    "Rett syndrome (MECP2). Note: classic Rett syndrome predominantly affects females; males with " +
+    "MECP2 mutations may present with severe neonatal encephalopathy. Recommend clinical genetics evaluation.\n\n" +
+    "## Recommendations\n\n" +
+    "1. Confirm MECP2 variant by Sanger sequencing in proband and parents.\n" +
+    "2. Refer to clinical genetics for Rett syndrome evaluation and counseling.\n" +
+    "3. Consider X-inactivation studies in mother (germline mosaicism risk ~1%).\n" +
+    "4. NF1 compound het variants are VUS — recommend parental segregation confirmation.\n" +
+    "5. Suggest EEG monitoring given SCN1A de novo variant (secondary finding).\n"
+
+println(report)
+println("\n=== Analysis complete ===")

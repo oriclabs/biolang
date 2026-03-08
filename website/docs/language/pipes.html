@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipes — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/pipes"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Pipes</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Pipes</h1>
+        <p>
+          The pipe operator <code>|&gt;</code> is the defining feature of BioLang. It passes the
+          value on the left as the <strong>first argument</strong> to the function on the right,
+          enabling clean, readable data transformation chains that mirror the conceptual flow of
+          bioinformatics pipelines.
+        </p>
+
+        <h2>Basic Syntax</h2>
+        <p>
+          The expression <code>a |&gt; f(b, c)</code> is syntactic sugar for <code>f(a, b, c)</code>.
+          The left-hand value is always inserted as the first argument:
+        </p>
+        <pre><code class="language-biolang"># These two lines are equivalent:
+let result = upper("hello")
+let result = "hello" |> upper()
+
+# With additional arguments:
+let result = slice("hello world", 0, 5)
+let result = "hello world" |> slice(0, 5)</code></pre>
+
+        <h2>Chaining Pipes</h2>
+        <p>
+          The real power of pipes emerges when chaining multiple transformations. Each step
+          feeds its result into the next:
+        </p>
+        <pre><code class="language-biolang"># Read a FASTA file, filter by length, compute GC content
+let gc_values = read_fasta("genome.fa")
+  |> filter(|seq| seq_len(seq) >= 1000)
+  |> map(|seq| gc_content(seq))
+  |> sort()
+  |> reverse()
+
+# Variant calling pipeline
+let variants = read_bam("sample.bam")
+  |> filter(|r| r.mapq >= 30)
+  |> pileup("hg38.fa")
+  |> call_variants(min_depth = 10)
+  |> filter(|v| v.qual >= 20.0)
+  |> annotate("clinvar.vcf")</code></pre>
+
+        <h2>Pipes with Lambdas</h2>
+        <p>
+          Lambdas are frequently used with pipes to define inline transformation logic:
+        </p>
+        <pre><code class="language-biolang"># Transform sample names
+let clean_names = sample_names
+  |> map(|s| s |> lower() |> trim())
+  |> filter(|s| len(s) > 0)
+  |> unique()
+
+# Nested pipes inside a lambda
+let results = genes
+  |> map(|gene| {
+    let seq = fetch_sequence(gene)
+    seq
+      |> transcribe()
+      |> translate()
+      |> len()
+  })</code></pre>
+
+        <h2>Pipe-Friendly Function Design</h2>
+        <p>
+          BioLang functions are designed pipe-first: the primary data argument is always the
+          first parameter. This convention ensures every function works naturally with pipes:
+        </p>
+        <pre><code class="language-biolang"># The data argument comes first
+fn normalize(values: List[Float], method: String) -> List[Float] {
+  match method {
+    "zscore" => {
+      let mu = mean(values)
+      let sd = stdev(values)
+      values |> map(|x| (x - mu) / sd)
+    },
+    "minmax" => {
+      let lo = min(values)
+      let hi = max(values)
+      values |> map(|x| (x - lo) / (hi - lo))
+    },
+    _ => values
+  }
+}
+
+# Now it works naturally with pipes:
+let normed = raw_scores |> normalize("zscore")</code></pre>
+
+        <h2>Partial Application</h2>
+        <p>
+          You can create partially applied functions to use in pipe chains. The underscore
+          <code>_</code> marks the position where the piped value will be inserted:
+        </p>
+        <pre><code class="language-biolang"># Using partial application with _
+let add_ten = _ + 10
+let scores = [1, 2, 3] |> map(add_ten)   # [11, 12, 13]
+
+# Useful for reusable pipeline stages
+let high_quality = filter(_, |r| mean_phred(r.quality) >= 30)
+let long_reads = filter(_, |r| r.length >= 150)
+
+reads |> high_quality |> long_reads</code></pre>
+
+        <h2>Operator Precedence</h2>
+        <p>
+          The pipe operator has the <strong>lowest precedence</strong> of all operators, so
+          expressions on either side are fully evaluated before piping:
+        </p>
+        <pre><code class="language-biolang"># Arithmetic is evaluated before piping
+let result = 2 + 3 |> str()   # str(5), not 2 + str(3)
+
+# Comparison is evaluated before piping
+let x = items |> len() > 0   # (len(items)) > 0
+
+# Use parentheses when you need different grouping
+let y = items |> (filter(|x| x > 0) |> len())</code></pre>
+
+        <h2>Multiline Pipes</h2>
+        <p>
+          BioLang suppresses newlines after the <code>|&gt;</code> operator, so pipe chains can
+          span multiple lines without any special continuation syntax:
+        </p>
+        <pre><code class="language-biolang"># Each pipe stage on its own line for readability
+let summary = csv("experiment.csv")
+  |> filter(|row| row.p_value < 0.05)
+  |> select("gene", "log2fc", "p_value")
+  |> arrange(desc(log2fc))
+  |> head(20)
+  |> str()</code></pre>
+
+        <h2>Method-Style Calls</h2>
+        <p>
+          For functions that take a single argument (the piped value), you can omit the
+          parentheses entirely:
+        </p>
+        <pre><code class="language-biolang"># With parentheses (always works)
+let rc = dna"ATCG" |> reverse_complement()
+
+# Without parentheses (zero-arg pipe target)
+let rc = dna"ATCG" |> reverse_complement
+
+# Chained
+let result = dna"ATCGATCG"
+  |> reverse_complement
+  |> gc_content
+  |> str</code></pre>
+
+        <h2>Pipes with Tables</h2>
+        <p>
+          Table operations are designed specifically for pipe chains, following the
+          select-filter-arrange-summarize pattern:
+        </p>
+        <pre><code class="language-biolang">let report = csv("variants.csv")
+  |> select("gene", "variant", "impact", "frequency")
+  |> filter(|r| r.impact == "HIGH")
+  |> arrange(desc(frequency))
+  |> group_by("gene")
+  |> summarize(
+    variant_count = n(),
+    max_freq = max(frequency)
+  )
+  |> filter(|r| r.variant_count >= 3)
+  |> arrange(desc(variant_count))</code></pre>
+
+        <h2>Pipes with Streams</h2>
+        <p>
+          Pipes compose naturally with lazy streams. The stream is only consumed when a terminal
+          operation (like <code>collect</code> or <code>write</code>) is reached:
+        </p>
+        <pre><code class="language-biolang"># Nothing happens until collect() — all lazy
+let results = stream_fastq("huge.fq.gz")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> filter(|r| r.length >= 50)
+  |> take(10_000)
+  |> collect()</code></pre>
+
+        <h2>Debugging Pipes</h2>
+        <p>
+          Use <code>tap</code> to inspect intermediate values without breaking the chain:
+        </p>
+        <pre><code class="language-biolang">let result = data
+  |> filter(|r| r.score > 0.5)
+  |> tap(|d| print(f"After filter: {len(d)} rows"))
+  |> arrange(desc(score))
+  |> tap(|d| print(f"Top score: {d[0].score}"))
+  |> head(10)</code></pre>
+
+        <h2>Tap Pipe</h2>
+        <p>
+          The tap-pipe operator <code>|&gt;&gt;</code> evaluates a side effect without
+          breaking the data flow. The original value passes through unchanged &mdash; useful
+          for logging, debugging, or writing intermediate results:
+        </p>
+        <pre><code class="language-biolang"># Log intermediate values without breaking the chain
+let result = read_fastq("sample.fq")
+    |> filter(|r| mean_phred(r.quality) > 20)
+    |>> print(f"After QC: {len(_)} reads")
+    |> map(|r| gc_content(r.seq))
+    |>> write_csv(_, "gc_values.csv")
+    |> mean()
+
+# _ binds to the piped value inside tap
+let data = [3, 1, 4, 1, 5]
+    |> sort()
+    |>> print(f"Sorted: {_}")
+    |> reverse()</code></pre>
+
+        <h2>Common Patterns</h2>
+        <pre><code class="language-biolang"># ETL: Extract, Transform, Load
+let cleaned = csv("raw_data.csv")
+  |> select(new_col = "old_col")
+  |> mutate(score = |r| r.raw_score / 100.0)
+  |> filter(|r| r.score != None)
+  |> write_csv("cleaned.csv")
+
+# Pipeline with error handling
+let safe_result = raw_data
+  |> map(|item| try { process(item) } catch _ { None })
+  |> filter(|r| r != None)
+  |> map(|r| unwrap(r))
+
+# Forking a pipeline
+let base = read_fastq("sample.fq") |> filter(|r| mean_phred(r.quality) >= 20)
+let short = base |> filter(|r| r.length < 150) |> collect()
+let long = base |> filter(|r| r.length >= 150) |> collect()</code></pre>
+
+        <section id="ufcs" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Uniform Function Call Syntax (UFCS)</h2>
+          <p class="text-slate-400 mb-4">When <code class="text-cyan-400">x.f(args)</code> is called and <code class="text-cyan-400">x</code> has no method named <code class="text-cyan-400">f</code>, BioLang automatically rewrites it to <code class="text-cyan-400">f(x, args)</code>. This lets you use dot-call syntax with any function.</p>
+          <pre><code class="language-biolang"># These are equivalent:
+seq |> gc_content()
+gc_content(seq)
+seq.gc_content()
+
+# Chain built-in functions with dot syntax
+let result = dna"ATCGATCG"
+  .reverse_complement()
+  .gc_content()
+
+# Works with any function, including user-defined ones
+fn double(x) { x * 2 }
+let n = 5.double()   # 10
+
+# Mix pipe and dot styles
+reads
+  .filter(|r| mean_phred(r.quality) > 20)
+  .map(|r| r.length)
+  .mean()</code></pre>
+          <p class="text-slate-400 mt-4">UFCS is purely syntactic sugar &mdash; <code class="text-cyan-400">x.f(a, b)</code> becomes <code class="text-cyan-400">f(x, a, b)</code> when no native method exists.</p>
+        </section>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="variables.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Variables &amp; Types
+        </a>
+        <a href="functions.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Functions <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

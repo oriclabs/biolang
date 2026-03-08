@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compiler — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/compiler"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Compiler</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Compiler Internals</h1>
+        <p>
+          BioLang uses a multi-stage execution pipeline. By default, code runs through a
+          tree-walking interpreter for maximum flexibility and debuggability. For
+          performance-critical workloads, BioLang includes a bytecode compiler and an
+          experimental Cranelift JIT that can deliver significant speedups on numeric and
+          k-mer-heavy computations.
+        </p>
+
+        <h2>Execution Modes</h2>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Mode</th>
+                <th class="py-3 px-4">Flag</th>
+                <th class="py-3 px-4">Description</th>
+                <th class="py-3 px-4">Use Case</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">Interpreter</td>
+                <td class="py-3 px-4 font-mono">(default)</td>
+                <td class="py-3 px-4">Tree-walking AST interpreter</td>
+                <td class="py-3 px-4">Development, debugging, REPL</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">Bytecode</td>
+                <td class="py-3 px-4 font-mono">--compile</td>
+                <td class="py-3 px-4">Compile to bytecode, then execute on VM</td>
+                <td class="py-3 px-4">Production scripts, moderate speedup</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">JIT</td>
+                <td class="py-3 px-4 font-mono">--jit</td>
+                <td class="py-3 px-4">Cranelift JIT compilation to native code</td>
+                <td class="py-3 px-4">Hot loops, numeric-heavy workloads</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <pre><code class="language-bash"># Default: tree-walking interpreter
+bl run analysis.bl
+
+# Bytecode compilation
+bl run --compile analysis.bl
+
+# JIT compilation (experimental)
+bl run --jit analysis.bl</code></pre>
+
+        <h2>Compilation Pipeline</h2>
+        <p>
+          The compilation pipeline processes source code through several stages:
+        </p>
+        <pre><code class="language-text">Source (.bl)
+  │
+  ▼
+┌──────────┐   Tokens    ┌──────────┐    AST     ┌──────────────┐
+│  Lexer   │ ──────────▶ │  Parser  │ ─────────▶ │  Type Check  │
+│ bl-lexer │             │ bl-parser│            │  (optional)  │
+└──────────┘             └──────────┘            └──────────────┘
+                                                       │
+                                    ┌──────────────────┼──────────────────┐
+                                    ▼                  ▼                  ▼
+                             ┌────────────┐    ┌────────────┐    ┌────────────┐
+                             │ Interpreter│    │  Bytecode  │    │  Cranelift │
+                             │ bl-runtime │    │ bl-compiler│    │   bl-jit   │
+                             └────────────┘    └────────────┘    └────────────┘
+                                    │                  │                  │
+                                    ▼                  ▼                  ▼
+                                 Result            Bytecode          Native Code
+                                                      │                  │
+                                                      ▼                  ▼
+                                                ┌──────────┐    ┌────────────┐
+                                                │    VM    │    │  Execute   │
+                                                │ bl-compiler   │  directly  │
+                                                └──────────┘    └────────────┘</code></pre>
+
+        <h2>Bytecode Compiler (bl-compiler)</h2>
+        <p>
+          The bytecode compiler translates the AST into a compact instruction set that runs
+          on BioLang's stack-based virtual machine. This eliminates the overhead of AST
+          traversal and provides 2-5x speedup for most workloads:
+        </p>
+        <pre><code class="language-bash"># Compile and run
+bl run --compile analysis.bl
+
+# Compile to bytecode file (for inspection)
+bl compile analysis.bl -o analysis.blc
+
+# Inspect bytecode
+bl compile --disassemble analysis.bl</code></pre>
+
+        <h3>Bytecode Instruction Set</h3>
+        <p>
+          The VM uses a stack-based instruction set. Key instruction categories:
+        </p>
+        <pre><code class="language-text"># Example disassembly
+bl compile --disassemble example.bl
+
+0000  CONST       0        # Push constant "ATCGATCG"
+0002  MAKE_DNA              # Create DNA value
+0003  STORE       'seq'     # Store in variable 'seq'
+0005  LOAD        'seq'     # Push seq onto stack
+0007  CALL_BUILTIN gc_content 0  # Call gc_content()
+0010  STORE       'gc'      # Store result
+0012  LOAD        'gc'      # Push gc
+0014  CALL_BUILTIN print 1  # Call print(gc)</code></pre>
+
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Category</th>
+                <th class="py-3 px-4">Instructions</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4">Stack</td><td class="py-3 px-4 font-mono">CONST, POP, DUP, SWAP</td><td class="py-3 px-4">Stack manipulation</td></tr>
+              <tr><td class="py-3 px-4">Variables</td><td class="py-3 px-4 font-mono">LOAD, STORE, LOAD_GLOBAL</td><td class="py-3 px-4">Variable access</td></tr>
+              <tr><td class="py-3 px-4">Arithmetic</td><td class="py-3 px-4 font-mono">ADD, SUB, MUL, DIV, MOD, NEG</td><td class="py-3 px-4">Numeric operations</td></tr>
+              <tr><td class="py-3 px-4">Comparison</td><td class="py-3 px-4 font-mono">EQ, NE, LT, GT, LE, GE</td><td class="py-3 px-4">Comparison operators</td></tr>
+              <tr><td class="py-3 px-4">Logic</td><td class="py-3 px-4 font-mono">AND, OR, NOT</td><td class="py-3 px-4">Boolean logic</td></tr>
+              <tr><td class="py-3 px-4">Control</td><td class="py-3 px-4 font-mono">JMP, JMP_IF, JMP_IFNOT, LOOP</td><td class="py-3 px-4">Control flow</td></tr>
+              <tr><td class="py-3 px-4">Functions</td><td class="py-3 px-4 font-mono">CALL, CALL_BUILTIN, RETURN, CLOSURE</td><td class="py-3 px-4">Function calls</td></tr>
+              <tr><td class="py-3 px-4">Bio</td><td class="py-3 px-4 font-mono">MAKE_DNA, MAKE_RNA, MAKE_PROTEIN, PIPE</td><td class="py-3 px-4">Bio type construction</td></tr>
+              <tr><td class="py-3 px-4">Data</td><td class="py-3 px-4 font-mono">MAKE_LIST, MAKE_MAP, MAKE_TABLE, INDEX</td><td class="py-3 px-4">Data structure ops</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Cranelift JIT (bl-jit)</h2>
+        <p>
+          The JIT compiler uses Cranelift to generate native machine code at runtime. It is
+          feature-gated behind <code>--features jit</code> at build time and activated with
+          the <code>--jit</code> flag at runtime. The JIT targets hot loops and numeric
+          functions, falling back to the interpreter for dynamic operations:
+        </p>
+        <pre><code class="language-bash"># Run with JIT enabled
+bl run --jit kmer_analysis.bl
+
+# JIT with verbose output (shows what gets compiled)
+bl run --jit --verbose kmer_analysis.bl</code></pre>
+
+        <h3>What Gets JIT-Compiled</h3>
+        <p>
+          The JIT identifies and compiles these patterns:
+        </p>
+        <ul>
+          <li>Numeric loops and arithmetic expressions</li>
+          <li>K-mer encoding and counting inner loops</li>
+          <li>Sequence iteration and character comparisons</li>
+          <li>GC content computation</li>
+          <li>Edit distance and Hamming distance calculations</li>
+          <li>Array/list map and filter with simple closures</li>
+        </ul>
+        <p>
+          Operations that remain interpreted (too dynamic for efficient JIT):
+        </p>
+        <ul>
+          <li>API calls (network I/O)</li>
+          <li>File I/O operations</li>
+          <li>Table operations (dplyr-style verbs)</li>
+          <li>String interpolation</li>
+          <li>Dynamic dispatch through plugins</li>
+        </ul>
+
+        <h2>Optimization Levels</h2>
+        <p>
+          Both the bytecode compiler and JIT support optimization levels:
+        </p>
+        <pre><code class="language-bash"># No optimization (fastest compile, slowest run)
+bl run --compile -O0 analysis.bl
+
+# Default optimization
+bl run --compile -O1 analysis.bl
+
+# Aggressive optimization (slowest compile, fastest run)
+bl run --compile -O2 analysis.bl</code></pre>
+        <p>
+          Optimization passes include:
+        </p>
+        <ul>
+          <li><strong>O0:</strong> No optimization. Direct AST-to-bytecode translation.</li>
+          <li><strong>O1:</strong> Constant folding, dead code elimination, common subexpression elimination.</li>
+          <li><strong>O2:</strong> All of O1 plus loop unrolling, function inlining, and escape analysis for heap allocation avoidance.</li>
+        </ul>
+
+        <h2>Benchmarks</h2>
+        <p>
+          Performance comparison across execution modes on representative bioinformatics
+          workloads (lower is better):
+        </p>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Benchmark</th>
+                <th class="py-3 px-4">Interpreter</th>
+                <th class="py-3 px-4">Bytecode -O1</th>
+                <th class="py-3 px-4">JIT -O2</th>
+                <th class="py-3 px-4">Speedup (JIT)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4">GC content (1M bases)</td>
+                <td class="py-3 px-4">45ms</td>
+                <td class="py-3 px-4">18ms</td>
+                <td class="py-3 px-4">3ms</td>
+                <td class="py-3 px-4 text-cyan-400">15x</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">K-mer count (21-mer, 1M bases)</td>
+                <td class="py-3 px-4">320ms</td>
+                <td class="py-3 px-4">120ms</td>
+                <td class="py-3 px-4">28ms</td>
+                <td class="py-3 px-4 text-cyan-400">11x</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">Edit distance (10K pairs)</td>
+                <td class="py-3 px-4">890ms</td>
+                <td class="py-3 px-4">340ms</td>
+                <td class="py-3 px-4">95ms</td>
+                <td class="py-3 px-4 text-cyan-400">9.4x</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">FASTQ filter (1M reads)</td>
+                <td class="py-3 px-4">2.1s</td>
+                <td class="py-3 px-4">1.3s</td>
+                <td class="py-3 px-4">0.8s</td>
+                <td class="py-3 px-4 text-cyan-400">2.6x</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">Table groupby+summarize (100K rows)</td>
+                <td class="py-3 px-4">180ms</td>
+                <td class="py-3 px-4">95ms</td>
+                <td class="py-3 px-4">90ms</td>
+                <td class="py-3 px-4 text-cyan-400">2.0x</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">API calls (50 NCBI queries)</td>
+                <td class="py-3 px-4">12.5s</td>
+                <td class="py-3 px-4">12.4s</td>
+                <td class="py-3 px-4">12.4s</td>
+                <td class="py-3 px-4 text-slate-500">1.0x (I/O bound)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Key takeaway: the JIT provides the largest speedups for CPU-bound numerical
+          operations (k-mer counting, distance computation). For I/O-bound workloads
+          (file parsing, API calls), the execution mode makes little difference since
+          the bottleneck is not computation.
+        </p>
+
+        <h2>Building with JIT Support</h2>
+        <p>
+          The JIT is an optional feature that requires Cranelift at build time:
+        </p>
+        <pre><code class="language-bash"># Build with JIT support
+cargo build --release --features jit
+
+# Build without JIT (default, smaller binary)
+cargo build --release
+
+# Check if your bl binary has JIT support
+bl --version
+# BioLang v0.1.0 (with JIT)</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="lsp.html" class="text-violet-400 hover:text-violet-300">&larr; LSP</a>
+        <a href="plugins.html" class="text-violet-400 hover:text-violet-300">Plugins &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+# qc_pipeline.bl — FASTQ Quality Control Pipeline
+# Reads raw FASTQ, computes per-read statistics, filters by quality,
+# and produces a summary report with filtered output.
+
+# ── Load raw reads ──────────────────────────────────────────────
+
+let input_path = "tests/data/test.fq"
+println("Loading FASTQ: " ++ input_path)
+
+let reads = fastq(input_path)
+let total_reads = reads |> count()
+println("Total reads loaded: " ++ str(total_reads))
+
+# ── Per-read statistics ─────────────────────────────────────────
+# Each record has .id, .seq, .qual fields
+
+println("\n--- Per-Read Metrics ---")
+
+# Compute read lengths
+let lengths = reads |> map(|r| len(r.seq))
+println("Read lengths: min=" ++ str(min(lengths)) ++ " max=" ++ str(max(lengths))
+    ++ " mean=" ++ str(mean(lengths)))
+
+# GC content per read
+let gc_values = reads |> map(|r| r.seq |> gc_content())
+println("GC content:   min=" ++ str(min(gc_values)) ++ " max=" ++ str(max(gc_values))
+    ++ " mean=" ++ str(mean(gc_values)))
+
+# Mean quality per read (convert PHRED string to numeric scores, then average)
+let mean_quals = reads |> map(|r| r.qual |> map(|c| ord(c) - 33) |> mean())
+println("Mean quality: min=" ++ str(min(mean_quals)) ++ " max=" ++ str(max(mean_quals))
+    ++ " mean=" ++ str(mean(mean_quals)))
+
+# ── Quality filtering ───────────────────────────────────────────
+# Keep reads with mean quality >= 20 and length >= 50
+
+let min_qual = 20
+let min_len  = 50
+
+let passed = reads
+    |> filter(|r| (r.qual |> map(|c| ord(c) - 33) |> mean()) >= min_qual)
+    |> filter(|r| len(r.seq) >= min_len)
+
+let passed_count = passed |> count()
+let pass_rate = (passed_count / total_reads) * 100.0
+println("\nFiltering: mean_qual >= " ++ str(min_qual) ++ ", length >= " ++ str(min_len))
+println("Passed: " ++ str(passed_count) ++ " / " ++ str(total_reads)
+    ++ " (" ++ str(pass_rate) ++ "%)")
+
+# ── Adapter check ───────────────────────────────────────────────
+# Search for common Illumina universal adapter prefix
+
+let adapter = "AGATCGGAAGAG"
+let adapter_hits = reads
+    |> filter(|r| r.seq |> find_motif(adapter) |> count() > 0)
+    |> count()
+println("Reads with adapter sequence: " ++ str(adapter_hits))
+
+# ── Summary table ───────────────────────────────────────────────
+
+println("\n--- QC Summary ---")
+
+let summary = table([
+    { "metric": "Total reads",       "value": total_reads },
+    { "metric": "Passed filter",     "value": passed_count },
+    { "metric": "Pass rate (%)",     "value": pass_rate },
+    { "metric": "Adapter reads",     "value": adapter_hits },
+    { "metric": "Mean read length",  "value": mean(lengths) },
+    { "metric": "Mean GC content",   "value": mean(gc_values) },
+    { "metric": "Mean quality",      "value": mean(mean_quals) }
+])
+summary |> println()
+
+# ── Write filtered output ───────────────────────────────────────
+
+let out_path = temp_file("filtered", ".fq")
+passed |> write_fastq(out_path)
+println("\nFiltered reads written to: " ++ out_path)
+
+println("QC pipeline complete.")

@@ -1,0 +1,71 @@
+# fasta_fastq.bl — Reading and processing FASTA / FASTQ files
+#
+# Demonstrates: stream vs table mode, record fields, filtering,
+# quality analysis, and writing output files.
+
+# ── FASTA Streaming ──────────────────────────────────────────
+# Stream mode: lazy, processes one record at a time
+let fa_stream = fasta("tests/data/test.fa")
+
+println("=== FASTA records (stream) ===")
+fa_stream |> each(|rec| {
+    println("  >", rec.id, "  length=", rec.seq.length)
+})
+
+# ── FASTA Table Mode ─────────────────────────────────────────
+# Table mode: loads all records into an in-memory table
+let fa_table = fasta("tests/data/test.fa", "table")
+println("FASTA record count: ", fa_table |> count())
+
+# Filter sequences longer than 50 bp
+let long_seqs = fa_table |> filter(|r| r.length > 50)
+println("Sequences > 50 bp: ", long_seqs |> count())
+
+# Get GC content for each sequence
+fa_table |> each(|r| {
+    let gc = dna(r.seq) |> gc_content()
+    println("  ", r.id, " GC=", gc)
+})
+
+# ── FASTQ Streaming ──────────────────────────────────────────
+let fq_stream = fastq("tests/data/test.fq")
+
+println("\n=== FASTQ records (stream) ===")
+fq_stream |> each(|rec| {
+    println("  @", rec.id, "  len=", rec.seq.length)
+})
+
+# ── FASTQ Table Mode ─────────────────────────────────────────
+let fq_table = fastq("tests/data/test.fq", "table")
+println("FASTQ record count: ", fq_table |> count())
+
+# Compute mean quality per read
+let qual_report = fq_table |> map(|r| {
+    { id: r.id, length: r.length, mean_qual: r.qual |> mean() }
+})
+qual_report |> each(|r| {
+    println("  ", r.id, " len=", r.length, " mean_Q=", r.mean_qual)
+})
+
+# ── Quality Filtering ────────────────────────────────────────
+# Keep reads with mean quality >= 30 and length >= 50
+let hq_reads = fq_table
+    |> filter(|r| r.qual |> mean() >= 30)
+    |> filter(|r| r.length >= 50)
+println("High-quality reads (Q>=30, len>=50): ", hq_reads |> count())
+
+# ── Length Distribution ───────────────────────────────────────
+let lengths = fq_table |> map(|r| r.length)
+println("Read lengths: ", lengths)
+println("Min length:   ", lengths |> min())
+println("Max length:   ", lengths |> max())
+
+# ── Writing Output ────────────────────────────────────────────
+# Write filtered reads to a new FASTQ file
+# hq_reads |> write_fastq("/tmp/filtered.fq")
+# println("Wrote filtered reads to /tmp/filtered.fq")
+
+# Write long FASTA sequences to a new file
+# long_seqs |> write_fasta("/tmp/long_seqs.fa")
+# println("Wrote long sequences to /tmp/long_seqs.fa")
+println("\n(write commands commented out — uncomment to produce output files)")

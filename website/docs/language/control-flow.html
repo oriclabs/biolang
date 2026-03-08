@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Flow — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/control-flow"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Control Flow</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Control Flow</h1>
+        <p>
+          BioLang provides familiar control flow constructs &mdash; <code>if</code>/<code>else</code>,
+          <code>for</code> loops, and <code>while</code> loops. A key distinction is that
+          <code>if</code>/<code>else</code> are <strong>expressions</strong> that return values,
+          not just statements.
+        </p>
+
+        <h2>If / Else Expressions</h2>
+        <p>
+          Every <code>if</code>/<code>else</code> block evaluates to a value. The last expression
+          in each branch is the value of that branch:
+        </p>
+        <pre><code class="language-biolang"># if/else as an expression — assigns the result
+let label = if score >= 0.9 {
+  "high"
+} else if score >= 0.5 {
+  "medium"
+} else {
+  "low"
+}
+
+# Single-line conditional
+let status = if is_coding { "coding" } else { "non-coding" }
+
+# Using if/else in a pipe chain
+let category = variant.impact
+  |> (|impact| if impact == "HIGH" { 1 } else { 0 })</code></pre>
+
+        <h2>If Without Else</h2>
+        <p>
+          An <code>if</code> without an <code>else</code> branch returns <code>None</code> when
+          the condition is false. When used as a statement (ignoring the return value), the else
+          is not required:
+        </p>
+        <pre><code class="language-biolang"># Statement usage — no else needed
+if verbose {
+  print(f"Processing {len(reads)} reads")
+}
+
+# As expression without else — returns Option
+let maybe_value = if condition { compute_value() }
+# maybe_value is None if condition is false
+
+# Guard clause pattern
+fn process(data) {
+  if len(data) == 0 {
+    return Err("empty input")
+  }
+
+  # Main logic here
+  Ok(transform(data))
+}</code></pre>
+
+        <h2>Conditional Chains</h2>
+        <pre><code class="language-biolang">fn classify_variant(variant) -> String {
+  if is_snp(variant) && variant.consequence == "synonymous" {
+    "synonymous_SNV"
+  } else if is_snp(variant) && variant.consequence == "missense" {
+    "missense_SNV"
+  } else if is_snp(variant) && variant.consequence == "nonsense" {
+    "nonsense_SNV"
+  } else if is_indel(variant) && variant.consequence == "frameshift" {
+    "frameshift_indel"
+  } else if is_indel(variant) {
+    "inframe_indel"
+  } else {
+    "other"
+  }
+}</code></pre>
+
+        <h2>For Loops</h2>
+        <p>
+          The <code>for</code> loop iterates over any iterable value &mdash; lists, ranges,
+          strings, maps, tables, and streams:
+        </p>
+        <pre><code class="language-biolang"># Iterate over a list
+for gene in ["BRCA1", "TP53", "EGFR"] {
+  print(f"Looking up {gene}")
+  let info = ncbi_gene(gene)
+  print(f"  Chromosome: {info.chromosome}")
+}
+
+# Iterate over a range
+for i in 0..10 {
+  print(f"Index: {i}")
+}
+
+# Inclusive range
+for i in 1..=100 {
+  # processes 1 through 100
+}
+
+# Iterate with index
+for (i, read) in enumerate(reads) {
+  if i % 1000 == 0 {
+    print(f"Processed {i} reads")
+  }
+}</code></pre>
+
+        <h3>Iterating Over Maps</h3>
+        <pre><code class="language-biolang">let gene_scores = {"BRCA1": 0.95, "TP53": 0.87, "EGFR": 0.72}
+
+# Key-value destructuring
+for (gene, score) in gene_scores {
+  if score > 0.8 {
+    print(f"{gene} is significant (score={score})")
+  }
+}
+
+# Keys only
+for gene in keys(gene_scores) {
+  print(gene)
+}
+
+# Values only
+for score in values(gene_scores) {
+  print(score)
+}</code></pre>
+
+        <h3>Iterating Over Tables</h3>
+        <pre><code class="language-biolang">let variants = read_vcf("calls.vcf")
+
+for row in variants {
+  print(f"{row.chrom}:{row.pos} {row.ref_allele}>{row.alt_allele}")
+}
+
+# Process in chunks
+for chunk in variants |> chunk(1000) {
+  let batch_result = analyze_batch(chunk)
+  write_results(batch_result)
+}</code></pre>
+
+        <h2>While Loops</h2>
+        <pre><code class="language-biolang"># Basic while loop
+let attempts = 0
+let result = None
+
+while attempts < 3 && result == None {
+  result = try { fetch_data(url) } catch _ { None }
+  attempts = attempts + 1
+}
+
+# Read until EOF
+let lines = []
+let line = read_line(file)
+while line != None {
+  lines = push(lines, unwrap(line))
+  line = read_line(file)
+}</code></pre>
+
+        <h2>Loop Control: Break and Continue</h2>
+        <pre><code class="language-biolang"># break exits the loop immediately
+for read in stream_fastq("sample.fq") {
+  if mean_phred(read.quality) < 10 {
+    print("Found corrupted read, stopping")
+    break
+  }
+  process(read)
+}
+
+# continue skips to the next iteration
+let good_reads = []
+for read in reads {
+  if read.length < 50 {
+    continue   # Skip short reads
+  }
+  if mean_phred(read.quality) < 20 {
+    continue   # Skip low-quality reads
+  }
+  good_reads = push(good_reads, read)
+}</code></pre>
+
+        <h2>Break with Values</h2>
+        <p>
+          Loops can return values via <code>break</code>, similar to how <code>if</code> returns
+          values. This is useful for search patterns:
+        </p>
+        <pre><code class="language-biolang"># Find the first high-quality variant
+let found = for variant in variants {
+  if variant.qual >= 99.0 && variant.depth >= 30 {
+    break variant
+  }
+}
+# found is Option — None if no break was reached
+
+# Search with index
+let position = for (i, base) in enumerate(sequence) {
+  if base == 'G' {
+    break i
+  }
+}</code></pre>
+
+        <h2>Nested Loops</h2>
+        <pre><code class="language-biolang"># Compare all pairs of samples
+let samples = ["sample_a", "sample_b", "sample_c"]
+
+for i in 0..len(samples) {
+  for j in (i + 1)..len(samples) {
+    let similarity = compare(samples[i], samples[j])
+    print(f"{samples[i]} vs {samples[j]}: {similarity}")
+  }
+}
+
+# Labeled break for nested loops
+for chrom in chromosomes {
+  for gene in genes_on(chrom) {
+    for variant in variants_in(gene) {
+      if is_pathogenic(variant) {
+        print(f"Found pathogenic: {variant}")
+        break   # Exits innermost loop
+      }
+    }
+  }
+}</code></pre>
+
+        <h2>Comprehensions vs. Loops</h2>
+        <p>
+          BioLang encourages functional style with <code>map</code>/<code>filter</code> over
+          imperative loops, but loops are available when they are clearer:
+        </p>
+        <pre><code class="language-biolang"># Functional style (preferred for transforms)
+let gc_values = sequences |> map(|s| gc_content(s))
+let long_seqs = sequences |> filter(|s| len(s) > 1000)
+
+# Loop style (clearer for side effects)
+for sample in samples {
+  let result = run_pipeline(sample)
+  write_report(result, f"{sample.name}_report.html")
+  print(f"Completed {sample.name}")
+}
+
+# Loop with accumulation (reduce is often better)
+let total = 0
+for val in values {
+  total = total + val
+}
+# vs.
+let total = values |> reduce(|a, b| a + b)</code></pre>
+
+        <h2>Conditional Expressions in Context</h2>
+        <pre><code class="language-biolang"># Ternary-like usage in function calls
+let color = if p_value < 0.05 { "red" } else { "gray" }
+
+# Inside string interpolation
+print(f"Status: {if passed { "PASS" } else { "FAIL" }}")
+
+# As function arguments
+plot(data,
+  color = if grouped { "category" } else { "none" },
+  title = if normalized { "Normalized Values" } else { "Raw Values" }
+)
+
+# In list construction
+let flags = [
+  if is_duplicate { "DUP" } else { None },
+  if is_supplementary { "SUPP" } else { None },
+  if failed_qc { "FAIL" } else { None }
+] |> filter(|f| f != None)</code></pre>
+
+        <h2>Given / Otherwise</h2>
+        <p>
+          The <code>given</code> expression provides declarative conditional chains &mdash;
+          cleaner than nested if/else for multi-criteria decisions:
+        </p>
+        <pre><code class="language-biolang">let classification = given {
+    gc_content(seq) > 0.6 => "high_gc"
+    gc_content(seq) > 0.4 => "normal_gc"
+    gc_content(seq) > 0.2 => "low_gc"
+    otherwise => "at_rich"
+}
+
+# Sample QC decision
+let qc_status = given {
+    mean_qual < 20 => "fail"
+    adapter_rate > 0.3 => "fail"
+    duplication_rate > 0.5 => "warn"
+    otherwise => "pass"
+}</code></pre>
+
+        <h2>For / Else</h2>
+        <p>
+          The <code>else</code> block on a <code>for</code> loop runs only when the
+          loop completes without <code>break</code> &mdash; useful for search-and-fail patterns:
+        </p>
+        <pre><code class="language-biolang"># Search for a specific motif
+for seq in sequences {
+    if find_motif(seq, "TATAAA") != None {
+        print(f"Found TATA box in {seq.id}")
+        break
+    }
+} else {
+    print("No TATA box found in any sequence")
+}</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="functions.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Functions
+        </a>
+        <a href="pattern-matching.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Pattern Matching <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

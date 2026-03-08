@@ -1,0 +1,23 @@
+# Rosalind: PTRA — Protein Translation
+# https://rosalind.info/problems/ptra/
+#
+# Given: A DNA string s and a protein string p.
+# Return: The genetic code variant table number used for translation.
+#
+# BioLang uses standard genetic code (table 1). We verify by translating
+# and comparing the result.
+
+let dna_seq = dna"ATGGCCATGGCGCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA"
+let expected_protein = protein"MAMAPRTEINSTRING"
+
+# translate() stops at the first stop codon
+let result = translate(dna_seq)
+
+println("Translated: " + str(result))
+println("Expected:   " + str(expected_protein))
+
+# Standard genetic code (table 1) should produce the expected protein
+let table = if result == expected_protein then 1 else 0
+println("Table:      " + str(table))
+println("Expected:   1")
+println("Match:      " + str(table == 1))

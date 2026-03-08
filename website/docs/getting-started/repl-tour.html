@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REPL Tour — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="getting-started/repl-tour"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a>
+        <span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Getting Started</a>
+        <span class="mx-2">/</span>
+        <span class="text-slate-300">REPL Tour</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>REPL Tour</h1>
+        <p>
+          The BioLang REPL (Read-Eval-Print Loop) is an interactive environment for exploring
+          data, testing ideas, and prototyping analyses. It features syntax highlighting,
+          tab completion, persistent history, and built-in commands.
+        </p>
+
+        <h2>Starting the REPL</h2>
+        <p>Launch the REPL from your terminal:</p>
+        <pre><code class="language-bash">bl repl</code></pre>
+        <p>You will see the BioLang prompt:</p>
+        <pre><code class="language-biolang">BioLang v0.1.0 — Type :help for commands, :quit to exit
+bl&gt;</code></pre>
+        <p>
+          Type any expression and press Enter to evaluate it. The result is automatically printed:
+        </p>
+        <pre><code class="language-biolang">bl&gt; 2 + 2
+4
+
+bl&gt; "hello" |> upper()
+"HELLO"
+
+bl&gt; dna"GATTACA" |> len()
+7</code></pre>
+
+        <h2>REPL Commands</h2>
+        <p>
+          Commands start with a colon (<code>:</code>) and are not BioLang expressions. They
+          control the REPL itself.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Short</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>:help</code></td>
+              <td><code>:h</code></td>
+              <td>Show available commands and usage</td>
+            </tr>
+            <tr>
+              <td><code>:quit</code></td>
+              <td><code>:q</code></td>
+              <td>Exit the REPL</td>
+            </tr>
+            <tr>
+              <td><code>:clear</code></td>
+              <td><code>:c</code></td>
+              <td>Clear the screen</td>
+            </tr>
+            <tr>
+              <td><code>:type &lt;expr&gt;</code></td>
+              <td><code>:t</code></td>
+              <td>Show the type of an expression without evaluating</td>
+            </tr>
+            <tr>
+              <td><code>:load &lt;file&gt;</code></td>
+              <td><code>:l</code></td>
+              <td>Load and execute a <code>.bl</code> file in the current session</td>
+            </tr>
+            <tr>
+              <td><code>:save &lt;file&gt;</code></td>
+              <td><code>:s</code></td>
+              <td>Save the current session's expressions to a file</td>
+            </tr>
+            <tr>
+              <td><code>:time &lt;expr&gt;</code></td>
+              <td></td>
+              <td>Evaluate an expression and show elapsed time</td>
+            </tr>
+            <tr>
+              <td><code>:env</code></td>
+              <td></td>
+              <td>List all variables and their types in the current scope</td>
+            </tr>
+            <tr>
+              <td><code>:reset</code></td>
+              <td></td>
+              <td>Reset the session, clearing all variables and imports</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Type Inspection</h3>
+        <p>
+          The <code>:type</code> command is invaluable for understanding what types flow through
+          your pipe chains:
+        </p>
+        <pre><code class="language-biolang">bl&gt; :type dna"ATCG"
+Dna
+
+bl&gt; :type [1, 2, 3] |> map(|x| x * 2.0)
+List&lt;Float&gt;
+
+bl&gt; :type { "name": "sample", "reads": 1000 }
+Map&lt;String, Any&gt;
+
+bl&gt; :type |x: Int| x + 1
+Fn(Int) -> Int</code></pre>
+
+        <h3>Timing Expressions</h3>
+        <p>
+          Use <code>:time</code> to benchmark operations directly in the REPL:
+        </p>
+        <pre><code class="language-biolang">bl&gt; :time range(1, 1_000_000) |> map(|x| x * x) |> sum()
+333333833333500000
+Elapsed: 42ms
+
+bl&gt; :time dna"ATCGATCG" * 1000 |> gc_content()
+0.5
+Elapsed: 0.3ms</code></pre>
+
+        <h3>Session Management</h3>
+        <p>
+          Load external files to bring their functions and variables into the current session:
+        </p>
+        <pre><code class="language-biolang">bl&gt; :load utils.bl
+Loaded 3 functions, 2 variables from utils.bl
+
+bl&gt; my_custom_function("test")
+"TEST_processed"
+
+bl&gt; :env
+  seq       : Dna
+  threshold : Float = 30.0
+  samples   : List&lt;Map&lt;String, Any&gt;&gt;
+  my_custom_function : Fn(String) -> String</code></pre>
+        <p>
+          Save your current session to a file for later reuse:
+        </p>
+        <pre><code class="language-biolang">bl&gt; let data = [10, 20, 30, 40, 50]
+bl&gt; let filtered = data |> filter(|x| x > 25)
+bl&gt; :save session.bl
+Saved 2 expressions to session.bl</code></pre>
+
+        <h2>Tab Completion</h2>
+        <p>
+          Press <kbd>Tab</kbd> at any time to see contextual completions. The REPL completes:
+        </p>
+        <ul>
+          <li><strong>Built-in functions</strong> &mdash; <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>print</code>, etc.</li>
+          <li><strong>Sequence functions</strong> &mdash; type <code>dna"ATCG" |&gt;</code> then <kbd>Tab</kbd></li>
+          <li><strong>Variable names</strong> &mdash; any variable defined in the current session</li>
+          <li><strong>REPL commands</strong> &mdash; type <code>:</code> then <kbd>Tab</kbd></li>
+        </ul>
+        <pre><code class="language-biolang">bl&gt; dna"ATCG" |> [Tab]
+gc_content    reverse_complement    complement    transcribe    len
+translate     subseq                find_motif    kmers         kmer_count
+
+bl&gt; mea[Tab]
+mean    mean_phred    median</code></pre>
+
+        <h2>Multi-line Input</h2>
+        <p>
+          The REPL automatically detects incomplete expressions. When you open a brace, bracket,
+          or parenthesis without closing it, the prompt changes to <code>...</code> to indicate
+          continuation:
+        </p>
+        <pre><code class="language-biolang">bl&gt; let samples = [
+...   { "id": "S1", "reads": 1_000_000 },
+...   { "id": "S2", "reads": 2_500_000 },
+...   { "id": "S3", "reads": 800_000 }
+... ]
+
+bl&gt; fn greet(name: String) -> String {
+...   "Hello, {name}!"
+... }
+
+bl&gt; greet("BioLang")
+"Hello, BioLang!"</code></pre>
+        <p>
+          You can also force multi-line mode by ending a line with a backslash:
+        </p>
+        <pre><code class="language-biolang">bl&gt; [1, 2, 3, 4, 5] \
+...   |> map(|x| x * 10) \
+...   |> filter(|x| x > 20) \
+...   |> sum()
+120</code></pre>
+
+        <h2>History</h2>
+        <p>
+          The REPL maintains a persistent history across sessions, stored in
+          <code>~/.biolang/history</code>. Navigate with:
+        </p>
+        <ul>
+          <li><kbd>Up</kbd> / <kbd>Down</kbd> &mdash; previous and next entries</li>
+          <li><kbd>Ctrl+R</kbd> &mdash; reverse search through history</li>
+          <li><kbd>Ctrl+P</kbd> / <kbd>Ctrl+N</kbd> &mdash; same as Up/Down</li>
+        </ul>
+        <p>
+          History search is prefix-aware. Type the beginning of a previous command and press
+          <kbd>Up</kbd> to find matching entries:
+        </p>
+        <pre><code class="language-biolang">bl&gt; dna[Up]
+# Cycles through previous commands starting with "dna"
+bl&gt; dna"GATTACA" |> reverse_complement()</code></pre>
+
+        <h2>Working with Genomic Data</h2>
+        <p>
+          The REPL is especially useful for exploring genomic data interactively:
+        </p>
+        <pre><code class="language-biolang">bl&gt; let reads = read_fastq("sample.fastq")
+
+bl&gt; reads |> take(5) |> map(|r| r.id)
+["read_001", "read_002", "read_003", "read_004", "read_005"]
+
+bl&gt; reads |> map(|r| r.length) |> mean()
+151.4
+
+bl&gt; gc_content(reads[0].seq)
+0.4172
+
+bl&gt; kmers(reads[0].seq, 3) |> take(5)
+[dna"ATG", dna"TGC", dna"GCA", dna"CAT", dna"ATT"]</code></pre>
+
+        <h2>Configuration</h2>
+        <p>
+          Customize the REPL by creating a <code>~/.biolang/replrc.bl</code> file. It runs
+          automatically when the REPL starts:
+        </p>
+        <pre><code class="language-biolang"># ~/.biolang/replrc.bl
+# Define handy shortcuts
+
+fn qc(path: String) {
+  let reads = read_fastq(path)
+  reads
+    |> map(|r| mean_phred(r.quality))
+    |> describe()
+}
+
+print("REPL ready.")</code></pre>
+
+        <h2>Keyboard Shortcuts</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Shortcut</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><kbd>Tab</kbd></td>
+              <td>Auto-complete</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl+C</kbd></td>
+              <td>Cancel current input</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl+D</kbd></td>
+              <td>Exit the REPL</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl+L</kbd></td>
+              <td>Clear the screen</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl+R</kbd></td>
+              <td>Reverse history search</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl+A</kbd></td>
+              <td>Move to beginning of line</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl+E</kbd></td>
+              <td>Move to end of line</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl+W</kbd></td>
+              <td>Delete word backward</td>
+            </tr>
+            <tr>
+              <td><kbd>Alt+B</kbd> / <kbd>Alt+F</kbd></td>
+              <td>Move backward/forward by word</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Next Steps</h2>
+        <p>
+          Now that you are comfortable with the REPL, check out the
+          <a href="from-python-r.html" class="text-violet-400 hover:text-violet-300">From Python/R</a>
+          guide if you are coming from an existing bioinformatics workflow.
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="editor-setup.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Editor Setup
+        </a>
+        <a href="from-python-r.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          From Python/R <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alignment — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/alignment"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Alignment</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Sequence Alignment</h1>
+        <p>
+          BioLang includes a built-in pairwise sequence alignment engine supporting both local
+          (Smith-Waterman) and global (Needleman-Wunsch) alignment modes. Alignment results
+          include the optimal score, aligned sequences, CIGAR string, and identity statistics.
+          For protein alignments, standard substitution matrices (BLOSUM62, PAM250) are
+          available.
+        </p>
+
+        <h2>align()</h2>
+        <p>
+          The <code>align()</code> function performs pairwise alignment between two sequences.
+          It returns a structured result with score, aligned sequences, and CIGAR representation:
+        </p>
+        <pre><code class="language-biolang"># Global alignment (Needleman-Wunsch) — default mode
+let result = align(dna"ATCGATCGATCG", dna"ATCAATCG")
+
+print(result.score)       # => alignment score (Int)
+print(result.aligned1)    # => aligned version of first sequence
+print(result.aligned2)    # => aligned version of second sequence
+print(result.cigar)       # => CIGAR string representation
+print(result.identity)    # => fraction of matching positions (Float)
+print(result.gaps)        # => number of gap positions (Int)
+
+# Local alignment (Smith-Waterman)
+result = align(dna"XXXXATCGATCGXXXX", dna"ATCGATCG", {type: "local"})
+
+print(result.score)
+print(result.aligned1)
+print(result.aligned2)</code></pre>
+
+        <h3>Scoring Parameters</h3>
+        <p>
+          Customize the scoring scheme with match, mismatch, gap open, and gap extend penalties:
+        </p>
+        <pre><code class="language-biolang"># Custom scoring via options record (third argument)
+let result = align(
+  dna"ATCGATCGATCG",
+  dna"ATCAATCG",
+  {
+    type: "global",
+    match: 2,
+    mismatch: -1,
+    gap_open: -5,
+    gap_extend: -1
+  }
+)
+
+# Affine gap penalties are the default:
+# gap_open = -5, gap_extend = -1
+# This favors fewer, longer gaps over many short gaps</code></pre>
+
+        <h2>score_matrix</h2>
+        <p>
+          For protein alignments, use a substitution matrix. BioLang includes BLOSUM and PAM
+          matrices. You can also define custom matrices:
+        </p>
+        <pre><code class="language-biolang"># Protein alignment with BLOSUM62
+let result = align(
+  protein"MKTLVFGADRHWY",
+  protein"MKTLAFGADRHWY",
+  {type: "global"}
+)
+
+print(result.score)
+print(result.aligned1)
+print(result.aligned2)
+
+# Load a substitution matrix (returns a Matrix)
+# Available: "blosum62", "blosum45", "pam250"
+let blosum = score_matrix("blosum62")
+print(blosum)   # 20x20 matrix with amino acid row/column names</code></pre>
+
+        <h2>edit_distance</h2>
+        <p>
+          Compute the Levenshtein edit distance between two sequences &mdash; the minimum
+          number of insertions, deletions, and substitutions to transform one into the other:
+        </p>
+        <pre><code class="language-biolang"># Edit distance (Levenshtein)
+let d = edit_distance(dna"ATCGATCG", dna"ATCAATCG")
+print(d)   # => 1
+
+# Works with any sequence type
+d = edit_distance(protein"MKTLVF", protein"MKPLVF")
+print(d)   # => 1
+
+# Also works with plain strings
+d = edit_distance("kitten", "sitting")
+print(d)   # => 3</code></pre>
+
+        <h2>hamming_distance</h2>
+        <p>
+          The Hamming distance counts the number of positions where two equal-length sequences
+          differ. Unlike edit distance, it does not consider insertions or deletions:
+        </p>
+        <pre><code class="language-biolang"># Hamming distance (sequences must be same length)
+let d = hamming_distance(dna"ATCGATCG", dna"ATCAATCG")
+print(d)   # => 1
+
+# Useful for comparing barcodes or short sequences
+let barcode1 = dna"ACGTACGT"
+let barcode2 = dna"ACGAACGT"
+d = hamming_distance(barcode1, barcode2)
+print(d)   # => 1
+
+# Error: sequences must be the same length
+# hamming_distance(dna"ATCG", dna"ATCGA")  # Error!</code></pre>
+
+        <h2>Using Alignment Results</h2>
+        <p>
+          The <code>align()</code> result record includes an <code>identity</code> field
+          (fraction of matching positions) and a <code>cigar</code> string that can be
+          used for further analysis:
+        </p>
+        <pre><code class="language-biolang"># Get identity from alignment result
+let result = align(dna"ATCGATCGATCG", dna"ATCAATCG")
+print(result.identity)    # => fraction of matching positions
+print(result.cigar)       # => CIGAR string
+print(result.gaps)        # => number of gap positions
+
+# Compare multiple sequences against the first
+let seqs = fasta("homologs.fa") |> collect()
+let ref_seq = first(seqs)
+seqs |> map(|s| {
+  id: s.id,
+  identity: align(ref_seq.seq, s.seq).identity
+}) |> to_table() |> print()</code></pre>
+
+        <h2>Practical Example: Variant Detection</h2>
+        <p>
+          Using alignment to detect variants between a sample and reference:
+        </p>
+        <pre><code class="language-biolang"># Align sample to reference and inspect results
+let ref = dna"ATCGATCGATCGATCGATCGATCG"
+let sample = dna"ATCGAACGATCGTTCGATCGATCG"
+
+let result = align(ref, sample, {type: "global"})
+
+print("Score:", result.score)
+print("Identity:", result.identity)
+print("Gaps:", result.gaps)
+print("CIGAR:", result.cigar)
+print("Aligned ref:   ", result.aligned1)
+print("Aligned sample:", result.aligned2)
+
+# Use edit_distance for a quick similarity check
+let d = edit_distance(ref, sample)
+print("Edit distance:", d)
+
+# Hamming distance works when sequences are the same length
+d = hamming_distance(ref, sample)
+print("Hamming distance:", d)</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="kmers.html" class="text-violet-400 hover:text-violet-300">&larr; K-mers</a>
+        <a href="motifs.html" class="text-violet-400 hover:text-violet-300">Motifs &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

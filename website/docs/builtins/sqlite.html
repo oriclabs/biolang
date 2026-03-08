@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQLite — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/sqlite"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">SQLite</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">SQLite</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          7 builtins for querying and writing SQLite databases. Annotation databases, sample tracking,
+          result caching &mdash; all via embedded SQLite with zero server setup. Query results return
+          as Tables, ready for piping through BioLang&rsquo;s table ops.
+        </p>
+
+        <!-- sqlite -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Opening a Database</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="sqlite">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">sqlite(path?)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String? &rarr; DbHandle</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Opens (or creates) a SQLite database. Returns a handle you pass to <code>sql()</code>
+              and other builtins. Call with no arguments for an in-memory database.
+            </p>
+            <pre><code class="language-biolang"># Open a file-based database
+let db = sqlite("annotations.db")
+
+# In-memory database (for temporary work)
+let scratch = sqlite()</code></pre>
+          </div>
+        </section>
+
+        <!-- sql -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Querying</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="sql">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">sql(db, query, params?)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">DbHandle, String, List? &rarr; Table | Int</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Executes a SQL statement. <code>SELECT</code> / <code>PRAGMA</code> / <code>WITH</code>
+              queries return a <code>Table</code>. Write statements (<code>INSERT</code>,
+              <code>UPDATE</code>, <code>DELETE</code>, <code>CREATE TABLE</code>) return the number
+              of affected rows as an integer. Use <code>?</code> placeholders for parameterized queries.
+            </p>
+            <pre><code class="language-biolang">let db = sqlite("clinvar.db")
+
+# Parameterized SELECT — returns a Table
+let genes = sql(db,
+  "SELECT symbol, chrom, start, end FROM genes WHERE chrom = ? AND biotype = ?",
+  ["chr17", "protein_coding"])
+
+# Pipe into BioLang table ops
+genes
+  |> filter(|g| g.start > 40000000)
+  |> sort_by(|g| g.start)
+  |> print()
+
+# CREATE TABLE
+sql(db, "CREATE TABLE IF NOT EXISTS results (
+  sample TEXT, snps INTEGER, indels INTEGER, ti_tv REAL
+)")
+
+# INSERT with parameters
+sql(db, "INSERT INTO results VALUES (?, ?, ?, ?)",
+    ["tumor_01", 1234, 456, 2.08])
+
+# UPDATE — returns rows affected
+let changed = sql(db, "UPDATE results SET snps = ? WHERE sample = ?",
+                  [1300, "tumor_01"])
+print(str(changed) + " rows updated")</code></pre>
+          </div>
+        </section>
+
+        <!-- sql_insert -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Bulk Insert</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="sql_insert">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">sql_insert(db, table_name, data)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">DbHandle, String, Table | List &rarr; Int</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Bulk inserts data into a table. Accepts a <code>Table</code> or a list of records.
+              Uses a transaction for performance. Returns the number of rows inserted.
+            </p>
+            <pre><code class="language-biolang">let db = sqlite("results.db")
+
+# Insert from a Table (e.g., from read_tsv or sql query)
+let variant_stats = read_tsv("variant_stats.tsv")
+sql_insert(db, "variants", variant_stats)
+
+# Insert from a list of records
+let samples = [
+  {id: "S1", depth: 42.3, mapped_pct: 98.1},
+  {id: "S2", depth: 38.7, mapped_pct: 97.5},
+  {id: "S3", depth: 45.1, mapped_pct: 99.0},
+]
+let inserted = sql_insert(db, "qc_results", samples)
+print(str(inserted) + " rows inserted")</code></pre>
+          </div>
+        </section>
+
+        <!-- sql_tables / sql_schema -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Metadata</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="sql_tables">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">sql_tables(db)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">DbHandle &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Lists all table names in the database.
+            </p>
+            <pre><code class="language-biolang">let db = sqlite("annotations.db")
+let tables = sql_tables(db)
+# ["genes", "transcripts", "exons", "variants"]</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="sql_schema">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">sql_schema(db, table_name)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">DbHandle, String &rarr; Table</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns column metadata (name, type, not-null, primary key) as a Table.
+            </p>
+            <pre><code class="language-biolang">let schema = sql_schema(db, "genes")
+print(schema)
+#  cid | name   | type    | notnull | pk
+# -----+--------+---------+---------+-----
+#  0   | symbol | TEXT    | false   | false
+#  1   | chrom  | TEXT    | false   | false
+#  2   | start  | INTEGER | false   | false
+#  3   | end    | INTEGER | false   | false</code></pre>
+          </div>
+        </section>
+
+        <!-- Utility -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Utility</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="sql_close">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">sql_close(db)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">DbHandle &rarr; Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Hint to close the database connection. Connections auto-close when the handle goes
+              out of scope, so this is optional.
+            </p>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="is_db">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">is_db(value)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Any &rarr; Bool</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns <code>true</code> if the value is a SQLite database handle.
+            </p>
+            <pre><code class="language-biolang">let db = sqlite("test.db")
+is_db(db)     # true
+is_db("hello") # false</code></pre>
+          </div>
+        </section>
+
+        <!-- Pipeline Example -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Pipeline Example</h2>
+
+        <p class="mb-4">
+          Store pipeline results in SQLite for downstream analysis or cross-run comparison.
+        </p>
+
+        <pre><code class="language-biolang">let db = sqlite("project_results.db")
+
+sql(db, "CREATE TABLE IF NOT EXISTS qc (
+  sample TEXT PRIMARY KEY,
+  total_reads INTEGER,
+  pass_reads INTEGER,
+  pass_rate REAL,
+  mean_quality REAL
+)")
+
+pipeline fastq_qc(sample_id, fastq_path) {
+  stage stats {
+    let reads = read_fastq(fastq_path) |> collect()
+    let total = len(reads)
+    let passing = reads |> filter(|r| mean_phred(r.quality) >= 25)
+    let pass_count = len(passing)
+    let mean_q = reads |> map(|r| mean_phred(r.quality)) |> mean()
+
+    sql(db, "INSERT OR REPLACE INTO qc VALUES (?, ?, ?, ?, ?)",
+        [sample_id, total, pass_count, pass_count / total * 100.0, mean_q])
+
+    {total: total, passing: pass_count, mean_quality: mean_q}
+  }
+}
+
+# Run for each sample
+let samples = [
+  {id: "S1", path: "S1_R1.fq.gz"},
+  {id: "S2", path: "S2_R1.fq.gz"},
+  {id: "S3", path: "S3_R1.fq.gz"},
+]
+samples |> each(|s| fastq_qc(s.id, s.path))
+
+# Query aggregated results
+let summary = sql(db, "SELECT * FROM qc ORDER BY pass_rate DESC")
+print(summary)</code></pre>
+
+        <!-- Summary Table -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Summary</h2>
+
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr><th>Builtin</th><th>Returns</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>sqlite(path?)</code></td><td>DbHandle</td><td>Open/create SQLite database</td></tr>
+              <tr><td><code>sql(db, query, params?)</code></td><td>Table | Int</td><td>Execute SQL; SELECT returns Table, writes return row count</td></tr>
+              <tr><td><code>sql_insert(db, table, data)</code></td><td>Int</td><td>Bulk insert from Table or list of records</td></tr>
+              <tr><td><code>sql_tables(db)</code></td><td>List</td><td>List table names</td></tr>
+              <tr><td><code>sql_schema(db, table)</code></td><td>Table</td><td>Column metadata (name, type, constraints)</td></tr>
+              <tr><td><code>sql_close(db)</code></td><td>Nil</td><td>Close connection (optional, auto-closes)</td></tr>
+              <tr><td><code>is_db(value)</code></td><td>Bool</td><td>Type check for database handle</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </article>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+</body>
+</html>

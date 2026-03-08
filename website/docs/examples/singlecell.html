@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Single-Cell — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/singlecell"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Single-Cell</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Single-Cell Analysis</h1>
+        <p>Single-cell RNA sequencing analysis in BioLang covers the full workflow from
+        raw count matrices through quality control, normalization, dimensionality
+        reduction, clustering, and marker gene identification.</p>
+
+        <h2>Loading Count Matrices</h2>
+
+        <h3>Reading 10x Genomics output</h3>
+        <pre><code class="language-biolang"># Load from 10x Cell Ranger output (MEX format)
+let adata = read_10x_mtx("filtered_feature_bc_matrix/")
+
+print(f"Loaded: {adata.n_cells} cells x {adata.n_genes} genes")
+print(f"Sparsity: {(1.0 - adata.nnz / (adata.n_cells * adata.n_genes)) * 100.0 |> round(1)}%")
+
+# Or load from H5 format
+let adata_h5 = read_10x_h5("filtered_feature_bc_matrix.h5")
+print(f"H5: {adata_h5.n_cells} cells x {adata_h5.n_genes} genes")</code></pre>
+
+        <h3>Reading from CSV</h3>
+        <pre><code class="language-biolang"># Load a dense count matrix (genes as columns, cells as rows)
+let counts = csv("count_matrix.csv", index_col: 0)
+let adata = AnnData(X: counts)
+
+# Add metadata
+let metadata = csv("cell_metadata.csv", index_col: 0)
+adata.obs = metadata
+print(f"Cells with metadata: {adata.obs |> len}")</code></pre>
+
+        <h2>Quality Control</h2>
+
+        <h3>Cell and gene filtering</h3>
+        <pre><code class="language-biolang">let adata = read_10x_mtx("filtered_feature_bc_matrix/")
+
+# Calculate QC metrics
+adata |> qc_metrics(
+  mito_prefix: "MT-",
+  ribo_prefix: "RPS,RPL"
+)
+
+print("QC Summary:")
+print(f"  Median genes/cell: {adata.obs["n_genes"] |> median}")
+print(f"  Median UMIs/cell:  {adata.obs["total_counts"] |> median}")
+print(f"  Median %mito:      {adata.obs["pct_mito"] |> median |> round(1)}%")
+
+# Filter cells
+let pre_filter = adata.n_cells
+adata = adata
+  |> filter_cells(|c| {
+    c["n_genes"] > 200 &&
+    c["n_genes"] < 5000 &&
+    c["total_counts"] > 500 &&
+    c["pct_mito"] < 20.0
+  })
+
+# Filter genes (keep genes expressed in at least 3 cells)
+adata = adata |> filter_genes(|g| { g["n_cells"] >= 3 })
+
+print(f"After filtering: {adata.n_cells} cells (removed {pre_filter - adata.n_cells})")
+print(f"Genes retained: {adata.n_genes}")</code></pre>
+
+        <h3>Doublet detection</h3>
+        <pre><code class="language-biolang"># Simple doublet detection based on simulated doublets
+let adata = read_10x_mtx("filtered_feature_bc_matrix/")
+adata |> qc_metrics(mito_prefix: "MT-")
+
+let doublet_scores = adata |> scrublet(expected_doublet_rate: 0.06)
+adata.obs["doublet_score"] = doublet_scores.scores
+adata.obs["is_doublet"] = doublet_scores.predictions
+
+let n_doublets = adata.obs |> filter(|c| { c["is_doublet"] }) |> len
+print(f"Predicted doublets: {n_doublets} ({(n_doublets |> float / adata.n_cells * 100.0) |> round(1)}%)")
+
+# Remove doublets
+adata = adata |> filter_cells(|c| { !c["is_doublet"] })</code></pre>
+
+        <h2>Normalization</h2>
+
+        <h3>Standard normalization pipeline</h3>
+        <pre><code class="language-biolang">let adata = read_10x_mtx("filtered_feature_bc_matrix/")
+
+# Library size normalization + log transform
+adata = adata
+  |> normalize_total(target_sum: 10000)
+  |> log1p
+
+# Store raw counts for later
+adata.raw = adata.X |> copy
+
+# Identify highly variable genes
+adata = adata |> highly_variable_genes(
+  n_top_genes: 2000,
+  method: "seurat_v3"
+)
+
+let n_hvg = adata.var |> filter(|g| { g["highly_variable"] }) |> len
+print(f"Highly variable genes: {n_hvg}")
+
+# Scale and regress out confounders
+adata = adata
+  |> subset_to_hvg
+  |> scale(max_value: 10.0)
+  |> regress_out(["total_counts", "pct_mito"])</code></pre>
+
+        <h2>Dimensionality Reduction</h2>
+
+        <h3>PCA, neighbors, and UMAP</h3>
+        <pre><code class="language-biolang"># PCA
+let adata = adata |> pca(n_components: 50)
+
+# Check variance explained (elbow plot data)
+print("Variance explained by top PCs:")
+for i in 0..10 {
+  print(f"  PC{i + 1}: {(adata.uns["pca_variance_ratio"][i] * 100.0) |> round(2)}%")
+}
+
+# Build k-nearest neighbor graph
+adata = adata |> neighbors(n_pcs: 30, n_neighbors: 15)
+
+# UMAP embedding
+adata = adata |> umap(min_dist: 0.3, spread: 1.0)
+
+# Export UMAP coordinates for plotting
+let umap_coords = adata.obsm["X_umap"]
+  |> enumerate
+  |> map(|i, coords| { {
+    cell: adata.obs_names[i],
+    umap1: coords[0],
+    umap2: coords[1]
+  }})
+umap_coords |> write_tsv("umap_coordinates.tsv")</code></pre>
+
+        <h2>Clustering</h2>
+
+        <h3>Leiden clustering</h3>
+        <pre><code class="language-biolang"># Leiden clustering at multiple resolutions
+let resolutions = [0.3, 0.5, 0.8, 1.0, 1.5]
+
+for res in resolutions {
+  let adata = adata |> leiden(resolution: res, key: f"leiden_{res}")
+  let n_clusters = adata.obs[f"leiden_{res}"] |> unique |> len
+  print(f"Resolution {res}: {n_clusters} clusters")
+}
+
+# Use resolution 0.8 as default
+adata.obs["cluster"] = adata.obs["leiden_0.8"]
+
+# Cluster sizes
+let sizes = adata.obs
+  |> group_by(|x| x.cluster)
+  |> map(|g| { cluster: g.key, size: len(g.values) })
+  |> sort_by(|a, b| a.cluster - b.cluster)
+
+for s in sizes {
+  let pct = s.size |> float / adata.n_cells * 100.0
+  print(f"  Cluster {s.cluster}: {s.size} cells ({pct |> round(1)}%)")
+}</code></pre>
+
+        <h2>Marker Gene Detection</h2>
+
+        <h3>Finding cluster markers</h3>
+        <pre><code class="language-biolang"># Wilcoxon rank-sum test for marker genes
+let markers = adata |> rank_genes_groups(
+  groupby: "cluster",
+  method: "wilcoxon",
+  n_genes: 50
+)
+
+# Print top 5 markers per cluster
+let clusters = adata.obs["cluster"] |> unique |> sort
+for cl in clusters {
+  let top = markers[cl] |> take(5)
+  let genes = top |> map(|x| x.gene) |> join(", ")
+  print(f"Cluster {cl}: {genes}")
+}
+
+# Export full marker table
+let marker_table = clusters |> flat_map(|cl| {
+  markers[cl] |> map(|m| { {
+    cluster: cl,
+    gene: m.gene,
+    log2fc: m.log2fc,
+    p_value: m.p_value,
+    pct_in: m.pct_in,
+    pct_out: m.pct_out
+  }})
+})
+marker_table |> write_tsv("cluster_markers.tsv")</code></pre>
+
+        <h3>Cell type annotation</h3>
+        <pre><code class="language-biolang"># Annotate clusters based on known marker genes
+let known_markers = {
+  "T cells": ["CD3D", "CD3E", "CD4", "CD8A"],
+  "B cells": ["CD19", "MS4A1", "CD79A"],
+  "NK cells": ["NKG7", "GNLY", "KLRD1"],
+  "Monocytes": ["CD14", "LYZ", "S100A8"],
+  "Dendritic": ["FCER1A", "CST3", "CLEC10A"],
+  "Platelets": ["PPBP", "PF4"]
+}
+
+let clusters = adata.obs["cluster"] |> unique |> sort
+
+let annotations = clusters |> map(|cl| {
+  let cluster_cells = adata |> filter_cells(|c| { c["cluster"] == cl })
+
+  let cell_types_list = ["T cells", "B cells", "NK cells", "Monocytes", "Dendritic", "Platelets"]
+  let scores = cell_types_list |> map(|cell_type| {
+    let genes = known_markers[cell_type]
+    let score = genes |> map(|gene| {
+      cluster_cells.X[gene] |> mean
+    }) |> mean
+    { cell_type: cell_type, score: score }
+  })
+  |> sort_by(|a, b| b.score - a.score)
+
+  let best = scores |> first
+  print(f"Cluster {cl} => {best.cell_type} (score: {best.score |> round(3)})")
+  { cluster: cl, cell_type: best.cell_type }
+})
+
+# Apply annotations
+let annotation_map = annotations |> reduce({}, |acc, a| { acc[a.cluster] = a.cell_type; acc })
+adata.obs["cell_type"] = adata.obs["cluster"] |> map(|cl| { annotation_map[cl] })
+
+# Summary
+adata.obs |> group_by(|x| x.cell_type)
+  |> map(|g| { cell_type: g.key, n: len(g.values) })
+  |> sort_by(|a, b| b.n - a.n)
+  |> each(|ct| { print(f"{ct.cell_type}: {ct.n} cells") })</code></pre>
+
+        <h2>Saving Results</h2>
+
+        <pre><code class="language-biolang"># Save processed data
+adata |> write_h5ad("processed.h5ad")
+
+# Export for external tools
+adata.obsm["X_umap"]
+  |> to_table(columns: ["umap1", "umap2"])
+  |> mutate("cell_type", |i, _| { adata.obs["cell_type"][i] })
+  |> mutate("cluster", |i, _| { adata.obs["cluster"][i] })
+  |> write_tsv("cell_embeddings.tsv")
+
+print(f"Saved {adata.n_cells} cells with {adata.obs |> colnames |> len} metadata fields")</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="metagenomics.html" class="text-violet-400 hover:text-violet-300">&larr; Metagenomics</a>
+        <a href="structural.html" class="text-violet-400 hover:text-violet-300">Structural Biology &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

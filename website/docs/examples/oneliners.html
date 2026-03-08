@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One-Liners — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/oneliners"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">One-Liners</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>One-Liners</h1>
+        <p>Quick, powerful snippets that demonstrate BioLang's expressiveness. Each of these
+        fits on a single line (or a short pipe chain) and solves a real bioinformatics task.</p>
+
+        <h2>Sequence Basics</h2>
+
+        <h3>Reverse complement a DNA sequence</h3>
+        <pre><code class="language-biolang">dna"ATCGATCG" |> reverse_complement |> print</code></pre>
+
+        <h3>GC content as a percentage</h3>
+        <pre><code class="language-biolang">dna"ATCGATCGCCGG" |> gc_content |> |x| x * 100.0 |> print</code></pre>
+
+        <h3>Transcribe DNA to RNA</h3>
+        <pre><code class="language-biolang">dna"ATCGATCG" |> transcribe |> print</code></pre>
+
+        <h3>Translate DNA to protein</h3>
+        <pre><code class="language-biolang">dna"ATGCGATCGTGA" |> translate |> print</code></pre>
+
+        <h3>Count bases in a sequence</h3>
+        <pre><code class="language-biolang">dna"AATTCCGG" |> base_counts |> print</code></pre>
+
+        <h3>Check if sequence is palindromic</h3>
+        <pre><code class="language-biolang">let seq = dna"GAATTC"; seq == reverse_complement(seq) |> print</code></pre>
+
+        <h2>K-mer Analysis</h2>
+
+        <h3>Count all 3-mers</h3>
+        <pre><code class="language-biolang">dna"ATCGATCGATCG" |> kmers(3) |> frequencies |> print</code></pre>
+
+        <h3>Find unique k-mers</h3>
+        <pre><code class="language-biolang">dna"ATCGATCGATCG" |> kmers(4) |> unique |> len |> print</code></pre>
+
+        <h3>Most frequent k-mer</h3>
+        <pre><code class="language-biolang">dna"ATCGATCGATCG" |> kmers(3) |> frequencies |> sort_by(|a, b| b.1 - a.1) |> first |> print</code></pre>
+
+        <h2>FASTQ Operations</h2>
+
+        <h3>Count reads in a FASTQ file</h3>
+        <pre><code class="language-biolang">fastq("sample.fq.gz") |> len |> print</code></pre>
+
+        <h3>Average read length</h3>
+        <pre><code class="language-biolang">fastq("reads.fq") |> map(|r| r.length) |> mean |> print</code></pre>
+
+        <h3>Filter reads by quality</h3>
+        <pre><code class="language-biolang">fastq("in.fq") |> filter(|r| mean_phred(r.quality) >= 30.0) |> write_fastq("hq.fq")</code></pre>
+
+        <h3>Extract read names</h3>
+        <pre><code class="language-biolang">fastq("reads.fq") |> map(|r| r.id) |> take(10) |> print</code></pre>
+
+        <h3>Total bases in a FASTQ file</h3>
+        <pre><code class="language-biolang">fastq("reads.fq") |> map(|r| r.length) |> sum |> print</code></pre>
+
+        <h2>VCF Operations</h2>
+
+        <h3>Count variants per chromosome</h3>
+        <pre><code class="language-biolang">read_vcf("variants.vcf") |> group_by(|v| v.chrom) |> map(|g| {chrom: g.key, count: len(g.values)}) |> print</code></pre>
+
+        <h3>Filter to PASS variants only</h3>
+        <pre><code class="language-biolang">read_vcf("in.vcf") |> filter(|v| v.filter == "PASS") |> write_vcf("pass.vcf")</code></pre>
+
+        <h3>Extract SNPs only</h3>
+        <pre><code class="language-biolang">read_vcf("in.vcf") |> filter(|v| is_snp(v)) |> len |> print</code></pre>
+
+        <h3>Transition/transversion ratio</h3>
+        <pre><code class="language-biolang">read_vcf("in.vcf") |> filter(|v| is_snp(v)) |> tstv_ratio |> print</code></pre>
+
+        <h2>BED and Intervals</h2>
+
+        <h3>Total bases covered by a BED file</h3>
+        <pre><code class="language-biolang">read_bed("regions.bed") |> map(|r| r.end - r.start) |> sum |> print</code></pre>
+
+        <h3>Merge overlapping intervals</h3>
+        <pre><code class="language-biolang">read_bed("regions.bed") |> sort_by(|a, b| [a.chrom, a.start]) |> write_bed("merged.bed")</code></pre>
+
+        <h2>FASTA Operations</h2>
+
+        <h3>Sequence lengths from a FASTA</h3>
+        <pre><code class="language-biolang">fasta("genome.fa") |> map(|r| [r.name, len(r.seq)]) |> print</code></pre>
+
+        <h3>Filter sequences by length</h3>
+        <pre><code class="language-biolang">fasta("contigs.fa") |> filter(|r| len(r.seq) >= 1000) |> write_fasta("long.fa")</code></pre>
+
+        <h3>GC content of all sequences</h3>
+        <pre><code class="language-biolang">fasta("assembly.fa") |> map(|r| gc_content(r.seq)) |> mean |> print</code></pre>
+
+        <h2>Text and Data</h2>
+
+        <h3>Count lines in a file</h3>
+        <pre><code class="language-biolang">read_lines("data.txt") |> len |> print</code></pre>
+
+        <h3>Extract a column from TSV</h3>
+        <pre><code class="language-biolang">tsv("data.tsv") |> map(|row| row["gene_name"]) |> unique |> print</code></pre>
+
+        <h3>Sum a numeric column</h3>
+        <pre><code class="language-biolang">csv("counts.csv") |> map(|row| row["count"] |> int) |> sum |> print</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="index.html" class="text-violet-400 hover:text-violet-300">&larr; Examples</a>
+        <a href="data-wrangling.html" class="text-violet-400 hover:text-violet-300">Data Wrangling &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

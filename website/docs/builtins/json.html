@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/json"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">JSON</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">JSON</h1>
+        <p class="text-lg text-slate-400 mb-8">6 functions for parsing, generating, querying, and persisting JSON data. Works with REST APIs, config files, and structured biological databases.</p>
+
+        <section class="mb-12" id="json_parse">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">json_parse</span></h2>
+          <p class="text-slate-400 mt-2">Parse a JSON string into a BioLang value (map, list, string, number, bool, or nil).</p>
+          <pre><code class="language-biolang">json_parse(s) -> value</code></pre>
+          <pre><code class="language-biolang">let data = json_parse('{"gene": "BRCA1", "variants": [1, 2, 3]}')
+println(data.gene)       # "BRCA1"
+println(data.variants)   # [1, 2, 3]</code></pre>
+        </section>
+
+        <section class="mb-12" id="json_stringify">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">json_stringify</span> / <span class="text-violet-400 font-mono">json_pretty</span></h2>
+          <p class="text-slate-400 mt-2">Serialize a value to a JSON string. <code>json_pretty</code> adds indentation.</p>
+          <pre><code class="language-biolang">json_stringify(value) -> string
+json_pretty(value) -> string</code></pre>
+          <pre><code class="language-biolang">let result = {"gene": "BRCA1", "pvalue": 0.001, "significant": true}
+json_stringify(result)
+# '{"gene":"BRCA1","pvalue":0.001,"significant":true}'
+
+json_pretty(result)
+# '{
+#   "gene": "BRCA1",
+#   "pvalue": 0.001,
+#   "significant": true
+# }'</code></pre>
+        </section>
+
+        <section class="mb-12" id="read_json">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">read_json</span> / <span class="text-violet-400 font-mono">write_json</span></h2>
+          <p class="text-slate-400 mt-2">Read/write JSON from/to files.</p>
+          <pre><code class="language-biolang">read_json(path) -> value
+write_json(value, path) -> string</code></pre>
+          <pre><code class="language-biolang">let config = read_json("pipeline_config.json")
+println("Threads:", config.threads)
+
+let results = {"samples": 48, "pass_qc": 45, "mean_coverage": 32.5}
+write_json(results, "qc_summary.json")</code></pre>
+        </section>
+
+        <section class="mb-12" id="json_keys">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">json_keys</span></h2>
+          <p class="text-slate-400 mt-2">Return the list of keys from a JSON object (map).</p>
+          <pre><code class="language-biolang">json_keys(value) -> list</code></pre>
+          <pre><code class="language-biolang">let data = json_parse('{"gene": "BRCA1", "pvalue": 0.001, "significant": true}')
+json_keys(data)   # ["gene", "pvalue", "significant"]
+
+# Inspect API response structure
+let resp = http_get("https://api.example.com/gene/672")
+let keys = json_keys(json_parse(resp.body))
+println("Available fields:", keys)</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="regex.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> Regex</a>
+        <a href="datetime.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">DateTime <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

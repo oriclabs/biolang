@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NCBI — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="apis/ncbi"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">API Clients</a><span class="mx-2">/</span>
+        <span class="text-slate-300">NCBI</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>NCBI</h1>
+        <p>
+          The NCBI client provides access to the National Center for Biotechnology Information
+          databases via E-utilities and the newer Datasets API. It covers gene search, sequence
+          retrieval, literature queries, taxonomy lookups, and BLAST submissions. Set the
+          <code>NCBI_API_KEY</code> environment variable for higher rate limits (10 req/s
+          instead of 3 req/s).
+        </p>
+
+        <h2>ncbi_search</h2>
+        <p>
+          Search any NCBI database (gene, pubmed, nucleotide, protein, sra, etc.) and return
+          structured results:
+        </p>
+        <pre><code class="language-biolang"># ncbi_search(db, term, [max_results])
+
+# Search the gene database
+let results = ncbi_search("gene", "BRCA1")
+print(results)
+# => { count: 1, ids: ["672"], ... }
+
+# Search PubMed for articles
+let articles = ncbi_search("pubmed", "CRISPR AND cancer", 10)
+articles |> print()
+
+# Search the nucleotide database
+let seqs = ncbi_search("nucleotide", "human mitochondria complete genome", 5)
+print(seqs)
+
+# Search SRA for sequencing runs
+let runs = ncbi_search("sra", "RNA-seq human liver", 20)
+print(runs)
+
+# Advanced query syntax (Entrez query language)
+results = ncbi_search("gene", "BRCA1[Gene] AND Homo sapiens[Organism]")</code></pre>
+
+        <h2>ncbi_fetch</h2>
+        <p>
+          Fetch full records from NCBI by ID. The first argument is the ID (or list of IDs),
+          the second is the database, and the optional third is the return type:
+        </p>
+        <pre><code class="language-biolang"># ncbi_fetch(ids, db, [rettype]) — raw E-utilities efetch
+# Returns text in the requested format
+
+# Fetch a gene record in FASTA format
+let text = ncbi_fetch("NC_000017.11", "nucleotide", "fasta")
+print(text)
+
+# Fetch multiple gene summaries
+let ids = ["672", "7157", "1956"]   # BRCA1, TP53, EGFR
+text = ncbi_fetch(ids, "gene")
+
+# Fetch PubMed abstracts
+let abstracts = ncbi_fetch(["33257863", "32015508"], "pubmed", "abstract")</code></pre>
+
+        <h2>ncbi_gene / ncbi_pubmed / ncbi_sequence</h2>
+        <p>
+          Convenience functions that wrap <code>ncbi_search</code> for common use cases:
+        </p>
+        <pre><code class="language-biolang"># ncbi_gene(term, [max]) — search the gene database
+let gene = ncbi_gene("BRCA1")
+print(gene)
+
+# ncbi_pubmed(term, [max]) — search PubMed
+let pubs = ncbi_pubmed("CRISPR AND cancer", 10)
+print(pubs)
+
+# ncbi_sequence(id) — fetch a sequence as FASTA text
+let seq = ncbi_sequence("NC_000017.11")
+print(seq)</code></pre>
+
+        <h2>Practical Examples</h2>
+        <h3>Gene Research Pipeline</h3>
+        <pre><code class="language-biolang"># Research a gene: combine NCBI, literature, and sequence data
+let gene_name = "TP53"
+
+# 1. Get gene info
+let gene = ncbi_gene(gene_name)
+print("Gene:", gene)
+
+# 2. Find recent publications
+let pubs = ncbi_pubmed("{gene_name} AND cancer AND 2024[PDAT]", 10)
+print("\nRecent publications:", pubs)
+
+# 3. Get the reference sequence
+let seq = ncbi_sequence("NC_000017.11")
+print("\nSequence:", seq |> len(), "characters")</code></pre>
+
+        <h3>Batch Gene Lookup</h3>
+        <pre><code class="language-biolang"># Look up multiple genes
+let genes = ["BRCA1", "BRCA2", "TP53", "EGFR", "KRAS", "PIK3CA", "PTEN", "MYC"]
+
+let summary = genes
+  |> map(|name| {
+    let result = ncbi_search("gene", name)
+    {
+      symbol: name,
+      ids: result.ids,
+      count: result.count
+    }
+  })
+  |> to_table()
+
+summary |> print()
+summary |> write_csv("gene_summary.csv")</code></pre>
+
+        <h3>SRA Data Discovery</h3>
+        <pre><code class="language-biolang"># Find RNA-seq datasets for a tissue type
+let runs = ncbi_search("sra", "RNA-seq AND human AND liver AND Illumina", 50)
+print(runs)</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="index.html" class="text-violet-400 hover:text-violet-300">&larr; Overview</a>
+        <a href="ensembl.html" class="text-violet-400 hover:text-violet-300">Ensembl &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

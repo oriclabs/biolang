@@ -1,0 +1,81 @@
+# Container & BioContainers Examples
+# Works with Docker, Podman, Singularity, or Apptainer
+# tool_search/tool_popular/tool_info work without any container runtime (HTTP only)
+
+# ── Check container runtime availability ──
+let status = container_available()
+println("=== Container Runtime ===")
+println("Runtime:", status.runtime)
+println("Image dir:", status.image_dir)
+
+# ── Search BioContainers (no Docker needed — HTTP only) ──
+# tool_search(query, opts?) -> list of tool records
+let results = tool_search("samtools")
+println("\n=== BioContainers: samtools ===")
+for t in results {
+    println("  ", t.name, "-", t.description)
+    println("    Pulls:", t.pulls, "| Versions:", t.versions, "| License:", t.license)
+}
+
+# Search with options
+let filtered = tool_search("bwa", {limit: 5, sort: "pulls", order: "desc"})
+println("\n=== BWA tools (top 5 by pulls) ===")
+for t in filtered {
+    println("  ", t.name, "(", t.pulls, "pulls)")
+}
+
+# ── Popular tools (no Docker needed) ──
+# tool_popular(limit?) -> list of tool records
+let popular = tool_popular(10)
+println("\n=== Top 10 BioContainers Tools ===")
+let i = 1
+for t in popular {
+    println(i, ".", t.name, "-", t.pulls, "pulls")
+    i = i + 1
+}
+
+# ── Tool details (no Docker needed) ──
+# tool_info(name) -> detailed record with versions
+let info = tool_info("samtools")
+println("\n=== samtools Details ===")
+println("Name:", info.name)
+println("Description:", info.description)
+println("Organization:", info.organization)
+println("License:", info.license)
+println("Total pulls:", info.pulls)
+println("Available versions:", len(info.versions))
+
+# Show first 3 versions with their images
+for v in head(info.versions, 3) {
+    println("\n  Version:", v.name)
+    for img in v.images {
+        println("    Image:", img.image)
+    }
+}
+
+# ── Run a tool in container (requires Docker/Podman) ──
+# Uncomment these if you have Docker/Podman installed:
+
+# # Pull a BioContainers image
+# tool_pull("samtools", "1.19--h50ea8bc_0")
+#
+# # Run samtools via auto-resolved BioContainers image
+# let result = tool("samtools", "samtools --version")
+# println("samtools output:", result.stdout)
+#
+# # Run with explicit image
+# let r = container_run("quay.io/biocontainers/samtools:1.19--h50ea8bc_0", "samtools --version")
+# println("Exit code:", r.exit_code)
+# println("Output:", r.stdout)
+#
+# # Run with mount and env options
+# let r2 = container_run("alpine:latest", "ls -la /data", {
+#     mount: "/path/to/data",
+#     workdir: "/data",
+#     env: {MY_VAR: "hello"}
+# })
+# println(r2.stdout)
+#
+# # List cached images
+# let images = tool_list()
+# println("Cached images:", images)

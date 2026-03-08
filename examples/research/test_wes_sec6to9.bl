@@ -1,0 +1,46 @@
+# Section 6: for loop with api calls
+println("--- Protein analysis ---")
+try {
+    let mecp2_structure = pdb_entry("3C2I")
+    println("PDB: " + str(mecp2_structure))
+} catch e {
+    println("PDB skipped:", e)
+}
+
+# Section 7: Phenotype matching — nested filter + contains
+let patient_phenotypes = ["developmental delay", "seizures", "microcephaly"]
+let gene_phenotypes = table([
+    {gene: "MECP2",  disease: "Rett syndrome",    phenotypes: ["developmental delay", "seizures", "microcephaly", "stereotypies"]},
+    {gene: "SCN1A",  disease: "Dravet syndrome",   phenotypes: ["seizures", "developmental delay", "ataxia"]},
+    {gene: "DYRK1A", disease: "DYRK1A-related ID", phenotypes: ["developmental delay", "microcephaly", "feeding difficulties"]}
+])
+
+println("\nPhenotype overlap:")
+gene_phenotypes |> each(|g| {
+    let overlap = g.phenotypes |> filter(|p| patient_phenotypes |> contains(p))
+    let score = len(overlap)
+    println("  " + g.gene + " (" + g.disease + "): " + str(score) + "/" + str(len(patient_phenotypes)) + " match")
+})
+
+# Section 8: for loop
+let mecp2_features = [{type: "Domain", description: "MBD", start: 78, end: 162}, {type: "Domain", description: "TRD", start: 207, end: 310}, {type: "Region", description: "NLS", start: 253, end: 270}]
+let mecp2_domains = filter(mecp2_features, |f| f.type == "Domain")
+println("\nMECP2 domains:")
+for d in mecp2_domains {
+    println("  " + d.description + " [" + str(d.start) + "-" + str(d.end) + "]")
+}
+
+# Section 9: long string concatenation
+let report = "# Clinical WES Report\n\n" +
+    "## Patient Information\n\n" +
+    "Proband: 3-year-old male.\n\n" +
+    "## Variant Summary\n\n" +
+    "Total variants called: 15\n" +
+    "Rare (AF<=0.01): 10\n" +
+    "Protein-altering: 8\n" +
+    "De novo: 5\n\n" +
+    "## Primary Finding\n\n" +
+    "MECP2 c.502C>T p.(Arg168*) — de novo nonsense variant.\n"
+
+println(report)
+println("DONE")

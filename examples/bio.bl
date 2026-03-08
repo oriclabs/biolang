@@ -1,0 +1,45 @@
+# BioLang Phase 2 — Sequence Operations
+
+# DNA literal and transcription/translation pipeline
+let seq = dna"ATGATCGATCG"
+println("DNA:", seq)
+println("Length:", len(seq))
+
+# The milestone: transcribe and translate
+let protein = seq |> transcribe() |> translate()
+println("Protein:", protein)
+
+# Reverse complement
+let rc = seq |> reverse_complement()
+println("RevComp:", rc)
+
+# GC content
+let gc = dna"GCGCATAT" |> gc_content()
+println("GC content:", gc)
+
+# Subsequence extraction
+let sub = seq |> subseq(3, 6)
+println("Subseq(3,6):", sub)
+
+# Find motif
+let positions = dna"ATGATGATGATG" |> find_motif("ATG")
+println("ATG positions:", positions)
+
+# K-mers
+let kms = dna"ATCGATCG" |> kmers(3)
+println("3-mers:", kms)
+
+# Create from string
+let s = dna("GATTACA")
+println("From string:", s)
+
+# Complement
+let comp = dna"ATCG" |> complement()
+println("Complement:", comp)
+
+# Chain operations
+let result = dna"ATGATCGATCGATCGATCG"
+  |> reverse_complement()
+  |> transcribe()
+  |> translate()
+println("Full pipeline:", result)

@@ -1,0 +1,53 @@
+# maf_analysis.bl — MAF (Mutation Annotation Format) analysis
+#
+# Demonstrates: reading MAF files, filtering by variant classification
+# and type, summarising mutation burden, and gene-level analysis.
+
+# ── Reading a MAF File ────────────────────────────────────────
+# MAF files describe somatic mutations (common in TCGA / cancer genomics)
+let mutations = maf("tests/data/test.maf", "table")
+println("Total mutations: ", mutations |> count())
+
+# ── Inspect First Records ────────────────────────────────────
+println("\n=== Mutation Records ===")
+mutations |> take(5) |> each(|m| {
+    println("  ", m.hugo_symbol, "  ", m.chrom, ":", m.start,
+            "  ", m.variant_classification, "  ", m.variant_type)
+})
+
+# ── Filter by Variant Type ───────────────────────────────────
+let snps = mutations |> filter(|m| m.variant_type == "SNP")
+let ins  = mutations |> filter(|m| m.variant_type == "INS")
+let del  = mutations |> filter(|m| m.variant_type == "DEL")
+println("\nSNPs:       ", snps |> count())
+println("Insertions: ", ins |> count())
+println("Deletions:  ", del |> count())
+
+# ── Variant Classification Breakdown ─────────────────────────
+let classes = mutations |> map(|m| m.variant_classification) |> unique()
+println("\nVariant classifications:")
+classes |> each(|cls| {
+    let n = mutations |> filter(|m| m.variant_classification == cls) |> count()
+    println("  ", cls, ": ", n)
+})
+
+# ── Gene-Level Mutation Burden ────────────────────────────────
+let genes = mutations |> map(|m| m.hugo_symbol) |> unique()
+println("\nMutations per gene:")
+genes |> each(|g| {
+    let n = mutations |> filter(|m| m.hugo_symbol == g) |> count()
+    println("  ", g, ": ", n)
+})
+
+# ── Non-Silent Mutations ─────────────────────────────────────
+let silent = ["Silent", "Intron", "3'UTR", "5'UTR", "IGR"]
+let non_silent = mutations |> filter(|m| !(silent |> contains(m.variant_classification)))
+println("\nNon-silent mutations: ", non_silent |> count())
+
+# ── Chromosomal Distribution ─────────────────────────────────
+let chroms = mutations |> map(|m| m.chrom) |> unique()
+println("\nMutations per chromosome:")
+chroms |> each(|c| {
+    let n = mutations |> filter(|m| m.chrom == c) |> count()
+    println("  ", c, ": ", n)
+})

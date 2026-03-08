@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streaming Large Files — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/streaming"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Streaming Large Files</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-sm text-slate-500">~25 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Streaming Large Files</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          Real bioinformatics datasets can be tens or hundreds of gigabytes. BioLang's
+          streaming API lets you process files of any size in constant memory, using lazy
+          evaluation and parallel execution.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>The difference between eager (<code>read_fastq</code>) and lazy (<code>fastq</code>) APIs</li>
+            <li>Chaining stream operations: map, filter, take, drop</li>
+            <li>Parallel processing with <code>par_map</code></li>
+            <li>Aggregation with <code>reduce</code> for single-pass statistics</li>
+            <li>Streaming BAM, VCF, BED, and FASTA files</li>
+          </ul>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Eager vs Lazy Loading</h2>
+        <p>
+          The <code>read_fastq()</code> function loads an entire file into a table in memory. For small
+          files this is fine, but for a 50 GB FASTQ you would run out of RAM. The
+          <code>fastq()</code> function returns a lazy <code>Stream</code> that yields
+          records one at a time in constant memory.
+        </p>
+        <pre><code class="language-biolang"># Table: loads everything into memory (reusable)
+# let reads = read_fastq("huge.fastq.gz")  # BAD: 50 GB in RAM
+
+# Stream: constant memory regardless of file size
+let stream = fastq("huge.fastq.gz")
+
+print(typeof(stream))  # Stream
+
+# Nothing has been read yet. The file is opened, but records are
+# only read when you consume the stream.</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Consuming a Stream</h2>
+        <p>
+          Each FASTQ stream record is a Record with fields:
+          <code>id</code>, <code>description</code>, <code>seq</code> (DNA),
+          <code>length</code> (Int), and <code>quality</code> (String).
+        </p>
+        <pre><code class="language-biolang"># Count reads without loading them all
+let n = fastq("huge.fastq.gz")
+  |> count()
+
+print(f"Total reads: {n}")  # counted one by one, constant memory
+
+# Take the first N records
+let first_100 = fastq("huge.fastq.gz")
+  |> take(100)
+  |> collect()  # materializes into a List
+
+print(f"First 100 reads loaded, {len(first_100)} records")
+
+# Drop the first 1000, then take 100
+let slice = fastq("huge.fastq.gz")
+  |> drop(1000)
+  |> take(100)
+  |> collect()
+
+# Iterate manually with for
+let total_bases = 0
+for read in fastq("data/sample.fastq.gz") {
+  total_bases = total_bases + read.length
+}
+print(f"Total bases: {total_bases}")</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Stream Transformations</h2>
+        <p>
+          Streams support the same <code>map</code>, <code>filter</code>, and <code>flat_map</code>
+          operations as lists, but they execute lazily.
+        </p>
+        <pre><code class="language-biolang"># Filter and transform in a single pass through the file
+let gc_values = fastq("huge.fastq.gz")
+  |> filter(|r| r.length >= 50)
+  |> map(|r| gc_content(r.seq))
+  |> collect()
+
+print(f"GC values for long reads: {len(gc_values)}")
+print(f"Mean GC: {round(mean(gc_values), 4)}")
+
+# Chain multiple filters
+let clean = fastq("huge.fastq.gz")
+  |> filter(|r| r.length >= 50)             # minimum length
+  |> filter(|r| gc_content(r.seq) > 0.2)    # GC content check
+  |> filter(|r| gc_content(r.seq) < 0.8)    # not too GC-rich
+  |> collect()
+
+print(f"Clean reads: {len(clean)}")
+
+# For full quality trimming and filtering, use the file-level builtins:
+# trim_quality(input_path, output_path, threshold)
+# filter_reads(input_path, output_path, {min_length: 50, min_quality: 25})
+# trim_reads(input_path, output_path, {leading: 5, trailing: 5})</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Aggregation on Streams</h2>
+        <p>
+          Use <code>reduce</code> with an initial value to compute statistics in a single pass.
+          This is equivalent to a fold — the accumulator is threaded through each record.
+        </p>
+        <pre><code class="language-biolang"># Compute statistics in a single pass using reduce with initial value
+let stats = fastq("huge.fastq.gz")
+  |> reduce(|acc, read| {
+    {
+      n:           acc.n + 1,
+      total_bases: acc.total_bases + read.length,
+      total_gc:    acc.total_gc + gc_content(read.seq),
+    }
+  }, { n: 0, total_bases: 0, total_gc: 0.0 })
+
+print(f"Reads:       {stats.n}")
+print(f"Total bases: {stats.total_bases}")
+print(f"Mean GC:     {round(stats.total_gc / stats.n, 4)}")
+
+# Collect GC values and summarize
+let gc_list = fastq("huge.fastq.gz")
+  |> map(|r| gc_content(r.seq))
+  |> collect()
+
+print(f"Mean GC: {round(mean(gc_list), 4)}")
+print(f"GC range: {min(gc_list)} - {max(gc_list)}")</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Parallel Processing with par_map</h2>
+        <p>
+          For CPU-intensive operations, <code>par_map</code> distributes work across
+          multiple threads while keeping the stream interface.
+        </p>
+        <pre><code class="language-biolang"># Process reads in parallel (default: number of CPU cores)
+let results = fastq("huge.fastq.gz")
+  |> par_map(|read| {
+    # Each read is processed independently on a worker thread
+    let gc = gc_content(read.seq)
+    let k = kmers(read.seq, 5)
+    { id: read.id, gc: gc, len: read.length, kmer_count: len(k) }
+  })
+  |> filter(|r| r.gc > 0.3)
+  |> collect()
+
+print(f"Processed {len(results)} reads in parallel")
+
+# Parallel BAM processing
+# BAM stream records are AlignedRead values with computed properties
+let bam_stats = bam("huge.bam")
+  |> par_map(|record| {
+    {
+      mapped:  record.is_mapped,
+      qual:    record.mapq,
+      paired:  record.is_paired,
+    }
+  })
+  |> reduce(|acc, r| {
+    {
+      mapped:   acc.mapped + if r.mapped { 1 } else { 0 },
+      unmapped: acc.unmapped + if not r.mapped { 1 } else { 0 },
+      paired:   acc.paired + if r.paired { 1 } else { 0 },
+    }
+  }, { mapped: 0, unmapped: 0, paired: 0 })
+
+print(f"Mapped: {bam_stats.mapped}, Unmapped: {bam_stats.unmapped}")</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Chunked Processing</h2>
+        <p>
+          Use <code>stream_chunks</code> to break a stream into batches for
+          periodic reporting or batch operations.
+        </p>
+        <pre><code class="language-biolang"># Process in chunks of 10,000 records
+let chunks = fastq("huge.fastq.gz")
+  |> stream_chunks(10_000)
+  |> collect()
+
+for chunk in chunks {
+  let gc_vals = chunk |> map(|r| gc_content(r.seq))
+  print(f"Chunk: {len(chunk)} reads, mean GC {round(mean(gc_vals), 3)}")
+}
+
+# Count with periodic progress
+let total = 0
+let chunks = fastq("huge.fastq.gz")
+  |> stream_chunks(50_000)
+  |> collect()
+
+for chunk in chunks {
+  total = total + len(chunk)
+  print(f"Processed {total} reads...")
+}
+print(f"Done. Total: {total} reads")</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Side Effects with tee</h2>
+        <p>
+          The <code>tee</code> function passes each element through a side-effect function
+          while forwarding the original value unchanged.
+        </p>
+        <pre><code class="language-biolang"># Use tee to log while processing
+let results = fastq("input.fastq.gz")
+  |> filter(|r| r.length >= 100)
+  |> tee(|r| print(f"Processing read {r.id}"))
+  |> map(|r| gc_content(r.seq))
+  |> collect()
+
+print(f"Computed GC for {len(results)} reads")</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Streaming Other Formats</h2>
+        <p>
+          All BioLang format readers return streams by default. Use the same
+          <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>collect</code>
+          pipeline on any format.
+        </p>
+        <pre><code class="language-biolang"># Stream BAM files
+# BAM records have fields: qname, flag, rname, pos, mapq, cigar, seq, qual
+# Plus computed properties: is_mapped, is_paired, is_primary, aligned_length, etc.
+let mapped_count = bam("alignments.bam")
+  |> filter(|r| r.is_mapped and r.mapq >= 20)
+  |> count()
+
+print(f"High-quality mapped reads: {mapped_count}")
+
+# Stream VCF files
+# VCF records have fields: chrom, pos, id, ref, alt, qual, filter, info
+let pass_count = vcf("variants.vcf.gz")
+  |> filter(|v| v.filter == "PASS")
+  |> count()
+
+print(f"PASS variants: {pass_count}")
+
+# Stream FASTA files (for large reference genomes)
+let gc_per_chrom = fasta("genome.fa")
+  |> map(|record| {
+    { name: record.id, gc: gc_content(record.seq) }
+  })
+  |> collect()
+
+for entry in gc_per_chrom {
+  print(f"{entry.name}: GC = {round(entry.gc, 4)}")
+}
+
+# Stream a BED file
+# BED records have fields: chrom, start, end, name, score, strand
+let total_bases_covered = bed("regions.bed")
+  |> map(|r| r.end - r.start)
+  |> sum()
+
+print(f"Total bases in BED regions: {total_bases_covered}")</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Complete Streaming Pipeline</h2>
+        <pre><code class="language-biolang"># streaming_qc.bio — production FASTQ QC with streaming
+
+fn stream_qc(input, output, report_path) {
+  print(f"Starting streaming QC on {input}...")
+
+  # Pass 1: compute stats (single pass, constant memory)
+  let raw_stats = fastq(input)
+    |> reduce(|acc, r| {
+      let gc = gc_content(r.seq)
+      {
+        n:        acc.n + 1,
+        bases:    acc.bases + r.length,
+        gc_sum:   acc.gc_sum + gc,
+        min_len:  min(acc.min_len, r.length),
+        max_len:  max(acc.max_len, r.length),
+      }
+    }, { n: 0, bases: 0, gc_sum: 0.0, min_len: 999999, max_len: 0 })
+
+  print(f"Raw: {raw_stats.n} reads, {raw_stats.bases} bases")
+
+  # Pass 2: filter and write using file-level functions
+  trim_quality(input, output, 20)
+  filter_reads(input, output, { min_length: 50, min_quality: 25 })
+
+  # Count clean reads
+  let clean_count = fastq(output) |> count()
+  let pass_rate = round(clean_count / raw_stats.n * 100.0, 1)
+  print(f"Clean: {clean_count} reads ({pass_rate}%)")
+
+  # Write report
+  let report = {
+    input:       input,
+    output:      output,
+    raw_reads:   raw_stats.n,
+    raw_bases:   raw_stats.bases,
+    clean_reads: clean_count,
+    pass_rate:   pass_rate,
+    mean_gc:     round(raw_stats.gc_sum / raw_stats.n, 4),
+    min_length:  raw_stats.min_len,
+    max_length:  raw_stats.max_len,
+  }
+
+  write_json(report_path, report)
+  print(f"Report saved to {report_path}")
+}
+
+stream_qc("huge.fastq.gz", "huge_clean.fastq.gz", "qc_report.json")</code></pre>
+
+        <div class="rounded-xl border border-cyan-400/30 bg-cyan-400/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Key Takeaways</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Use <code>fastq()</code>, <code>bam()</code>, <code>vcf()</code>, <code>bed()</code> for streaming — they return lazy streams in constant memory.</li>
+            <li>Stream operations are lazy — nothing executes until you consume with <code>collect()</code>, <code>count()</code>, <code>reduce()</code>, or a <code>for</code> loop.</li>
+            <li>Use <code>par_map</code> for CPU-bound transformations across multiple threads.</li>
+            <li>Use <code>reduce</code> with an initial value for single-pass aggregation (fold pattern).</li>
+            <li>Use <code>stream_chunks</code> for batch processing with periodic output.</li>
+          </ul>
+        </div>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-6">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Learn how to query biological databases in the
+            <a href="databases.html" class="text-violet-400 hover:underline">Querying Databases</a> tutorial.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="protein-analysis.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Protein Analysis</a>
+        <a href="databases.html" class="text-violet-400 hover:text-violet-300 text-sm">Querying Databases &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

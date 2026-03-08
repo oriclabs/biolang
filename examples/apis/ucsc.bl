@@ -1,0 +1,47 @@
+# UCSC Genome Browser API Examples
+# University of California, Santa Cruz — US
+
+# List available genomes
+# ucsc_genomes() -> list of genome records
+let genomes = ucsc_genomes()
+println("Available genomes (first 5):")
+let first5 = head(genomes, 5)
+for g in first5 {
+    println("  ", g.name, "-", g.organism, ":", g.description)
+}
+println("Total genomes:", len(genomes))
+
+# List tracks for a genome assembly
+# ucsc_tracks(genome) -> list of track records
+let tracks = ucsc_tracks("hg38")
+println("\nhg38 tracks (first 10):")
+let first10 = head(tracks, 10)
+for t in first10 {
+    println("  ", t.name, "[", t.type, "]:", t.short_label)
+}
+println("Total tracks:", len(tracks))
+
+# Fetch genomic sequence for a region
+# ucsc_sequence(genome, chrom, start, end) -> DNA string
+let seq = ucsc_sequence("hg38", "chr17", 7675000, 7676000)
+println("\nTP53 region sequence (1kb):")
+println("Length:", len(seq), "bp")
+println("First 60 bp:", substr(seq, 0, 60))
+
+# Analyze fetched sequence
+let dna_seq = dna(seq)
+println("GC content:", gc_content(dna_seq))
+let atg_sites = find_motif(dna_seq, "ATG")
+println("ATG start codons found:", len(atg_sites))
+
+# Fetch multiple regions and compare
+let regions = [
+    {name: "TP53", chrom: "chr17", start: 7675000, end: 7676000},
+    {name: "EGFR", chrom: "chr7", start: 55191800, end: 55192800}
+]
+println("\n=== GC Content Comparison ===")
+for r in regions {
+    let s = ucsc_sequence("hg38", r.chrom, r.start, r.end)
+    let gc = gc_content(dna(s))
+    println(r.name, ":", gc)
+}

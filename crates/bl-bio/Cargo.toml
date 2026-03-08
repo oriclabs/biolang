@@ -1,0 +1,14 @@
+[package]
+name = "bl-bio"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bio-core = { workspace = true }
+bl-core = { workspace = true }
+noodles-fasta = "0.60"
+noodles-fastq = "0.22"
+noodles-bam = "0.86"
+noodles-bgzf = "0.46"
+noodles-sam = "0.82"
+flate2 = "1"

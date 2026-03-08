@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>First Script — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="getting-started/first-script"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a>
+        <span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Getting Started</a>
+        <span class="mx-2">/</span>
+        <span class="text-slate-300">First Script</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>First Script</h1>
+        <p>
+          In this guide you will build a complete BioLang script that reads a FASTQ file, computes
+          quality statistics, filters reads, and writes a summary report. This covers variables,
+          functions, pipes, file I/O, and error handling.
+        </p>
+
+        <h2>The Script Structure</h2>
+        <p>
+          BioLang scripts are plain text files with the <code>.bl</code> extension. A script is a
+          sequence of expressions evaluated top-to-bottom. There is no <code>main</code> function
+          required.
+        </p>
+        <pre><code class="language-biolang"># qc_report.bl — FASTQ quality report generator
+# Usage: bl run qc_report.bl -- --input reads.fastq</code></pre>
+        <p>
+          BioLang's standard library functions are available globally — there are no module
+          imports needed. File I/O, FASTQ parsing, and statistical functions are all built-in.
+        </p>
+
+        <h2>Reading Command-Line Arguments</h2>
+        <p>
+          Scripts can accept arguments using the built-in <code>args</code> module. Arguments after
+          <code>--</code> on the command line are passed to the script.
+        </p>
+        <pre><code class="language-biolang"># Parse command-line arguments
+let input_path = args.get("--input") ?? error("Missing --input argument")
+let min_quality = float(args.get("--min-quality") ?? "20.0")
+let output_path = args.get("--output") ?? "qc_report.txt"
+
+print("Processing: {input_path}")
+print("Quality threshold: {min_quality}")</code></pre>
+        <p>
+          The <code>??</code> operator provides a default value when the left side is <code>None</code>.
+          String interpolation uses curly braces inside double-quoted strings.
+        </p>
+
+        <h2>Reading a FASTQ File</h2>
+        <p>
+          The built-in <code>read_fastq</code> function reads FASTQ records from a file.
+        </p>
+        <pre><code class="language-biolang"># Open and read the FASTQ file
+let records = read_fastq(input_path)
+
+# Count total records
+let total = len(records)
+print("Total reads: {total}")</code></pre>
+        <p>
+          For large files, you can process records lazily using pipes. BioLang's pipe chains are
+          evaluated lazily by default when reading from streams, meaning the file is read only as
+          needed.
+        </p>
+
+        <h2>Computing Quality Statistics</h2>
+        <p>
+          Each FASTQ record has a <code>quality</code> field containing Phred scores. BioLang
+          makes it straightforward to compute statistics across all reads.
+        </p>
+        <pre><code class="language-biolang"># Compute per-read average quality scores
+let qualities = read_fastq(input_path)
+  |> map(|record| {
+    "name": record.id,
+    "length": record.length,
+    "mean_quality": mean_phred(record.quality),
+    "gc_content": gc_content(record.seq)
+  })
+
+# Overall statistics
+let mean_qual = qualities |> map(|r| r["mean_quality"]) |> mean()
+let mean_len = qualities |> map(|r| r["length"]) |> mean()
+let mean_gc = qualities |> map(|r| r["gc_content"]) |> mean()
+
+print("Mean quality: {mean_qual:.2}")
+print("Mean length:  {mean_len:.0}")
+print("Mean GC:      {mean_gc:.3}")</code></pre>
+
+        <h2>Filtering Reads</h2>
+        <p>
+          Use <code>filter</code> to select reads meeting quality criteria. The pipe chain reads
+          naturally from top to bottom:
+        </p>
+        <pre><code class="language-biolang"># Filter reads by quality and length
+let passing_reads = qualities
+  |> filter(|r| r["mean_quality"] >= min_quality)
+  |> filter(|r| r["length"] >= 50)
+
+let pass_count = len(passing_reads)
+let pass_rate = pass_count / total * 100.0
+
+print("Passing reads: {pass_count} ({pass_rate:.1}%)")</code></pre>
+
+        <h2>Defining Helper Functions</h2>
+        <p>
+          Functions are defined with <code>fn</code>. They can be placed anywhere in the file, but
+          by convention go after imports and before the main logic.
+        </p>
+        <pre><code class="language-biolang"># Classify a read's quality
+fn quality_tier(mean_q: Float) -> String {
+  if mean_q >= 35.0 {
+    "excellent"
+  } else if mean_q >= 25.0 {
+    "good"
+  } else if mean_q >= 20.0 {
+    "acceptable"
+  } else {
+    "poor"
+  }
+}
+
+# Count reads by quality tier
+let tier_counts = passing_reads
+  |> map(|r| quality_tier(r["mean_quality"]))
+  |> group_by(|t| t)
+  |> map(|group| { "key": group["key"], "count": len(group["values"]) })
+
+print("Quality tiers:")
+for tier, count in tier_counts {
+  print("  {tier}: {count}")
+}</code></pre>
+
+        <h2>Writing Output</h2>
+        <p>
+          BioLang can write to text files, TSV, CSV, and JSON. Here we generate a tab-delimited
+          summary report:
+        </p>
+        <pre><code class="language-biolang"># Build the report lines
+let header = "read_name\tlength\tmean_quality\tgc_content\ttier"
+let lines = passing_reads
+  |> map(|r| {
+    let tier = quality_tier(r["mean_quality"])
+    "{r['name']}\t{r['length']}\t{r['mean_quality']:.2}\t{r['gc_content']:.4}\t{tier}"
+  })
+
+# Write to file
+write_text(output_path, join([header] + lines, "\n"))
+print("Report written to {output_path}")</code></pre>
+
+        <h2>The Complete Script</h2>
+        <p>
+          Here is the full script assembled together. Save it as <code>qc_report.bl</code> and
+          run it against any FASTQ file:
+        </p>
+        <pre><code class="language-biolang"># qc_report.bl — FASTQ quality report generator
+
+# Arguments
+let input_path = args.get("--input") ?? error("Missing --input")
+let min_quality = float(args.get("--min-quality") ?? "20.0")
+let output_path = args.get("--output") ?? "qc_report.txt"
+
+# Helper
+fn quality_tier(mean_q: Float) -> String {
+  if mean_q >= 35.0 { "excellent" }
+  else if mean_q >= 25.0 { "good" }
+  else if mean_q >= 20.0 { "acceptable" }
+  else { "poor" }
+}
+
+# Read and compute stats
+let records = read_fastq(input_path)
+let total = len(records)
+
+let qualities = read_fastq(input_path)
+  |> map(|record| {
+    {
+      "name": record.id,
+      "length": record.length,
+      "mean_quality": mean_phred(record.quality),
+      "gc_content": gc_content(record.seq)
+    }
+  })
+
+# Filter
+let passing = qualities
+  |> filter(|r| r["mean_quality"] >= min_quality)
+  |> filter(|r| r["length"] >= 50)
+
+# Report
+let header = "read_name\tlength\tmean_quality\tgc_content\ttier"
+let lines = passing |> map(|r| {
+  let tier = quality_tier(r["mean_quality"])
+  "{r['name']}\t{r['length']}\t{r['mean_quality']:.2}\t{r['gc_content']:.4}\t{tier}"
+})
+write_text(output_path, join([header] + lines, "\n"))
+print("Done. {len(passing)}/{total} reads passed. Report: {output_path}")</code></pre>
+
+        <h2>Running It</h2>
+        <pre><code class="language-bash">bl run qc_report.bl -- --input sample_R1.fastq --min-quality 25 --output report.tsv</code></pre>
+
+        <h2>Next Steps</h2>
+        <p>
+          You've built a realistic data processing script. Continue to
+          <a href="editor-setup.html" class="text-violet-400 hover:text-violet-300">Editor Setup</a>
+          to configure syntax highlighting and language server support in your editor.
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="quickstart.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Quick Start
+        </a>
+        <a href="editor-setup.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Editor Setup <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+# Phase 3: Tables and Data Operations
+# Run with: cargo run -- run examples/tables.bl
+
+# Create a Table from Records
+let students = table([
+    {name: "Alice", score: 92, dept: "bio"},
+    {name: "Bob", score: 78, dept: "chem"},
+    {name: "Carol", score: 88, dept: "bio"},
+    {name: "Dave", score: 95, dept: "chem"},
+    {name: "Eve", score: 67, dept: "bio"}
+])
+
+println("=== Student Table ===")
+println(students)
+
+# Basic operations
+println("Rows:", nrow(students))
+println("Cols:", ncol(students))
+println("Columns:", colnames(students))
+
+# Pipe-friendly chaining
+println("\n=== Top scorers (score > 80) ===")
+let top = students
+    |> filter(|r| r.score > 80)
+    |> arrange("-score")
+    |> select("name", "score")
+println(top)
+
+# Mutate: add a computed column
+println("\n=== With pass/fail column ===")
+let graded = students |> mutate("grade", |r| if r.score >= 80 { "pass" } else { "fail" })
+println(graded)
+
+# Group by + Summarize
+println("\n=== Department summary ===")
+fn agg(key, sub) {
+    return {dept: key, count: nrow(sub)}
+}
+let summary = students |> group_by("dept") |> summarize(agg)
+println(summary)
+
+# Join two tables
+println("\n=== Join example ===")
+let scores = table([{id: 1, name: "Alice"}, {id: 2, name: "Bob"}])
+let grades = table([{id: 1, grade: "A"}, {id: 2, grade: "B"}])
+let joined = inner_join(scores, grades, "id")
+println(joined)
+
+# Table indexing and field access
+println("\n=== Access patterns ===")
+println("First row:", students[0])
+println("Name column:", students.name)
+println("Row count via meta:", students.num_rows)
+
+# For loop over table
+println("\n=== Iterating rows ===")
+for row in head(students, 3) {
+    println(row.name, "scored", row.score)
+}
+
+println("\nDone!")

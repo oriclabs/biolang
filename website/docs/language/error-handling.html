@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error Handling — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/error-handling"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Error Handling</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Error Handling</h1>
+        <p>
+          BioLang provides two complementary approaches to error handling: the <code>Result</code>
+          and <code>Option</code> types for explicit, type-safe error propagation, and
+          <code>try</code>/<code>catch</code> for exception-style handling. The <code>?</code>
+          operator enables concise error propagation within functions that return <code>Result</code>.
+        </p>
+
+        <h2>The Result Type</h2>
+        <p>
+          <code>Result[T]</code> represents either a successful value (<code>Ok(T)</code>) or an
+          error (<code>Err(Error)</code>). Functions that can fail should return <code>Result</code>:
+        </p>
+        <pre><code class="language-biolang"># Functions that return Result
+fn parse_vcf_line(line: String) -> Result[Variant] {
+  let fields = line |> split("\t")
+  if len(fields) < 8 {
+    return Err("VCF line has fewer than 8 fields")
+  }
+
+  let chrom = fields[0]
+  let pos = int(fields[1])?   # ? propagates error if int() fails
+  let qual = float(fields[5])?
+
+  Ok(Variant {
+    chrom: chrom,
+    pos: pos,
+    ref_allele: fields[3],
+    alt_allele: fields[4],
+    qual: qual
+  })
+}</code></pre>
+
+        <h2>The ? Operator</h2>
+        <p>
+          The <code>?</code> operator is the primary tool for error propagation. When applied to a
+          <code>Result</code>, it unwraps the <code>Ok</code> value or immediately returns the
+          <code>Err</code> from the enclosing function:
+        </p>
+        <pre><code class="language-biolang"># Without ? — verbose
+fn load_and_filter(path: String) -> Result[Table] {
+  let content = read_text(path)
+  match content {
+    Err(e) => return Err(e),
+    Ok(text) => {
+      let parsed = csv(text)
+      match parsed {
+        Err(e) => return Err(e),
+        Ok(table) => Ok(table |> filter(|r| r.score > 0.5))
+      }
+    }
+  }
+}
+
+# With ? — concise and clear
+fn load_and_filter(path: String) -> Result[Table] {
+  let text = read_text(path)?
+  let table = csv(text)?
+  Ok(table |> filter(|r| r.score > 0.5))
+}
+
+# Chain ? in pipes
+fn process_sample(path: String) -> Result[Table] {
+  let data = csv(path)?
+  let validated = validate_schema(data)?
+  let normalized = normalize(validated)?
+  Ok(normalized)
+}</code></pre>
+
+        <h2>The Option Type</h2>
+        <p>
+          <code>Option[T]</code> represents a value that may be absent: <code>Some(T)</code> or
+          <code>None</code>. Use it when absence is a normal condition, not an error:
+        </p>
+        <pre><code class="language-biolang"># Functions returning Option
+fn find_gene(name: String, database: List[Gene]) -> Option[Gene] {
+  database |> find(|g| g.symbol == name)
+}
+
+# Working with Option values
+let gene = find_gene("BRCA1", db)
+
+# unwrap — panics if None
+let g = gene |> unwrap()
+
+# unwrap_or — provide a default
+let g = gene |> unwrap_or(default_gene)
+
+# unwrap_or_else — compute default lazily
+let g = gene |> unwrap_or_else(|| fetch_from_ncbi("BRCA1"))
+
+# map — transform the inner value if present
+let name = gene |> map(|g| g.symbol)   # Option[String]
+
+# and_then — chain Option-returning operations
+let pathway = gene
+  |> and_then(|g| find_pathway(g.id))
+  |> and_then(|p| lookup_drugs(p.name))</code></pre>
+
+        <h2>Pattern Matching on Result and Option</h2>
+        <pre><code class="language-biolang"># Match on Result
+let message = match load_data("samples.csv") {
+  Ok(data) => f"Loaded {data.num_rows} rows",
+  Err(e) => f"Failed to load: {e.message}"
+}
+
+# Match on Option
+match find_gene("TP53", db) {
+  Some(gene) => {
+    print(f"Found {gene.symbol} on {gene.chrom}")
+    analyze(gene)
+  },
+  None => {
+    print("Gene not found in database")
+  }
+}
+
+# Nested Result/Option matching
+match fetch_annotation(variant_id) {
+  Ok(Some(ann)) => print(f"Annotation: {ann.description}"),
+  Ok(None) => print("No annotation available"),
+  Err(e) => print(f"Fetch failed: {e}")
+}</code></pre>
+
+        <h2>Try / Catch</h2>
+        <p>
+          For top-level scripts and situations where exception-style handling is clearer, BioLang
+          provides <code>try</code>/<code>catch</code> blocks:
+        </p>
+        <pre><code class="language-biolang"># Basic try/catch
+try {
+  let data = csv("input.csv")?
+  let results = analyze(data)?
+  write_csv(results, "output.csv")?
+  print("Analysis complete")
+} catch e {
+  print(f"Pipeline failed: {e.message}")
+  print(f"  at: {e.location}")
+}
+
+# try/catch with specific error types
+try {
+  let variants = read_vcf("variants.vcf")?
+  let annotated = annotate(variants, "clinvar.vcf")?
+  write_vcf(annotated, "annotated.vcf")?
+} catch IoError as e {
+  print(f"File error: {e.path} — {e.message}")
+} catch ParseError as e {
+  print(f"Parse error at line {e.line}: {e.message}")
+} catch e {
+  print(f"Unexpected error: {e}")
+}</code></pre>
+
+        <h2>Try as an Expression</h2>
+        <p>
+          <code>try</code> can be used as an expression that converts exceptions into
+          <code>Result</code> values:
+        </p>
+        <pre><code class="language-biolang"># try expression returns Result
+let result: Result[Table] = try { csv("data.csv") }
+
+# Useful in map for fault-tolerant batch processing
+let results = file_paths
+  |> map(|path| try { csv(path) })
+  |> filter(|r| is_ok(r))
+  |> map(|r| unwrap(r))
+
+# With a default value
+let data = try { csv("data.csv") }
+  |> unwrap_or(empty_table())</code></pre>
+
+        <h2>Custom Error Types</h2>
+        <pre><code class="language-biolang"># Define custom error with struct
+struct PipelineError {
+  stage: String,
+  message: String,
+  sample_id: String
+}
+
+# Use in functions
+fn run_qc(sample: Sample) -> Result[QcReport] {
+  let stats = try { compute_stats(sample) }
+    |> map_err(|e| PipelineError {
+      stage: "quality_control",
+      message: e.message,
+      sample_id: sample.id
+    })?
+
+  if stats.mean_quality < 15.0 {
+    return Err(PipelineError {
+      stage: "quality_control",
+      message: f"Mean quality below threshold: {stats.mean_quality}",
+      sample_id: sample.id
+    })
+  }
+
+  Ok(QcReport { sample: sample.id, stats: stats })
+}</code></pre>
+
+        <h2>Error Context</h2>
+        <p>
+          Add context to errors as they propagate up the call stack using <code>context</code>:
+        </p>
+        <pre><code class="language-biolang">fn process_sample(sample_id: String) -> Result[Report] {
+  let reads = read_fastq(f"{sample_id}.fq.gz")
+    |> context(f"reading FASTQ for sample {sample_id}")?
+
+  let aligned = align(reads, reference)
+    |> context(f"aligning sample {sample_id}")?
+
+  let variants = call_variants(aligned)
+    |> context(f"calling variants for sample {sample_id}")?
+
+  Ok(generate_report(variants))
+}
+
+# Error message includes full context chain:
+# "calling variants for sample S001: GATK exited with code 1"</code></pre>
+
+        <h2>Retry Logic</h2>
+        <pre><code class="language-biolang"># Retry with exponential backoff
+fn fetch_with_retry(url: String, max_attempts = 3) -> Result[String] {
+  let attempt = 0
+  let last_error = None
+
+  while attempt < max_attempts {
+    match try { fetch(url) } {
+      Ok(response) => return Ok(response),
+      Err(e) => {
+        last_error = Some(e)
+        attempt = attempt + 1
+        if attempt < max_attempts {
+          sleep(pow(2, attempt) * 1000)  # Exponential backoff
+        }
+      }
+    }
+  }
+
+  Err(f"Failed after {max_attempts} attempts: {unwrap(last_error)}")
+}
+
+# Usage
+let seq = fetch_with_retry("https://api.ncbi.nlm.nih.gov/seq/NM_007294")?</code></pre>
+
+        <h2>Retry</h2>
+        <p>
+          The <code>retry</code> expression re-attempts a block up to N times with an
+          optional delay &mdash; essential for flaky network calls to bio databases:
+        </p>
+        <pre><code class="language-biolang"># Retry NCBI fetch 3 times with 2-second delay
+let gene = retry(3, delay: 2000) {
+    ncbi_gene("TP53")
+}
+
+# Retry with increasing delay (manual exponential backoff)
+let result = retry(5, delay: 1000) {
+    ensembl_vep("rs699")
+}</code></pre>
+
+        <h2>Collecting Results</h2>
+        <pre><code class="language-biolang"># Process all, collect successes and failures separately
+let results = samples
+  |> map(|s| (s.id, try { process(s) }))
+
+let successes = results
+  |> filter(|(_, r)| is_ok(r))
+  |> map(|(id, r)| (id, unwrap(r)))
+
+let failures = results
+  |> filter(|(_, r)| is_err(r))
+  |> map(|(id, r)| (id, unwrap_err(r)))
+
+print(f"Succeeded: {len(successes)}, Failed: {len(failures)}")
+for (id, err) in failures {
+  print(f"  {id}: {err.message}")
+}
+
+# collect_results — stops at first error
+let all_ok: Result[List[Table]] = paths
+  |> map(|p| csv(p))
+  |> collect_results()    # Err if any failed, Ok(list) if all succeeded</code></pre>
+
+        <h2>Assertions</h2>
+        <pre><code class="language-biolang"># assert — panics with message if condition is false
+assert(len(reads) > 0, "No reads found in input file")
+assert(len(reference) > 0, "Reference sequence is empty")
+
+# assert with equality checks
+assert(len(columns) == expected_cols, "Column count mismatch")
+assert(sample_a != sample_b, "Samples must be different")
+
+# Use in validation functions
+fn validate_vcf(table: Table) -> Result[Table] {
+  if !("CHROM" in table.columns) {
+    return Err("Missing required column: CHROM")
+  }
+  if !("POS" in table.columns) {
+    return Err("Missing required column: POS")
+  }
+  if table.num_rows == 0 {
+    return Err("VCF table is empty")
+  }
+  Ok(table)
+}</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="streams.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Streams
+        </a>
+        <a href="modules.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Modules <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

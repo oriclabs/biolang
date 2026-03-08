@@ -1,0 +1,5 @@
+name,age,score,active
+Alice,30,95.5,true
+Bob,25,87.3,true
+Carol,35,72.1,false
+Dave,28,91.0,true

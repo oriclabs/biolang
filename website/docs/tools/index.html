@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tools — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/cli"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Tools</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Tools</h1>
+        <p>
+          BioLang ships with a complete toolchain &mdash; CLI, interactive REPL, language server,
+          bytecode compiler, and a plugin system. Everything is bundled in a single binary.
+        </p>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8 not-prose">
+          <a href="cli.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">CLI</h3>
+            <p class="text-sm text-slate-400">Run scripts, manage plugins, and interact with BioLang from the command line.</p>
+          </a>
+          <a href="repl.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">REPL</h3>
+            <p class="text-sm text-slate-400">Interactive read-eval-print loop with tab completion, history, and introspection.</p>
+          </a>
+          <a href="lsp.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Language Server</h3>
+            <p class="text-sm text-slate-400">Diagnostics, completions, and hover info for VS Code and other editors.</p>
+          </a>
+          <a href="compiler.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Compiler &amp; JIT</h3>
+            <p class="text-sm text-slate-400">Bytecode compiler and Cranelift JIT for maximum performance.</p>
+          </a>
+          <a href="plugins.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Plugins</h3>
+            <p class="text-sm text-slate-400">Extend BioLang with Python, TypeScript, R, or native Rust plugins.</p>
+          </a>
+        </div>
+      </article>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+</body>
+</html>

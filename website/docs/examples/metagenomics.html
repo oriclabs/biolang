@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metagenomics — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/metagenomics"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Metagenomics</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Metagenomics</h1>
+        <p>Metagenomic analysis involves taxonomic profiling, diversity estimation, and
+        community comparison from environmental sequencing data. BioLang handles
+        the common data formats and statistical methods used in microbiome research.</p>
+
+        <h2>Taxonomic Classification</h2>
+
+        <h3>Parsing Kraken2 output</h3>
+        <pre><code class="language-biolang"># Parse Kraken2 report file
+let report = tsv("kraken2_report.tsv", header: false)
+  |> map(|row| { {
+    pct: row[0] |> trim |> float,
+    count_clade: row[1] |> trim |> int,
+    count_taxon: row[2] |> trim |> int,
+    rank: row[3] |> trim,
+    taxid: row[4] |> trim |> int,
+    name: row[5] |> trim
+  }})
+
+# Top species
+let species = report
+  |> filter(|r| { r.rank == "S" && r.pct > 0.1 })
+  |> sort_by(|a, b| b.pct - a.pct)
+
+print("Top species by abundance:")
+for s in species |> take(15) {
+  let bar = "#" |> repeat((s.pct * 2.0) |> int)
+  print(f"  {s.pct |> round(2)}% {s.name} {bar}")
+}</code></pre>
+
+        <h3>Building abundance tables</h3>
+        <pre><code class="language-biolang"># Build a genus-level abundance table from multiple Kraken2 reports
+let samples = glob("kraken2_reports/*.tsv")
+
+let abundance = samples |> map(|path| {
+  let sample_name = basename(path) |> replace(".tsv", "")
+  let report = tsv(path, header: false)
+    |> filter(|row| { row[3] |> trim == "G" })  # Genus level
+    |> map(|row| { { genus: row[5] |> trim, count: row[2] |> trim |> int } })
+  { sample: sample_name, genera: report }
+})
+
+# Pivot into a genus x sample matrix
+let all_genera = abundance
+  |> flat_map(|s| { s.genera |> map(|x| x.genus) })
+  |> unique
+  |> sort
+
+let matrix = all_genera |> map(|genus| {
+  let row = { genus: genus }
+  for s in abundance {
+    let count = s.genera |> find(|g| { g.genus == genus })?.count ?? 0
+    row[s.sample] = count
+  }
+  row
+})
+
+matrix |> write_tsv("genus_abundance_table.tsv")
+print(f"Abundance table: {all_genera |> len} genera x {samples |> len} samples")</code></pre>
+
+        <h2>Diversity Analysis</h2>
+
+        <h3>Alpha diversity</h3>
+        <pre><code class="language-biolang"># Calculate alpha diversity metrics for each sample
+let abundance = tsv("genus_abundance_table.tsv")
+let sample_names = abundance |> colnames |> filter(|c| { c != "genus" })
+
+let alpha = sample_names |> map(|sample| {
+  let counts = abundance |> map(|row| { row[sample] |> int }) |> filter(|c| { c > 0 })
+
+  {
+    sample: sample,
+    richness: counts |> len,
+    shannon: counts |> shannon_diversity,
+    simpson: counts |> simpson_diversity,
+    chao1: counts |> chao1_estimate,
+    evenness: counts |> pielou_evenness
+  }
+})
+
+print("Alpha Diversity:")
+print("{'Sample':-20} {'Richness':>10} {'Shannon':>10} {'Simpson':>10} {'Chao1':>10}")
+for a in alpha {
+  print(f"{a.sample:-20} {a.richness:>10} {a.shannon |> round(3):>10} {a.simpson |> round(3):>10} {a.chao1 |> round(1):>10}")
+}
+
+alpha |> write_tsv("alpha_diversity.tsv")</code></pre>
+
+        <h3>Beta diversity and ordination</h3>
+        <pre><code class="language-biolang"># Bray-Curtis dissimilarity between samples
+let abundance = tsv("genus_abundance_table.tsv")
+let sample_names = abundance |> colnames |> filter(|c| { c != "genus" })
+
+# Build count matrix
+let count_matrix = sample_names |> map(|sample| {
+  abundance |> map(|row| { row[sample] |> int })
+})
+
+# Pairwise Bray-Curtis
+let bc_matrix = bray_curtis_matrix(count_matrix)
+
+# PCoA ordination
+let pcoa = bc_matrix |> pcoa(n_components: 3)
+
+print("PCoA variance explained:")
+for i, var in pcoa.variance_ratio |> enumerate |> take(3) {
+  print(f"  Axis {i + 1}: {(var * 100.0) |> round(1)}%")
+}
+
+# Export coordinates
+let coords = sample_names |> enumerate |> map(|i, name| { {
+  sample: name,
+  pcoa1: pcoa.components[i][0],
+  pcoa2: pcoa.components[i][1],
+  pcoa3: pcoa.components[i][2]
+}})
+coords |> write_tsv("pcoa_coordinates.tsv")</code></pre>
+
+        <h2>Differential Abundance</h2>
+
+        <h3>Comparing groups</h3>
+        <pre><code class="language-biolang"># Simple differential abundance between two groups
+let abundance = tsv("genus_abundance_table.tsv")
+let metadata = tsv("sample_metadata.tsv")
+
+let group_a = metadata |> filter(|r| { r["group"] == "healthy" }) |> map(|x| x.sample) |> collect
+let group_b = metadata |> filter(|r| { r["group"] == "disease" }) |> map(|x| x.sample) |> collect
+
+let genera = abundance |> map(|x| x.genus) |> collect
+
+let diff_results = genera |> map(|genus| {
+  let row = abundance |> find(|r| { r["genus"] == genus })
+  let counts_a = group_a |> map(|s| { row[s] |> float })
+  let counts_b = group_b |> map(|s| { row[s] |> float })
+
+  let test = wilcoxon(counts_a, counts_b)
+  {
+    genus: genus,
+    mean_healthy: counts_a |> mean,
+    mean_disease: counts_b |> mean,
+    log2fc: log2((counts_b |> mean + 1.0) / (counts_a |> mean + 1.0)),
+    p_value: test.p_value
+  }
+})
+
+# Multiple testing correction
+let pvals = diff_results |> map(|r| r.p_value)
+let qvals = p_adjust(pvals, "bh")
+let corrected = diff_results |> map(|r, i| { genus: r.genus, mean_healthy: r.mean_healthy, mean_disease: r.mean_disease, log2fc: r.log2fc, p_value: r.p_value, q_value: qvals[i] })
+
+let sig = corrected |> filter(|r| { r.q_value < 0.05 }) |> sort_by(|a, b| a.q_value - b.q_value)
+print(f"Differentially abundant genera (FDR < 0.05): {sig |> len}")
+sig |> each(|r| {
+  let direction = if r.log2fc > 0 { "enriched in disease" } else { "enriched in healthy" }
+  print(f"  {r.genus}: log2FC={r.log2fc |> round(2)}, q={r.q_value |> round(4)} ({direction})")
+})</code></pre>
+
+        <h2>Functional Profiling</h2>
+
+        <h3>Pathway abundance from HUMAnN output</h3>
+        <pre><code class="language-biolang"># Parse HUMAnN3 pathway abundance output
+let pathways = tsv("humann3_pathabundance.tsv")
+  |> filter(|row| { !(row["pathway"] |> contains("|")) })  # Remove stratified rows
+  |> filter(|row| { row["pathway"] != "UNMAPPED" && row["pathway"] != "UNINTEGRATED" })
+
+# Normalize to relative abundance (CPM)
+let sample_cols = pathways |> colnames |> filter(|c| { c != "pathway" })
+let total = sample_cols |> map(|col| {
+  pathways |> map(|row| { row[col] |> float }) |> sum
+})
+
+let normalized = pathways |> map(|row| {
+  let new_row = { pathway: row["pathway"] }
+  for i, col in sample_cols |> enumerate {
+    new_row[col] = row[col] |> float / total[i] * 1e6
+  }
+  new_row
+})
+
+normalized |> write_tsv("pathway_abundance_cpm.tsv")
+print(f"{normalized |> len} pathways across {sample_cols |> len} samples")</code></pre>
+
+        <h3>Resistome profiling</h3>
+        <pre><code class="language-biolang"># Analyze antibiotic resistance gene abundance
+let amr = tsv("amr_results.tsv")
+
+# Summarize by drug class
+let by_class = amr
+  |> group_by(|x| x.drug_class)
+  |> summarize(
+    n_genes: |rows| { rows |> map(|x| x.gene) |> unique |> len },
+    total_rpkm: |rows| { rows |> map(|x| x.rpkm) |> sum },
+    samples_present: |rows| { rows |> map(|x| x.sample) |> unique |> len }
+  )
+  |> sort_by(|a, b| b.total_rpkm - a.total_rpkm)
+
+print("AMR Gene Summary by Drug Class:")
+for cls in by_class {
+  print(f"  {cls.drug_class}: {cls.n_genes} genes, {cls.total_rpkm |> round(1)} total RPKM")
+}</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="clinical.html" class="text-violet-400 hover:text-violet-300">&larr; Clinical Variants</a>
+        <a href="singlecell.html" class="text-violet-400 hover:text-violet-300">Single-Cell &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

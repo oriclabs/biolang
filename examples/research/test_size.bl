@@ -1,0 +1,6 @@
+# Test type counts pattern
+let cell_types = ["A", "B", "A", "C", "B", "A"]
+let type_counts = cell_types |> unique() |> sort() |> map(|t|
+  {cell_type: t, count: cell_types |> filter(|ct| ct == t) |> len()}
+)
+println("counts:", type_counts)

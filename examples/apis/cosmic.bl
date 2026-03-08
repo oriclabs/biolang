@@ -1,0 +1,42 @@
+# COSMIC (Catalogue of Somatic Mutations in Cancer) API Examples
+# Sanger Institute — UK
+# Requires: COSMIC_API_KEY environment variable
+
+# Search for mutations in a gene
+# cosmic_gene(gene_symbol) -> list of mutation records
+let mutations = cosmic_gene("BRAF")
+println("=== BRAF Mutations in COSMIC ===")
+println("Total mutations:", len(mutations))
+
+# Each mutation has: id, gene, cds, aa, primary_site, mutation_type, count
+for m in head(mutations, 10) {
+    println("  ", m.id)
+    println("    Gene:", m.gene)
+    println("    CDS:", m.cds)
+    println("    Protein:", m.aa)
+    println("    Site:", m.primary_site)
+    println("    Type:", m.mutation_type)
+    println("    Count:", m.count)
+}
+
+# Find most frequent mutations
+let sorted = sort(mutations, |a, b| b.count - a.count)
+println("\n=== Top 5 Most Frequent BRAF Mutations ===")
+for m in head(sorted, 5) {
+    println("  ", m.aa, "(", m.mutation_type, ") -", m.count, "occurrences")
+    println("    Primary site:", m.primary_site)
+}
+
+# Analyze mutation types
+let types = unique(map(mutations, |m| m.mutation_type))
+println("\n=== Mutation Types ===")
+for t in types {
+    let type_muts = filter(mutations, |m| m.mutation_type == t)
+    println("  ", t, ":", len(type_muts))
+}
+
+# Look at another cancer gene
+let tp53_muts = cosmic_gene("TP53")
+println("\n=== TP53 vs BRAF ===")
+println("TP53 mutations:", len(tp53_muts))
+println("BRAF mutations:", len(mutations))

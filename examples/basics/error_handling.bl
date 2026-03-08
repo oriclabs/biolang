@@ -1,0 +1,85 @@
+# error_handling.bl — Errors, assertions, and defensive programming
+# BioLang uses try/catch for error handling
+
+# Basic try/catch
+try {
+    let x = int("not_a_number")
+    println("This won't execute")
+} catch e {
+    println("Caught: " + str(e))
+}
+
+# Raising errors with error()
+fn parse_base(ch) {
+    if ch == "A" || ch == "T" || ch == "G" || ch == "C" {
+        return ch
+    }
+    error("Invalid base: " + ch)
+}
+
+try {
+    println("Valid: " + parse_base("A"))
+    println("Invalid: " + parse_base("X"))
+} catch e {
+    println("Parse error: " + str(e))
+}
+
+# assert() — fails with a message if condition is false
+fn process_reads(reads) {
+    assert(len(reads) > 0, "reads list must not be empty")
+    println("Processing " + str(len(reads)) + " reads")
+}
+
+try {
+    process_reads(["read1", "read2"])
+    process_reads([])
+} catch e {
+    println("Assertion failed: " + str(e))
+}
+
+# Nil checking with is_nil
+fn find_sample(samples, id) {
+    for s in samples {
+        if s.id == id { return s }
+    }
+    return nil
+}
+
+let samples = [{id: "S1", name: "tumor"}, {id: "S2", name: "normal"}]
+let found = find_sample(samples, "S3")
+if is_nil(found) {
+    println("Sample S3 not found")
+} else {
+    println("Found: " + found.name)
+}
+
+# Type checking guards
+fn validate_quality(score) {
+    if type(score) != "Int" && type(score) != "Float" {
+        error("quality score must be numeric, got " + type(score))
+    }
+    if score < 0 || score > 60 {
+        error("quality score out of range: " + str(score))
+    }
+    return true
+}
+
+try {
+    validate_quality(30)
+    println("Score 30: valid")
+    validate_quality("high")
+} catch e {
+    println("Validation: " + str(e))
+}
+
+# Chained error handling — recover and continue
+let results = []
+let inputs = ["10", "abc", "20", "xyz", "30"]
+for input in inputs {
+    try {
+        push(results, int(input))
+    } catch e {
+        println("Skipping '" + input + "': " + str(e))
+    }
+}
+println("Parsed values: " + str(results))

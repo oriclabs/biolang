@@ -1,0 +1,59 @@
+# hello.bl — Basic types, variables, and arithmetic in BioLang
+# BioLang types: Int, Float, Str, Bool, Nil, List, Record
+
+# Variables are declared with let
+let name = "BioLang"
+let version = 1
+println("Hello from " + name + "!")
+
+# Integers and floats
+let count = 42
+let pi = 3.14159
+let negative = -7
+println("count = " + str(count))
+println("pi = " + str(pi))
+
+# Arithmetic
+let sum = 10 + 20
+let product = 6 * 7
+let division = 22.0 / 7.0
+let remainder = 17 % 5
+let power = 2 ** 10
+println("10 + 20 = " + str(sum))
+println("2 ** 10 = " + str(power))
+println("17 % 5 = " + str(remainder))
+
+# Booleans
+let is_ready = true
+let is_empty = false
+println("is_ready: " + str(is_ready))
+println("true AND false: " + str(true && false))
+println("true OR false: " + str(true || false))
+println("NOT true: " + str(!true))
+
+# Strings and concatenation
+let greeting = "Hello"
+let target = "World"
+let message = greeting + ", " + target + "!"
+println(message)
+
+# Nil — the absence of a value
+let nothing = nil
+println("nothing is nil: " + str(nothing == nil))
+
+# Type checking with type()
+println("type(42) = " + type(42))
+println("type(3.14) = " + type(3.14))
+println("type(\"hi\") = " + type("hi"))
+println("type(true) = " + type(true))
+println("type(nil) = " + type(nil))
+println("type([1,2]) = " + type([1, 2]))
+println("type({a: 1}) = " + type({a: 1}))
+
+# Type conversions
+let n = int("123")
+let f = float("3.14")
+let s = str(42)
+println("int(\"123\") = " + str(n))
+println("float(\"3.14\") = " + str(f))
+println("str(42) = " + s)

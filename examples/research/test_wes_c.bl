@@ -1,0 +1,13 @@
+let trio = table([
+    {chrom: "chrX", pos: 153296777, ref: "C", alt: "T", gene: "MECP2", consequence: "nonsense", gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 892.0, allele_freq: 0.0},
+    {chrom: "chr2", pos: 166845670, ref: "G", alt: "A", gene: "SCN1A", consequence: "missense", gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 743.0, allele_freq: 0.00002}
+])
+
+# Test mutate with if/then/else chain
+let scored = trio |> mutate("cadd_score", |v| {
+    if v.consequence == "nonsense" then 38.0
+    else if v.consequence == "frameshift" then 35.0
+    else if v.consequence == "splice" then 28.0
+    else 22.0
+})
+println("mutate ok:", scored |> count())

@@ -1,0 +1,22 @@
+# Stream examples
+
+# Basic streams: convert list to stream, take, collect
+let nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+let first3 = nums |> to_stream() |> take(3)
+println("First 3:", first3)
+
+# Stream with map and filter
+let evens = nums |> to_stream() |> filter(|x| x % 2 == 0) |> map(|x| x * 10)
+println("Evens * 10:", evens)
+
+# Stream reduce
+let total = nums |> to_stream() |> reduce(|a, b| a + b)
+println("Sum:", total)
+
+# Count items in a stream
+let n = [1, 2, 3, 4, 5] |> to_stream() |> count()
+println("Count:", n)
+
+# Type introspection
+println("Stream type:", type(to_stream([1])))
+println("List type:", type([1]))

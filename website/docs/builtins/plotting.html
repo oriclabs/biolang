@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Plots — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/plotting"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">SVG Plots</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">SVG Plots</h1>
+        <p class="text-lg text-slate-400 mb-8">14 functions for publication-quality SVG and PNG plots. All return an <code>svg</code> value that can be saved, displayed inline, or embedded in HTML reports.</p>
+
+        <section class="mb-12" id="common-opts">
+          <h2 class="text-2xl font-bold text-white">Common Options</h2>
+          <table class="w-full text-sm">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Default</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">width</td><td class="py-2 px-3">int</td><td class="py-2 px-3">800</td><td class="py-2 px-3">Plot width in pixels</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">height</td><td class="py-2 px-3">int</td><td class="py-2 px-3">600</td><td class="py-2 px-3">Plot height in pixels</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">title</td><td class="py-2 px-3">string</td><td class="py-2 px-3">""</td><td class="py-2 px-3">Plot title</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">x_label</td><td class="py-2 px-3">string</td><td class="py-2 px-3">""</td><td class="py-2 px-3">X-axis label</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">y_label</td><td class="py-2 px-3">string</td><td class="py-2 px-3">""</td><td class="py-2 px-3">Y-axis label</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">color</td><td class="py-2 px-3">string</td><td class="py-2 px-3">"#8b5cf6"</td><td class="py-2 px-3">Primary color (hex or named)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">palette</td><td class="py-2 px-3">string</td><td class="py-2 px-3">"viridis"</td><td class="py-2 px-3">Color palette name</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">theme</td><td class="py-2 px-3">string</td><td class="py-2 px-3">"dark"</td><td class="py-2 px-3">"dark" or "light"</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="mb-12" id="plot">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">plot</span></h2>
+          <p class="text-slate-400 mt-2">Generic plot dispatcher. Accepts data and a <code>type</code> option to select the chart kind.</p>
+          <pre><code class="language-biolang">plot(data, opts?) -> svg</code></pre>
+          <pre><code class="language-biolang">plot([1, 4, 9, 16, 25], {type: "line", title: "Squares"})
+plot({"A": 30, "T": 25, "C": 28, "G": 27}, {type: "bar"})</code></pre>
+        </section>
+
+        <section class="mb-12" id="scatter">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">scatter</span></h2>
+          <p class="text-slate-400 mt-2">Scatter plot with optional color and size mapping.</p>
+          <pre><code class="language-biolang">scatter(data, opts?) -> svg</code></pre>
+          <pre><code class="language-biolang">let expr = csv("expression.csv")
+scatter(expr, {
+  x: "control_mean",
+  y: "treated_mean",
+  color: "significant",
+  title: "Control vs Treated Expression",
+  x_label: "Control (TPM)",
+  y_label: "Treated (TPM)"
+}) |> save_svg("scatter.svg")</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <div class="p-4 bg-slate-900/50 flex justify-center">
+    <svg class="max-w-full" viewBox="0 0 400 250" width="400" height="250" font-family="system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="250" fill="#0f172a" rx="4"/>
+      <text x="200" y="22" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="bold">Control vs Treated Expression</text>
+      <!-- Axes -->
+      <line x1="55" y1="30" x2="55" y2="210" stroke="#475569" stroke-width="1"/>
+      <line x1="55" y1="210" x2="380" y2="210" stroke="#475569" stroke-width="1"/>
+      <!-- Grid lines -->
+      <line x1="55" y1="75" x2="380" y2="75" stroke="#1e293b" stroke-width="0.5"/>
+      <line x1="55" y1="120" x2="380" y2="120" stroke="#1e293b" stroke-width="0.5"/>
+      <line x1="55" y1="165" x2="380" y2="165" stroke="#1e293b" stroke-width="0.5"/>
+      <line x1="136" y1="30" x2="136" y2="210" stroke="#1e293b" stroke-width="0.5"/>
+      <line x1="217" y1="30" x2="217" y2="210" stroke="#1e293b" stroke-width="0.5"/>
+      <line x1="298" y1="30" x2="298" y2="210" stroke="#1e293b" stroke-width="0.5"/>
+      <!-- Axis labels -->
+      <text x="217" y="240" text-anchor="middle" fill="#94a3b8" font-size="11">Control (TPM)</text>
+      <text x="18" y="120" text-anchor="middle" fill="#94a3b8" font-size="11" transform="rotate(-90,18,120)">Treated (TPM)</text>
+      <!-- Tick labels -->
+      <text x="55" y="224" text-anchor="middle" fill="#64748b" font-size="9">0</text>
+      <text x="136" y="224" text-anchor="middle" fill="#64748b" font-size="9">25</text>
+      <text x="217" y="224" text-anchor="middle" fill="#64748b" font-size="9">50</text>
+      <text x="298" y="224" text-anchor="middle" fill="#64748b" font-size="9">75</text>
+      <text x="380" y="224" text-anchor="middle" fill="#64748b" font-size="9">100</text>
+      <text x="50" y="213" text-anchor="end" fill="#64748b" font-size="9">0</text>
+      <text x="50" y="168" text-anchor="end" fill="#64748b" font-size="9">25</text>
+      <text x="50" y="123" text-anchor="end" fill="#64748b" font-size="9">50</text>
+      <text x="50" y="78" text-anchor="end" fill="#64748b" font-size="9">75</text>
+      <text x="50" y="33" text-anchor="end" fill="#64748b" font-size="9">100</text>
+      <!-- Diagonal reference -->
+      <line x1="55" y1="210" x2="380" y2="30" stroke="#334155" stroke-width="0.5" stroke-dasharray="4,3"/>
+      <!-- Non-significant dots (violet, near diagonal) -->
+      <circle cx="72" cy="198" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="88" cy="192" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="95" cy="185" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="110" cy="180" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="125" cy="170" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="140" cy="158" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="152" cy="150" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="168" cy="142" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="180" cy="135" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="195" cy="128" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="210" cy="118" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="228" cy="108" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="245" cy="98" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="260" cy="88" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="278" cy="78" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="295" cy="65" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="310" cy="58" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="330" cy="48" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <circle cx="345" cy="42" r="3" fill="#8b5cf6" opacity="0.5"/><circle cx="365" cy="35" r="3" fill="#8b5cf6" opacity="0.5"/>
+      <!-- Significant dots (cyan, off-diagonal) -->
+      <circle cx="105" cy="155" r="4" fill="#22d3ee" opacity="0.8"/><circle cx="135" cy="125" r="4" fill="#22d3ee" opacity="0.8"/>
+      <circle cx="160" cy="105" r="4" fill="#22d3ee" opacity="0.8"/><circle cx="190" cy="165" r="4" fill="#22d3ee" opacity="0.8"/>
+      <circle cx="220" cy="68" r="4" fill="#22d3ee" opacity="0.8"/><circle cx="250" cy="142" r="4" fill="#22d3ee" opacity="0.8"/>
+      <circle cx="275" cy="48" r="4" fill="#22d3ee" opacity="0.8"/><circle cx="310" cy="95" r="4" fill="#22d3ee" opacity="0.8"/>
+      <circle cx="340" cy="72" r="4" fill="#22d3ee" opacity="0.8"/><circle cx="120" cy="140" r="4" fill="#22d3ee" opacity="0.8"/>
+      <circle cx="200" cy="80" r="4" fill="#22d3ee" opacity="0.8"/><circle cx="330" cy="105" r="4" fill="#22d3ee" opacity="0.8"/>
+      <!-- Legend -->
+      <circle cx="290" y="30" cx="290" cy="30" r="4" fill="#8b5cf6" opacity="0.5"/>
+      <text x="298" y="33" fill="#94a3b8" font-size="9">Not significant</text>
+      <circle cx="290" cy="42" r="4" fill="#22d3ee" opacity="0.8"/>
+      <text x="298" y="45" fill="#94a3b8" font-size="9">Significant</text>
+    </svg>
+  </div>
+</div>
+        </section>
+
+        <section class="mb-12" id="heatmap">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">heatmap</span></h2>
+          <p class="text-slate-400 mt-2">Heatmap from matrix or table data. Supports clustering and dendrograms.</p>
+          <pre><code class="language-biolang">heatmap(mat, opts?) -> svg</code></pre>
+          <pre><code class="language-biolang">let expr_matrix = matrix([
+  [10.2, 8.5, 12.1, 9.8],
+  [5.3, 4.8, 5.9, 5.1],
+  [20.1, 18.7, 22.3, 19.5]
+])
+heatmap(expr_matrix, {
+  row_labels: ["BRCA1", "TP53", "EGFR"],
+  col_labels: ["S1", "S2", "S3", "S4"],
+  palette: "viridis",
+  cluster_rows: true,
+  cluster_cols: true,
+  title: "Gene Expression Heatmap"
+}) |> save_svg("heatmap.svg")</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <div class="p-4 bg-slate-900/50 flex justify-center">
+    <svg class="max-w-full" viewBox="0 0 400 220" width="400" height="220" font-family="system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="220" fill="#0f172a" rx="4"/>
+      <text x="200" y="22" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="bold">Gene Expression Heatmap</text>
+      <!-- Column labels -->
+      <text x="145" y="48" text-anchor="middle" fill="#94a3b8" font-size="10">S1</text>
+      <text x="210" y="48" text-anchor="middle" fill="#94a3b8" font-size="10">S2</text>
+      <text x="275" y="48" text-anchor="middle" fill="#94a3b8" font-size="10">S3</text>
+      <text x="340" y="48" text-anchor="middle" fill="#94a3b8" font-size="10">S4</text>
+      <!-- Row labels -->
+      <text x="105" y="82" text-anchor="end" fill="#94a3b8" font-size="10">BRCA1</text>
+      <text x="105" y="127" text-anchor="end" fill="#94a3b8" font-size="10">TP53</text>
+      <text x="105" y="172" text-anchor="end" fill="#94a3b8" font-size="10">EGFR</text>
+      <!-- Heatmap cells: BRCA1 row (medium values ~10) -->
+      <rect x="115" y="55" width="60" height="40" fill="#35b779" rx="2"/>
+      <rect x="180" y="55" width="60" height="40" fill="#26828e" rx="2"/>
+      <rect x="245" y="55" width="60" height="40" fill="#6ece58" rx="2"/>
+      <rect x="310" y="55" width="60" height="40" fill="#31688e" rx="2"/>
+      <!-- TP53 row (low values ~5) -->
+      <rect x="115" y="100" width="60" height="40" fill="#31688e" rx="2"/>
+      <rect x="180" y="100" width="60" height="40" fill="#2c528e" rx="2"/>
+      <rect x="245" y="100" width="60" height="40" fill="#35b779" rx="2"/>
+      <rect x="310" y="100" width="60" height="40" fill="#2c528e" rx="2"/>
+      <!-- EGFR row (high values ~20) -->
+      <rect x="115" y="145" width="60" height="40" fill="#b5de2b" rx="2"/>
+      <rect x="180" y="145" width="60" height="40" fill="#90d743" rx="2"/>
+      <rect x="245" y="145" width="60" height="40" fill="#fde725" rx="2"/>
+      <rect x="310" y="145" width="60" height="40" fill="#9ad93c" rx="2"/>
+      <!-- Cell value labels -->
+      <text x="145" y="80" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="600">10.2</text>
+      <text x="210" y="80" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">8.5</text>
+      <text x="275" y="80" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="600">12.1</text>
+      <text x="340" y="80" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">9.8</text>
+      <text x="145" y="125" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">5.3</text>
+      <text x="210" y="125" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">4.8</text>
+      <text x="275" y="125" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="600">5.9</text>
+      <text x="340" y="125" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">5.1</text>
+      <text x="145" y="170" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="600">20.1</text>
+      <text x="210" y="170" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="600">18.7</text>
+      <text x="275" y="170" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="600">22.3</text>
+      <text x="340" y="170" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="600">19.5</text>
+      <!-- Color scale -->
+      <defs><linearGradient id="viridis" x1="0" x2="1"><stop offset="0%" stop-color="#440154"/><stop offset="25%" stop-color="#31688e"/><stop offset="50%" stop-color="#35b779"/><stop offset="75%" stop-color="#90d743"/><stop offset="100%" stop-color="#fde725"/></linearGradient></defs>
+      <rect x="115" y="198" width="255" height="8" fill="url(#viridis)" rx="2"/>
+      <text x="115" y="215" fill="#64748b" font-size="8">Low</text>
+      <text x="370" y="215" text-anchor="end" fill="#64748b" font-size="8">High</text>
+    </svg>
+  </div>
+</div>
+        </section>
+
+        <section class="mb-12" id="histogram">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">histogram</span></h2>
+          <pre><code class="language-biolang">histogram(data, opts?) -> svg     # continuous data, binned</code></pre>
+          <pre><code class="language-biolang">histogram(quality_scores, {bins: 30, title: "Quality Score Distribution"})</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <div class="p-4 bg-slate-900/50 flex justify-center">
+    <svg class="max-w-full" viewBox="0 0 400 220" width="400" height="220" font-family="system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="220" fill="#0f172a" rx="4"/>
+      <text x="200" y="22" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="bold">Variants by Region</text>
+      <!-- Y axis -->
+      <line x1="70" y1="35" x2="70" y2="185" stroke="#475569" stroke-width="1"/>
+      <line x1="70" y1="185" x2="370" y2="185" stroke="#475569" stroke-width="1"/>
+      <!-- Grid lines -->
+      <line x1="70" y1="147" x2="370" y2="147" stroke="#1e293b" stroke-width="0.5"/>
+      <line x1="70" y1="110" x2="370" y2="110" stroke="#1e293b" stroke-width="0.5"/>
+      <line x1="70" y1="72" x2="370" y2="72" stroke="#1e293b" stroke-width="0.5"/>
+      <line x1="70" y1="35" x2="370" y2="35" stroke="#1e293b" stroke-width="0.5"/>
+      <!-- Y tick labels -->
+      <text x="65" y="188" text-anchor="end" fill="#64748b" font-size="9">0</text>
+      <text x="65" y="150" text-anchor="end" fill="#64748b" font-size="9">12k</text>
+      <text x="65" y="113" text-anchor="end" fill="#64748b" font-size="9">24k</text>
+      <text x="65" y="75" text-anchor="end" fill="#64748b" font-size="9">36k</text>
+      <text x="65" y="38" text-anchor="end" fill="#64748b" font-size="9">48k</text>
+      <!-- Bars -->
+      <rect x="95" y="143" width="50" height="42" fill="#22d3ee" rx="2" opacity="0.85"/>
+      <rect x="170" y="35" width="50" height="150" fill="#22d3ee" rx="2" opacity="0.85"/>
+      <rect x="245" y="174" width="50" height="11" fill="#22d3ee" rx="2" opacity="0.85"/>
+      <rect x="320" y="156" width="50" height="29" fill="#22d3ee" rx="2" opacity="0.85"/>
+      <!-- Bar value labels -->
+      <text x="120" y="139" text-anchor="middle" fill="#94a3b8" font-size="9">12,500</text>
+      <text x="195" y="50" text-anchor="middle" fill="#94a3b8" font-size="9">45,000</text>
+      <text x="270" y="170" text-anchor="middle" fill="#94a3b8" font-size="9">3,200</text>
+      <text x="345" y="152" text-anchor="middle" fill="#94a3b8" font-size="9">8,900</text>
+      <!-- X labels -->
+      <text x="120" y="200" text-anchor="middle" fill="#94a3b8" font-size="10">Exon</text>
+      <text x="195" y="200" text-anchor="middle" fill="#94a3b8" font-size="10">Intron</text>
+      <text x="270" y="200" text-anchor="middle" fill="#94a3b8" font-size="10">UTR</text>
+      <text x="345" y="200" text-anchor="middle" fill="#94a3b8" font-size="10">Intergenic</text>
+    </svg>
+  </div>
+</div>
+        </section>
+
+        <section class="mb-12" id="violin">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">violin</span></h2>
+          <pre><code class="language-biolang">violin(groups, opts?) -> svg</code></pre>
+          <pre><code class="language-biolang">let groups = {
+  "WT": [30, 32, 28, 35, 31],
+  "KO": [22, 25, 20, 18, 24],
+  "OE": [40, 38, 42, 45, 41]
+}
+violin(groups, {title: "Expression Distribution"})</code></pre>
+        </section>
+
+        <section class="mb-12" id="volcano">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">volcano</span> / <span class="text-violet-400 font-mono">ma_plot</span></h2>
+          <p class="text-slate-400 mt-2">Standard differential expression visualizations.</p>
+          <pre><code class="language-biolang">volcano(tbl, opts?) -> svg
+ma_plot(tbl, opts?) -> svg</code></pre>
+          <pre><code class="language-biolang">let de = csv("deseq2_results.csv")
+volcano(de, {
+  x: "log2FoldChange",
+  y: "padj",
+  fc_threshold: 1.0,
+  p_threshold: 0.05,
+  label_top: 10,
+  title: "Differential Expression"
+}) |> save_svg("volcano.svg")</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <div class="p-4 bg-slate-900/50 flex justify-center">
+    <svg class="max-w-full" viewBox="0 0 400 260" width="400" height="260" font-family="system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="260" fill="#0f172a" rx="4"/>
+      <text x="200" y="22" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="bold">Differential Expression</text>
+      <!-- Axes -->
+      <line x1="55" y1="30" x2="55" y2="220" stroke="#475569" stroke-width="1"/>
+      <line x1="55" y1="220" x2="380" y2="220" stroke="#475569" stroke-width="1"/>
+      <!-- Axis labels -->
+      <text x="217" y="248" text-anchor="middle" fill="#94a3b8" font-size="11">log2(Fold Change)</text>
+      <text x="16" y="125" text-anchor="middle" fill="#94a3b8" font-size="11" transform="rotate(-90,16,125)">-log10(p-value)</text>
+      <!-- Tick labels -->
+      <text x="55" y="234" text-anchor="middle" fill="#64748b" font-size="9">-4</text>
+      <text x="136" y="234" text-anchor="middle" fill="#64748b" font-size="9">-2</text>
+      <text x="217" y="234" text-anchor="middle" fill="#64748b" font-size="9">0</text>
+      <text x="298" y="234" text-anchor="middle" fill="#64748b" font-size="9">2</text>
+      <text x="380" y="234" text-anchor="middle" fill="#64748b" font-size="9">4</text>
+      <text x="50" y="223" text-anchor="end" fill="#64748b" font-size="9">0</text>
+      <text x="50" y="163" text-anchor="end" fill="#64748b" font-size="9">5</text>
+      <text x="50" y="103" text-anchor="end" fill="#64748b" font-size="9">10</text>
+      <text x="50" y="43" text-anchor="end" fill="#64748b" font-size="9">15</text>
+      <!-- Threshold lines -->
+      <line x1="55" y1="195" x2="380" y2="195" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.5"/>
+      <line x1="176" y1="30" x2="176" y2="220" stroke="#64748b" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.4"/>
+      <line x1="258" y1="30" x2="258" y2="220" stroke="#64748b" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.4"/>
+      <text x="383" y="193" fill="#64748b" font-size="7">p=0.05</text>
+      <!-- Not significant dots (gray, center) -->
+      <circle cx="195" cy="210" r="2.5" fill="#64748b" opacity="0.4"/><circle cx="205" cy="205" r="2.5" fill="#64748b" opacity="0.4"/>
+      <circle cx="210" cy="208" r="2.5" fill="#64748b" opacity="0.4"/><circle cx="225" cy="212" r="2.5" fill="#64748b" opacity="0.4"/>
+      <circle cx="200" cy="200" r="2.5" fill="#64748b" opacity="0.4"/><circle cx="215" cy="202" r="2.5" fill="#64748b" opacity="0.4"/>
+      <circle cx="190" cy="198" r="2.5" fill="#64748b" opacity="0.4"/><circle cx="230" cy="206" r="2.5" fill="#64748b" opacity="0.4"/>
+      <circle cx="185" cy="204" r="2.5" fill="#64748b" opacity="0.4"/><circle cx="240" cy="200" r="2.5" fill="#64748b" opacity="0.4"/>
+      <circle cx="198" cy="196" r="2.5" fill="#64748b" opacity="0.4"/><circle cx="222" cy="198" r="2.5" fill="#64748b" opacity="0.4"/>
+      <circle cx="208" cy="203" r="2.5" fill="#64748b" opacity="0.4"/><circle cx="182" cy="207" r="2.5" fill="#64748b" opacity="0.4"/>
+      <circle cx="235" cy="202" r="2.5" fill="#64748b" opacity="0.4"/><circle cx="192" cy="209" r="2.5" fill="#64748b" opacity="0.4"/>
+      <!-- Significant UP dots (violet, right side) -->
+      <circle cx="280" cy="180" r="3" fill="#8b5cf6" opacity="0.7"/><circle cx="295" cy="165" r="3" fill="#8b5cf6" opacity="0.7"/>
+      <circle cx="310" cy="145" r="3" fill="#8b5cf6" opacity="0.7"/><circle cx="270" cy="170" r="3" fill="#8b5cf6" opacity="0.7"/>
+      <circle cx="325" cy="120" r="3" fill="#8b5cf6" opacity="0.7"/><circle cx="340" cy="95" r="3" fill="#8b5cf6" opacity="0.7"/>
+      <circle cx="300" cy="155" r="3" fill="#8b5cf6" opacity="0.7"/><circle cx="350" cy="60" r="3.5" fill="#8b5cf6" opacity="0.9"/>
+      <circle cx="330" cy="75" r="3" fill="#8b5cf6" opacity="0.7"/><circle cx="285" cy="140" r="3" fill="#8b5cf6" opacity="0.7"/>
+      <circle cx="265" cy="185" r="3" fill="#8b5cf6" opacity="0.7"/><circle cx="315" cy="108" r="3" fill="#8b5cf6" opacity="0.7"/>
+      <!-- Significant DOWN dots (cyan, left side) -->
+      <circle cx="140" cy="175" r="3" fill="#22d3ee" opacity="0.7"/><circle cx="125" cy="160" r="3" fill="#22d3ee" opacity="0.7"/>
+      <circle cx="110" cy="140" r="3" fill="#22d3ee" opacity="0.7"/><circle cx="150" cy="185" r="3" fill="#22d3ee" opacity="0.7"/>
+      <circle cx="95" cy="110" r="3" fill="#22d3ee" opacity="0.7"/><circle cx="80" cy="85" r="3" fill="#22d3ee" opacity="0.7"/>
+      <circle cx="100" cy="130" r="3" fill="#22d3ee" opacity="0.7"/><circle cx="72" cy="50" r="3.5" fill="#22d3ee" opacity="0.9"/>
+      <circle cx="88" cy="95" r="3" fill="#22d3ee" opacity="0.7"/><circle cx="130" cy="150" r="3" fill="#22d3ee" opacity="0.7"/>
+      <!-- Gene labels -->
+      <text x="355" y="56" fill="#c4b5fd" font-size="8" font-weight="600">EGFR</text>
+      <text x="77" y="46" fill="#a5f3fc" font-size="8" font-weight="600">BRCA1</text>
+      <text x="345" y="91" fill="#c4b5fd" font-size="8" font-weight="600">MYC</text>
+      <text x="85" y="81" fill="#a5f3fc" font-size="8" font-weight="600">TP53</text>
+    </svg>
+  </div>
+</div>
+          <pre><code class="language-biolang">ma_plot(de, {
+  x: "baseMean",
+  y: "log2FoldChange",
+  color: "padj",
+  title: "MA Plot"
+})</code></pre>
+        </section>
+
+        <section class="mb-12" id="save">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">save_svg</span></h2>
+          <pre><code class="language-biolang">save_svg(svg, path) -> string</code></pre>
+          <pre><code class="language-biolang">let p = scatter(data, {title: "My Plot"})
+save_svg(p, "plot.svg")</code></pre>
+        </section>
+
+        <section class="mb-12" id="more">
+          <h2 class="text-2xl font-bold text-white">Additional Plot Types</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Function</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+              <tbody>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">density(data, opts?)</td><td class="py-2 px-3">Kernel density estimation plot</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">genome_track(data, opts?)</td><td class="py-2 px-3">Genome annotation track (genes, exons, introns)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="visualization.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> ASCII Plots</a>
+        <a href="bio-plots.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">Bio Plots <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

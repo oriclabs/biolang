@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nf-core — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="apis/nfcore"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">API Clients</a><span class="mx-2">/</span>
+        <span class="text-slate-300">nf-core</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>nf-core Pipeline Catalog</h1>
+        <p>
+          BioLang provides native access to the nf-core catalog — over 100 curated,
+          peer-reviewed bioinformatics pipelines built on Nextflow. Browse, search, and
+          inspect pipelines directly from BioLang with built-in functions. No import needed.
+        </p>
+
+        <h2>Browsing Pipelines</h2>
+        <p>
+          Use <code>nfcore_list()</code> to browse all pipelines in the catalog. You can
+          optionally sort by <code>"stars"</code> (default), <code>"name"</code>, or
+          <code>"release"</code>, and limit the number of results:
+        </p>
+        <pre><code class="language-biolang"># List all pipelines, sorted by stars (default)
+let pipelines = nfcore_list()
+pipelines |> print()
+
+# Sort by name
+nfcore_list("name") |> print()
+
+# Get top 10 most-starred pipelines
+let top10 = nfcore_list("stars", 10)
+top10 |> print()</code></pre>
+        <p>
+          Returns a List of Records with fields: <code>{name, description, stars, topics, latest_release}</code>.
+        </p>
+
+        <h2>Searching</h2>
+        <p>
+          Search pipelines by name, description, or topics with <code>nfcore_search()</code>.
+          The search is case-insensitive:
+        </p>
+        <pre><code class="language-biolang"># Search for RNA-seq pipelines
+nfcore_search("rnaseq") |> print()
+
+# Search for variant-related pipelines, limit to 5
+nfcore_search("variant", 5) |> print()
+
+# Search by topic keyword
+nfcore_search("single-cell") |> print()</code></pre>
+
+        <h2>Pipeline Details</h2>
+        <p>
+          Get detailed metadata for a specific pipeline with <code>nfcore_info()</code>:
+        </p>
+        <pre><code class="language-biolang"># Get full details for the sarek pipeline
+let info = nfcore_info("sarek")
+print(info)
+# => { name: "sarek", full_name: "nf-core/sarek", description: "...",
+#      stars: 142, url: "https://...", license: "MIT", topics: [...],
+#      open_issues: 23, created: "2018-...", updated: "2024-..." }</code></pre>
+        <p>
+          Returns a Record with fields: <code>{name, full_name, description, stars, url, license, topics, open_issues, created, updated}</code>.
+        </p>
+
+        <h2>Releases</h2>
+        <p>
+          List all releases for a pipeline with <code>nfcore_releases()</code>:
+        </p>
+        <pre><code class="language-biolang"># Get all releases for rnaseq
+let releases = nfcore_releases("rnaseq")
+releases |> print()
+# => [{ tag: "3.14.0", published_at: "2024-..." }, ...]
+
+# Get the latest release tag
+let latest = nfcore_releases("rnaseq") |> first()
+print("Latest:", latest.tag)</code></pre>
+        <p>
+          Returns a List of Records: <code>{tag, published_at}</code>.
+        </p>
+
+        <h2>Parameter Schema</h2>
+        <p>
+          Inspect the parameter schema for a pipeline with <code>nfcore_params()</code>.
+          Parameters are grouped by category:
+        </p>
+        <pre><code class="language-biolang"># Get parameter schema for rnaseq
+let params = nfcore_params("rnaseq")
+print(params)
+# => { input_output: [{ name: "input", type: "string", description: "...", default: nil }, ...],
+#      reference_genome: [{ name: "genome", type: "string", ... }, ...],
+#      ... }
+
+# List all parameter groups
+params |> keys() |> print()
+
+# Inspect a specific group
+params.input_output |> print()</code></pre>
+        <p>
+          Returns a Record of parameter groups, where each group maps to a List of
+          <code>{name, type, description, default}</code>.
+        </p>
+
+        <h2>Configuration</h2>
+        <p>
+          The nf-core catalog URL is configurable via <code>~/.biolang/apis.yaml</code>
+          or the <code>BIOLANG_NFCORE_CATALOG_URL</code> environment variable. Set
+          <code>GITHUB_TOKEN</code> for higher GitHub API rate limits (5,000 req/hr
+          instead of 60 req/hr).
+        </p>
+
+        <h2>Builtin Reference</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Function</th>
+              <th>Args</th>
+              <th>Returns</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>nfcore_list</code></td>
+              <td>sort_by?, limit?</td>
+              <td>List&lt;Record&gt;</td>
+              <td>List all pipelines, sorted by "stars" (default), "name", or "release"</td>
+            </tr>
+            <tr>
+              <td><code>nfcore_search</code></td>
+              <td>query, limit?</td>
+              <td>List&lt;Record&gt;</td>
+              <td>Search pipelines by name/description/topic</td>
+            </tr>
+            <tr>
+              <td><code>nfcore_info</code></td>
+              <td>name</td>
+              <td>Record</td>
+              <td>Detailed pipeline metadata from GitHub</td>
+            </tr>
+            <tr>
+              <td><code>nfcore_releases</code></td>
+              <td>name</td>
+              <td>List&lt;Record&gt;</td>
+              <td>All releases with tag and date</td>
+            </tr>
+            <tr>
+              <td><code>nfcore_params</code></td>
+              <td>name</td>
+              <td>Record</td>
+              <td>Parameter schema grouped by category</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Practical Examples</h2>
+        <h3>Find and Compare Variant Calling Pipelines</h3>
+        <pre><code class="language-biolang"># Find all variant-related pipelines and compare them
+nfcore_search("variant")
+  |> map(|p| {
+    name: p.name,
+    stars: p.stars,
+    description: p.description,
+    latest: p.latest_release
+  })
+  |> sort(.stars)
+  |> reverse()
+  |> print()</code></pre>
+
+        <h3>Inspect Pipeline Parameters Before Running</h3>
+        <pre><code class="language-biolang"># Check what inputs sarek expects
+let params = nfcore_params("sarek")
+
+# List required parameters (those without defaults)
+params
+  |> values()
+  |> flatten()
+  |> filter(|p| p.default == nil)
+  |> map(|p| { name: p.name, type: p.type, description: p.description })
+  |> print()</code></pre>
+
+        <h3>Track Pipeline Releases</h3>
+        <pre><code class="language-biolang"># Check release history for multiple pipelines
+let pipelines = ["rnaseq", "sarek", "fetchngs", "taxprofiler"]
+
+pipelines
+  |> map(|name| {
+    let releases = nfcore_releases(name)
+    let latest = releases |> first()
+    { pipeline: name, latest_tag: latest.tag, released: latest.published_at }
+  })
+  |> to_table()
+  |> print()</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="others.html" class="text-violet-400 hover:text-violet-300">&larr; Other API Clients</a>
+        <a href="biocontainers.html" class="text-violet-400 hover:text-violet-300">BioContainers &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

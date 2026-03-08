@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File System — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/filesystem"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">File System</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">File System</h1>
+        <p class="text-lg text-slate-400 mb-8">18 functions for reading, writing, and managing files and directories. All paths are resolved relative to the working directory.</p>
+
+        <section class="mb-12" id="read">
+          <h2 class="text-2xl font-bold text-white">Reading Files</h2>
+          <pre><code class="language-biolang">read_text(path) -> string            # entire file as string
+read_lines(path) -> list&lt;string&gt;     # list of lines (no trailing \n)</code></pre>
+          <pre><code class="language-biolang">let content = read_text("sample.fasta")
+let lines = read_lines("gene_list.txt")
+println("Genes:", len(lines))
+
+# Process FASTA line by line
+let fasta_lines = read_lines("reference.fa")
+let sequences = fasta_lines
+  |> filter(|l| not starts_with(l, ">"))
+  |> join("")
+println("Total bases:", len(sequences))</code></pre>
+        </section>
+
+        <section class="mb-12" id="write">
+          <h2 class="text-2xl font-bold text-white">Writing Files</h2>
+          <pre><code class="language-biolang">write_text(path, content) -> string      # returns path
+write_lines(path, lines) -> string       # joins with \n</code></pre>
+          <pre><code class="language-biolang">write_text("output.txt", "Analysis complete\n")
+
+let genes = ["BRCA1", "TP53", "EGFR", "KRAS"]
+write_lines("significant_genes.txt", genes)
+
+# Generate BED file
+let regions = [
+  "chr1\t1000\t2000\tgene1",
+  "chr7\t5000\t6000\tgene2"
+]
+write_lines("regions.bed", regions)</code></pre>
+        </section>
+
+        <section class="mb-12" id="glob">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">glob</span></h2>
+          <p class="text-slate-400 mt-2">Find files matching a glob pattern. Returns a list of matching paths.</p>
+          <pre><code class="language-biolang">glob(pattern) -> list&lt;string&gt;</code></pre>
+          <pre><code class="language-biolang">glob("*.fastq.gz")                    # ["S1_R1.fastq.gz", "S1_R2.fastq.gz"]
+glob("data/**/*.bam")                  # recursive search
+glob("samples/*/aligned/*.bam")        # wildcard directories
+
+# Process all FASTQ files
+let fastqs = glob("raw_data/*.fastq.gz")
+println("Found", len(fastqs), "FASTQ files")
+for f in fastqs {
+  println("Processing:", f)
+}</code></pre>
+        </section>
+
+        <section class="mb-12" id="directory">
+          <h2 class="text-2xl font-bold text-white">Directory Operations</h2>
+          <pre><code class="language-biolang">mkdir(path) -> string          # create directory (recursive), returns path
+remove_dir(path, force?) -> nil  # remove directory (force=true for non-empty)
+file_exists(path) -> bool      # check if path exists
+is_file(path) -> bool          # true if regular file
+is_dir(path) -> bool           # true if directory</code></pre>
+          <pre><code class="language-biolang">mkdir("results/alignment/logs")   # creates all intermediate dirs
+
+if not file_exists("output") {
+  mkdir("output")
+}
+
+assert(is_file("sample.bam"), "BAM file missing")
+assert(is_dir("reference/"), "Reference directory missing")</code></pre>
+        </section>
+
+        <section class="mb-12" id="file-ops">
+          <h2 class="text-2xl font-bold text-white">File Operations</h2>
+          <pre><code class="language-biolang">file_size(path) -> int            # bytes
+copy_file(src, dst) -> string     # returns dst path
+rename_file(src, dst) -> string   # returns dst path
+remove(path) -> nil               # delete a file
+temp_file(suffix?) -> string      # create temp file, return path
+temp_dir() -> string              # create temp directory, return path</code></pre>
+          <pre><code class="language-biolang">let size = file_size("genome.fa.gz")
+println("Reference size:", round(float(size) / 1e9, 2), "GB")
+
+# Archive results
+copy_file("results.csv", "archive/results_20260305.csv")
+
+# Use temp files for intermediate processing
+let tmp = temp_file(".bam")
+# ... write intermediate BAM to tmp ...
+rename_file(tmp, "final_output.bam")
+
+# Clean up
+remove("temp_results.txt")</code></pre>
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mt-4">
+            <p class="text-sm text-amber-300"><strong>Edge case:</strong> <code>remove</code> on a non-existent path raises an error. Use <code>if file_exists(path) { remove(path) }</code> for safe deletion.</p>
+          </div>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="hash.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> Hash &amp; Encoding</a>
+        <a href="http.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">HTTP &amp; Network <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

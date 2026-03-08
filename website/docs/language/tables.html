@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tables — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/tables"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Tables</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Tables</h1>
+        <p>
+          Tables are a first-class data type in BioLang, designed for the tabular data that
+          dominates bioinformatics workflows. BioLang provides dplyr-inspired verbs &mdash;
+          <code>select</code>, <code>filter</code>, <code>arrange</code>, <code>group_by</code>,
+          <code>summarize</code>, <code>join</code>, <code>pivot</code>, and <code>window</code>
+          &mdash; that compose naturally with pipes.
+        </p>
+
+        <h2>Creating Tables</h2>
+        <pre><code class="language-biolang"># From named columns
+let variants = table(
+  gene = ["BRCA1", "TP53", "EGFR", "KRAS", "BRAF"],
+  chrom = ["chr17", "chr17", "chr7", "chr12", "chr7"],
+  position = [43044295, 7577120, 55259515, 25398284, 140453136],
+  impact = ["HIGH", "HIGH", "MODERATE", "HIGH", "MODERATE"],
+  frequency = [0.012, 0.034, 0.089, 0.156, 0.023]
+)
+
+# From a CSV file
+let data = csv("results.csv")
+
+# From a TSV file
+let bed = tsv("regions.bed", header = false,
+  col_names = ["chrom", "start", "end", "name", "score"])
+
+# From VCF
+let vcf_data = read_vcf("variants.vcf")
+
+# Empty table with schema
+let empty = table(gene: List[String] = [], score: List[Float] = [])</code></pre>
+
+        <h2>Table Information</h2>
+        <pre><code class="language-biolang">let t = csv("experiment.csv")
+
+t.num_rows       # Number of rows
+t.num_cols       # Number of columns
+t.columns        # List of column names
+describe(t)      # Summary statistics with types and sample values
+head(t, 5)       # First 5 rows
+tail(t, 5)       # Last 5 rows</code></pre>
+
+        <h2>Select</h2>
+        <p>
+          Choose columns to keep, rename columns, or reorder them:
+        </p>
+        <pre><code class="language-biolang"># Keep specific columns
+let subset = variants |> select("gene", "impact", "frequency")
+
+# Drop columns (negative selection)
+let trimmed = variants |> select(-"position", -"chrom")
+
+# Rename while selecting
+let renamed = variants |> select(
+  gene_name = "gene",
+  chr = "chrom",
+  freq = "frequency"
+)
+
+# Select with a filter
+let qual_cols = data |> select("qual_a", "qual_b", "qual_c")</code></pre>
+
+        <h2>Filter</h2>
+        <p>
+          Keep rows matching a predicate:
+        </p>
+        <pre><code class="language-biolang"># Simple filter
+let high_impact = variants |> filter(|r| r.impact == "HIGH")
+
+# Multiple conditions
+let significant = variants
+  |> filter(|r| r.impact == "HIGH" && r.frequency > 0.01)
+
+# Filter with string operations
+let chr17 = variants |> filter(|r| r.chrom == "chr17")
+
+# Filter with 'in' operator
+let target_genes = ["BRCA1", "TP53", "KRAS"]
+let targets = variants |> filter(|r| r.gene in target_genes)
+
+# Remove None values
+let clean = data |> filter(|r| r.score != None)</code></pre>
+
+        <h2>Arrange</h2>
+        <p>
+          Sort rows by one or more columns:
+        </p>
+        <pre><code class="language-biolang"># Sort ascending (default)
+let sorted = variants |> arrange("frequency")
+
+# Sort descending
+let top_freq = variants |> arrange(desc("frequency"))
+
+# Multi-column sort
+let ordered = variants |> arrange("chrom", desc("position"))
+
+# Sort by computed value
+let by_name_len = variants |> arrange(|r| len(r.gene))</code></pre>
+
+        <h2>Mutate</h2>
+        <p>
+          Add new columns or transform existing ones:
+        </p>
+        <pre><code class="language-biolang"># Add a new column
+let enriched = variants
+  |> mutate(log_freq = |r| log10(r.frequency))
+
+# Multiple new columns
+let annotated = variants
+  |> mutate(
+    is_rare = |r| r.frequency < 0.01,
+    label = |r| f"{r.gene}:{r.chrom}:{r.position}",
+    severity = |r| if r.impact == "HIGH" { 3 } else { 1 }
+  )
+
+# Overwrite an existing column
+let updated = variants
+  |> mutate(frequency = |r| round(r.frequency, 4))</code></pre>
+
+        <h2>Group By and Summarize</h2>
+        <p>
+          Group rows by one or more columns, then compute aggregate statistics per group:
+        </p>
+        <pre><code class="language-biolang"># Group and summarize
+let by_impact = variants
+  |> group_by("impact")
+  |> summarize(
+    count = n(),
+    avg_freq = mean(frequency),
+    max_freq = max(frequency),
+    genes = collect(gene)
+  )
+
+# Multiple grouping columns
+let by_chrom_impact = variants
+  |> group_by("chrom", "impact")
+  |> summarize(
+    count = n(),
+    total_freq = sum(frequency)
+  )
+
+# Available aggregation functions:
+# n(), sum(), mean(), median(), min(), max(), stdev(), variance(),
+# first(), last(), collect(), count(), quantile()</code></pre>
+
+        <h2>Join</h2>
+        <p>
+          Combine two tables based on matching columns:
+        </p>
+        <pre><code class="language-biolang">let annotations = table(
+  gene = ["BRCA1", "TP53", "EGFR"],
+  pathway = ["DNA repair", "Cell cycle", "Growth signaling"],
+  druggable = [false, false, true]
+)
+
+# Inner join — only matching rows
+let joined = variants |> inner_join(annotations, by = "gene")
+
+# Left join — keep all rows from left table
+let enriched = variants |> left_join(annotations, by = "gene")
+
+# Full outer join — keep all rows from both (not built-in, use left_join both ways)
+# let all_data = ...
+
+# Join on different column names
+let merged = table_a |> inner_join(table_b, left = "gene_id", right = "id")</code></pre>
+
+        <h2>Pivot</h2>
+        <p>
+          Reshape tables between long and wide formats:
+        </p>
+        <pre><code class="language-biolang"># Long to wide (pivot_wider)
+let expression = table(
+  gene = ["BRCA1", "BRCA1", "TP53", "TP53"],
+  sample = ["tumor", "normal", "tumor", "normal"],
+  fpkm = [12.5, 8.3, 45.2, 42.1]
+)
+
+let wide = expression |> pivot_wider(
+  names_from = "sample",
+  values_from = "fpkm"
+)
+# Result: gene | tumor | normal
+#         BRCA1  12.5    8.3
+#         TP53   45.2    42.1
+
+# Wide to long (pivot_longer)
+let long = wide |> pivot_longer(
+  cols = ["tumor", "normal"],
+  names_to = "sample",
+  values_to = "fpkm"
+)</code></pre>
+
+        <h2>Window Functions</h2>
+        <p>
+          Compute values across a sliding window of rows without collapsing groups:
+        </p>
+        <pre><code class="language-biolang"># Running average
+let smoothed = signal_data
+  |> arrange("position")
+  |> mutate(
+    rm = |r| rolling_mean(r.value, 5),
+    rs = |r| rolling_sum(r.value, 5)
+  )
+
+# Rank within groups
+let ranked = variants
+  |> group_by("chrom")
+  |> mutate(
+    rk = |r| row_number(),
+    cs = |r| cumsum(r.frequency)
+  )
+
+# Lead and lag
+let time_series = data
+  |> arrange("timepoint")
+  |> mutate(
+    prev_value = lag(value, 1),
+    next_value = lead(value, 1),
+    delta = value - lag(value, 1)
+  )</code></pre>
+
+        <h2>Distinct and Count</h2>
+        <pre><code class="language-biolang"># Unique rows
+let unique_genes = variants |> distinct("gene")
+
+# Unique combinations
+let unique_pairs = variants |> distinct("chrom", "impact")
+
+# Count occurrences
+let counts = variants |> count("impact")
+# impact   | n
+# HIGH     | 3
+# MODERATE | 2
+
+# Count with sort
+let top_chroms = variants |> count("chrom", sort = true)</code></pre>
+
+        <h2>Slice Operations</h2>
+        <pre><code class="language-biolang"># First/last n rows
+let top5 = variants |> head(5)
+let bottom5 = variants |> tail(5)
+
+# Slice by index range
+let middle = variants |> slice(10..20)
+
+# Top n by value (arrange + head)
+let top_freq = variants |> arrange(desc("frequency")) |> head(3)
+let bottom_freq = variants |> arrange("frequency") |> head(3)
+
+# Random sample
+let sampled = variants |> sample(100)</code></pre>
+
+        <h2>Chaining Table Operations</h2>
+        <p>
+          The real power of table verbs is in composing them into complete analysis pipelines:
+        </p>
+        <pre><code class="language-biolang"># Complete analysis pipeline
+let report = read_vcf("cohort.vcf")
+  |> filter(|v| v.qual >= 30.0 && v.depth >= 10)
+  |> mutate(
+    af = |v| v.alt_count / v.total_count,
+    is_rare = |v| v.af < 0.01
+  )
+  |> left_join(gene_annotations, by = "gene")
+  |> filter(|v| v.impact == "HIGH" || v.impact == "MODERATE")
+  |> group_by("gene", "impact")
+  |> summarize(
+    variant_count = n(),
+    avg_af = mean(af),
+    rare_count = sum(is_rare),
+    samples = count(distinct(sample_id))
+  )
+  |> arrange(desc(variant_count))
+  |> head(50)</code></pre>
+
+        <h2>Writing Tables</h2>
+        <pre><code class="language-biolang"># Write to CSV
+report |> write_csv("report.csv")
+
+# Write to TSV
+report |> write_tsv("report.tsv")
+
+# Write with options
+report |> write_csv("report.csv", quote = true, na = "NA")
+
+# Pretty-print to console
+print(report)</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="collections.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Collections
+        </a>
+        <a href="streams.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Streams <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

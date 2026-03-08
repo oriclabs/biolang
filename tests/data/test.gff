@@ -1,0 +1,4 @@
+##gff-version 3
+chr1	ensembl	gene	11869	14409	.	+	.	ID=gene1;Name=DDX11L1;biotype=transcribed_unprocessed_pseudogene
+chr1	ensembl	gene	14404	29570	.	-	.	ID=gene2;Name=WASH7P;biotype=unprocessed_pseudogene
+chr2	ensembl	gene	38814	46870	.	+	.	ID=gene3;Name=FAM138A;biotype=lncRNA

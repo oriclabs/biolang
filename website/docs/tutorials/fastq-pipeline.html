@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FASTQ QC Pipeline — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/fastq-pipeline"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">FASTQ QC Pipeline</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">Beginner</span>
+          <span class="text-sm text-slate-500">~25 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">FASTQ QC Pipeline</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          Build a complete quality-control pipeline for FASTQ files. You will learn how to
+          read sequencing data, compute quality statistics, filter reads, count k-mers, and
+          generate a summary report.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Reading FASTQ files with <code>fastq()</code></li>
+            <li>Inspecting read records: sequence, quality scores, headers</li>
+            <li>Computing per-read and per-base quality statistics</li>
+            <li>Filtering reads by quality threshold</li>
+            <li>Counting k-mers for contamination screening</li>
+            <li>Using the pipe operator to build multi-step pipelines</li>
+            <li>Writing filtered output to a new FASTQ file</li>
+          </ul>
+        </div>
+
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Prerequisites</h2>
+        <p>
+          Complete the <a href="hello-genomics.html" class="text-violet-400 hover:underline">Hello Genomics</a>
+          tutorial first. You will also need a sample FASTQ file. BioLang ships with sample data:
+        </p>
+        <pre><code class="language-bash"># Sample data is included in the repository
+ls examples/sample-data/reads.fq
+
+# Or run the quickstart to verify everything works
+bl run examples/quickstart.bl</code></pre>
+        <p>
+          The sample FASTQ file at <code>examples/sample-data/reads.fq</code> contains 8 reads
+          with varying quality scores. For this tutorial, we will use it directly or you can
+          substitute your own FASTQ file.
+        </p>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Reading a FASTQ File</h2>
+        <p>
+          Use <code>read_fastq()</code> to load a FASTQ file into a reusable table, or
+          <code>fastq()</code> for a lazy stream (better for large files).
+          Each record contains an id, sequence, and quality scores.
+        </p>
+        <pre><code class="language-biolang"># qc.bio — FASTQ quality control pipeline
+
+# read_fastq returns a Table (reusable)
+let reads = read_fastq("examples/sample-data/reads.fq")
+
+# Check how many reads we have
+print("Total reads:", len(reads))
+
+# Look at the first read
+let first = reads[0]
+print(f"ID:       {first.id}")
+print(f"Sequence: {first.seq}")
+print(f"Quality:  {first.quality}")
+print(f"Length:   {first.length}")</code></pre>
+        <pre><code class="language-bash">bl run qc.bio
+# Total reads: 100
+# Header:   @SRR001/1
+# Sequence: ATCGATCGATCG...
+# Quality:  IIIIIIHHGGFF...
+# Length:   150</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Computing Read Statistics</h2>
+        <p>
+          Use <code>read_stats()</code> to compute summary statistics across all reads, including
+          quality scores, GC content, and length distribution.
+        </p>
+        <pre><code class="language-biolang"># Compute read-level statistics using read_stats()
+# read_stats returns a record with count, mean_length,
+# mean_quality, gc_content, q20_pct, q30_pct, etc.
+let stats = read_stats(reads)
+
+print(f"Total reads:  {stats.count}")
+print(f"Mean quality: {round(stats.mean_quality, 2)}")
+print(f"Mean length:  {round(stats.mean_length, 1)}")
+print(f"Mean GC:      {round(stats.gc_content, 4)}")
+
+# You can also look at individual reads
+let first = reads[0]
+print(f"Read 1 GC: {gc_content(first.seq)}")
+print(f"Read 1 length: {first.length}")</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Exploring Per-Read Metrics</h2>
+        <p>
+          Beyond aggregate statistics, you can compute per-read metrics like GC content
+          using <code>map()</code> and standard stats functions.
+        </p>
+        <pre><code class="language-biolang"># read_stats() computes comprehensive statistics in one call
+let stats = read_stats(reads)
+
+print("=== Read Statistics ===")
+print(f"Total reads:  {stats.count}")
+print(f"Mean length:  {round(stats.mean_length, 1)}")
+print(f"Mean quality: {round(stats.mean_quality, 2)}")
+print(f"Mean GC:      {round(stats.gc_content, 4)}")
+print(f"Q20 %%:        {round(stats.q20_pct, 1)}")
+print(f"Q30 %%:        {round(stats.q30_pct, 1)}")
+
+# You can also compute GC for individual sequences
+let gc_values = map(reads, |r| gc_content(r.seq))
+print(f"GC range: {min(gc_values)} - {max(gc_values)}")</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Filtering Reads by Quality</h2>
+        <p>
+          Low-quality reads introduce errors in downstream analysis. Let us filter them out.
+        </p>
+        <pre><code class="language-biolang"># filter_reads filters a stream by "quality" or "length" criterion
+# filter_reads(stream, criterion, threshold)
+
+# Filter reads with mean quality >= 20
+let passed = filter_reads(reads, "quality", 20)
+let passed_list = collect(passed)
+print(f"Passed quality filter: {len(passed_list)} reads")
+
+# Filter by minimum length
+let long_reads = filter_reads(reads, "length", 50)
+let long_list = collect(long_reads)
+print(f"Passed length filter: {len(long_list)} reads")
+
+# You can chain filters using the pipe operator
+let clean = reads
+  |> filter_reads("quality", 20)
+  |> filter_reads("length", 50)
+  |> collect()
+
+print(f"After both filters: {len(clean)} reads")</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Trimming Low-Quality Ends</h2>
+        <p>
+          Instead of discarding entire reads, we can trim low-quality bases from the 3' end.
+        </p>
+        <pre><code class="language-biolang"># trim_quality(stream, threshold, min_len) trims low-quality
+# bases from read ends and discards reads shorter than min_len
+let trimmed = trim_quality(reads, 20, 30)
+let trimmed_list = collect(trimmed)
+print(f"After trimming: {len(trimmed_list)} reads")
+
+# Compare stats before and after
+let raw_stats = read_stats(reads)
+let trim_stats = read_stats(trimmed_list)
+print(f"Mean length before: {round(raw_stats.mean_length, 1)}")
+print(f"Mean length after:  {round(trim_stats.mean_length, 1)}")
+
+# You can also trim a fixed number of bases from read ends
+# trim_reads(stream, n) trims n bases from the 3' end
+# trim_reads(stream, n, "both") trims from both ends
+let hard_trimmed = trim_reads(reads, 10)
+let hard_list = collect(hard_trimmed)
+print(f"After hard trim: {len(hard_list)} reads")</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — K-mer Counting</h2>
+        <p>
+          K-mer profiles help detect contamination, adapter sequences, and biased composition.
+        </p>
+        <pre><code class="language-biolang"># Count k-mers across all reads
+# First collect sequences into a list
+let seqs = map(trimmed_list, |r| r.seq)
+
+# kmer_count(list, k) returns a Record of kmer -> count
+let k = 5
+let kmer_counts = kmer_count(seqs, k)
+print(f"\n=== Top {k}-mers ===")
+print(kmer_counts)
+
+# You can also get k-mers for a single sequence
+let first_kmers = kmers(trimmed_list[0].seq, k)
+print(f"K-mers in first read: {len(first_kmers)}")
+
+# Check for adapter contamination
+# detect_adapters returns a record of detected adapter sequences
+let detected = detect_adapters(reads)
+print("Detected adapters:")
+print(detected)
+
+# Trim detected adapters (allows up to 1 mismatch)
+let adapter_trimmed = trim_adapters(reads, dna"AGATCGGAAGAG", 1)
+let adapter_trimmed_list = collect(adapter_trimmed)
+print(f"After adapter trimming: {len(adapter_trimmed_list)} reads")</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Building the Complete Pipeline</h2>
+        <p>
+          Now let us combine everything into a single pipeline using the pipe operator.
+        </p>
+        <pre><code class="language-biolang"># fastq_qc.bio — complete FASTQ QC pipeline
+
+fn run_qc(input_path, output_path) {
+  print(f"Reading {input_path}...")
+  let raw = fastq(input_path)
+
+  # Pipeline: trim quality -> filter by quality -> filter by length
+  let clean = raw
+    |> trim_quality(20, 30)
+    |> filter_reads("quality", 25)
+    |> filter_reads("length", 50)
+    |> collect()
+
+  # Compute stats on both raw and clean
+  let raw_stats = read_stats(read_fastq(input_path))
+  let clean_stats = read_stats(clean)
+
+  # Print comparison
+  print("\n=== QC Report ===")
+  print("                  Raw        Clean")
+  print(f"Reads:        {raw_stats.count}     {clean_stats.count}")
+  print(f"Mean length:  {round(raw_stats.mean_length, 1)}  {round(clean_stats.mean_length, 1)}")
+  print(f"Mean quality: {round(raw_stats.mean_quality, 2)}     {round(clean_stats.mean_quality, 2)}")
+  print(f"Mean GC:      {round(raw_stats.gc_content, 4)}   {round(clean_stats.gc_content, 4)}")
+  print(f"Q30 %%:        {round(raw_stats.q30_pct, 1)}      {round(clean_stats.q30_pct, 1)}")
+
+  # Write clean reads
+  write_fastq(clean, output_path)
+  print(f"\nWrote {len(clean)} clean reads to {output_path}")
+}
+
+# Run the pipeline
+run_qc("examples/sample.fastq", "examples/sample_clean.fastq")</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Generating a Summary Report</h2>
+        <p>
+          Build a comparison table of raw vs clean statistics and export it as CSV.
+        </p>
+        <pre><code class="language-biolang"># Generate a summary table comparing raw vs clean reads
+let raw = read_fastq("examples/sample.fastq")
+let clean = read_fastq("examples/sample_clean.fastq")
+
+let raw_stats = read_stats(raw)
+let clean_stats = read_stats(clean)
+
+# Build a comparison table
+let labels = ["count", "mean_length", "mean_quality", "gc_content", "q20_pct", "q30_pct"]
+let raw_vals = [raw_stats.count, round(raw_stats.mean_length, 1),
+                round(raw_stats.mean_quality, 2), round(raw_stats.gc_content, 4),
+                round(raw_stats.q20_pct, 1), round(raw_stats.q30_pct, 1)]
+let clean_vals = [clean_stats.count, round(clean_stats.mean_length, 1),
+                  round(clean_stats.mean_quality, 2), round(clean_stats.gc_content, 4),
+                  round(clean_stats.q20_pct, 1), round(clean_stats.q30_pct, 1)]
+
+let summary = to_table(map(
+  [0, 1, 2, 3, 4, 5],
+  |i| {metric: labels[i], raw: raw_vals[i], clean: clean_vals[i]}
+))
+
+print(summary)
+write_csv(summary, "examples/qc_summary.csv")
+print("Summary saved to examples/qc_summary.csv")</code></pre>
+        <pre><code class="language-bash">bl run fastq_qc.bio
+# Reading examples/sample.fastq...
+# === QC Report ===
+# ...
+# Summary saved to examples/qc_summary.csv</code></pre>
+
+        <!-- Tips -->
+        <div class="rounded-xl border border-cyan-400/30 bg-cyan-400/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Tips</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>For large files, use <code>fastq()</code> (stream) instead of <code>read_fastq()</code> (table) to process reads in constant memory. See the <a href="streaming.html" class="text-cyan-400 hover:underline">Streaming tutorial</a>.</li>
+            <li>The pipe operator <code>|&gt;</code> lets you build readable pipelines. Each step receives the output of the previous step.</li>
+            <li>Use <code>bl run --verbose qc.bio</code> to see timing information for each step.</li>
+          </ul>
+        </div>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-6">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Learn how to work with structured tabular data in the
+            <a href="tables.html" class="text-violet-400 hover:underline">Working with Tables</a> tutorial.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="hello-genomics.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Hello Genomics</a>
+        <a href="tables.html" class="text-violet-400 hover:text-violet-300 text-sm">Working with Tables &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

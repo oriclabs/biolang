@@ -1,0 +1,80 @@
+# Rosalind: SUBO — Suboptimal Local Alignment
+# https://rosalind.info/problems/subo/
+#
+# Given: Two DNA strings with a shared inexact repeat (32-40 bp, <=3 changes).
+# Return: Total occurrences of the repeat in each string.
+
+let seq1 = "GACTCCTTTGTTTGCCTTAAATAGATACATATTTACTCTTGACTCTTTTGTTGGCCTTAAATAGATACATATTTGTGCGACTCCACGAGTGATTCGTA"
+let seq2 = "ATGGACTCCTTTGTTTGCCTTAAATAGATACATATTCAACAAGTGTGCACTTAGCCTTGCCGACTCCTTTGTTTGCCTTAAATAGATACATATTTG"
+
+# Strategy: find all 32-bp substrings of seq1 that appear in seq2 with <=3 mismatches
+let motif_len = 33
+
+# Helper: count mismatches between two strings of equal length
+# (hamming_distance works on sequences; we use manual counting for strings)
+let s1 = seq1
+let s2 = seq2
+
+# Find the best shared motif by checking each 33-bp window of s1 against all windows of s2
+let best_motif = ""
+let best_total = 0
+
+let i = 0
+while i <= len(s1) - motif_len {
+    let candidate = substr(s1, i, i + motif_len)
+
+    # Count approximate matches in s2
+    let hits_s2 = 0
+    let j = 0
+    while j <= len(s2) - motif_len {
+        let target = substr(s2, j, j + motif_len)
+        let dist = hamming_distance(candidate, target)
+        if dist <= 3 then
+            hits_s2 = hits_s2 + 1
+        j = j + 1
+    }
+
+    if hits_s2 > 0 then {
+        # Also count in s1
+        let hits_s1 = 0
+        let k = 0
+        while k <= len(s1) - motif_len {
+            let target = substr(s1, k, k + motif_len)
+            let dist = hamming_distance(candidate, target)
+            if dist <= 3 then
+                hits_s1 = hits_s1 + 1
+            k = k + 1
+        }
+        let total = hits_s1 + hits_s2
+        if total > best_total then {
+            best_total = total
+            best_motif = candidate
+        }
+    }
+    i = i + 1
+}
+
+# Now count non-overlapping occurrences using the best motif
+# Count all approximate matches (overlapping) — Rosalind counts overlapping instances
+let count1 = 0
+let i = 0
+while i <= len(s1) - motif_len {
+    let window = substr(s1, i, i + motif_len)
+    if hamming_distance(best_motif, window) <= 3 then
+        count1 = count1 + 1
+    i = i + 1
+}
+
+let count2 = 0
+let j = 0
+while j <= len(s2) - motif_len {
+    let window = substr(s2, j, j + motif_len)
+    if hamming_distance(best_motif, window) <= 3 then
+        count2 = count2 + 1
+    j = j + 1
+}
+
+println("Motif:    " + best_motif)
+println("Result:   " + str(count1) + " " + str(count2))
+println("Expected: 2 2")
+println("Match:    " + str(count1 == 2 && count2 == 2))

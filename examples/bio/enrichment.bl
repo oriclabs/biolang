@@ -1,0 +1,57 @@
+# Gene Set Enrichment Analysis
+# ORA (Over-Representation Analysis) and GSEA
+
+# ── Read GMT file (Gene Matrix Transposed format) ──
+# read_gmt(path) -> list of gene sets
+# Each set: {name: "pathway", description: "...", genes: ["A", "B", ...]}
+# let gene_sets = read_gmt("c2.cp.kegg.v2023.1.Hs.symbols.gmt")
+
+# For this example, create gene sets manually
+let gene_sets = [
+    {name: "APOPTOSIS", genes: ["TP53", "BAX", "BCL2", "CASP3", "CASP9", "BID", "BAK1"]},
+    {name: "CELL_CYCLE", genes: ["CDK1", "CDK2", "CCNB1", "CCND1", "RB1", "E2F1", "TP53"]},
+    {name: "DNA_REPAIR", genes: ["BRCA1", "BRCA2", "ATM", "RAD51", "TP53", "XRCC1"]},
+    {name: "PI3K_SIGNALING", genes: ["PIK3CA", "AKT1", "MTOR", "PTEN", "TSC1", "TSC2"]}
+]
+
+# Differentially expressed genes from an experiment
+let de_genes = ["TP53", "BRCA1", "BAX", "CASP3", "ATM", "CDK2", "RAD51", "BID"]
+let background = ["TP53", "BRCA1", "BRCA2", "BAX", "BCL2", "CASP3", "CASP9",
+                   "ATM", "CDK1", "CDK2", "CCNB1", "CCND1", "RAD51", "BID",
+                   "PIK3CA", "AKT1", "MTOR", "PTEN", "RB1", "E2F1", "XRCC1",
+                   "BAK1", "TSC1", "TSC2", "EGFR", "KRAS", "MYC"]
+
+# ── ORA: Over-Representation Analysis ──
+# ora(gene_list, gene_sets, background) -> table of enriched pathways
+let ora_results = ora(de_genes, gene_sets, background)
+println("=== ORA Results ===")
+println(ora_results)
+
+# ── Enrichment analysis (Fisher's exact) ──
+# enrich(gene_list, gene_sets, background) -> enrichment table
+let enrich_results = enrich(de_genes, gene_sets, background)
+println("\n=== Enrichment Results ===")
+println(enrich_results)
+
+# ── GSEA: Gene Set Enrichment Analysis ──
+# gsea(ranked_genes, gene_sets) -> table with ES, NES, p-value
+# ranked_genes: list of {gene: name, score: fold_change_or_stat}
+let ranked = [
+    {gene: "TP53", score: 3.2},
+    {gene: "BAX", score: 2.8},
+    {gene: "CASP3", score: 2.5},
+    {gene: "BRCA1", score: 2.1},
+    {gene: "ATM", score: 1.9},
+    {gene: "BID", score: 1.7},
+    {gene: "CDK2", score: 1.3},
+    {gene: "RAD51", score: 1.1},
+    {gene: "EGFR", score: -0.5},
+    {gene: "KRAS", score: -0.8},
+    {gene: "MYC", score: -1.2},
+    {gene: "AKT1", score: -1.5},
+    {gene: "PIK3CA", score: -2.0}
+]
+
+let gsea_results = gsea(ranked, gene_sets)
+println("\n=== GSEA Results ===")
+println(gsea_results)

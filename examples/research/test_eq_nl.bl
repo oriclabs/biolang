@@ -1,0 +1,7 @@
+# Test: does multiline assignment work?
+let x =
+    42
+println(x)
+let y = 1 +
+    2
+println(y)

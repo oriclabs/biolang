@@ -1,0 +1,18 @@
+let trio = table([
+    {chrom: "chrX", pos: 153296777, ref: "C", alt: "T", gene: "MECP2", consequence: "nonsense", gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 892.0, allele_freq: 0.0, cadd_score: 38.0}
+])
+
+# Test mutate with let + if/then no-else
+let classified = trio |> mutate("acmg_codes", |v| {
+    let codes = []
+    if v.consequence == "nonsense" then
+        codes = codes + ["PVS1"]
+    if v.gt_mother == "0/0" && v.gt_father == "0/0" then
+        codes = codes + ["PS2"]
+    if v.allele_freq <= 0.0001 then
+        codes = codes + ["PM2"]
+    if v.cadd_score >= 25.0 then
+        codes = codes + ["PP3"]
+    codes
+})
+println("acmg ok:", classified |> count())

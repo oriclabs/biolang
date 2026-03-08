@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sparse Matrix — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/sparse"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Sparse Matrix</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Sparse Matrix</h1>
+        <p class="text-lg text-slate-400 mb-8">9 functions for sparse matrices in CSC (Compressed Sparse Column) format. Essential for single-cell RNA-seq count matrices where >90% of values are zero.</p>
+
+        <section class="mb-12" id="sparse_matrix">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sparse_matrix</span></h2>
+          <p class="text-slate-400 mt-2">Create a sparse matrix from COO triplets (row, column, value).</p>
+          <pre><code class="language-biolang">sparse_matrix(entries, nrows, ncols) -> sparse</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">entries</td><td class="py-2 px-3">list&lt;[row, col, val]&gt;</td><td class="py-2 px-3">Triplets of (row_idx, col_idx, value)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">nrows</td><td class="py-2 px-3">int</td><td class="py-2 px-3">Number of rows</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">ncols</td><td class="py-2 px-3">int</td><td class="py-2 px-3">Number of columns</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang"># 30,000 genes x 10,000 cells, mostly zeros
+let entries = [
+  [0, 5, 3.0],     # gene 0, cell 5 = 3 counts
+  [0, 12, 1.0],    # gene 0, cell 12 = 1 count
+  [142, 5, 7.0],   # gene 142, cell 5 = 7 counts
+]
+let mat = sparse_matrix(entries, 30000, 10000)</code></pre>
+        </section>
+
+        <section class="mb-12" id="conversions">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">to_dense</span> / <span class="text-violet-400 font-mono">to_sparse</span></h2>
+          <p class="text-slate-400 mt-2">Convert between sparse and dense matrix representations.</p>
+          <pre><code class="language-biolang">to_dense(sparse) -> matrix
+to_sparse(matrix) -> sparse</code></pre>
+          <pre><code class="language-biolang">let dense = to_dense(mat)   # full matrix (caution: memory!)
+let sp = to_sparse(matrix([[1, 0, 0], [0, 0, 2], [0, 3, 0]]))
+println(nnz(sp))   # 3</code></pre>
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mt-4">
+            <p class="text-sm text-amber-300"><strong>Edge case:</strong> <code>to_dense</code> on a large scRNA-seq matrix (30k x 10k) allocates ~2.4 GB. Use sparse operations when possible.</p>
+          </div>
+        </section>
+
+        <section class="mb-12" id="nnz">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">nnz</span></h2>
+          <p class="text-slate-400 mt-2">Count of non-zero entries in the sparse matrix.</p>
+          <pre><code class="language-biolang">nnz(sparse) -> int</code></pre>
+          <pre><code class="language-biolang">let mat = sparse_matrix([[0, 0, 5.0], [1, 2, 3.0]], 10, 10)
+nnz(mat)   # 2
+
+# Sparsity ratio
+let sparsity = 1.0 - float(nnz(mat)) / float(10 * 10)
+println("Sparsity:", round(sparsity * 100, 1), "%")   # Sparsity: 98.0%</code></pre>
+        </section>
+
+        <section class="mb-12" id="sparse_get">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sparse_get</span></h2>
+          <p class="text-slate-400 mt-2">Get a single value from a sparse matrix by row and column index.</p>
+          <pre><code class="language-biolang">sparse_get(sparse, row, col) -> float</code></pre>
+          <pre><code class="language-biolang">let mat = sparse_matrix([[0, 0, 5.0], [1, 2, 3.0]], 10, 10)
+sparse_get(mat, 0, 0)   # 5.0
+sparse_get(mat, 0, 1)   # 0.0  (not stored = zero)</code></pre>
+        </section>
+
+        <section class="mb-12" id="normalize">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">normalize_sparse</span></h2>
+          <p class="text-slate-400 mt-2">Normalize columns (cells) to sum to a target value (default: 10,000 for CPM-like normalization).</p>
+          <pre><code class="language-biolang">normalize_sparse(mat, target?) -> sparse</code></pre>
+          <pre><code class="language-biolang">let raw_counts = sparse_matrix(entries, 30000, 10000)
+let normalized = normalize_sparse(raw_counts, 10000)   # library-size normalization</code></pre>
+        </section>
+
+        <section class="mb-12" id="sparse_sums">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sparse_row_sums</span> / <span class="text-violet-400 font-mono">sparse_col_sums</span></h2>
+          <p class="text-slate-400 mt-2">Compute row or column sums of a sparse matrix efficiently.</p>
+          <pre><code class="language-biolang">sparse_row_sums(sparse) -> list
+sparse_col_sums(sparse) -> list</code></pre>
+          <pre><code class="language-biolang">let mat = sparse_matrix([[0, 0, 5.0], [0, 1, 3.0], [1, 0, 2.0]], 3, 3)
+sparse_row_sums(mat)   # [8.0, 2.0, 0.0]
+sparse_col_sums(mat)   # [7.0, 3.0, 0.0]</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="matrix.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> Matrix</a>
+        <a href="regex.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">Regex <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+sample_id,condition,replicate,r1_path,r2_path,batch
+CTRL_1,control,1,data/ctrl1_R1.fastq.gz,data/ctrl1_R2.fastq.gz,batch1
+CTRL_2,control,2,data/ctrl2_R1.fastq.gz,data/ctrl2_R2.fastq.gz,batch1
+CTRL_3,control,3,data/ctrl3_R1.fastq.gz,data/ctrl3_R2.fastq.gz,batch2
+TREAT_1,treatment,1,data/treat1_R1.fastq.gz,data/treat1_R2.fastq.gz,batch1
+TREAT_2,treatment,2,data/treat2_R1.fastq.gz,data/treat2_R2.fastq.gz,batch2
+TREAT_3,treatment,3,data/treat3_R1.fastq.gz,data/treat3_R2.fastq.gz,batch2

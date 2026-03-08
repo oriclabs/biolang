@@ -1,0 +1,8 @@
+[package]
+name = "bl-parser"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bl-core = { workspace = true }
+bl-lexer = { workspace = true }

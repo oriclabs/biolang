@@ -1,0 +1,39 @@
+# Rosalind: NEED — Pairwise Global Alignment
+# https://rosalind.info/problems/need/
+#
+# Given: Two GenBank IDs.
+# Return: Maximum global alignment score (DNAfull matrix, gap_open=10, gap_extend=1).
+#
+# Note: The original problem uses EMBOSS Needle with DNAfull matrix.
+# BioLang's align() uses simple match/mismatch scoring.
+
+# Demo with short sequences showing the alignment interface
+let seq1 = dna"GACATGTTTGTTTGCCTTAAACTCGTGGCGGCC"
+let seq2 = dna"ACTCATGTTTGTTTGCCTTAAACTCTTGGCGGC"
+
+let result = align(seq1, seq2)
+
+println("Alignment demo (33bp seqs):")
+println("  Score:    " + str(result.score))
+println("  Identity: " + str(result.identity))
+println("  Gaps:     " + str(result.gaps))
+println("  CIGAR:    " + result.cigar)
+println("  Aligned1: " + result.aligned1)
+println("  Aligned2: " + result.aligned2)
+
+println("\nRosalind sample answer: 257")
+println("(Uses EMBOSS Needle with DNAfull matrix on GenBank seqs JX205496.1 vs JX469991.1)")
+println("BioLang align() supports global/local alignment with configurable scoring.")
+
+# Fetch actual sequences to show lengths
+try {
+    let fasta1 = ncbi_sequence("JX205496.1")
+    let fasta2 = ncbi_sequence("JX469991.1")
+    let lines1 = split(fasta1, "\n") |> tail() |> join("")
+    let lines2 = split(fasta2, "\n") |> tail() |> join("")
+    println("\nFetched sequences:")
+    println("  JX205496.1: " + str(len(lines1)) + " bp")
+    println("  JX469991.1: " + str(len(lines2)) + " bp")
+} catch e {
+    println("\nFetch failed: " + str(e))
+}

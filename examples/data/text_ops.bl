@@ -1,0 +1,76 @@
+# Unix-like Text Processing Builtins
+# grep, cut, paste, wc, tee, shell — familiar tools, BioLang style
+
+# ── grep: search text with patterns ──
+# grep(pattern, text, flags?) -> list of matching lines
+let text = "chr1\t100\t200\tgene_A\nchr2\t300\t400\tgene_B\nchr1\t500\t600\tgene_C"
+let chr1_lines = grep("chr1", text)
+println("=== grep 'chr1' ===")
+println(chr1_lines)
+
+# grep_count: count matches
+let n = grep_count("chr1", text)
+println("Matches:", n)
+
+# ── lines: split text into list of lines ──
+let line_list = lines(text)
+println("\n=== lines ===")
+println("Line count:", len(line_list))
+for l in line_list {
+    println("  >", l)
+}
+
+# ── cut: extract columns (like Unix cut) ──
+# cut(text, delimiter, fields) -> extracted text
+let tsv = "name\tage\tcity\nAlice\t30\tNYC\nBob\t25\tSF"
+let names = cut(tsv, "\t", "1")
+println("\n=== cut (field 1) ===")
+println(names)
+
+# ── paste: join columns ──
+# paste(list1, list2, delimiter?) -> joined text
+let col1 = ["gene_A", "gene_B", "gene_C"]
+let col2 = ["0.05", "0.01", "0.10"]
+let pasted = paste(col1, col2, "\t")
+println("\n=== paste ===")
+println(pasted)
+
+# ── uniq_count: count unique values ──
+let items = ["apple", "banana", "apple", "cherry", "banana", "apple"]
+let counts = uniq_count(items)
+println("\n=== uniq_count ===")
+println(counts)
+
+# ── wc: word/line/char count ──
+# wc(text) -> record {lines, words, chars}
+let sample = "Hello World\nThis is BioLang\nThird line"
+let stats = wc(sample)
+println("\n=== wc ===")
+println("Lines:", stats.lines, "Words:", stats.words, "Chars:", stats.chars)
+
+# ── count_lines: count lines in a file ──
+# let n = count_lines("tests/data/test.fa")
+# println("Lines in test.fa:", n)
+
+# ── stream_lines: stream lines from a file ──
+# let s = stream_lines("tests/data/test.fa") |> take(5)
+# println("First 5 lines:", s)
+
+# ── stream_concat: concatenate two streams ──
+let s1 = to_stream([1, 2, 3])
+let s2 = to_stream([4, 5, 6])
+let combined = stream_concat(s1, s2) |> collect()
+println("\n=== stream_concat ===")
+println(combined)
+
+# ── tee: write to file while passing through ──
+# let data = "line1\nline2\nline3"
+# let result = tee(data, "/tmp/tee_output.txt")
+# println("Tee passed through:", result)
+
+# ── shell: run system command ──
+# shell(command, opts?) -> record {stdout, stderr, exit_code}
+let result = shell("echo hello from shell")
+println("\n=== shell ===")
+println("stdout:", result.stdout)
+println("exit_code:", result.exit_code)

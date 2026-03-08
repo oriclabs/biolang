@@ -1,0 +1,59 @@
+# Rosalind: BFIL — Base Filtration by Quality
+# https://rosalind.info/problems/bfil/
+#
+# Given: FASTQ file and quality threshold q (Phred33).
+# Return: FASTQ with leading and trailing low-quality bases trimmed.
+
+let q = 20
+
+let reads = [
+    {id: "Rosalind_0049",
+     seq:  "GCAGAGACCAGTAGATGTGTTTGCGGACGGTCGGGCTCCATGTGACACAG",
+     qual: "FD@@;C<AI?4BA:=>C<G=:AE=><A??>764A8B797@A:58:527+,"},
+    {id: "Rosalind_0049",
+     seq:  "AATGGGGGGGGGAGACAAAATACGGCTAAGGCAGGGGTCCTTGATGTCAT",
+     qual: "1<<65:793967<4:92568-34:.>1;2752)24')*15;1,.3*3+*!"},
+    {id: "Rosalind_0049",
+     seq:  "ACCCCATACGGCGAGCGTCAGCATCTGATATCCTCTTTCAATCCTAGCTA",
+     qual: "B:EI>JDB5=>DA?E6B@@CA?C;=;@@C:6D:3=@49;@87;::;;?8+"}
+]
+
+println("Result:")
+for read in reads {
+    let chars_seq = split(read.seq, "") |> filter(|c| c != "")
+    let chars_qual = split(read.qual, "") |> filter(|c| c != "")
+    let scores = chars_qual |> map(|c| ascii(c) - 33)
+
+    # Find first position from left with quality >= q
+    let start = 0
+    while start < len(scores) && scores[start] < q {
+        start = start + 1
+    }
+    # Find last position from right with quality >= q
+    let end_pos = len(scores) - 1
+    while end_pos >= 0 && scores[end_pos] < q {
+        end_pos = end_pos - 1
+    }
+
+    let trimmed_seq = chars_seq |> slice(start, end_pos + 1) |> join("")
+    let trimmed_qual = chars_qual |> slice(start, end_pos + 1) |> join("")
+
+    println("@" + read.id)
+    println(trimmed_seq)
+    println("+")
+    println(trimmed_qual)
+}
+
+println("\nExpected:")
+println("@Rosalind_0049")
+println("GCAGAGACCAGTAGATGTGTTTGCGGACGGTCGGGCTCCATGTGACAC")
+println("+")
+println("FD@@;C<AI?4BA:=>C<G=:AE=><A??>764A8B797@A:58:527")
+println("@Rosalind_0049")
+println("ATGGGGGGGGGAGACAAAATACGGCTAAGGCAGGGGTCCT")
+println("+")
+println("<<65:793967<4:92568-34:.>1;2752)24')*15;")
+println("@Rosalind_0049")
+println("ACCCCATACGGCGAGCGTCAGCATCTGATATCCTCTTTCAATCCTAGCT")
+println("+")
+println("B:EI>JDB5=>DA?E6B@@CA?C;=;@@C:6D:3=@49;@87;::;;?8")

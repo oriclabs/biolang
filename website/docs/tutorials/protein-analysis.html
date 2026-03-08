@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protein Analysis — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/protein-analysis"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Protein Analysis</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-sm text-slate-500">~30 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Protein Analysis</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          Analyze proteins using UniProt and PDB data. Fetch sequences and annotations,
+          search for motifs, explore amino acid composition with k-mers and string ops,
+          examine domain annotations, and visualize results.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Fetching protein data from UniProt (entry, FASTA, features, GO terms)</li>
+            <li>Creating Protein values and inspecting their properties</li>
+            <li>Searching for sequence motifs with <code>find_motif()</code></li>
+            <li>Analyzing amino acid k-mers and composition</li>
+            <li>Exploring domain annotations and GO terms</li>
+            <li>Looking up PDB structures</li>
+            <li>Comparing multiple proteins with tables and plots</li>
+          </ul>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Fetching a Protein from UniProt</h2>
+        <pre><code class="language-biolang"># protein.bl — protein analysis
+
+# Fetch TP53 (tumor protein p53) from UniProt
+let entry = uniprot_entry("P04637")
+
+print(f"Accession:   {entry.accession}")
+print(f"Name:        {entry.name}")
+print(f"Organism:    {entry.organism}")
+print(f"Length:      {entry.sequence_length} aa")
+print(f"Genes:       {entry.gene_names}")
+print(f"Function:    {entry.function}")
+
+# Get the FASTA sequence
+let fasta = uniprot_fasta("P04637")
+print(f"FASTA (first 80 chars): {substr(fasta, 0, 80)}...")
+
+# Extract the raw sequence from FASTA (skip header line), wrap as Protein
+let raw_seq = fasta |> split("\n") |> drop(1) |> join("")
+let seq = protein(raw_seq)
+print(f"Sequence type: {typeof(seq)}")    # Protein
+print(f"Length:        {seq_len(seq)} aa")
+
+# You can also create protein sequences directly
+let my_peptide = protein("MASKFPGIDRS")
+print(f"Peptide length: {seq_len(my_peptide)}")</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Amino Acid Composition via K-mers</h2>
+        <pre><code class="language-biolang"># Use kmers(seq, 1) to get every individual amino acid
+let residues = kmers(seq, 1)
+let total = len(residues)
+
+# Count each amino acid using map/reduce on unique residues
+let aa_types = unique(residues)
+let counts = aa_types |> map(|aa| {
+  let n = residues |> count_if(|r| r == aa)
+  { amino_acid: aa, count: n, pct: n / total * 100.0 }
+})
+
+# Sort by frequency (descending) and display
+let sorted = counts |> sort_by(|a, b| b.count - a.count)
+
+print("\n=== Amino Acid Composition ===")
+for item in sorted {
+  print(f"  {item.amino_acid}: {item.count} ({round(item.pct, 1)}%)")
+}
+
+# Group into property classes manually
+let charged_aa = ["D", "E", "K", "R", "H"]
+let polar_aa   = ["S", "T", "N", "Q", "Y", "C"]
+let hydro_aa   = ["A", "V", "I", "L", "M", "F", "W", "P"]
+
+let charged = residues |> count_if(|r| any(charged_aa, |a| a == r))
+let polar   = residues |> count_if(|r| any(polar_aa, |a| a == r))
+let hydro   = residues |> count_if(|r| any(hydro_aa, |a| a == r))
+
+print(f"\nCharged:     {charged} ({round(charged / total * 100.0, 1)}%)")
+print(f"Polar:       {polar} ({round(polar / total * 100.0, 1)}%)")
+print(f"Hydrophobic: {hydro} ({round(hydro / total * 100.0, 1)}%)")</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Amino Acid Composition as a Table</h2>
+        <pre><code class="language-biolang"># Build a table of amino acid counts for downstream analysis
+let aa_table = sorted |> to_table()
+print(aa_table)
+
+# Visualize with a histogram
+histogram(col(aa_table, "count"), {
+  title:  "Amino Acid Frequency — TP53",
+  xlabel: "Count",
+  ylabel: "Number of amino acid types",
+  bins:   10,
+  color:  "#8b5cf6",
+  output: "results/aa_histogram.svg",
+})
+
+# Bar-style plot of composition
+plot(aa_table, {
+  x:      "amino_acid",
+  y:      "pct",
+  title:  "TP53 Amino Acid Composition (%)",
+  xlabel: "Amino Acid",
+  ylabel: "Percentage",
+  color:  "#06b6d4",
+  output: "results/aa_composition.svg",
+})</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Motif Searching</h2>
+        <pre><code class="language-biolang"># find_motif(seq, pattern) returns a list of start positions (integers)
+
+# Nuclear localization signals: runs of 4+ basic residues (K or R)
+let nls_hits = find_motif(seq, "[KR]{4,}")
+print(f"\n=== Nuclear Localization Signals ===")
+print(f"Found {len(nls_hits)} NLS-like regions at positions: {nls_hits}")
+
+# N-glycosylation sites: N-{P}-[ST]-{P}
+let nglyc = find_motif(seq, "N[^P][ST][^P]")
+print(f"\nPotential N-glycosylation sites: {len(nglyc)}")
+for pos in nglyc {
+  # Extract the 4-residue motif at each position
+  let motif_seq = subseq(seq, pos, 4)
+  print(f"  Position {pos}: {motif_seq}")
+}
+
+# Phosphorylation sites: S or T followed by P (minimal CDK motif)
+let phospho = find_motif(seq, "[ST]P")
+print(f"\nPotential phosphorylation sites (SP/TP): {len(phospho)}")
+for pos in phospho {
+  let motif_seq = subseq(seq, pos, 2)
+  print(f"  Position {pos}: {motif_seq}")
+}
+
+# Cysteine residues (important for disulfide bonds)
+let cys_positions = find_motif(seq, "C")
+print(f"\nCysteine residues: {len(cys_positions)} at positions {cys_positions}")</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — UniProt Feature Annotations</h2>
+        <pre><code class="language-biolang"># Fetch annotated domains and features from UniProt
+let features = uniprot_features("P04637")
+print(f"Total features: {len(features)}")
+
+# Filter for domains
+let domains = features |> filter(|f| f.type == "Domain")
+print("\n=== Annotated Domains ===")
+for d in domains {
+  print(f"  {d.description}: {d.location}")
+}
+
+# Filter for active/binding sites
+let sites = features |> filter(|f| {
+  f.type == "Binding site" or f.type == "Active site" or f.type == "Metal binding"
+})
+print("\n=== Binding / Active Sites ===")
+for s in sites {
+  print(f"  [{s.type}] {s.description}: {s.location}")
+}
+
+# Show all feature types present
+let feature_types = features |> map(|f| f.type) |> unique()
+print(f"\nFeature types: {feature_types}")
+
+# Count features by type
+let type_counts = feature_types |> map(|t| {
+  let n = features |> count_if(|f| f.type == t)
+  { type: t, count: n }
+}) |> sort_by(|a, b| b.count - a.count)
+
+print("\n=== Feature Type Summary ===")
+for tc in type_counts {
+  print(f"  {tc.type}: {tc.count}")
+}</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Gene Ontology Terms</h2>
+        <pre><code class="language-biolang"># Fetch GO annotations for TP53
+let go_terms = uniprot_go("P04637")
+print(f"GO terms: {len(go_terms)}")
+
+# Display by ontology category
+for term in go_terms {
+  print(f"  [{term.category}] {term.id}: {term.name}")
+}
+
+# Filter to just molecular function terms
+let mol_func = go_terms |> filter(|t| t.category == "molecular_function")
+print(f"\nMolecular functions ({len(mol_func)}):")
+for mf in mol_func {
+  print(f"  {mf.id}: {mf.name}")
+}
+
+# Biological process terms
+let bio_proc = go_terms |> filter(|t| t.category == "biological_process")
+print(f"\nBiological processes ({len(bio_proc)}):")
+for bp in bio_proc {
+  print(f"  {bp.id}: {bp.name}")
+}</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — PDB Structure Lookup</h2>
+        <pre><code class="language-biolang"># Look up PDB structure for the TP53 DNA-binding domain
+let pdb = pdb_entry("1TUP")
+
+print(f"\n=== PDB Structure ===")
+print(f"ID:         {pdb.id}")
+print(f"Title:      {pdb.title}")
+print(f"Resolution: {pdb.resolution} A")
+print(f"Method:     {pdb.method}")
+
+# List entities (chains / molecules)
+print(f"\nEntities ({len(pdb.entities)}):")
+for entity in pdb.entities {
+  print(f"  {entity}")
+}
+
+# List ligands
+print(f"\nLigands ({len(pdb.ligands)}):")
+for lig in pdb.ligands {
+  print(f"  {lig}")
+}
+
+# Search PDB for more TP53 structures
+let tp53_structures = pdb_search("TP53")
+print(f"\nTP53 PDB hits: {len(tp53_structures)}")
+for id in tp53_structures |> take(10) {
+  print(f"  {id}")
+}</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Comparing Multiple Proteins</h2>
+        <pre><code class="language-biolang"># Fetch a family of related proteins
+let accessions = ["P04637", "Q00987", "O15350"]  # TP53, MDM2, TP73
+
+let proteins = accessions |> map(|acc| uniprot_entry(acc))
+
+# Fetch sequences
+let sequences = accessions |> map(|acc| {
+  let fasta = uniprot_fasta(acc)
+  protein(fasta |> split("\n") |> drop(1) |> join(""))
+})
+
+# Build a comparison table
+let comparison = proteins
+  |> enumerate()
+  |> map(|i, p| {
+    let seq = sequences[i]
+    let residues = kmers(seq, 1)
+    let total = len(residues)
+    let charged = residues |> count_if(|r| {
+      any(["D", "E", "K", "R", "H"], |a| a == r)
+    })
+    {
+      gene:        p.gene_names,
+      accession:   p.accession,
+      length:      seq_len(seq),
+      charged_pct: round(charged / total * 100.0, 1),
+      organism:    p.organism,
+    }
+  })
+  |> to_table()
+
+print("\n=== Protein Family Comparison ===")
+print(comparison)
+
+# Compare motif counts across the family
+let motif_comparison = proteins
+  |> enumerate()
+  |> map(|i, p| {
+    let seq = sequences[i]
+    {
+      gene:    p.gene_names,
+      nls:     len(find_motif(seq, "[KR]{4,}")),
+      phospho: len(find_motif(seq, "[ST]P")),
+      nglyc:   len(find_motif(seq, "N[^P][ST][^P]")),
+      cys:     len(find_motif(seq, "C")),
+    }
+  })
+  |> to_table()
+
+print("\n=== Motif Comparison ===")
+print(motif_comparison)</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — K-mer Analysis</h2>
+        <pre><code class="language-biolang"># Analyze dipeptide (2-mer) frequencies in TP53
+let dipeptides = kmers(seq, 2)
+let dp_types = unique(dipeptides)
+
+let dp_counts = dp_types |> map(|dp| {
+  let n = dipeptides |> count_if(|d| d == dp)
+  { dipeptide: dp, count: n }
+}) |> sort_by(|a, b| b.count - a.count)
+
+print("\n=== Top 20 Dipeptides ===")
+for item in dp_counts |> take(20) {
+  print(f"  {item.dipeptide}: {item.count}")
+}
+
+# Tripeptide (3-mer) analysis
+let tripeptides = kmers(seq, 3)
+let tp_types = unique(tripeptides)
+
+let tp_counts = tp_types |> map(|tp| {
+  let n = tripeptides |> count_if(|t| t == tp)
+  { tripeptide: tp, count: n }
+}) |> sort_by(|a, b| b.count - a.count)
+
+print(f"\nUnique tripeptides: {len(tp_types)}")
+print("Top 10 tripeptides:")
+for item in tp_counts |> take(10) {
+  print(f"  {item.tripeptide}: {item.count}")
+}
+
+# Visualize dipeptide frequency distribution
+let dp_table = dp_counts |> to_table()
+histogram(col(dp_table, "count"), {
+  title:  "Dipeptide Frequency Distribution — TP53",
+  xlabel: "Occurrences",
+  ylabel: "Number of dipeptides",
+  bins:   15,
+  color:  "#8b5cf6",
+  output: "results/dipeptide_dist.svg",
+})</code></pre>
+
+        <!-- Step 10 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Complete Protein Report</h2>
+        <pre><code class="language-biolang"># protein_report.bl — full protein analysis pipeline
+
+fn analyze_protein(accession) {
+  print(f"\n{'=' * 60}")
+  print(f"Analyzing {accession}")
+  print(f"{'=' * 60}")
+
+  # Fetch all data from UniProt
+  let entry    = uniprot_entry(accession)
+  let fasta    = uniprot_fasta(accession)
+  let features = uniprot_features(accession)
+  let go_terms = uniprot_go(accession)
+
+  # Build the protein sequence
+  let seq = protein(fasta |> split("\n") |> drop(1) |> join(""))
+
+  print(f"Gene:     {entry.gene_names}")
+  print(f"Organism: {entry.organism}")
+  print(f"Length:   {seq_len(seq)} aa")
+
+  # Amino acid composition
+  let residues = kmers(seq, 1)
+  let total = len(residues)
+  let aa_types = unique(residues)
+  let composition = aa_types |> map(|aa| {
+    let n = residues |> count_if(|r| r == aa)
+    { amino_acid: aa, count: n, pct: round(n / total * 100.0, 1) }
+  }) |> sort_by(|a, b| b.count - a.count)
+
+  print(f"\nTop 5 residues:")
+  for item in composition |> take(5) {
+    print(f"  {item.amino_acid}: {item.count} ({item.pct}%)")
+  }
+
+  # Motif analysis
+  let nls     = find_motif(seq, "[KR]{4,}")
+  let phospho = find_motif(seq, "[ST]P")
+  let nglyc   = find_motif(seq, "N[^P][ST][^P]")
+
+  print(f"\nMotifs:")
+  print(f"  NLS-like regions:       {len(nls)}")
+  print(f"  Phosphorylation sites:  {len(phospho)}")
+  print(f"  N-glycosylation sites:  {len(nglyc)}")
+
+  # Domain annotations
+  let domains = features |> filter(|f| f.type == "Domain")
+  print(f"\nDomains ({len(domains)}):")
+  for d in domains {
+    print(f"  {d.description}: {d.location}")
+  }
+
+  # GO summary
+  let mf = go_terms |> filter(|t| t.category == "molecular_function")
+  let bp = go_terms |> filter(|t| t.category == "biological_process")
+  print(f"\nGO: {len(mf)} molecular functions, {len(bp)} biological processes")
+
+  # Save structured report
+  let report = {
+    accession:   entry.accession,
+    gene:        entry.gene_names,
+    organism:    entry.organism,
+    length:      seq_len(seq),
+    composition: composition,
+    motifs: {
+      nls:     len(nls),
+      phospho: len(phospho),
+      nglyc:   len(nglyc),
+    },
+    domains:  domains |> map(|d| d.description),
+    go_terms: len(go_terms),
+  }
+
+  let filename = f"results/{accession}_report.json"
+  write_json(filename, report)
+  print(f"\nReport saved to {filename}")
+  report
+}
+
+# Analyze TP53 and a related protein
+let tp53_report = analyze_protein("P04637")
+let mdm2_report = analyze_protein("Q00987")</code></pre>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Learn how to handle large datasets efficiently in the
+            <a href="streaming.html" class="text-violet-400 hover:underline">Streaming Large Files</a> tutorial.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="rnaseq-de.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; RNA-seq DE</a>
+        <a href="streaming.html" class="text-violet-400 hover:text-violet-300 text-sm">Streaming Large Files &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Test the sort call that's in the original but not my working version
+let scored = table([
+    {gene: "MECP2", consequence: "nonsense", cadd_score: 38.0},
+    {gene: "SCN1A", consequence: "missense", cadd_score: 22.0}
+])
+let ranked = scored |> sort(|a, b| b.cadd_score - a.cadd_score)
+println("ranked:", ranked)

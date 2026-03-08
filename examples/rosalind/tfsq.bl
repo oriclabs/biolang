@@ -1,0 +1,22 @@
+# Rosalind: TFSQ — FASTQ Format Introduction
+# https://rosalind.info/problems/tfsq/
+#
+# Given: FASTQ entries.
+# Return: Corresponding FASTA records (strip quality, change @ to >).
+
+# Sample FASTQ data
+let fastq_id = "SEQ_ID"
+let fastq_seq = "GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT"
+
+# Convert to FASTA format
+let fasta = ">" + fastq_id + "\n" + fastq_seq
+
+println("Result:")
+println(fasta)
+println("")
+println("Expected:")
+println(">SEQ_ID")
+println("GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT")
+
+let ok = fasta == ">SEQ_ID\nGATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT"
+println("\nMatch: " + str(ok))

@@ -1,0 +1,13 @@
+# Test the compound het each block pattern
+let trio = table([
+    {chrom: "chr17",pos: 29527482,  ref: "GA", alt: "G",  gene: "NF1", consequence: "frameshift", gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 567.0, allele_freq: 0.0},
+    {chrom: "chr17",pos: 29556789,  ref: "T",  alt: "C",  gene: "NF1", consequence: "missense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/1", quality: 498.0, allele_freq: 0.00005}
+])
+
+let compound_het = trio |> filter(|v| v.gene == "NF1" && v.gt_child == "0/1")
+println("Compound het:")
+compound_het |> each(|v| {
+    let parent = if v.gt_mother == "0/1" then "maternal" else "paternal"
+    println("  " + v.consequence + " at " + str(v.pos) + " (" + parent + ")")
+})
+println("DONE")

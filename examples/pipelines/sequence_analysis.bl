@@ -1,0 +1,103 @@
+# sequence_analysis.bl — Multi-Step Sequence Analysis Pipeline
+# Reads FASTA, computes GC content, finds motifs, generates k-mers,
+# builds frequency tables, and produces a statistical summary.
+
+# ── Load sequences ──────────────────────────────────────────────
+
+let input_path = "tests/data/test.fa"
+println("Loading FASTA: " ++ input_path)
+
+let seqs = fasta(input_path)
+let seq_count = seqs |> count()
+println("Sequences loaded: " ++ str(seq_count))
+
+# ── Per-sequence GC content ────────────────────────────────────
+
+println("\n--- GC Content Per Sequence ---")
+
+let gc_table = seqs |> map(|s| {
+    "id":     s.id,
+    "length": len(s.seq),
+    "gc":     s.seq |> gc_content()
+}) |> table()
+
+gc_table |> println()
+
+# GC distribution statistics
+let gc_vals = seqs |> map(|s| s.seq |> gc_content())
+println("\nGC summary: mean=" ++ str(mean(gc_vals))
+    ++ " median=" ++ str(median(gc_vals))
+    ++ " stdev=" ++ str(stdev(gc_vals)))
+
+# ── Motif Search ────────────────────────────────────────────────
+# Search for TATA box (TATAAA) and CpG island seed (CGCG)
+
+println("\n--- Motif Search ---")
+
+let motifs = ["TATAAA", "CGCG", "GAATTC", "AAGCTT"]
+
+for motif in motifs {
+    let hits = seqs |> map(|s| {
+        "seq_id": s.id,
+        "motif":  motif,
+        "count":  s.seq |> find_motif(motif) |> count()
+    }) |> filter(|r| r.count > 0)
+
+    let total_hits = hits |> map(|r| r.count) |> reduce(0, |a, b| a + b)
+    println(motif ++ ": " ++ str(total_hits) ++ " hits across "
+        ++ str(hits |> count()) ++ " sequences")
+}
+
+# ── K-mer Analysis ──────────────────────────────────────────────
+# Generate 4-mers from each sequence and build a global frequency table
+
+println("\n--- 4-mer Frequency Analysis ---")
+
+let k = 4
+let all_kmers = seqs
+    |> map(|s| s.seq |> kmers(k))
+    |> flatten()
+
+let kmer_freq = all_kmers
+    |> group_by(|x| x)
+    |> map(|group| { "kmer": group.key, "count": group.values |> count() })
+    |> table()
+    |> arrange(desc("count"))
+
+println("Total " ++ str(k) ++ "-mers: " ++ str(all_kmers |> count()))
+println("Unique " ++ str(k) ++ "-mers: " ++ str(kmer_freq |> nrow()))
+
+println("\nTop 10 most frequent 4-mers:")
+kmer_freq |> head(10) |> println()
+
+println("\nBottom 5 rarest 4-mers:")
+kmer_freq |> tail(5) |> println()
+
+# ── Sequence Transformations ────────────────────────────────────
+# Demonstrate transcribe, translate, reverse_complement on first sequence
+
+println("\n--- Sequence Transformations (first sequence) ---")
+
+let first = seqs |> head(1) |> map(|s| s.seq) |> first()
+let preview = first |> subseq(0, 30)
+
+println("DNA (first 30bp):  " ++ preview)
+println("Reverse complement: " ++ (preview |> reverse_complement()))
+println("RNA:                " ++ (preview |> transcribe()))
+
+# Translate the first reading frame (multiple of 3)
+let coding = first |> subseq(0, (len(first) / 3) * 3)
+let protein = coding |> translate()
+println("Protein (frame 1):  " ++ (protein |> subseq(0, 20)) ++ "...")
+
+# ── Length distribution ─────────────────────────────────────────
+
+println("\n--- Length Distribution ---")
+let lens = seqs |> map(|s| len(s.seq))
+println("Lengths: " ++ str(lens))
+println("  N50:    " ++ str(n50(lens)))
+println("  Total:  " ++ str(lens |> reduce(0, |a, b| a + b)))
+println("  Mean:   " ++ str(mean(lens)))
+println("  Median: " ++ str(median(lens)))
+
+println("\nSequence analysis pipeline complete.")

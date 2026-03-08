@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error Handling — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="cookbook/errors"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Cookbook</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Error Handling</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Error Handling</h1>
+        <p>Robust error handling is essential for production bioinformatics pipelines.
+        BioLang provides try/catch, Result types, nil coalescing, and structured
+        logging to handle errors gracefully at every level.</p>
+
+        <h2>Try/Catch Basics</h2>
+
+        <h3>Catching file errors</h3>
+        <pre><code class="language-biolang"># Basic try/catch for file operations
+try {
+  let data = vcf("variants.vcf.gz")
+  let cnt = data |> filter(|v| v.filter == "PASS") |> count
+  print("PASS variants: #{cnt}")
+} catch e {
+  print("Error reading VCF: #{to_string(e)}")
+  exit(1)
+}</code></pre>
+
+        <h3>Catching specific error types</h3>
+        <pre><code class="language-biolang"># Handle different error scenarios
+try {
+  let data = csv("input.csv")
+  let processed = data |> map(|row| {
+    let val = float(row["score"])
+    if val < 0 { error("Negative score at row #{row}") }
+    val
+  })
+  write_csv(processed, "output.csv")
+} catch e {
+  print("Error: #{to_string(e)}")
+  exit(1)
+}</code></pre>
+
+        <h3>Try with finally</h3>
+        <pre><code class="language-biolang"># Ensure cleanup happens regardless of success/failure
+let tmp_dir = "tmp_pipeline"
+mkdir(tmp_dir)
+
+try {
+  let reads = fastq("input.fq.gz")
+  reads
+    |> filter(|r| mean_phred(r.quality) >= 30.0)
+    |> write_fastq("#{tmp_dir}/filtered.fq.gz")
+
+  # Further processing...
+  shell("samtools sort #{tmp_dir}/aligned.bam")
+
+  copy_file("#{tmp_dir}/final.bam", "results/output.bam")
+} catch e {
+  print("Pipeline failed: #{to_string(e)}")
+}
+
+# Clean up temp files
+remove(tmp_dir)
+print("Cleanup complete")</code></pre>
+
+        <h2>Result Chaining</h2>
+
+        <h3>Using Result type for composable error handling</h3>
+        <pre><code class="language-biolang"># Functions can return result records
+fn parse_score(text) {
+  let val = try_call(|| float(text))
+  if val == None {
+    { ok: false, error: "Cannot parse '#{text}' as a number" }
+  } else if val < 0.0 || val > 100.0 {
+    { ok: false, error: "Score #{val} out of range [0, 100]" }
+  } else {
+    { ok: true, value: val }
+  }
+}
+
+# Parse all rows
+let results = csv("scores.csv")
+  |> map(|row| parse_score(row["score"]))
+
+# Handle mixed results
+let successes = filter(results, |r| r.ok) |> map(|r| r.value)
+let failures = filter(results, |r| !r.ok) |> map(|r| r.error)
+
+print("Parsed: #{len(successes)}, Errors: #{len(failures)}")
+if len(failures) > 0 {
+  print("First error: #{first(failures)}")
+}</code></pre>
+
+        <h3>Unwrap with context</h3>
+        <pre><code class="language-biolang"># Add context to error messages
+fn load_reference(path) {
+  try {
+    fasta(path)
+  } catch e {
+    error("Failed to load reference genome at '#{path}': #{to_string(e)}")
+  }
+}
+
+fn load_config(path) {
+  try {
+    let config = read_json(path)
+    # Validate required fields
+    let required = ["reference", "output_dir", "samples"]
+    for field in required {
+      if config[field] == None {
+        error("Config missing required field: '#{field}'")
+      }
+    }
+    config
+  } catch e {
+    error("Invalid config file '#{path}': #{to_string(e)}")
+  }
+}
+
+# Usage with clear error messages
+let config = load_config("pipeline.json")
+let ref = load_reference(config["reference"])</code></pre>
+
+        <h2>Graceful Degradation</h2>
+
+        <h3>Fallback values</h3>
+        <pre><code class="language-biolang"># Use ?? for None fallbacks
+let config = read_json("config.json")
+let threads = config["threads"] ?? 4
+let min_qual = config["min_quality"] ?? 30
+let output = config["output_dir"] ?? "results"
+
+print("Using #{threads} threads, min quality #{min_qual}")
+
+# Chained fallbacks
+let ref_path = env("REF_GENOME")
+  ?? config["reference"]
+  ?? "/refs/default/GRCh38.fa"
+
+print("Reference: #{ref_path}")</code></pre>
+
+        <h3>Skipping bad records</h3>
+        <pre><code class="language-biolang"># Process what you can, skip what you cannot
+let skipped = 0
+let processed = 0
+let results = []
+
+for row in csv("messy_data.csv") {
+  try {
+    let score = float(row["score"])
+    let gene = trim(row["gene"])
+    if gene == "" { error("Empty gene name") }
+    processed = processed + 1
+    push(results, { gene: gene, score: score })
+  } catch _ {
+    skipped = skipped + 1
+  }
+}
+
+print("Processed: #{processed}, Skipped: #{skipped}")
+write_tsv(from_records(results), "clean_results.tsv")</code></pre>
+
+        <h3>Retry logic</h3>
+        <pre><code class="language-biolang"># Retry operations that may transiently fail (e.g., network)
+fn retry(operation, max_attempts, delay_ms) {
+  let last_error = None
+  for attempt in range(1, max_attempts + 1) {
+    try {
+      return operation()
+    } catch e {
+      last_error = e
+      if attempt < max_attempts {
+        print("Attempt #{attempt} failed: #{to_string(e)}. Retrying in #{delay_ms}ms...")
+        sleep(delay_ms)
+      }
+    }
+  }
+  error("All #{max_attempts} attempts failed. Last error: #{to_string(last_error)}")
+}
+
+# Use retry for downloads
+let data = retry(|| {
+  download("https://api.example.com/data/genes.json", "genes.json")
+  read_json("genes.json")
+}, 3, 2000)</code></pre>
+
+        <h2>Structured Logging</h2>
+
+        <h3>Log levels and output</h3>
+        <pre><code class="language-biolang"># Simple structured logging via helper functions
+fn log_msg(level, msg, ctx) {
+  let line = "[#{now()}] [#{level}] #{msg}"
+  if ctx != None { line = "#{line} #{to_string(ctx)}" }
+  print(line)
+  write_text(line, "pipeline.log")
+}
+
+log_msg("INFO", "Pipeline started", { samples: 24, reference: "GRCh38" })
+
+for sample in samples {
+  log_msg("INFO", "Processing sample", { sample: sample.name })
+
+  try {
+    # ... process ...
+    log_msg("INFO", "Sample complete", { sample: sample.name, reads: cnt })
+  } catch e {
+    log_msg("ERROR", "Sample failed", { sample: sample.name, error: to_string(e) })
+  }
+}
+
+log_msg("INFO", "Pipeline finished", {
+  total: len(samples),
+  succeeded: succeeded,
+  failed: failed
+})</code></pre>
+
+        <h2>Assertions</h2>
+
+        <h3>Defensive checks in pipelines</h3>
+        <pre><code class="language-biolang"># Use assert for conditions that should never be false
+let bam_records = read_bam("aligned.bam") |> collect
+let total = len(bam_records)
+
+# Sanity checks
+assert(total > 0, "BAM file has no reads")
+
+let mapped = filter(bam_records, |r| int(r.flag) & 4 == 0)
+let mapped_pct = float(len(mapped)) / float(total) * 100.0
+assert(mapped_pct > 50.0, "Mapping rate too low: #{round(mapped_pct, 1)}%")
+
+# Assertions in data processing
+let variants = vcf("filtered.vcf")
+  |> filter(|v| v.filter == "PASS")
+  |> collect
+
+assert(len(variants) > 0, "No PASS variants found after filtering")
+
+# Count transitions and transversions
+let transitions = filter(variants, |v| is_snp(v) && (
+  (v.ref == "A" && v.alt == "G") || (v.ref == "G" && v.alt == "A") ||
+  (v.ref == "C" && v.alt == "T") || (v.ref == "T" && v.alt == "C")
+))
+let transversions = filter(variants, |v| is_snp(v) && !contains(["AG","GA","CT","TC"], "#{v.ref}#{v.alt}"))
+let ti_tv = float(len(transitions)) / float(len(transversions))
+assert(ti_tv > 1.5 && ti_tv < 4.0,
+  "Ti/Tv ratio #{round(ti_tv, 2)} outside expected range [1.5, 4.0]")</code></pre>
+
+        <h3>Pre-condition and post-condition checks</h3>
+        <pre><code class="language-biolang"># Validate inputs and outputs around critical steps
+fn align_reads(r1, r2, ref, output) {
+  # Pre-conditions
+  assert(file_exists(r1), "R1 file not found: #{r1}")
+  assert(file_exists(r2), "R2 file not found: #{r2}")
+  assert(file_exists(ref), "Reference not found: #{ref}")
+  assert(file_exists("#{ref}.fai"), "Reference index not found: #{ref}.fai")
+
+  # Do alignment
+  shell("bwa-mem2 mem -t 8 #{ref} #{r1} #{r2} > #{output}")
+
+  # Post-conditions
+  assert(file_exists(output), "Output BAM was not created")
+  let size = file_size(output)
+  assert(size > 1000, "Output BAM suspiciously small: #{size} bytes")
+
+  print("Alignment complete: #{output} (#{size} bytes)")
+}</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="batch.html" class="text-violet-400 hover:text-violet-300">&larr; Batch Processing</a>
+        <a href="testing.html" class="text-violet-400 hover:text-violet-300">Testing &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

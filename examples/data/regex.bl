@@ -1,0 +1,36 @@
+# regex.bl — Regular expressions for bioinformatics text processing
+
+# ── regex_match: test if a pattern matches ──────────────────────
+let seq = "ATCGATCGNNNATCG"
+println("Contains N-stretch: " + str(regex_match(seq, "N{2,}")))
+println("Starts with ATC:    " + str(regex_match(seq, "^ATC")))
+
+let header = ">sp|P04637|P53_HUMAN Cellular tumor antigen p53"
+println("UniProt header: " + str(regex_match(header, "^>sp\\|")))
+
+# ── regex_find: extract matching substrings ─────────────────────
+let accession = regex_find(header, "[A-Z][0-9][A-Z0-9]{3}[0-9]")
+println("Accession: " + str(accession))
+
+let variant = "chr17:7578406:G>A"
+println("Chrom: " + str(regex_find(variant, "chr[0-9XY]+")))
+println("Pos: " + str(regex_find(variant, ":[0-9]+:")))
+
+# ── regex_replace: substitute patterns ──────────────────────────
+println("Masked: " + regex_replace(seq, "N+", "***"))
+
+let messy = "Gene   name:   BRCA1    (breast   cancer)"
+println("Cleaned: " + regex_replace(messy, "\\s+", " "))
+
+let raw = "ATCG ATCG\nATCG\tATCG"
+println("Stripped: " + regex_replace(raw, "[^ACGTN]", ""))
+
+# ── regex_split: break strings on a pattern ─────────────────────
+let cigar = "50M2I30M1D20M"
+println("CIGAR ops: " + str(regex_split(cigar, "(?<=[MIDNSHP=X])")))
+
+let info = "gene=TP53;impact=HIGH;consequence=missense"
+println("Fields: " + str(regex_split(info, ";")))
+
+let mixed = "sample1,sample2;sample3|sample4"
+println("Samples: " + str(regex_split(mixed, "[,;|]")))

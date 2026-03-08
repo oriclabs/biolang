@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio Reference Overview — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/overview"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Overview</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Bio Reference Overview</h1>
+        <p>
+          BioLang treats biological data as a first-class citizen. DNA, RNA, and protein sequences
+          are native value types with dedicated literal syntax, not strings that happen to contain
+          nucleotides. This design philosophy extends to genomic intervals, k-mer analysis,
+          sequence alignment, motif scanning, and high-level computational biology operations.
+        </p>
+
+        <h2>Native Bio Types</h2>
+        <p>
+          BioLang provides three sequence literal types with compile-time validation. Each type
+          carries its own set of operations tailored to the underlying biology:
+        </p>
+        <pre><code class="language-biolang"># DNA literal — validates ACGT alphabet
+let seq = dna"ATCGATCGATCG"
+
+# RNA literal — validates AUCG alphabet
+let rna_seq = rna"AUCGAUCGAUCG"
+
+# Protein literal — validates amino acid one-letter codes
+let prot = protein"MKTLVFGADRHWYCNQEIPS"</code></pre>
+
+        <p>
+          Each literal is validated at parse time. Invalid characters produce a clear compile-time
+          error pointing to the offending position. At runtime, sequences carry their type
+          information, enabling type-safe operations &mdash; you cannot accidentally call
+          <code>translate()</code> on a DNA sequence without first transcribing it.
+        </p>
+
+        <h2>What Each Type Offers</h2>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Type</th>
+                <th class="py-3 px-4">Literal</th>
+                <th class="py-3 px-4">Key Operations</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">DNA</td>
+                <td class="py-3 px-4 font-mono">dna"ATCG"</td>
+                <td class="py-3 px-4">gc_content, reverse_complement, transcribe, complement, seq_len, subseq, kmer_count</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">RNA</td>
+                <td class="py-3 px-4 font-mono">rna"AUCG"</td>
+                <td class="py-3 px-4">translate, reverse_complement, seq_len, subseq</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-cyan-400">Protein</td>
+                <td class="py-3 px-4 font-mono">protein"MKTL"</td>
+                <td class="py-3 px-4">seq_len, subseq, to_string</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Format Support</h2>
+        <p>
+          BioLang has built-in readers and writers for the most common bioinformatics file formats.
+          All format functions return lazy streams by default, enabling processing of files larger
+          than available memory:
+        </p>
+        <ul>
+          <li><strong class="text-violet-400">FASTA / FASTQ</strong> &mdash; Sequence data with quality scores</li>
+          <li><strong class="text-violet-400">BED / GFF</strong> &mdash; Genomic interval annotations</li>
+          <li><strong class="text-violet-400">VCF</strong> &mdash; Variant calls</li>
+          <li><strong class="text-violet-400">SAM / BAM</strong> &mdash; Alignment data</li>
+          <li><strong class="text-violet-400">MAF</strong> &mdash; Multiple alignment format</li>
+        </ul>
+        <pre><code class="language-biolang"># Read as a table (reusable) — best for interactive use
+let records = read_fasta("sequences.fa")
+
+# Read as a stream (lazy, one-time) — best for large files
+records = fasta("genome.fa")
+
+# Process with pipes
+records
+  |> filter(|r| seq_len(r.seq) > 1000)
+  |> map(|r| { id: r.id, gc: gc_content(r.seq) })
+  |> to_table()
+  |> print()</code></pre>
+
+        <h2>Genomic Intervals</h2>
+        <p>
+          Intervals are another first-class type with set-theoretic operations built in.
+          BioLang's interval engine uses an implicit interval tree for efficient overlap queries
+          on large datasets:
+        </p>
+        <pre><code class="language-biolang"># Create intervals (positional args: chrom, start, end, strand)
+let exon1 = interval("chr1", 1000, 2000, "+")
+let exon2 = interval("chr1", 1500, 2500)
+
+# Interval set operations work on tables with chrom/start/end columns
+let exons = bed("exons.bed")
+let peaks = bed("peaks.bed")
+let shared = intersect(exons, peaks)</code></pre>
+
+        <h2>K-mer Analysis</h2>
+        <p>
+          K-mer counting and analysis is a fundamental primitive in sequence bioinformatics.
+          BioLang provides optimized k-mer functions that use bit-packed encoding for k &le; 32:
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCGATCG"
+
+# Count all 4-mers
+let counts = kmer_count(seq, 4)
+
+# Extract minimizers for sketching
+let mins = minimizers(seq, 21, 11)</code></pre>
+
+        <h2>Alignment &amp; Motifs</h2>
+        <p>
+          Local and global sequence alignment with configurable scoring matrices, plus
+          position weight matrix (PWM) scanning for motif discovery:
+        </p>
+        <pre><code class="language-biolang"># Pairwise alignment
+let result = align(dna"ATCGATCG", dna"ATCAATCG")
+print(result.score)
+print(result.cigar)
+
+# Motif finding (IUPAC patterns)
+let hits = motif_find(dna"ATCGATCGATCGATCG", "ATCG")</code></pre>
+
+        <h2>Advanced Analytics</h2>
+        <p>
+          BioLang includes high-level computational biology functions for dimensionality
+          reduction, clustering, and pathway enrichment &mdash; all accessible without
+          importing external libraries:
+        </p>
+        <pre><code class="language-biolang"># Dimensionality reduction on an expression matrix
+let coords = umap(expr_matrix)
+
+# Leiden clustering
+let clusters = leiden(adj_matrix)
+
+# Gene set enrichment
+let gene_sets = read_gmt("pathways.gmt")
+let results = gsea(ranked_genes, gene_sets)</code></pre>
+
+        <h2>Explore This Section</h2>
+        <p>
+          Each topic in this reference section includes detailed function signatures, parameter
+          descriptions, return types, and practical examples. Use the sidebar navigation to
+          explore each area:
+        </p>
+        <ul>
+          <li><a href="sequences.html" class="text-violet-400 hover:text-violet-300">Sequences</a> &mdash; DNA, RNA, and Protein types in depth</li>
+          <li><a href="formats.html" class="text-violet-400 hover:text-violet-300">Formats</a> &mdash; File format readers and writers</li>
+          <li><a href="intervals.html" class="text-violet-400 hover:text-violet-300">Intervals</a> &mdash; Genomic interval operations</li>
+          <li><a href="kmers.html" class="text-violet-400 hover:text-violet-300">K-mers</a> &mdash; K-mer counting and analysis</li>
+          <li><a href="alignment.html" class="text-violet-400 hover:text-violet-300">Alignment</a> &mdash; Pairwise sequence alignment</li>
+          <li><a href="motifs.html" class="text-violet-400 hover:text-violet-300">Motifs</a> &mdash; Motif finding and PWM scanning</li>
+          <li><a href="advanced.html" class="text-violet-400 hover:text-violet-300">Advanced</a> &mdash; UMAP, clustering, enrichment, sketching</li>
+        </ul>
+
+        <section id="gene-type" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Gene Type</h2>
+          <p class="text-slate-400 mb-4">First-class gene representation with symbol, coordinates, and metadata.</p>
+          <pre><code class="language-biolang"># Look up a gene by symbol
+let brca1 = gene("BRCA1")
+
+# Field access
+println(brca1.symbol, "on", brca1.chrom, brca1.start, "-", brca1.end)
+
+# Type checking
+println(type(brca1))      # "Gene"</code></pre>
+        </section>
+
+        <section id="genome-type" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Genome Type</h2>
+          <p class="text-slate-400 mb-4">Reference genome with built-in assemblies and chromosome data.</p>
+          <pre><code class="language-biolang"># Load a built-in genome assembly
+let hg38 = genome("GRCh38")
+println(hg38.name, "-", hg38.species)
+println("Chromosomes:", len(hg38.chromosomes))
+
+# Available assemblies: GRCh38, GRCh37, T2T-CHM13, GRCm39
+let mouse = genome("GRCm39")
+
+# Access chromosome info
+for c in hg38.chromosomes {
+  println(c[0], ":", c[1], "bp")
+}</code></pre>
+        </section>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <div></div>
+        <a href="sequences.html" class="text-violet-400 hover:text-violet-300">Sequences &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

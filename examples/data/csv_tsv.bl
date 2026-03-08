@@ -1,0 +1,39 @@
+# csv_tsv.bl — CSV and TSV reading, writing, and round-trip verification
+
+# ── Build a sample table ────────────────────────────────────────
+let variants = table([
+    {chrom: "chr1", pos: 12345, ref: "A", alt: "G", qual: 99.5,  filter: "PASS"},
+    {chrom: "chr1", pos: 67890, ref: "C", alt: "T", qual: 45.2,  filter: "LowQual"},
+    {chrom: "chr2", pos: 11111, ref: "G", alt: "A", qual: 88.0,  filter: "PASS"},
+    {chrom: "chr3", pos: 22222, ref: "T", alt: "C", qual: 12.1,  filter: "LowQual"},
+    {chrom: "chrX", pos: 33333, ref: "A", alt: "T", qual: 76.3,  filter: "PASS"},
+])
+println("Original: " + str(nrow(variants)) + " rows, " + str(ncol(variants)) + " cols")
+
+# ── CSV round-trip ──────────────────────────────────────────────
+let csv_path = temp_file() + ".csv"
+variants |> write_csv(csv_path)
+println("Wrote CSV to: " + csv_path)
+let csv_back = read_csv(csv_path)
+println("Read back: " + str(nrow(csv_back)) + " rows, cols: " + str(colnames(csv_back)))
+
+# ── TSV round-trip ──────────────────────────────────────────────
+let tsv_path = temp_file() + ".tsv"
+variants |> write_tsv(tsv_path)
+let tsv_back = read_tsv(tsv_path)
+println("TSV round-trip: " + str(nrow(tsv_back)) + " rows")
+
+# ── Filter then write ──────────────────────────────────────────
+let pass_path = temp_file() + ".csv"
+variants |> filter(|r| r.filter == "PASS") |> write_csv(pass_path)
+let verified = read_csv(pass_path)
+println("PASS variants: " + str(nrow(verified)) + " (expected 3)")
+
+# ── Pipeline: read -> transform -> write ────────────────────────
+let out = temp_file() + ".tsv"
+read_csv(csv_path)
+    |> filter(|r| r.qual > 50.0)
+    |> select("chrom", "pos", "qual")
+    |> arrange("qual")
+    |> write_tsv(out)
+println("High-qual output: " + str(nrow(read_tsv(out))) + " variants")

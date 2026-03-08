@@ -1,0 +1,65 @@
+# bio_plots.bl — Bio-specific visualizations in BioLang
+# Quality plots, dotplots, alignment views, and coverage displays
+
+# ── Quality Plot ────────────────────────────────────────────────
+# quality_plot renders a per-base quality profile from a PHRED string
+
+println("=== Per-Base Quality Plot ===")
+
+# Illumina-style PHRED+33 quality string (higher ASCII = better quality)
+let qual_high  = "IIIIIIIIIIIIHHHHGGGGFFFEEEDDDCCBB@@"
+let qual_mixed = "IIIHHHGGG???888555222000...+++(((##"
+
+println("High-quality read:")
+qual_high |> quality_plot() |> println()
+
+println("Degrading-quality read:")
+qual_mixed |> quality_plot() |> println()
+
+# ── Dotplot ─────────────────────────────────────────────────────
+# dotplot compares two sequences for self-similarity or homology
+
+println("\n=== Sequence Dotplot ===")
+
+let seq_a = "ATGCGATCGATCGATCGATCG"
+let seq_b = "ATGCGATCGTTCGATCGATCG"
+
+println("Comparing two near-identical sequences (1 mismatch):")
+dotplot(seq_a, seq_b) |> println()
+
+# Repeat detection via self-dotplot
+let repeat_seq = "ATGATGATGATGATG"
+println("Self-dotplot reveals tandem repeats:")
+dotplot(repeat_seq, repeat_seq) |> println()
+
+# ── Alignment View ──────────────────────────────────────────────
+# alignment_view shows a multiple-sequence alignment with mismatches
+
+println("\n=== Multiple Sequence Alignment ===")
+
+let aligned_seqs = [
+    "ATGCGATCGATCGATCGA--TCGA",
+    "ATGCGATTGATCGATCGA--TCGA",
+    "ATGCGATCGATCGA-CGAATTCGA",
+    "ATGCGATCAATCGATCGA--TCGA"
+]
+println("4-sequence alignment (gaps shown as dashes):")
+aligned_seqs |> alignment_view() |> println()
+
+# ── Coverage Visualization ──────────────────────────────────────
+# coverage takes a list of intervals and renders depth across a region
+
+println("\n=== Coverage Depth ===")
+
+# BED-like intervals: [start, end] on chr1:100-300
+let read_intervals = [
+    [100, 180], [110, 195], [120, 200],
+    [150, 230], [160, 240], [170, 250],
+    [200, 280], [210, 290], [220, 300],
+    [250, 300], [260, 300]
+]
+
+println("Coverage across chr1:100-300:")
+coverage(read_intervals, "chr1", 100, 300) |> println()
+
+println("\nDone — all bio-specific visualizations rendered.")

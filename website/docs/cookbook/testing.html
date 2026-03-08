@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Testing — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="cookbook/testing"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Cookbook</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Testing</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Testing</h1>
+        <p>BioLang has a built-in test framework accessed via <code>bl test</code>.
+        Write tests alongside your code to verify correctness, catch regressions,
+        and document expected behavior for bioinformatics functions.</p>
+
+        <h2>Test Basics</h2>
+
+        <h3>Writing your first test</h3>
+        <pre><code class="language-biolang"># File: test_sequences.bl
+
+test "reverse complement" {
+  assert_eq(
+    dna"ATCG" |> reverse_complement,
+    dna"CGAT"
+  )
+}
+
+test "GC content calculation" {
+  let gc = dna"AATTCCGG" |> gc_content
+  assert_approx_eq(gc, 0.5, tolerance: 0.001)
+}
+
+test "empty sequence GC is None" {
+  assert_eq(dna"" |> gc_content, None)
+}</code></pre>
+
+        <h3>Running tests</h3>
+        <pre><code class="language-bash"># Run all tests in a file
+bl test test_sequences.bl
+
+# Run all test files in a directory
+bl test tests/
+
+# Run tests matching a pattern
+bl test tests/ --filter "reverse"
+
+# Verbose output
+bl test tests/ --verbose</code></pre>
+
+        <h2>Assert Functions</h2>
+
+        <h3>Available assertions</h3>
+        <pre><code class="language-biolang"># Equality
+test "equality assertions" {
+  assert_eq(1 + 1, 2)
+  assert_ne(1, 2)
+}
+
+# Boolean
+test "boolean assertions" {
+  assert(true)
+  assert(5 > 3)
+  assert_not(5 < 3)
+}
+
+# Approximate equality for floats
+test "float comparison" {
+  assert_approx_eq(0.1 + 0.2, 0.3, tolerance: 1e-10)
+}
+
+# Nil checks
+test "None assertions" {
+  assert_eq(dna"" |> gc_content, None)
+  assert(dna"ATCG" |> gc_content != None)
+}
+
+# String matching
+test "string assertions" {
+  assert_contains("BRCA1 tumor suppressor", "BRCA1")
+  assert_starts_with("chr1:12345", "chr")
+  assert_matches("sample_001.fq.gz", "sample_\\d+\\.fq\\.gz")
+}
+
+# Collection assertions
+test "collection assertions" {
+  let items = [1, 2, 3, 4, 5]
+  assert_eq(len(items), 5)
+  assert(contains(items, 3))
+  assert_eq(len([]), 0)
+  assert(len(items) > 0)
+}
+
+# Error assertions
+test "error assertions" {
+  assert_throws(|| error("boom"))
+  assert_throws_matching(
+    || fasta("nonexistent.fa"),
+    "not found"
+  )
+}</code></pre>
+
+        <h2>Test Organization</h2>
+
+        <h3>Test modules</h3>
+        <pre><code class="language-biolang"># Organize tests into logical groups with describe blocks
+describe "FASTQ processing" {
+
+  test "counts reads correctly" {
+    let reads = [
+      { name: "read1", seq: dna"ATCG", qual: "IIII" },
+      { name: "read2", seq: dna"GCTA", qual: "IIII" }
+    ]
+    assert_eq(len(reads), 2)
+  }
+
+  test "filters by quality" {
+    let reads = [
+      { id: "good", seq: dna"ATCG", score: 35.0 },
+      { id: "bad", seq: dna"NNNN", score: 10.0 }
+    ]
+    let filtered = filter(reads, |r| r.score >= 30.0)
+    assert_eq(len(filtered), 1)
+  }
+
+}
+
+describe "VCF operations" {
+
+  test "identifies SNPs" {
+    let variant = { ref: "A", alt: "T", type: "SNP" }
+    assert(len(variant.ref) == 1 && len(variant.alt) == 1)
+  }
+
+}</code></pre>
+
+        <h3>Setup and teardown</h3>
+        <pre><code class="language-biolang"># Use before/after blocks for test fixtures
+describe "file-based tests" {
+
+  let test_dir = "_bl_test_tmp"
+
+  before_each {
+    mkdir(test_dir)
+    # Create test data
+    let test_fasta = ">seq1\nATCGATCG\n>seq2\nGCTAGCTA\n"
+    write_text(test_fasta, "#{test_dir}/test.fa")
+  }
+
+  after_each {
+    remove(test_dir)
+  }
+
+  test "reads FASTA sequences" {
+    let records = fasta("#{test_dir}/test.fa") |> collect
+    assert_eq(len(records), 2)
+    assert_eq(records[0].id, "seq1")
+  }
+
+  test "filters by length" {
+    let long_seqs = fasta("#{test_dir}/test.fa")
+      |> filter(|r| len(r.seq) >= 8)
+      |> collect
+    assert_eq(len(long_seqs), 2)
+  }
+
+}</code></pre>
+
+        <h2>Testing with Fixtures</h2>
+
+        <h3>Inline test data</h3>
+        <pre><code class="language-biolang"># Create test data inline for self-contained tests
+test "VCF filtering pipeline" {
+  let vcf_data = "
+##fileformat=VCFv4.2
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+chr1\t100\t.\tA\tT\t50\tPASS\t.
+chr1\t200\t.\tG\tC\t10\tLowQual\t.
+chr1\t300\t.\tT\tA\t99\tPASS\t.
+"
+  let tmp = "_test_tmp.vcf"
+  write_text(vcf_data, tmp)
+
+  let pass_variants = vcf(tmp)
+    |> filter(|v| v.filter == "PASS")
+    |> collect
+
+  assert_eq(len(pass_variants), 2)
+  assert_eq(pass_variants[0].pos, 100)
+  assert_eq(pass_variants[1].pos, 300)
+
+  remove(tmp)
+}</code></pre>
+
+        <h3>Fixture files</h3>
+        <pre><code class="language-biolang"># Use fixture files from a test data directory
+let FIXTURES = "tests/fixtures"
+
+test "parse Illumina sample sheet" {
+  let samples = csv("#{FIXTURES}/SampleSheet.csv")
+  assert(len(samples) > 0)
+  assert(all(samples, |s| s["Sample_ID"] != None))
+}
+
+test "BAM statistics match expected" {
+  let records = read_bam("#{FIXTURES}/small.bam") |> collect
+  assert_eq(len(records), 1000)
+  let mapped = filter(records, |r| int(r.flag) & 4 == 0)
+  let mapped_pct = float(len(mapped)) / float(len(records)) * 100.0
+  assert_approx_eq(mapped_pct, 98.5, tolerance: 0.5)
+}</code></pre>
+
+        <h2>Mocking</h2>
+
+        <h3>Mocking external dependencies</h3>
+        <pre><code class="language-biolang"># Mock functions for testing without real dependencies
+test "pipeline builds correct command" {
+  # Test that helper functions produce correct arguments
+  fn build_align_args(input, ref, threads) {
+    ["mem", "-t", to_string(threads), ref, input]
+  }
+
+  let args = build_align_args("sample.fq", "ref.fa", 4)
+  assert(contains(args, "-t"))
+  assert(contains(args, "4"))
+  assert(contains(args, "ref.fa"))
+}
+
+test "handles missing data gracefully" {
+  # Test with empty input
+  let empty_data = []
+  let result = filter(empty_data, |r| r.score > 0)
+  assert_eq(len(result), 0)
+}</code></pre>
+
+        <h2>Property-Based Testing</h2>
+
+        <h3>Testing with random inputs</h3>
+        <pre><code class="language-biolang"># Generate random test inputs to find edge cases
+property "reverse complement is involution" {
+  # For any random DNA sequence, reverse_complement(reverse_complement(s)) == s
+  forall gen_dna(length: 1..1000) as seq {
+    assert_eq(
+      seq |> reverse_complement |> reverse_complement,
+      seq
+    )
+  }
+}
+
+property "GC content is between 0 and 1" {
+  forall gen_dna(length: 1..500) as seq {
+    let gc = gc_content(seq)
+    assert(gc >= 0.0 && gc <= 1.0)
+  }
+}
+
+property "k-mer count matches expected" {
+  forall gen_dna(length: 10..100) as seq {
+    forall gen_int(min: 1, max: 10) as k {
+      if len(seq) >= k {
+        let ks = kmers(seq, k) |> collect
+        assert_eq(len(ks), len(seq) - k + 1)
+      }
+    }
+  }
+}
+
+property "translate preserves length relationship" {
+  # For DNA divisible by 3, protein length = DNA length / 3
+  forall gen_dna(length: 3..300, divisible_by: 3) as seq {
+    let prot = translate(seq)
+    assert_eq(len(prot), len(seq) / 3)
+  }
+}</code></pre>
+
+        <h2>Snapshot Testing</h2>
+
+        <h3>Testing output stability</h3>
+        <pre><code class="language-biolang"># Snapshot tests compare output against a saved reference
+test "QC report output is stable" {
+  let stats = {
+    total_reads: 1000000,
+    mean_quality: 35.2,
+    gc_content: 0.42
+  }
+
+  let report = to_string(stats)
+
+  # First run saves the snapshot, subsequent runs compare
+  assert_snapshot("qc_report", report)
+}
+
+# Update snapshots when output intentionally changes:
+# bl test tests/ --update-snapshots</code></pre>
+
+        <h2>CI Integration</h2>
+
+        <h3>Running tests in CI</h3>
+        <pre><code class="language-bash"># In GitHub Actions or similar CI
+bl test tests/ --format junit --output test-results.xml
+
+# With coverage reporting
+bl test tests/ --coverage --coverage-format lcov --coverage-output coverage.lcov
+
+# Run only fast tests (skip slow integration tests)
+bl test tests/ --filter "not @slow"</code></pre>
+
+        <h3>Tagging slow tests</h3>
+        <pre><code class="language-biolang"># Tag tests that take a long time
+@slow
+test "full genome variant calling" {
+  let data = vcf("tests/fixtures/whole_genome.vcf.gz")
+  let filtered = data |> filter(|v| v.filter == "PASS") |> collect
+  assert(len(filtered) > 1000000)
+}
+
+@slow
+@requires("samtools")
+test "BAM indexing produces valid index" {
+  # Only runs when samtools is available and --include-slow is set
+  let result = shell("samtools index test.bam")
+  assert_eq(result.exit_code, 0)
+  assert(file_exists("test.bam.bai"))
+}</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="errors.html" class="text-violet-400 hover:text-violet-300">&larr; Error Handling</a>
+        <span></span>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

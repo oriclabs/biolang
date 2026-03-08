@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>BioLang — A domain-specific language for bioinformatics</title>
+  <meta name="description" content="A domain-specific language (DSL) for bioinformatics with pipe-first syntax, native DNA types, 290+ builtins, and pure Rust performance.">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <noscript><style>body>*{opacity:1!important}</style></noscript>
+  <div data-component="header" data-base-path="."></div>
+
+  <!-- Hero -->
+  <section class="hero-gradient relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-20 left-10 text-6xl font-mono text-violet-400 select-none opacity-20">ATCGATCG</div>
+      <div class="absolute top-40 right-20 text-4xl font-mono text-cyan-400 select-none opacity-15">GCTAGCTA</div>
+      <div class="absolute bottom-20 left-1/3 text-5xl font-mono text-violet-400 select-none opacity-10">|&gt; filter |&gt; map</div>
+    </div>
+    <div class="max-w-6xl mx-auto px-6 py-24 md:py-32 relative">
+      <div class="grid md:grid-cols-2 gap-12 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm mb-6">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            v0.1.0 — Now Available
+          </div>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight mb-6">
+            A domain-specific<br>
+            language for<br>
+            <span class="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">bioinformatics</span>
+          </h1>
+          <p class="text-lg text-slate-400 mb-8 leading-relaxed max-w-lg">
+            A DSL purpose-built for genomics and bioinformatics — native DNA/RNA/protein types, 290+ built-in functions, streaming I/O, 16 bio API clients, and Rust performance with a clean, pipe-first syntax.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <a href="docs/getting-started/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">
+              Get Started
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </a>
+            <a href="docs/getting-started/repl-tour.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-slate-700 hover:border-violet-500/50 text-slate-300 hover:text-white font-semibold transition-colors">
+              Try the REPL
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="hidden md:block">
+          <div class="bg-slate-900/80 backdrop-blur border border-slate-700/50 rounded-xl p-5 font-mono text-sm shadow-2xl">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+              <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+              <span class="text-slate-500 text-xs ml-2">analysis.bl</span>
+            </div>
+<pre class="!p-0 !m-0 !bg-transparent"><code class="language-biolang !p-0 !bg-transparent"># Load FASTQ, filter, and analyze
+let reads = fastq("sample.fq.gz")
+
+reads
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> map(|r| r.seq)
+  |> kmer_count(21)
+  |> sort(|a, b| b.count - a.count)
+  |> head(10)
+  |> bar_chart("Top 21-mers")
+
+# Native DNA literal + operations
+let seq = dna"ATCGATCGATCG"
+let gc = gc_content(seq)           # 0.5
+let rc = reverse_complement(seq)
+
+# Query NCBI in one line
+ncbi_gene("BRCA1")
+  |> print()</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Early Preview Banner -->
+  <div class="max-w-4xl mx-auto px-6 py-4 mb-8">
+    <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-sm text-amber-200">
+      <strong>Early Preview:</strong> BioLang is a new experimental language under active development. While we strive for stability, you may encounter rough edges. If you find issues, please <a href="https://github.com/bioras/biolang/issues" class="text-amber-400 underline hover:text-amber-300">report them on GitHub</a> &mdash; your feedback shapes the language.
+    </div>
+  </div>
+
+  <!-- Why a DSL? -->
+  <section class="py-16 bg-slate-900/20 border-b border-slate-800/50">
+    <div class="max-w-4xl mx-auto px-6">
+      <h2 class="text-2xl font-bold text-white mb-6 text-center">Why a domain-specific language?</h2>
+      <p class="text-slate-400 mb-8 text-center max-w-3xl mx-auto">
+        General-purpose languages like Python and R require stitching together dozens of packages to do bioinformatics.
+        BioLang is a <strong class="text-slate-200">DSL</strong> &mdash; every design decision, from the type system to the syntax,
+        is made for genomics workflows. Here's what that means in practice:
+      </p>
+      <div class="grid md:grid-cols-2 gap-x-10 gap-y-5 text-sm">
+        <div class="flex gap-3">
+          <span class="text-violet-400 mt-0.5 shrink-0">&#10003;</span>
+          <div>
+            <span class="text-white font-medium">No import ceremony</span>
+            <span class="text-slate-400"> &mdash; DNA types, FASTA readers, GC content, k-mers, interval queries, and 290+ functions are available immediately. No <code class="text-xs">pip install</code>, no <code class="text-xs">import</code> boilerplate.</span>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <span class="text-violet-400 mt-0.5 shrink-0">&#10003;</span>
+          <div>
+            <span class="text-white font-medium">Types that match the domain</span>
+            <span class="text-slate-400"> &mdash; <code class="text-xs">dna"ATCG"</code>, <code class="text-xs">Interval</code>, <code class="text-xs">Variant</code>, <code class="text-xs">AlignedRead</code>, <code class="text-xs">Quality</code> are first-class values with built-in methods, not strings pretending to be sequences.</span>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <span class="text-violet-400 mt-0.5 shrink-0">&#10003;</span>
+          <div>
+            <span class="text-white font-medium">Pipes match how bioinformatics thinks</span>
+            <span class="text-slate-400"> &mdash; <code class="text-xs">reads |&gt; filter |&gt; map |&gt; summarize</code>. Data flows through a pipeline, just like the biological workflow it models.</span>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <span class="text-violet-400 mt-0.5 shrink-0">&#10003;</span>
+          <div>
+            <span class="text-white font-medium">Safe by default</span>
+            <span class="text-slate-400"> &mdash; no null pointer exceptions, no silent type coercions. Errors point to the genomic operation that failed, not a stack trace in pandas internals.</span>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <span class="text-violet-400 mt-0.5 shrink-0">&#10003;</span>
+          <div>
+            <span class="text-white font-medium">Fast without C extensions</span>
+            <span class="text-slate-400"> &mdash; compiled to native bytecode via Rust. No NumPy wheel issues, no Cython compilation step. Single binary, runs everywhere.</span>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <span class="text-violet-400 mt-0.5 shrink-0">&#10003;</span>
+          <div>
+            <span class="text-white font-medium">Streaming by design</span>
+            <span class="text-slate-400"> &mdash; process 100 GB FASTQ files in constant memory. Lazy evaluation is the default, not an afterthought bolted onto eager collections.</span>
+          </div>
+        </div>
+      </div>
+      <p class="text-slate-500 text-sm mt-8 text-center">
+        BioLang is not a general-purpose language, and that's the point. It does one thing &mdash; bioinformatics scripting &mdash; and does it well.
+      </p>
+    </div>
+  </section>
+
+  <!-- Feature Cards -->
+  <section class="py-20 bg-slate-950">
+    <div class="max-w-6xl mx-auto px-6">
+      <h2 class="text-3xl font-bold text-white text-center mb-4">What's included</h2>
+      <p class="text-slate-400 text-center mb-12 max-w-2xl mx-auto">Everything you need from read to result &mdash; batteries included.</p>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Card 1 -->
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-violet-500/30 transition-colors">
+          <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Pipe-First Syntax</h3>
+          <p class="text-sm text-slate-400">Chain operations naturally with <code class="text-violet-400">|&gt;</code>. No nested function calls, no temp variables. Data flows left to right.</p>
+        </div>
+        <!-- Card 2 -->
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-violet-500/30 transition-colors">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Bio-Native Types</h3>
+          <p class="text-sm text-slate-400">First-class <code class="text-cyan-400">dna"..."</code>, <code class="text-cyan-400">rna"..."</code>, <code class="text-cyan-400">protein"..."</code> literals with built-in methods for complement, translate, GC content.</p>
+        </div>
+        <!-- Card 3 -->
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-violet-500/30 transition-colors">
+          <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">290+ Builtins</h3>
+          <p class="text-sm text-slate-400">Statistics, tables, matrices, file I/O (FASTA/FASTQ/VCF/BAM/BED/GFF), plotting, k-mers, alignment, motifs — all built in.</p>
+        </div>
+        <!-- Card 4 -->
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-violet-500/30 transition-colors">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Streaming I/O</h3>
+          <p class="text-sm text-slate-400">Process multi-GB FASTQ/BAM files without loading into memory. Lazy streams + pipes = constant memory usage.</p>
+        </div>
+        <!-- Card 5 -->
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-violet-500/30 transition-colors">
+          <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">16 API Clients</h3>
+          <p class="text-sm text-slate-400">NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, GO, COSMIC, BioMart, QuickGO, nf-core, BioContainers, Galaxy ToolShed, NCBI Datasets — query any database in one line.</p>
+        </div>
+        <!-- Card 6 -->
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-violet-500/30 transition-colors">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Rust Performance</h3>
+          <p class="text-sm text-slate-400">Bytecode compiler + Cranelift JIT. Native Rust I/O via noodles. 5-20x faster than Python for common bioinformatics tasks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Code Examples -->
+  <section class="py-20 bg-slate-900/30">
+    <div class="max-w-6xl mx-auto px-6">
+      <h2 class="text-3xl font-bold text-white text-center mb-4">See it in action</h2>
+      <p class="text-slate-400 text-center mb-12">Real bioinformatics tasks, concise code.</p>
+      <div class="grid lg:grid-cols-3 gap-6">
+        <!-- Example 1 -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-violet-400"></span>
+            <span class="text-sm font-medium text-slate-300">Sequence Analysis</span>
+          </div>
+          <div class="p-4">
+<pre class="!m-0 text-sm"><code class="language-biolang">let seq = dna"ATCGATCGATCG"
+
+# GC content, k-mer spectrum
+gc_content(seq)            # 0.5
+kmer_count(seq, 3)         # {ATC: 3, ...}
+seq |> reverse_complement
+    |> transcribe
+    |> translate</code></pre>
+          </div>
+        </div>
+        <!-- Example 2 -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <span class="text-sm font-medium text-slate-300">Data Pipeline</span>
+          </div>
+          <div class="p-4">
+<pre class="!m-0 text-sm"><code class="language-biolang"># VCF → filter → analyze
+vcf("variants.vcf.gz")
+  |> filter(|v| v.quality >= 30)
+  |> filter(|v| v.filter == "PASS")
+  |> collect
+  |> variant_summary
+  |> print</code></pre>
+          </div>
+        </div>
+        <!-- Example 3 -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-violet-400"></span>
+            <span class="text-sm font-medium text-slate-300">API Query</span>
+          </div>
+          <div class="p-4">
+<pre class="!m-0 text-sm"><code class="language-biolang"># Fetch BRCA1 info from NCBI
+let gene = ncbi_gene("BRCA1")
+print(gene)
+
+# Get protein from UniProt
+let brca1 = uniprot_entry("P38398")
+print(brca1.sequence)
+print(len(brca1.sequence))  # 1863 aa</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison -->
+  <section class="py-20 bg-slate-950">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-3xl font-bold text-white text-center mb-4">BioLang vs Python</h2>
+      <p class="text-slate-400 text-center mb-12">Same task, less code, more clarity.</p>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-sm font-medium text-slate-300">Python + BioPython + pandas</span>
+            <span class="text-xs text-slate-500">14 lines</span>
+          </div>
+          <div class="p-4">
+<pre class="!m-0 text-sm"><code class="language-python">from Bio import SeqIO
+import pandas as pd
+
+records = []
+for rec in SeqIO.parse("reads.fq", "fastq"):
+    quals = rec.letter_annotations[
+        "phred_quality"
+    ]
+    if sum(quals)/len(quals) >= 30:
+        gc = (rec.seq.count("G")
+              + rec.seq.count("C")) \
+              / len(rec.seq)
+        records.append({"id": rec.id,
+                        "gc": gc})
+df = pd.DataFrame(records)
+print(df.describe())</code></pre>
+          </div>
+        </div>
+        <div class="bg-slate-900/80 border border-violet-500/30 rounded-xl overflow-hidden ring-1 ring-violet-500/20">
+          <div class="px-4 py-3 border-b border-violet-500/20 flex items-center justify-between">
+            <span class="text-sm font-medium text-violet-400">BioLang</span>
+            <span class="text-xs text-violet-400">5 lines</span>
+          </div>
+          <div class="p-4">
+<pre class="!m-0 text-sm"><code class="language-biolang">fastq("reads.fq")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> map(|r| {id: r.id,
+              gc: gc_content(r.seq)})
+  |> collect
+  |> describe</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Bar -->
+  <section class="py-12 border-y border-slate-800 bg-slate-900/20">
+    <div class="max-w-4xl mx-auto px-6 flex flex-wrap justify-center gap-8 md:gap-16 text-center">
+      <div>
+        <div class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">290+</div>
+        <div class="text-sm text-slate-500 mt-1">Built-in Functions</div>
+      </div>
+      <div>
+        <div class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">14</div>
+        <div class="text-sm text-slate-500 mt-1">Bio API Clients</div>
+      </div>
+      <div>
+        <div class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">15</div>
+        <div class="text-sm text-slate-500 mt-1">File Formats</div>
+      </div>
+      <div>
+        <div class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">21</div>
+        <div class="text-sm text-slate-500 mt-1">Bio Plot Types</div>
+      </div>
+      <div>
+        <div class="text-3xl font-bold text-orange-400">Rust</div>
+        <div class="text-sm text-slate-500 mt-1">Pure Performance</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section class="py-20 bg-slate-950">
+    <div class="max-w-2xl mx-auto px-6 text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">Get started in seconds</h2>
+      <p class="text-slate-400 mb-8">Single binary, no runtime dependencies.</p>
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 text-left font-mono">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-violet-400">$</span>
+          <span class="text-slate-200">cargo install biolang</span>
+        </div>
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-violet-400">$</span>
+          <span class="text-slate-200">bl repl</span>
+        </div>
+        <div class="text-cyan-400 text-sm mt-2">
+          BioLang v0.1.0 REPL — type :help for commands<br>
+          <span class="text-violet-400">bl&gt;</span> <span class="text-slate-200">dna"ATCG" |> gc_content()</span><br>
+          <span class="text-green-400">0.5</span>
+        </div>
+      </div>
+      <div class="mt-8 flex flex-wrap justify-center gap-4">
+        <a href="docs/getting-started/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">
+          Read the docs
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+      </div>
+      <div class="mt-10 max-w-md mx-auto">
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-violet-500/30 transition-colors text-left">
+          <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">The BioLang Book</h3>
+          <p class="text-sm text-slate-400 mb-4">A comprehensive 17-chapter guide with real bioinformatics examples.</p>
+          <a href="book/index.html" class="text-violet-400 hover:text-violet-300 text-sm font-medium inline-flex items-center gap-1">
+            Read the Book
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div data-component="footer" data-base-path="."></div>
+  <script src="js/main.js"></script>
+  <script src="js/copy-code.js"></script>
+  <script src="js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+# PDB (RCSB Protein Data Bank) API Examples
+# Structural biology — US
+
+# Get protein structure details
+# pdb_entry(pdb_id) -> record
+let structure = pdb_entry("1TUP")
+println("=== PDB Entry: 1TUP ===")
+println("Title:", structure.title)
+println("Method:", structure.method)
+println("Resolution:", structure.resolution)
+println("Release date:", structure.release_date)
+println("Organism:", structure.organism)
+
+# Look up multiple structures
+let ids = ["1TUP", "6Q05", "3KMD"]
+println("\n=== Comparing Structures ===")
+for id in ids {
+    let entry = pdb_entry(id)
+    println(id, ":", entry.title)
+    println("  Method:", entry.method, "| Resolution:", entry.resolution)
+}
+
+# Search PDB by keyword
+# pdb_search(query) -> list of PDB IDs
+let results = pdb_search("CRISPR Cas9")
+println("\n=== CRISPR-Cas9 structures ===")
+println("Total found:", len(results))
+println("First 10 IDs:", head(results, 10))
+
+# Pipeline: search -> fetch details
+let hemoglobin = pdb_search("hemoglobin human")
+println("\nHemoglobin structures:", len(hemoglobin))
+for id in head(hemoglobin, 3) {
+    let entry = pdb_entry(id)
+    println("  ", id, "-", entry.title, "(", entry.method, ")")
+}

@@ -1,0 +1,66 @@
+# genomic_intervals.bl — Genomic intervals, coordinate systems, and interval trees
+#
+# Demonstrates: interval creation, unit helpers, coordinate conversions,
+# interval trees, overlap queries, and nearest-neighbor lookups.
+
+# ── Creating Intervals ────────────────────────────────────────
+let promoter  = interval("chr1", 1000, 2000)
+let exon1     = interval("chr1", 5000, 5500)
+let exon2     = interval("chr1", 7000, 7200)
+let intron    = interval("chr1", 5500, 7000)
+
+println("Promoter: ", promoter)
+println("  chrom=", promoter.chrom, " start=", promoter.start, " end=", promoter.end)
+
+# ── Unit Helpers ──────────────────────────────────────────────
+# bp(), kb(), mb(), gb() return integer base-pair counts
+println("1 kb  = ", kb(1), " bp")
+println("2.5 mb = ", mb(2.5), " bp")
+println("1 gb  = ", gb(1), " bp")
+
+# Use units to build intervals concisely
+let big_region = interval("chr2", mb(10), mb(10) + kb(500))
+println("500 kb region on chr2: ", big_region)
+
+# ── Interval Properties ──────────────────────────────────────
+let span = exon1.end - exon1.start
+println("Exon1 span: ", span, " bp")
+
+let is_intv = is_interval(promoter)
+println("is_interval(promoter)? ", is_intv)
+
+# ── Coordinate System Conversions ─────────────────────────────
+# BED: 0-based half-open  |  VCF: 1-based  |  GFF: 1-based inclusive  |  SAM: 1-based
+let bed_coord = promoter |> coord_bed()
+let vcf_coord = promoter |> coord_vcf()
+let gff_coord = promoter |> coord_gff()
+let sam_coord = promoter |> coord_sam()
+
+println("\nPromoter in different coordinate systems:")
+println("  BED (0-based, half-open): ", bed_coord)
+println("  VCF (1-based):            ", vcf_coord)
+println("  GFF (1-based, inclusive):  ", gff_coord)
+println("  SAM (1-based):             ", sam_coord)
+
+# ── Interval Tree ─────────────────────────────────────────────
+# Build a tree from a table of intervals (e.g., from a BED file)
+let regions = bed("tests/data/multi.bed", "table")
+let tree = regions |> interval_tree()
+println("\nBuilt interval tree from BED file")
+
+# Query: which regions overlap chr1:5000-6000?
+let overlaps = tree |> query_overlaps("chr1", 5000, 6000)
+println("Overlaps with chr1:5000-6000:")
+overlaps |> each(|hit| {
+    println("  ", hit.chrom, ":", hit.start, "-", hit.end)
+})
+
+# Query: nearest region to chr1:3000
+let nearest = tree |> query_nearest("chr1", 3000)
+println("Nearest to chr1:3000 -> ", nearest)
+
+# ── Combining Intervals with Sequences ────────────────────────
+# Extract a subsequence using interval coordinates
+let full_seq = dna"ATGCATGCATGCATGCATGCATGCATGCATGC"
+let region_seq = full_seq |> subseq(exon1.start % 32, exon1.start % 32 + 10)
+println("\nExtracted 10 bp at offset: ", region_seq)

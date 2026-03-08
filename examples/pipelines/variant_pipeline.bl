@@ -1,0 +1,91 @@
+# variant_pipeline.bl — Variant Analysis Pipeline
+# Reads a VCF file, filters variants, annotates with computed fields,
+# summarizes by type, and generates a report table.
+
+# ── Load VCF ────────────────────────────────────────────────────
+
+let input_path = "tests/data/test.vcf"
+println("Loading VCF: " ++ input_path)
+
+let variants = vcf(input_path)
+let total = variants |> count()
+println("Total variant records: " ++ str(total))
+
+# ── Basic counts by variant type ────────────────────────────────
+
+let snps     = variants |> filter(|v| len(v.ref) == 1 && len(v.alt) == 1)
+let indels   = variants |> filter(|v| len(v.ref) != len(v.alt))
+let insertions = indels |> filter(|v| len(v.alt) > len(v.ref))
+let deletions  = indels |> filter(|v| len(v.alt) < len(v.ref))
+
+println("\nVariant breakdown:")
+println("  SNPs:       " ++ str(snps |> count()))
+println("  Insertions: " ++ str(insertions |> count()))
+println("  Deletions:  " ++ str(deletions |> count()))
+
+# ── Quality filtering ───────────────────────────────────────────
+# Keep PASS variants with QUAL >= 30
+
+let high_qual = variants
+    |> filter(|v| v.filter == "PASS" || v.filter == ".")
+    |> filter(|v| v.qual >= 30.0)
+
+println("\nHigh-quality (QUAL >= 30, PASS): " ++ str(high_qual |> count())
+    ++ " / " ++ str(total))
+
+# ── Annotate with computed fields ───────────────────────────────
+# Add variant_type and allele_length_diff columns
+
+let annotated = high_qual |> map(|v| {
+    "chrom":      v.chrom,
+    "pos":        v.pos,
+    "ref":        v.ref,
+    "alt":        v.alt,
+    "qual":       v.qual,
+    "type":       if len(v.ref) == 1 && len(v.alt) == 1 then "SNP"
+                  else if len(v.alt) > len(v.ref) then "INS"
+                  else "DEL",
+    "size_delta": len(v.alt) - len(v.ref)
+})
+
+# ── Transition / Transversion ratio (SNPs only) ─────────────────
+
+let ti_bases = [["A","G"], ["G","A"], ["C","T"], ["T","C"]]
+let snp_ann = annotated |> filter(|v| v.type == "SNP")
+let transitions = snp_ann
+    |> filter(|v| ti_bases |> any(|pair| pair[0] == v.ref && pair[1] == v.alt))
+    |> count()
+let transversions = (snp_ann |> count()) - transitions
+let ti_tv = if transversions > 0 then transitions / transversions else 0.0
+println("Ti/Tv ratio: " ++ str(ti_tv))
+
+# ── Per-chromosome summary ──────────────────────────────────────
+
+println("\n--- Per-Chromosome Summary ---")
+
+let chrom_summary = annotated
+    |> table()
+    |> group_by("chrom")
+    |> summarize(
+        "count"    = count(),
+        "mean_qual" = mean(qual),
+        "snps"     = count(filter(|r| r.type == "SNP")),
+        "indels"   = count(filter(|r| r.type != "SNP"))
+    )
+    |> arrange("chrom")
+
+chrom_summary |> println()
+
+# ── Report table of top variants by quality ─────────────────────
+
+println("\n--- Top 10 Variants by Quality ---")
+
+let top_variants = annotated
+    |> table()
+    |> arrange(desc("qual"))
+    |> select("chrom", "pos", "ref", "alt", "type", "qual")
+    |> head(10)
+
+top_variants |> println()
+
+println("\nVariant analysis pipeline complete.")

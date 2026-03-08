@@ -1,0 +1,46 @@
+# KEGG API Examples
+# Kyoto Encyclopedia of Genes and Genomes — Japan
+
+# Search KEGG databases
+# kegg_find(database, query) -> list of {id, description}
+# Databases: genes, compound, pathway, disease, drug, etc.
+let pathways = kegg_find("pathway", "apoptosis")
+println("Apoptosis pathways:")
+for p in pathways {
+    println("  ", p.id, "-", p.description)
+}
+
+# Search for genes
+let genes = kegg_find("genes", "BRCA1 homo sapiens")
+println("\nBRCA1 genes:")
+for g in genes {
+    println("  ", g.id, "-", g.description)
+}
+
+# Get detailed entry
+# kegg_get(entry_id) -> text
+let entry = kegg_get("hsa:672")
+println("\nBRCA1 KEGG entry (first 200 chars):")
+println(substr(entry, 0, 200))
+
+# Find compounds
+let compounds = kegg_find("compound", "glucose")
+println("\nGlucose compounds:")
+for c in head(compounds, 5) {
+    println("  ", c.id, "-", c.description)
+}
+
+# Cross-reference links between databases
+# kegg_link(target_db, source_entry) -> list of {source, target}
+let links = kegg_link("pathway", "hsa:7157")
+println("\nTP53 pathways:")
+for l in links {
+    println("  ", l.source, "->", l.target)
+}
+
+# Find drugs for a disease
+let drugs = kegg_find("drug", "cancer")
+println("\nCancer-related drugs (first 5):")
+for d in head(drugs, 5) {
+    println("  ", d.id, "-", d.description)
+}

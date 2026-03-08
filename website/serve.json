@@ -1,0 +1,37 @@
+{
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "symlinks": true,
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/docs", "destination": "/docs/index.html" },
+    { "source": "/docs/", "destination": "/docs/index.html" },
+    { "source": "/docs/getting-started", "destination": "/docs/getting-started/index.html" },
+    { "source": "/docs/getting-started/", "destination": "/docs/getting-started/index.html" },
+    { "source": "/docs/language", "destination": "/docs/language/index.html" },
+    { "source": "/docs/language/", "destination": "/docs/language/index.html" },
+    { "source": "/docs/builtins", "destination": "/docs/builtins/index.html" },
+    { "source": "/docs/builtins/", "destination": "/docs/builtins/index.html" },
+    { "source": "/docs/bio", "destination": "/docs/bio/index.html" },
+    { "source": "/docs/bio/", "destination": "/docs/bio/index.html" },
+    { "source": "/docs/apis", "destination": "/docs/apis/index.html" },
+    { "source": "/docs/apis/", "destination": "/docs/apis/index.html" },
+    { "source": "/docs/tools", "destination": "/docs/tools/index.html" },
+    { "source": "/docs/tools/", "destination": "/docs/tools/index.html" },
+    { "source": "/docs/tutorials", "destination": "/docs/tutorials/index.html" },
+    { "source": "/docs/tutorials/", "destination": "/docs/tutorials/index.html" },
+    { "source": "/docs/examples", "destination": "/docs/examples/index.html" },
+    { "source": "/docs/examples/", "destination": "/docs/examples/index.html" },
+    { "source": "/docs/cookbook", "destination": "/docs/cookbook/index.html" },
+    { "source": "/docs/cookbook/", "destination": "/docs/cookbook/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "**/*.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" }
+      ]
+    }
+  ]
+}

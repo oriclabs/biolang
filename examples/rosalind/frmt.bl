@@ -1,0 +1,31 @@
+# Rosalind: FRMT — Data Formats
+# https://rosalind.info/problems/frmt/
+#
+# Given: A collection of n (n <= 10) GenBank entry IDs.
+# Return: The shortest of the strings in FASTA format.
+
+let ids = ["FJ817486", "JX069768", "JX469983"]
+
+try {
+    # Fetch each sequence as FASTA string, extract sequence length
+    let results = ids |> map(|id| {
+        let fasta_str = ncbi_sequence(id)
+        # Parse: first line is header (>...), rest is sequence
+        let lines = split(fasta_str, "\n")
+        let header = lines[0]
+        let seq = lines |> tail() |> join("")
+        {id: id, header: header, seq_len: len(seq)}
+    })
+
+    # Find shortest
+    let shortest = results |> reduce(|a, b| {
+        if a.seq_len <= b.seq_len then a else b
+    })
+
+    println("Shortest: " + shortest.id + " (" + str(shortest.seq_len) + " bp)")
+    println("Header:   " + shortest.header)
+    println("Expected: JX469983.1 is the shortest")
+} catch e {
+    println("NCBI fetch failed: " + str(e))
+    println("Expected: JX469983.1 is the shortest sequence")
+}

@@ -1,0 +1,18 @@
+let trio = table([
+    {chrom: "chrX", pos: 153296777, ref: "C",  alt: "T",  gene: "MECP2",  consequence: "nonsense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 892.0, allele_freq: 0.0},
+    {chrom: "chr2", pos: 166845670, ref: "G",  alt: "A",  gene: "SCN1A",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 743.0, allele_freq: 0.00002},
+    {chrom: "chr7", pos: 114086327, ref: "C",  alt: "T",  gene: "FOXP2",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 512.0, allele_freq: 0.003},
+    {chrom: "chr21",pos: 37766822,  ref: "G",  alt: "A",  gene: "DYRK1A", consequence: "frameshift", gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 678.0, allele_freq: 0.0},
+    {chrom: "chr9", pos: 140101204, ref: "T",  alt: "C",  gene: "EHMT1",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 415.0, allele_freq: 0.0001},
+    {chrom: "chr12",pos: 49420834,  ref: "A",  alt: "G",  gene: "KMT2D",  consequence: "synonymous", gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 310.0, allele_freq: 0.08},
+    {chrom: "chr5", pos: 177558478, ref: "G",  alt: "T",  gene: "NSD1",   consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 289.0, allele_freq: 0.02},
+    {chrom: "chr16",pos: 89805520,  ref: "C",  alt: "A",  gene: "ANKRD11", consequence: "missense",  gt_child: "1/1", gt_mother: "0/1", gt_father: "0/1", quality: 624.0, allele_freq: 0.0003},
+    {chrom: "chr17",pos: 29527482,  ref: "GA", alt: "G",  gene: "NF1",    consequence: "frameshift", gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 567.0, allele_freq: 0.0},
+    {chrom: "chr17",pos: 29556789,  ref: "T",  alt: "C",  gene: "NF1",    consequence: "missense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/1", quality: 498.0, allele_freq: 0.00005},
+    {chrom: "chr1", pos: 155205634, ref: "G",  alt: "A",  gene: "ASH1L",  consequence: "intronic",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 145.0, allele_freq: 0.04},
+    {chrom: "chr2", pos: 166930050, ref: "T",  alt: "G",  gene: "SCN1A",  consequence: "intronic",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/1", quality: 201.0, allele_freq: 0.12},
+    {chrom: "chr11",pos: 66082000,  ref: "A",  alt: "C",  gene: "ALG9",   consequence: "synonymous", gt_child: "0/1", gt_mother: "0/0", gt_father: "0/1", quality: 380.0, allele_freq: 0.05},
+    {chrom: "chr15",pos: 75012899,  ref: "C",  alt: "T",  gene: "UBE3A",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 355.0, allele_freq: 0.001},
+    {chrom: "chrX", pos: 153297200, ref: "G",  alt: "C",  gene: "MECP2",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 410.0, allele_freq: 0.0}
+])
+println("rows:", trio |> count())

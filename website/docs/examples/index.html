@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examples — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/index"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Gallery</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Example Gallery</h1>
+        <p>Explore practical BioLang examples organized by domain. Each category contains
+        complete, runnable code that you can copy into your projects or use as learning
+        material. From quick one-liners to full analysis workflows, these examples
+        demonstrate idiomatic BioLang patterns.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 not-prose">
+
+          <a href="oneliners.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#9889;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">One-Liners</h3>
+            <p class="text-sm text-slate-400">20+ concise snippets for everyday tasks: GC content, reverse complement, k-mer counting, FASTQ filtering, and more.</p>
+          </a>
+
+          <a href="data-wrangling.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#128202;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Data Wrangling</h3>
+            <p class="text-sm text-slate-400">CSV/TSV/JSON loading, table transforms, reshaping, merging files, and data cleaning pipelines.</p>
+          </a>
+
+          <a href="genomics.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#129516;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Genomics</h3>
+            <p class="text-sm text-slate-400">Genome-scale analysis: alignment statistics, variant density plots, coverage windows, and annotation overlap.</p>
+          </a>
+
+          <a href="proteomics.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#129516;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Proteomics</h3>
+            <p class="text-sm text-slate-400">Protein analysis: mass spec data processing, molecular weight calculation, domain searching, and peptide identification.</p>
+          </a>
+
+          <a href="popgen.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#127757;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Population Genetics</h3>
+            <p class="text-sm text-slate-400">Allele frequency computation, Hardy-Weinberg testing, Fst estimation, PCA on genotype matrices.</p>
+          </a>
+
+          <a href="clinical.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#127973;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Clinical Variants</h3>
+            <p class="text-sm text-slate-400">ClinVar queries, pathogenicity filtering, ACMG classification, and clinical report generation.</p>
+          </a>
+
+          <a href="metagenomics.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#129440;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Metagenomics</h3>
+            <p class="text-sm text-slate-400">Taxonomic classification, alpha/beta diversity, abundance tables, and community profiling.</p>
+          </a>
+
+          <a href="singlecell.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#128300;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Single-Cell</h3>
+            <p class="text-sm text-slate-400">Count matrix processing, normalization, clustering, marker gene detection, and UMAP visualization.</p>
+          </a>
+
+          <a href="structural.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#129516;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Structural Biology</h3>
+            <p class="text-sm text-slate-400">PDB file parsing, contact map generation, Ramachandran analysis, B-factor visualization.</p>
+          </a>
+
+          <a href="rosalind-armory.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#127942;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Rosalind Armory</h3>
+            <p class="text-sm text-slate-400">All 15 Bioinformatics Armory problems from Rosalind: GenBank queries, FASTQ quality, ORF finding, alignment, and more.</p>
+          </a>
+
+          <a href="edge-cases.html" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#9888;&#65039;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Edge Cases &amp; Gotchas</h3>
+            <p class="text-sm text-slate-400">Empty sequences, nil handling, large file streaming, encoding issues, and common pitfalls.</p>
+          </a>
+
+        </div>
+
+        <h2 class="mt-12 mb-6">Research Workflows</h2>
+        <p class="mb-6">End-to-end research scenarios that mirror real-world bioinformatics studies.
+        Each workflow combines data processing, statistical analysis, database queries, and
+        publication-quality visualizations into a single self-contained script.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 not-prose">
+
+          <a href="research.html#cancer-genomics" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#129516;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Cancer Genomics</h3>
+            <p class="text-sm text-slate-400">Somatic mutation analysis, COSMIC/ClinVar annotation, drug target lookup, oncoprint, and tumor board report.</p>
+          </a>
+
+          <a href="research.html#rnaseq-de" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#128202;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">RNA-seq DE Analysis</h3>
+            <p class="text-sm text-slate-400">Differential expression with normalization, ORA/GSEA enrichment, volcano plot, clustered heatmap.</p>
+          </a>
+
+          <a href="research.html#gwas" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#127757;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">GWAS Analysis</h3>
+            <p class="text-sm text-slate-400">Type 2 Diabetes GWAS: Manhattan/QQ plots, LD clumping, forest plot, functional enrichment.</p>
+          </a>
+
+          <a href="research.html#metagenomics" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#129440;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Gut Microbiome</h3>
+            <p class="text-sm text-slate-400">16S analysis: Shannon/Simpson diversity, Bray-Curtis, differential abundance, IBD vs healthy.</p>
+          </a>
+
+          <a href="research.html#pharmacogenomics" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#128138;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Pharmacogenomics</h3>
+            <p class="text-sm text-slate-400">Warfarin dosing from CYP2C9/VKORC1 genotypes, metabolizer phenotypes, drug interactions.</p>
+          </a>
+
+          <a href="research.html#single-cell" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#128300;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Single-Cell RNA-seq</h3>
+            <p class="text-sm text-slate-400">Tumor microenvironment: UMAP, Leiden clustering, marker genes, cell type annotation.</p>
+          </a>
+
+          <a href="research.html#crispr" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#9986;&#65039;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">CRISPR Screen</h3>
+            <p class="text-sm text-slate-400">KO screen for drug resistance in melanoma: sgRNA fold changes, hit calling, rank plots.</p>
+          </a>
+
+          <a href="research.html#epigenomics" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#128268;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Epigenomics / ChIP-seq</h3>
+            <p class="text-sm text-slate-400">H3K27ac super-enhancers in leukemia: interval operations, motif scanning, genome tracks.</p>
+          </a>
+
+          <a href="research.html#phylogenomics" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#127795;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Phylogenomics</h3>
+            <p class="text-sm text-slate-400">SARS-CoV-2 spike evolution: NJ trees, MinHash sketching, sequence logos, dN/dS.</p>
+          </a>
+
+          <a href="research.html#clinical-wes" class="block p-6 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <div class="text-2xl mb-3">&#127973;</div>
+            <h3 class="text-lg font-semibold text-slate-100 mb-2">Clinical WES</h3>
+            <p class="text-sm text-slate-400">Rare disease trio WES: inheritance filtering, ACMG classification, clinical diagnostic report.</p>
+          </a>
+
+        </div>
+
+        <h2>How to Use These Examples</h2>
+        <p>Every code block on these pages is a complete, runnable snippet. Copy any example
+        and run it directly with <code>bl run</code>:</p>
+        <pre><code class="language-bash"># Save an example to a file
+bl run my_example.bl
+
+# Or pipe directly
+echo 'dna"ATCG" |> reverse_complement |> print' | bl run -</code></pre>
+
+        <p>Examples that require input files will note the expected format. Most use
+        built-in sample data or generate synthetic data for demonstration purposes.</p>
+
+        <h2>Contributing Examples</h2>
+        <p>Have a useful BioLang snippet? Examples are maintained in the
+        <code>examples/</code> directory of the BioLang repository. Submit a pull request
+        with your example and it will be reviewed for inclusion in this gallery.</p>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <span></span>
+        <a href="oneliners.html" class="text-violet-400 hover:text-violet-300">One-Liners &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

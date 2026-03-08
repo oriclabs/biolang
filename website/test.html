@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component Test</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <style>
+    #debug { position: fixed; bottom: 0; left: 0; right: 0; background: #111; color: lime; font-family: monospace; font-size: 12px; padding: 8px; z-index: 9999; max-height: 200px; overflow-y: auto; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="." data-active="getting-started/install"></div>
+    <main class="flex-1 min-w-0 px-6 py-10">
+      <h1 class="text-2xl text-white font-bold mb-4">Component Loading Test</h1>
+      <p>If you can see the header (top bar) and sidebar (left nav), components are working.</p>
+      <p class="mt-4">Check the debug log at the bottom of the page.</p>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="."></div>
+
+  <div id="debug"></div>
+  <script>
+    var log = document.getElementById('debug');
+    function dbg(msg) { log.innerHTML += msg + '<br>'; console.log(msg); }
+
+    dbg('1. Script loaded');
+    dbg('2. readyState: ' + document.readyState);
+
+    var slots = document.querySelectorAll('[data-component]');
+    dbg('3. Found ' + slots.length + ' component slots');
+
+    slots.forEach(function(slot, i) {
+      var name = slot.dataset.component;
+      var base = slot.dataset.basePath || '.';
+      var url = base + '/components/' + name + '.html';
+      dbg('4.' + i + ' Fetching: ' + url);
+
+      fetch(url).then(function(resp) {
+        dbg('5.' + i + ' ' + name + ': ' + resp.status + ' ' + resp.statusText);
+        if (!resp.ok) return;
+        return resp.text();
+      }).then(function(html) {
+        if (!html) return;
+        html = html.replace(/\{BASE\}/g, base);
+        slot.innerHTML = html;
+        dbg('6.' + i + ' ' + name + ': injected (' + html.length + ' chars)');
+      }).catch(function(err) {
+        dbg('ERROR ' + i + ' ' + name + ': ' + err);
+      });
+    });
+
+    dbg('7. body.classList: ' + document.body.className);
+    setTimeout(function() {
+      document.body.classList.add('components-loaded');
+      dbg('8. Added components-loaded');
+      dbg('9. header innerHTML length: ' + (slots[0] ? slots[0].innerHTML.length : 'N/A'));
+      dbg('10. nav innerHTML length: ' + (slots[1] ? slots[1].innerHTML.length : 'N/A'));
+    }, 2000);
+  </script>
+</body>
+</html>

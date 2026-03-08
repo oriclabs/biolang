@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugins — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/plugins"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Plugins</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Plugin System</h1>
+        <p>
+          BioLang's plugin system lets you extend the language with custom functions written
+          in Python, Deno (TypeScript/JavaScript), R, or as native executables. Plugins
+          communicate with BioLang over a JSON subprocess protocol, making them language-agnostic
+          and sandboxed by default. A plugin can register one or more functions that become
+          available as BioLang builtins.
+        </p>
+
+        <h2>Plugin Structure</h2>
+        <p>
+          A plugin is a directory in <code>~/.biolang/plugins/&lt;name&gt;/</code> containing
+          a manifest file and the plugin source code:
+        </p>
+        <pre><code class="language-text">~/.biolang/plugins/my-stats/
+  plugin.json          # Plugin manifest
+  main.py              # Plugin implementation (Python)
+
+# Or for a Deno/TypeScript plugin:
+~/.biolang/plugins/my-viz/
+  plugin.json
+  main.ts
+
+# Or for an R plugin:
+~/.biolang/plugins/deseq2-wrapper/
+  plugin.json
+  main.R</code></pre>
+
+        <h2>plugin.json Manifest</h2>
+        <p>
+          The manifest declares the plugin's metadata, runtime, and exported functions:
+        </p>
+        <pre><code class="language-json">{
+  "plugin": {
+    "name": "my-stats",
+    "version": "0.1.0",
+    "description": "Custom statistical functions for BioLang",
+    "author": "Your Name",
+    "license": "MIT"
+  },
+  "runtime": {
+    "kind": "python",
+    "command": "python3",
+    "entry": "main.py",
+    "dependencies": ["scipy", "numpy"]
+  },
+  "functions": [
+    {
+      "name": "welch_ttest",
+      "description": "Two-sample Welch's t-test",
+      "params": [
+        { "name": "group1", "type": "list", "description": "First group of values" },
+        { "name": "group2", "type": "list", "description": "Second group of values" },
+        { "name": "alpha", "type": "float", "default": 0.05, "description": "Significance level" }
+      ],
+      "returns": "map"
+    },
+    {
+      "name": "mann_whitney",
+      "description": "Mann-Whitney U test",
+      "params": [
+        { "name": "group1", "type": "list" },
+        { "name": "group2", "type": "list" }
+      ],
+      "returns": "map"
+    }
+  ]
+}</code></pre>
+
+        <h2>Writing a Python Plugin</h2>
+        <p>
+          Python plugins read JSON requests from stdin and write JSON responses to stdout.
+          BioLang provides a helper module, or you can implement the protocol directly:
+        </p>
+        <pre><code class="language-python"># main.py — Python plugin implementation
+import sys
+import json
+from scipy import stats
+
+def handle_request(request):
+    """Dispatch to the correct function."""
+    fn = request["function"]
+    params = request["params"]
+
+    if fn == "welch_ttest":
+        return welch_ttest(params)
+    elif fn == "mann_whitney":
+        return mann_whitney(params)
+    else:
+        return {"error": f"Unknown function: {fn}"}
+
+def welch_ttest(params):
+    """Perform Welch's t-test."""
+    group1 = params["group1"]
+    group2 = params["group2"]
+    alpha = params.get("alpha", 0.05)
+
+    stat, pvalue = stats.ttest_ind(group1, group2, equal_var=False)
+
+    return {
+        "statistic": float(stat),
+        "pvalue": float(pvalue),
+        "significant": pvalue < alpha,
+        "alpha": alpha
+    }
+
+def mann_whitney(params):
+    """Perform Mann-Whitney U test."""
+    group1 = params["group1"]
+    group2 = params["group2"]
+
+    stat, pvalue = stats.mannwhitneyu(group1, group2, alternative='two-sided')
+
+    return {
+        "statistic": float(stat),
+        "pvalue": float(pvalue)
+    }
+
+# Main loop: read requests, write responses
+for line in sys.stdin:
+    request = json.loads(line.strip())
+    result = handle_request(request)
+    print(json.dumps(result), flush=True)</code></pre>
+
+        <h3>Using the Python Plugin in BioLang</h3>
+        <pre><code class="language-biolang"># The plugin functions are available as builtins
+let result = welch_ttest([1.2, 3.4, 5.6], [2.1, 4.3, 6.5])
+print(result.statistic)
+print(result.pvalue)
+print(result.significant)
+
+# In a pipeline
+expr_data
+  |> group_by(.gene)
+  |> summarize(
+    let ttest = welch_ttest(.tumor_expr, .normal_expr),
+  )
+  |> filter(|r| r.ttest.significant)
+  |> print()</code></pre>
+
+        <h2>Writing a Deno/TypeScript Plugin</h2>
+        <pre><code class="language-json">{
+  "plugin": { "name": "my-viz", "version": "0.1.0", "description": "Visualization helpers" },
+  "runtime": { "kind": "deno", "entry": "main.ts" }
+}</code></pre>
+        <pre><code class="language-typescript">// main.ts — Deno plugin implementation
+import { readLines } from "https://deno.land/std/io/mod.ts";
+
+interface Request {
+  function: string;
+  params: Record&lt;string, any&gt;;
+}
+
+function handleRequest(request: Request): Record&lt;string, any&gt; {
+  switch (request.function) {
+    case "svg_heatmap":
+      return svgHeatmap(request.params);
+    default:
+      return { error: `Unknown function: ${request.function}` };
+  }
+}
+
+function svgHeatmap(params: Record&lt;string, any&gt;): Record&lt;string, any&gt; {
+  const { matrix, labels, width = 800, height = 600 } = params;
+  // Generate SVG...
+  const svg = `&lt;svg width="${width}" height="${height}"&gt;...&lt;/svg&gt;`;
+  return { svg, width, height };
+}
+
+// Main loop
+for await (const line of readLines(Deno.stdin)) {
+  const request: Request = JSON.parse(line);
+  const result = handleRequest(request);
+  console.log(JSON.stringify(result));
+}</code></pre>
+
+        <h2>Writing an R Plugin</h2>
+        <pre><code class="language-json">{
+  "plugin": { "name": "deseq2-wrapper", "version": "0.1.0", "description": "DESeq2 differential expression from BioLang" },
+  "runtime": { "kind": "r", "command": "Rscript", "entry": "main.R", "dependencies": ["DESeq2", "jsonlite"] },
+  "functions": [
+    {
+      "name": "deseq2_de",
+      "description": "Run DESeq2 differential expression analysis",
+      "params": [
+        { "name": "counts", "type": "table", "description": "Count matrix" },
+        { "name": "conditions", "type": "list", "description": "Sample conditions" }
+      ],
+      "returns": "table"
+    }
+  ]
+}</code></pre>
+        <pre><code class="language-r"># main.R
+library(jsonlite)
+library(DESeq2)
+
+handle_request &lt;- function(request) {
+  fn &lt;- request$function
+  params &lt;- request$params
+
+  if (fn == "deseq2_de") {
+    return(run_deseq2(params))
+  }
+  return(list(error = paste("Unknown function:", fn)))
+}
+
+run_deseq2 &lt;- function(params) {
+  counts &lt;- as.matrix(as.data.frame(params$counts))
+  conditions &lt;- factor(params$conditions)
+
+  col_data &lt;- data.frame(condition = conditions)
+  dds &lt;- DESeqDataSetFromMatrix(countData = counts,
+                                 colData = col_data,
+                                 design = ~ condition)
+  dds &lt;- DESeq(dds)
+  res &lt;- results(dds)
+
+  data.frame(
+    gene = rownames(res),
+    log2fc = res$log2FoldChange,
+    pvalue = res$pvalue,
+    padj = res$padj,
+    baseMean = res$baseMean
+  )
+}
+
+# Main loop
+con &lt;- file("stdin", "r")
+while (TRUE) {
+  line &lt;- readLines(con, n = 1)
+  if (length(line) == 0) break
+  request &lt;- fromJSON(line)
+  result &lt;- handle_request(request)
+  cat(toJSON(result, auto_unbox = TRUE), "\n")
+}</code></pre>
+
+        <h2>Loading and Managing Plugins</h2>
+        <pre><code class="language-bash"># Install a plugin from the registry
+bl add my-stats
+
+# Install from a local directory
+bl add path:./my-plugin
+
+# Install from git
+bl add git:https://github.com/user/bl-stats-plugin.git
+
+# List installed plugins
+bl plugins
+# Name             Version  Kind    Functions
+# my-stats         0.1.0    python  welch_ttest, mann_whitney
+# deseq2-wrapper   0.1.0    r       deseq2_de
+
+# Show plugin details
+bl plugins info my-stats
+
+# Remove a plugin
+bl remove my-stats
+
+# Update all plugins
+bl plugins update</code></pre>
+
+        <h2>JSON Protocol</h2>
+        <p>
+          The subprocess protocol is simple JSON-lines. BioLang sends one JSON object per
+          line to the plugin's stdin and reads one JSON object per line from stdout:
+        </p>
+        <pre><code class="language-text">// Request (BioLang → Plugin)
+{"function": "welch_ttest", "params": {"group1": [1.2, 3.4], "group2": [2.1, 4.3]}}
+
+// Success response (Plugin → BioLang)
+{"statistic": -0.577, "pvalue": 0.624, "significant": false}
+
+// Error response (Plugin → BioLang)
+{"error": "group1 must not be empty"}</code></pre>
+
+        <h2>Plugin Discovery</h2>
+        <p>
+          Plugins are discovered from these locations, in order:
+        </p>
+        <ol>
+          <li>Project-local: <code>./plugins/</code> directory</li>
+          <li>User-global: <code>~/.biolang/plugins/</code> directory</li>
+          <li>Path entries from <code>BIOLANG_PATH</code> environment variable</li>
+        </ol>
+        <p>
+          Project-local plugins take precedence over global ones with the same name.
+        </p>
+
+        <h2>Native Plugins</h2>
+        <p>
+          For maximum performance, plugins can be compiled native executables that implement
+          the same JSON-lines protocol:
+        </p>
+        <pre><code class="language-json">{
+  "plugin": { "name": "fast-kmers", "version": "0.1.0" },
+  "runtime": { "kind": "native", "command": "./fast-kmers" },
+  "functions": [
+    {
+      "name": "super_kmer_count",
+      "description": "Optimized k-mer counting using minimal perfect hashing",
+      "params": [
+        { "name": "sequence", "type": "dna" },
+        { "name": "k", "type": "int" }
+      ],
+      "returns": "map"
+    }
+  ]
+}</code></pre>
+        <p>
+          Native plugins are ideal for computationally intensive operations where the
+          subprocess overhead is negligible compared to the computation time.
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="compiler.html" class="text-violet-400 hover:text-violet-300">&larr; Compiler</a>
+        <div></div>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

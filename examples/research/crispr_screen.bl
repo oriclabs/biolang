@@ -1,0 +1,192 @@
+# CRISPR Knockout Screen for Drug Resistance Genes in Melanoma
+# ============================================================
+# Vemurafenib (BRAF inhibitor) resistance screen in A375 cells.
+# Pooled library transduction -> 14-day drug selection -> sequencing.
+
+# ── 1. sgRNA Library Definition ──
+println("=== sgRNA Library Definition ===")
+
+let sgrna_library = table(
+  sgRNA:          ["BRAF_g1",  "BRAF_g2",  "NRAS_g1",  "MAP2K1_g1", "MAP2K1_g2",
+                   "PTEN_g1",  "PTEN_g2",  "RB1_g1",   "TP53_g1",   "TP53_g2",
+                   "CDKN2A_g1","NF1_g1",   "NF1_g2",   "APC_g1",    "STK11_g1",
+                   "NT_ctrl1", "NT_ctrl2", "NT_ctrl3"],
+  gene:           ["BRAF",     "BRAF",     "NRAS",     "MAP2K1",    "MAP2K1",
+                   "PTEN",     "PTEN",     "RB1",      "TP53",      "TP53",
+                   "CDKN2A",   "NF1",      "NF1",      "APC",       "STK11",
+                   "NT_ctrl",  "NT_ctrl",  "NT_ctrl"]
+)
+
+println("Library size: " + len(sgrna_library) + " guides targeting " +
+        len(unique(sgrna_library.gene)) + " gene groups")
+
+# ── 2. Simulated Read Counts ──
+println("=== Simulated Read Counts ===")
+# Plasmid (T0) ~uniform, treated (T1) shows selection, untreated (T1) shows fitness
+
+let counts = table(
+  sgRNA:           sgrna_library.sgRNA,
+  gene:            sgrna_library.gene,
+  plasmid_count:   [5200, 4800, 4950, 5100, 5300, 4700, 5050, 4900, 5150, 4850,
+                    5000, 4750, 5100, 4600, 4950, 5000, 5100, 4900],
+  treated_count:   [320,  280,  48200, 1200, 1350, 52000, 47500, 890, 41000, 38500,
+                    150,  62000, 58000, 4200, 3800, 4800, 5200, 4950],
+  untreated_count: [4100, 3900, 5200,  4800, 5000, 4500, 4700, 3200, 5300, 5100,
+                    3000, 4600, 4900, 4400, 4200, 5100, 4800, 5000]
+)
+
+# ── 3. Quality Control ──
+println("=== Quality Control ===")
+
+let total_plasmid  = sum(counts.plasmid_count)
+let total_treated  = sum(counts.treated_count)
+let total_untreated = sum(counts.untreated_count)
+
+println("Total reads — Plasmid: " + total_plasmid +
+        "  Treated: " + total_treated +
+        "  Untreated: " + total_untreated)
+
+let zero_treated  = counts |> filter(|r| r.treated_count == 0) |> len()
+let zero_untreated = counts |> filter(|r| r.untreated_count == 0) |> len()
+println("Zero-count guides — Treated: " + zero_treated + "  Untreated: " + zero_untreated)
+
+let cv_plasmid = stdev(counts.plasmid_count) / mean(counts.plasmid_count)
+println("Plasmid library CV: " + cv_plasmid)
+
+# ── 4. Normalize to Reads Per Million ──
+println("=== Normalize to RPM ===")
+
+let norm = counts
+  |> mutate("plasmid_rpm", |r| r.plasmid_count / total_plasmid * 1e6)
+  |> mutate("treated_rpm", |r| r.treated_count / total_treated * 1e6)
+  |> mutate("untreated_rpm", |r| r.untreated_count / total_untreated * 1e6)
+
+# ── 5. Log2 Fold Changes ──
+println("=== Log2 Fold Changes ===")
+
+let lfc = norm
+  |> mutate("lfc_treat_vs_plasmid", |r| log2((r.treated_rpm + 0.5) / (r.plasmid_rpm + 0.5)))
+  |> mutate("lfc_untreat_vs_plasmid", |r| log2((r.untreated_rpm + 0.5) / (r.plasmid_rpm + 0.5)))
+
+println("Guide-level LFC range (treated/plasmid): " +
+        min(lfc.lfc_treat_vs_plasmid) + " to " + max(lfc.lfc_treat_vs_plasmid))
+
+# ── 6. Gene-Level Aggregation ──
+println("=== Gene-Level Aggregation ===")
+
+let gene_names = lfc.gene |> unique()
+let gene_stats = table(gene_names |> map(|g| {
+  let guides = lfc |> filter(|r| r.gene == g)
+  {gene: g, n_guides: len(guides),
+   mean_lfc: mean(guides.lfc_treat_vs_plasmid),
+   median_lfc: median(guides.lfc_treat_vs_plasmid),
+   fitness_lfc: mean(guides.lfc_untreat_vs_plasmid)}
+}))
+let gene_stats = gene_stats |> sort(|a, b| b.median_lfc - a.median_lfc)
+
+println("Gene-level results (ranked by median LFC):")
+gene_stats |> select(["gene", "n_guides", "median_lfc", "fitness_lfc"]) |> println()
+
+# ── 7. Statistical Testing ──
+println("=== Statistical Testing ===")
+
+let ctrl_lfcs = lfc
+  |> filter(|r| r.gene == "NT_ctrl")
+  |> select("lfc_treat_vs_plasmid")
+
+let gene_pvals = gene_stats
+  |> filter(|r| r.gene != "NT_ctrl")
+  |> mutate("p_value", |r| {
+    let guide_lfcs = lfc
+      |> filter(|g| g.gene == r.gene)
+      |> select("lfc_treat_vs_plasmid")
+    ttest(guide_lfcs, ctrl_lfcs)
+  })
+
+let adj_pvals = p_adjust(gene_pvals.p_value, "bh")
+let gene_results = gene_pvals |> mutate("p_adj", |r, i| adj_pvals[i])
+
+# ── 8. Hit Identification ──
+println("=== Hit Identification ===")
+
+let resistance_hits = gene_results
+  |> filter(|r| r.median_lfc > 1.0 && r.p_adj < 0.05)
+  |> sort(|a, b| b.median_lfc - a.median_lfc)
+
+let sensitizer_hits = gene_results
+  |> filter(|r| r.median_lfc < -1.0 && r.p_adj < 0.05)
+  |> sort("median_lfc")
+
+println("Resistance genes (enriched under drug): ")
+resistance_hits |> select(["gene", "median_lfc", "p_adj"]) |> println()
+
+println("Sensitizer genes (depleted under drug): ")
+sensitizer_hits |> select(["gene", "median_lfc", "p_adj"]) |> println()
+
+# ── 9. Database Annotation of Top Hits ──
+println("=== Database Annotation of Top Hits ===")
+
+let braf_info    = ncbi_gene("BRAF")
+let pten_info    = ncbi_gene("PTEN")
+let mapk_pathway = kegg_find("pathway", "MAPK signaling")
+let braf_paths   = reactome_pathways("BRAF")
+let braf_network = string_network("BRAF", 9606)
+let braf_protein = uniprot_entry("P15056")
+
+println("BRAF summary: " + braf_info.summary)
+println("PTEN summary: " + pten_info.summary)
+println("MAPK pathway hits: " + len(mapk_pathway))
+println("BRAF interaction partners: " + len(braf_network.partners))
+
+# ── 10. Visualizations ──
+println("=== Visualizations ===")
+
+volcano({
+  data:  gene_results |> mutate("neg_log10p", |r| -log10(r.p_adj)),
+  x:     "median_lfc",
+  y:     "neg_log10p",
+  label: "gene",
+  title: "CRISPR Screen: Gene-Level Volcano Plot (Vemurafenib Resistance)"
+}) |> save_svg("volcano_crispr_screen.svg")
+
+let ranked = gene_results |> sort("median_lfc") |> mutate("rank", |r, i| i + 1)
+plot({
+  x:     ranked.rank,
+  y:     ranked.median_lfc,
+  label: ranked.gene,
+  kind:  "bar",
+  title: "Gene Rank Plot (Waterfall) — Vemurafenib Screen"
+}) |> save_svg("rank_plot_crispr.svg")
+
+let guide_matrix = lfc
+  |> filter(|r| r.gene != "NT_ctrl")
+  |> select(["sgRNA", "lfc_treat_vs_plasmid", "lfc_untreat_vs_plasmid"])
+
+heatmap({
+  data:   guide_matrix,
+  title:  "Guide-Level Log2 Fold Changes",
+  colors: "RdBu_r"
+}) |> save_svg("heatmap_guides.svg")
+
+# ── 11. Summary Report ──
+println("=== Summary Report ===")
+
+let report_text = [
+  "# CRISPR Screen Report: Vemurafenib Resistance in A375 Melanoma",
+  "",
+  "## Library: " + len(sgrna_library) + " sgRNAs, " + len(unique(sgrna_library.gene)) + " gene groups",
+  "## Plasmid CV: " + cv_plasmid,
+  "",
+  "## Resistance Hits (LFC > 1, padj < 0.05):",
+  resistance_hits |> select(["gene", "median_lfc", "p_adj"]) |> to_markdown(),
+  "",
+  "## Sensitizer Hits (LFC < -1, padj < 0.05):",
+  sensitizer_hits |> select(["gene", "median_lfc", "p_adj"]) |> to_markdown(),
+  "",
+  "## Top Annotation: BRAF — " + braf_info.description,
+  "## Reactome pathways involving BRAF: " + len(braf_paths)
+] |> join("\n")
+
+write_text("crispr_screen_report.md", report_text)
+println("Report saved to crispr_screen_report.md")
+println("\n=== Analysis complete ===")

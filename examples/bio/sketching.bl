@@ -1,0 +1,51 @@
+# MinHash Sketching
+# Fast approximate similarity between sequences/datasets
+
+# ── Create a MinHash sketch ──
+# sketch(sequence, k?, sketch_size?) -> sketch record
+let s1 = dna"ATCGATCGATCGATCGATCGATCG"
+let s2 = dna"ATCGATCGATCGTTTTGATCGATCG"
+let s3 = dna"GGGGCCCCAAAATTTTGGGGCCCC"
+
+let sk1 = sketch(s1)
+let sk2 = sketch(s2)
+let sk3 = sketch(s3)
+
+println("=== MinHash Sketches ===")
+println("Sketch 1:", sk1)
+println("Sketch 2:", sk2)
+println("Sketch 3:", sk3)
+
+# ── Compare sketches ──
+# sketch_dist(sketch_a, sketch_b) -> float (Jaccard distance, 0=identical, 1=disjoint)
+let dist_12 = sketch_dist(sk1, sk2)
+let dist_13 = sketch_dist(sk1, sk3)
+let dist_23 = sketch_dist(sk2, sk3)
+
+println("\n=== Sketch Distances ===")
+println("s1 vs s2 (similar):", dist_12)
+println("s1 vs s3 (different):", dist_13)
+println("s2 vs s3 (different):", dist_23)
+
+# ── Custom k-mer size and sketch size ──
+let sk_k5 = sketch(s1, 5)
+let sk_k11 = sketch(s1, 11)
+println("\n=== Different k values ===")
+println("k=5 sketch:", sk_k5)
+println("k=11 sketch:", sk_k11)
+
+# ── All-vs-all comparison ──
+let sequences = [
+    dna"ATCGATCGATCGATCGATCG",
+    dna"ATCGATCGATCGTTCGATCG",
+    dna"GGCCTTAAGGCCTTAAGGCC",
+    dna"ATATATATATATATATATATAT"
+]
+println("\n=== Pairwise Distances ===")
+let sketches = map(sequences, |s| sketch(s))
+for i in range(0, len(sketches)) {
+    for j in range(i + 1, len(sketches)) {
+        let d = sketch_dist(sketches[i], sketches[j])
+        println("  seq", i, "vs seq", j, ":", d)
+    }
+}

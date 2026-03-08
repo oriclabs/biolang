@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Chat — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/llm"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">LLM Chat</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">LLM Chat</h1>
+        <p class="text-lg text-slate-400 mb-8">5 functions for integrating large language models into BioLang scripts. Supports Anthropic, OpenAI, Ollama, and any OpenAI-compatible API. Auto-detects from environment variables.</p>
+
+        <section class="mb-12" id="chat">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">chat</span></h2>
+          <p class="text-slate-400 mt-2">Send a prompt to the configured LLM and return the text response.</p>
+          <pre><code class="language-biolang">chat(prompt, opts?) -> string</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Default</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">model</td><td class="py-2 px-3">string</td><td class="py-2 px-3">auto</td><td class="py-2 px-3">Model name override</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">system</td><td class="py-2 px-3">string</td><td class="py-2 px-3">nil</td><td class="py-2 px-3">System prompt</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">max_tokens</td><td class="py-2 px-3">int</td><td class="py-2 px-3">4096</td><td class="py-2 px-3">Maximum response tokens</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">temperature</td><td class="py-2 px-3">float</td><td class="py-2 px-3">0.7</td><td class="py-2 px-3">Sampling temperature</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">history</td><td class="py-2 px-3">list</td><td class="py-2 px-3">[]</td><td class="py-2 px-3">Conversation history</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">let answer = chat("What is the function of BRCA1?")
+println(answer)
+
+# With system prompt for domain expertise
+answer = chat("Explain this VCF line: chr17 43094464 . G A 500 PASS", {
+  system: "You are a clinical genomics expert. Be concise.",
+  temperature: 0.3
+})</code></pre>
+        </section>
+
+        <section class="mb-12" id="chat_code">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">chat_code</span></h2>
+          <p class="text-slate-400 mt-2">Ask the LLM to generate BioLang code. Returns only the code block, stripped of markdown fencing.</p>
+          <pre><code class="language-biolang">chat_code(description, opts?) -> string</code></pre>
+          <pre><code class="language-biolang">let code = chat_code("Read a FASTQ file, compute per-base quality stats, and make a boxplot")
+println(code)
+# lines = read_lines("sample.fastq")
+# qualities = ...
+# violin(qualities, {title: "Per-base Quality"})</code></pre>
+        </section>
+
+        <section class="mb-12" id="llm_models">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">llm_models</span></h2>
+          <p class="text-slate-400 mt-2">List available models from the configured provider.</p>
+          <pre><code class="language-biolang">llm_models() -> list</code></pre>
+          <pre><code class="language-biolang">let models = llm_models()
+for m in models {
+  println(m)
+}
+# claude-sonnet-4-20250514
+# claude-opus-4-20250514
+# (or gpt-4o, llama3, etc. depending on provider)</code></pre>
+        </section>
+
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="containers.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> Containers</a>
+        <a href="transfer.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">Transfer <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

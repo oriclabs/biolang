@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>From Python/R — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="getting-started/from-python-r"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a>
+        <span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Getting Started</a>
+        <span class="mx-2">/</span>
+        <span class="text-slate-300">From Python/R</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>From Python/R</h1>
+        <p>
+          If you are coming from Python (BioPython, pandas) or R (Bioconductor, tidyverse), this
+          guide maps familiar patterns to their BioLang equivalents. BioLang is not a replacement
+          for Python or R, but for bioinformatics-specific pipelines it offers a more concise syntax,
+          built-in sequence types, and native performance without a runtime dependency.
+        </p>
+
+        <h2>Key Differences at a Glance</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Python</th>
+              <th>R</th>
+              <th>BioLang</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Type system</td>
+              <td>Dynamic, duck typing</td>
+              <td>Dynamic, vector-first</td>
+              <td>Static inference, gradual typing</td>
+            </tr>
+            <tr>
+              <td>Pipe operator</td>
+              <td>None (method chains)</td>
+              <td><code>|&gt;</code> (R 4.1+) / <code>%&gt;%</code></td>
+              <td><code>|&gt;</code> (first-class)</td>
+            </tr>
+            <tr>
+              <td>Sequence types</td>
+              <td><code>Seq</code> object (BioPython)</td>
+              <td><code>DNAStringSet</code></td>
+              <td><code>dna"..."</code> literal</td>
+            </tr>
+            <tr>
+              <td>Package manager</td>
+              <td>pip / conda</td>
+              <td>install.packages / BiocManager</td>
+              <td>Built-in stdlib, no package manager needed</td>
+            </tr>
+            <tr>
+              <td>Concurrency</td>
+              <td>GIL, multiprocessing</td>
+              <td>Single-threaded (parallel pkg)</td>
+              <td>Native async, parallel iterators</td>
+            </tr>
+            <tr>
+              <td>Performance</td>
+              <td>Interpreted (NumPy for speed)</td>
+              <td>Interpreted (Rcpp for speed)</td>
+              <td>Compiled, native speed</td>
+            </tr>
+            <tr>
+              <td>Null handling</td>
+              <td><code>None</code></td>
+              <td><code>NA</code> / <code>NULL</code></td>
+              <td><code>None</code> with <code>??</code> operator</td>
+            </tr>
+            <tr>
+              <td>Error handling</td>
+              <td>try/except</td>
+              <td>tryCatch</td>
+              <td><code>try/catch</code> + <code>Result</code> type</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Reading a FASTQ File</h2>
+        <h3>Python (BioPython)</h3>
+        <pre><code class="language-python">from Bio import SeqIO
+
+records = list(SeqIO.parse("reads.fastq", "fastq"))
+for record in records[:5]:
+    quals = record.letter_annotations["phred_quality"]
+    mean_q = sum(quals) / len(quals)
+    print(f"{record.id}: mean Q={mean_q:.1f}, len={len(record.seq)}")</code></pre>
+
+        <h3>R (ShortRead)</h3>
+        <pre><code class="language-r">library(ShortRead)
+
+reads &lt;- readFastq("reads.fastq")
+quals &lt;- quality(reads)
+avg_qual &lt;- rowMeans(as(quals, "matrix"))
+data.frame(
+  id = as.character(id(reads))[1:5],
+  mean_q = round(avg_qual[1:5], 1),
+  len = width(reads)[1:5]
+)</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">read_fastq("reads.fastq")
+  |> take(5)
+  |> map(|r| {
+    let mean_q = mean_phred(r.quality)
+    print("{r.id}: mean Q={mean_q:.1}, len={r.length}")
+  })</code></pre>
+
+        <h2>GC Content Calculation</h2>
+        <h3>Python</h3>
+        <pre><code class="language-python">from Bio.SeqUtils import gc_fraction
+
+seq = "ATCGATCGATCGATCG"
+gc = gc_fraction(seq)
+print(f"GC content: {gc:.3f}")</code></pre>
+
+        <h3>R</h3>
+        <pre><code class="language-r">library(Biostrings)
+
+seq &lt;- DNAString("ATCGATCGATCGATCG")
+gc &lt;- letterFrequency(seq, letters = c("G", "C"), as.prob = TRUE)
+cat(sprintf("GC content: %.3f\n", sum(gc)))</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">dna"ATCGATCGATCGATCG" |> gc_content() |> print()
+# 0.500</code></pre>
+
+        <h2>Filtering and Transforming Data</h2>
+        <h3>Python (pandas)</h3>
+        <pre><code class="language-python">import pandas as pd
+
+df = pd.read_csv("samples.csv")
+result = (
+    df[df["reads"] >= 1_000_000]
+    .assign(million_reads=lambda x: x["reads"] / 1e6)
+    .sort_values("reads", ascending=False)
+    [["sample_id", "million_reads"]]
+)
+print(result.to_string(index=False))</code></pre>
+
+        <h3>R (dplyr)</h3>
+        <pre><code class="language-r">library(dplyr)
+
+read.csv("samples.csv") |>
+  filter(reads >= 1e6) |>
+  mutate(million_reads = reads / 1e6) |>
+  arrange(desc(reads)) |>
+  select(sample_id, million_reads) |>
+  print()</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">csv("samples.csv")
+  |> filter(|row| row["reads"] >= 1_000_000)
+  |> mutate(|row| { "million_reads": row["reads"] / 1_000_000.0 })
+  |> select(["sample_id", "million_reads"])
+  |> arrange("million_reads", descending: true)
+  |> print()</code></pre>
+
+        <h2>Reverse Complement</h2>
+        <h3>Python</h3>
+        <pre><code class="language-python">from Bio.Seq import Seq
+
+seq = Seq("ATCGATCG")
+print(seq.reverse_complement())  # CGATCGAT</code></pre>
+
+        <h3>R</h3>
+        <pre><code class="language-r">library(Biostrings)
+reverseComplement(DNAString("ATCGATCG"))
+# [1] "CGATCGAT"</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">dna"ATCGATCG" |> reverse_complement() |> print()
+# CGATCGAT</code></pre>
+
+        <h2>Statistical Summary</h2>
+        <h3>Python (NumPy)</h3>
+        <pre><code class="language-python">import numpy as np
+
+data = [38.5, 40.2, 35.1, 42.0, 37.8, 39.1, 41.3]
+print(f"Mean:   {np.mean(data):.2f}")
+print(f"Median: {np.median(data):.2f}")
+print(f"Std:    {np.std(data):.2f}")
+print(f"Min:    {np.min(data):.2f}")
+print(f"Max:    {np.max(data):.2f}")</code></pre>
+
+        <h3>R</h3>
+        <pre><code class="language-r">data &lt;- c(38.5, 40.2, 35.1, 42.0, 37.8, 39.1, 41.3)
+summary(data)</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">let data = [38.5, 40.2, 35.1, 42.0, 37.8, 39.1, 41.3]
+data |> describe() |> print()
+# { mean: 39.14, median: 39.10, std_dev: 2.27, min: 35.10, max: 42.00, count: 7 }</code></pre>
+
+        <h2>K-mer Counting</h2>
+        <h3>Python</h3>
+        <pre><code class="language-python">from collections import Counter
+
+seq = "ATCGATCGATCG"
+k = 3
+kmers = [seq[i:i+k] for i in range(len(seq) - k + 1)]
+counts = Counter(kmers)
+for kmer, count in counts.most_common(5):
+    print(f"{kmer}: {count}")</code></pre>
+
+        <h3>R</h3>
+        <pre><code class="language-r">library(Biostrings)
+
+seq &lt;- DNAString("ATCGATCGATCG")
+freqs &lt;- oligonucleotideFrequency(seq, width = 3)
+head(sort(freqs, decreasing = TRUE), 5)</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">let counts = kmer_count(dna"ATCGATCGATCG", 3)
+counts
+  |> sort(|a, b| b["count"] - a["count"])
+  |> take(5)
+  |> map(|kv| print("{kv['kmer']}: {kv['count']}"))</code></pre>
+
+        <h2>Writing Output Files</h2>
+        <h3>Python</h3>
+        <pre><code class="language-python">import json
+
+results = {"total_reads": 1500000, "pass_rate": 0.95, "mean_quality": 35.2}
+with open("results.json", "w") as f:
+    json.dump(results, f, indent=2)</code></pre>
+
+        <h3>R</h3>
+        <pre><code class="language-r">library(jsonlite)
+
+results &lt;- list(total_reads = 1500000, pass_rate = 0.95, mean_quality = 35.2)
+write_json(results, "results.json", pretty = TRUE)</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">let results = {
+  "total_reads": 1_500_000,
+  "pass_rate": 0.95,
+  "mean_quality": 35.2
+}
+write_text("results.json", results)</code></pre>
+
+        <h2>Pattern Matching</h2>
+        <p>
+          BioLang's <code>match</code> expression replaces chains of if/elif/else in Python or
+          switch/case patterns in R:
+        </p>
+        <h3>Python</h3>
+        <pre><code class="language-python">def classify_quality(q):
+    if q >= 35:
+        return "excellent"
+    elif q >= 25:
+        return "good"
+    elif q >= 20:
+        return "acceptable"
+    else:
+        return "poor"</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">fn classify_quality(q: Float) -> String {
+  if q >= 35.0 {
+    "excellent"
+  } else if q >= 25.0 {
+    "good"
+  } else if q >= 20.0 {
+    "acceptable"
+  } else {
+    "poor"
+  }
+}</code></pre>
+
+        <h2>Parallel Processing</h2>
+        <h3>Python</h3>
+        <pre><code class="language-python">from multiprocessing import Pool
+
+def process_file(path):
+    # ... analysis logic ...
+    return result
+
+with Pool(4) as pool:
+    results = pool.map(process_file, file_list)</code></pre>
+
+        <h3>R</h3>
+        <pre><code class="language-r">library(parallel)
+
+results &lt;- mclapply(file_list, process_file, mc.cores = 4)</code></pre>
+
+        <h3>BioLang</h3>
+        <pre><code class="language-biolang">let results = file_list
+  |> map(|path| {
+    read_fastq(path) |> map(|r| analyze(r))
+  })</code></pre>
+
+        <h2>Migration Tips</h2>
+        <ol>
+          <li>
+            <strong>Start with the REPL.</strong> Port small snippets one at a time. The REPL's
+            <code>:type</code> command helps when you are unsure what types BioLang infers.
+          </li>
+          <li>
+            <strong>Think in pipes.</strong> If you write Python method chains or R pipe chains,
+            BioLang pipes will feel natural. The key difference is that BioLang pipes pass the
+            value as the first argument, not via a <code>self</code>/<code>.</code> receiver.
+          </li>
+          <li>
+            <strong>Use sequence literals.</strong> Stop treating DNA as plain strings. The
+            <code>dna"..."</code> type catches errors at compile time and provides domain-specific
+            functions like <code>reverse_complement()</code> and <code>gc_content()</code>.
+          </li>
+          <li>
+            <strong>Leverage type inference.</strong> You rarely need type annotations. BioLang
+            infers types through the entire pipe chain and will tell you at compile time if
+            something does not match.
+          </li>
+          <li>
+            <strong>No package ecosystem needed.</strong> BioLang's standard library includes
+            FASTQ/FASTA/BAM parsing, statistics, CSV/JSON/TSV I/O, and HTTP. You do not need
+            to install external packages for common bioinformatics tasks.
+          </li>
+          <li>
+            <strong>Think in data flow.</strong> Pipes naturally encourage a clean data flow
+            style where each step transforms data and passes it to the next.
+          </li>
+        </ol>
+
+        <h2>Common Gotchas</h2>
+        <ul>
+          <li>
+            <strong>No implicit type coercion.</strong> Unlike Python, <code>1 + 1.0</code> requires
+            an explicit <code>float(1) + 1.0</code>. The compiler error message tells you exactly
+            what conversion is needed.
+          </li>
+          <li>
+            <strong>Indexing is zero-based.</strong> Like Python, unlike R. <code>list[0]</code> is the
+            first element.
+          </li>
+          <li>
+            <strong>No <code>NULL</code>/<code>NA</code> propagation.</strong> BioLang uses
+            <code>Option&lt;T&gt;</code> (values are either <code>Some(value)</code> or <code>None</code>).
+            The <code>??</code> operator provides defaults. No silent <code>NA</code> propagation surprises.
+          </li>
+          <li>
+            <strong>String formatting uses <code>{}</code> not <code>%</code> or <code>f""</code>.</strong>
+            BioLang strings support interpolation with curly braces: <code>"value: {x}"</code>.
+          </li>
+        </ul>
+
+        <h2>Next Steps</h2>
+        <p>
+          You now have a solid map between Python/R and BioLang. Explore the
+          <a href="../language/index.html" class="text-violet-400 hover:text-violet-300">Language Reference</a>
+          for the full specification, or dive into the
+          <a href="../stdlib/index.html" class="text-violet-400 hover:text-violet-300">Standard Library</a>
+          documentation to see all available modules and functions.
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="repl-tour.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> REPL Tour
+        </a>
+        <a href="troubleshooting.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Troubleshooting <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

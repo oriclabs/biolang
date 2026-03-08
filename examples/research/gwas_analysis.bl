@@ -1,0 +1,220 @@
+# ── GWAS Analysis: Type 2 Diabetes Risk Loci ──
+# Genome-wide association study identifying SNPs associated with T2D
+# Dataset: simulated summary statistics from a meta-analysis of ~50,000 cases
+
+# ── 1. Load GWAS Summary Statistics ──
+println("=== Load GWAS Summary Statistics ===")
+
+let gwas_data = table([
+  {rsid: "rs7903146",    chrom: "10", pos: 114758349, effect_allele: "T", other_allele: "C", eaf: 0.30, info: 0.97, beta: 0.294, se: 0.018, pvalue: 5.2e-56,  or: 1.342},
+  {rsid: "rs1801282",    chrom: "3",  pos: 12393125,  effect_allele: "G", other_allele: "C", eaf: 0.12, info: 0.95, beta: 0.142, se: 0.025, pvalue: 1.3e-8,   or: 1.153},
+  {rsid: "rs5219",       chrom: "11", pos: 17409572,  effect_allele: "T", other_allele: "C", eaf: 0.35, info: 0.98, beta: 0.168, se: 0.021, pvalue: 1.1e-15,  or: 1.183},
+  {rsid: "rs13266634",   chrom: "8",  pos: 118184783, effect_allele: "C", other_allele: "T", eaf: 0.27, info: 0.96, beta: 0.132, se: 0.022, pvalue: 2.0e-9,   or: 1.141},
+  {rsid: "rs7754840",    chrom: "6",  pos: 20661019,  effect_allele: "C", other_allele: "G", eaf: 0.31, info: 0.94, beta: 0.125, se: 0.020, pvalue: 4.1e-10,  or: 1.133},
+  {rsid: "rs10811661",   chrom: "9",  pos: 22134095,  effect_allele: "T", other_allele: "C", eaf: 0.82, info: 0.99, beta: 0.198, se: 0.026, pvalue: 2.7e-14,  or: 1.219},
+  {rsid: "rs4402960",    chrom: "3",  pos: 185511687, effect_allele: "T", other_allele: "G", eaf: 0.29, info: 0.97, beta: 0.113, se: 0.020, pvalue: 1.5e-8,   or: 1.120},
+  {rsid: "rs12779790",   chrom: "10", pos: 12307894,  effect_allele: "G", other_allele: "A", eaf: 0.18, info: 0.91, beta: 0.098, se: 0.024, pvalue: 4.3e-5,   or: 1.103},
+  {rsid: "rs1111875",    chrom: "10", pos: 94462882,  effect_allele: "C", other_allele: "T", eaf: 0.40, info: 0.96, beta: 0.119, se: 0.019, pvalue: 3.8e-10,  or: 1.126},
+  {rsid: "rs7961581",    chrom: "12", pos: 71433293,  effect_allele: "C", other_allele: "T", eaf: 0.27, info: 0.93, beta: 0.107, se: 0.021, pvalue: 3.2e-7,   or: 1.113},
+  {rsid: "rs2237892",    chrom: "11", pos: 2839751,   effect_allele: "C", other_allele: "T", eaf: 0.08, info: 0.88, beta: 0.211, se: 0.035, pvalue: 1.7e-9,   or: 1.235},
+  {rsid: "rs231362",     chrom: "11", pos: 2691471,   effect_allele: "G", other_allele: "A", eaf: 0.48, info: 0.97, beta: 0.088, se: 0.018, pvalue: 1.1e-6,   or: 1.092},
+  {rsid: "rs243021",     chrom: "2",  pos: 60584819,  effect_allele: "A", other_allele: "G", eaf: 0.47, info: 0.85, beta: 0.076, se: 0.019, pvalue: 6.2e-5,   or: 1.079},
+  {rsid: "rs5015480",    chrom: "10", pos: 94455539,  effect_allele: "C", other_allele: "T", eaf: 0.42, info: 0.72, beta: 0.065, se: 0.020, pvalue: 1.1e-3,   or: 1.067},
+  {rsid: "rs340874",     chrom: "1",  pos: 214159256, effect_allele: "C", other_allele: "T", eaf: 0.44, info: 0.96, beta: 0.068, se: 0.018, pvalue: 1.6e-4,   or: 1.070},
+  {rsid: "rs9939609",    chrom: "16", pos: 53820527,  effect_allele: "A", other_allele: "T", eaf: 0.41, info: 0.99, beta: 0.155, se: 0.019, pvalue: 3.1e-16,  or: 1.168},
+  {rsid: "rs896854",     chrom: "8",  pos: 95937502,  effect_allele: "T", other_allele: "C", eaf: 0.43, info: 0.95, beta: 0.061, se: 0.019, pvalue: 1.3e-3,   or: 1.063},
+  {rsid: "rs7578597",    chrom: "2",  pos: 43732823,  effect_allele: "T", other_allele: "C", eaf: 0.11, info: 0.92, beta: 0.139, se: 0.029, pvalue: 1.6e-6,   or: 1.149},
+  {rsid: "rs8050136",    chrom: "16", pos: 53816275,  effect_allele: "A", other_allele: "C", eaf: 0.39, info: 0.98, beta: 0.148, se: 0.019, pvalue: 6.5e-15,  or: 1.160}
+])
+
+println("Loaded " + str(len(gwas_data)) + " SNPs from T2D GWAS summary statistics")
+
+# ── 2. Quality Control Filters ──
+println("=== Quality Control Filters ===")
+
+# Remove ambiguous strand SNPs (A/T and C/G pairs)
+let ambiguous_pairs = [["A","T"], ["T","A"], ["C","G"], ["G","C"]]
+let qc_no_ambig = gwas_data
+  |> filter(|row| !contains(ambiguous_pairs, [row.effect_allele, row.other_allele]))
+
+println("After removing ambiguous SNPs: " + str(len(qc_no_ambig)) + " remain")
+
+# Filter on minor allele frequency > 0.01
+let qc_maf = qc_no_ambig
+  |> filter(|row| min(row.eaf, 1.0 - row.eaf) > 0.01)
+
+# Filter on imputation quality INFO > 0.8
+let qc_pass = qc_maf
+  |> filter(|row| row.info > 0.8)
+
+println("After QC (MAF>0.01, INFO>0.8): " + str(len(qc_pass)) + " SNPs pass")
+
+# ── 3. Manhattan and QQ Plots ──
+println("=== Manhattan and QQ Plots ===")
+
+manhattan(qc_pass, {threshold: 5e-8, format: "svg"})
+  |> save_svg("output/t2d_manhattan.svg")
+
+let pvalues = qc_pass |> select("pvalue") |> map(|row| row.pvalue)
+
+qq_plot(pvalues, {format: "svg"})
+  |> save_svg("output/t2d_qqplot.svg")
+
+# Calculate genomic inflation factor (simplified approximation)
+# For 1-df chi-square, use -2*log(p) as upper bound; scale by expected median
+let neg_log_p = pvalues |> map(|p| -log10(p))
+let lambda_gc = median(neg_log_p) / 0.301
+println("Genomic inflation factor (lambda_GC, approx): " + str(round(lambda_gc, 3)))
+
+# ── 4. Identify Significant Hits ──
+println("=== Identify Significant Hits ===")
+
+let gw_significant = qc_pass
+  |> filter(|row| row.pvalue < 5e-8)
+  |> arrange("pvalue")
+
+let suggestive = qc_pass
+  |> filter(|row| row.pvalue >= 5e-8 && row.pvalue < 1e-5)
+  |> arrange("pvalue")
+
+println("Genome-wide significant (p < 5e-8): " + str(len(gw_significant)) + " SNPs")
+println("Suggestive (5e-8 <= p < 1e-5): " + str(len(suggestive)) + " SNPs")
+
+# ── 5. LD Clumping (proximity-based) ──
+println("=== LD Clumping ===")
+
+let clump_window = 500000  # 500 kb window
+
+# gw_significant is already arranged by pvalue; convert to record list for clumping
+let sorted_hits = gw_significant |> to_records()
+let lead_snps = reduce(sorted_hits, |leads, snp|
+     if all(leads, |l| l.chrom != snp.chrom || abs(l.pos - snp.pos) > clump_window)
+     then leads + [snp]
+     else leads, [])
+
+println("Independent lead SNPs after clumping: " + str(len(lead_snps)))
+
+# ── 6. Gene Annotation via Genomic Intervals ──
+println("=== Gene Annotation via Genomic Intervals ===")
+
+let gene_regions = table([
+  {name: "TCF7L2",   chrom: "10", start: 114710009, end: 114927437},
+  {name: "PPARG",    chrom: "3",  start: 12328867,  end: 12475855},
+  {name: "KCNJ11",   chrom: "11", start: 17406795,  end: 17410878},
+  {name: "SLC30A8",  chrom: "8",  start: 118170394, end: 118185088},
+  {name: "CDKAL1",   chrom: "6",  start: 20534687,  end: 20784666},
+  {name: "CDKN2A/B", chrom: "9",  start: 21967752,  end: 22009312},
+  {name: "IGF2BP2",  chrom: "3",  start: 185345628, end: 185544082},
+  {name: "HHEX/IDE", chrom: "10", start: 94427522,  end: 94476459},
+  {name: "FTO",      chrom: "16", start: 53737875,  end: 54155853},
+  {name: "KCNQ1",    chrom: "11", start: 2466221,   end: 2870340},
+  {name: "THADA",    chrom: "2",  start: 43505464,  end: 43806925}
+])
+
+let gene_tree = interval_tree(gene_regions)
+
+# Annotate each lead SNP with nearest gene via interval overlap
+let annotated = lead_snps
+  |> map(|snp| {
+       let hits = query_overlaps(gene_tree, snp.chrom, snp.pos, snp.pos + 1)
+       let nearest_gene = if len(hits) > 0 then hits[0].name else "intergenic"
+       {rsid: snp.rsid, chrom: snp.chrom, pos: snp.pos, pvalue: snp.pvalue,
+        or: snp.or, beta: snp.beta, se: snp.se, nearest_gene: nearest_gene}
+     })
+
+println("\nLead SNPs with gene annotations:")
+annotated |> each(|snp|
+  println(snp.rsid + "\t" + snp.chrom + "\t" + str(snp.pos) + "\t" +
+          str(snp.pvalue) + "\t" + str(snp.or) + "\t" + snp.nearest_gene))
+
+# ── 7. Known T2D Loci Lookup ──
+println("=== Known T2D Loci Lookup ===")
+
+let known_loci = ["TCF7L2", "PPARG", "KCNJ11", "SLC30A8", "CDKAL1"]
+let novel = annotated
+  |> filter(|row| !contains(known_loci, row.nearest_gene))
+
+let rediscovered = annotated |> filter(|row| contains(known_loci, row.nearest_gene))
+println("Known T2D loci rediscovered: " + str(len(rediscovered)))
+println("Potentially novel loci: " + str(len(novel)))
+
+# ── 8. Database Queries for Top Hit ──
+println("=== Database Queries for Top Hit ===")
+
+let top_hit = annotated[0]
+println("\nTop hit: " + top_hit.rsid + " (" + top_hit.nearest_gene + ")")
+
+let gene_info = ncbi_gene("TCF7L2")
+println("NCBI Gene ID: " + gene_info.gene_id + " | Summary: " + gene_info.summary)
+
+let ensembl = ensembl_gene("ENSG00000148737")
+println("Ensembl biotype: " + ensembl.biotype + " | Description: " + ensembl.description)
+
+let t2d_kegg = kegg_find("disease", "type 2 diabetes")
+println("KEGG disease entry: " + t2d_kegg[0].entry + " - " + t2d_kegg[0].name)
+
+let ppi_network = string_network("TCF7L2", 9606)
+let interactors = ppi_network
+  |> filter(|edge| edge.score > 0.7)
+  |> map(|edge| edge.partner)
+println("STRING interactors (score>0.7): " + join(interactors, ", "))
+
+# ── 9. Forest Plot of Effect Sizes ──
+println("=== Forest Plot of Effect Sizes ===")
+
+# Build forest plot data as a table with required columns
+let forest_data = annotated
+  |> map(|row| {
+       let ci_lower = exp(log(row.or) - 1.96 * row.se)
+       let ci_upper = exp(log(row.or) + 1.96 * row.se)
+       {label: row.nearest_gene, estimate: row.or, lower: ci_lower, upper: ci_upper}
+     })
+  |> table()
+
+forest_plot(forest_data, {format: "svg"})
+  |> save_svg("output/t2d_forest.svg")
+println("Forest plot saved to output/t2d_forest.svg")
+
+# ── 10. Functional Enrichment ──
+println("=== Functional Enrichment ===")
+
+let gwas_genes = annotated |> map(|row| row.nearest_gene) |> unique()
+println("GWAS genes identified: " + join(gwas_genes, ", "))
+
+# Query GO annotations for top hit gene
+let tcf7l2_go = go_annotations("TCF7L2")
+println("TCF7L2 GO terms: " + str(len(tcf7l2_go)) + " annotations")
+let bp_terms = tcf7l2_go |> filter(|a| a.aspect == "BP") |> map(|a| a.term) |> take(5)
+println("Key processes: " + join(bp_terms, "; "))
+
+# ── 11. Summary Report ──
+println("=== Summary Report ===")
+
+let summary_stats = {
+  total_snps: len(gwas_data),
+  post_qc: len(qc_pass),
+  gw_significant: len(gw_significant),
+  lead_snps: len(lead_snps),
+  top_rsid: top_hit.rsid,
+  top_gene: top_hit.nearest_gene,
+  top_pvalue: top_hit.pvalue,
+  top_or: top_hit.or,
+  lambda_gc: round(lambda_gc, 3)
+}
+
+let annotated_table = table(annotated)
+let report = "# T2D GWAS Analysis Report\n\n" +
+  "## Overview\n\nGWAS meta-analysis for Type 2 Diabetes risk loci.\n\n" +
+  "## QC Summary\n\n" +
+  "- Total SNPs: " + str(summary_stats.total_snps) + "\n" +
+  "- Post-QC: " + str(summary_stats.post_qc) + "\n" +
+  "- GW significant: " + str(summary_stats.gw_significant) + "\n" +
+  "- Lead SNPs: " + str(summary_stats.lead_snps) + "\n" +
+  "- Top hit: " + summary_stats.top_rsid + " (" + summary_stats.top_gene + ")\n" +
+  "- Lambda GC: " + str(summary_stats.lambda_gc) + "\n\n" +
+  "## Lead SNPs\n\n" + to_markdown(annotated_table) + "\n\n" +
+  "## GO Annotations (TCF7L2)\n\n" + join(bp_terms, "\n") + "\n"
+write_text("output/t2d_gwas_report.md", report)
+
+println("Report saved to output/t2d_gwas_report.md")
+println("\n=== Analysis complete ===")

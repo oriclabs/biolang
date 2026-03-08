@@ -1,0 +1,34 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/bl-core",
+    "crates/bl-lexer",
+    "crates/bl-parser",
+    "crates/bl-runtime",
+    "crates/bl-bio",
+    "crates/bl-apis",
+    "crates/bl-compiler",
+    "crates/bl-jit",
+    "crates/bl-repl",
+    "crates/bl-lsp",
+    "crates/bl-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+bio-core = { path = "../bio-core" }
+bl-core = { path = "crates/bl-core" }
+bl-lexer = { path = "crates/bl-lexer" }
+bl-parser = { path = "crates/bl-parser" }
+bl-runtime = { path = "crates/bl-runtime" }
+bl-bio = { path = "crates/bl-bio" }
+bl-apis = { path = "crates/bl-apis" }
+bl-compiler = { path = "crates/bl-compiler" }
+bl-jit = { path = "crates/bl-jit" }
+bl-repl = { path = "crates/bl-repl" }
+bl-lsp = { path = "crates/bl-lsp" }
+bl-cli = { path = "crates/bl-cli" }

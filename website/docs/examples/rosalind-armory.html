@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rosalind Armory — BioLang Examples</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/rosalind-armory"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Rosalind Armory</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Rosalind Bioinformatics Armory</h1>
+        <p class="text-lg text-slate-400 mb-8">Solutions to the
+        <a href="https://rosalind.info/problems/list-view/?location=bioinformatics-armory" class="text-violet-400 hover:text-violet-300">Rosalind Bioinformatics Armory</a>
+        problem set, implemented in idiomatic BioLang. These problems focus on using real bioinformatics
+        tools and databases rather than implementing algorithms from scratch.</p>
+
+        <!-- INI -->
+        <section id="ini" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">INI &mdash; Introduction to the Bioinformatics Armory</h2>
+          <p class="text-slate-400 mb-4">Given a DNA string, count the occurrences of each nucleotide (A, C, G, T).</p>
+          <pre><code class="language-biolang"># Count each nucleotide in a DNA string
+let seq = dna"AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC"
+
+let counts = base_counts(seq)
+print(counts["A"], counts["C"], counts["G"], counts["T"])</code></pre>
+        </section>
+
+        <!-- GBK -->
+        <section id="gbk" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">GBK &mdash; GenBank Introduction</h2>
+          <p class="text-slate-400 mb-4">Search NCBI's Nucleotide database for entries from a given organism published between two dates. Return the count.</p>
+          <pre><code class="language-biolang"># Search GenBank for organism entries within a date range
+let organism = "Anthoxanthum"
+let date_from = "2003/07/25"
+let date_to = "2005/12/27"
+
+let query = organism + "[Organism] AND " + date_from + ":" + date_to + "[Publication Date]"
+let result = ncbi_search("nucleotide", query)
+print(result.count)</code></pre>
+        </section>
+
+        <!-- FRMT -->
+        <section id="frmt" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">FRMT &mdash; Data Formats</h2>
+          <p class="text-slate-400 mb-4">Given a list of GenBank IDs, fetch their FASTA records and return the one with the shortest sequence.</p>
+          <pre><code class="language-biolang"># Find the shortest sequence among GenBank accessions
+let ids = ["JX205496.1", "JX ## 469991.1", "JX469983.1"]
+
+let shortest = ids
+  |> map(|id| {
+    let fasta = ncbi_sequence(id, db: "nucleotide", format: "fasta")
+    {id: id, seq: fasta, length: len(fasta)}
+  })
+  |> sort(|a, b| a.length - b.length)
+  |> head(1)
+
+print(">" + shortest[0].id)
+print(shortest[0].seq)</code></pre>
+        </section>
+
+        <!-- TFSQ -->
+        <section id="tfsq" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">TFSQ &mdash; FASTQ Format Introduction</h2>
+          <p class="text-slate-400 mb-4">Convert FASTQ records to FASTA format.</p>
+          <pre><code class="language-biolang"># Convert FASTQ to FASTA
+let reads = fastq("input.fq")
+
+for read in reads {
+  print(">" + read.id)
+  print(read.seq)
+}
+
+# Or as a pipeline:
+fastq("input.fq")
+  |> map(|r| ">" + r.id + "\n" + to_string(r.seq))
+  |> each(|line| print(line))</code></pre>
+        </section>
+
+        <!-- PHRE -->
+        <section id="phre" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">PHRE &mdash; Read Quality Distribution</h2>
+          <p class="text-slate-400 mb-4">Given a quality threshold, count how many reads have average quality below it.</p>
+          <pre><code class="language-biolang"># Count reads with average quality below threshold
+let threshold = 28
+let reads = fastq("input.fq")
+
+let below = reads
+  |> filter(|r| mean_phred(r.quality) < threshold)
+  |> len
+
+print(below)</code></pre>
+        </section>
+
+        <!-- PTRA -->
+        <section id="ptra" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">PTRA &mdash; Protein Translation</h2>
+          <p class="text-slate-400 mb-4">Given a DNA string and a protein, find which genetic code table was used for translation.</p>
+          <pre><code class="language-biolang"># Translate DNA using different codon tables
+let dna_seq = dna"ATGGCCATGGCGCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA"
+
+# Standard translation
+let protein = dna_seq |> translate
+print("Standard:", protein)
+
+# The translate function uses standard codon table by default.
+# Compare the output with the expected protein to identify the table.</code></pre>
+        </section>
+
+        <!-- RVCO -->
+        <section id="rvco" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">RVCO &mdash; Complementing a Strand of DNA</h2>
+          <p class="text-slate-400 mb-4">Given FASTA records, count how many have a sequence equal to its own reverse complement.</p>
+          <pre><code class="language-biolang"># Count sequences that match their own reverse complement
+let records = fasta("input.fa")
+
+let count = records
+  |> filter(|r| to_string(r.seq) == to_string(reverse_complement(r.seq)))
+  |> len
+
+print(count)</code></pre>
+        </section>
+
+        <!-- FILT -->
+        <section id="filt" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">FILT &mdash; Read Filtration by Quality</h2>
+          <p class="text-slate-400 mb-4">Filter FASTQ reads: keep only those where at least a given percentage of bases meet a quality threshold.</p>
+          <pre><code class="language-biolang"># Filter reads by per-base quality percentage
+let quality_threshold = 20
+let percentage = 90
+let reads = fastq("input.fq")
+
+let passed = reads |> filter(|r| {
+  let scores = r.quality
+  let total = len(scores)
+  let good = scores |> filter(|q| q >= quality_threshold) |> len
+  (good * 100) / total >= percentage
+})
+
+print(len(passed))</code></pre>
+        </section>
+
+        <!-- BPHR -->
+        <section id="bphr" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BPHR &mdash; Base Quality Distribution</h2>
+          <p class="text-slate-400 mb-4">Given FASTQ reads and a quality threshold, count positions where the average quality falls below it.</p>
+          <pre><code class="language-biolang"># Count positions with average quality below threshold
+let threshold = 20
+let reads = fastq("input.fq")
+
+# Collect quality scores per position
+let num_positions = reads |> map(|r| len(r.quality)) |> max
+let position_avgs = range(0, num_positions) |> map(|pos| {
+  let scores_at_pos = reads
+    |> filter(|r| len(r.quality) > pos)
+    |> map(|r| r.quality[pos])
+  mean(scores_at_pos)
+})
+
+let below = position_avgs |> filter(|avg| avg < threshold) |> len
+print(below)</code></pre>
+        </section>
+
+        <!-- BFIL -->
+        <section id="bfil" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BFIL &mdash; Base Filtration by Quality</h2>
+          <p class="text-slate-400 mb-4">Trim each FASTQ read from both ends, removing bases below a quality threshold.</p>
+          <pre><code class="language-biolang"># Trim reads from both ends by quality
+let threshold = 20
+let reads = fastq("input.fq")
+
+for read in reads {
+  let q = read.quality
+  let trimmed = trim_quality(q, threshold)
+  print("@" + read.id)
+  print(read.seq)   # trimmed range
+  print("+")
+  print(trimmed)
+}</code></pre>
+        </section>
+
+        <!-- ORFR -->
+        <section id="orfr" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">ORFR &mdash; Finding Genes with ORFs</h2>
+          <p class="text-slate-400 mb-4">Given a DNA string, find the longest open reading frame (ORF) in any reading frame on either strand.</p>
+          <pre><code class="language-biolang"># Find longest ORF across all reading frames
+let seq = fasta("input.fa")[0].seq
+
+# Check all 6 reading frames (3 forward + 3 reverse complement)
+let frames = [seq, reverse_complement(seq)]
+  |> flat_map(|s| [
+    s,
+    s |> slice(1),
+    s |> slice(2)
+  ])
+
+let longest_orf = frames
+  |> flat_map(|frame| {
+    let protein = frame |> translate
+    # Find all ORFs: sequences between M and *
+    to_string(protein)
+      |> split("*")
+      |> flat_map(|segment| {
+        let start = index_of(segment, "M")
+        if start >= 0 { [slice(segment, start)] } else { [] }
+      })
+  })
+  |> sort(|a, b| len(b) - len(a))
+  |> head(1)
+
+print(longest_orf[0])</code></pre>
+        </section>
+
+        <!-- NEED -->
+        <section id="need" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">NEED &mdash; Pairwise Global Alignment</h2>
+          <p class="text-slate-400 mb-4">Fetch two protein sequences from UniProt and compute their global alignment score using BLOSUM62.</p>
+          <pre><code class="language-biolang"># Global pairwise alignment of UniProt sequences
+let seq1 = uniprot_entry("B5ZC00", format: "fasta")
+let seq2 = uniprot_entry("P07204_TRBM_HUMAN", format: "fasta")
+
+# Align using Needleman-Wunsch (global)
+let alignment = align(seq1, seq2, method: "global", matrix: "BLOSUM62")
+print("Score:", alignment.score)
+print(alignment.aligned_a)
+print(alignment.aligned_b)</code></pre>
+        </section>
+
+        <!-- MEME -->
+        <section id="meme" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">MEME &mdash; New Motif Discovery</h2>
+          <p class="text-slate-400 mb-4">Given a set of DNA sequences, find the shared motif using positional analysis.</p>
+          <pre><code class="language-biolang"># Discover shared motifs in a collection of sequences
+let records = fasta("input.fa")
+let sequences = records |> map(|r| r.seq)
+
+# Find shared k-mers across all sequences
+let k = 10
+let shared = sequences[0]
+  |> kmers(k)
+  |> filter(|kmer| {
+    sequences |> all(|s| contains(to_string(s), to_string(kmer)))
+  })
+
+# Report longest shared motif
+let motifs = shared |> sort(|a, b| len(b) - len(a))
+if len(motifs) > 0 { print(motifs[0]) }</code></pre>
+        </section>
+
+        <!-- SUBO -->
+        <section id="subo" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">SUBO &mdash; Suboptimal Local Alignment</h2>
+          <p class="text-slate-400 mb-4">Find the number of suboptimal local alignments between two sequences using Smith-Waterman.</p>
+          <pre><code class="language-biolang"># Count suboptimal alignments between two sequences
+let records = fasta("input.fa")
+let seq1 = records[0].seq
+let seq2 = records[1].seq
+
+# Perform local alignment
+let result = align(seq1, seq2, method: "local")
+print("Optimal score:", result.score)
+print("Alignment:", result.aligned_a)
+print("           ", result.aligned_b)</code></pre>
+        </section>
+
+        <!-- CLUS -->
+        <section id="clus" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">CLUS &mdash; Global Multiple Alignment</h2>
+          <p class="text-slate-400 mb-4">Perform multiple sequence alignment and identify the most conserved column.</p>
+          <pre><code class="language-biolang"># Multiple sequence alignment
+let records = fasta("input.fa")
+let sequences = records |> map(|r| to_string(r.seq))
+
+# Find consensus by column analysis
+let min_len = sequences |> map(|s| len(s)) |> min
+let consensus = range(0, min_len) |> map(|pos| {
+  let column = sequences |> map(|s| s[pos])
+  # Find most frequent character
+  let counts = column |> group_by(|c| c) |> map(|g| {g.key: len(g.values)})
+  column |> sort(|a, b| {
+    let ca = column |> filter(|c| c == a) |> len
+    let cb = column |> filter(|c| c == b) |> len
+    cb - ca
+  }) |> head(1)
+})
+
+print(consensus |> join(""))</code></pre>
+        </section>
+
+        <!-- Summary -->
+        <section id="summary" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Summary</h2>
+          <p class="text-slate-400 mb-4">The Rosalind Bioinformatics Armory problems emphasize using real tools and databases rather than
+          implementing algorithms from scratch. BioLang's built-in API clients (<code class="text-cyan-400">ncbi_search</code>,
+          <code class="text-cyan-400">uniprot_entry</code>, etc.) and native sequence operations
+          (<code class="text-cyan-400">translate</code>, <code class="text-cyan-400">reverse_complement</code>,
+          <code class="text-cyan-400">fastq</code>) map directly to these problems, making solutions
+          concise and readable.</p>
+
+          <table class="w-full text-sm not-prose">
+            <thead class="border-b border-slate-800 text-left">
+              <tr>
+                <th class="py-2 px-3 text-slate-300">Problem</th>
+                <th class="py-2 px-3 text-slate-300">Key BioLang Features</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#ini" class="text-violet-400">INI</a></td><td class="py-2 px-3"><code class="text-cyan-400">dna"..."</code> literals, string ops</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#gbk" class="text-violet-400">GBK</a></td><td class="py-2 px-3"><code class="text-cyan-400">ncbi_search</code></td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#frmt" class="text-violet-400">FRMT</a></td><td class="py-2 px-3"><code class="text-cyan-400">ncbi_sequence</code>, pipes</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#tfsq" class="text-violet-400">TFSQ</a></td><td class="py-2 px-3"><code class="text-cyan-400">fastq</code>, format conversion</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#phre" class="text-violet-400">PHRE</a></td><td class="py-2 px-3"><code class="text-cyan-400">mean_phred</code>, quality scores</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#ptra" class="text-violet-400">PTRA</a></td><td class="py-2 px-3"><code class="text-cyan-400">translate</code></td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#rvco" class="text-violet-400">RVCO</a></td><td class="py-2 px-3"><code class="text-cyan-400">reverse_complement</code></td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#filt" class="text-violet-400">FILT</a></td><td class="py-2 px-3"><code class="text-cyan-400">fastq</code>, quality filtering</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#bphr" class="text-violet-400">BPHR</a></td><td class="py-2 px-3">Quality per-position analysis</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#bfil" class="text-violet-400">BFIL</a></td><td class="py-2 px-3"><code class="text-cyan-400">trim_quality</code></td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#orfr" class="text-violet-400">ORFR</a></td><td class="py-2 px-3"><code class="text-cyan-400">translate</code>, <code class="text-cyan-400">kmers</code>, reading frames</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#need" class="text-violet-400">NEED</a></td><td class="py-2 px-3"><code class="text-cyan-400">uniprot_entry</code>, <code class="text-cyan-400">align</code></td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#meme" class="text-violet-400">MEME</a></td><td class="py-2 px-3"><code class="text-cyan-400">kmers</code>, motif discovery</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#subo" class="text-violet-400">SUBO</a></td><td class="py-2 px-3"><code class="text-cyan-400">align</code> (local)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><a href="#clus" class="text-violet-400">CLUS</a></td><td class="py-2 px-3">Multiple alignment, consensus</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="structural.html" class="text-violet-400 hover:text-violet-300">&larr; Structural Biology</a>
+        <a href="edge-cases.html" class="text-violet-400 hover:text-violet-300">Edge Cases &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

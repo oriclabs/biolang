@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streams — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/streams"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Streams</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Streams</h1>
+        <p>
+          Streams are lazy iterators that process data one element at a time without loading
+          everything into memory. In bioinformatics, where datasets routinely exceed available
+          RAM, streams are essential for processing FASTQ files with billions of reads, BAM files
+          spanning hundreds of gigabytes, and VCF files with millions of variants.
+        </p>
+
+        <h2>Streams vs. Lists</h2>
+        <p>
+          Lists are eager &mdash; all elements exist in memory simultaneously. Streams are lazy &mdash;
+          elements are computed on demand and discarded after use:
+        </p>
+        <pre><code class="language-biolang"># Eager: loads entire file into memory (dangerous for large files)
+let all_reads = read_fastq("huge.fq.gz")  # List[Read] — may OOM
+
+# Lazy: processes one read at a time (constant memory)
+let read_stream = stream_fastq("huge.fq.gz")  # Stream[Read] — safe
+let filtered = read_stream
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> take(1_000_000)
+  |> collect()   # Only now are reads materialized</code></pre>
+
+        <h2>Creating Streams</h2>
+
+        <h3>From Files</h3>
+        <pre><code class="language-biolang"># Stream biological file formats
+let reads = stream_fastq("sample.fq.gz")
+let alignments = stream_bam("aligned.bam")
+let variants = stream_vcf("calls.vcf.gz")
+let sequences = stream_fasta("reference.fa")
+let intervals = stream_bed("regions.bed")
+let features = stream_gff("annotations.gff3")
+
+# Stream generic text lines
+let lines = stream_lines("log.txt")</code></pre>
+
+        <h3>From Ranges and Generators</h3>
+        <pre><code class="language-biolang"># Infinite range stream
+let naturals = stream(1..)
+
+# Stream from a generator function
+let random_seqs = stream_generate(|| random_dna(100))
+
+# Stream from a list (makes it lazy)
+let lazy = [1, 2, 3, 4, 5] |> to_stream()
+
+# Repeat a value
+let zeros = stream_repeat(0)          # Infinite stream of zeros
+let headers = stream_repeat("NA", 10) # 10 copies of "NA"</code></pre>
+
+        <h3>Custom Generators</h3>
+        <pre><code class="language-biolang"># yield-based generator
+let fibonacci = stream_fn(|| {
+  let a = 0
+  let b = 1
+  loop {
+    yield a
+    let next = a + b
+    a = b
+    b = next
+  }
+})
+
+# Generate sliding windows over a chromosome
+let windows = stream_fn(|| {
+  let pos = 0
+  let step = 1000
+  let size = 5000
+  while pos + size <= chrom_length {
+    yield interval(chrom, pos, pos + size)
+    pos = pos + step
+  }
+})</code></pre>
+
+        <h2>Stream Operations</h2>
+        <p>
+          Streams support the same functional operations as lists, but all operations are lazy
+          until a terminal operation is called:
+        </p>
+
+        <h3>Lazy (Intermediate) Operations</h3>
+        <pre><code class="language-biolang">let pipeline = stream_fastq("reads.fq.gz")
+  |> filter(|r| mean_phred(r.quality) >= 20)      # Lazy
+  |> map(|r| trim_adapters(r))            # Lazy
+  |> filter(|r| r.length >= 50)    # Lazy
+  |> take(1_000_000)                      # Lazy — limits total
+  |> drop(100)                            # Lazy — drops first 100
+
+# Nothing has been read from disk yet!
+# The pipeline is just a description of operations.</code></pre>
+
+        <h3>Terminal (Consuming) Operations</h3>
+        <pre><code class="language-biolang"># collect — materialize into a List
+let reads = pipeline |> collect()
+
+# for_each — process each element for side effects
+pipeline |> for_each(|r| write_fastq_record(out, r))
+
+# count — count elements
+let n = pipeline |> count()
+
+# reduce — fold all elements
+let total_bases = pipeline |> map(|r| r.length) |> reduce(|a, b| a + b)
+
+# first / last — get single elements
+let first_read = pipeline |> first()
+let last_read = pipeline |> last()
+
+# any / all — short-circuit boolean tests
+let has_long = pipeline |> any(|r| r.length > 10_000)
+let all_hq = pipeline |> all(|r| mean_phred(r.quality) >= 30)
+
+# to_table — collect into a Table
+let summary = pipeline |> to_table(columns = ["name", "length", "quality"])</code></pre>
+
+        <h2>Stream Consumption</h2>
+        <p>
+          Streams are consumed exactly once. After a terminal operation, the stream is exhausted
+          and cannot be reused:
+        </p>
+        <pre><code class="language-biolang">let s = stream_fastq("data.fq")
+
+let count = s |> count()      # Consumes the stream
+# let data = s |> collect()   # Error: stream already consumed
+
+# To process a stream multiple times, create it again:
+let s1 = stream_fastq("data.fq")
+let count = s1 |> count()
+
+let s2 = stream_fastq("data.fq")
+let data = s2 |> collect()
+
+# Or use tee to split a stream into two
+let (for_count, for_stats) = stream_fastq("data.fq") |> tee()
+let count = for_count |> count()
+let stats = for_stats |> map(|r| mean_phred(r.quality)) |> collect()</code></pre>
+
+        <h2>Backpressure</h2>
+        <p>
+          BioLang streams implement natural backpressure. The producer only generates the next
+          element when the consumer is ready. This prevents memory buildup in multi-stage
+          pipelines:
+        </p>
+        <pre><code class="language-biolang"># This pipeline uses constant memory regardless of input size.
+# Each stage processes one element at a time:
+stream_bam("whole_genome.bam")          # Read one record
+  |> filter(|r| r.mapq >= 30)           # Check quality
+  |> filter(|r| !r.is_duplicate)        # Check duplicate flag
+  |> filter(|r| r.is_proper_pair)       # Check pairing
+  |> map(|r| extract_insert_size(r))    # Compute insert size
+  |> write_stream("insert_sizes.txt")   # Write one line
+
+# The BAM file is never fully loaded — one record flows through at a time</code></pre>
+
+        <h2>File Streaming</h2>
+        <p>
+          Streaming I/O is the primary use case for streams in bioinformatics. BioLang
+          automatically handles compressed formats:
+        </p>
+        <pre><code class="language-biolang"># Stream from compressed FASTQ, write compressed output
+stream_fastq("input.fq.gz")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> write_fastq("output.fq.gz")   # Auto-detects .gz extension
+
+# Stream BAM, compute coverage, write BED
+stream_bam("aligned.bam")
+  |> filter(|r| r.mapq >= 20)
+  |> coverage(bin_size = 1000)
+  |> filter(|r| r.depth >= 10)
+  |> write_bed("covered_regions.bed")
+
+# Stream VCF, annotate, write filtered VCF
+stream_vcf("raw.vcf.gz")
+  |> filter(|v| v.qual >= 30.0)
+  |> annotate_stream("clinvar.vcf.gz")
+  |> filter(|v| v.annotation.clinical_significance == "Pathogenic")
+  |> write_vcf("pathogenic.vcf.gz")</code></pre>
+
+        <h2>Chunked Processing</h2>
+        <p>
+          Process streams in batches for operations that benefit from batch processing:
+        </p>
+        <pre><code class="language-biolang"># Process in chunks of 10,000
+stream_fastq("reads.fq.gz")
+  |> chunk(10_000)
+  |> for_each(|batch| {
+    let stats = compute_batch_stats(batch)
+    print(f"Batch: {stats.avg_quality} avg quality, {len(batch)} reads")
+  })
+
+# Parallel batch processing
+stream_fasta("proteins.fa")
+  |> chunk(1000)
+  |> parallel_map(|batch| {
+    batch |> map(|seq| predict_structure(seq))
+  })
+  |> flatten()
+  |> write_results("predictions.json")</code></pre>
+
+        <h2>Merging Streams</h2>
+        <pre><code class="language-biolang"># Concatenate streams sequentially
+let all_reads = stream_concat([
+  stream_fastq("lane1.fq.gz"),
+  stream_fastq("lane2.fq.gz"),
+  stream_fastq("lane3.fq.gz")
+])
+
+# Interleave paired-end reads
+let interleaved = stream_interleave(
+  stream_fastq("R1.fq.gz"),
+  stream_fastq("R2.fq.gz")
+)
+
+# Merge sorted streams (maintains sort order)
+let merged = stream_merge_sorted(
+  stream_vcf("chr1.vcf"),
+  stream_vcf("chr2.vcf"),
+  by = |v| (v.chrom, v.pos)
+)</code></pre>
+
+        <h2>Stream Statistics</h2>
+        <pre><code class="language-biolang"># Compute statistics in a single pass
+let stats = stream_fastq("sample.fq.gz")
+  |> stream_stats(|r| mean_phred(r.quality))
+
+print(f"Count: {stats.count}")
+print(f"Mean:  {stats.mean}")
+print(f"Std:   {stats.std}")
+print(f"Min:   {stats.min}")
+print(f"Max:   {stats.max}")
+
+# Histogram in one pass
+let hist = stream_fastq("sample.fq.gz")
+  |> map(|r| r.length)
+  |> stream_histogram(bins = 50)</code></pre>
+
+        <h2>Progress Tracking</h2>
+        <pre><code class="language-biolang"># Add progress reporting to any stream
+stream_bam("large.bam")
+  |> progress(every = 1_000_000, label = "Processing reads")
+  |> filter(|r| r.mapq >= 30)
+  |> count()
+
+# Output:
+# [Processing reads] 1,000,000 records...
+# [Processing reads] 2,000,000 records...
+# [Processing reads] 3,000,000 records...
+# Total: 2,847,293</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="tables.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Tables
+        </a>
+        <a href="error-handling.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Error Handling <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

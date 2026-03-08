@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Formats — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/formats"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">File Formats</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>File Formats</h1>
+        <p>
+          BioLang provides built-in readers and writers for all major bioinformatics file formats.
+          Readers return lazy streams by default, enabling constant-memory processing of files
+          that are gigabytes or terabytes in size. Writers accept streams or collections and
+          handle buffering automatically.
+        </p>
+
+        <h2>FASTA</h2>
+        <p>
+          FASTA files contain one or more sequences, each preceded by a header line starting
+          with <code>&gt;</code>. BioLang provides two ways to read FASTA:
+        </p>
+        <pre><code class="language-biolang"># Table mode (eager, reusable) — best for small/medium files
+let records = read_fasta("sequences.fa")
+records |> filter(|r| r.length > 100)    # works
+records |> map(|r| r.id)                 # still works — it's a Table
+
+# Stream mode (lazy, one-time) — best for large files
+records = fasta("genome.fa")
+records |> map(|r| r.id) |> collect()    # works
+records |> map(|r| r.id) |> collect()    # [] — stream exhausted!
+
+# fasta() also supports table mode via options
+fasta("sequences.fa", {stream: false})   # returns Table
+
+# Each record has: id, description, seq, length
+read_fasta("reference.fa")
+  |> map(|r| print(r.id, seq_len(r.seq)))
+
+# Filter and write to a new file
+fasta("genome.fa")
+  |> filter(|r| seq_len(r.seq) > 10000)
+  |> write_fasta("long_contigs.fa")
+
+# Read gzipped FASTA (auto-detected by extension)
+fasta("genome.fa.gz")
+  |> map(|r| gc_content(r.seq))
+  |> collect()</code></pre>
+
+        <h2>FASTQ</h2>
+        <p>
+          FASTQ extends FASTA with per-base quality scores. Records have <code>id</code>,
+          <code>seq</code>, and <code>quality</code> fields. Quality scores are Phred+33 encoded:
+        </p>
+        <pre><code class="language-biolang"># Table mode (eager, reusable)
+let reads = read_fastq("sample.fq")
+reads |> filter(|r| r.length > 50)       # reusable
+
+# Stream mode (lazy, one-time) — for large files
+reads = fastq("sample_R1.fastq.gz")
+
+# Quality filtering
+fastq("reads.fq.gz")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> write_fastq("filtered.fq.gz")
+
+# Compute per-read statistics
+read_fastq("reads.fq")
+  |> map(|r| {
+    id: r.id,
+    gc: gc_content(r.seq),
+    mean_qual: mean_phred(r.quality)
+  })
+  |> to_table()
+  |> write_csv("read_stats.csv")</code></pre>
+
+        <h2>BED</h2>
+        <p>
+          BED files describe genomic regions. BioLang supports BED3 through BED12. Each record
+          maps to a table row with named columns:
+        </p>
+        <pre><code class="language-biolang"># Read a BED file into a table
+let regions = bed("peaks.bed")
+
+# Columns: chrom, start, end, name, score, strand (BED6)
+regions
+  |> filter(|r| r.score > 500)
+  |> mutate(width = |r| r.end - r.start)
+  |> print()
+
+# Convert BED records to intervals for set operations
+let intervals = bed("exons.bed")
+  |> map(|r| interval(r.chrom, r.start, r.end, r.strand))
+  |> collect()
+
+# Write intervals back to BED
+intervals |> write_bed("output.bed")</code></pre>
+
+        <h2>GFF / GTF</h2>
+        <p>
+          GFF3 and GTF are tab-delimited annotation formats. BioLang parses the attributes
+          column into a structured map:
+        </p>
+        <pre><code class="language-biolang"># Read a GFF3 file
+let annotations = gff("annotations.gff3")
+
+# Fields: seqid, source, type, start, end, score, strand, phase, attributes
+annotations
+  |> filter(|r| r.type == "gene")
+  |> map(|r| {
+    gene_id: r.attributes["ID"],
+    name: r.attributes["Name"],
+    chrom: r.seqid,
+    start: r.start,
+    end: r.end
+  })
+  |> to_table()
+  |> print()
+
+# Read GTF
+gff("gencode.gtf")
+  |> filter(|r| r.type == "exon")
+  |> map(|r| r.attributes["gene_name"])
+  |> unique()
+  |> len()
+  |> print()</code></pre>
+
+        <h2>VCF</h2>
+        <p>
+          VCF files contain variant calls. BioLang parses the INFO and FORMAT fields into
+          structured maps, and genotype data into per-sample accessors:
+        </p>
+        <pre><code class="language-biolang"># Read a VCF file
+let variants = vcf("calls.vcf.gz")
+
+# Fields: chrom, pos, id, ref, alt, qual, filter, info
+variants
+  |> filter(|v| v.qual > 30 && v.filter == "PASS")
+  |> print()
+
+# Access variant fields
+vcf("population.vcf.gz")
+  |> map(|v| {
+    chrom: v.chrom,
+    pos: v.pos,
+    ref_allele: v.ref,
+    alt_allele: v.alt,
+    qual: v.qual
+  })
+  |> to_table()
+  |> write_csv("variant_summary.csv")
+
+# Write filtered VCF
+vcf("input.vcf.gz")
+  |> filter(|v| v.chrom == "chr1")
+  |> write_vcf("chr1_variants.vcf")</code></pre>
+
+        <h2>SAM / BAM</h2>
+        <p>
+          SAM and BAM files contain aligned reads. BAM files are the binary compressed form.
+          BioLang reads both transparently:
+        </p>
+        <pre><code class="language-biolang"># Read a BAM file (returns a table of alignments)
+let alignments = read_bam("sorted.bam")
+
+# Fields: qname, flag, rname, pos, mapq, cigar, rnext, pnext, tlen, seq, qual
+alignments
+  |> filter(|a| a.mapq >= 30)
+  |> map(|a| { name: a.qname, chrom: a.rname, pos: a.pos })
+  |> to_table()
+  |> print()
+
+# Read SAM (text format)
+let sam_records = read_sam("alignments.sam")
+print(nrow(sam_records), "alignments")</code></pre>
+
+        <h2>MAF (Multiple Alignment Format)</h2>
+        <p>
+          MAF files store multiple sequence alignments, commonly used in comparative genomics.
+          Each alignment block contains sequences from different species aligned to each other:
+        </p>
+        <pre><code class="language-biolang"># Read a MAF file
+let records = read_maf("multiz30way.maf")
+
+# MAF records are returned as a table
+records |> print()</code></pre>
+
+        <h2>Format-Specific Readers</h2>
+        <p>
+          Each format has its own reader function. Use the appropriate one for your file:
+        </p>
+        <pre><code class="language-biolang"># Each format has a dedicated reader
+let variants = vcf("input.vcf.gz")
+let reads = fastq("reads.fastq")
+let alignments = read_bam("aligned.bam")
+let regions = bed("peaks.bed")
+let annotations = gff("annotations.gff3")
+let sequences = fasta("genome.fa")</code></pre>
+
+        <h2>Format Mismatch Detection</h2>
+        <p>
+          All read functions check the file's content before parsing and return a clear error
+          if the format doesn't match. This catches common mistakes like passing a FASTA file
+          to <code>fastq()</code>:
+        </p>
+        <pre><code class="language-biolang"># Wrong function for the file format
+fastq("sequences.fa")
+# TypeError: fastq(): file appears to be FASTA format
+#   (starts with >), not FASTQ. Use fasta() instead
+
+# Works both ways
+fasta("reads.fastq")
+# TypeError: fasta(): file appears to be FASTQ format
+#   (starts with @), not FASTA. Use fastq() instead
+
+# Also detects binary vs text mismatches
+sam("aligned.bam")
+# TypeError: sam(): file appears to be BAM (binary) format,
+#   not SAM (text). Use bam() instead</code></pre>
+
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 my-6">
+          <h4 class="text-amber-400 font-semibold mb-2">Streams vs Tables</h4>
+          <p class="text-slate-400 text-sm mb-3">
+            <code>fasta()</code> and <code>fastq()</code> return <strong>lazy streams</strong>
+            that can only be iterated once. For reusable data, use <code>read_fasta()</code> /
+            <code>read_fastq()</code> which return tables:
+          </p>
+          <pre class="!mt-2"><code class="language-biolang"># Stream — consumed once (good for large files)
+let records = fasta("ref.fa")
+records |> map(|r| r.id) |> collect()   # ["seq1", "seq2"]
+records |> map(|r| r.id) |> collect()   # Error: stream already consumed!
+
+# Table — reusable (good for small/medium files)
+records = read_fasta("ref.fa")
+records |> map(|r| r.id)     # works
+records |> map(|r| r.seq)    # still works — it's a Table
+
+# Other formats (bed, vcf, gff, sam, bam) default to tables.
+# Use {stream: true} for lazy mode:
+vcf("large.vcf.gz", {stream: true})</code></pre>
+        </div>
+
+        <h2>Writing Files</h2>
+        <p>
+          Every reader has a corresponding writer. Writers accept streams, collections, or
+          tables and handle format-specific details like compression:
+        </p>
+        <pre><code class="language-biolang"># Write functions match read functions
+write_fasta(records, "output.fa")
+write_fastq(records, "output.fq.gz")    # .gz = auto-compress
+write_bed(intervals, "regions.bed")
+write_vcf(variants, "filtered.vcf.gz")
+
+# Pipe-friendly syntax (stream |> write)
+fasta("input.fa")
+  |> filter(|r| seq_len(r.seq) > 500)
+  |> write_fasta("filtered.fa")</code></pre>
+
+        <section id="variant-type" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Variant Type</h2>
+          <p class="text-slate-400 mb-4">The <code class="text-violet-400">Variant</code> type provides structured access to VCF-style variant data.</p>
+          <pre><code class="language-biolang"># Construct a variant: variant(chrom, pos, ref, alt)
+let v = variant("chr17", 7674220, "G", "A")
+
+# Access variant fields
+println(v.chrom, ":", v.pos, v.ref, ">", v.alt)
+
+# VCF reader returns table rows (not Variant values)
+let variants = vcf("calls.vcf")
+for v in variants {
+  if v.filter == "PASS" && v.qual > 30 {
+    println(v.chrom, v.pos, v.ref, ">", v.alt)
+  }
+}
+
+# Type checking
+println(type(v))            # "Variant"
+println(is_snp(v))          # true
+println(variant_type(v))    # "SNP"</code></pre>
+        </section>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="sequences.html" class="text-violet-400 hover:text-violet-300">&larr; Sequences</a>
+        <a href="intervals.html" class="text-violet-400 hover:text-violet-300">Intervals &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

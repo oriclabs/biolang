@@ -1,0 +1,232 @@
+# ── RNA-seq Differential Expression Analysis ──────────────────────────────────
+# Scenario: Drug-treated vs control HCT116 colorectal cancer cell lines
+# Treatment: 48h exposure to 10uM Nutlin-3a (MDM2 inhibitor, activates p53)
+# Design: 3 biological replicates per condition (n=6 total)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── 1. Sample Metadata ───────────────────────────────────────────────────────
+println("=== 1. Sample Metadata ===")
+
+let samples = table(
+  sample_id:  ["CTL_1", "CTL_2", "CTL_3", "TRT_1", "TRT_2", "TRT_3"],
+  condition:  ["control", "control", "control", "treated", "treated", "treated"],
+  replicate:  [1, 2, 3, 1, 2, 3],
+  cell_line:  ["HCT116", "HCT116", "HCT116", "HCT116", "HCT116", "HCT116"],
+  batch:      ["A", "A", "B", "A", "B", "B"]
+)
+
+println("Samples loaded: {len(samples)} total")
+
+# ── 2. Raw Count Matrix ─────────────────────────────────────────────────────
+# Rows = genes, Columns = samples (CTL_1..3, TRT_1..3)
+# Counts simulate a realistic MDM2-inhibitor response profile
+println("=== 2. Raw Count Matrix ===")
+
+let genes = ["TP53", "MYC", "BRCA1", "GAPDH", "ACTB",
+             "CDK2", "BCL2", "BAX", "EGFR", "VEGFA", "HIF1A", "MDM2"]
+
+let raw_counts = matrix(
+  rows: genes,
+  cols: samples.sample_id,
+  data: [
+    # TP53   - moderate baseline, upregulated by Nutlin-3a stabilization
+    [  820,   780,   850,  3200,  3450,  3100],
+    # MYC    - oncogene, repressed upon p53 activation
+    [ 5400,  5100,  5350,  1200,  1050,  1300],
+    # BRCA1  - DNA repair, mildly induced
+    [ 1100,  1050,  1200,   1800,  1750,  1900],
+    # GAPDH  - housekeeping, stable
+    [12000, 11800, 12200, 11900, 12100, 11700],
+    # ACTB   - housekeeping, stable
+    [ 9500,  9700,  9400,  9600,  9300,  9800],
+    # CDK2   - cell cycle, repressed by p21 (downstream of p53)
+    [ 3800,  3900,  3700,   900,   850,   950],
+    # BCL2   - anti-apoptotic, repressed
+    [ 2600,  2500,  2700,   650,   700,   600],
+    # BAX    - pro-apoptotic, activated by p53
+    [  450,   500,   420,  2800,  2650,  2900],
+    # EGFR   - growth signaling, repressed
+    [ 3100,  3200,  2900,  1500,  1600,  1400],
+    # VEGFA  - angiogenesis, repressed under p53
+    [ 2200,  2100,  2300,   550,   600,   500],
+    # HIF1A  - hypoxia response, mildly changed
+    [ 1800,  1750,  1850,  1500,  1400,  1600],
+    # MDM2   - p53 negative regulator, strongly induced (negative feedback)
+    [  600,   650,   580,  4500,  4200,  4700]
+  ]
+)
+
+println("Count matrix: {len(genes)} genes x {len(samples)} samples")
+
+# ── 3. CPM Normalization ────────────────────────────────────────────────────
+println("=== 3. CPM Normalization ===")
+
+let lib_sizes = raw_counts
+  |> map(|col| col |> sum())
+
+let cpm_matrix = raw_counts
+  |> map(|col, i| col |> map(|count| count / lib_sizes[i] * 1_000_000))
+
+println("Library sizes (millions): {lib_sizes |> map(|s| s / 1_000_000)}")
+
+# ── 4. Differential Expression Testing ──────────────────────────────────────
+# Split into control and treated matrices, run statistical test
+println("=== 4. Differential Expression Testing ===")
+
+let control_idx = [0, 1, 2]
+let treated_idx = [3, 4, 5]
+
+let control_matrix = raw_counts |> map(|col, i| if contains(control_idx, i) { col } else { nil }) |> filter(|col| col != nil)
+let treated_matrix = raw_counts |> map(|col, i| if contains(treated_idx, i) { col } else { nil }) |> filter(|col| col != nil)
+
+let de_results = diff_expr(control_matrix, treated_matrix)
+
+println("DE test complete: {len(de_results)} genes tested")
+
+# ── 5. Log2 Fold Change Calculation ─────────────────────────────────────────
+println("=== 5. Log2 Fold Change Calculation ===")
+
+let de_results = de_results
+  |> mutate("log2fc", |row| log2(row.mean_b / row.mean_a))
+
+println("Result: log2FC computed for", len(de_results), "genes")
+
+# ── 6. Multiple Testing Correction (Benjamini-Hochberg) ─────────────────────
+println("=== 6. Multiple Testing Correction (BH) ===")
+
+let pvalues = de_results |> map(|row| row.pvalue)
+let adjusted = p_adjust(pvalues, "bh")
+
+let de_results = de_results
+  |> mutate("padj", |row, i| adjusted[i])
+
+# Sort by adjusted p-value
+let de_results = de_results
+  |> sort(|a, b| a.padj - b.padj)
+
+println("Top hits by adjusted p-value:")
+de_results |> filter(|row| row.padj < 0.05)
+  |> map(|row| println("  {row.gene}\tlog2FC={row.log2fc:.2}\tpadj={row.padj:.2e}"))
+
+# ── 7. Filter Significant Genes ─────────────────────────────────────────────
+# Thresholds: padj < 0.05 and |log2FC| > 1
+println("=== 7. Filter Significant Genes ===")
+
+let sig_genes = de_results
+  |> filter(|row| row.padj < 0.05 && abs(row.log2fc) > 1.0)
+
+let up_genes = sig_genes |> filter(|row| row.log2fc > 0) |> map(|row| row.gene)
+let down_genes = sig_genes |> filter(|row| row.log2fc < 0) |> map(|row| row.gene)
+
+println("Significant DE genes: {len(sig_genes)} total")
+println("  Upregulated:   {len(up_genes)}  {up_genes}")
+println("  Downregulated: {len(down_genes)} {down_genes}")
+
+# ── 8. Pathway Enrichment Analysis ──────────────────────────────────────────
+println("=== 8. Pathway Enrichment Analysis ===")
+
+# Define curated gene sets (MSigDB-style)
+let gene_sets = {
+  APOPTOSIS:      ["TP53", "BAX", "BCL2", "MDM2", "CASP3", "CASP9", "BID", "BAK1"],
+  CELL_CYCLE:     ["CDK2", "CDK4", "CCND1", "CCNE1", "RB1", "MYC", "TP53", "CDKN1A"],
+  PI3K_SIGNALING: ["EGFR", "VEGFA", "HIF1A", "AKT1", "MTOR", "PIK3CA", "PTEN"],
+  DNA_REPAIR:     ["BRCA1", "BRCA2", "ATM", "ATR", "RAD51", "TP53", "CHEK2"]
+}
+
+# Over-representation analysis on significant gene list
+let sig_gene_list = sig_genes |> map(|row| row.gene)
+
+let ora_results = ora(sig_gene_list, gene_sets, genes)
+
+println("\nORA Results:")
+ora_results |> map(|row| println("  {row.term}\tp={row.pvalue:.4f}\toverlap={row.overlap}"))
+
+# GSEA on full ranked list (ranked by signed -log10 p-value)
+let ranked_genes = de_results
+  |> mutate("rank_score", |row| -log2(row.pvalue) * (row.log2fc |> sign()))
+  |> sort(|a, b| b.rank_score - a.rank_score)
+
+let gsea_results = gsea(ranked_genes |> select("gene", "rank_score"), gene_sets, 1000)
+
+println("\nGSEA Results:")
+gsea_results |> map(|row| println("  {row.term}\tNES={row.nes:.3f}\tpadj={row.padj:.4f}"))
+println("Result:", len(ora_results), "ORA terms,", len(gsea_results), "GSEA terms")
+
+# ── 9. Visualizations ───────────────────────────────────────────────────────
+println("=== 9. Visualizations ===")
+
+# Volcano plot: log2FC vs -log10(padj)
+let vol = volcano(de_results, {
+  x: "log2fc",
+  y: "padj",
+  label: "gene",
+  title: "Nutlin-3a Treatment: Volcano Plot",
+  fc_cutoff: 1.0,
+  pval_cutoff: 0.05
+})
+vol |> save_svg("output/volcano_nutlin3a.svg")
+
+# Heatmap of significant genes across all samples
+# Filter matrix to significant genes by index
+let sig_indices = range(0, len(genes)) |> filter(|i| contains(sig_gene_list, genes[i]))
+let sig_cpm = matrix(sig_indices |> map(|i| cpm_matrix[i]))
+let hm = clustered_heatmap({
+  data: sig_cpm,
+  title: "Significant DE Genes (padj<0.05, |log2FC|>1)",
+  cluster_rows: true,
+  cluster_cols: true,
+  scale: "row"
+})
+hm |> save_svg("output/heatmap_sig_genes.svg")
+
+# PCA of all samples using top variable genes
+let pca = pca_plot({
+  data: cpm_matrix,
+  title: "PCA: Control vs Nutlin-3a Treated",
+  color_by: samples.condition,
+  labels: samples.sample_id,
+  n_components: 2
+})
+pca |> save_svg("output/pca_samples.svg")
+
+# Venn diagram: upregulated vs apoptosis pathway
+let venn_plot = venn({
+  data: {
+    A: up_genes,
+    B: gene_sets.APOPTOSIS
+  },
+  labels: ["Upregulated", "Apoptosis Pathway"],
+  title: "Overlap: Upregulated Genes and Apoptosis"
+})
+venn_plot |> save_svg("output/venn_up_apoptosis.svg")
+println("Result: 4 plots saved to output/")
+
+# ── 10. Pathway Database Queries ────────────────────────────────────────────
+println("=== 10. Pathway Database Queries ===")
+
+let tp53_pathways = reactome_pathways("TP53")
+println("\nTP53 Reactome pathways: {len(tp53_pathways)}")
+tp53_pathways
+  |> filter(|p| p.species == "Homo sapiens")
+  |> sort(|a, b| a.pvalue - b.pvalue)
+  |> map(|p| println("  {p.pathway_id}: {p.name}"))
+
+let apoptosis_kegg = kegg_find("pathway", "apoptosis")
+println("\nKEGG apoptosis pathways:")
+apoptosis_kegg |> map(|entry| println("  {entry.id}: {entry.description}"))
+
+# ── 11. Export Results ───────────────────────────────────────────────────────
+println("=== 11. Export Results ===")
+
+write_csv(de_results, "output/de_results_all.csv")
+write_csv(sig_genes, "output/de_significant.csv")
+write_csv(ora_results, "output/ora_enrichment.csv")
+write_csv(gsea_results, "output/gsea_enrichment.csv")
+println("Result: 4 CSV files written")
+
+# Generate a summary report
+let report = to_markdown(de_results)
+write_text("output/report.md", report)
+println("Result: report written to output/report.md")
+
+println("\n=== Analysis complete ===")

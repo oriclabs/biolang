@@ -1,0 +1,86 @@
+# File System Operations
+# read/write files, directories, paths, temp files, glob
+
+# ── Check if file exists ──
+println("=== File Existence ===")
+println("test.fa exists:", file_exists("tests/data/test.fa"))
+println("fake.txt exists:", file_exists("nonexistent.txt"))
+
+# ── Read/write text files ──
+let tmp = temp_file()
+write_text(tmp, "Hello from BioLang!\nLine two.\nLine three.")
+let content = read_text(tmp)
+println("\n=== Read/Write Text ===")
+println("Wrote to:", tmp)
+println("Content:", content)
+
+# ── Read/write lines ──
+let lines_out = temp_file()
+write_lines(lines_out, ["alpha", "beta", "gamma"])
+let lines_back = read_lines(lines_out)
+println("\n=== Read/Write Lines ===")
+println("Lines:", lines_back)
+
+# ── Append text ──
+append_text(tmp, "\nAppended line!")
+let updated = read_text(tmp)
+println("\n=== Append ===")
+println(updated)
+
+# ── Path utilities ──
+let path = "/home/user/data/sample.fastq.gz"
+println("\n=== Path Utils ===")
+println("basename:", basename(path))
+println("dirname:", dirname(path))
+println("extension:", extension(path))
+println("path_join:", path_join("/home/user", "data", "file.txt"))
+
+# ── Temp files and directories ──
+let tf = temp_file()
+let td = temp_dir()
+println("\n=== Temp ===")
+println("Temp file:", tf)
+println("Temp dir:", td)
+
+# ── Directory operations ──
+let test_dir = path_join(td, "test_subdir")
+mkdir(test_dir)
+println("\n=== Directory ===")
+println("Created:", test_dir)
+println("Is dir:", is_dir(test_dir))
+println("Is file:", is_file(test_dir))
+
+# Write a file in the dir
+let f = path_join(test_dir, "data.txt")
+write_text(f, "content")
+println("File size:", file_size(f))
+
+# ── List directory contents ──
+let items = list_dir(test_dir)
+println("\n=== list_dir ===")
+println(items)
+
+# ── Copy, rename, remove ──
+let f2 = path_join(test_dir, "copy.txt")
+copy_file(f, f2)
+println("\n=== Copy/Rename/Remove ===")
+println("Copied:", file_exists(f2))
+
+let f3 = path_join(test_dir, "renamed.txt")
+rename_file(f2, f3)
+println("Renamed:", file_exists(f3))
+
+remove(f3)
+println("After remove:", file_exists(f3))
+
+# ── Glob: find files by pattern ──
+let bl_files = glob("examples/basics/*.bl")
+println("\n=== Glob ===")
+println("BioLang example files:", len(bl_files))
+for f in head(bl_files, 3) {
+    println("  ", f)
+}
+
+# ── Absolute path ──
+println("\n=== abs_path ===")
+println("Absolute:", abs_path("."))

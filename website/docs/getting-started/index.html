@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Installation — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="getting-started/install"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a>
+        <span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Getting Started</a>
+        <span class="mx-2">/</span>
+        <span class="text-slate-300">Installation</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Installation</h1>
+        <p>
+          BioLang is distributed as a single binary with no external runtime dependencies. You can install it
+          via Cargo, download a pre-built binary, or build from source.
+        </p>
+
+        <h2>System Requirements</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Requirement</th>
+              <th>Minimum</th>
+              <th>Recommended</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Operating System</td>
+              <td>Linux (glibc 2.17+), macOS 12+, Windows 10+</td>
+              <td>Latest stable release</td>
+            </tr>
+            <tr>
+              <td>Architecture</td>
+              <td>x86_64, aarch64</td>
+              <td>x86_64 for best performance</td>
+            </tr>
+            <tr>
+              <td>Memory</td>
+              <td>512 MB</td>
+              <td>4 GB+ for large genomic datasets</td>
+            </tr>
+            <tr>
+              <td>Disk Space</td>
+              <td>50 MB (binary)</td>
+              <td>200 MB+ with standard library cache</td>
+            </tr>
+            <tr>
+              <td>Rust (build only)</td>
+              <td>1.75+</td>
+              <td>Latest stable</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Install via Cargo</h2>
+        <p>
+          The fastest way to install BioLang if you already have a Rust toolchain. This installs the
+          <code>bl</code> binary to your Cargo bin directory.
+        </p>
+        <pre><code class="language-bash">cargo install biolang</code></pre>
+        <p>Verify the installation:</p>
+        <pre><code class="language-bash">bl --version
+# biolang 0.1.0</code></pre>
+        <p>
+          If <code>bl</code> is not found, ensure <code>~/.cargo/bin</code> is in your
+          <code>PATH</code>:
+        </p>
+        <pre><code class="language-bash"># Linux / macOS — add to ~/.bashrc or ~/.zshrc
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Windows (PowerShell) — add to $PROFILE
+$env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"</code></pre>
+
+        <h2>Pre-built Binaries</h2>
+        <p>
+          Pre-built binaries are available for every tagged release on GitHub. Download the archive for
+          your platform, extract it, and place the <code>bl</code> binary somewhere on your PATH.
+        </p>
+
+        <h3>Linux (x86_64)</h3>
+        <pre><code class="language-bash">curl -Lo biolang.tar.gz \
+  https://github.com/biolang/biolang/releases/latest/download/biolang-x86_64-linux.tar.gz
+tar xzf biolang.tar.gz
+sudo mv bl /usr/local/bin/
+bl --version</code></pre>
+
+        <h3>Linux (aarch64)</h3>
+        <pre><code class="language-bash">curl -Lo biolang.tar.gz \
+  https://github.com/biolang/biolang/releases/latest/download/biolang-aarch64-linux.tar.gz
+tar xzf biolang.tar.gz
+sudo mv bl /usr/local/bin/
+bl --version</code></pre>
+
+        <h3>macOS (Apple Silicon &amp; Intel)</h3>
+        <pre><code class="language-bash"># Apple Silicon (M1/M2/M3/M4)
+curl -Lo biolang.tar.gz \
+  https://github.com/biolang/biolang/releases/latest/download/biolang-aarch64-macos.tar.gz
+
+# Intel
+curl -Lo biolang.tar.gz \
+  https://github.com/biolang/biolang/releases/latest/download/biolang-x86_64-macos.tar.gz
+
+tar xzf biolang.tar.gz
+sudo mv bl /usr/local/bin/
+bl --version</code></pre>
+        <p>
+          Alternatively, install via Homebrew:
+        </p>
+        <pre><code class="language-bash">brew install biolang/tap/biolang</code></pre>
+
+        <h3>Windows</h3>
+        <p>
+          Download <code>biolang-x86_64-windows.zip</code> from the
+          <a href="https://github.com/biolang/biolang/releases" class="text-violet-400 hover:text-violet-300">releases page</a>,
+          extract it, and add the folder to your <code>PATH</code>.
+        </p>
+        <pre><code class="language-bash"># PowerShell
+Invoke-WebRequest -Uri "https://github.com/biolang/biolang/releases/latest/download/biolang-x86_64-windows.zip" -OutFile biolang.zip
+Expand-Archive biolang.zip -DestinationPath "$env:LOCALAPPDATA\biolang"
+$env:PATH += ";$env:LOCALAPPDATA\biolang"
+bl --version</code></pre>
+
+        <h2>Building from Source</h2>
+        <p>
+          Clone the repository and build with Cargo. This requires Rust 1.75 or later.
+        </p>
+        <pre><code class="language-bash">git clone https://github.com/biolang/biolang.git
+cd biolang
+cargo build --release
+# Binary is at target/release/bl</code></pre>
+        <p>
+          To run the test suite after building:
+        </p>
+        <pre><code class="language-bash">cargo test --workspace</code></pre>
+        <p>
+          For development builds with debug symbols and faster compilation:
+        </p>
+        <pre><code class="language-bash">cargo build
+# Binary is at target/debug/bl</code></pre>
+
+        <h2>Updating</h2>
+        <p>To update an existing Cargo installation to the latest version:</p>
+        <pre><code class="language-bash">cargo install bl-cli --force</code></pre>
+        <p>For Homebrew:</p>
+        <pre><code class="language-bash">brew upgrade biolang</code></pre>
+
+        <h2>Uninstalling</h2>
+        <pre><code class="language-bash"># Cargo
+cargo uninstall bl-cli
+
+# Homebrew
+brew uninstall biolang
+
+# Manual — just remove the binary
+rm /usr/local/bin/bl</code></pre>
+
+        <h2>Next Steps</h2>
+        <p>
+          Now that BioLang is installed, head to the
+          <a href="quickstart.html" class="text-violet-400 hover:text-violet-300">Quick Start</a>
+          guide to write your first program.
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <div></div>
+        <a href="quickstart.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Quick Start <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

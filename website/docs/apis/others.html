@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Other API Clients — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="apis/others"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">API Clients</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Other Clients</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Other API Clients</h1>
+        <p>
+          Beyond the major databases, BioLang includes clients for KEGG, STRING, PDB,
+          Reactome, Gene Ontology, COSMIC, and BioMart. All are available as
+          global functions with no import required.
+        </p>
+
+        <h2>KEGG (Kyoto Encyclopedia of Genes and Genomes)</h2>
+        <p>
+          Search databases, retrieve entries, and find cross-references with three
+          functions: <code>kegg_find</code>, <code>kegg_get</code>, and <code>kegg_link</code>.
+        </p>
+        <pre><code class="language-biolang"># Search KEGG for pathways related to apoptosis
+let results = kegg_find("pathway", "apoptosis")
+results |> map(|r| print(r.id, r.description))
+
+# Get the raw KEGG entry for a specific pathway
+let entry = kegg_get("hsa04110")    # Cell cycle
+print(entry)                     # raw KEGG flat-file text
+
+# Find all human pathways mentioning BRCA1
+results = kegg_find("genes", "brca1+hsa")
+results |> map(|r| print(r.id, r.description))
+
+# Cross-reference: find genes linked to a pathway
+let links = kegg_link("hsa", "pathway:hsa04110")
+links |> map(|l| print(l.source, "->", l.target))
+
+# Cross-reference: find pathways for a gene
+let pathways = kegg_link("pathway", "hsa:672")    # BRCA1
+pathways |> map(|p| print(p.target))
+
+# Get compound information
+let compound_text = kegg_get("C00002")    # ATP
+print(compound_text)</code></pre>
+
+        <h2>STRING (Protein-Protein Interaction Network)</h2>
+        <p>
+          Query protein interaction networks and functional enrichment with
+          <code>string_network</code> and <code>string_enrichment</code>.
+          The <code>species</code> argument is a numeric NCBI taxonomy ID (9606 = human).
+        </p>
+        <pre><code class="language-biolang"># Get interaction network for a protein
+let network = string_network("TP53", 9606)
+
+network |> map(|i| {
+  protein_a: i.preferredName_A,
+  protein_b: i.preferredName_B,
+  score: i.score
+}) |> to_table() |> print()
+
+# Get network for multiple proteins
+let proteins = ["BRCA1", "BRCA2", "RAD51", "ATM", "ATR"]
+network = string_network(proteins, 9606)
+
+# Filter by confidence score
+let high_conf = network |> filter(|i| i.score > 0.9)
+print(high_conf |> len(), "high-confidence interactions")
+
+# Functional enrichment analysis
+let enrichment = string_enrichment(proteins, 9606)
+enrichment
+  |> filter(|e| e.category == "Process")
+  |> sort(.fdr)
+  |> take(10)
+  |> map(|e| print(e.term, e.description, "FDR:", e.fdr))</code></pre>
+
+        <h2>PDB (Protein Data Bank)</h2>
+        <p>
+          Look up 3D protein structures with <code>pdb_entry</code> and search
+          the archive with <code>pdb_search</code>.
+        </p>
+        <pre><code class="language-biolang"># Get a structure entry
+let entry = pdb_entry("4HHB")          # Hemoglobin
+print(entry.title)
+print(entry.resolution)             # => 1.74 Angstroms
+print(entry.method)                 # => "X-RAY DIFFRACTION"
+print(entry.deposition_date)
+
+# List entities (chains / molecules)
+entry.entities |> map(|e| print(e.description, e.type))
+
+# Search PDB by keyword
+let ids = pdb_search("CRISPR Cas9")
+print(ids |> len(), "structures found")
+
+# Look up details for each hit
+ids |> take(5) |> map(|id| {
+  let e = pdb_entry(id)
+  print(e.id, e.title, e.resolution)
+})</code></pre>
+
+        <h2>Reactome (Pathway Database)</h2>
+        <p>
+          Search curated biological pathways with <code>reactome_search</code>
+          and find pathways for specific genes with <code>reactome_pathways</code>.
+        </p>
+        <pre><code class="language-biolang"># Search Reactome for DNA repair pathways
+let results = reactome_search("DNA repair")
+results
+  |> filter(|r| r.species == "Homo sapiens")
+  |> map(|r| print(r.id, r.name))
+
+# Find pathways for a gene
+let pathways = reactome_pathways("TP53")
+pathways |> map(|p| print(p.id, p.name))
+
+# Find pathways for multiple genes
+let genes = ["BRCA1", "BRCA2", "RAD51"]
+genes |> map(|g| {
+  let paths = reactome_pathways(g)
+  print("{g}: {paths |> len()} pathways")
+})</code></pre>
+
+        <h2>Gene Ontology (GO)</h2>
+        <p>
+          Look up GO terms, retrieve annotations, and navigate
+          the ontology hierarchy. Functions include:
+          <code>go_term</code>, <code>go_annotations</code>,
+          <code>go_children</code>, <code>go_parents</code>,
+          <code>go_ancestors</code>, and <code>go_descendants</code>.
+        </p>
+        <pre><code class="language-biolang"># Look up a GO term by ID
+let term = go_term("GO:0006915")       # Apoptotic process
+print(term.name)                    # => "apoptotic process"
+print(term.namespace)               # => "biological_process"
+print(term.definition)
+
+# Get annotations for a gene
+let annotations = go_annotations("TP53")
+annotations |> map(|a| {
+  go_id: a.go_id,
+  name: a.term,
+  aspect: a.aspect
+}) |> to_table() |> print()
+
+# Get parent terms in the GO hierarchy
+let parents = go_parents("GO:0006915")
+parents |> map(|p| print(p.id, p.name))
+
+# Get child terms in the GO hierarchy
+let children = go_children("GO:0008150")   # biological_process
+print(children |> len(), "child terms")
+children |> map(|c| print(c.id, c.name))</code></pre>
+
+        <h2>COSMIC (Catalogue of Somatic Mutations in Cancer)</h2>
+        <p>
+          Query somatic mutation data for a gene. Requires the
+          <code>COSMIC_API_KEY</code> environment variable.
+        </p>
+        <pre><code class="language-biolang"># Query mutations in a gene
+let mutations = cosmic_gene("TP53")
+mutations |> map(|m| {
+  mutation_id: m.id,
+  position: m.genomic_position,
+  aa_change: m.aa_mutation,
+  cancer_type: m.primary_site,
+  count: m.count
+}) |> to_table() |> print()
+
+# Sort by mutation frequency
+mutations
+  |> sort(.count)
+  |> reverse()
+  |> take(20)
+  |> map(|m| print(m.aa_mutation, "count:", m.count))
+
+# Check another gene
+let egfr = cosmic_gene("EGFR")
+print("EGFR: {egfr |> len()} mutations found")</code></pre>
+
+        <h2>BioMart (Ensembl BioMart)</h2>
+        <p>
+          Bulk data retrieval from Ensembl BioMart via <code>biomart_query</code>.
+          Takes three positional arguments: dataset, attributes (list), and filters (record).
+        </p>
+        <pre><code class="language-biolang"># Query gene attributes in a genomic region
+let genes = biomart_query(
+  "hsapiens_gene_ensembl",
+  ["ensembl_gene_id", "external_gene_name", "gene_biotype", "start_position", "end_position"],
+  {chromosome_name: "17", start: 43044295, end: 43170245}
+)
+genes |> to_table() |> print()
+
+# Get GO annotations for a gene list
+let go_annot = biomart_query(
+  "hsapiens_gene_ensembl",
+  ["hgnc_symbol", "go_id", "name_1006", "namespace_1003"],
+  {hgnc_symbol: ["BRCA1", "TP53", "EGFR"]}
+)
+go_annot |> to_table() |> print()
+
+# Get ortholog mappings
+let orthologs = biomart_query(
+  "hsapiens_gene_ensembl",
+  ["external_gene_name", "mmusculus_homolog_ensembl_gene", "mmusculus_homolog_orthology_type"],
+  {hgnc_symbol: ["BRCA1", "TP53"]}
+)
+orthologs |> to_table() |> print()</code></pre>
+
+        <section id="go-traversal" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">GO Graph Traversal</h2>
+          <p class="text-slate-400 mb-4">Navigate the Gene Ontology hierarchy with traversal functions.</p>
+          <table class="w-full text-sm mb-4">
+            <thead class="border-b border-slate-800 text-left">
+              <tr>
+                <th class="py-2 px-3">Function</th>
+                <th class="py-2 px-3">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">go_term(id)</code></td><td class="py-2 px-3">Look up a term by GO ID — returns {id, name, namespace, definition}</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">go_annotations(gene)</code></td><td class="py-2 px-3">Get GO annotations for a gene — returns list of {go_id, term, aspect}</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">go_children(id)</code></td><td class="py-2 px-3">Direct child terms</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">go_parents(id)</code></td><td class="py-2 px-3">Direct parent terms</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">go_ancestors(id)</code></td><td class="py-2 px-3">All ancestor terms</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">go_descendants(id)</code></td><td class="py-2 px-3">All descendant terms</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang"># Navigate the GO hierarchy
+let children = go_children("GO:0008150")
+print("Child terms: {children |> len()}")
+children |> map(|c| print(c.id, c.name))
+
+# Look up a specific term and its children
+let term = go_term("GO:0005634")     # nucleus
+let kids = go_children("GO:0005634")
+print("{term.name} has {kids |> len()} children")
+
+# Get annotations and cross-reference with term details
+let annotations = go_annotations("BRCA1")
+annotations |> map(|a| {
+  let detail = go_term(a.go_id)
+  print(a.go_id, detail.name, "({detail.namespace})")
+})</code></pre>
+        </section>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="ucsc.html" class="text-violet-400 hover:text-violet-300">&larr; UCSC</a>
+        <div></div>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

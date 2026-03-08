@@ -1,0 +1,13 @@
+{
+  "name": "biolang-website",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npx tailwindcss -i src/input.css -o assets/styles.css --minify",
+    "watch": "npx tailwindcss -i src/input.css -o assets/styles.css --watch",
+    "serve": "npx http-server . -p 3000 -c-1 --ext html",
+    "dev": "start /B npx http-server . -p 3000 -c-1 --ext html && npx tailwindcss -i src/input.css -o assets/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

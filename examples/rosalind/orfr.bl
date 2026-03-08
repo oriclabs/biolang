@@ -1,0 +1,28 @@
+# Rosalind: ORFR — Finding Genes with ORFs
+# https://rosalind.info/problems/orfr/
+#
+# Given: A DNA string s of length at most 1 kbp.
+# Return: The longest protein string from any ORF (all six reading frames).
+
+let s = dna"AGCCATGTAGCTAACTCAGGTTACATGGGGATGACCCCGCGACTTGGATTAGAGTCTCTTTTGGAATAAGCCTGAATGATCCGAGTAGCATCTCAG"
+
+# find_orfs searches 3 forward reading frames; we also need the reverse complement
+let fwd_orfs = find_orfs(s, 1)
+let rc = reverse_complement(s)
+let rev_orfs = find_orfs(rc, 1)
+let all_orfs = fwd_orfs + rev_orfs
+
+# Find the longest protein
+let longest = all_orfs |> reduce(|a, b| {
+    if seq_len(a.protein) >= seq_len(b.protein) then a else b
+})
+
+let result = longest.protein
+let expected = protein"MLLGSFRLIPKETLIQVAGSSPCNLS"
+
+println("Result:   " + str(result))
+println("Expected: " + str(expected))
+println("Match:    " + str(result == expected))
+
+println("\nAll ORFs found (" + str(len(all_orfs)) + "):")
+all_orfs |> each(|o| println("  frame=" + str(o.frame) + " len=" + str(seq_len(o.protein)) + " " + str(o.protein)))

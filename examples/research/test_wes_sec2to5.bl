@@ -1,0 +1,68 @@
+let trio = table([
+    {chrom: "chrX", pos: 153296777, ref: "C",  alt: "T",  gene: "MECP2",  consequence: "nonsense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 892.0, allele_freq: 0.0},
+    {chrom: "chr2", pos: 166845670, ref: "G",  alt: "A",  gene: "SCN1A",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 743.0, allele_freq: 0.00002},
+    {chrom: "chr7", pos: 114086327, ref: "C",  alt: "T",  gene: "FOXP2",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 512.0, allele_freq: 0.003},
+    {chrom: "chr21",pos: 37766822,  ref: "G",  alt: "A",  gene: "DYRK1A", consequence: "frameshift", gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 678.0, allele_freq: 0.0}
+])
+
+# Section 2: Inheritance
+let de_novo = trio |> filter(|v| v.gt_child == "0/1" && v.gt_mother == "0/0" && v.gt_father == "0/0")
+println("De novo:", de_novo |> count())
+de_novo |> each(|v| println("  " + v.gene + " " + v.chrom + ":" + str(v.pos) + " " + v.consequence))
+
+# Section 3: Prioritization
+let rare = trio |> filter(|v| v.allele_freq <= 0.01)
+let protein_altering = ["missense", "nonsense", "frameshift", "splice"]
+let functional = rare |> filter(|v| protein_altering |> contains(v.consequence))
+println("Functional:", functional |> count())
+
+# Section 4: Gene-Disease (uses APIs — wrap in try)
+println("--- DB lookups ---")
+try {
+    let mecp2_gene = ncbi_gene("MECP2")
+    println("MECP2 gene IDs:", mecp2_gene.ids)
+} catch e {
+    println("MECP2 lookup skipped:", e)
+}
+
+# Section 5: ACMG — the tricky one with if/then assignments
+let scored = functional |> mutate("cadd_score", |v| {
+    if v.consequence == "nonsense" then 38.0
+    else if v.consequence == "frameshift" then 35.0
+    else if v.consequence == "splice" then 28.0
+    else if v.allele_freq == 0.0 then 26.0
+    else 22.0
+})
+
+let acmg_classified = scored |> mutate("acmg_codes", |v| {
+    let codes = []
+    if (v.consequence == "nonsense" || v.consequence == "frameshift") && v.gene == "MECP2" then
+        codes = codes + ["PVS1"]
+    if v.gt_mother == "0/0" && v.gt_father == "0/0" then
+        codes = codes + ["PS2"]
+    if v.allele_freq <= 0.0001 then
+        codes = codes + ["PM2"]
+    if v.cadd_score >= 25.0 then
+        codes = codes + ["PP3"]
+    codes
+})
+
+let acmg_final = acmg_classified |> mutate("classification", |v| {
+    let codes = v.acmg_codes
+    let has_pvs1 = codes |> contains("PVS1")
+    let has_ps2  = codes |> contains("PS2")
+    let has_pm2  = codes |> contains("PM2")
+    let n = len(codes)
+    if has_pvs1 && has_ps2 then "Pathogenic"
+    else if has_pvs1 && has_pm2 then "Likely Pathogenic"
+    else if has_ps2 && has_pm2 && n >= 3 then "Likely Pathogenic"
+    else if n >= 2 then "VUS"
+    else "Benign"
+})
+
+acmg_final |> each(|v| {
+    let codes_str = v.acmg_codes |> join(", ")
+    println("  " + v.gene + " " + v.consequence + " → " + v.classification + " [" + codes_str + "]")
+})
+
+println("DONE")

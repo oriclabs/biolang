@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipelines — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/pipelines"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Pipelines</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Pipelines</h1>
+        <p>
+          Bioinformatics workflows are rarely a single step. A typical analysis chains together
+          quality control, alignment, variant calling, filtering, and annotation into a directed
+          acyclic graph of stages. BioLang provides first-class <code>pipeline</code> blocks that
+          make multi-stage workflows explicit, reproducible, and parallel-aware.
+        </p>
+
+        <h2>Pipeline Blocks</h2>
+        <p>
+          A <code>pipeline</code> block declares a named workflow composed of <code>stage</code>
+          blocks. Stages execute sequentially by default, and each stage can reference the output
+          of any previous stage.
+        </p>
+        <pre><code class="language-biolang">pipeline fastq_qc {
+  stage raw_stats {
+    read_fastq("sample_R1.fastq.gz")
+      |> filter(|r| mean_phred(r.quality) >= 20)
+      |> collect()
+      |> len()
+  }
+
+  stage filter {
+    read_fastq("sample_R1.fastq.gz")
+      |> filter(|r| mean_phred(r.quality) >= 30)
+      |> write_fastq("sample_R1.filtered.fastq.gz")
+  }
+
+  stage filtered_stats {
+    read_fastq("sample_R1.filtered.fastq.gz")
+      |> collect()
+      |> len()
+  }
+}</code></pre>
+        <p>
+          When you invoke <code>fastq_qc</code>, BioLang runs <code>raw_stats</code>, then
+          <code>filter</code>, then <code>filtered_stats</code> in order. The return value of the
+          pipeline is the result of the last stage.
+        </p>
+
+        <h2>Passing Data Between Stages</h2>
+        <p>
+          Stages can capture the result of a previous stage by name. The stage name becomes a
+          binding available to all subsequent stages.
+        </p>
+        <pre><code class="language-biolang">pipeline align_and_sort {
+  stage alignment {
+    let ref = "GRCh38.fa"
+    let r1 = "tumor_R1.fastq.gz"
+    let r2 = "tumor_R2.fastq.gz"
+    shell("bwa-mem2 mem -t 16 " + ref + " " + r1 + " " + r2 + " > aligned.sam")
+    "aligned.sam"
+  }
+
+  stage sorted {
+    # alignment is the output path from the previous stage
+    shell("samtools sort -@ 8 " + alignment + " -o sorted.bam")
+    "sorted.bam"
+  }
+
+  stage indexed {
+    shell("samtools index " + sorted)
+    sorted  # return the sorted BAM path
+  }
+}</code></pre>
+        <p>
+          Each stage name resolves to whatever its block evaluated to. This creates an implicit
+          dependency chain without manual wiring.
+        </p>
+
+        <h2>Stage Dependencies and DAG Execution</h2>
+        <p>
+          BioLang infers a dependency graph from which stage names appear in each block. Independent
+          stages run concurrently when the runtime detects no data dependencies.
+        </p>
+        <pre><code class="language-biolang">pipeline variant_qc {
+  stage aligned {
+    shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.fq.gz sample_R2.fq.gz | samtools sort -@ 8 -o aligned.bam")
+    "aligned.bam"
+  }
+
+  # These two stages depend only on aligned, not on each other.
+  # BioLang runs them concurrently.
+  stage depth_check {
+    let bam_reads = read_bam(aligned) |> collect()
+    let mapped = bam_reads |> filter(|r| r.is_mapped) |> len()
+    mapped
+  }
+
+  stage flag_stats {
+    let bam_reads = read_bam(aligned) |> collect()
+    flagstat(bam_reads)
+  }
+
+  # This stage depends on both depth_check and flag_stats
+  stage report {
+    {
+      mapped_reads: depth_check,
+      flagstat: flag_stats,
+      sample: "sample_01",
+    }
+  }
+}</code></pre>
+        <p>
+          The runtime builds a DAG: <code>aligned</code> has no dependencies, <code>depth_check</code>
+          and <code>flag_stats</code> both depend on <code>aligned</code> (and thus run in parallel
+          once it finishes), and <code>report</code> depends on both.
+        </p>
+
+        <h2>Parallel Execution</h2>
+        <p>
+          When you need to process multiple samples, <code>parallel for</code> fans out work across
+          available cores. BioLang schedules iterations concurrently, respecting system resources.
+        </p>
+        <pre><code class="language-biolang">let samples = [
+  {id: "tumor_01", r1: "t01_R1.fq.gz", r2: "t01_R2.fq.gz"},
+  {id: "tumor_02", r1: "t02_R1.fq.gz", r2: "t02_R2.fq.gz"},
+  {id: "tumor_03", r1: "t03_R1.fq.gz", r2: "t03_R2.fq.gz"},
+  {id: "normal_01", r1: "n01_R1.fq.gz", r2: "n01_R2.fq.gz"},
+]
+
+parallel for sample in samples {
+  let bam = sample.id + ".sorted.bam"
+  shell("bwa-mem2 mem -t 4 GRCh38.fa " + sample.r1 + " " + sample.r2
+        + " | samtools sort -@ 4 -o " + bam)
+  shell("samtools index " + bam)
+  {id: sample.id, bam: bam}
+}</code></pre>
+        <p>
+          The result is a list of records, one per sample, collected in the order the iterations
+          complete.
+        </p>
+
+        <h2>Defer for Cleanup</h2>
+        <p>
+          Intermediate files pile up fast. <code>defer</code> registers a cleanup action that runs
+          when the pipeline completes, whether it succeeds or fails. Multiple <code>defer</code>
+          blocks execute in reverse order (LIFO).
+        </p>
+        <pre><code class="language-biolang">pipeline trimmed_alignment {
+  stage trim {
+    let trimmed_r1 = "tmp/trimmed_R1.fq.gz"
+    let trimmed_r2 = "tmp/trimmed_R2.fq.gz"
+    trim_adapters("sample_R1.fq.gz", "sample_R2.fq.gz",
+                  out_r1: trimmed_r1, out_r2: trimmed_r2,
+                  adapter: "AGATCGGAAGAG")
+    defer { remove(trimmed_r1); remove(trimmed_r2) }
+    {r1: trimmed_r1, r2: trimmed_r2}
+  }
+
+  stage align {
+    let bam = "aligned.bam"
+    shell("bwa-mem2 mem -t 16 GRCh38.fa " + trim.r1 + " " + trim.r2
+          + " | samtools sort -@ 8 -o " + bam)
+    let unsorted = "aligned.unsorted.bam"
+    defer { remove(unsorted) }
+    bam
+  }
+}</code></pre>
+        <p>
+          When <code>trimmed_alignment</code> finishes, the deferred blocks fire: the unsorted BAM
+          is removed first, then the trimmed FASTQs. Cleanup happens even if a stage fails.
+        </p>
+
+        <h2>Parameterized Pipelines (Templates)</h2>
+        <p>
+          A pipeline can accept parameters, turning it into a reusable template. When you declare
+          <code>pipeline name(param1, param2) { ... }</code>, BioLang defines a callable function
+          instead of executing immediately. You invoke it like any other function.
+        </p>
+        <pre><code class="language-biolang"># Define a reusable alignment template
+pipeline align_sample(sample_id, r1, r2, reference) {
+  stage aligned {
+    shell("bwa-mem2 mem -t 16 " + reference + " " + r1 + " " + r2
+          + " | samtools sort -@ 8 -o " + sample_id + ".sorted.bam")
+    sample_id + ".sorted.bam"
+  }
+
+  stage indexed {
+    shell("samtools index " + aligned)
+    aligned
+  }
+}
+
+# Call with different inputs — same pipeline, different data
+let tumor = align_sample("tumor", "tumor_R1.fq.gz", "tumor_R2.fq.gz", "GRCh38.fa")
+let normal = align_sample("normal", "normal_R1.fq.gz", "normal_R2.fq.gz", "GRCh38.fa")
+print("Tumor BAM: " + tumor)
+print("Normal BAM: " + normal)</code></pre>
+
+        <p>
+          Parameterized pipelines compose naturally. You can call one template from inside another,
+          loop over a sample list, or pass configuration records as parameters.
+        </p>
+        <pre><code class="language-biolang"># Process a whole cohort with the same template
+let samples = [
+  {id: "S1", r1: "S1_R1.fq.gz", r2: "S1_R2.fq.gz"},
+  {id: "S2", r1: "S2_R1.fq.gz", r2: "S2_R2.fq.gz"},
+  {id: "S3", r1: "S3_R1.fq.gz", r2: "S3_R2.fq.gz"},
+]
+
+let bams = samples |> map(|s| align_sample(s.id, s.r1, s.r2, "GRCh38.fa"))
+print("Aligned " + str(len(bams)) + " samples")</code></pre>
+
+        <div class="bg-slate-900 border border-slate-700 rounded-lg p-4 my-4">
+          <p class="text-sm text-slate-400 mb-2"><strong class="text-violet-400">How it works:</strong></p>
+          <ul class="text-sm text-slate-400 list-disc ml-4 space-y-1">
+            <li><code>pipeline name { ... }</code> (no params) — executes immediately, result bound to <code>name</code></li>
+            <li><code>pipeline name(params) { ... }</code> — defines a callable function; nothing runs until you call it</li>
+            <li>The parameter list uses the same syntax as function parameters</li>
+          </ul>
+        </div>
+
+        <h2>Pipeline Composition</h2>
+        <p>
+          Pipelines are values. You can call one pipeline from within another or store its result
+          for downstream use.
+        </p>
+        <pre><code class="language-biolang">pipeline align_one(sample) {
+  stage bam {
+    let out = sample.id + ".sorted.bam"
+    shell("bwa-mem2 mem -t 8 GRCh38.fa " + sample.r1 + " " + sample.r2
+          + " | samtools sort -@ 4 -o " + out)
+    out
+  }
+  stage index {
+    shell("samtools index " + bam)
+    bam
+  }
+}
+
+pipeline somatic_pair(tumor, normal) {
+  stage tumor_bam { align_one(tumor) }
+  stage normal_bam { align_one(normal) }
+
+  stage call {
+    shell("gatk Mutect2 -R GRCh38.fa -I " + tumor_bam
+          + " -I " + normal_bam + " -normal " + normal.id
+          + " -O somatic.vcf.gz")
+    "somatic.vcf.gz"
+  }
+}
+
+# Run the composed pipeline
+let result = somatic_pair(
+  {id: "tumor", r1: "tumor_R1.fq.gz", r2: "tumor_R2.fq.gz"},
+  {id: "normal", r1: "normal_R1.fq.gz", r2: "normal_R2.fq.gz"}
+)
+print("Somatic variants written to: " + result)</code></pre>
+
+        <h2>Introspection Builtins</h2>
+        <p>
+          Two builtins help you inspect and optimize pipelines:
+        </p>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pipeline_steps(pipeline_record)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Record &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Extracts the list of stage names and metadata from a pipeline record.
+            </p>
+            <pre><code class="language-biolang">let steps = pipeline_steps(fastq_qc)
+# [{name: "raw_stats"}, {name: "filter"}, {name: "filtered_stats"}]</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pipe_fuse(list, op1, op2, ...)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">List, Fns &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Fuses multiple pipe operations into a single pass over the data for efficiency.
+              Instead of creating intermediate lists between each operation, <code>pipe_fuse</code>
+              applies all operations in one traversal.
+            </p>
+            <pre><code class="language-biolang"># Without fusion: creates intermediate lists
+let result = reads
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> map(|r| gc_content(r.seq))
+  |> filter(|gc| gc >= 0.3 and gc <= 0.7)
+
+# With fusion: single pass
+let result = pipe_fuse(reads,
+  |r| mean_phred(r.quality) >= 30,
+  |r| gc_content(r.seq)
+)</code></pre>
+          </div>
+        </section>
+
+        <h2>Example: QC-to-Variants Pipeline</h2>
+        <p>A complete workflow from raw reads to filtered variants using BioLang builtins:</p>
+        <pre><code class="language-biolang">pipeline qc_to_variants {
+  stage qc {
+    let reads = read_fastq("sample_R1.fq.gz") |> collect()
+    let total = len(reads)
+    let passing = reads |> filter(|r| mean_phred(r.quality) >= 25) |> len()
+    print("QC: " + str(passing) + "/" + str(total) + " reads pass Q25")
+
+    # Write filtered reads
+    reads
+      |> filter(|r| mean_phred(r.quality) >= 25)
+      |> write_fastq("sample_R1.filtered.fq.gz")
+  }
+
+  stage align {
+    shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.filtered.fq.gz"
+          + " | samtools sort -@ 8 -o aligned.bam")
+    shell("samtools index aligned.bam")
+    "aligned.bam"
+  }
+
+  stage call {
+    shell("gatk HaplotypeCaller -R GRCh38.fa -I " + align
+          + " -O raw.vcf.gz")
+    "raw.vcf.gz"
+  }
+
+  stage filter_variants {
+    let variants = read_vcf(call)
+    let snps = variants |> filter(|v| v.is_snp)
+    let indels = variants |> filter(|v| v.is_indel)
+
+    print("SNPs: " + str(len(snps)) + ", Indels: " + str(len(indels)))
+    print("Ti/Tv: " + str(tstv_ratio(snps)))
+
+    variants
+      |> filter(|v| v.quality >= 30.0)
+      |> write_vcf("filtered.vcf.gz")
+  }
+}
+
+# Run the full pipeline
+let output = qc_to_variants
+print("Pipeline complete: " + output)</code></pre>
+
+        <h2>Summary</h2>
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr><th>Feature</th><th>Syntax</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Pipeline block</td><td><code>pipeline name { ... }</code></td><td>Declare and immediately execute a named workflow</td></tr>
+              <tr><td>Pipeline template</td><td><code>pipeline name(params) { ... }</code></td><td>Define a reusable, callable pipeline</td></tr>
+              <tr><td>Stage</td><td><code>stage name { expr }</code></td><td>Named step; result bound to stage name</td></tr>
+              <tr><td>Stage reference</td><td><code>stage_name</code></td><td>Use previous stage result by name</td></tr>
+              <tr><td>Parallel</td><td><code>parallel for x in list { ... }</code></td><td>Fan out across cores</td></tr>
+              <tr><td>Defer</td><td><code>defer { cleanup }</code></td><td>Run cleanup on completion (LIFO order)</td></tr>
+              <tr><td>Composition</td><td><code>pipeline a(args) { ... }</code></td><td>Pipelines are values; call from other pipelines</td></tr>
+              <tr><td>Introspection</td><td><code>pipeline_steps(p)</code></td><td>List stages in a pipeline</td></tr>
+              <tr><td>Fusion</td><td><code>pipe_fuse(list, ...)</code></td><td>Single-pass optimization</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </article>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+</body>
+</html>

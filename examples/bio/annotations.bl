@@ -1,0 +1,71 @@
+# annotations.bl — BED and GFF annotation analysis
+#
+# Demonstrates: reading BED/GFF files, working with annotation features,
+# filtering by type, combining annotations with interval trees.
+
+# ── Reading BED Files ─────────────────────────────────────────
+let bed_stream = bed("tests/data/multi.bed")
+
+println("=== BED Regions (stream) ===")
+bed_stream |> each(|r| {
+    println("  ", r.chrom, ":", r.start, "-", r.end, "  ", r.name)
+})
+
+# Load as table for analysis
+let regions = bed("tests/data/multi.bed", "table")
+println("Total BED regions: ", regions |> count())
+
+# ── Region Size Analysis ─────────────────────────────────────
+let sizes = regions |> map(|r| r.end - r.start)
+println("Region sizes: ", sizes)
+println("Mean size:    ", sizes |> mean())
+println("Total span:   ", sizes |> sum(), " bp")
+
+# ── Reading GFF Files ─────────────────────────────────────────
+let gff_stream = gff("tests/data/test.gff")
+
+println("\n=== GFF Features (stream) ===")
+gff_stream |> each(|f| {
+    println("  ", f.seqid, "  ", f.type, "  ", f.start, "-", f.end, "  strand=", f.strand)
+})
+
+# Load as table
+let features = gff("tests/data/test.gff", "table")
+println("Total GFF features: ", features |> count())
+
+# ── Filter by Feature Type ───────────────────────────────────
+let genes = features |> filter(|f| f.type == "gene")
+let exons = features |> filter(|f| f.type == "exon")
+let cds   = features |> filter(|f| f.type == "CDS")
+println("Genes: ", genes |> count())
+println("Exons: ", exons |> count())
+println("CDS:   ", cds |> count())
+
+# ── Strand Analysis ───────────────────────────────────────────
+let plus_strand  = features |> filter(|f| f.strand == "+")
+let minus_strand = features |> filter(|f| f.strand == "-")
+println("Plus-strand features:  ", plus_strand |> count())
+println("Minus-strand features: ", minus_strand |> count())
+
+# ── Combine BED + GFF with Interval Trees ────────────────────
+# Build an interval tree from BED regions
+let bed_tree = regions |> interval_tree()
+
+# For each gene, find overlapping BED regions
+println("\nGene-region overlaps:")
+genes |> each(|g| {
+    let overlaps = bed_tree |> query_overlaps(g.seqid, g.start, g.end)
+    let n = overlaps |> count()
+    println("  Gene at ", g.seqid, ":", g.start, "-", g.end, " overlaps ", n, " BED region(s)")
+})
+
+# ── Feature Span Histogram ───────────────────────────────────
+let exon_sizes = exons |> map(|e| e.end - e.start)
+println("\nExon sizes: ", exon_sizes)
+println("Min exon: ", exon_sizes |> min(), " bp")
+println("Max exon: ", exon_sizes |> max(), " bp")
+
+# ── Writing Filtered Annotations ─────────────────────────────
+# genes |> write_gff("/tmp/genes_only.gff")
+# regions |> filter(|r| r.end - r.start > 500) |> write_bed("/tmp/large_regions.bed")
+println("\n(write commands commented out — uncomment to produce output files)")

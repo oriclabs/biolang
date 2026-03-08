@@ -1,0 +1,62 @@
+# Gene Ontology (QuickGO) API Examples
+# Gene Ontology Consortium — EU (EBI)
+
+# Lookup a GO term
+# go_term(go_id) -> {id, name, aspect, definition, is_obsolete}
+let term = go_term("GO:0006915")
+println("=== GO Term ===")
+println("ID:", term.id)
+println("Name:", term.name)
+println("Aspect:", term.aspect)
+println("Definition:", substr(term.definition, 0, 120), "...")
+println("Obsolete:", term.is_obsolete)
+
+# GO aspects: molecular_function, biological_process, cellular_component
+
+# Get GO annotations for a gene
+# go_annotations(gene, limit?) -> list of annotation records
+let annotations = go_annotations("TP53", 10)
+println("\n=== TP53 GO Annotations ===")
+for a in annotations {
+    println("  [", a.aspect, "]", a.go_id, "-", a.go_name)
+    println("    Evidence:", a.evidence, "| Product:", a.gene_product_id)
+}
+
+# Navigate the ontology graph
+# go_children(go_id) -> list of child terms
+let children = go_children("GO:0006915")
+println("\n=== Children of 'apoptotic process' ===")
+for c in head(children, 5) {
+    println("  ", c.id, "-", c.name)
+}
+
+# go_parents(go_id) -> list of parent terms
+let parents = go_parents("GO:0006915")
+println("\n=== Parents ===")
+for p in parents {
+    println("  ", p.id, "-", p.name)
+}
+
+# go_ancestors(go_id) -> all ancestors up to root
+let ancestors = go_ancestors("GO:0006915")
+println("\n=== Ancestors (path to root) ===")
+println("Total:", len(ancestors))
+for a in head(ancestors, 5) {
+    println("  ", a.id, "-", a.name)
+}
+
+# go_descendants(go_id) -> all descendants
+let descendants = go_descendants("GO:0006915")
+println("\n=== Descendants ===")
+println("Total:", len(descendants))
+
+# Compare GO annotations across genes
+let genes = ["TP53", "BRCA1", "MDM2"]
+println("\n=== GO Annotation Comparison ===")
+for g in genes {
+    let anns = go_annotations(g, 50)
+    let bp = filter(anns, |a| a.aspect == "biological_process")
+    let mf = filter(anns, |a| a.aspect == "molecular_function")
+    let cc = filter(anns, |a| a.aspect == "cellular_component")
+    println(g, ": BP=", len(bp), "MF=", len(mf), "CC=", len(cc))
+}

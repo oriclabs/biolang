@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Start — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="getting-started/quickstart"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a>
+        <span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Getting Started</a>
+        <span class="mx-2">/</span>
+        <span class="text-slate-300">Quick Start</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Quick Start</h1>
+        <p>
+          This guide walks you through BioLang's core concepts in five minutes. By the end, you will have
+          run your first program, used the pipe operator, and worked with a DNA literal.
+        </p>
+
+        <h2>Hello, BioLang!</h2>
+        <p>
+          Create a file called <code>hello.bl</code> with the following content:
+        </p>
+        <pre><code class="language-biolang">print("Hello, BioLang!")</code></pre>
+        <p>Run it from your terminal:</p>
+        <pre><code class="language-bash">bl run hello.bl
+# Hello, BioLang!</code></pre>
+        <p>
+          The <code>bl run</code> command executes a BioLang source file. You can also pass inline
+          expressions with <code>-e</code>:
+        </p>
+        <pre><code class="language-bash">bl -e 'print("Hello from the command line!")'</code></pre>
+
+        <h2>Your First Pipe</h2>
+        <p>
+          The pipe operator <code>|&gt;</code> is BioLang's signature feature. It passes the result of the
+          left-hand expression as the first argument to the right-hand function, enabling clean, readable
+          data transformation chains.
+        </p>
+        <pre><code class="language-biolang"># Transform a list with pipes
+[1, 2, 3, 4, 5]
+  |> map(|x| x * 2)
+  |> filter(|x| x > 4)
+  |> print()
+# [6, 8, 10]</code></pre>
+        <p>Without pipes, the equivalent code would nest function calls:</p>
+        <pre><code class="language-biolang"># Same logic without pipes — harder to read
+print(filter(map([1, 2, 3, 4, 5], |x| x * 2), |x| x > 4))</code></pre>
+        <p>
+          Pipes work with any function. The left-hand value becomes the first argument, and any
+          additional arguments follow inside the parentheses:
+        </p>
+        <pre><code class="language-biolang">"hello world"
+  |> split(" ")
+  |> map(|s| upper(s))
+  |> join(", ")
+  |> print()
+# HELLO, WORLD</code></pre>
+
+        <h2>DNA Literals</h2>
+        <p>
+          BioLang has first-class support for biological sequences. DNA, RNA, and protein literals
+          are built into the language with the <code>dna"..."</code>, <code>rna"..."</code>, and
+          <code>aa"..."</code> prefixes.
+        </p>
+        <pre><code class="language-biolang"># Create a DNA sequence
+let seq = dna"ATCGATCGATCG"
+
+# GC content is a built-in function
+gc_content(seq) |> print()
+# 0.5
+
+# Reverse complement
+reverse_complement(seq) |> print()
+# CGATCGATCGAT
+
+# Sequence length
+len(seq) |> print()
+# 12</code></pre>
+        <p>
+          Sequence literals are validated at parse time. Invalid bases produce a compile error, not a
+          runtime crash:
+        </p>
+        <pre><code class="language-biolang"># This is a compile error — 'X' is not a valid DNA base
+let bad = dna"ATCXGATCG"
+# Error: invalid DNA base 'X' at position 4</code></pre>
+
+        <h2>Variables and Types</h2>
+        <p>
+          BioLang uses <code>let</code> to declare variables. Variables can be reassigned freely
+          (without <code>let</code>). Types are inferred.
+        </p>
+        <pre><code class="language-biolang">let name = "BioLang"          # String
+let version = 0.1              # Float
+let bases = ["A", "T", "C", "G"]  # List
+let gc = true                  # Bool
+
+# Reassignment
+let count = 0
+count = count + 1
+
+let threshold = 30.0</code></pre>
+
+        <h2>Working with Collections</h2>
+        <p>
+          Lists and maps are the primary collection types. Both work seamlessly with pipes.
+        </p>
+        <pre><code class="language-biolang"># Lists
+let scores = [38.5, 40.2, 35.1, 42.0, 37.8]
+scores
+  |> filter(|q| q >= 38.0)
+  |> mean()
+  |> print()
+# 40.233...
+
+# Maps (key-value dictionaries)
+let sample = {
+  "id": "SAMPLE_001",
+  "reads": 1_500_000,
+  "organism": "Homo sapiens"
+}
+print(sample["id"])
+# SAMPLE_001
+
+# Map over a list of maps
+let samples = [
+  { "id": "S1", "reads": 1_000_000 },
+  { "id": "S2", "reads": 2_500_000 },
+  { "id": "S3", "reads": 800_000 }
+]
+samples
+  |> filter(|s| s["reads"] >= 1_000_000)
+  |> map(|s| s["id"])
+  |> print()
+# ["S1", "S2"]</code></pre>
+
+        <h2>Running from the REPL</h2>
+        <p>
+          The BioLang REPL is an interactive environment for experimenting. Launch it with:
+        </p>
+        <pre><code class="language-bash">bl repl</code></pre>
+        <p>
+          The REPL provides syntax highlighting, tab completion, and multi-line input. Try pasting
+          any of the examples above:
+        </p>
+        <pre><code class="language-biolang">bl&gt; dna"GATTACA" |> reverse_complement()
+TGTAATC
+
+bl&gt; [10, 20, 30] |> sum()
+60
+
+bl&gt; :type dna"ATCG"
+Dna</code></pre>
+        <p>
+          Type <code>:help</code> to see all available REPL commands, or <code>:quit</code> to exit.
+          See the <a href="repl-tour.html" class="text-violet-400 hover:text-violet-300">REPL Tour</a>
+          for a full walkthrough.
+        </p>
+
+        <h2>Running Scripts</h2>
+        <p>
+          BioLang scripts use the <code>.bl</code> extension. You can run any script with
+          <code>bl run</code>:
+        </p>
+        <pre><code class="language-bash"># Run a script
+bl run analysis.bl
+
+# Run with arguments
+bl run analysis.bl -- --input reads.fastq --threshold 30
+
+# Check syntax without running
+bl check analysis.bl
+
+# Format a script
+bl fmt analysis.bl</code></pre>
+
+        <h2>Sample Data</h2>
+        <p>
+          BioLang ships with sample data files in <code>examples/sample-data/</code> so you can run
+          file-based examples immediately. The directory includes FASTA, FASTQ, VCF, BED, GFF, CSV,
+          TSV, and SAM files with realistic bioinformatics content.
+        </p>
+        <pre><code class="language-bash"># Run the quickstart script that exercises all sample data
+bl run examples/quickstart.bl</code></pre>
+        <p>
+          When documentation examples reference a bare filename like <code>read_fasta("contigs.fa")</code>,
+          substitute the sample data path: <code>read_fasta("examples/sample-data/contigs.fa")</code>.
+        </p>
+
+        <h2>What's Next</h2>
+        <p>
+          You now know the basics: running code, pipes, DNA literals, variables, and collections.
+          Continue to the <a href="first-script.html" class="text-violet-400 hover:text-violet-300">First Script</a>
+          guide for a full walkthrough of a realistic bioinformatics script.
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="index.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Installation
+        </a>
+        <a href="first-script.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          First Script <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

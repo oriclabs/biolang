@@ -1,0 +1,3 @@
+#version 2.4
+Hugo_Symbol	Entrez_Gene_Id	Center	NCBI_Build	Chromosome	Start_Position	End_Position	Strand	Variant_Classification	Variant_Type	Reference_Allele	Tumor_Seq_Allele1	Tumor_Seq_Allele2
+TP53	7157	broad.mit.edu	GRCh38	chr17	7675088	7675088	+	Missense_Mutation	SNP	C	C	T

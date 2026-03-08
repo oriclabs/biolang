@@ -1,0 +1,28 @@
+# BioLang Hello World
+
+println("Hello from BioLang!")
+
+# Basic arithmetic
+let x = 10 |> |n| n * 2
+println("10 |> |n| n * 2 =", x)
+
+# Function definition
+fn factorial(n) {
+    if n <= 1 { 1 } else { n * factorial(n - 1) }
+}
+
+println("5! =", factorial(5))
+
+# Pipe chains
+let result = [1, 2, 3, 4, 5]
+  |> map(|x| x * x)
+  |> filter(|x| x > 5)
+  |> reduce(|acc, x| acc + x)
+println("sum of squares > 5:", result)
+
+# Named arguments
+fn greet(name, greeting = "Hello") {
+    greeting + ", " + name + "!"
+}
+println(greet("World"))
+println(greet("BioLang", greeting: "Welcome to"))

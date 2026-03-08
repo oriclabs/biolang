@@ -1,0 +1,34 @@
+# Paste only the report string concat section (section 9) from clinical_wes.bl
+# This has the longest string concatenation chain
+
+let pathogenic_summary = ["a", "b"]
+
+let report = "# Clinical WES Report — Trio Analysis for Developmental Delay\n\n" +
+    "## Patient Information\n\n" +
+    "Proband: 3-year-old male. Referral: undiagnosed developmental delay, seizures since age 8 months, " +
+    "progressive microcephaly. Family history unremarkable. Trio WES performed on proband and both unaffected parents.\n\n" +
+    "## Variant Summary\n\n" +
+    "Total variants called: 15\n" +
+    "Rare (AF<=0.01): 10\n" +
+    "Protein-altering: 8\n" +
+    "De novo: 5 | AR homozygous: 1" +
+    " | Compound het: 2\n\n" +
+    "## Primary Finding\n\n" +
+    "MECP2 c.502C>T p.(Arg168*) — de novo nonsense variant. Classified as PATHOGENIC " +
+    "(PVS1 + PS2 + PM2 + PP3). Absent from gnomAD. CADD score 38. Located in the methyl-CpG " +
+    "binding domain (MBD). This variant introduces a premature stop codon and is predicted to " +
+    "undergo nonsense-mediated decay, consistent with loss-of-function mechanism in Rett syndrome.\n\n" +
+    "## Secondary Findings\n\n" +
+    (pathogenic_summary |> join("\n")) + "\n\n" +
+    "## Phenotype Correlation\n\n" +
+    "Patient phenotypes (developmental delay, seizures, microcephaly) show 3/3 overlap with " +
+    "Rett syndrome (MECP2). Note: classic Rett syndrome predominantly affects females; males with " +
+    "MECP2 mutations may present with severe neonatal encephalopathy. Recommend clinical genetics evaluation.\n\n" +
+    "## Recommendations\n\n" +
+    "1. Confirm MECP2 variant by Sanger sequencing in proband and parents.\n" +
+    "2. Refer to clinical genetics for Rett syndrome evaluation and counseling.\n" +
+    "3. Consider X-inactivation studies in mother (germline mosaicism risk ~1%).\n" +
+    "4. NF1 compound het variants are VUS — recommend parental segregation confirmation.\n" +
+    "5. Suggest EEG monitoring given SCN1A de novo variant (secondary finding).\n"
+
+println(len(report))

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motifs — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/motifs"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Motifs</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Motif Finding &amp; Scanning</h1>
+        <p>
+          Motifs are short, recurring sequence patterns that often correspond to functional
+          elements such as transcription factor binding sites, splice signals, or regulatory
+          elements. BioLang provides tools for motif discovery, position weight matrix (PWM)
+          construction, and genome-wide motif scanning.
+        </p>
+
+        <h2>motif_find</h2>
+        <p>
+          Search for exact or degenerate motif patterns in a sequence. Uses IUPAC ambiguity
+          codes for flexible matching:
+        </p>
+        <pre><code class="language-biolang"># Exact motif search
+let seq = dna"ATCGATCGAAATCGATCG"
+let hits = motif_find(seq, "ATCG")
+# Returns a list of match records with start, end positions
+
+print(len(hits), "matches found")
+
+# IUPAC degenerate motif
+# R = A|G, Y = C|T, N = any, W = A|T, S = C|G
+hits = motif_find(seq, "RTCG")   # Matches ATCG or GTCG
+
+# Count occurrences of a motif pattern
+let n = motif_count(seq, "ATCG")
+print(n, "occurrences")</code></pre>
+
+        <h2>motif_count</h2>
+        <p>
+          Count occurrences of an IUPAC motif pattern in a sequence:
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCGATCG"
+
+# Count exact matches
+let n = motif_count(seq, "ATCG")
+print(n, "occurrences")
+
+# IUPAC degenerate patterns
+n = motif_count(seq, "RTCG")   # R = A or G
+print(n, "degenerate matches")
+
+# Scan a FASTA file for a regulatory element
+fasta("promoters.fa")
+  |> map(|r| {
+    gene: r.id,
+    tata_boxes: motif_count(r.seq, "TATAWAW")
+  })
+  |> to_table()
+  |> filter(|r| r.tata_boxes > 0)
+  |> print()</code></pre>
+
+        <h2>consensus</h2>
+        <p>
+          Derive a consensus sequence from a collection of aligned sequences. Each position
+          uses the most frequent base:
+        </p>
+        <pre><code class="language-biolang"># Build consensus from aligned sequences
+let aligned = [
+  dna"ATCGATCG",
+  dna"ATCAATCG",
+  dna"ATCGATCG",
+  dna"ATCGATCA",
+  dna"ATCGATCG",
+]
+
+let cons = consensus(aligned)
+print(cons)   # => consensus sequence string</code></pre>
+
+        <h2>pwm (Position Weight Matrix)</h2>
+        <p>
+          Build a position weight matrix from a set of aligned sequences. The PWM captures
+          the position-specific base preferences of a motif:
+        </p>
+        <pre><code class="language-biolang"># Build a PWM from binding site sequences
+let sites = [
+  dna"ATCGATCG",
+  dna"ATCAATCG",
+  dna"ATCGATCG",
+  dna"ATCGATCA",
+  dna"ATCGATCG",
+]
+
+let matrix = pwm(sites)
+
+# The PWM is a list of per-position frequency records {A, C, G, T}
+matrix |> map(|pos| print(pos))
+# Each entry shows base frequencies at that position</code></pre>
+
+        <h2>pwm_scan</h2>
+        <p>
+          Scan a sequence with a PWM to find high-scoring matches. Returns positions where
+          the PWM score exceeds a threshold:
+        </p>
+        <pre><code class="language-biolang"># Build a PWM from known binding sites
+let binding_sites = fasta("tf_binding_sites.fa")
+  |> map(|r| r.seq)
+  |> collect()
+
+let matrix = pwm(binding_sites)
+
+# Scan a promoter sequence — pwm_scan(seq, pwm, threshold?)
+let promoter = dna"ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG"
+
+# With default threshold
+let hits = pwm_scan(promoter, matrix)
+
+# With custom threshold (third argument)
+hits = pwm_scan(promoter, matrix, 0.8)
+
+hits |> map(|h| print(h.pos, h.score))
+
+# Genome-wide scan
+fasta("genome.fa")
+  |> map(|chr| {
+    chrom: chr.id,
+    sites: pwm_scan(chr.seq, matrix, 0.85)
+  })
+  |> filter(|r| len(r.sites) > 0)
+  |> map(|r| r.sites |> map(|s| {
+    chrom: r.chrom, pos: s.pos, score: s.score
+  }))
+  |> flatten()
+  |> to_table()
+  |> print()</code></pre>
+
+        <h2>Combining Motif Functions</h2>
+        <p>
+          The motif functions compose naturally to build analysis workflows:
+        </p>
+        <pre><code class="language-biolang"># Find motifs, build a PWM, then scan other sequences
+let sites = [
+  dna"TATAAATA",
+  dna"TATAATTA",
+  dna"TATAAATA",
+  dna"TATAAGTA",
+]
+
+let matrix = pwm(sites)
+let cons = consensus(sites)
+print("Consensus:", cons)
+
+# Scan a new sequence
+let target = dna"AAAAATATAAATAGGGGTATAAATACCCC"
+let hits = pwm_scan(target, matrix, 0.7)
+hits |> map(|h| print("Hit at", h.pos, "score:", h.score))</code></pre>
+
+        <h2>Practical Example: Transcription Factor Binding Analysis</h2>
+        <pre><code class="language-biolang"># Analyze motif enrichment in sequences
+let seqs = fasta("chip_peak_seqs.fa") |> collect()
+
+# Count occurrences of a known motif across sequences
+seqs
+  |> map(|r| {
+    id: r.id,
+    hits: motif_count(r.seq, "TATAWAW")
+  })
+  |> to_table()
+  |> filter(|r| r.hits > 0)
+  |> print()
+
+# Build a PWM from the sequences and scan for matches
+let matrix = seqs |> map(|r| r.seq) |> pwm()
+print("PWM built from", len(seqs), "sequences")
+
+# Scan a target sequence
+let target_seq = fasta("target.fa") |> first()
+let hits = pwm_scan(target_seq.seq, matrix, 0.8)
+print(len(hits), "PWM hits found")</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="alignment.html" class="text-violet-400 hover:text-violet-300">&larr; Alignment</a>
+        <a href="advanced.html" class="text-violet-400 hover:text-violet-300">Advanced &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

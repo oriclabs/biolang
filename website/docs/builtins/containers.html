@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Containers — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/containers"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Containers</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Containers</h1>
+        <p class="text-lg text-slate-400 mb-8">5 functions for running containerized tools. Supports Docker, Podman, Singularity, and OCI-based sandboxing via bubblewrap. Integrated with the BioContainers registry for 9,000+ bioinformatics tools.</p>
+
+        <section class="mb-12" id="container_run">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">container_run</span></h2>
+          <p class="text-slate-400 mt-2">Run a command inside a container image. Auto-detects the available runtime (Docker > Podman > Singularity > bwrap).</p>
+          <pre><code class="language-biolang">container_run(image, command, opts?) -> map</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">image</td><td class="py-2 px-3">string</td><td class="py-2 px-3">OCI image reference</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">command</td><td class="py-2 px-3">string | list</td><td class="py-2 px-3">Command to execute</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">opts.mounts</td><td class="py-2 px-3">list</td><td class="py-2 px-3">Volume mounts [{src, dst, mode}]</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">opts.env</td><td class="py-2 px-3">map</td><td class="py-2 px-3">Environment variables</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">opts.workdir</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Working directory inside container</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">{"exit_code": int, "stdout": string, "stderr": string}</code></p>
+          <pre><code class="language-biolang">let result = container_run(
+  "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
+  "samtools view -c input.bam",
+  {mounts: [{src: ".", dst: "/data", mode: "rw"}], workdir: "/data"}
+)
+println("Read count:", trim(result.stdout))</code></pre>
+        </section>
+
+        <section class="mb-12" id="container_pull">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">container_pull</span></h2>
+          <p class="text-slate-400 mt-2">Pull a container image to local cache.</p>
+          <pre><code class="language-biolang">container_pull(image) -> string</code></pre>
+          <pre><code class="language-biolang">container_pull("quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0")
+container_pull("quay.io/biocontainers/bwa-mem2:2.2.1--he513fc3_0")</code></pre>
+        </section>
+
+        <section class="mb-12" id="tool_search">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">tool_search</span></h2>
+          <p class="text-slate-400 mt-2">Search the BioContainers registry for tools by name or keyword.</p>
+          <pre><code class="language-biolang">tool_search(query, opts?) -> list</code></pre>
+          <pre><code class="language-biolang">let results = tool_search("samtools")
+for tool in results {
+  println(tool.name, "-", tool.description)
+}
+
+# Search with limit
+tool_search("variant caller", {limit: 5})</code></pre>
+        </section>
+
+        <section class="mb-12" id="tool_pull">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">tool_pull</span></h2>
+          <p class="text-slate-400 mt-2">Pull a BioContainers tool by name and optional version.</p>
+          <pre><code class="language-biolang">tool_pull(name, version?) -> string</code></pre>
+          <pre><code class="language-biolang">tool_pull("samtools")                    # latest version
+tool_pull("samtools", "1.19")            # specific version
+tool_pull("bwa-mem2", "2.2.1")           # returns image path</code></pre>
+        </section>
+
+        <section class="mb-12" id="tool_info">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">tool_info</span></h2>
+          <p class="text-slate-400 mt-2">Get detailed information about a BioContainers tool, including available versions.</p>
+          <pre><code class="language-biolang">tool_info(name) -> map</code></pre>
+          <pre><code class="language-biolang">let info = tool_info("gatk")
+println(info.name, "-", info.description)
+for v in info.versions {
+  println(v.version, "-", v.image)
+}
+# 4.5.0.0 - quay.io/biocontainers/gatk4:4.5.0.0--py39...
+# 4.4.0.0 - quay.io/biocontainers/gatk4:4.4.0.0--py39...</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="bio-plots.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> Bio Plots</a>
+        <a href="llm.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">LLM Chat <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

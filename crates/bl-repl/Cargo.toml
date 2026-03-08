@@ -1,0 +1,11 @@
+[package]
+name = "bl-repl"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bl-core = { workspace = true }
+bl-lexer = { workspace = true }
+bl-parser = { workspace = true }
+bl-runtime = { workspace = true, features = ["native"] }
+rustyline = "17"

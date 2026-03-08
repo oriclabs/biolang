@@ -1,0 +1,50 @@
+# NCBI Datasets v2 API Examples
+# Modern NCBI gene/genome data access — US
+
+# Lookup gene by symbol
+# datasets_gene(symbol, taxon?) -> list of gene records
+# Default taxon: "human"
+let genes = datasets_gene("BRCA1")
+println("=== BRCA1 Gene Info ===")
+for g in genes {
+    println("Gene ID:", g.gene_id)
+    println("Symbol:", g.symbol)
+    println("Description:", g.description)
+    println("Organism:", g.taxname)
+    println("Chromosome:", g.chromosome)
+    println("Type:", g.gene_type)
+}
+
+# Search in other species
+let mouse = datasets_gene("Brca1", "mouse")
+println("\n=== Mouse Brca1 ===")
+for g in mouse {
+    println(g.symbol, "-", g.description)
+    println("  Taxon:", g.taxname, "| Chr:", g.chromosome)
+}
+
+# Compare gene across species
+let species = [
+    {symbol: "TP53", taxon: "human"},
+    {symbol: "Trp53", taxon: "mouse"},
+    {symbol: "tp53", taxon: "zebrafish"}
+]
+println("\n=== TP53 Across Species ===")
+for s in species {
+    let result = datasets_gene(s.symbol, s.taxon)
+    if len(result) > 0 {
+        let g = result[0]
+        println(g.taxname, ":", g.symbol, "(", g.gene_type, ") chr", g.chromosome)
+    }
+}
+
+# Multiple genes at once
+let cancer_genes = ["EGFR", "KRAS", "PIK3CA", "PTEN", "RB1"]
+println("\n=== Cancer Gene Summary ===")
+for sym in cancer_genes {
+    let result = datasets_gene(sym)
+    if len(result) > 0 {
+        let g = result[0]
+        println(g.symbol, "- chr", g.chromosome, "-", g.gene_type)
+    }
+}

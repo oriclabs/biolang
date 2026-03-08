@@ -1,0 +1,14 @@
+# Rosalind: INI — Introduction to the Bioinformatics Armory
+# https://rosalind.info/problems/ini/
+#
+# Given: A DNA string s of length at most 1000 bp.
+# Return: Four integers separated by spaces counting A, C, G, T occurrences.
+
+let s = dna"AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC"
+
+let counts = base_counts(s)
+let result = str(counts.A) + " " + str(counts.C) + " " + str(counts.G) + " " + str(counts.T)
+
+println("Result:   " + result)
+println("Expected: 20 12 17 21")
+println("Match:    " + str(result == "20 12 17 21"))

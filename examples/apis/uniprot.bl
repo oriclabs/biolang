@@ -1,0 +1,54 @@
+# UniProt API Examples
+# Universal Protein Resource — EU (EBI/SIB/PIR)
+
+# Search proteins by keyword
+# uniprot_search(query, limit?) -> list of protein records
+let results = uniprot_search("BRCA1 human", 5)
+println("UniProt search results:")
+for p in results {
+    println("  ", p.accession, "-", p.name, "(", p.organism, ")")
+    println("    Length:", p.sequence_length, "aa")
+    println("    Genes:", p.gene_names)
+}
+
+# Get a specific protein entry by accession
+# uniprot_entry(accession) -> record
+let p53 = uniprot_entry("P04637")
+println("\n=== P53_HUMAN ===")
+println("Accession:", p53.accession)
+println("Name:", p53.name)
+println("Organism:", p53.organism)
+println("Length:", p53.sequence_length, "aa")
+println("Gene names:", p53.gene_names)
+println("Function:", substr(p53.function, 0, 120), "...")
+
+# Get protein FASTA sequence
+# uniprot_fasta(accession) -> FASTA text
+let fasta = uniprot_fasta("P04637")
+println("\nP53 FASTA (first 150 chars):")
+println(substr(fasta, 0, 150))
+
+# Get protein features (domains, modifications, etc.)
+# uniprot_features(accession) -> list of feature records
+let features = uniprot_features("P04637")
+println("\nP53 features (first 10):")
+let first10 = head(features, 10)
+for f in first10 {
+    println("  ", f.type, ":", f.description, "@", f.location)
+}
+
+# Get Gene Ontology annotations
+# uniprot_go(accession) -> list of GO term records
+let go_terms = uniprot_go("P04637")
+println("\nP53 GO terms:")
+for t in go_terms {
+    println("  [", t.aspect, "]", t.id, "-", t.term)
+}
+
+# Pipeline: search -> entry -> features
+let kinases = uniprot_search("kinase human reviewed:true", 3)
+for k in kinases {
+    let feats = uniprot_features(k.accession)
+    let domains = filter(feats, |f| f.type == "Domain")
+    println("\n", k.name, "- domains:", len(domains))
+}

@@ -1,0 +1,64 @@
+# imports.bl — Module imports in BioLang
+# NOTE: This file documents import syntax but won't run standalone
+# since the referenced modules don't exist here.
+
+# ── Basic import ───────────────────────────────────────
+# Imports all exported names into current scope
+import "utils.bl"
+
+# ── Aliased import ─────────────────────────────────────
+# Import a module under a namespace
+import "stats.bl" as stats
+
+# Access functions via the alias
+# let mean = stats.mean([1, 2, 3])
+# let sd = stats.stdev([1, 2, 3])
+
+# ── Relative paths ─────────────────────────────────────
+# Paths are relative to the importing file
+import "../lib/fasta.bl" as fasta
+import "../lib/quality.bl" as qc
+
+# ── Practical example ─────────────────────────────────
+# A typical project might look like:
+#
+#   project/
+#     main.bl            # entry point
+#     lib/
+#       io.bl            # file reading helpers
+#       fasta.bl         # FASTA parsing
+#       quality.bl       # QC functions
+#     pipelines/
+#       rnaseq.bl        # RNA-seq pipeline
+#       variant.bl       # variant calling pipeline
+#
+# In main.bl:
+#   import "lib/io.bl" as io
+#   import "lib/fasta.bl" as fasta
+#   import "pipelines/rnaseq.bl" as rnaseq
+
+# ── What gets exported ─────────────────────────────────
+# All top-level `let` bindings and `fn` definitions in a
+# file are exported by default.
+#
+# Example module (utils.bl):
+#   fn double(x) { x * 2 }
+#   fn triple(x) { x * 3 }
+#   let PI = 3.14159
+#
+# After `import "utils.bl"`:
+#   println(double(5))   # 10
+#   println(PI)          # 3.14159
+#
+# After `import "utils.bl" as u`:
+#   println(u.double(5)) # 10
+#   println(u.PI)        # 3.14159
+
+# ── Import with pipes ─────────────────────────────────
+# Imported functions work seamlessly with pipes:
+#   import "lib/seq.bl" as seq
+#   let gc = "ATGCGCTA"
+#       |> seq.count_gc()
+#       |> seq.as_fraction()
+
+println("See comments above for import syntax reference")

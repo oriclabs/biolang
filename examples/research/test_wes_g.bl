@@ -1,0 +1,10 @@
+# Two sequential if/then assignments in a block
+let x = [1] |> map(|v| {
+    let y = 0
+    if v > 0 then
+        y = 1
+    if v > 2 then
+        y = 2
+    y
+})
+println(x)

@@ -1,0 +1,38 @@
+# json_ops.bl — JSON parsing, stringifying, file I/O, and table interop
+
+# ── Parse JSON strings ─────────────────────────────────────────
+let parsed = json_parse('{"gene": "BRCA1", "organism": "Homo sapiens", "exons": [1,2,3,4,5]}')
+println("Gene: " + parsed.gene + "  Exons: " + str(len(parsed.exons)))
+
+let genes = json_parse('[{"id": 1, "name": "TP53"}, {"id": 2, "name": "EGFR"}]')
+println("Genes: " + str(len(genes)) + "  First: " + genes[0].name)
+
+# ── Stringify and round-trip ───────────────────────────────────
+let data = {sample: "S001", reads: 1500000, meta: {instrument: "NovaSeq"}}
+println("Stringified: " + json_stringify(data))
+let rt = json_parse(json_stringify(data))
+println("Round-trip: " + rt.meta.instrument)
+
+# ── File I/O ───────────────────────────────────────────────────
+let results = [
+    {variant: "chr1:12345:A>G", impact: "HIGH",   gene: "BRCA1"},
+    {variant: "chr2:67890:C>T", impact: "LOW",    gene: "TP53"},
+    {variant: "chr3:11111:G>A", impact: "MODERATE", gene: "EGFR"},
+]
+let path = temp_file() + ".json"
+write_json(results, path)
+println("Wrote to: " + path)
+let loaded = read_json(path)
+println("Read back: " + str(len(loaded)) + " variants")
+println("First: " + loaded[0].variant + " (" + loaded[0].impact + ")")
+
+# ── Table interop ──────────────────────────────────────────────
+let vtable = from_records(loaded)
+println("As table: " + str(nrow(vtable)) + " rows")
+let high = vtable |> filter(|r| r.impact == "HIGH") |> to_records() |> json_stringify()
+println("High impact: " + high)
+
+# ── Nested structures ─────────────────────────────────────────
+let exp = json_parse('{"name": "RNA-seq batch 42", "samples": [{"id": "ctrl_1", "reads": 25000000}, {"id": "treat_1", "reads": 22000000}]}')
+println("Experiment: " + exp.name)
+println("Total reads: " + str(exp.samples |> map(|s| s.reads) |> sum()))

@@ -1,0 +1,60 @@
+# Sparse Matrix Operations
+# Efficient storage for matrices with many zeros (e.g., single-cell RNA-seq)
+
+# ── Create sparse matrix from triplets ──
+# sparse_matrix(list_of_triplets) where each triplet is [row, col, value]
+let sm = sparse_matrix([
+    [0, 0, 1.0],
+    [0, 2, 3.0],
+    [1, 1, 5.0],
+    [2, 0, 2.0],
+    [2, 2, 4.0]
+])
+println("=== Sparse Matrix ===")
+println(sm)
+
+# ── Get number of non-zero entries ──
+println("Non-zero entries:", nnz(sm))
+
+# ── Access individual elements ──
+# sparse_get(matrix, row, col) -> value (0.0 if not stored)
+println("Element [0,0]:", sparse_get(sm, 0, 0))
+println("Element [0,1]:", sparse_get(sm, 0, 1))
+println("Element [1,1]:", sparse_get(sm, 1, 1))
+
+# ── Convert to dense matrix ──
+let dense = to_dense(sm)
+println("\n=== Dense form ===")
+println(dense)
+
+# ── Convert dense to sparse ──
+let m = matrix([[1, 0, 0], [0, 0, 2], [0, 3, 0]])
+let sp = to_sparse(m)
+println("\n=== Dense -> Sparse ===")
+println("NNZ:", nnz(sp))
+println(sp)
+
+# ── Row and column sums ──
+println("\n=== Aggregations ===")
+println("Row sums:", sparse_row_sums(sm))
+println("Col sums:", sparse_col_sums(sm))
+
+# ── Normalize sparse matrix ──
+# normalize_sparse(matrix, method) -> normalized matrix
+# Methods: "l1", "l2", "max"
+let normed = normalize_sparse(sm, "l1")
+println("\n=== L1 Normalized ===")
+println(to_dense(normed))
+
+let l2_normed = normalize_sparse(sm, "l2")
+println("\n=== L2 Normalized ===")
+println(to_dense(l2_normed))
+
+# ── Round-trip: dense -> sparse -> dense ──
+let original = matrix([[5, 0, 0], [0, 3, 0], [0, 0, 7]])
+let sparse_form = to_sparse(original)
+let back_to_dense = to_dense(sparse_form)
+println("\n=== Round-trip ===")
+println("Original:", original)
+println("Recovered:", back_to_dense)
+println("NNZ:", nnz(sparse_form))

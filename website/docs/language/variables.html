@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Variables &amp; Types — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/variables"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Variables &amp; Types</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Variables &amp; Types</h1>
+        <p>
+          BioLang uses <code>let</code> to declare variables. Variables can be reassigned freely.
+          The type system supports gradual typing &mdash; types are inferred by
+          default but can be explicitly annotated for clarity and safety.
+        </p>
+
+        <h2>Variables</h2>
+        <p>
+          Declare variables with <code>let</code>. You can reassign them at any time:
+        </p>
+        <pre><code class="language-biolang">let name = "BRCA1"
+let count = 42
+let ratio = 0.95
+let active = true
+
+# Reassignment is fine
+name = "TP53"
+
+let total = 0
+let samples = []
+
+for read in reads {
+  total = total + 1
+  if read.quality >= 30 {
+    samples = push(samples, read)
+  }
+}
+print(f"Processed {total} reads, kept {len(samples)}")</code></pre>
+
+        <h2>Type Inference</h2>
+        <p>
+          BioLang infers types from the right-hand side of bindings. In most cases you never need
+          to write a type annotation:
+        </p>
+        <pre><code class="language-biolang">let x = 42              # Int
+let pi = 3.14159        # Float
+let greeting = "hello"  # String
+let flag = true         # Bool
+let seq = dna"ATCG"     # DNA
+let items = [1, 2, 3]   # List[Int]
+let lookup = {"a": 1}   # Map[String, Int]</code></pre>
+
+        <h2>Type Annotations</h2>
+        <p>
+          You can add explicit type annotations after the variable name using a colon. This is
+          useful for documentation, enforcing constraints, or resolving ambiguity:
+        </p>
+        <pre><code class="language-biolang">let gene_name: String = "BRCA1"
+let position: Int = 43044295
+let score: Float = 0.99
+let is_coding: Bool = true
+
+# Collection types use bracket syntax
+let scores: List[Float] = [0.1, 0.5, 0.9]
+let gene_map: Map[String, Int] = {"BRCA1": 1, "TP53": 2}
+let unique_ids: Set[String] = {"sample_a", "sample_b"}
+
+# Bio types
+let sequence: DNA = dna"ATCGATCG"
+let rna_seq: RNA = rna"AUCGAUCG"
+let peptide: Protein = protein"MKTLLILAVS"</code></pre>
+
+        <h2>Primitive Types</h2>
+
+        <h3>Int</h3>
+        <p>64-bit signed integers. Underscores can be used as visual separators:</p>
+        <pre><code class="language-biolang">let count = 42
+let big = 1_000_000
+let negative = -17
+let hex = 0xFF
+let binary = 0b1010</code></pre>
+
+        <h3>Float</h3>
+        <p>64-bit IEEE 754 floating-point numbers:</p>
+        <pre><code class="language-biolang">let pi = 3.14159
+let avogadro = 6.022e23
+let tiny = 1.0e-10
+let negative = -273.15</code></pre>
+
+        <h3>String</h3>
+        <p>
+          UTF-8 strings with f-string interpolation using curly braces:
+        </p>
+        <pre><code class="language-biolang">let name = "BioLang"
+let greeting = f"Hello, {name}!"
+let multiline = "line one
+line two
+line three"
+
+# Raw strings (no interpolation, no escape processing)
+let pattern = r"(\w+)\t(\d+)"
+
+# String operations
+let up = upper(name)              # "BIOLANG"
+let sub = subseq(name, 0, 3)     # "Bio"
+let parts = split("A,B,C", ",")  # ["A", "B", "C"]</code></pre>
+
+        <h3>Bool</h3>
+        <pre><code class="language-biolang">let yes = true
+let no = false
+let result = 5 > 3          # true
+let combined = yes && !no   # true</code></pre>
+
+        <h2>Biology Types</h2>
+
+        <h3>DNA</h3>
+        <p>
+          Represents a DNA sequence. Only valid nucleotides (A, T, C, G, N) are accepted in the
+          literal. Supports biological operations natively:
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCG"
+
+let rc = reverse_complement(seq)       # dna"CGATCGATCGAT"
+let gc = gc_content(seq)               # 0.5
+let sub = subseq(seq, 0, 4)           # dna"ATCG"
+let rna_seq = transcribe(seq)          # rna"AUCGAUCGAUCG"
+let codons = kmers(seq, 3)            # [dna"ATC", dna"GAT", ...]
+let len_bp = seq_len(seq)             # 12</code></pre>
+
+        <h3>RNA</h3>
+        <p>
+          Represents an RNA sequence (A, U, C, G, N). Created via <code>rna""</code> literals or
+          by transcribing DNA:
+        </p>
+        <pre><code class="language-biolang">let mrna = rna"AUGCGAUUCGAA"
+let prot = translate(mrna)              # protein"MRF"
+# Create DNA from a string
+let back = dna("ATGCGATTCGAA")</code></pre>
+
+        <h3>Protein</h3>
+        <p>
+          Represents an amino acid sequence using standard one-letter codes:
+        </p>
+        <pre><code class="language-biolang">let prot = protein"MKTLLILAVS"
+let length = seq_len(prot)             # 10
+let motifs = find_motif(prot, "NxS")   # Find N-glycosylation sites</code></pre>
+
+        <h3>Interval</h3>
+        <p>
+          Genomic intervals with chromosome, start, end, and optional strand:
+        </p>
+        <pre><code class="language-biolang">let region = interval("chr1", 1000, 2000)
+let stranded = interval("chr1", 1000, 2000, "+")
+
+let tree = interval_tree([region, other_region])
+let hits = query_overlaps(tree, region)           # List[Interval]
+let cov = coverage([region, other_region])        # coverage map</code></pre>
+
+        <h2>Collection Types</h2>
+
+        <h3>List</h3>
+        <pre><code class="language-biolang">let nums = [1, 2, 3, 4, 5]
+let mixed = ["BRCA1", "TP53", "EGFR"]
+let nested = [[1, 2], [3, 4]]
+
+let first = nums[0]           # 1
+let sliced = nums[1..3]       # [2, 3]
+let length = len(nums)        # 5</code></pre>
+
+        <h3>Map</h3>
+        <pre><code class="language-biolang">let gene_ids = {
+  "BRCA1": 672,
+  "TP53": 7157,
+  "EGFR": 1956
+}
+
+let id = gene_ids["BRCA1"]      # 672
+let has = "TP53" in gene_ids    # true
+let ks = keys(gene_ids)         # ["BRCA1", "TP53", "EGFR"]</code></pre>
+
+        <h3>Set</h3>
+        <pre><code class="language-biolang">let samples_a = {"S1", "S2", "S3"}
+let samples_b = {"S2", "S3", "S4"}
+
+let common = intersection(samples_a, samples_b)     # {"S2", "S3"}
+let all_samples = union(samples_a, samples_b)       # {"S1", "S2", "S3", "S4"}
+let only_a = difference(samples_a, samples_b)       # {"S1"}</code></pre>
+
+        <h3>Table</h3>
+        <pre><code class="language-biolang">let t = table(
+  name = ["BRCA1", "TP53", "EGFR"],
+  score = [0.95, 0.87, 0.72],
+  chrom = ["chr17", "chr17", "chr7"]
+)
+
+let filtered = filter(t, |r| r.score > 0.8)
+let sorted = arrange(t, desc(score))</code></pre>
+
+        <h2>Option and Result</h2>
+        <pre><code class="language-biolang"># Option — represents a value that may be absent
+let found: Option[String] = find("genes", |g| g.symbol == "BRCA1")
+let name = found |> unwrap_or("unknown")
+
+# Result — represents success or failure
+let parsed: Result[Table] = try { csv("data.csv") }
+match parsed {
+  Ok(data) => print(f"Loaded {num_rows(data)} rows"),
+  Err(e) => print(f"Failed: {e.message}")
+}</code></pre>
+
+        <h2>Type Conversions</h2>
+        <p>
+          BioLang provides explicit conversion functions between types:
+        </p>
+        <pre><code class="language-biolang">let n = int("42")           # String -> Int
+let s = str(42)             # Int -> String
+let f = float(42)           # Int -> Float
+let b = bool(1)             # Int -> Bool (true)
+
+# Bio conversions
+let seq = dna("ATCG")       # String -> DNA (validated)
+let rna_seq = rna("AUCG")   # String -> RNA
+let prot = protein("MKT")   # String -> Protein</code></pre>
+
+        <h2>Shadowing</h2>
+        <p>
+          You can shadow a variable by re-declaring it with a new <code>let</code>,
+          or simply reassign it:
+        </p>
+        <pre><code class="language-biolang">let x = 10
+let x = x + 5    # Shadowing: x is now 15 (new binding)
+# The original x = 10 is no longer accessible
+
+# Reassignment also works
+let y = 10
+y = y + 5         # y is now 15</code></pre>
+
+        <section id="const" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Constants</h2>
+          <p class="text-slate-400 mb-4">Use <code class="text-violet-400">const</code> to declare immutable bindings that cannot be reassigned.</p>
+          <pre><code class="language-biolang"># Declare a constant
+const MAX_QUALITY = 60
+const GENOME = "GRCh38"
+const CHROMOSOMES = ["chr1", "chr2", "chr3"]
+
+# Attempting to reassign a const produces an error:
+# const PI = 3.14159
+# PI = 3.0  # Error: cannot reassign constant 'PI'
+
+# Use const for configuration values
+const MIN_READ_LENGTH = 50
+const MIN_MAPPING_QUALITY = 20
+
+reads
+  |> filter(|r| r.length >= MIN_READ_LENGTH)
+  |> filter(|r| r.mapq >= MIN_MAPPING_QUALITY)</code></pre>
+        </section>
+
+        <section id="with" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">with Blocks</h2>
+          <p class="text-slate-400 mb-4">The <code class="text-violet-400">with</code> block creates a scope where fields of an expression are directly accessible.</p>
+          <pre><code class="language-biolang"># Access record fields without repeating the variable
+let result = analyze(sample)
+with result {
+  print(f"Total reads: {total_reads}")
+  print(f"Mapped: {mapped_reads}")
+  print(f"Quality: {mean_quality}")
+}
+
+# Useful for deeply nested data
+with config.alignment {
+  print(f"Reference: {reference}")
+  print(f"Threads: {threads}")
+  print(f"Min MAPQ: {min_mapq}")
+}</code></pre>
+        </section>
+
+        <h2>Record Spread</h2>
+        <p>
+          The spread operator <code>...</code> merges records, with later fields
+          overriding earlier ones:
+        </p>
+        <pre><code class="language-biolang">let defaults = {genome: "GRCh38", min_qual: 30, min_depth: 10}
+let sample_config = {...defaults, sample_id: "S001", min_qual: 20}
+# {genome: "GRCh38", min_qual: 20, min_depth: 10, sample_id: "S001"}
+
+# Merge multiple records
+let merged = {...clinical_data, ...sequencing_data, status: "complete"}</code></pre>
+
+        <h2>Type Aliases</h2>
+        <p>Type aliases create readable names for complex types:</p>
+        <pre><code class="language-biolang">type Locus = Record
+type GeneList = List
+type QualityScores = List
+
+let target: Locus = {chrom: "chr17", start: 7668421, end: 7687550}</code></pre>
+
+        <h2>Type Coercion</h2>
+        <p>
+          The <code>into()</code> builtin converts values between compatible types:
+        </p>
+        <pre><code class="language-biolang">let nums = [1, 2, 3, 2, 1]
+let unique = into(nums, "Set")       # {1, 2, 3}
+let back = into(unique, "List")      # [1, 2, 3]
+
+let gene_table = into(gene_records, "Table")
+let csv_text = into(42, "Str")       # "42"</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="index.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Overview
+        </a>
+        <a href="pipes.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Pipes <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

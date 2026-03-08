@@ -1,0 +1,185 @@
+# pharmacogenomics.bl
+# Predicting drug response from patient genotypes -- Warfarin dosing
+#
+# Warfarin is an anticoagulant with a notoriously narrow therapeutic window.
+# Two genes dominate dose prediction: CYP2C9 (metabolism) and VKORC1 (drug target).
+# CYP2C9 star alleles (*2, *3) reduce enzyme activity; VKORC1 -1639G>A (rs9923231)
+# lowers expression and increases warfarin sensitivity. Getting the dose wrong
+# causes bleeding (too high) or clotting (too low).
+
+# ── 1. Patient cohort ──────────────────────────────────────────────────────────
+# Eight patients with known CYP2C9 and VKORC1 genotypes (real star alleles)
+println("=== Patient Cohort ===")
+
+let patients = table(
+  id:        ["PT-001","PT-002","PT-003","PT-004","PT-005","PT-006","PT-007","PT-008"],
+  age:       [62, 45, 71, 58, 39, 67, 53, 74],
+  weight_kg: [78, 92, 64, 85, 70, 60, 105, 68],
+  cyp2c9:    ["*1/*1","*1/*2","*1/*3","*2/*2","*2/*3","*3/*3","*1/*1","*1/*2"],
+  vkorc1:    ["GG",   "GA",   "GA",   "GG",   "AA",   "GA",   "AA",   "AA"  ]
+)
+
+println("Patient cohort loaded: " + len(patients) + " subjects")
+
+# ── 2. Pharmacogene lookups ────────────────────────────────────────────────────
+# CYP2C9 -- cytochrome P450, metabolises S-warfarin (the active enantiomer)
+# VKORC1 -- vitamin K epoxide reductase, the direct drug target
+println("=== Pharmacogene Lookups ===")
+
+let cyp2c9_gene  = ncbi_gene("CYP2C9")
+let vkorc1_gene  = ncbi_gene("VKORC1")
+let cyp2c9_prot  = uniprot_entry("P11712")         # Human CYP2C9 UniProt
+let cyp2c9_ens   = ensembl_gene("ENSG00000138109")  # CYP2C9 Ensembl ID
+
+println("CYP2C9 locus: chr" + cyp2c9_gene.chromosome + " (" + cyp2c9_gene.description + ")")
+println("VKORC1 locus: chr" + vkorc1_gene.chromosome + " (" + vkorc1_gene.description + ")")
+
+# ── 3. Genotype to metabolizer phenotype ───────────────────────────────────────
+# CYP2C9 activity scores: *1 = 1.0, *2 = 0.5, *3 = 0.0
+# Sum of two allele scores gives diplotype activity score (0.0 to 2.0)
+println("=== Genotype to Metabolizer Phenotype ===")
+
+let star_score = { "*1": 1.0, "*2": 0.5, "*3": 0.0 }
+
+let assign_phenotype = |score| {
+  if score >= 2.0 then "Normal"
+  else if score >= 1.5 then "Intermediate"
+  else if score >= 1.0 then "Intermediate"
+  else if score > 0.0 then "Poor"
+  else "Poor"
+}
+
+let patients = patients |> mutate("activity_score", |row| {
+  let alleles = split(row.cyp2c9, "/")
+  let a1 = str_replace(alleles[0], "*", "")
+  let a2 = str_replace(alleles[1], "*", "")
+  star_score["*" + a1] + star_score["*" + a2]
+})
+let patients = patients |> mutate("metabolizer", |row| assign_phenotype(row.activity_score))
+
+# ── 4. Predicted warfarin dose ─────────────────────────────────────────────────
+println("=== Predicted Warfarin Dose ===")
+# Simplified IWPC-like algorithm:
+#   base = 5.0 mg/day
+#   CYP2C9 adjustment: multiply by (activity_score / 2.0)
+#   VKORC1 adjustment: GG = 1.0x, GA = 0.75x, AA = 0.5x
+
+let vkorc1_factor = { "GG": 1.0, "GA": 0.75, "AA": 0.5 }
+
+let patients = patients |> mutate("predicted_dose_mg", |row| {
+  let base = 5.0
+  let cyp_adj = row.activity_score / 2.0
+  let vk_adj  = vkorc1_factor[row.vkorc1]
+  round(base * cyp_adj * vk_adj, 1)
+})
+
+println("Dose predictions computed")
+patients |> select(["id","cyp2c9","vkorc1","metabolizer","predicted_dose_mg"]) |> println()
+
+# ── 5. Drug interaction lookups ────────────────────────────────────────────────
+# Warfarin (KEGG D00564) and known CYP2C9 inhibitors that potentiate bleeding risk
+println("=== Drug Interaction Lookups ===")
+
+let warfarin_kegg  = kegg_get("D00564")
+let cyp_inhibitors = kegg_find("drug", "CYP2C9 inhibitor")
+let cyp_pathways   = reactome_pathways("CYP2C9")
+
+println("Warfarin KEGG entry: " + warfarin_kegg.name)
+println("Known CYP2C9 inhibitors found: " + len(cyp_inhibitors))
+println("CYP2C9 Reactome pathways: " + len(cyp_pathways))
+
+# ── 6. Known variant effects ──────────────────────────────────────────────────
+# ClinVar annotations link CYP2C9 variants to warfarin response phenotypes.
+# *2 = rs1799853 (R144C), *3 = rs1057910 (I359L) -- both well characterised.
+println("=== Known Variant Effects ===")
+
+let clinvar_hits = ncbi_search("clinvar", "CYP2C9 warfarin")
+let cosmic_cyp   = cosmic_gene("CYP2C9")
+
+println("ClinVar records for CYP2C9+warfarin: " + len(clinvar_hits))
+println("COSMIC somatic entries (CYP2C9): " + len(cosmic_cyp.variants))
+
+# ── 7. Protein structure context ──────────────────────────────────────────────
+# CYP2C9 is 490 aa; *2 (R144C) is near the surface, *3 (I359L) is in the
+# substrate access channel close to the heme-binding pocket.
+println("=== Protein Structure Context ===")
+
+let features = uniprot_features("P11712")
+let crystal  = pdb_entry("1OG5")   # CYP2C9 complexed with S-warfarin (1.9A)
+
+println("UniProt features: " + len(features) + " annotations")
+println("PDB 1OG5 resolution: " + crystal.resolution + " A")
+
+# ── 8. Population allele frequencies ──────────────────────────────────────────
+# Real-world approximate frequencies from gnomAD / PharmGKB
+println("=== Population Allele Frequencies ===")
+
+let pop_freq = table(
+  population: ["European","African","East Asian","South Asian","Latino"],
+  cyp2c9_s2:  [0.12, 0.03, 0.00, 0.04, 0.07],
+  cyp2c9_s3:  [0.07, 0.01, 0.04, 0.10, 0.05],
+  vkorc1_a:   [0.39, 0.11, 0.91, 0.52, 0.44]
+)
+
+# Populations with high VKORC1-A + reduced CYP2C9 need lowest starting doses
+let pop_freq = pop_freq |> mutate("risk_index", |row| round(row.vkorc1_a * (row.cyp2c9_s2 + row.cyp2c9_s3) * 100, 1))
+
+println("\nPopulation risk indices (higher = more dose-sensitive):")
+pop_freq |> arrange("-risk_index") |> println()
+
+# ── 9. Visualizations ─────────────────────────────────────────────────────────
+println("=== Visualizations ===")
+
+# Predicted dose distribution by metabolizer status
+violin({ data: patients, x: "metabolizer", y: "predicted_dose_mg",
+         title: "Warfarin predicted dose by CYP2C9 metabolizer status" })
+  |> save_svg("warfarin_dose_violin.svg")
+
+# Genotype-dose heatmap (CYP2C9 x VKORC1)
+let dose_matrix = matrix([[5.0,3.8,2.5],[3.8,2.8,1.9],[2.5,1.9,1.3],
+                          [2.5,1.9,1.3],[1.3,0.9,0.6],[0.0,0.0,0.0]])
+
+heatmap({ data: dose_matrix,
+          title: "Predicted warfarin dose (mg/day) by genotype combination" })
+  |> save_svg("warfarin_dose_heatmap.svg")
+
+# Key variant positions on the CYP2C9 protein (490 aa)
+let variant_sites = table(
+  position: [144, 359, 360, 430],
+  label:    ["*2 R144C","*3 I359L","D360E (rare)","heme-binding"],
+  impact:   [0.5, 1.0, 0.3, 0.0]
+)
+
+lollipop({ data: variant_sites, title: "CYP2C9 pharmacovariants", length: 490 })
+  |> save_svg("cyp2c9_lollipop.svg")
+println("Visualizations saved")
+
+# ── 10. Clinical decision support summary ─────────────────────────────────────
+println("=== Clinical Decision Support Summary ===")
+
+let high_risk = patients |> filter(|row| row.predicted_dose_mg <= 1.9)
+let normal    = patients |> filter(|row| row.predicted_dose_mg >= 4.0)
+println("High-risk patients (dose <= 1.9 mg/day): " + len(high_risk))
+println("Normal-dose patients (dose >= 4.0 mg/day): " + len(normal))
+
+let report = "# Warfarin Pharmacogenomic Dosing Report\n\n"
+  + "## Cohort Summary\n\n"
+  + len(patients) + " patients genotyped for CYP2C9 and VKORC1.\n\n"
+  + "## Dose Predictions\n\n"
+  + "Range: " + min(patients.predicted_dose_mg) + " - "
+  + max(patients.predicted_dose_mg) + " mg/day.\n\n"
+  + "## High-Risk Patients (dose <= 1.9 mg/day)\n\n"
+  + len(high_risk) + " patients require sub-therapeutic starting dose "
+  + "and close INR monitoring.\n\n"
+  + "## Population Considerations\n\n"
+  + "East Asian populations carry highest VKORC1-A frequency (0.91), "
+  + "suggesting lowest average dose requirements.\n\n"
+  + "## Drug Interactions\n\n"
+  + len(cyp_inhibitors) + " known CYP2C9 inhibitors identified. "
+  + "Co-prescription with fluconazole or amiodarone requires dose reduction.\n\n"
+  + "## Figures\n\n"
+  + "See warfarin_dose_violin.svg, warfarin_dose_heatmap.svg, cyp2c9_lollipop.svg\n"
+write_text(report, "warfarin_pgx_report.md")
+
+println("Report written to warfarin_pgx_report.md")
+println("\n=== Analysis complete ===")

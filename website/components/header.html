@@ -1,0 +1,43 @@
+<header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/90 backdrop-blur-sm">
+  <div class="max-w-8xl mx-auto flex items-center justify-between px-4 h-14">
+    <!-- Logo -->
+    <a href="{BASE}/" class="flex items-center gap-2.5 shrink-0">
+      <img src="{BASE}/assets/favicon.svg" alt="BioLang" class="w-7 h-7">
+      <span class="text-lg font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">BioLang</span>
+      <span class="hidden sm:inline text-xs text-slate-500 font-medium">Docs</span>
+    </a>
+
+    <!-- Search -->
+    <div class="relative hidden md:block flex-1 max-w-xs mx-6">
+      <input id="search-input" type="text" placeholder="Search docs...  /" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30">
+      <div id="search-results" class="hidden absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 max-h-80 overflow-y-auto"></div>
+    </div>
+
+    <!-- Top nav -->
+    <nav id="topnav" class="hidden lg:flex items-center gap-1">
+      <a href="{BASE}/docs/getting-started/index.html" data-nav="getting-started" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Get Started</a>
+      <a href="{BASE}/docs/language/index.html" data-nav="language" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Language</a>
+      <a href="{BASE}/docs/builtins/index.html" data-nav="builtins" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Builtins</a>
+      <a href="{BASE}/docs/bio/index.html" data-nav="bio" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Bio</a>
+      <a href="{BASE}/docs/tutorials/index.html" data-nav="tutorials" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Tutorials</a>
+      <a href="{BASE}/book/index.html" data-nav="book" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Book</a>
+      <a href="{BASE}/features.html" data-nav="features" class="px-3 py-1.5 text-sm text-violet-400 hover:text-violet-300 rounded-md hover:bg-violet-500/10 transition-colors font-medium">Features</a>
+    </nav>
+
+    <!-- Right actions -->
+    <div class="flex items-center gap-2 ml-4">
+      <button id="dark-toggle" class="p-2 text-slate-400 hover:text-slate-200 rounded-md hover:bg-slate-800/50 transition-colors" title="Toggle theme"></button>
+      <a href="https://github.com/biolang/biolang" class="p-2 text-slate-400 hover:text-slate-200 rounded-md hover:bg-slate-800/50 transition-colors" title="GitHub">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      </a>
+      <!-- Mobile menu button -->
+      <button id="mobile-menu-btn" class="lg:hidden p-2 text-slate-400 hover:text-slate-200 rounded-md hover:bg-slate-800/50 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile sidebar overlay -->
+<div id="sidebar-overlay" class="hidden fixed inset-0 z-30 bg-black/50 lg:hidden"></div>
+

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Setup — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="getting-started/editor-setup"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a>
+        <span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Getting Started</a>
+        <span class="mx-2">/</span>
+        <span class="text-slate-300">Editor Setup</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Editor Setup</h1>
+        <p>
+          BioLang ships with a built-in language server (<code>bl lsp</code>) that provides
+          real-time diagnostics, completions, hover documentation, and more. This page covers
+          how to configure it for the most popular editors.
+        </p>
+
+        <h2>Language Server Features</h2>
+        <p>
+          The BioLang LSP supports the following capabilities:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Diagnostics</td>
+              <td>Real-time syntax and type errors as you type</td>
+            </tr>
+            <tr>
+              <td>Completion</td>
+              <td>Context-aware completions for functions, variables, modules, and sequence methods</td>
+            </tr>
+            <tr>
+              <td>Hover</td>
+              <td>Type information and documentation on hover</td>
+            </tr>
+            <tr>
+              <td>Go to Definition</td>
+              <td>Jump to function and variable definitions</td>
+            </tr>
+            <tr>
+              <td>Find References</td>
+              <td>Find all usages of a symbol</td>
+            </tr>
+            <tr>
+              <td>Rename</td>
+              <td>Safe rename across the file</td>
+            </tr>
+            <tr>
+              <td>Formatting</td>
+              <td>Format document using <code>bl fmt</code> rules</td>
+            </tr>
+            <tr>
+              <td>Signature Help</td>
+              <td>Parameter hints as you type function arguments</td>
+            </tr>
+            <tr>
+              <td>Semantic Tokens</td>
+              <td>Rich syntax highlighting for DNA/RNA/protein literals</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>VS Code</h2>
+        <p>
+          The official <strong>BioLang</strong> extension for Visual Studio Code provides the best
+          out-of-the-box experience with syntax highlighting, LSP integration, and snippet support.
+        </p>
+        <h3>Installation</h3>
+        <ol>
+          <li>Open VS Code</li>
+          <li>Go to Extensions (<kbd>Ctrl+Shift+X</kbd> / <kbd>Cmd+Shift+X</kbd>)</li>
+          <li>Search for <strong>"BioLang"</strong></li>
+          <li>Click <strong>Install</strong></li>
+        </ol>
+        <p>Or install from the command line:</p>
+        <pre><code class="language-bash">code --install-extension biolang.biolang-vscode</code></pre>
+
+        <h3>Configuration</h3>
+        <p>
+          The extension automatically detects the <code>bl</code> binary from your PATH. To use a
+          custom binary path or pass additional LSP flags, add these settings to your
+          <code>settings.json</code>:
+        </p>
+        <pre><code class="language-json">{
+  "biolang.serverPath": "/usr/local/bin/bl",
+  "biolang.lsp.args": ["lsp", "--log-level", "info"],
+  "biolang.formatOnSave": true,
+  "biolang.trace.server": "messages"
+}</code></pre>
+
+        <h3>Recommended Companion Extensions</h3>
+        <ul>
+          <li><strong>Error Lens</strong> &mdash; inline diagnostic messages</li>
+          <li><strong>indent-rainbow</strong> &mdash; visualize indentation levels</li>
+          <li><strong>Bracket Pair Colorizer</strong> &mdash; matching bracket colors</li>
+        </ul>
+
+        <h3>Snippets</h3>
+        <p>The extension includes built-in snippets for common patterns:</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Prefix</th>
+              <th>Expands to</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>blfn</code></td>
+              <td>Function definition</td>
+            </tr>
+            <tr>
+              <td><code>blpipe</code></td>
+              <td>Pipe chain template</td>
+            </tr>
+            <tr>
+              <td><code>blfastq</code></td>
+              <td>FASTQ reading boilerplate</td>
+            </tr>
+            <tr>
+              <td><code>blfor</code></td>
+              <td>For loop</td>
+            </tr>
+            <tr>
+              <td><code>blmatch</code></td>
+              <td>Match expression</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Neovim</h2>
+        <p>
+          Neovim users can configure the BioLang LSP via
+          <a href="https://github.com/neovim/nvim-lspconfig" class="text-violet-400 hover:text-violet-300">nvim-lspconfig</a>.
+        </p>
+        <h3>Basic Setup</h3>
+        <p>Add the following to your <code>init.lua</code>:</p>
+        <pre><code class="language-lua">-- Register BioLang file type
+vim.filetype.add({
+  extension = {
+    bl = "biolang",
+  },
+})
+
+-- Configure LSP
+local lspconfig = require("lspconfig")
+local configs = require("lspconfig.configs")
+
+if not configs.biolang then
+  configs.biolang = {
+    default_config = {
+      cmd = { "bl", "lsp" },
+      filetypes = { "biolang" },
+      root_dir = lspconfig.util.root_pattern(".git", "biolang.toml"),
+      settings = {},
+    },
+  }
+end
+
+lspconfig.biolang.setup({
+  on_attach = function(client, bufnr)
+    -- Format on save
+    if client.supports_method("textDocument/formatting") then
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        buffer = bufnr,
+        callback = function()
+          vim.lsp.buf.format({ async = false })
+        end,
+      })
+    end
+  end,
+})</code></pre>
+
+        <h3>Tree-sitter Grammar</h3>
+        <p>
+          For enhanced syntax highlighting, install the BioLang Tree-sitter grammar via
+          <code>nvim-treesitter</code>:
+        </p>
+        <pre><code class="language-lua">require("nvim-treesitter.configs").setup({
+  ensure_installed = { "biolang" },
+  highlight = { enable = true },
+})</code></pre>
+
+        <h3>Telescope Integration</h3>
+        <p>
+          Use Telescope for fuzzy-finding BioLang symbols:
+        </p>
+        <pre><code class="language-lua">vim.keymap.set("n", "&lt;leader&gt;bs", function()
+  require("telescope.builtin").lsp_document_symbols({
+    symbols = { "function", "variable" },
+  })
+end, { desc = "BioLang symbols" })</code></pre>
+
+        <h2>Emacs</h2>
+        <p>
+          Emacs users can configure BioLang via <code>lsp-mode</code> or <code>eglot</code>.
+        </p>
+
+        <h3>lsp-mode Setup</h3>
+        <pre><code class="language-lisp">;; Define BioLang major mode
+(define-derived-mode biolang-mode prog-mode "BioLang"
+  "Major mode for editing BioLang files."
+  (setq-local comment-start "# ")
+  (setq-local comment-end ""))
+
+(add-to-list 'auto-mode-alist '("\\.bl\\'" . biolang-mode))
+
+;; LSP configuration
+(with-eval-after-load 'lsp-mode
+  (add-to-list 'lsp-language-id-configuration '(biolang-mode . "biolang"))
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("bl" "lsp"))
+    :activation-fn (lsp-activate-on "biolang")
+    :server-id 'biolang-lsp)))
+
+(add-hook 'biolang-mode-hook #'lsp-deferred)</code></pre>
+
+        <h3>eglot Setup</h3>
+        <pre><code class="language-lisp">(add-to-list 'eglot-server-programs
+             '(biolang-mode . ("bl" "lsp")))
+(add-hook 'biolang-mode-hook #'eglot-ensure)</code></pre>
+
+        <h2>Other Editors</h2>
+        <p>
+          Any editor that supports the Language Server Protocol can work with BioLang. The
+          LSP server is started with:
+        </p>
+        <pre><code class="language-bash">bl lsp</code></pre>
+        <p>
+          It communicates over stdin/stdout using the standard LSP JSON-RPC protocol. Common
+          editors with LSP support include:
+        </p>
+        <ul>
+          <li><strong>Sublime Text</strong> &mdash; via the <a href="https://github.com/sublimelsp/LSP" class="text-violet-400 hover:text-violet-300">LSP package</a></li>
+          <li><strong>Helix</strong> &mdash; add to <code>languages.toml</code></li>
+          <li><strong>Zed</strong> &mdash; custom language server configuration</li>
+          <li><strong>Kate</strong> &mdash; via built-in LSP client</li>
+        </ul>
+
+        <h3>Helix Example</h3>
+        <p>Add to <code>~/.config/helix/languages.toml</code>:</p>
+        <pre><code class="language-toml">[[language]]
+name = "biolang"
+scope = "source.biolang"
+file-types = ["bl"]
+roots = ["biolang.toml"]
+language-servers = ["biolang-lsp"]
+comment-token = "#"
+indent = { tab-width = 2, unit = "  " }
+
+[language-server.biolang-lsp]
+command = "bl"
+args = ["lsp"]</code></pre>
+
+        <h2>Verifying the Setup</h2>
+        <p>
+          To confirm everything is working, create a test file <code>test.bl</code>:
+        </p>
+        <pre><code class="language-biolang"># test.bl — verify editor integration
+let seq = dna"ATCGATCG"
+let gc = gc_content(seq)
+print("GC content: {gc}")</code></pre>
+        <p>You should see:</p>
+        <ul>
+          <li>Syntax highlighting for keywords, strings, DNA literals, and comments</li>
+          <li>Completions when typing <code>seq |&gt;</code> (offering <code>gc_content</code>, <code>reverse_complement</code>, etc.)</li>
+          <li>Hover information when hovering over <code>gc_content</code></li>
+          <li>No diagnostic errors (red squiggles)</li>
+        </ul>
+
+        <h2>Next Steps</h2>
+        <p>
+          With your editor configured, explore the
+          <a href="repl-tour.html" class="text-violet-400 hover:text-violet-300">REPL Tour</a>
+          to learn about BioLang's interactive mode.
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="first-script.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> First Script
+        </a>
+        <a href="repl-tour.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          REPL Tour <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

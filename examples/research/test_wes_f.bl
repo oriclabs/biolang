@@ -1,0 +1,5 @@
+# Test: if/then no-else in standalone block
+let y = 0
+if true then
+    y = 42
+println(y)

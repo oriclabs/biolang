@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Plots — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/visualization"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">ASCII Plots</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">ASCII Plots</h1>
+        <p class="text-lg text-slate-400 mb-8">6 functions for terminal-friendly visualizations using Unicode characters. Render directly in the REPL, notebooks, or pipe to log files. Zero dependencies.</p>
+
+        <section class="mb-12" id="sparkline">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sparkline</span></h2>
+          <p class="text-slate-400 mt-2">Render a compact inline chart using Unicode block characters. Perfect for showing trends in a single line.</p>
+          <pre><code class="language-biolang">sparkline(data) -> string</code></pre>
+          <pre><code class="language-biolang">sparkline([1, 5, 2, 8, 3, 7, 4, 6])
+# "&#9602;&#9606;&#9603;&#9608;&#9603;&#9607;&#9604;&#9606;"
+
+let coverage = [12, 45, 89, 102, 67, 54, 33, 28, 15]
+println("Coverage: ", sparkline(coverage))</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <pre class="!border-0 !rounded-none !mt-0 !mb-0"><code class="text-slate-300 text-sm">Coverage: ▁▃▆█▅▄▂▂▁</code></pre>
+</div>
+        </section>
+
+        <section class="mb-12" id="bar_chart">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">bar_chart</span></h2>
+          <p class="text-slate-400 mt-2">Bar chart in the terminal.</p>
+          <pre><code class="language-biolang">bar_chart(data, opts?) -> string</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">labels</td><td class="py-2 px-3">list&lt;string&gt;</td><td class="py-2 px-3">Bar labels</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">width</td><td class="py-2 px-3">int</td><td class="py-2 px-3">Max bar width (default: 40)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">title</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Chart title</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">let counts = {"A": 2500, "T": 2300, "C": 2600, "G": 2400}
+println(bar_chart(counts, {title: "Nucleotide Counts", width: 50}))</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <pre class="!border-0 !rounded-none !mt-0 !mb-0"><code class="text-slate-300 text-sm">Nucleotide Counts
+A |████████████████████████████████████████████████  | 2500
+T |████████████████████████████████████████████      | 2300
+C |██████████████████████████████████████████████████| 2600
+G |██████████████████████████████████████████████    | 2400</code></pre>
+</div>
+        </section>
+
+        <section class="mb-12" id="boxplot">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">boxplot</span></h2>
+          <p class="text-slate-400 mt-2">ASCII boxplot showing min, Q1, median, Q3, max, and outliers.</p>
+          <pre><code class="language-biolang">boxplot(data, opts?) -> string</code></pre>
+          <pre><code class="language-biolang">let quality = [28, 30, 32, 35, 33, 31, 29, 36, 34, 27, 38, 12]
+println(boxplot(quality, {title: "Base Quality Scores", width: 60}))
+
+# Multiple boxplots
+let samples = {
+  "Control": [28, 30, 32, 35, 33],
+  "Treated": [22, 25, 28, 24, 26],
+  "Mutant":  [35, 38, 40, 37, 36]
+}
+println(boxplot(samples))</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <pre class="!border-0 !rounded-none !mt-0 !mb-0"><code class="text-slate-300 text-sm">Base Quality Scores
+ o           |----[======|=====]---|
+ 12          27   29    32    35   38</code></pre>
+</div>
+        </section>
+
+        <section class="mb-12" id="hist">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">hist</span></h2>
+          <p class="text-slate-400 mt-2">Text-mode histogram with configurable bin count.</p>
+          <pre><code class="language-biolang">hist(data, bins?) -> string</code></pre>
+          <pre><code class="language-biolang">let lengths = range(0, 1000) |> map(|_| int(random() * 300))
+println(hist(lengths, 15))</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <pre class="!border-0 !rounded-none !mt-0 !mb-0"><code class="text-slate-300 text-sm">Read Length Distribution
+  0-20  |████████████████  | 156
+ 20-40  |█████████████████████████████████| 312
+ 40-60  |██████████████████████████████████████████████████| 487
+ 60-80  |███████████████████████████████████████████████  | 461
+ 80-100 |██████████████████████████████████████████      | 398
+100-120 |████████████████████████████████████            | 345
+120-140 |██████████████████████████████                  | 289
+140-160 |████████████████████████                        | 231
+160-180 |██████████████████                              | 178
+180-200 |████████████████                                | 148
+200-220 |██████████                                      | 98
+220-240 |██████                                          | 62
+240-260 |████                                            | 41
+260-280 |██                                              | 22
+280-300 |█                                               | 8</code></pre>
+</div>
+        </section>
+
+        <section class="mb-12" id="scatter">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">scatter</span></h2>
+          <p class="text-slate-400 mt-2">Terminal scatter plot using Braille characters for sub-cell resolution.</p>
+          <pre><code class="language-biolang">scatter(x, y) -> string</code></pre>
+          <pre><code class="language-biolang">let x = range(0, 50) |> map(|i| float(i) / 10.0)
+let y = map(x, |v| sin(v))
+println(scatter(x, y))</code></pre>
+<div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
+  <pre class="!border-0 !rounded-none !mt-0 !mb-0"><code class="text-slate-300 text-sm">sin(x)
+ 1.0&#9474;    &#10272;&#10320;                    &#10240;&#10320;
+    &#9474;  &#10240;&#9729;  &#10240;                  &#9729;  &#10240;
+ 0.5&#9474;&#10240;&#9729;      &#10256;                      &#10256;
+    &#9474;&#9729;        &#10240;              &#9729;        &#10240;
+ 0.0&#9474;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#10258;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#10258;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+    &#9474;           &#10240;            &#9729;
+-0.5&#9474;            &#10256;          &#10240;
+    &#9474;              &#10240;      &#9729;
+-1.0&#9474;                &#10256;&#10240;&#10320;&#9729;
+    &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+     0.0    1.0    2.0    3.0    4.0    5.0</code></pre>
+</div>
+        </section>
+
+        <section class="mb-12" id="heatmap_ascii">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">heatmap_ascii</span></h2>
+          <p class="text-slate-400 mt-2">Render a heatmap in the terminal using Unicode block characters.</p>
+          <pre><code class="language-biolang">heatmap_ascii(data, opts?) -> string</code></pre>
+          <pre><code class="language-biolang">let data = matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+println(heatmap_ascii(data, {title: "Expression"}))</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="http.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> HTTP &amp; Network</a>
+        <a href="plotting.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">SVG Plots <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

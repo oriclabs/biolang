@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance Tips — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="cookbook/performance"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Cookbook</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Performance Tips</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Performance Tips</h1>
+        <p>BioLang is designed for performance on bioinformatics workloads. These tips
+        cover streaming, parallelism, memory management, and profiling to help you
+        get the most out of your scripts.</p>
+
+        <h2>Streaming vs Loading</h2>
+
+        <h3>Understand lazy evaluation</h3>
+        <pre><code class="language-biolang"># BioLang pipe chains are lazy -- nothing happens until consumption
+let pipeline = fastq("huge.fq.gz")
+  |> filter(|r| mean_phred(r.quality) >= 30.0)
+  |> map(|r| len(r.seq))
+# No data has been read yet!
+
+# Consumption happens with terminal operations:
+let avg = pipeline |> mean        # Reads file, streams, computes
+# OR
+pipeline |> collect           # Materializes into a list</code></pre>
+
+        <h3>Avoid unnecessary collect</h3>
+        <pre><code class="language-biolang"># BAD: collects millions of records into memory
+let all_reads = fastq("big.fq.gz") |> collect
+let filtered = all_reads |> filter(|r| mean_phred(r.quality) >= 30.0)
+write_fastq(filtered, "out.fq.gz")
+
+# GOOD: streams everything, constant memory
+fastq("big.fq.gz")
+  |> filter(|r| mean_phred(r.quality) >= 30.0)
+  |> write_fastq("out.fq.gz")
+
+# When you MUST collect, limit the data first
+let sample_reads = fastq("big.fq.gz") |> take(100000) |> collect</code></pre>
+
+        <h3>Streaming aggregations</h3>
+        <pre><code class="language-biolang"># Compute stats in a single streaming pass using reduce
+let lengths = fastq("reads.fq.gz")
+  |> map(|r| len(r.seq))
+  |> collect
+
+print("Read count: #{len(lengths)}")
+print("Mean length: #{round(mean(lengths), 1)}")
+print("Min: #{min(lengths)}, Max: #{max(lengths)}")
+
+# Multiple aggregations in a single pass using reduce
+let result = fastq("reads.fq.gz")
+  |> reduce({ total: 0, gc_sum: 0.0, n: 0 }, |acc, r| {
+    {
+      total: acc.total + len(r.seq),
+      gc_sum: acc.gc_sum + (gc_content(r.seq) ?? 0.0),
+      n: acc.n + 1
+    }
+  })
+
+print("Total bases: #{result.total}")
+print("Mean GC: #{round(result.gc_sum / result.n, 3)}")</code></pre>
+
+        <h2>Parallel Processing</h2>
+
+        <h3>par_map for CPU-bound work</h3>
+        <pre><code class="language-biolang"># par_map distributes work across CPU cores
+let proteins = fasta("proteome.fa") |> collect
+
+# Sequential (slow for large datasets)
+let results_seq = map(proteins, |p| len(p.seq))
+
+# Parallel (uses all available cores)
+let results_par = par_map(proteins, |p| len(p.seq))
+
+# Control parallelism
+let results_4 = par_map(proteins, |p| len(p.seq))</code></pre>
+
+        <h3>Parallel file processing</h3>
+        <pre><code class="language-biolang"># Process multiple files in parallel
+let fastq_files = glob("samples/*_R1.fq.gz")
+
+let stats = par_map(fastq_files, |fname| {
+  let sample = replace(fname, "_R1.fq.gz", "")
+  let reads = fastq("samples/#{fname}") |> collect
+  let lengths = map(reads, |r| len(r.seq))
+  {
+    sample: sample,
+    n_reads: len(reads),
+    mean_length: round(mean(lengths), 1),
+    total_bases: sum(lengths)
+  }
+})
+
+write_tsv(from_records(stats), "sample_stats.tsv")
+print("Processed #{len(stats)} samples")</code></pre>
+
+        <h3>Chunked parallel processing</h3>
+        <pre><code class="language-biolang"># Process a large file in chunks for controlled parallelism
+fastq("huge.fq.gz")
+  |> chunk(10000)
+  |> par_map(|ch| {
+    # Each chunk processed independently
+    ch
+      |> filter(|r| mean_phred(r.quality) >= 30.0)
+      |> collect
+  })
+  |> flatten
+  |> write_fastq("processed.fq.gz")</code></pre>
+
+        <h2>Memory Management</h2>
+
+        <h3>Working with large genomes</h3>
+        <pre><code class="language-biolang"># Reading a whole genome into memory is sometimes necessary
+# but be aware of the cost (~3 GB for human genome)
+
+# Option 1: Stream and process without full load
+fasta("genome.fa")
+  |> each(|record| {
+    let gc = gc_content(record.seq)
+    print("#{record.id}: GC=#{round(gc, 3)}")
+  })
+
+# Option 2: Load only what you need
+let seqs = fasta("genome.fa")
+  |> filter(|r| r.id == "chr1")
+  |> collect
+
+# Option 3: Process in chunks to limit memory
+fasta("genome.fa")
+  |> chunk(100)
+  |> each(|batch| {
+    print("Processing batch of #{len(batch)} sequences")
+  })</code></pre>
+
+        <h3>Hash table sizing</h3>
+        <pre><code class="language-biolang"># Count k-mers efficiently
+# Option 1: Manual counting with a record
+let kmer_counts = {}
+for kmer in kmers(sequence, 21) {
+  kmer_counts[kmer] = (kmer_counts[kmer] ?? 0) + 1
+}
+
+# Option 2: Use the built-in kmer_count function
+kmer_counts = kmer_count(sequence, 21)
+print("Unique 21-mers: #{len(keys(kmer_counts))}")</code></pre>
+
+        <h2>I/O Optimization</h2>
+
+        <h3>Compressed I/O</h3>
+        <pre><code class="language-biolang"># BioLang auto-detects compression from file extension
+# .gz files are handled transparently
+fastq("reads.fq.gz")      # Auto-decompresses
+  |> write_fastq("out.fq.gz")  # Auto-compresses
+
+# For explicit compression, use the compress functions
+fastq("reads.fq.gz")
+  |> write_fastq("out.fq")
+
+# Then compress the output separately if needed
+# zstd is typically faster with better ratios than gzip</code></pre>
+
+        <h3>Buffered output</h3>
+        <pre><code class="language-biolang"># Collect results then write in one operation for efficiency
+let results = fasta("sequences.fa")
+  |> map(|record| {
+    let gc = gc_content(record.seq) ?? 0.0
+    { name: record.id, length: len(record.seq), gc: round(gc, 4) }
+  })
+  |> collect
+
+write_tsv(from_records(results), "output.tsv")</code></pre>
+
+        <h2>Profiling</h2>
+
+        <h3>Timing operations</h3>
+        <pre><code class="language-biolang"># Time a block of code using time_it
+let result = time_it(|| {
+  fastq("reads.fq.gz")
+    |> filter(|r| mean_phred(r.quality) >= 30.0)
+    |> count
+})
+print("Filtering took #{result}ms")
+
+# Profile individual stages
+let t1 = now()
+let data = vcf("variants.vcf.gz") |> collect
+let read_time = now() - t1
+
+let t2 = now()
+let filtered = data |> filter(|v| v.filter == "PASS") |> collect
+let filter_time = now() - t2
+
+print("Read: #{read_time}ms, Filter: #{filter_time}ms")</code></pre>
+
+        <h3>Memory usage tracking</h3>
+        <pre><code class="language-biolang"># Track memory by monitoring data sizes
+let data = fasta("genome.fa") |> collect
+print("Loaded #{len(data)} sequences")
+
+# For large datasets, process in streaming fashion to limit memory
+let kmer_counts = fasta("genome.fa")
+  |> flat_map(|r| kmers(r.seq, 21))
+  |> frequencies
+
+print("Unique 21-mers: #{len(keys(kmer_counts))}")</code></pre>
+
+        <h2>JIT Compilation</h2>
+
+        <pre><code class="language-biolang"># Write performance-critical functions as plain BioLang
+# The interpreter optimizes hot paths automatically
+
+fn custom_quality_score(qual_string) {
+  let s = 0.0
+  let weight_sum = 0.0
+  for i in range(0, len(qual_string)) {
+    let q = float(qual_string[i])
+    let weight = 1.0 / (1.0 + pow(2.718, -0.1 * (q - 20.0)))
+    s = s + q * weight
+    weight_sum = weight_sum + weight
+  }
+  s / weight_sum
+}
+
+# Apply to all reads
+let scores = fastq("reads.fq.gz")
+  |> map(|r| custom_quality_score(r.quality))
+  |> collect</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="patterns.html" class="text-violet-400 hover:text-violet-300">&larr; Common Patterns</a>
+        <a href="interop.html" class="text-violet-400 hover:text-violet-300">Interop &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

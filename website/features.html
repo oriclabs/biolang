@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>BioLang at a Glance — Features &amp; Capabilities</title>
+  <meta name="description" content="BioLang: a domain-specific language for bioinformatics. Pipe-first syntax, native DNA types, 290+ builtins, 16 API clients, streaming I/O, LLM integration, pure Rust.">
+
+  <!-- Open Graph for social sharing -->
+  <meta property="og:title" content="BioLang — A DSL for Bioinformatics">
+  <meta property="og:description" content="Pipe-first syntax, native DNA/RNA/protein types, 290+ builtins, 16 bio API clients, streaming I/O, LLM integration. Pure Rust, single binary.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/og-card.png">
+
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="js/biolang-highlight.js"></script>
+  <style>
+    .feature-grid { display: grid; gap: 1px; background: rgba(148,163,184,0.08); border-radius: 0.75rem; overflow: hidden; }
+    .feature-cell { background: rgb(15 23 42 / 0.95); padding: 1.25rem 1.5rem; }
+    .tag { display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.03em; }
+    .tag-bio { background: rgba(139,92,246,0.12); color: rgb(167,139,250); border: 1px solid rgba(139,92,246,0.2); }
+    .tag-lang { background: rgba(34,211,238,0.1); color: rgb(103,232,249); border: 1px solid rgba(34,211,238,0.2); }
+    .tag-data { background: rgba(251,191,36,0.1); color: rgb(252,211,77); border: 1px solid rgba(251,191,36,0.2); }
+    .tag-perf { background: rgba(248,113,113,0.1); color: rgb(252,165,165); border: 1px solid rgba(248,113,113,0.2); }
+    .tag-ai { background: rgba(52,211,153,0.1); color: rgb(110,231,183); border: 1px solid rgba(52,211,153,0.2); }
+    .mini-code { font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace; font-size: 0.8rem; line-height: 1.5; color: #e2e8f0; background: rgba(30,41,59,0.8); border-radius: 0.5rem; padding: 0.75rem 1rem; border: 1px solid rgba(51,65,85,0.5); font-variant-ligatures: none; }
+    .stat-pill { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; background: rgba(30,41,59,0.8); border: 1px solid rgba(51,65,85,0.5); }
+    @media print { .no-print { display: none; } body { background: white; color: #1e293b; } }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="."></div>
+
+  <!-- Title -->
+  <section class="pt-16 pb-8">
+    <div class="max-w-5xl mx-auto px-6 text-center">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4">
+        BioLang at a Glance
+      </h1>
+      <p class="text-lg text-slate-400 max-w-2xl mx-auto mb-6">
+        A domain-specific language for bioinformatics. Purpose-built for genomics workflows — not another general-purpose language with bio libraries bolted on.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3 mb-10">
+        <span class="stat-pill"><span class="text-violet-400 font-bold">290+</span> builtins</span>
+        <span class="stat-pill"><span class="text-cyan-400 font-bold">16</span> bio APIs</span>
+        <span class="stat-pill"><span class="text-amber-400 font-bold">15</span> file formats</span>
+        <span class="stat-pill"><span class="text-rose-400 font-bold">21</span> plot types</span>
+        <span class="stat-pill"><span class="text-sky-400 font-bold">6</span> transfer protocols</span>
+        <span class="stat-pill"><span class="text-emerald-400 font-bold">3</span> LLM providers</span>
+        <span class="stat-pill"><span class="text-orange-400 font-bold">Rust</span> native</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Taste -->
+  <section class="pb-12">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="bg-slate-900/80 border border-slate-700/50 rounded-xl p-5 font-mono text-sm shadow-2xl max-w-3xl mx-auto">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+          <span class="text-slate-500 text-xs ml-2">quick_taste.bl</span>
+        </div>
+<pre class="!p-0 !m-0 !bg-transparent"><code class="language-biolang !p-0 !bg-transparent"># Native DNA types + pipe-first syntax
+let seq = dna"ATCGATCGATCG"
+gc_content(seq)                # 0.5
+seq |> reverse_complement |> translate
+
+# Stream a 50 GB FASTQ in constant memory
+fastq("reads.fq.gz")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> map(|r| gc_content(r.seq))
+  |> mean
+
+# Query NCBI + Ensembl in one line
+ncbi_gene("BRCA1") |> print()
+ensembl_vep("17:g.43092919G>A") |> print()
+
+# Ask an LLM about your data
+chat("What pathways involve BRCA1 and TP53?")</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Grid -->
+  <section class="py-12">
+    <div class="max-w-5xl mx-auto px-6">
+
+      <!-- ── Language ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-cyan-400 rounded-full"></span> Language
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">SYNTAX</span>
+            <span class="font-semibold text-white text-sm">Pipe-First Operator</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Data flows left-to-right via <code>|&gt;</code>. No nested calls, no temp vars.</p>
+          <div class="mini-code"><span class="text-slate-500">#</span> a |&gt; f(b) = f(a, b)<br>data |&gt; filter(|x| x &gt; 0) |&gt; mean()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">BIO</span>
+            <span class="font-semibold text-white text-sm">Native Bio Types</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">First-class DNA, RNA, Protein literals — not strings.</p>
+          <div class="mini-code">dna"ATCGATCG"<br>rna"AUCGAUCG"<br>protein"MKTLLILAVS"</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">TYPES</span>
+            <span class="font-semibold text-white text-sm">Genomic Value Types</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Variant, AlignedRead, Interval, Gene, Quality, Table, Matrix, Stream.</p>
+          <div class="mini-code">v.is_snp &nbsp; v.is_transition<br>read.is_mapped &nbsp; read.mapq<br>iv.chrom &nbsp; iv.start &nbsp; iv.end</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">SYNTAX</span>
+            <span class="font-semibold text-white text-sm">Pattern Matching</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Match expressions with destructuring and guards.</p>
+          <div class="mini-code">match variant_type(v) {<br>&nbsp; "missense" =&gt; analyze(v),<br>&nbsp; "nonsense" =&gt; flag_lof(v),<br>&nbsp; _ =&gt; "benign"<br>}</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">TYPES</span>
+            <span class="font-semibold text-white text-sm">Gradual Typing</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Full type inference. Add annotations when you want safety.</p>
+          <div class="mini-code">x = 42 &nbsp; <span class="text-slate-500"># inferred Int</span><br>s = dna"ATCG"<br>t = [0.1, 0.9]</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">ERRORS</span>
+            <span class="font-semibold text-white text-sm">Result + try/catch</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Rust-style Result with <code>?</code> operator, plus try/catch for scripts.</p>
+          <div class="mini-code">seq = read_fasta(path)<br>try { align(reads, ref) }<br>catch e { print(e.message) }</div>
+        </div>
+      </div>
+
+      <!-- ── Bioinformatics ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-violet-400 rounded-full"></span> Bioinformatics
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">I/O</span>
+            <span class="font-semibold text-white text-sm">15 File Formats</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Native readers/writers with auto gzip detection.</p>
+          <div class="mini-code">read_fasta() &nbsp; read_fastq()<br>fasta() &nbsp; fastq() &nbsp; vcf()<br>bed() &nbsp; gff() &nbsp; sam() &nbsp; bam()<br>csv() &nbsp; tsv() &nbsp; json()<br>+ write_fasta/fastq/vcf/bed/gff</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">SEQ</span>
+            <span class="font-semibold text-white text-sm">Sequence Operations</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">All common sequence ops as builtins.</p>
+          <div class="mini-code">reverse_complement() &nbsp; transcribe()<br>translate() &nbsp; gc_content()<br>kmer_count() &nbsp; hamming_distance()<br>find_motif() &nbsp; find_orfs()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">GENOMICS</span>
+            <span class="font-semibold text-white text-sm">Interval Operations</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Interval trees with O(log n + k) query performance.</p>
+          <div class="mini-code">interval_tree(regions)<br>query_overlaps(tree, chrom, start, end)<br>query_nearest(tree, chrom, start)<br>coverage(intervals)</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">VARIANT</span>
+            <span class="font-semibold text-white text-sm">Variant Analysis</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">SNP/indel classification, genotype queries, VCF INFO parsing.</p>
+          <div class="mini-code">is_snp(v) &nbsp; is_transition(v)<br>is_het(v) &nbsp; variant_type(v)<br>parse_vcf_info(info_str)<br>strip_chr() &nbsp; normalize_chrom()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">ALIGN</span>
+            <span class="font-semibold text-white text-sm">Alignment / Reads</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">AlignedRead type with SAM flag queries and CIGAR parsing.</p>
+          <div class="mini-code">read.is_mapped &nbsp; read.mapq<br>read.is_duplicate<br>read.aligned_length<br>flagstat(reads)</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">COORD</span>
+            <span class="font-semibold text-white text-sm">Coordinate Handling</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Automatic 0-based/1-based conversion. Chromosome normalization.</p>
+          <div class="mini-code">strip_chr("chr1") <span class="text-slate-500"># "1"</span><br>add_chr("X") <span class="text-slate-500"># "chrX"</span><br>normalize_chrom("chrMT") <span class="text-slate-500"># "chrM"</span><br><span class="text-slate-500"># VCF→BED coords auto-handled</span></div>
+        </div>
+      </div>
+
+      <!-- ── Data & Tables ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-amber-400 rounded-full"></span> Data &amp; Tables
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">TABLE</span>
+            <span class="font-semibold text-white text-sm">dplyr-Style Verbs</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Built-in table type with familiar data manipulation verbs.</p>
+          <div class="mini-code">select() &nbsp; filter() &nbsp; mutate()<br>group_by() &nbsp; summarize()<br>arrange() &nbsp; inner_join() &nbsp; pivot_longer()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">STREAM</span>
+            <span class="font-semibold text-white text-sm">Lazy Streams</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Process 100 GB files in constant memory. Lazy by default.</p>
+          <div class="mini-code">fastq("big.fq.gz")<br>&nbsp; |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)<br>&nbsp; |&gt; take(1_000_000)<br>&nbsp; |&gt; collect()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">STATS</span>
+            <span class="font-semibold text-white text-sm">Statistics</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Descriptive stats, hypothesis tests, regression, PCA.</p>
+          <div class="mini-code">mean() &nbsp; median() &nbsp; stdev()<br>ttest() &nbsp; cor() &nbsp; lm()<br>pca() &nbsp; p_adjust("BH")<br>ks_test() &nbsp; chi_square()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">HOF</span>
+            <span class="font-semibold text-white text-sm">Higher-Order Functions</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Functional operations on collections and streams.</p>
+          <div class="mini-code">map() &nbsp; filter() &nbsp; reduce()<br>flat_map() &nbsp; zip() &nbsp; each()<br>sort_by() &nbsp; unique() &nbsp; chunk()<br>par_map() &nbsp; par_filter()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">MATRIX</span>
+            <span class="font-semibold text-white text-sm">Matrix Operations</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Dense and sparse matrices for expression data.</p>
+          <div class="mini-code">matrix() &nbsp; sparse_matrix()<br>mat_mul() &nbsp; transpose()<br>row_means() &nbsp; col_sums()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">PARALLEL</span>
+            <span class="font-semibold text-white text-sm">Parallel Processing</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Multi-threaded map/filter for CPU-bound tasks.</p>
+          <div class="mini-code">data |&gt; par_map(|r| heavy_compute(r))<br>data |&gt; par_filter(|r| expensive(r))<br><span class="text-slate-500"># Auto thread pool sizing</span></div>
+        </div>
+      </div>
+
+      <!-- ── API Clients ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-emerald-400 rounded-full"></span> Built-in API Clients
+      </h2>
+      <div class="feature-grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-10">
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">NCBI</span>
+          <p class="text-xs text-slate-500 mt-1">E-utilities, Datasets v2</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">Ensembl</span>
+          <p class="text-xs text-slate-500 mt-1">Genes, VEP, orthologs</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">UniProt</span>
+          <p class="text-xs text-slate-500 mt-1">Search, entry, GO, ID mapping</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">UCSC</span>
+          <p class="text-xs text-slate-500 mt-1">Genomes, tracks, sequence</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">KEGG</span>
+          <p class="text-xs text-slate-500 mt-1">Pathways, genes, links</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">STRING</span>
+          <p class="text-xs text-slate-500 mt-1">Networks, enrichment</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">PDB</span>
+          <p class="text-xs text-slate-500 mt-1">Structures, search</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">Reactome</span>
+          <p class="text-xs text-slate-500 mt-1">Pathways, analysis</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">QuickGO</span>
+          <p class="text-xs text-slate-500 mt-1">GO terms, annotations</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">BioMart</span>
+          <p class="text-xs text-slate-500 mt-1">Bulk queries, datasets</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">COSMIC</span>
+          <p class="text-xs text-slate-500 mt-1">Cancer mutations, census</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">NCBI Datasets</span>
+          <p class="text-xs text-slate-500 mt-1">Genes, taxonomy, genomes</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">nf-core</span>
+          <p class="text-xs text-slate-500 mt-1">Pipeline catalog, params, parsing</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">BioContainers</span>
+          <p class="text-xs text-slate-500 mt-1">9,000+ container images</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-sm font-semibold text-white">Galaxy ToolShed</span>
+          <p class="text-xs text-slate-500 mt-1">Tool repositories, categories</p>
+        </div>
+      </div>
+
+      <!-- ── Visualization ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-pink-400 rounded-full"></span> Visualization — 21 Plot Types
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">ASCII</span>
+            <span class="font-semibold text-white text-sm">Terminal Plots</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Instant plots in REPL and terminal — no GUI needed.</p>
+          <div class="mini-code">sparkline(values)<br>bar_chart(data, opts)<br>boxplot(groups)<br>heatmap_ascii(matrix)<br>dotplot(x, y) &nbsp; coverage(depths)</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">SVG</span>
+            <span class="font-semibold text-white text-sm">SVG Plots</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">SVG output for papers and reports. Save with save_svg().</p>
+          <div class="mini-code">plot(data, opts)<br>histogram(values, opts)<br>heatmap(matrix, opts)<br>volcano(table, opts)<br>ma_plot(table, opts)</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">BIO</span>
+            <span class="font-semibold text-white text-sm">21 Bio-Specific Plots</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Domain-specific visualizations built for genomics data.</p>
+          <div class="mini-code">manhattan() &nbsp; qq_plot()<br>ideogram() &nbsp; circos()<br>kaplan_meier() &nbsp; oncoprint()<br>sequence_logo() &nbsp; phylo_tree()<br>sashimi() &nbsp; hic_map()</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">STATS</span>
+            <span class="font-semibold text-white text-sm">Statistical Plots</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Statistical and diagnostic visualizations.</p>
+          <div class="mini-code">violin(data) &nbsp; density(values)<br>pca_plot(table) &nbsp; roc_curve(data)<br>forest_plot(table)<br>clustered_heatmap(matrix)<br>venn(sets) &nbsp; upset(sets)</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">SEQ</span>
+            <span class="font-semibold text-white text-sm">Sequence Viz</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Alignment views, quality plots, genome tracks.</p>
+          <div class="mini-code">alignment_view(reads)<br>quality_plot(fastq_stats)<br>genome_track(intervals)<br>lollipop(mutations)<br>rainfall(variants) &nbsp; cnv_plot(data)</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">EXPORT</span>
+            <span class="font-semibold text-white text-sm">SVG Export</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">All SVG plots can be saved to file.</p>
+          <div class="mini-code">p = volcano(table, opts)<br>save_svg(p, "figure1.svg")<br><br><span class="text-slate-500"># All plot functions return SVG</span><br><span class="text-slate-500"># strings you can save or embed</span></div>
+        </div>
+      </div>
+
+      <!-- ── Data Transfer ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-sky-400 rounded-full"></span> Data Transfer &amp; Cloud
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">HTTP</span>
+            <span class="font-semibold text-white text-sm">HTTP Downloads</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Resumable downloads with progress. Proxy support built-in.</p>
+          <div class="mini-code">download(url, "output.fa.gz")<br>upload("results.vcf", url)<br>http_get(url, headers)<br>http_post(url, body)</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">FTP</span>
+            <span class="font-semibold text-white text-sm">FTP &amp; SFTP</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Native FTP via suppaftp. SFTP/SCP via system SSH.</p>
+          <div class="mini-code">ftp_download("ftp://host/file")<br>ftp_upload("local.fa", "ftp://...")<br>ftp_list("ftp://host/dir/")<br>sftp_download("sftp://host/file")<br>scp("host:file", "local")</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">S3</span>
+            <span class="font-semibold text-white text-sm">AWS S3</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Download, upload, list S3 buckets via AWS CLI.</p>
+          <div class="mini-code">s3_download("s3://bucket/file")<br>s3_upload("local.bam", "s3://...")<br>s3_list("s3://bucket/prefix/")</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">GCS</span>
+            <span class="font-semibold text-white text-sm">Google Cloud Storage</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Download and upload via gsutil.</p>
+          <div class="mini-code">gcs_download("gs://bucket/file")<br>gcs_upload("local.vcf", "gs://...")</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">ASPERA</span>
+            <span class="font-semibold text-white text-sm">Aspera &amp; SRA</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">High-speed Aspera transfers for EBI/NCBI. SRA toolkit integration.</p>
+          <div class="mini-code">aspera_download("era-fasp@...")<br>sra_prefetch("SRR12345678")<br>sra_fastq("SRR12345678")</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-lang">SYNC</span>
+            <span class="font-semibold text-white text-sm">Rsync &amp; References</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Rsync directories. 15 built-in reference genome sources.</p>
+          <div class="mini-code">rsync(src, dest, {compress: true})<br>ref_genome("GRCh38")<br>bio_sources() <span class="text-slate-500"># list all 15</span><br>bio_fetch("dbSNP")</div>
+        </div>
+      </div>
+
+      <!-- ── Export & Output ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-orange-400 rounded-full"></span> Export &amp; Output Formats
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">BIO</span>
+            <span class="font-semibold text-white text-sm">Bio Format Writers</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Write all major bioinformatics formats.</p>
+          <div class="mini-code">write_fasta(seqs, "out.fa")<br>write_fastq(reads, "out.fq")<br>write_vcf(variants, "out.vcf")<br>write_bed(regions, "out.bed")<br>write_gff(features, "out.gff")</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">TABLE</span>
+            <span class="font-semibold text-white text-sm">Tabular Export</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Write tables to CSV, TSV, and JSON.</p>
+          <div class="mini-code">write_csv(table, "results.csv")<br>write_tsv(table, "results.tsv")<br>write_json(data, "results.json")<br><br><span class="text-slate-500"># JSON supports any value type</span></div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">SVG</span>
+            <span class="font-semibold text-white text-sm">Plot Export</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Save any plot to SVG file. All 36 plot functions return SVG strings.</p>
+          <div class="mini-code">p = volcano(table, opts)<br>save_svg(p, "figure1.svg")<br><br>m = manhattan(gwas, opts)<br>save_svg(m, "manhattan.svg")</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">MD</span>
+            <span class="font-semibold text-white text-sm">Markdown Export</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Convert any value to Markdown. Tables, records, lists auto-formatted.</p>
+          <div class="mini-code">to_markdown(table) <span class="text-slate-500"># MD string</span><br>write_markdown(data, "report.md")<br><span class="text-slate-500"># List[Record] → auto-table</span></div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">HTML</span>
+            <span class="font-semibold text-white text-sm">HTML Reports</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Self-contained HTML reports with inline CSS. SVG plots embedded.</p>
+          <div class="mini-code">to_html(table) <span class="text-slate-500"># full HTML</span><br>write_html(results, "report.html")<br><span class="text-slate-500"># Styled tables, zebra stripes</span></div>
+        </div>
+      </div>
+
+      <!-- ── AI & Tooling ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-emerald-400 rounded-full"></span> AI &amp; Tooling
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-ai">LLM</span>
+            <span class="font-semibold text-white text-sm">Built-in LLM Chat</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Ask questions, generate code, analyze data — from your script.</p>
+          <div class="mini-code">chat("What does BRCA1 do?")<br>chat_code("filter VCF by qual")<br>llm_models() <span class="text-slate-500"># show provider</span></div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-ai">PROVIDERS</span>
+            <span class="font-semibold text-white text-sm">Multi-Provider LLM</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Auto-detects from env vars. Zero config for most setups.</p>
+          <div class="mini-code">ANTHROPIC_API_KEY <span class="text-slate-500"># Claude</span><br>OPENAI_API_KEY <span class="text-slate-500"># GPT</span><br>OLLAMA_MODEL <span class="text-slate-500"># local, free</span><br>LLM_BASE_URL <span class="text-slate-500"># any compatible</span></div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-ai">TOOLS</span>
+            <span class="font-semibold text-white text-sm">Container Tools</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Run samtools, bwa, GATK from BioLang via BioContainers.</p>
+          <div class="mini-code">tool("samtools", "view -c in.bam")<br>tool_search("bwa")<br>tool_pull("samtools")<br>tool_popular()</div>
+        </div>
+      </div>
+
+      <!-- ── Developer Experience ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-rose-400 rounded-full"></span> Developer Experience
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-perf">CLI</span>
+            <span class="font-semibold text-white text-sm">REPL</span>
+          </div>
+          <p class="text-xs text-slate-400">Interactive shell with :time, :type, :env, :profile, tab completion, history.</p>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-perf">IDE</span>
+            <span class="font-semibold text-white text-sm">LSP Server</span>
+          </div>
+          <p class="text-xs text-slate-400">Diagnostics, completion, hover — works with VS Code, Neovim, Helix.</p>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-perf">PKG</span>
+            <span class="font-semibold text-white text-sm">Plugin System</span>
+          </div>
+          <p class="text-xs text-slate-400">Extend with Python, TypeScript, R, or native Rust plugins.</p>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-perf">PERF</span>
+            <span class="font-semibold text-white text-sm">Rust + JIT</span>
+          </div>
+          <p class="text-xs text-slate-400">Bytecode compiler + Cranelift JIT. Native noodles I/O. Single binary.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Quick Comparison -->
+  <section class="py-12 bg-slate-900/30">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-xl font-bold text-white mb-6 text-center">How it compares</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-700">
+              <th class="text-left py-3 px-4 text-slate-400 font-medium">Feature</th>
+              <th class="text-center py-3 px-4 text-violet-400 font-semibold">BioLang</th>
+              <th class="text-center py-3 px-4 text-slate-400 font-medium">Python + Bio*</th>
+              <th class="text-center py-3 px-4 text-slate-400 font-medium">R + Bioconductor</th>
+            </tr>
+          </thead>
+          <tbody class="text-xs">
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2.5 px-4 text-slate-300">Native DNA/RNA types</td>
+              <td class="py-2.5 px-4 text-center text-green-400">Built-in</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">BioPython Seq</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">Biostrings</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2.5 px-4 text-slate-300">Pipe syntax</td>
+              <td class="py-2.5 px-4 text-center text-green-400">|&gt; native</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">None</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">|&gt; (magrittr)</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2.5 px-4 text-slate-300">Streaming large files</td>
+              <td class="py-2.5 px-4 text-center text-green-400">Default</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">Manual generators</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">Limited</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2.5 px-4 text-slate-300">Bio API clients</td>
+              <td class="py-2.5 px-4 text-center text-green-400">16 built-in</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">Separate packages</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">Separate packages</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2.5 px-4 text-slate-300">LLM integration</td>
+              <td class="py-2.5 px-4 text-center text-green-400">Built-in</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">LangChain etc.</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">ellmer/tidychat</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2.5 px-4 text-slate-300">Setup</td>
+              <td class="py-2.5 px-4 text-center text-green-400">Single binary</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">pip + conda</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">R + BiocManager</td>
+            </tr>
+            <tr>
+              <td class="py-2.5 px-4 text-slate-300">Performance</td>
+              <td class="py-2.5 px-4 text-center text-green-400">Rust-native</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">C extensions</td>
+              <td class="py-2.5 px-4 text-center text-slate-500">C/Fortran</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16">
+    <div class="max-w-2xl mx-auto px-6 text-center">
+      <h2 class="text-2xl font-bold text-white mb-3">Ready to try it?</h2>
+      <p class="text-slate-400 mb-6">Single binary. No runtime deps. Works on Linux, macOS, Windows.</p>
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 font-mono text-sm mb-6 text-left max-w-md mx-auto">
+        <span class="text-violet-400">$</span> <span class="text-slate-200">cargo install biolang</span><br>
+        <span class="text-violet-400">$</span> <span class="text-slate-200">bl repl</span>
+      </div>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="docs/getting-started/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">
+          Get Started
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+        <a href="https://github.com/bioras/biolang" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-slate-700 hover:border-violet-500/50 text-slate-300 hover:text-white font-semibold transition-colors">
+          GitHub
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+      </div>
+      <p class="text-xs text-slate-600 mt-6">MIT License &middot; Open Source &middot; Built with Rust</p>
+    </div>
+  </section>
+
+  <div data-component="footer" data-base-path="."></div>
+  <script src="js/main.js"></script>
+  <script src="js/copy-code.js"></script>
+</body>
+</html>

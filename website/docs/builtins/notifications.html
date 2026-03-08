@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/notifications"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Notifications</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Notifications</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          6 builtins for sending notifications from pipelines and scripts. Get pinged on Slack, Teams,
+          Telegram, Discord, or email when your analysis finishes or fails. All config via environment
+          variables &mdash; set once, use everywhere.
+        </p>
+
+        <!-- notify -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Smart Router</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="notify">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">notify(message)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String | Record &rarr; Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Sends a notification to whichever provider is configured in <code>BIOLANG_NOTIFY</code>.
+              Accepts a plain string or a structured record. If no provider is set, prints to stderr.
+            </p>
+            <pre><code class="language-biolang"># Simple string
+notify("Alignment complete: 24 samples processed")
+
+# Structured record — provider formats it natively
+notify({
+  title: "QC Pipeline Complete",
+  status: "success",
+  fields: {
+    samples: 24,
+    pass_rate: "96%",
+    output: "/data/results/cohort.vcf.gz"
+  }
+})</code></pre>
+            <div class="mt-3 bg-slate-900/50 border border-slate-800 rounded p-3">
+              <p class="text-xs text-slate-500 mb-1"><strong class="text-slate-400">Environment</strong></p>
+              <p class="text-xs text-slate-500"><code>BIOLANG_NOTIFY</code> &mdash; provider name: <code>slack</code>, <code>teams</code>, <code>telegram</code>, <code>discord</code>, or <code>email</code>. Plus the provider-specific env vars below.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slack -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Slack</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="slack">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">slack(message)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String | Record &rarr; Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Sends a message to Slack via incoming webhook. String messages send as plain text.
+              Record messages use Block Kit formatting with header, status, and fields.
+            </p>
+            <pre><code class="language-biolang"># Using env var SLACK_WEBHOOK
+slack("Variant calling finished: 1,234 SNPs, 456 indels")
+
+# Explicit webhook URL
+slack("https://hooks.slack.com/services/xxx/yyy/zzz",
+      "Pipeline complete")</code></pre>
+            <div class="mt-3 bg-slate-900/50 border border-slate-800 rounded p-3">
+              <p class="text-xs text-slate-500"><code>SLACK_WEBHOOK</code> &mdash; Slack incoming webhook URL</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Teams -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Microsoft Teams</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="teams">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">teams(message)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String | Record &rarr; Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Sends a message to Microsoft Teams via incoming webhook. Record messages use
+              Adaptive Card formatting with title, text, and facts.
+            </p>
+            <pre><code class="language-biolang"># Using env var TEAMS_WEBHOOK
+teams("RNA-seq pipeline complete: 12 samples normalized")
+
+# Structured notification
+teams({
+  title: "Cohort Analysis",
+  status: "success",
+  fields: {
+    samples: 48,
+    variants: "2.3M",
+    ti_tv: 2.1
+  }
+})</code></pre>
+            <div class="mt-3 bg-slate-900/50 border border-slate-800 rounded p-3">
+              <p class="text-xs text-slate-500"><code>TEAMS_WEBHOOK</code> &mdash; Teams incoming webhook URL</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Telegram -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Telegram</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="telegram">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">telegram(message)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String | Record &rarr; Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Sends a message via Telegram Bot API. Supports Markdown formatting.
+              Three calling conventions depending on how much config is in env vars.
+            </p>
+            <pre><code class="language-biolang"># All config from env vars
+telegram("Alignment done: tumor.sorted.bam")
+
+# Specify chat_id, token from env
+telegram("-1001234567890", "Pipeline failed: low mapping rate")
+
+# Fully explicit
+telegram("123456:ABC-DEF", "-1001234567890", "Analysis complete")</code></pre>
+            <div class="mt-3 bg-slate-900/50 border border-slate-800 rounded p-3">
+              <p class="text-xs text-slate-500"><code>TELEGRAM_BOT_TOKEN</code> &mdash; Bot token from @BotFather</p>
+              <p class="text-xs text-slate-500"><code>TELEGRAM_CHAT_ID</code> &mdash; Target chat/group/channel ID</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Discord -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Discord</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="discord">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">discord(message)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String | Record &rarr; Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Sends a message to Discord via webhook. String messages send as plain content.
+              Record messages use rich embed formatting with title, description, and inline fields.
+            </p>
+            <pre><code class="language-biolang"># Using env var DISCORD_WEBHOOK
+discord("FASTQ QC complete: 98% pass rate")
+
+# Structured embed
+discord({
+  title: "Variant Calling Report",
+  fields: {
+    snps: 1234,
+    indels: 456,
+    ti_tv: 2.08
+  }
+})</code></pre>
+            <div class="mt-3 bg-slate-900/50 border border-slate-800 rounded p-3">
+              <p class="text-xs text-slate-500"><code>DISCORD_WEBHOOK</code> &mdash; Discord webhook URL</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Email -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Email (SMTP)</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="email">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">email(to, subject, body)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String, String, String &rarr; Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Sends an email via SMTP. Connects directly to your SMTP server with AUTH LOGIN.
+              The body can be a string or a record (formatted as key-value pairs).
+            </p>
+            <pre><code class="language-biolang">email("lab@example.com",
+      "Pipeline Complete",
+      "Variant calling finished. 1,234 SNPs and 456 indels in cohort.vcf.gz")</code></pre>
+            <div class="mt-3 bg-slate-900/50 border border-slate-800 rounded p-3">
+              <p class="text-xs text-slate-500"><code>SMTP_HOST</code> &mdash; SMTP server hostname</p>
+              <p class="text-xs text-slate-500"><code>SMTP_PORT</code> &mdash; Port (default: 587)</p>
+              <p class="text-xs text-slate-500"><code>SMTP_USER</code> &mdash; Username</p>
+              <p class="text-xs text-slate-500"><code>SMTP_PASS</code> &mdash; Password</p>
+              <p class="text-xs text-slate-500"><code>SMTP_FROM</code> &mdash; From address (defaults to SMTP_USER)</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Pipeline Integration -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Pipeline Integration</h2>
+
+        <p class="mb-4">
+          Notifications pair naturally with pipelines. Add a final stage or use <code>defer</code>
+          for guaranteed delivery even on failure.
+        </p>
+
+        <pre><code class="language-biolang">pipeline variant_pipeline {
+  stage align {
+    shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.fq.gz sample_R2.fq.gz | samtools sort -@ 8 -o aligned.bam")
+    "aligned.bam"
+  }
+
+  stage call {
+    shell("gatk HaplotypeCaller -R GRCh38.fa -I " + align + " -O raw.vcf.gz")
+    let variants = read_vcf("raw.vcf.gz") |> collect()
+    let snps = variants |> filter(|v| v.is_snp) |> len()
+    let indels = variants |> filter(|v| v.is_indel) |> len()
+
+    # Notify on completion
+    notify({
+      title: "Variant Calling Complete",
+      fields: {SNPs: snps, Indels: indels, output: "raw.vcf.gz"}
+    })
+
+    "raw.vcf.gz"
+  }
+}</code></pre>
+
+        <pre><code class="language-biolang"># Guaranteed notification even on failure
+pipeline safe_analysis {
+  defer {
+    notify("Pipeline safe_analysis finished")
+  }
+
+  stage work {
+    # ... long-running analysis ...
+  }
+}</code></pre>
+
+        <!-- Setup Guide -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Setup</h2>
+
+        <p class="mb-4">Set environment variables once in your shell profile. Then <code>notify()</code> works everywhere.</p>
+
+        <pre><code class="language-bash"># ~/.bashrc or ~/.zshrc
+
+# Pick your provider
+export BIOLANG_NOTIFY=slack
+
+# Slack
+export SLACK_WEBHOOK=https://hooks.slack.com/services/T.../B.../xxx
+
+# Teams
+export TEAMS_WEBHOOK=https://outlook.office.com/webhook/...
+
+# Telegram
+export TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+export TELEGRAM_CHAT_ID=-1001234567890
+
+# Discord
+export DISCORD_WEBHOOK=https://discord.com/api/webhooks/...
+
+# Email (for notify() with BIOLANG_NOTIFY=email)
+export SMTP_HOST=smtp.gmail.com
+export SMTP_USER=you@gmail.com
+export SMTP_PASS=app-password-here
+export NOTIFY_EMAIL_TO=lab@example.com</code></pre>
+
+        <!-- Summary Table -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Summary</h2>
+
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr><th>Builtin</th><th>Provider</th><th>Env Vars</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>notify(msg)</code></td><td>Auto (reads <code>BIOLANG_NOTIFY</code>)</td><td><code>BIOLANG_NOTIFY</code> + provider vars</td></tr>
+              <tr><td><code>slack(msg)</code></td><td>Slack</td><td><code>SLACK_WEBHOOK</code></td></tr>
+              <tr><td><code>teams(msg)</code></td><td>Microsoft Teams</td><td><code>TEAMS_WEBHOOK</code></td></tr>
+              <tr><td><code>telegram(msg)</code></td><td>Telegram</td><td><code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code></td></tr>
+              <tr><td><code>discord(msg)</code></td><td>Discord</td><td><code>DISCORD_WEBHOOK</code></td></tr>
+              <tr><td><code>email(to, subj, body)</code></td><td>SMTP</td><td><code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </article>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+</body>
+</html>

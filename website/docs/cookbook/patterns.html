@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Common Patterns — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="cookbook/patterns"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Cookbook</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Common Patterns</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Common Patterns</h1>
+        <p>Idiomatic BioLang patterns that you will use repeatedly. These cover pipe chain
+        composition, error handling strategies, data validation, and configuration
+        management for robust bioinformatics scripts.</p>
+
+        <h2>Pipe Chain Composition</h2>
+
+        <h3>Building reusable pipeline stages</h3>
+        <pre><code class="language-biolang"># Define reusable transform functions
+fn quality_filter(stream, min_qual, min_len) {
+  stream
+    |> filter(|r| mean_phred(r.quality) >= min_qual)
+    |> filter(|r| len(r.seq) >= min_len)
+}
+
+fn trim_adapter(stream, adapter) {
+  stream |> map(|r| {
+    let idx = find_motif(r.seq, adapter)
+    if idx != None {
+      subseq(r.seq, 0, idx)
+    } else {
+      r
+    }
+  })
+}
+
+# Compose pipeline from reusable stages
+fastq("input.fq.gz")
+  |> trim_adapter("AGATCGGAAGAG")
+  |> quality_filter(30.0, 50)
+  |> write_fastq("clean.fq.gz")</code></pre>
+
+        <h3>Conditional pipe stages</h3>
+        <pre><code class="language-biolang"># Apply a filter only if a condition is met
+fn maybe_filter(stream, condition, predicate) {
+  if condition {
+    stream |> filter(predicate)
+  } else {
+    stream
+  }
+}
+
+let strict_mode = env("STRICT_QC") == "true"
+
+fastq("input.fq.gz")
+  |> maybe_filter(strict_mode, |r| mean_phred(r.quality) >= 35.0)
+  |> write_fastq("output.fq.gz")</code></pre>
+
+        <h3>Tap for side effects</h3>
+        <pre><code class="language-biolang"># Use each to inspect data mid-pipeline
+let count = 0
+
+let variants = vcf("variants.vcf.gz")
+  |> filter(|v| v.filter == "PASS")
+  |> collect
+
+each(variants, |v| { count = count + 1 })
+print("Total PASS variants: #{count}")
+
+# Filter to SNPs and write
+let snps = filter(variants, |v| len(v.ref) == 1 && len(v.alt) == 1)
+write_vcf(snps, "snps.vcf")</code></pre>
+
+        <h2>Error Handling Patterns</h2>
+
+        <h3>Try/catch with recovery</h3>
+        <pre><code class="language-biolang"># Graceful handling of missing or corrupt files
+fn safe_vcf(path) {
+  try {
+    vcf(path)
+  } catch e {
+    print("Warning: Could not read #{path}: #{to_string(e)}")
+    []  # Return empty list
+  }
+}
+
+# Process multiple files, skipping failures
+let files = glob("samples/*.vcf.gz")
+let results = flat_map(files, |f| {
+  safe_vcf("samples/#{f}") |> filter(|v| v.filter == "PASS")
+})
+print("Total PASS variants across all files: #{len(results)}")</code></pre>
+
+        <h3>Validation before processing</h3>
+        <pre><code class="language-biolang"># Validate inputs before expensive processing
+fn validate_fastq_pair(r1_path, r2_path) {
+  let errs = []
+
+  if !file_exists(r1_path) {
+    push(errs, "R1 file not found: #{r1_path}")
+  }
+  if !file_exists(r2_path) {
+    push(errs, "R2 file not found: #{r2_path}")
+  }
+
+  if len(errs) > 0 {
+    return { ok: false, errors: errs }
+  }
+
+  # Check read count matches
+  let r1_count = fastq(r1_path) |> count
+  let r2_count = fastq(r2_path) |> count
+  if r1_count != r2_count {
+    push(errs, "Read count mismatch: R1=#{r1_count}, R2=#{r2_count}")
+  }
+
+  { ok: len(errs) == 0, errors: errs, r1_count: r1_count }
+}
+
+let check = validate_fastq_pair("sample_R1.fq.gz", "sample_R2.fq.gz")
+if !check.ok {
+  for err in check.errors {
+    print("ERROR: #{err}")
+  }
+  exit(1)
+}
+print("Validation passed: #{check.r1_count} read pairs")</code></pre>
+
+        <h2>Data Validation</h2>
+
+        <h3>Schema validation for tabular data</h3>
+        <pre><code class="language-biolang"># Define expected columns and types
+fn validate_table(data, schema) {
+  let issues = []
+
+  # Check required columns
+  let cols = colnames(data)
+  for col_name, spec in schema {
+    if !contains(cols, col_name) {
+      push(issues, "Missing required column: #{col_name}")
+      continue
+    }
+
+    # Check for unexpected None values
+    if spec.required {
+      let nulls = len(filter(data, |row| row[col_name] == None || row[col_name] == ""))
+      if nulls > 0 {
+        push(issues, "#{nulls} missing values in required column: #{col_name}")
+      }
+    }
+  }
+
+  issues
+}
+
+let schema = {
+  "sample_id": { required: true },
+  "fastq_r1":  { required: true },
+  "fastq_r2":  { required: true },
+  "condition":  { required: true }
+}
+
+let data = csv("sample_sheet.csv")
+let issues = validate_table(data, schema)
+if len(issues) > 0 {
+  print("Sample sheet validation failed:")
+  for issue in issues { print("  - #{issue}") }
+  exit(1)
+}</code></pre>
+
+        <h2>Configuration Management</h2>
+
+        <h3>Loading config with defaults</h3>
+        <pre><code class="language-biolang"># Load configuration from JSON with sensible defaults
+let defaults = {
+  min_quality: 30,
+  min_length: 50,
+  max_n_fraction: 0.1,
+  adapter: "AGATCGGAAGAG",
+  threads: 4,
+  output_dir: "results"
+}
+
+let config = if file_exists("config.json") {
+  let user_config = read_json("config.json")
+  merge(defaults, user_config)  # User values override defaults
+} else {
+  defaults
+}
+
+print("Configuration:")
+for key, value in config {
+  print("  #{key}: #{value}")
+}
+
+# Use config values
+mkdir(config.output_dir)
+fastq("input.fq.gz")
+  |> filter(|r| mean_phred(r.quality) >= config.min_quality)
+  |> filter(|r| len(r.seq) >= config.min_length)
+  |> write_fastq("#{config.output_dir}/filtered.fq.gz")</code></pre>
+
+        <h3>Environment variable resolution</h3>
+        <pre><code class="language-biolang"># Required environment variables
+fn require_env(name) {
+  let value = env(name)
+  if value == None {
+    print("ERROR: Required environment variable #{name} is not set")
+    exit(1)
+  }
+  value
+}
+
+let data_dir = require_env("DATA_DIR")
+let ref_genome = require_env("REF_GENOME")
+let output_dir = env("OUTPUT_DIR") ?? "results"
+
+print("Data:   #{data_dir}")
+print("Ref:    #{ref_genome}")
+print("Output: #{output_dir}")</code></pre>
+
+        <h2>Builder Pattern</h2>
+
+        <h3>Fluent API for complex objects</h3>
+        <pre><code class="language-biolang"># Build analysis configurations using records
+let analysis = {
+  r1: "sample_R1.fq.gz",
+  r2: "sample_R2.fq.gz",
+  reference: "/refs/GRCh38.fa",
+  output_dir: "results/sample_001",
+  dedup: true,
+  min_mapq: 30,
+  threads: 8
+}
+
+# Use the config in processing
+mkdir(analysis.output_dir)
+print("Analysis configured for: #{analysis.output_dir}")</code></pre>
+
+        <h2>Logging Pattern</h2>
+
+        <pre><code class="language-biolang"># Structured logging for pipeline scripts
+fn log(level, msg) {
+  print("[#{now()}] [#{level}] #{msg}")
+}
+
+fn log_info(msg) { log("INFO", msg) }
+fn log_warn(msg) { log("WARN", msg) }
+fn log_error(msg) { log("ERROR", msg) }
+
+log_info("Starting QC pipeline")
+log_info("Input: sample.fq.gz")
+
+let reads = fastq("sample.fq.gz")
+let total = reads |> count
+log_info("Total reads: #{total}")
+
+if total < 1000 {
+  log_warn("Very few reads detected, results may be unreliable")
+}
+
+log_info("Pipeline complete")</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <span></span>
+        <a href="performance.html" class="text-violet-400 hover:text-violet-300">Performance &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

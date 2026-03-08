@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Working with Tables — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/tables"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Working with Tables</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">Beginner</span>
+          <span class="text-sm text-slate-500">~20 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Working with Tables</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          BioLang's <code>Table</code> type is a built-in dataframe for structured data
+          analysis. Think of it as a spreadsheet with columns and rows, optimized for
+          bioinformatics workflows. This tutorial covers everything from reading CSVs to
+          complex joins and aggregations.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Reading CSV and TSV files into tables</li>
+            <li>Selecting, filtering, and sorting columns</li>
+            <li>Group-by aggregations and summaries</li>
+            <li>Joining tables together</li>
+            <li>Pivoting and reshaping data</li>
+            <li>Writing tables to files</li>
+          </ul>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Reading a CSV File</h2>
+        <p>
+          The <code>csv()</code> function loads a CSV file into a <code>Table</code>.
+          Column types are automatically inferred.
+        </p>
+        <pre><code class="language-biolang"># tables.bio — working with tabular data
+
+# Read a gene expression file
+let expr = csv("data/expression.csv")
+
+# Preview the table
+print(expr)
+# ┌──────────┬────────┬────────┬────────┬────────┐
+# │ gene     │ sample1│ sample2│ sample3│ group  │
+# ├──────────┼────────┼────────┼────────┼────────┤
+# │ TP53     │  142.5 │  138.2 │  155.8 │ control│
+# │ BRCA1    │   87.3 │   92.1 │   84.6 │ control│
+# │ MYC      │  512.4 │  498.7 │  534.1 │ case   │
+# │ ...      │   ...  │   ...  │   ...  │ ...    │
+# └──────────┴────────┴────────┴────────┴────────┘
+
+# Basic info
+print(f"Rows: {nrow(expr)}, Cols: {ncol(expr)}")
+print(f"Columns: {colnames(expr)}")</code></pre>
+        <p>For tab-separated files, use <code>tsv()</code>:</p>
+        <pre><code class="language-biolang">let tsv_data = tsv("data/results.tsv")</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Selecting Columns</h2>
+        <p>
+          Use <code>select()</code> to pick specific columns. This returns a new table.
+        </p>
+        <pre><code class="language-biolang"># Select specific columns
+let subset = expr |> select("gene", "sample1", "group")
+
+# Select all columns except one
+let no_group = expr |> drop_cols("group")
+
+# Rename columns
+let renamed = expr
+  |> rename("sample1", "control_1")
+  |> rename("sample2", "control_2")
+  |> rename("sample3", "treated_1")
+
+# Add a computed column
+let with_mean = expr |> mutate("mean_expr", |row| (row.sample1 + row.sample2 + row.sample3) / 3.0)
+print(with_mean)</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Filtering Rows</h2>
+        <p>
+          The <code>filter()</code> function keeps rows that match a condition.
+        </p>
+        <pre><code class="language-biolang"># Filter by group
+let controls = expr |> filter(|row| row.group == "control")
+print(f"Control genes: {nrow(controls)}")
+
+# Filter by expression level
+let high_expr = expr |> filter(|row| row.sample1 > 100.0)
+
+# Combine conditions
+let interesting = expr |> filter(|row|
+  row.group == "case" and row.sample1 > 200.0
+)
+
+# Filter using a list of gene names
+let target_genes = ["TP53", "BRCA1", "EGFR", "KRAS"]
+let targets = expr |> filter(|row| row.gene in target_genes)
+print(f"Found {nrow(targets)} target genes")</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Sorting</h2>
+        <pre><code class="language-biolang"># Sort by sample1 expression (ascending)
+let sorted_asc = expr |> arrange("sample1")
+
+# Sort descending
+let sorted_desc = expr |> arrange("sample1", "desc")
+
+# Get the top 5 highest expressed genes
+let top5 = expr
+  |> arrange("sample1", "desc")
+  |> head(5)
+
+print("Top 5 genes by expression:")
+print(top5)</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Group By and Summarize</h2>
+        <p>
+          Group rows by a column and compute aggregate statistics per group.
+        </p>
+        <pre><code class="language-biolang"># Group by the "group" column and compute stats
+let groups = expr |> group_by("group")
+
+# summarize takes a Map (from group_by) and a callback |key, subtable| => Record
+let summary = summarize(groups, |key, g| {
+  group:   key,
+  count:   nrow(g),
+  mean_s1: mean(col(g, "sample1")),
+  max_s1:  max(col(g, "sample1")),
+  std_s1:  stdev(col(g, "sample1")),
+})
+
+print(summary)
+# ┌─────────┬───────┬────────┬────────┬────────┐
+# │ group   │ count │ mean_s1│ max_s1 │ std_s1 │
+# ├─────────┼───────┼────────┼────────┼────────┤
+# │ control │    50 │  125.4 │  342.1 │   67.8 │
+# │ case    │    50 │  198.7 │  534.1 │   89.2 │
+# └─────────┴───────┴────────┴────────┴────────┘
+
+# Add a flag column, then group and summarize
+let flagged = expr |> mutate("high_expr", |row| row.sample1 > 200.0)
+let flag_groups = flagged |> group_by("group")
+let flag_summary = summarize(flag_groups, |key, g| {
+  group: key,
+  n:     nrow(g),
+})</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Joining Tables</h2>
+        <p>
+          Combine tables using SQL-style joins.
+        </p>
+        <pre><code class="language-biolang"># Load a gene annotation table
+let annotations = csv("data/gene_annotations.csv")
+# gene, chromosome, start, end, description
+
+# Inner join: only genes present in both tables
+let annotated = inner_join(expr, annotations, "gene")
+
+print(colnames(annotated))
+# [gene, sample1, sample2, sample3, group, chromosome, start, end, description]
+
+# Left join: keep all expression rows, add annotations where available
+let full = left_join(expr, annotations, "gene")
+
+# Other join types are also available:
+# right_join(t1, t2, "key"), outer_join(t1, t2, "key"),
+# anti_join(t1, t2, "key"), semi_join(t1, t2, "key")</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Pivoting and Reshaping</h2>
+        <pre><code class="language-biolang"># Pivot from wide to long format
+let long = pivot_longer(expr, ["sample1", "sample2", "sample3"], "sample", "expression")
+
+print(long)
+# ┌──────┬─────────┬─────────┬────────────┐
+# │ gene │ group   │ sample  │ expression │
+# ├──────┼─────────┼─────────┼────────────┤
+# │ TP53 │ control │ sample1 │      142.5 │
+# │ TP53 │ control │ sample2 │      138.2 │
+# │ TP53 │ control │ sample3 │      155.8 │
+# │ ...  │ ...     │ ...     │        ... │
+# └──────┴─────────┴─────────┴────────────┘
+
+# Pivot back from long to wide
+let wide = pivot_wider(long, "sample", "expression")</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Column Operations</h2>
+        <pre><code class="language-biolang"># Access a column as a list
+let s1 = col(expr, "sample1")
+print(f"Mean: {mean(s1)}")
+print(f"Median: {median(s1)}")
+print(f"Std: {round(stdev(s1), 2)}")
+
+# Apply a function to each value in a column
+let log_expr = expr |> mutate("log_sample1", |row| log2(row.sample1 + 1.0))
+
+# Create a new column from multiple columns
+let with_ratio = expr |> mutate("ratio", |row| row.sample1 / (row.sample2 + 0.001))
+
+# Conditional column
+let classified = expr |> mutate("expression_level", |row|
+  if row.sample1 > 500.0 then "high"
+  else if row.sample1 > 100.0 then "medium"
+  else "low"
+)</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Creating Tables from Scratch</h2>
+        <pre><code class="language-biolang"># Build a table from a list of records
+let data = from_records([
+  { gene: "TP53",  expr: 142.5, pvalue: 0.001 },
+  { gene: "BRCA1", expr:  87.3, pvalue: 0.023 },
+  { gene: "MYC",   expr: 512.4, pvalue: 0.0001 },
+  { gene: "EGFR",  expr: 245.1, pvalue: 0.045 },
+])
+
+print(data)
+# ┌───────┬───────┬────────┐
+# │ gene  │ expr  │ pvalue │
+# ├───────┼───────┼────────┤
+# │ TP53  │ 142.5 │  0.001 │
+# │ BRCA1 │  87.3 │  0.023 │
+# │ MYC   │ 512.4 │ 0.0001 │
+# │ EGFR  │ 245.1 │  0.045 │
+# └───────┴───────┴────────┘</code></pre>
+
+        <!-- Step 10 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Writing Output</h2>
+        <pre><code class="language-biolang"># Write to CSV
+write_csv(annotated, "results/annotated_genes.csv")
+
+# Write to TSV
+write_tsv(annotated, "results/annotated_genes.tsv")
+
+# Write top 20 genes sorted by expression
+let top20 = annotated
+  |> arrange("sample1", "desc")
+  |> head(20)
+write_csv(top20, "results/top20_genes.csv")
+
+# Complete pipeline: read, process, write
+let result = csv("data/expression.csv")
+  |> filter(|row| row.group == "case")
+  |> mutate("mean", |row| (row.sample1 + row.sample2 + row.sample3) / 3.0)
+  |> arrange("mean", "desc")
+  |> select("gene", "mean", "group")
+write_csv(result, "results/top_case_genes.csv")
+
+print("Pipeline complete.")</code></pre>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Now that you can work with both sequences and tables, try the
+            <a href="variant-analysis.html" class="text-violet-400 hover:underline">Variant Analysis</a>
+            tutorial to combine both skills in a VCF analysis workflow.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="fastq-pipeline.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; FASTQ QC Pipeline</a>
+        <a href="variant-analysis.html" class="text-violet-400 hover:text-violet-300 text-sm">Variant Analysis &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Building Custom Plugins — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/plugins"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Building Custom Plugins</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-400/20 text-orange-400">Advanced</span>
+          <span class="text-sm text-slate-500">~45 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Building Custom Plugins</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          Extend BioLang with your own functions, data types, and integrations by
+          writing plugins. This tutorial walks through building a Python plugin from
+          scratch, covering the plugin manifest, entry points, testing, and distribution.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>The BioLang plugin architecture and lifecycle</li>
+            <li>Writing a <code>plugin.json</code> manifest</li>
+            <li>Implementing functions in Python</li>
+            <li>Handling BioLang types (Dna, Table, etc.) in your plugin</li>
+            <li>Writing tests for your plugin</li>
+            <li>Packaging and distributing plugins</li>
+          </ul>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Plugin Architecture Overview</h2>
+        <p>
+          BioLang plugins are external packages that register new functions via a
+          subprocess JSON protocol (stdin/stdout). Plugins can be written in Python,
+          TypeScript (Deno), R, or as native binaries. In this tutorial we focus on
+          Python plugins, the most accessible option.
+        </p>
+        <pre><code class="language-bash"># Plugin directory structure
+# Installed at: ~/.biolang/plugins/my-plugin/
+my-plugin/
+  plugin.json          # Manifest: name, version, functions
+  main.py              # Entry point (subprocess JSON protocol)
+  tests/
+    test_functions.py  # Unit tests
+  README.md            # Documentation
+  LICENSE</code></pre>
+        <p>
+          When BioLang loads a plugin, it reads <code>plugin.json</code> to discover what
+          functions the plugin exports. The plugin runs as a subprocess, communicating
+          via JSON messages on stdin/stdout.
+        </p>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Creating the Plugin Scaffold</h2>
+        <pre><code class="language-bash"># Create a new plugin directory
+mkdir -p ~/.biolang/plugins/motif-finder
+cd ~/.biolang/plugins/motif-finder
+
+# We will create:
+#   plugin.json     # Manifest
+#   main.py         # Entry point (subprocess JSON protocol)
+#   tests/          # Unit tests</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Writing the plugin.json Manifest</h2>
+        <pre><code class="language-json">{
+  "name": "motif-finder",
+  "version": "0.1.0",
+  "description": "Advanced motif discovery in DNA and protein sequences",
+  "kind": "python",
+  "entry": "main.py",
+  "functions": [
+    {
+      "name": "find_motifs",
+      "description": "Find overrepresented motifs in a set of sequences",
+      "params": [
+        {"name": "sequences", "type": "List", "description": "Input DNA sequences"},
+        {"name": "min_length", "type": "Int", "description": "Minimum motif length", "optional": true},
+        {"name": "max_length", "type": "Int", "description": "Maximum motif length", "optional": true},
+        {"name": "min_support", "type": "Float", "description": "Min fraction of sequences containing motif", "optional": true},
+        {"name": "method", "type": "String", "description": "Discovery method: enumerate, gibbs, em", "optional": true}
+      ],
+      "returns": "Table"
+    },
+    {
+      "name": "motif_logo",
+      "description": "Generate a sequence logo from aligned motif instances",
+      "params": [
+        {"name": "alignment", "type": "List", "description": "Aligned motif sequences"},
+        {"name": "output", "type": "String", "description": "Output file path"},
+        {"name": "format", "type": "String", "description": "Output format: svg, ascii, png", "optional": true}
+      ],
+      "returns": "String"
+    },
+    {
+      "name": "scan_motif",
+      "description": "Scan sequences for occurrences of a position weight matrix",
+      "params": [
+        {"name": "sequences", "type": "List", "description": "Sequences to scan"},
+        {"name": "pwm", "type": "Table", "description": "Position weight matrix"},
+        {"name": "threshold", "type": "Float", "description": "Score threshold (0-1)", "optional": true}
+      ],
+      "returns": "Table"
+    }
+  ]
+}</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Implementing the Plugin Subprocess</h2>
+        <p>
+          BioLang communicates with plugins via a JSON protocol over stdin/stdout.
+          BioLang sends a JSON request, and the plugin responds with a JSON result.
+        </p>
+        <pre><code class="language-bash"># Protocol messages:
+# Request:  {"method": "call", "function": "find_motifs", "args": [...]}
+# Response: {"result": value}  or  {"error": "message"}</code></pre>
+        <pre><code class="language-bash"># main.py — plugin entry point (subprocess JSON protocol)
+
+import sys
+import json
+from collections import Counter
+
+
+def find_motifs(sequences, min_length=6, max_length=12, min_support=0.5, method="enumerate"):
+    """Find overrepresented motifs in a set of sequences."""
+    if not sequences:
+        return {"columns": ["motif", "length", "support", "count", "n_sequences"], "rows": []}
+
+    if method != "enumerate":
+        return None  # only enumerate supported in this example
+
+    results = []
+    for k in range(min_length, max_length + 1):
+        # Count k-mers across all sequences
+        kmer_seqs = {}  # kmer -> set of sequence indices
+        for i, seq in enumerate(sequences):
+            for j in range(len(seq) - k + 1):
+                kmer = seq[j:j+k]
+                if kmer not in kmer_seqs:
+                    kmer_seqs[kmer] = set()
+                kmer_seqs[kmer].add(i)
+
+        # Filter by support
+        n_seqs = len(sequences)
+        for kmer, seq_indices in kmer_seqs.items():
+            support = len(seq_indices) / n_seqs
+            if support >= min_support:
+                results.append({
+                    "motif": kmer,
+                    "length": k,
+                    "support": round(support, 4),
+                    "count": sum(s.count(kmer) for s in sequences),
+                    "n_sequences": len(seq_indices),
+                })
+
+    # Sort by support, then count
+    results.sort(key=lambda x: (-x["support"], -x["count"]))
+    return {"columns": ["motif", "length", "support", "count", "n_sequences"], "rows": results}
+
+
+def motif_logo(alignment, output, format="svg"):
+    """Generate a sequence logo (simplified example)."""
+    if format == "ascii":
+        # Build a simple ASCII representation
+        lines = []
+        for pos in range(len(alignment[0])):
+            counts = Counter(seq[pos] for seq in alignment)
+            top_base = counts.most_common(1)[0][0]
+            lines.append(top_base)
+        return "".join(lines)
+
+    # For SVG/PNG, write to file and return path
+    return output
+
+
+def scan_motif(sequences, pwm, threshold=0.8):
+    """Scan sequences for PWM matches."""
+    hits = []
+    motif_len = len(pwm["rows"])
+    base_map = {"A": 0, "T": 1, "G": 2, "C": 3}
+
+    for i, seq in enumerate(sequences):
+        for j in range(len(seq) - motif_len + 1):
+            score = sum(
+                pwm["rows"][k].get(seq[j+k], 0)
+                for k in range(motif_len)
+                if seq[j+k] in base_map
+            )
+            if score >= threshold:
+                hits.append({
+                    "sequence_idx": i,
+                    "position": j,
+                    "match": seq[j:j+motif_len],
+                    "score": round(score, 4),
+                })
+
+    return {"columns": ["sequence_idx", "position", "match", "score"], "rows": hits}
+
+
+# Dispatch table mapping function names to callables
+FUNCTIONS = {
+    "find_motifs": find_motifs,
+    "motif_logo": motif_logo,
+    "scan_motif": scan_motif,
+}
+
+
+def main():
+    """Main loop: read JSON requests from stdin, write JSON responses to stdout."""
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+
+        try:
+            request = json.loads(line)
+            method = request.get("method")
+            func_name = request.get("function")
+            args = request.get("args", [])
+
+            if method != "call":
+                response = {"error": f"Unknown method: {method}"}
+            elif func_name not in FUNCTIONS:
+                response = {"error": f"Unknown function: {func_name}"}
+            else:
+                result = FUNCTIONS[func_name](*args)
+                response = {"result": result}
+
+        except Exception as e:
+            response = {"error": str(e)}
+
+        print(json.dumps(response), flush=True)
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Understanding the JSON Protocol Types</h2>
+        <p>
+          BioLang serializes its types as plain JSON values when calling plugin functions.
+          Your plugin receives and returns simple JSON — no SDK or special wrappers needed.
+        </p>
+        <pre><code class="language-bash"># How BioLang types map to JSON in plugin arguments:
+#
+#   Dna / Rna / Protein  ->  String      ("ATCGATCG")
+#   Int                  ->  Number      (42)
+#   Float                ->  Number      (3.14)
+#   String               ->  String      ("hello")
+#   Bool                 ->  Boolean     (true)
+#   List                 ->  Array       ([1, 2, 3])
+#   Table                ->  Object      ({"columns": [...], "rows": [...]})
+#   Map / Record         ->  Object      ({"key": "value"})
+#
+# Example request for find_motifs:
+# {"method": "call", "function": "find_motifs", "args": [["ATCG", "GATC"], 6, 12, 0.5, "enumerate"]}
+#
+# Your function receives plain Python types:
+#   sequences = ["ATCG", "GATC"]   (list of strings)
+#   min_length = 6                  (int)
+#
+# Return values follow the same mapping:
+#   Return a dict for Table/Map, a string for String/Dna, etc.
+# {"result": {"columns": ["motif", "support"], "rows": [{"motif": "ATCG", "support": 0.75}]}}</code></pre>
+        <pre><code class="language-bash"># Example: working with sequence strings in your plugin
+
+def count_gc(sequence):
+    """Dna arrives as a plain string — just use normal string ops."""
+    seq = sequence.upper()
+    gc = sum(1 for b in seq if b in "GC")
+    return gc / len(seq) if seq else 0.0
+
+
+def reverse_complement(sequence):
+    """Return a string — BioLang will convert it back to Dna."""
+    comp = {"A": "T", "T": "A", "G": "C", "C": "G"}
+    return "".join(comp.get(b, b) for b in reversed(sequence.upper()))</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Writing Tests</h2>
+        <pre><code class="language-bash"># tests/test_functions.py
+#
+# Since plugins use plain Python functions with plain types,
+# you can test them directly with pytest — no special SDK needed.
+
+import pytest
+import sys
+sys.path.insert(0, "..")
+from main import find_motifs, motif_logo, scan_motif
+
+
+class TestFindMotifs:
+    def test_basic_motif(self):
+        sequences = ["ATCGATCGATCG", "GATCGATCGATC", "CGATCGATCGAT"]
+        result = find_motifs(sequences, min_length=4, max_length=4, min_support=0.5)
+        assert len(result["rows"]) > 0
+
+        # ATCG should be found in all sequences
+        motifs = [r["motif"] for r in result["rows"]]
+        assert "ATCG" in motifs
+
+    def test_min_support_filter(self):
+        sequences = ["AAAA" + "TTTT" * 3, "AAAA" + "CCCC" * 3, "GGGG" + "TTTT" * 3]
+
+        # With 100% support, very few motifs should pass
+        result = find_motifs(sequences, min_length=4, max_length=4, min_support=1.0)
+        for row in result["rows"]:
+            assert row["n_sequences"] == 3
+
+    def test_empty_input(self):
+        result = find_motifs([], min_length=4, max_length=4)
+        assert len(result["rows"]) == 0
+
+
+class TestScanMotif:
+    def test_threshold_filtering(self):
+        sequences = ["ATCGATCGATCG"]
+        pwm = {"rows": [{"A": 1.0, "T": 0.0, "G": 0.0, "C": 0.0},
+                         {"A": 0.0, "T": 1.0, "G": 0.0, "C": 0.0}]}
+
+        high = scan_motif(sequences, pwm, threshold=0.99)
+        low = scan_motif(sequences, pwm, threshold=0.5)
+        assert len(low["rows"]) >= len(high["rows"])
+
+
+class TestMotifLogo:
+    def test_ascii_output(self):
+        alignment = ["ATCG", "ATCG", "ATCG", "AACG"]
+        result = motif_logo(alignment, output="", format="ascii")
+        assert isinstance(result, str)
+        assert len(result) > 0</code></pre>
+        <pre><code class="language-bash"># Run tests
+cd my-motif-finder
+bl plugin test
+
+# Or with pytest directly
+python -m pytest tests/ -v</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Using Your Plugin in BioLang</h2>
+        <pre><code class="language-bash"># Install the plugin (copies to ~/.biolang/plugins/motif-finder/)
+bl plugin install ./my-motif-finder</code></pre>
+        <pre><code class="language-biolang"># Now use it in BioLang code
+
+# Import the plugin
+import "motif_finder"
+
+# Example: find motifs in promoter sequences
+let seqs = ["ATCGATCGATCG", "GATCGATCGATC", "CGATCGATCGAT"]
+
+let motifs = find_motifs(seqs, 6, 10, 0.3, "enumerate")
+
+print("=== Discovered Motifs ===")
+print(motifs)
+
+# Generate an ASCII logo for some aligned sequences
+let alignment = ["ATCG", "ATCG", "ATCG", "AACG"]
+let logo = motif_logo(alignment, "results/top_motif_logo.svg", "ascii")
+print(logo)
+
+# Scan with a known PWM loaded from CSV
+let pwm = csv("data/known_pwm.csv")
+let hits = scan_motif(seqs, pwm, 0.85)
+print(hits)</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Error Handling and Validation</h2>
+        <pre><code class="language-bash"># main.py — add validation to your functions
+#
+# To report errors, raise an exception. The main loop catches it
+# and returns {"error": "message"} to BioLang.
+
+def find_motifs(sequences, min_length=6, max_length=12, min_support=0.5, method="enumerate"):
+    # Validate inputs
+    if not sequences:
+        return {"columns": ["motif", "length", "support", "count", "n_sequences"], "rows": []}
+
+    if min_length < 2:
+        raise ValueError("min_length must be at least 2")
+
+    if max_length < min_length:
+        raise ValueError(
+            f"max_length ({max_length}) must be >= min_length ({min_length})"
+        )
+
+    if not 0.0 <= min_support <= 1.0:
+        raise ValueError("min_support must be between 0.0 and 1.0")
+
+    valid_methods = ["enumerate", "gibbs", "em"]
+    if method not in valid_methods:
+        raise ValueError(
+            f"Unknown method '{method}'. Must be one of: {valid_methods}"
+        )
+
+    for i, seq in enumerate(sequences):
+        if len(seq) < min_length:
+            raise ValueError(
+                f"Sequence {i} is shorter ({len(seq)}) than min_length ({min_length})"
+            )
+
+    # ... rest of implementation</code></pre>
+        <p>
+          When your function raises an exception, the main loop returns
+          <code>{"error": "message"}</code> and BioLang displays it to the user:
+        </p>
+        <pre><code class="language-biolang"># This produces a nice error message
+let result = find_motifs([], 1)
+# Error: [motif-finder] min_length must be at least 2</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Plugin Configuration</h2>
+        <p>
+          You can add configuration to your plugin by reading environment variables
+          or a config file alongside <code>plugin.json</code>. Keep it simple:
+        </p>
+        <pre><code class="language-bash"># main.py — reading configuration
+
+import os
+import json
+
+def load_config():
+    """Load config from config.json next to plugin.json, with env overrides."""
+    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    config = {"max_threads": 4, "background_model": "uniform"}
+
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            config.update(json.load(f))
+
+    # Allow environment variable overrides
+    if "MOTIF_MAX_THREADS" in os.environ:
+        config["max_threads"] = int(os.environ["MOTIF_MAX_THREADS"])
+
+    return config</code></pre>
+        <pre><code class="language-bash"># config.json — optional, lives next to plugin.json
+{
+  "max_threads": 8,
+  "background_model": "genomic"
+}</code></pre>
+
+        <!-- Step 10 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Packaging and Distribution</h2>
+        <pre><code class="language-bash"># Validate the plugin
+bl plugin validate ./my-motif-finder
+# Checking plugin.json... OK
+# Checking entry point... OK
+# Checking function signatures... OK
+# Running tests... OK
+# Plugin is valid.
+
+# Install locally (copies to ~/.biolang/plugins/)
+bl plugin install ./my-motif-finder</code></pre>
+        <pre><code class="language-bash"># List installed plugins
+bl plugin list
+# NAME             VERSION  LANGUAGE  FUNCTIONS
+# motif-finder     0.1.0    python    find_motifs, motif_logo, scan_motif
+
+# Update a plugin
+bl plugin update motif-finder
+
+# Remove a plugin
+bl plugin remove motif-finder</code></pre>
+
+        <!-- Rust plugin -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Bonus — Native Plugins for Performance</h2>
+        <p>
+          For maximum performance, you can write plugins as native executables that
+          use the same JSON subprocess protocol. The <code>kind</code> in
+          <code>plugin.json</code> is set to <code>"native"</code> and the
+          <code>entry</code> points to the compiled binary.
+        </p>
+        <pre><code class="language-json">{
+  "name": "fast-aligner",
+  "version": "0.1.0",
+  "description": "High-performance pairwise alignment",
+  "kind": "native",
+  "entry": "fast-aligner",
+  "functions": [
+    {
+      "name": "fast_align",
+      "description": "High-performance pairwise alignment",
+      "params": [
+        {"name": "query", "type": "String", "description": "Query DNA sequence"},
+        {"name": "target", "type": "String", "description": "Target DNA sequence"},
+        {"name": "match_score", "type": "Int", "description": "Match score", "optional": true},
+        {"name": "mismatch_penalty", "type": "Int", "description": "Mismatch penalty", "optional": true},
+        {"name": "gap_open", "type": "Int", "description": "Gap open penalty", "optional": true},
+        {"name": "gap_extend", "type": "Int", "description": "Gap extend penalty", "optional": true}
+      ],
+      "returns": "Map"
+    }
+  ]
+}</code></pre>
+        <p>
+          The native binary reads JSON from stdin and writes JSON to stdout, just
+          like any other plugin. Here is a Rust example:
+        </p>
+        <pre><code class="language-bash"># src/main.rs (Rust — compiled to a binary)
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::io::{self, BufRead};
+use std::collections::HashMap;
+
+#[derive(Deserialize)]
+struct Request {
+    method: String,
+    function: String,
+    args: Vec&lt;Value&gt;,
+}
+
+fn fast_align(query: &amp;str, target: &amp;str, match_score: i32,
+              mismatch_penalty: i32, gap_open: i32, gap_extend: i32) -> Value {
+    // ... Smith-Waterman implementation ...
+    json!({"score": 42, "identity": 0.95, "alignment": "ATCG"})
+}
+
+fn main() {
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let line = line.unwrap();
+        if line.trim().is_empty() { continue; }
+
+        let response = match serde_json::from_str::&lt;Request&gt;(&amp;line) {
+            Ok(req) if req.method == "call" &amp;&amp; req.function == "fast_align" => {
+                let query = req.args[0].as_str().unwrap_or("");
+                let target = req.args[1].as_str().unwrap_or("");
+                let ms = req.args.get(2).and_then(|v| v.as_i64()).unwrap_or(1) as i32;
+                let mm = req.args.get(3).and_then(|v| v.as_i64()).unwrap_or(-1) as i32;
+                let go = req.args.get(4).and_then(|v| v.as_i64()).unwrap_or(-2) as i32;
+                let ge = req.args.get(5).and_then(|v| v.as_i64()).unwrap_or(-1) as i32;
+                json!({"result": fast_align(query, target, ms, mm, go, ge)})
+            }
+            Ok(req) => json!({"error": format!("Unknown function: {}", req.function)}),
+            Err(e) => json!({"error": format!("Parse error: {}", e)}),
+        };
+        println!("{}", serde_json::to_string(&amp;response).unwrap());
+    }
+}</code></pre>
+
+        <div class="rounded-xl border border-cyan-400/30 bg-cyan-400/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Plugin Best Practices</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Always validate inputs and return clear error messages via <code>{"error": "..."}</code>.</li>
+            <li>Write comprehensive tests — your functions are plain Python, so use pytest directly.</li>
+            <li>Document every function in <code>plugin.json</code> with descriptions and parameter types.</li>
+            <li>Return structured data (tables as <code>{"columns": [...], "rows": [...]}</code>) for interoperability with BioLang's pipe operator.</li>
+            <li>Use native binaries for CPU-intensive operations (alignment, k-mer counting) and Python for API integrations.</li>
+          </ul>
+        </div>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-6">
+          <h3 class="text-white font-semibold mb-2">Congratulations!</h3>
+          <p class="text-slate-400 text-sm">
+            You have completed all the BioLang tutorials. You are now equipped to work with
+            sequences, tables, databases, statistics, visualizations, comparative genomics,
+            and custom plugins. Visit the
+            <a href="../reference/index.html" class="text-violet-400 hover:underline">API Reference</a>
+            for a complete listing of all built-in functions and types.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="multispecies.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Multi-species Genomics</a>
+        <a href="index.html" class="text-violet-400 hover:text-violet-300 text-sm">Back to Tutorials &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

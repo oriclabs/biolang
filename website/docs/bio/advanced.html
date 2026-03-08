@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Analytics — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/advanced"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Advanced Analytics</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Advanced Analytics</h1>
+        <p>
+          BioLang includes computational biology functions for expression normalization,
+          dimensionality reduction (UMAP, t-SNE), graph clustering (Leiden), sequence
+          sketching, phylogenetics, and gene set enrichment. These functions operate on
+          matrices and tables and integrate with BioLang's pipe-first design.
+        </p>
+
+        <h2>Expression Normalization</h2>
+        <p>
+          Normalize count data using standard methods before downstream analysis:
+        </p>
+        <pre><code class="language-biolang"># Load count data and gene lengths
+let counts = read_csv("counts_matrix.csv")
+let lengths = read_csv("gene_lengths.csv") |> col("length")
+let total = sum(col(counts, "sample1"))
+
+# Normalize with TPM, FPKM, or CPM
+let tpm_values = tpm(counts, lengths)
+let fpkm_values = fpkm(counts, lengths, total)
+let cpm_values = cpm(counts)</code></pre>
+
+        <h2>UMAP</h2>
+        <p>
+          UMAP (Uniform Manifold Approximation and Projection) is a non-linear dimensionality
+          reduction technique that preserves both local and global structure:
+        </p>
+        <pre><code class="language-biolang"># umap(matrix)
+# Returns 2D coordinates for each row
+
+let data = matrix([
+  [1.0, 2.0, 3.0],
+  [4.0, 5.0, 6.0],
+  [7.0, 8.0, 9.0],
+  [2.0, 3.0, 4.0],
+])
+
+# Reduce to 2 dimensions
+let coords = umap(data)
+print(coords)</code></pre>
+
+        <h2>t-SNE</h2>
+        <p>
+          t-SNE (t-distributed Stochastic Neighbor Embedding) is another non-linear
+          dimensionality reduction method that excels at preserving local cluster structure:
+        </p>
+        <pre><code class="language-biolang"># tsne(matrix)
+# Returns 2D coordinates for each row
+
+let data = matrix([
+  [1.0, 2.0, 3.0],
+  [4.0, 5.0, 6.0],
+  [7.0, 8.0, 9.0],
+  [2.0, 3.0, 4.0],
+])
+
+let coords = tsne(data)
+print(coords)</code></pre>
+
+        <h2>Leiden Clustering</h2>
+        <p>
+          The Leiden algorithm is an improved version of Louvain community detection, widely
+          used in single-cell analysis for identifying cell types:
+        </p>
+        <pre><code class="language-biolang"># leiden(graph)
+# Returns cluster assignment for each node
+
+let adj = matrix([
+  [0, 1, 1, 0, 0],
+  [1, 0, 1, 0, 0],
+  [1, 1, 0, 0, 0],
+  [0, 0, 0, 0, 1],
+  [0, 0, 0, 1, 0],
+])
+
+# Cluster the adjacency graph
+let clusters = leiden(adj)
+print("Cluster assignments:", clusters)</code></pre>
+
+        <h2>Sketching &amp; Distance</h2>
+        <p>
+          MinHash sketching enables fast approximate distance computation between
+          sequences without full alignment:
+        </p>
+        <pre><code class="language-biolang"># Build MinHash sketches for fast comparison
+let seq1 = dna"ATCGATCGATCGATCGATCG"
+let seq2 = dna"ATCGATCAATCGATCGATCG"
+
+let s1 = sketch(seq1, 21)
+let s2 = sketch(seq2, 21)
+
+# Compute sketch distance (Jaccard-based)
+let dist = sketch_dist(s1, s2)
+print("Sketch distance:", dist)
+
+# Compare many sequences pairwise
+let seqs = fasta("genomes.fa") |> collect()
+seqs |> map(|a| seqs |> map(|b| sketch_dist(sketch(a.seq, 21), sketch(b.seq, 21))))
+  |> print()</code></pre>
+
+        <h2>Enrichment Analysis</h2>
+        <p>
+          BioLang provides enrichment analysis via GMT gene set files. Use
+          <code>read_gmt()</code> to load gene sets, then <code>enrich()</code> for
+          over-representation analysis or <code>gsea()</code> for gene set enrichment:
+        </p>
+        <pre><code class="language-biolang"># Load gene sets from a GMT file (e.g., MSigDB)
+let gene_sets = read_gmt("c2.cp.kegg.v2023.2.symbols.gmt")
+
+# Over-representation analysis
+# enrich(gene_list, gene_sets)
+let sig_genes = ["BRCA1", "TP53", "EGFR", "MYC", "KRAS"]
+
+let enrich_results = enrich(sig_genes, gene_sets)
+
+# Results: gene_set, pvalue, overlap, size
+print(enrich_results)
+
+# GSEA — uses a ranked list and gene sets
+# gsea(ranked_list, gene_sets)
+let ranked = [["BRCA1", 3.2], ["TP53", 2.8], ["EGFR", -1.5], ["MYC", -2.1]]
+let gsea_results = gsea(ranked, gene_sets)
+print(gsea_results)</code></pre>
+
+        <h2>Neighbor-Joining Trees</h2>
+        <p>
+          Build phylogenetic trees from distance matrices:
+        </p>
+        <pre><code class="language-biolang"># neighbor_joining(distance_matrix)
+# distance_matrix: Matrix (symmetric)
+
+let dist = matrix([
+  [0.0, 0.3, 0.5, 0.7],
+  [0.3, 0.0, 0.4, 0.6],
+  [0.5, 0.4, 0.0, 0.8],
+  [0.7, 0.6, 0.8, 0.0],
+])
+
+let tree = neighbor_joining(dist)
+print(tree)</code></pre>
+
+        <h2>Full Pipeline Example</h2>
+        <pre><code class="language-biolang"># Complete analysis pipeline: sequences -> k-mers -> clustering -> enrichment
+
+# 1. Load sequences and compute k-mer profiles
+let seqs = fasta("samples.fa") |> collect()
+let profiles = seqs
+  |> map(|r| kmer_count(r.seq, 21))
+  |> collect()
+
+# 2. Build distance matrix via sketching
+let sketches = seqs |> map(|r| sketch(r.seq, 21)) |> collect()
+let dist = matrix(sketches |> map(|a| sketches |> map(|b| sketch_dist(a, b))))
+
+# 3. Dimensionality reduction
+let coords = umap(dist)
+print("UMAP coordinates:", coords)
+
+# 4. Clustering
+let clusters = leiden(dist)
+print("Cluster assignments:", clusters)
+
+# 5. Build phylogenetic tree
+let tree = neighbor_joining(dist)
+print(tree)
+
+# 6. Enrichment analysis
+let gene_sets = read_gmt("pathways.gmt")
+let genes = ["BRCA1", "TP53", "EGFR", "MYC"]
+let enriched = enrich(genes, gene_sets)
+print(enriched)</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="motifs.html" class="text-violet-400 hover:text-violet-300">&larr; Motifs</a>
+        <div></div>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

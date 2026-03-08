@@ -1,0 +1,91 @@
+# genomic_regions.bl — Genomic Region Analysis Pipeline
+# Reads BED and GFF files, finds overlapping features, queries
+# nearest annotations, and computes coverage statistics.
+
+# ── Load region files ───────────────────────────────────────────
+
+let bed_path = "tests/data/multi.bed"
+let gff_path = "tests/data/test.gff"
+
+println("Loading BED: " ++ bed_path)
+let regions = bed(bed_path)
+println("BED intervals loaded: " ++ str(regions |> count()))
+
+println("Loading GFF: " ++ gff_path)
+let features = gff(gff_path)
+println("GFF features loaded: " ++ str(features |> count()))
+
+# ── BED summary ─────────────────────────────────────────────────
+
+println("\n--- BED Region Summary ---")
+
+let region_table = regions
+    |> map(|r| {
+        "chrom": r.chrom,
+        "start": r.start,
+        "end":   r.end,
+        "size":  r.end - r.start
+    })
+    |> table()
+
+# Per-chromosome interval counts
+let by_chrom = region_table
+    |> group_by("chrom")
+    |> summarize(
+        "intervals"  = count(),
+        "total_bp"   = sum(size),
+        "mean_size"  = mean(size)
+    )
+    |> arrange("chrom")
+
+by_chrom |> println()
+
+# ── GFF feature types ──────────────────────────────────────────
+
+println("\n--- GFF Feature Types ---")
+
+let type_counts = features
+    |> table()
+    |> group_by("type")
+    |> summarize("count" = count())
+    |> arrange(desc("count"))
+
+type_counts |> println()
+
+# ── Overlap analysis ────────────────────────────────────────────
+# Find BED regions that overlap with GFF gene features
+
+println("\n--- Overlaps: BED regions vs GFF genes ---")
+
+let genes = features |> filter(|f| f.type == "gene")
+
+let overlaps = regions |> map(|r| {
+    let hits = genes
+        |> filter(|g| g.chrom == r.chrom && g.start < r.end && g.end > r.start)
+    {
+        "region": r.chrom ++ ":" ++ str(r.start) ++ "-" ++ str(r.end),
+        "gene_hits": hits |> count(),
+        "genes": hits |> map(|g| g.name) |> join(", ")
+    }
+}) |> filter(|o| o.gene_hits > 0)
+
+overlaps |> table() |> println()
+println("Regions with gene overlaps: " ++ str(overlaps |> count())
+    ++ " / " ++ str(regions |> count()))
+
+# ── Coverage computation ────────────────────────────────────────
+# Compute how many base pairs are covered per chromosome
+
+println("\n--- Genome Coverage ---")
+
+let total_bp = regions |> map(|r| r.end - r.start) |> reduce(0, |a, b| a + b)
+let unique_chroms = regions |> map(|r| r.chrom) |> unique()
+println("Total bases covered: " ++ str(total_bp) ++ " across "
+    ++ str(unique_chroms |> count()) ++ " chromosomes")
+
+# Size distribution
+let sizes = regions |> map(|r| r.end - r.start)
+println("Interval sizes: min=" ++ str(min(sizes)) ++ " max=" ++ str(max(sizes))
+    ++ " mean=" ++ str(mean(sizes)) ++ " median=" ++ str(median(sizes)))
+
+println("\nGenomic regions pipeline complete.")

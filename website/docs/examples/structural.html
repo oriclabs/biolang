@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Structural Biology — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/structural"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Structural Biology</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Structural Biology</h1>
+        <p>BioLang supports PDB and mmCIF file parsing for structural biology analysis.
+        These examples cover common tasks from basic structure statistics to contact
+        maps, Ramachandran analysis, and B-factor exploration.</p>
+
+        <h2>PDB Parsing</h2>
+
+        <h3>Basic structure information</h3>
+        <pre><code class="language-biolang"># Load and inspect a PDB file
+let structure = read_pdb("1ubq.pdb")
+
+print(f"PDB ID: {structure.id}")
+print(f"Title: {structure.title}")
+print(f"Resolution: {structure.resolution} A")
+print(f"Chains: {structure.chains |> map(|x| x.id) |> join(", ")}")
+print(f"Models: {structure.models |> len}")
+
+for chain in structure.chains {
+  let residues = chain.residues |> len
+  let atoms = chain.atoms |> len
+  print(f"  Chain {chain.id}: {residues} residues, {atoms} atoms")
+}</code></pre>
+
+        <h3>Extracting atom coordinates</h3>
+        <pre><code class="language-biolang"># Extract C-alpha atoms for a chain
+let structure = read_pdb("protein.pdb")
+let chain_a = structure.chain("A")
+
+let ca_atoms = chain_a.atoms
+  |> filter(|a| { a.name == "CA" })
+  |> map(|a| { {
+    residue: a.resname,
+    resid: a.resid,
+    x: a.x,
+    y: a.y,
+    z: a.z,
+    bfactor: a.bfactor
+  }})
+
+ca_atoms |> write_tsv("ca_coordinates.tsv")
+print(f"Extracted {ca_atoms |> len} C-alpha atoms")</code></pre>
+
+        <h3>Fetching structures from RCSB</h3>
+        <pre><code class="language-biolang"># Download and parse a PDB structure
+let structure = pdb_entry("6LU7")  # SARS-CoV-2 main protease
+
+print(f"{structure.title}")
+print(f"Method: {structure.method}")
+print(f"Resolution: {structure.resolution} A")
+print(f"Organism: {structure.organism}")
+
+# Extract sequence from structure
+let sequence = structure.chain("A").residues
+  |> map(|r| { r.name |> three_to_one })
+  |> join("")
+print(f"Chain A sequence ({sequence |> len} aa): {sequence |> take(50)}...")</code></pre>
+
+        <h2>Contact Maps</h2>
+
+        <h3>Residue contact map</h3>
+        <pre><code class="language-biolang"># Build a residue contact map from C-alpha distances
+let structure = read_pdb("protein.pdb")
+let chain = structure.chain("A")
+
+let ca_atoms = chain.atoms |> filter(|a| { a.name == "CA" }) |> collect
+let n = ca_atoms |> len
+let cutoff = 8.0  # Angstroms
+
+# Build contact matrix
+let contacts = []
+for i in 0..n {
+  for j in (i + 1)..n {
+    let dist = distance(ca_atoms[i], ca_atoms[j])
+    if dist <= cutoff {
+      contacts |> push({
+        res_i: ca_atoms[i].resid,
+        res_j: ca_atoms[j].resid,
+        distance: dist |> round(2)
+      })
+    }
+  }
+}
+
+print(f"Contacts (< {cutoff} A): {contacts |> len}")
+contacts |> write_tsv("contact_map.tsv")
+
+# Sequence separation statistics
+let seq_sep = contacts |> map(|c| { (c.res_j - c.res_i) |> abs })
+print(f"Mean sequence separation: {seq_sep |> mean |> round(1)} residues")
+print(f"Long-range contacts (>12 res): {seq_sep |> filter(|s| { s > 12 }) |> len}")</code></pre>
+
+        <h3>Inter-chain contacts</h3>
+        <pre><code class="language-biolang"># Find contacts between two chains (protein-protein interface)
+let structure = read_pdb("complex.pdb")
+let chain_a = structure.chain("A").atoms |> collect
+let chain_b = structure.chain("B").atoms |> collect
+
+let interface_cutoff = 4.5  # Angstroms
+
+let interface = chain_a |> flat_map(|atom_a| {
+  chain_b
+    |> filter(|atom_b| { distance(atom_a, atom_b) <= interface_cutoff })
+    |> map(|atom_b| { {
+      chain_a_res: f"{atom_a.resname}{atom_a.resid}",
+      chain_a_atom: atom_a.name,
+      chain_b_res: f"{atom_b.resname}{atom_b.resid}",
+      chain_b_atom: atom_b.name,
+      distance: distance(atom_a, atom_b) |> round(2)
+    }})
+})
+
+let interface_residues_a = interface |> map(|x| x.chain_a_res) |> unique
+let interface_residues_b = interface |> map(|x| x.chain_b_res) |> unique
+
+print(f"Interface contacts: {interface |> len}")
+print(f"Interface residues chain A: {interface_residues_a |> len}")
+print(f"Interface residues chain B: {interface_residues_b |> len}")
+interface |> write_tsv("interface_contacts.tsv")</code></pre>
+
+        <h2>Ramachandran Analysis</h2>
+
+        <h3>Phi/Psi angle calculation</h3>
+        <pre><code class="language-biolang"># Calculate backbone dihedral angles
+let structure = read_pdb("protein.pdb")
+let chain = structure.chain("A")
+
+let dihedrals = chain.residues
+  |> filter(|r| { r.has_backbone })
+  |> map(|r| { {
+    resid: r.resid,
+    resname: r.name,
+    phi: r.phi |> to_degrees,
+    psi: r.psi |> to_degrees
+  }})
+  |> filter(|d| { d.phi != None && d.psi != None })
+
+dihedrals |> write_tsv("ramachandran.tsv")
+
+# Classify regions
+let allowed = dihedrals |> filter(|d| { is_allowed_region(d.phi, d.psi) }) |> len
+let generous = dihedrals |> filter(|d| { is_generous_region(d.phi, d.psi) }) |> len
+let outliers = dihedrals |> len - allowed - generous
+
+print("Ramachandran Statistics:")
+print(f"  Most favored: {allowed} ({(allowed |> float / dihedrals |> len * 100.0) |> round(1)}%)")
+print(f"  Allowed:      {generous} ({(generous |> float / dihedrals |> len * 100.0) |> round(1)}%)")
+print(f"  Outliers:     {outliers} ({(outliers |> float / dihedrals |> len * 100.0) |> round(1)}%)")
+
+# List outlier residues
+let outlier_residues = dihedrals
+  |> filter(|d| { !is_allowed_region(d.phi, d.psi) && !is_generous_region(d.phi, d.psi) })
+if outlier_residues |> len > 0 {
+  print("\nOutlier residues:")
+  for r in outlier_residues {
+    print(f"  {r.resname}{r.resid}: phi={r.phi |> round(1)}, psi={r.psi |> round(1)}")
+  }
+}</code></pre>
+
+        <h2>B-factor Analysis</h2>
+
+        <h3>B-factor per residue</h3>
+        <pre><code class="language-biolang"># Analyze B-factors as a proxy for flexibility
+let structure = read_pdb("protein.pdb")
+let chain = structure.chain("A")
+
+let bfactors = chain.residues |> map(|r| {
+  let atom_bfactors = r.atoms |> map(|x| x.bfactor)
+  {
+    resid: r.resid,
+    resname: r.name,
+    mean_bfactor: atom_bfactors |> mean,
+    ca_bfactor: r.atom("CA")?.bfactor ?? 0.0,
+    n_atoms: atom_bfactors |> len
+  }
+})
+
+let overall_mean = bfactors |> map(|x| x.mean_bfactor) |> mean
+let overall_std = bfactors |> map(|x| x.mean_bfactor) |> stdev
+
+print("B-factor Statistics:")
+print(f"  Mean: {overall_mean |> round(2)} A^2")
+print(f"  Std:  {overall_std |> round(2)} A^2")
+print(f"  Range: {bfactors |> map(|x| x.mean_bfactor) |> min |> round(2)} - {bfactors |> map(|x| x.mean_bfactor) |> max |> round(2)}")
+
+# High B-factor residues (flexible regions)
+let flexible = bfactors
+  |> filter(|r| { r.mean_bfactor > overall_mean + 2.0 * overall_std })
+print("\nHighly flexible residues (>2 SD):")
+for r in flexible {
+  print(f"  {r.resname}{r.resid}: {r.mean_bfactor |> round(2)} A^2")
+}
+
+bfactors |> write_tsv("bfactor_per_residue.tsv")</code></pre>
+
+        <h3>Secondary structure assignment</h3>
+        <pre><code class="language-biolang"># Simple secondary structure from backbone geometry
+let structure = read_pdb("protein.pdb")
+let chain = structure.chain("A")
+
+let ss = chain |> assign_secondary_structure
+
+let helix = ss |> filter(|r| { r.ss == "H" }) |> len
+let sheet = ss |> filter(|r| { r.ss == "E" }) |> len
+let coil = ss |> filter(|r| { r.ss == "C" }) |> len
+let total = ss |> len
+
+print("Secondary Structure:")
+print(f"  Helix: {helix} ({(helix |> float / total * 100.0) |> round(1)}%)")
+print(f"  Sheet: {sheet} ({(sheet |> float / total * 100.0) |> round(1)}%)")
+print(f"  Coil:  {coil} ({(coil |> float / total * 100.0) |> round(1)}%)")
+
+ss |> write_tsv("secondary_structure.tsv")</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="singlecell.html" class="text-violet-400 hover:text-violet-300">&larr; Single-Cell</a>
+        <a href="edge-cases.html" class="text-violet-400 hover:text-violet-300">Edge Cases &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

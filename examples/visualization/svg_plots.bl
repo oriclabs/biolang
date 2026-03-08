@@ -1,0 +1,72 @@
+# SVG Plot Generation
+# Publication-quality plots saved as SVG files
+
+# ── Basic plot ──
+# plot(data, opts?) -> SVG string
+let x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+let y = map(x, |v| v * v)
+let p = plot({x: x, y: y, title: "Quadratic", xlabel: "X", ylabel: "Y"})
+println("=== Basic Plot ===")
+println("SVG length:", len(p), "chars")
+
+# ── Histogram ──
+# histogram(values, opts?) -> SVG
+let data = [2.1, 3.5, 2.8, 4.1, 3.2, 2.5, 3.8, 4.5, 3.0, 2.9, 3.3, 4.0]
+let h = histogram({values: data, bins: 8, title: "Distribution", xlabel: "Value"})
+println("\n=== Histogram ===")
+println("SVG length:", len(h))
+
+# ── Heatmap ──
+# heatmap(matrix, opts?) -> SVG
+let m = matrix([
+    [1.0, 0.8, 0.2, 0.1],
+    [0.8, 1.0, 0.3, 0.2],
+    [0.2, 0.3, 1.0, 0.9],
+    [0.1, 0.2, 0.9, 1.0]
+])
+let hm = heatmap({data: m, title: "Correlation Matrix"})
+println("\n=== Heatmap ===")
+println("SVG length:", len(hm))
+
+# ── Volcano plot ──
+# volcano(data, opts?) -> SVG
+let volcano_data = table([
+    {gene: "TP53", log2fc: 2.5, pvalue: 0.001},
+    {gene: "BRCA1", log2fc: -1.8, pvalue: 0.01},
+    {gene: "EGFR", log2fc: 3.1, pvalue: 0.0001},
+    {gene: "KRAS", log2fc: 0.3, pvalue: 0.5},
+    {gene: "MYC", log2fc: -2.2, pvalue: 0.005}
+])
+let vp = volcano({data: volcano_data, title: "Differential Expression"})
+println("\n=== Volcano Plot ===")
+println("SVG length:", len(vp))
+
+# ── MA plot ──
+# ma_plot(data, opts?) -> SVG
+let ma_data = table([
+    {mean_expr: 5.0, log2fc: 2.5},
+    {mean_expr: 8.0, log2fc: -1.8},
+    {mean_expr: 3.0, log2fc: 3.1},
+    {mean_expr: 12.0, log2fc: 0.3},
+    {mean_expr: 6.0, log2fc: -2.2}
+])
+let mp = ma_plot({data: ma_data, title: "MA Plot"})
+println("\n=== MA Plot ===")
+println("SVG length:", len(mp))
+
+# ── Genome track ──
+# genome_track(data, opts?) -> SVG
+let track_data = table([
+    {chrom: "chr1", start: 1000, end: 5000, name: "gene_A", score: 100},
+    {chrom: "chr1", start: 3000, end: 7000, name: "gene_B", score: 80},
+    {chrom: "chr1", start: 8000, end: 10000, name: "gene_C", score: 60}
+])
+let gt = genome_track({data: track_data, title: "Genomic Region"})
+println("\n=== Genome Track ===")
+println("SVG length:", len(gt))
+
+# ── Save to file ──
+# save_svg(svg_string, path)
+# Uncomment to save:
+# save_svg(vp, "/tmp/volcano.svg")
+# println("Saved volcano plot to /tmp/volcano.svg")

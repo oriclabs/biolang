@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UCSC — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="apis/ucsc"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">API Clients</a><span class="mx-2">/</span>
+        <span class="text-slate-300">UCSC</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>UCSC Genome Browser</h1>
+        <p>
+          The UCSC client provides access to the UCSC Genome Browser REST API for retrieving
+          genome assemblies, track listings, and sequences by coordinate.
+          It covers hundreds of genome assemblies across species. No API key is required.
+        </p>
+
+        <h2>ucsc_genomes</h2>
+        <p>
+          List all available genome assemblies. Takes no arguments and returns a list
+          of records with assembly metadata:
+        </p>
+        <pre><code class="language-biolang"># ucsc_genomes() — list all available genomes
+let genomes = ucsc_genomes()
+genomes
+  |> filter(|g| g.organism |> contains("Human"))
+  |> map(|g| print(g.name, g.description))</code></pre>
+
+        <h2>ucsc_tracks</h2>
+        <p>
+          List available tracks for a genome assembly. Takes one argument (genome name)
+          and returns a list of track records:
+        </p>
+        <pre><code class="language-biolang"># ucsc_tracks(genome) — list tracks for an assembly
+let tracks = ucsc_tracks("hg38")
+tracks |> map(|t| print(t.name, t.short_label))</code></pre>
+
+        <h2>ucsc_sequence</h2>
+        <p>
+          Retrieve a DNA sequence for a specific genomic region. Takes four positional
+          arguments: genome, chromosome, start, and end:
+        </p>
+        <pre><code class="language-biolang"># ucsc_sequence(genome, chrom, start, end)
+let seq = ucsc_sequence("hg38", "chr17", 43044295, 43170245)
+print(seq |> len())
+print(seq |> gc_content())
+
+# Get a short region for analysis
+let brca1_exon = ucsc_sequence("hg38", "chr17", 43091435, 43091544)
+print(brca1_exon)
+print(brca1_exon |> gc_content())</code></pre>
+
+        <h2>Practical Example: Region Analysis</h2>
+        <pre><code class="language-biolang"># Analyze the BRCA1 locus
+let genome = "hg38"
+let chrom = "chr17"
+let start = 43044295
+let end = 43170245
+
+# 1. Get the sequence
+let seq = ucsc_sequence(genome, chrom, start, end)
+print("Region length:", seq |> len(), "bp")
+print("GC content:", seq |> gc_content())
+
+# 2. List available tracks
+let tracks = ucsc_tracks(genome)
+print("\nAvailable tracks:", tracks |> len())</code></pre>
+
+        <h2>Cross-Assembly Comparison</h2>
+        <pre><code class="language-biolang"># Compare a region across genome assemblies
+let gene_seq_hg38 = ucsc_sequence("hg38", "chr17", 43044295, 43170245)
+let gene_seq_hg19 = ucsc_sequence("hg19", "chr17", 41196312, 41322290)
+
+print("hg38 length:", gene_seq_hg38 |> len())
+print("hg19 length:", gene_seq_hg19 |> len())</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="uniprot.html" class="text-violet-400 hover:text-violet-300">&larr; UniProt</a>
+        <a href="others.html" class="text-violet-400 hover:text-violet-300">Others &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

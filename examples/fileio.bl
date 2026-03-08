@@ -1,0 +1,23 @@
+# FASTA/FASTQ file reading with streams
+
+# Read FASTA file — returns a lazy Stream
+let seqs = fasta("tests/data/test.fa")
+
+# Take first 2 records
+let first2 = seqs |> take(2)
+println("First 2 FASTA records:")
+for rec in first2 {
+    println("  ", rec.id, "length:", rec.length)
+}
+
+# Read FASTQ file — count all records
+let reads = fastq("tests/data/test.fq")
+let n = reads |> count()
+println("FASTQ read count:", n)
+
+# Read FASTQ, get first record, access its sequence
+let r1 = fastq("tests/data/test.fq") |> take(1)
+let seq = r1[0].seq
+println("First read sequence:", seq)
+println("GC content:", gc_content(seq))
+println("Transcribed:", transcribe(seq))

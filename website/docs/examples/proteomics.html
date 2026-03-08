@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proteomics — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/proteomics"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Examples</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Proteomics</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Proteomics</h1>
+        <p>BioLang provides tools for protein sequence analysis, mass spectrometry data
+        processing, and structural feature extraction. These examples cover common
+        proteomics workflows from basic sequence properties to peptide identification.</p>
+
+        <h2>Protein Properties</h2>
+
+        <h3>Molecular weight and isoelectric point</h3>
+        <pre><code class="language-biolang"># Calculate basic protein properties
+let protein = protein"MKWVTFISLLFLFSSAYSRGVFRR"
+
+let mw = protein |> molecular_weight
+let pi = protein |> isoelectric_point
+let charge = protein |> net_charge(ph: 7.4)
+let gravy = protein |> gravy_score
+
+print(f"Molecular weight: {mw |> round(2)} Da")
+print(f"Isoelectric point: {pi |> round(2)}")
+print(f"Net charge at pH 7.4: {charge |> round(2)}")
+print(f"GRAVY score: {gravy |> round(3)}")</code></pre>
+
+        <h3>Amino acid composition</h3>
+        <pre><code class="language-biolang">let protein = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFK"
+
+let composition = protein |> aa_composition
+let aa_list = composition |> sort_by(|a, b| b.count - a.count)
+for entry in aa_list {
+  let pct = entry.count |> float / (protein |> len) |> float * 100.0
+  print(f"{entry.aa}: {entry.count} ({pct |> round(1)}%)")
+}
+
+# Count hydrophobic residues (A, V, I, L, M, F, W, P)
+let hydrophobic_aa = ["A", "V", "I", "L", "M", "F", "W", "P"]
+let hydrophobic = to_string(protein) |> split("") |> filter(|aa| { hydrophobic_aa |> contains(aa) }) |> len
+print(f"\nHydrophobic residues: {hydrophobic}")</code></pre>
+
+        <h3>Extinction coefficient</h3>
+        <pre><code class="language-biolang"># Calculate extinction coefficient at 280nm
+let seq = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKDLGE"
+
+let ext_coeff = seq |> extinction_coefficient
+let abs_01 = ext_coeff / (seq |> molecular_weight) * 10.0
+
+print(f"Extinction coefficient: {ext_coeff} M^-1 cm^-1")
+print(f"Abs 0.1% (1 g/L): {abs_01 |> round(3)}")</code></pre>
+
+        <h2>Protein Domain Search</h2>
+
+        <h3>Motif scanning</h3>
+        <pre><code class="language-biolang"># Search for common protein motifs
+let protein = fasta("protein.fa") |> first
+
+# N-glycosylation sites: N-X-S/T (where X is not P)
+let nglyc_sites = protein.seq |> find_motif("N[^P][ST]")
+print(f"N-glycosylation sites: {nglyc_sites |> len}")
+for site in nglyc_sites {
+  print(f"  Position {site.start}: {site.match}")
+}
+
+# Phosphorylation sites (simplified)
+let phos_sites = protein.seq |> find_motif("[ST]P")
+print(f"Potential phosphorylation sites: {phos_sites |> len}")
+
+# Signal peptide prediction (basic hydrophobicity check)
+let signal = subseq(protein.seq, 0, 30)
+let hydro = signal |> gravy_score
+print(f"N-terminal hydrophobicity: {hydro |> round(3)} (>0.5 suggests signal peptide)")</code></pre>
+
+        <h3>Domain annotation from Pfam hits</h3>
+        <pre><code class="language-biolang"># Parse Pfam domain hits
+let domains = tsv("pfam_results.tsv")
+  |> filter(|d| { d["e_value"] |> float < 1e-5 })
+  |> sort_by(|a, b| a.start - b.start)
+
+print("Significant domains found:")
+for d in domains {
+  print(f"  {d["domain_name"]} ({d["start"]}-{d["end"]}) E-value: {d["e_value"]}")
+}
+
+# Check for domain architecture
+let has_kinase = domains |> any(|d| { d["domain_name"] |> contains("Kinase") })
+let has_sh2 = domains |> any(|d| { d["domain_name"] |> contains("SH2") })
+if has_kinase && has_sh2 {
+  print("Receptor tyrosine kinase-like architecture detected")
+}</code></pre>
+
+        <h2>Mass Spectrometry</h2>
+
+        <h3>In-silico tryptic digest</h3>
+        <pre><code class="language-biolang"># Trypsin cleaves after K and R (except when followed by P)
+let protein = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKDLGE"
+
+let peptides = protein |> digest(enzyme: "trypsin", missed_cleavages: 1)
+
+print("Tryptic peptides (up to 1 missed cleavage):")
+for pep in peptides |> sort_by(|p| { p |> len }) {
+  let mz = pep |> monoisotopic_mass / 1.0 + 1.00728  # [M+H]+
+  print(f"  {pep} (m/z: {mz |> round(4)}, length: {pep |> len})")
+}</code></pre>
+
+        <h3>Peptide mass fingerprint</h3>
+        <pre><code class="language-biolang"># Generate theoretical peptide masses for database matching
+let proteins = fasta("proteome.fa")
+
+let mass_db = proteins
+  |> flat_map(|p| {
+    p.seq |> digest(enzyme: "trypsin", missed_cleavages: 0)
+      |> filter(|pep| { pep |> len >= 6 && pep |> len <= 30 })
+      |> map(|pep| { {
+        protein: p.name,
+        peptide: pep |> to_string,
+        mass: pep |> monoisotopic_mass
+      }})
+  })
+  |> sort_by(|a, b| a.mass - b.mass)
+
+mass_db |> write_tsv("theoretical_masses.tsv")
+print(f"Generated {mass_db |> len} theoretical peptide masses")</code></pre>
+
+        <h3>Matching observed masses to theoretical</h3>
+        <pre><code class="language-biolang"># Match observed MS peaks to theoretical peptide masses
+let observed = tsv("observed_peaks.tsv")
+  |> map(|row| { row["mz"] |> float })
+
+let theoretical = tsv("theoretical_masses.tsv")
+
+let tolerance_ppm = 10.0
+
+let matches = observed |> flat_map(|obs_mz| {
+  theoretical
+    |> filter(|t| {
+      let ppm = ((obs_mz - t["mass"] |> float) / (t["mass"] |> float) * 1e6) |> abs
+      ppm < tolerance_ppm
+    })
+    |> map(|t| { {
+      observed_mz: obs_mz,
+      theoretical_mass: t["mass"],
+      protein: t["protein"],
+      peptide: t["peptide"],
+      ppm_error: ((obs_mz - t["mass"] |> float) / (t["mass"] |> float) * 1e6)
+    }})
+})
+
+print(f"Matched {matches |> len} peptides to {matches |> map(|x| x.protein) |> unique |> len} proteins")
+matches |> write_tsv("peptide_matches.tsv")</code></pre>
+
+        <h2>Protein Comparison</h2>
+
+        <h3>Pairwise sequence identity</h3>
+        <pre><code class="language-biolang"># Compare protein sequences from a FASTA file
+let proteins = fasta("family.fa") |> collect
+
+for i in 0..proteins |> len {
+  for j in (i + 1)..proteins |> len {
+    let identity = align(proteins[i].seq, proteins[j].seq, matrix: "BLOSUM62")
+      |> pct_identity
+    print(f"{proteins[i].name} vs {proteins[j].name}: {identity |> round(1)}%")
+  }
+}</code></pre>
+
+        <h3>Multiple sequence alignment summary</h3>
+        <pre><code class="language-biolang"># Analyze conservation from an MSA
+let msa = fasta("aligned_proteins.fa")
+
+let conservation = msa |> column_conservation
+let n_conserved = conservation |> filter(|c| { c >= 0.9 }) |> len
+let n_variable = conservation |> filter(|c| { c < 0.5 }) |> len
+
+print(f"MSA columns: {conservation |> len}")
+print(f"Highly conserved (>=90%): {n_conserved}")
+print(f"Variable (<50%): {n_variable}")
+print(f"Overall conservation: {conservation |> mean |> round(3)}")</code></pre>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="genomics.html" class="text-violet-400 hover:text-violet-300">&larr; Genomics</a>
+        <a href="popgen.html" class="text-violet-400 hover:text-violet-300">Population Genetics &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

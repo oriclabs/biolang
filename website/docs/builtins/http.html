@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP &amp; Network — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/http"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">HTTP &amp; Network</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">HTTP &amp; Network</h1>
+        <p class="text-lg text-slate-400 mb-8">6 functions for HTTP requests, file downloads, and biological database queries.</p>
+
+        <section class="mb-12" id="http_methods">
+          <h2 class="text-2xl font-bold text-white">HTTP Methods</h2>
+          <pre><code class="language-biolang">http_get(url, opts?) -> response
+http_post(url, body, opts?) -> response</code></pre>
+          <p class="text-slate-400 mt-2">All return a response map:</p>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Field</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">status</td><td class="py-2 px-3">int</td><td class="py-2 px-3">HTTP status code</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">body</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Response body</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">headers</td><td class="py-2 px-3">map</td><td class="py-2 px-3">Response headers</td></tr>
+            </tbody>
+          </table>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">headers</td><td class="py-2 px-3">map</td><td class="py-2 px-3">Request headers</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang"># Fetch gene info from NCBI
+let resp = http_get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi", {
+  headers: {"Accept": "application/json"}
+})
+let data = json_parse(resp.body)
+
+# POST to REST API
+resp = http_post("https://api.example.com/submit", "{\"sample\": \"S001\", \"pipeline\": \"rnaseq\"}")</code></pre>
+        </section>
+
+        <section class="mb-12" id="download">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">download</span> / <span class="text-violet-400 font-mono">upload</span></h2>
+          <p class="text-slate-400 mt-2">Download a file from a URL or upload to an endpoint. Downloads support resume and progress.</p>
+          <pre><code class="language-biolang">download(url, path?) -> string    # returns local path
+upload(path, url, opts?) -> response</code></pre>
+          <pre><code class="language-biolang"># Download reference genome
+download(
+  "https://ftp.ensembl.org/pub/release-111/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz",
+  "reference/GRCh38.fa.gz"
+)
+
+# Download (auto-infer filename from URL)
+download("https://example.com/data.bam")</code></pre>
+        </section>
+
+        <section class="mb-12" id="ref_genome">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">ref_genome</span></h2>
+          <p class="text-slate-400 mt-2">Download a reference genome by name from built-in sources registry. Handles URL resolution, checksum verification, and caching.</p>
+          <pre><code class="language-biolang">ref_genome(name, opts?) -> string</code></pre>
+          <pre><code class="language-biolang">let ref = ref_genome("GRCh38")              # downloads if not cached
+let ref37 = ref_genome("GRCh37")
+let t2t = ref_genome("T2T-CHM13")
+let dbsnp = ref_genome("dbSNP")              # also works for databases
+
+# With specific output location
+ref_genome("GRCh38", {outdir: "references/"})</code></pre>
+        </section>
+
+        <section class="mb-12" id="bio_fetch">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">bio_fetch</span></h2>
+          <p class="text-slate-400 mt-2">Fetch a record from a biological database by ID. Supports NCBI, UniProt, Ensembl, and more.</p>
+          <pre><code class="language-biolang">bio_fetch(database, id) -> map</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Database</th><th class="text-left py-2 px-3 text-slate-400">Example ID</th><th class="text-left py-2 px-3 text-slate-400">Returns</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">"ncbi_gene"</td><td class="py-2 px-3">672</td><td class="py-2 px-3">Gene summary, aliases, location</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">"uniprot"</td><td class="py-2 px-3">"P38398"</td><td class="py-2 px-3">Protein info, sequence, function</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">"ensembl"</td><td class="py-2 px-3">"ENSG00000012048"</td><td class="py-2 px-3">Gene model, transcripts</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">"clinvar"</td><td class="py-2 px-3">"VCV000017661"</td><td class="py-2 px-3">Variant clinical significance</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang">let gene = bio_fetch("ncbi_gene", 672)
+println("Name:", gene.name)              # "BRCA1"
+println("Location:", gene.location)      # "17q21.31"
+println("Summary:", gene.summary)
+
+let protein = bio_fetch("uniprot", "P38398")
+println("Length:", protein.length, "aa")
+println("Function:", protein.function)</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="filesystem.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> File System</a>
+        <a href="visualization.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">ASCII Plots <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

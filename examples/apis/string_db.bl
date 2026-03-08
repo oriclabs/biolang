@@ -1,0 +1,40 @@
+# STRING Database API Examples
+# Protein-Protein Interaction Networks — EU (EMBL/SIB/CPR)
+
+# Get protein interaction network
+# string_network(protein_list, species_taxon_id) -> list of interaction records
+# Species: 9606 = Homo sapiens, 10090 = Mus musculus, 7227 = Drosophila
+let interactions = string_network(["TP53", "MDM2", "BRCA1", "ATM"], 9606)
+println("=== TP53 Interaction Network ===")
+println("Total interactions:", len(interactions))
+for i in interactions {
+    println("  ", i.protein_a, "<->", i.protein_b, "score:", i.score)
+}
+
+# Filter high-confidence interactions
+let strong = filter(interactions, |i| i.score > 0.9)
+println("\nHigh-confidence interactions (score > 0.9):", len(strong))
+for i in strong {
+    println("  ", i.protein_a, "-", i.protein_b, "(", i.score, ")")
+}
+
+# Functional enrichment analysis
+# string_enrichment(protein_list, species_taxon_id) -> list of enrichment records
+let enrichments = string_enrichment(["TP53", "MDM2", "BRCA1", "ATM", "CHEK2"], 9606)
+println("\n=== Functional Enrichment ===")
+println("Total enriched terms:", len(enrichments))
+
+# Group by category
+let categories = unique(map(enrichments, |e| e.category))
+println("Categories:", categories)
+
+# Show top enrichments per category
+for cat in categories {
+    let cat_terms = filter(enrichments, |e| e.category == cat)
+    let top = head(cat_terms, 3)
+    println("\n", cat, ":")
+    for t in top {
+        println("  ", t.term, "-", t.description)
+        println("    genes:", t.gene_count, "p-value:", t.p_value, "FDR:", t.fdr)
+    }
+}

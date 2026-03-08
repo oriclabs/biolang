@@ -1,0 +1,51 @@
+# HTTP & Data Transfer Examples
+# Download reference data, make HTTP requests, transfer files
+
+# ── HTTP Requests ──
+# http_get(url) -> record {status, body, headers}
+let resp = http_get("https://httpbin.org/get")
+println("=== HTTP GET ===")
+println("Status:", resp.status)
+println("Body length:", len(resp.body))
+
+# http_post(url, body) -> record {status, body, headers}
+let post = http_post("https://httpbin.org/post", "{\"key\": \"value\"}")
+println("\n=== HTTP POST ===")
+println("Status:", post.status)
+
+# ── Download Files ──
+# download(url, output_path) -> record {path, size, status}
+# Uncomment to actually download:
+# let dl = download(
+#     "https://ftp.ensembl.org/pub/release-112/fasta/homo_sapiens/dna/README",
+#     "/tmp/ensembl_readme.txt"
+# )
+# println("Downloaded:", dl.path, "size:", dl.size)
+
+# ── Reference Genome Sources ──
+# bio_sources() -> list of available built-in reference sources
+let sources = bio_sources()
+println("\n=== Built-in Reference Sources ===")
+for s in sources {
+    println("  ", s.name, "[", s.category, "]")
+    println("    ", s.description)
+}
+
+# ── Fetch reference data (requires download) ──
+# ref_genome(name) -> downloads to standard location
+# bio_fetch(source_name) -> downloads specific source
+# Uncomment to download:
+# let genome = ref_genome("hg38")
+# println("Downloaded hg38 to:", genome)
+
+# ── SRA Toolkit (requires sra-tools installed) ──
+# Uncomment if sra-tools is available:
+# let prefetch = sra_prefetch("SRR000001")
+# let fastqs = sra_fastq("SRR000001")
+
+# ── FTP (requires network) ──
+# Uncomment to test:
+# let files = ftp_list("ftp.ncbi.nlm.nih.gov", "/genomes/README_assembly_summary.txt")
+# let dl = ftp_download("ftp.ncbi.nlm.nih.gov", "/genomes/README.txt", "/tmp/ncbi_readme.txt")
+
+println("\nDone!")

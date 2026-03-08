@@ -1,0 +1,7 @@
+[package]
+name = "bl-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bio-core = { workspace = true }

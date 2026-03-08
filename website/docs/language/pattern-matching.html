@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pattern Matching — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/pattern-matching"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Pattern Matching</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Pattern Matching</h1>
+        <p>
+          BioLang's <code>match</code> expression provides powerful pattern matching with
+          destructuring, guard clauses, and wildcard patterns. Like <code>if</code>/<code>else</code>,
+          <code>match</code> is an expression that returns a value.
+        </p>
+
+        <h2>Basic Match</h2>
+        <p>
+          The <code>match</code> expression tests a value against a series of patterns. The first
+          matching branch is executed:
+        </p>
+        <pre><code class="language-biolang">let label = match base {
+  'A' => "Adenine",
+  'T' => "Thymine",
+  'C' => "Cytosine",
+  'G' => "Guanine",
+  _ => "Unknown"
+}
+
+# Match with block bodies
+let action = match status {
+  "completed" => {
+    let result = load_result(job_id)
+    print(f"Job finished: {result.summary}")
+    result
+  },
+  "failed" => {
+    log_error(job_id)
+    None
+  },
+  "running" => {
+    print("Still running...")
+    None
+  },
+  _ => {
+    print(f"Unknown status: {status}")
+    None
+  }
+}</code></pre>
+
+        <h2>Literal Patterns</h2>
+        <p>
+          Match against specific values &mdash; integers, floats, strings, booleans, and bio literals:
+        </p>
+        <pre><code class="language-biolang"># Integer patterns
+let category = match chromosome_number {
+  1..=22 => "autosome",
+  23 => "X chromosome",
+  24 => "Y chromosome",
+  25 => "mitochondrial",
+  _ => "unknown"
+}
+
+# String patterns
+let enzyme = match recognition_site {
+  "GAATTC" => "EcoRI",
+  "AAGCTT" => "HindIII",
+  "GGATCC" => "BamHI",
+  "CTCGAG" => "XhoI",
+  _ => "unknown"
+}
+
+# Boolean patterns
+let msg = match is_paired_end {
+  true => "paired-end sequencing",
+  false => "single-end sequencing"
+}</code></pre>
+
+        <h2>Destructuring</h2>
+        <p>
+          Patterns can destructure composite values, binding inner components to variables:
+        </p>
+
+        <h3>Tuple Destructuring</h3>
+        <pre><code class="language-biolang">let point = (10, 20)
+
+match point {
+  (0, 0) => print("origin"),
+  (x, 0) => print(f"on x-axis at {x}"),
+  (0, y) => print(f"on y-axis at {y}"),
+  (x, y) => print(f"at ({x}, {y})")
+}
+
+# Useful for function returns
+let (chrom, start, end) = parse_region("chr1:1000-2000")
+match (chrom, end - start) {
+  (_, size) if size > 1_000_000 => print("large region"),
+  ("chrM", _) => print("mitochondrial region"),
+  (c, s) => print(f"{c}: {s} bp")
+}</code></pre>
+
+        <h3>List Destructuring</h3>
+        <pre><code class="language-biolang">match samples {
+  [] => print("no samples"),
+  [single] => print(f"one sample: {single}"),
+  [first, second] => print(f"two samples: {first}, {second}"),
+  [first, ...rest] => print(f"first: {first}, plus {len(rest)} more")
+}
+
+# Head/tail pattern for recursive processing
+fn process_all(items) {
+  match items {
+    [] => [],
+    [head, ...tail] => {
+      let result = process(head)
+      [result, ...process_all(tail)]
+    }
+  }
+}</code></pre>
+
+        <h3>Struct Destructuring</h3>
+        <pre><code class="language-biolang">struct Variant {
+  chrom: String,
+  pos: Int,
+  ref_allele: String,
+  alt_allele: String,
+  qual: Float
+}
+
+let action = match variant {
+  Variant { qual, .. } if qual < 20.0 => "filter_low_qual",
+  Variant { ref_allele, alt_allele, .. } if len(ref_allele) != len(alt_allele) => "indel",
+  Variant { ref_allele, alt_allele, .. } if len(ref_allele) == 1 => "snv",
+  _ => "complex"
+}</code></pre>
+
+        <h3>Enum Destructuring</h3>
+        <pre><code class="language-biolang">enum ReadPair {
+  Paired(Read, Read),
+  Single(Read),
+  Orphan(Read)
+}
+
+fn process_reads(pair: ReadPair) -> List[Read] {
+  match pair {
+    Paired(r1, r2) => [r1, r2],
+    Single(r) => [r],
+    Orphan(r) => {
+      log(f"Warning: orphan read {r.name}")
+      [r]
+    }
+  }
+}</code></pre>
+
+        <h2>Guard Clauses</h2>
+        <p>
+          Add <code>if</code> conditions after a pattern to refine matching. The guard is evaluated
+          only when the pattern matches:
+        </p>
+        <pre><code class="language-biolang">let classification = match variant {
+  v if v.qual >= 99.0 && v.depth >= 30 => "high_confidence",
+  v if v.qual >= 50.0 && v.depth >= 10 => "moderate_confidence",
+  v if v.qual >= 20.0 => "low_confidence",
+  _ => "filtered"
+}
+
+# Guards with destructuring
+let description = match (ref_allele, alt_allele) {
+  (r, a) if len(r) == 1 && len(a) == 1 => "SNV",
+  (r, a) if len(r) > len(a) => "deletion",
+  (r, a) if len(r) < len(a) => "insertion",
+  (r, a) if len(r) == len(a) => "MNV",
+  _ => "complex"
+}</code></pre>
+
+        <h2>Wildcard Pattern</h2>
+        <p>
+          The underscore <code>_</code> matches any value without binding it. It is typically used
+          as the final catch-all arm:
+        </p>
+        <pre><code class="language-biolang"># Ignore specific fields
+match record {
+  { name, chrom: "chrX", .. } => print(f"{name} is X-linked"),
+  { name, chrom: "chrY", .. } => print(f"{name} is Y-linked"),
+  { name, .. } => print(f"{name} is autosomal")
+}
+
+# Nested wildcards
+match result {
+  Ok(_) => print("succeeded"),
+  Err(msg) => print(f"failed: {msg}")
+}</code></pre>
+
+        <h2>Or Patterns</h2>
+        <p>
+          Multiple patterns can be combined with <code>|</code> to share a single branch:
+        </p>
+        <pre><code class="language-biolang">let is_purine = match base {
+  'A' | 'G' => true,
+  'C' | 'T' | 'U' => false,
+  _ => false
+}
+
+let priority = match impact {
+  "HIGH" | "MODERATE" => "review",
+  "LOW" | "MODIFIER" => "skip",
+  _ => "unknown"
+}</code></pre>
+
+        <h2>Nested Patterns</h2>
+        <pre><code class="language-biolang"># Match on nested Option values
+let value = match result {
+  Ok(Some(data)) => process(data),
+  Ok(None) => default_value(),
+  Err(e) => {
+    log(f"Error: {e}")
+    default_value()
+  }
+}
+
+# Deeply nested destructuring
+match annotation {
+  { gene: { symbol, biotype: "protein_coding" }, variants } => {
+    print(f"Coding gene {symbol} with {len(variants)} variants")
+  },
+  { gene: { symbol, .. }, .. } => {
+    print(f"Non-coding gene {symbol}")
+  }
+}</code></pre>
+
+        <h2>Match in Pipes</h2>
+        <p>
+          Use <code>match</code> inside pipe chains via lambdas for inline branching:
+        </p>
+        <pre><code class="language-biolang">let results = variants
+  |> map(|v| match v.impact {
+    "HIGH" => { severity: 3, label: "pathogenic" },
+    "MODERATE" => { severity: 2, label: "uncertain" },
+    _ => { severity: 1, label: "benign" }
+  })
+  |> filter(|r| r.severity >= 2)
+  |> arrange(desc(severity))</code></pre>
+
+        <h2>Exhaustiveness</h2>
+        <p>
+          BioLang checks that match expressions cover all possible cases for enum types. If the
+          match is not exhaustive and has no wildcard, a warning is emitted:
+        </p>
+        <pre><code class="language-biolang">enum Strand { Plus, Minus, Unknown }
+
+# This is exhaustive — no warning
+let symbol = match strand {
+  Plus => "+",
+  Minus => "-",
+  Unknown => "."
+}
+
+# This would emit a warning (missing Unknown):
+# let symbol = match strand {
+#   Plus => "+",
+#   Minus => "-"
+# }
+
+# Use _ to acknowledge you are ignoring cases
+let symbol = match strand {
+  Plus => "+",
+  _ => "-"
+}</code></pre>
+
+        <h2>Match with Binding</h2>
+        <pre><code class="language-biolang"># Bind matched value with 'as'
+match parse_int(input) {
+  Ok(n) if n > 0 => print(f"positive: {n}"),
+  Ok(0) => print("zero"),
+  Ok(n) => print(f"negative: {n}"),
+  Err(e) => print(f"not a number: {e}")
+}
+
+# Pattern binding in loops
+for item in results {
+  match item {
+    { status: "pass", score } if score > 95 => excellent(item),
+    { status: "pass", .. } => passing(item),
+    { status: "fail", reason } => report_failure(reason),
+    other => print(f"unhandled: {other}")
+  }
+}</code></pre>
+
+        <section id="type-matching" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Type Matching</h2>
+          <p class="text-slate-400 mb-4">Combine <code class="text-cyan-400">type()</code> with <code class="text-violet-400">match</code> to dispatch on value types.</p>
+          <pre><code class="language-biolang"># Dispatch based on type
+match type(x) {
+  "DNA" => print(f"DNA sequence: {seq_len(x)} bp"),
+  "RNA" => print(f"RNA sequence: {seq_len(x)} nt"),
+  "Protein" => print(f"Protein: {seq_len(x)} aa"),
+  "Table" => print(f"Table: {x.num_rows} rows"),
+  "Int" | "Float" => print(f"Number: {x}"),
+  _ => print(f"Other type: {type(x)}")
+}
+
+# Process mixed collections
+for item in results {
+  match type(item) {
+    "Gene" => print(f"{item.symbol} on {item.chrom}"),
+    "Variant" => print(f"{item.chrom}:{item.pos}"),
+    _ => print(item)
+  }
+}</code></pre>
+        </section>
+
+        <section id="destructuring-rest" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Destructuring with Rest</h2>
+          <p class="text-slate-400 mb-4">Use <code class="text-violet-400">...</code> (spread) to capture remaining elements in list and record destructuring.</p>
+          <pre><code class="language-biolang"># List destructuring with rest
+let [first, second, ...rest] = [1, 2, 3, 4, 5]
+# first = 1, second = 2, rest = [3, 4, 5]
+
+# Grab head and tail
+let [head, ...tail] = sequences
+print(f"First sequence: {head}")
+print(f"Remaining: {len(tail)}")
+
+# Record destructuring (partial)
+let {name, chrom, ...extra} = gene_record
+print(f"{name} on {chrom}")
+print(f"Other fields: {extra}")</code></pre>
+        </section>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="control-flow.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Control Flow
+        </a>
+        <a href="collections.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Collections <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ensembl — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="apis/ensembl"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">API Clients</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Ensembl</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Ensembl</h1>
+        <p>
+          The Ensembl client provides access to the Ensembl REST API for gene annotation,
+          variant effect prediction (VEP), and sequence retrieval across
+          hundreds of species. No API key is required. Rate limit is 15 requests per second,
+          handled automatically.
+        </p>
+
+        <h2>ensembl_gene</h2>
+        <p>
+          Look up gene information by Ensembl gene ID. Returns a record with fields:
+          <code>id</code>, <code>symbol</code>, <code>description</code>, <code>species</code>,
+          <code>biotype</code>, <code>start</code>, <code>end</code>, <code>strand</code>,
+          <code>chromosome</code>.
+        </p>
+        <pre><code class="language-biolang"># Look up by Ensembl gene ID
+let gene = ensembl_gene("ENSG00000012048")
+print(gene.id)          # => "ENSG00000012048"
+print(gene.symbol)      # => "BRCA1"
+print(gene.biotype)     # => "protein_coding"
+print(gene.chromosome)  # => "17"
+print(gene.start)       # => 43044295
+print(gene.end)         # => 43170245
+print(gene.strand)      # => -1
+print(gene.description)
+print(gene.species)     # => "homo_sapiens"</code></pre>
+
+        <h2>ensembl_symbol</h2>
+        <p>
+          Look up gene information by species and gene symbol. Takes two positional arguments:
+          species string and symbol string. Returns the same record shape as
+          <code>ensembl_gene</code>.
+        </p>
+        <pre><code class="language-biolang"># Look up by gene symbol
+let gene = ensembl_symbol("human", "BRCA1")
+print(gene.id)          # => "ENSG00000012048"
+print(gene.symbol)      # => "BRCA1"
+print(gene.chromosome)  # => "17"
+print(gene.biotype)     # => "protein_coding"
+
+# Other species
+let mouse_gene = ensembl_symbol("mouse", "Brca1")
+print(mouse_gene.id)
+print(mouse_gene.species)
+
+let zebrafish = ensembl_symbol("zebrafish", "brca1")
+print(zebrafish.id)</code></pre>
+
+        <h2>ensembl_vep</h2>
+        <p>
+          Predict variant functional consequences using the Variant Effect Predictor (VEP).
+          Takes one argument: an HGVS notation string. Returns a list of records, each with
+          <code>allele_string</code>, <code>most_severe_consequence</code>, and
+          <code>transcript_consequences</code> (a list of records with <code>gene_id</code>,
+          <code>transcript_id</code>, <code>impact</code>, <code>consequences</code>).
+        </p>
+        <pre><code class="language-biolang"># VEP consequence prediction using HGVS notation
+let results = ensembl_vep("17:g.7675088C>T")
+results |> each(|r| {
+  print("Alleles: " + r.allele_string)
+  print("Most severe: " + r.most_severe_consequence)
+
+  r.transcript_consequences |> each(|tc| {
+    print(tc.gene_id + " / " + tc.transcript_id)
+    print("  Impact: " + tc.impact)
+    print("  Consequences: ", tc.consequences)
+  })
+})
+
+# Transcript-level HGVS notation
+results = ensembl_vep("ENST00000357654.9:c.5382insC")
+results |> each(|r| {
+  print(r.most_severe_consequence)
+})</code></pre>
+
+        <h2>ensembl_sequence</h2>
+        <p>
+          Retrieve sequences by Ensembl ID. Takes one required argument (an Ensembl ID)
+          and one optional argument (sequence type: <code>"genomic"</code>, <code>"cds"</code>,
+          or <code>"protein"</code>). Defaults to <code>"genomic"</code> if omitted.
+          Returns a record with <code>id</code>, <code>seq</code>, and <code>molecule</code>.
+        </p>
+        <pre><code class="language-biolang"># Get genomic sequence (default type)
+let result = ensembl_sequence("ENSG00000012048")
+print(result.id)
+print(result.seq |> len())    # Full genomic span including introns
+print(result.molecule)
+
+# Get CDS (coding sequence) — pass type as second argument
+let cds = ensembl_sequence("ENST00000357654", "cds")
+print(cds.seq |> len())
+print(cds.seq |> gc_content())
+
+# Get protein sequence
+let prot = ensembl_sequence("ENSP00000350283", "protein")
+print(prot.seq |> len())
+print(prot.seq |> molecular_weight())</code></pre>
+
+        <h2>Practical Example: Gene Annotation Pipeline</h2>
+        <pre><code class="language-biolang"># Annotate a list of genes using Ensembl
+let gene_symbols = ["BRCA1", "TP53", "EGFR", "KRAS", "PIK3CA"]
+
+let report = gene_symbols |> map(|name| {
+  let gene = ensembl_symbol("human", name)
+  let cds = ensembl_sequence(gene.id, "cds")
+
+  {
+    symbol: name,
+    ensembl_id: gene.id,
+    chromosome: gene.chromosome,
+    biotype: gene.biotype,
+    cds_length: cds.seq |> len(),
+    gc_content: cds.seq |> gc_content()
+  }
+})
+
+report |> to_table() |> print()
+report |> to_table() |> write_csv("gene_annotations.csv")
+
+# VEP analysis for known variants
+let hgvs_list = ["17:g.7675088C>T", "7:g.55259515T>G", "12:g.25245350C>T"]
+let vep_report = hgvs_list |> map(|hgvs| {
+  let results = ensembl_vep(hgvs)
+  let first = results |> first()
+  {
+    variant: hgvs,
+    consequence: first.most_severe_consequence,
+    alleles: first.allele_string
+  }
+})
+vep_report |> to_table() |> print()</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="ncbi.html" class="text-violet-400 hover:text-violet-300">&larr; NCBI</a>
+        <a href="uniprot.html" class="text-violet-400 hover:text-violet-300">UniProt &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

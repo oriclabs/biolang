@@ -1,0 +1,48 @@
+# Ensembl REST API Examples
+# European Bioinformatics Institute (EBI) — EU
+
+# Lookup gene by Ensembl ID
+# ensembl_gene(ensembl_id) -> record
+let gene = ensembl_gene("ENSG00000141510")
+println("Gene:", gene.symbol)
+println("Description:", gene.description)
+println("Location:", gene.chromosome, ":", gene.start, "-", gene.end)
+println("Strand:", gene.strand)
+println("Biotype:", gene.biotype)
+println("Species:", gene.species)
+
+# Lookup gene by symbol + species
+# ensembl_symbol(species, symbol) -> record
+let tp53 = ensembl_symbol("homo_sapiens", "TP53")
+println("\nTP53 Ensembl ID:", tp53.id)
+println("Chromosome:", tp53.chromosome)
+
+# Fetch genomic/cds/protein sequence
+# ensembl_sequence(ensembl_id, type?) -> {id, seq, molecule}
+# type can be: "genomic" (default), "cds", "protein"
+let genomic = ensembl_sequence("ENSG00000141510")
+println("\nGenomic seq length:", len(genomic.seq))
+println("Molecule:", genomic.molecule)
+
+let cds = ensembl_sequence("ENST00000269305", "cds")
+println("CDS seq length:", len(cds.seq))
+
+# Variant Effect Predictor (VEP)
+# ensembl_vep(hgvs_notation) -> list of consequence records
+let vep = ensembl_vep("9:g.22125504G>C")
+for result in vep {
+    println("\nVEP result:")
+    println("  Allele:", result.allele_string)
+    println("  Most severe:", result.most_severe_consequence)
+    for tc in result.transcript_consequences {
+        println("  Transcript:", tc.transcript_id, "Impact:", tc.impact)
+        println("  Consequences:", tc.consequences)
+    }
+}
+
+# Pipeline: symbol lookup -> get sequence -> analyze
+let egfr = ensembl_symbol("homo_sapiens", "EGFR")
+let egfr_seq = ensembl_sequence(egfr.id, "cds")
+let egfr_dna = dna(egfr_seq.seq)
+println("\nEGFR CDS GC content:", gc_content(egfr_dna))
+println("EGFR CDS length:", len(egfr_dna), "bp")

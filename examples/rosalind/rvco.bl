@@ -1,0 +1,29 @@
+# Rosalind: RVCO — Complementing a Strand of DNA
+# https://rosalind.info/problems/rvco/
+#
+# Given: A collection of n (n <= 10) DNA strings.
+# Return: The number of strings that match their own reverse complement.
+
+let sequences = [
+    dna"ATAT",
+    dna"GCATA"
+]
+
+let palindrome_count = 0
+for seq in sequences {
+    let rc = reverse_complement(seq)
+    if str(seq) == str(rc) then
+        palindrome_count = palindrome_count + 1
+}
+
+println("Result:   " + str(palindrome_count))
+println("Expected: 1")
+println("Match:    " + str(palindrome_count == 1))
+
+# Verify: ATAT -> rev_comp = ATAT (palindrome), GCATA -> rev_comp = TATGC (not)
+println("\nDetail:")
+for seq in sequences {
+    let rc = reverse_complement(seq)
+    let is_palindrome = str(seq) == str(rc)
+    println("  " + str(seq) + " -> rc=" + str(rc) + " palindrome=" + str(is_palindrome))
+}

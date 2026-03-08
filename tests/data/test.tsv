@@ -1,0 +1,5 @@
+chrom	start	end	name	score
+chr1	10000	10500	gene1	0.95
+chr1	20000	20500	gene2	0.87
+chr2	30000	30500	gene3	0.72
+chr2	40000	40500	gene4	0.91

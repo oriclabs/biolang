@@ -1,0 +1,74 @@
+# ascii_viz.bl — ASCII visualization examples in BioLang
+# Demonstrates sparklines, bar charts, boxplots, heatmaps, and more
+
+# ── Sparklines ──────────────────────────────────────────────────
+# Sparklines compress a numeric series into a single line of Unicode blocks
+
+println("=== Sparklines ===")
+
+let coverage_depths = [12, 34, 56, 78, 45, 23, 67, 89, 90, 42, 15, 60, 71, 33]
+coverage_depths |> sparkline() |> println()
+
+# Sine-wave-like signal
+let signal = [0, 3, 6, 8, 7, 5, 2, 0, 1, 4, 7, 8, 6, 3, 1]
+println("Signal:")
+signal |> sparkline() |> println()
+
+# ── Bar Charts ──────────────────────────────────────────────────
+# bar_chart accepts a record (named values) or a plain list
+
+println("\n=== Bar Charts ===")
+
+# Chromosome read counts as a record
+let chrom_counts = {
+    "chr1": 4521,
+    "chr2": 3890,
+    "chr3": 2134,
+    "chrX": 1876,
+    "chrM": 980
+}
+println("Reads per chromosome:")
+chrom_counts |> bar_chart() |> println()
+
+# Variant type distribution
+let var_types = { "SNP": 312, "INS": 47, "DEL": 63, "MNV": 8 }
+println("Variant types:")
+var_types |> bar_chart() |> println()
+
+# ── Boxplots ────────────────────────────────────────────────────
+# Boxplot renders the five-number summary (min, Q1, median, Q3, max)
+
+println("\n=== Boxplots ===")
+
+let quality_scores = [28, 30, 31, 32, 33, 33, 34, 35, 35, 35, 36, 36, 37, 38, 40]
+println("Base quality distribution:")
+quality_scores |> boxplot() |> println()
+
+let fragment_lengths = [150, 180, 200, 210, 220, 225, 230, 240, 260, 300, 350]
+println("Fragment length distribution:")
+fragment_lengths |> boxplot() |> println()
+
+# ── Heatmaps ────────────────────────────────────────────────────
+# heatmap_ascii renders a 2D matrix with intensity characters
+
+println("\n=== Heatmap (correlation matrix) ===")
+
+# Simulated gene-expression correlation matrix (4 genes x 4 genes)
+let corr_matrix = [
+    [1.0, 0.85, 0.12, -0.30],
+    [0.85, 1.0, 0.07, -0.25],
+    [0.12, 0.07, 1.0,  0.91],
+    [-0.30, -0.25, 0.91, 1.0]
+]
+corr_matrix |> heatmap_ascii() |> println()
+
+# Coverage depth across 5 windows on 3 samples
+println("\nCoverage heatmap (samples x windows):")
+let cov_matrix = [
+    [30, 45, 60, 25, 10],
+    [50, 55, 70, 40, 20],
+    [15, 20, 35, 50, 65]
+]
+cov_matrix |> heatmap_ascii() |> println()
+
+println("\nDone — all ASCII visualizations rendered.")

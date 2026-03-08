@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transfer — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/transfer"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Transfer</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Transfer</h1>
+        <p class="text-lg text-slate-400 mb-8">10 functions for moving data between local storage, cloud providers, and public repositories. All transfers support resume, checksums, and progress callbacks.</p>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">FTP</h2>
+
+        <section class="mb-12" id="ftp">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">ftp_download</span> / <span class="text-violet-400 font-mono">ftp_upload</span></h2>
+          <pre><code class="language-biolang">ftp_download(url, path?) -> string
+ftp_upload(path, url) -> string</code></pre>
+          <pre><code class="language-biolang"># Download from NCBI FTP
+ftp_download(
+  "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_genomic.fna.gz",
+  "reference/GRCh38.fa.gz"
+)
+
+# Download from Ensembl
+ftp_download(
+  "ftp://ftp.ensembl.org/pub/release-111/gtf/homo_sapiens/Homo_sapiens.GRCh38.111.gtf.gz",
+  "annotation/GRCh38.gtf.gz"
+)</code></pre>
+        </section>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Cloud Storage</h2>
+
+        <section class="mb-12" id="s3">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">s3_download</span> / <span class="text-violet-400 font-mono">s3_upload</span></h2>
+          <pre><code class="language-biolang">s3_download(s3_url, local_path?) -> string
+s3_upload(local_path, s3_url) -> string</code></pre>
+          <p class="text-slate-400 mt-2">Uses <code>s3://bucket/key</code> URL format. Delegates to <code>aws s3 cp</code> under the hood.</p>
+          <pre><code class="language-biolang"># Download from public S3 bucket
+s3_download("s3://1000genomes/release/20130502/ALL.chr1.vcf.gz", "data/chr1.vcf.gz")
+
+# Upload results to private bucket
+s3_upload("results/analysis.csv", "s3://my-lab-bucket/project-x/results.csv")
+
+# Auto-infer local filename from S3 key
+s3_download("s3://lab-data/samples/S001.bam")</code></pre>
+        </section>
+
+        <section class="mb-12" id="gcs">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">gcs_download</span> / <span class="text-violet-400 font-mono">gcs_upload</span></h2>
+          <pre><code class="language-biolang">gcs_download(gs_url, local_path?) -> string
+gcs_upload(local_path, gs_url) -> string</code></pre>
+          <p class="text-slate-400 mt-2">Uses <code>gs://bucket/object</code> URL format. Delegates to <code>gsutil cp</code> under the hood.</p>
+          <pre><code class="language-biolang"># Download from Google Cloud Storage
+gcs_download("gs://genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.fasta", "ref.fa")
+
+# Upload to project bucket
+gcs_upload("results.bam", "gs://my-project-data/outputs/sample1.bam")</code></pre>
+        </section>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Specialized Transfers</h2>
+
+        <section class="mb-12" id="rsync">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">rsync</span></h2>
+          <p class="text-slate-400 mt-2">Efficient incremental file synchronization.</p>
+          <pre><code class="language-biolang">rsync(source, destination, opts?) -> map</code></pre>
+          <pre><code class="language-biolang">rsync("user@hpc.lab.edu:/data/project/", "local_data/", {
+  exclude: ["*.tmp", "*.log"],
+  compress: true,
+  dry_run: false
+})</code></pre>
+        </section>
+
+        <section class="mb-12" id="aspera_download">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">aspera_download</span></h2>
+          <p class="text-slate-400 mt-2">High-speed download using Aspera (ascp). Ideal for large genomic datasets from EBI/NCBI.</p>
+          <pre><code class="language-biolang">aspera_download(source, destination?) -> string</code></pre>
+          <pre><code class="language-biolang">aspera_download(
+  "era-fasp@fasp.sra.ebi.ac.uk:/vol1/fastq/SRR123/SRR1234567_1.fastq.gz",
+  "raw_data/SRR1234567_1.fastq.gz"
+)</code></pre>
+        </section>
+
+        <section class="mb-12" id="sra_fastq">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sra_fastq</span></h2>
+          <p class="text-slate-400 mt-2">Download FASTQ files from NCBI SRA by accession. Resolves the fastest download source automatically (AWS, GCP, NCBI FTP, or Aspera).</p>
+          <pre><code class="language-biolang">sra_fastq(accession, outdir, opts?) -> list</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">split</td><td class="py-2 px-3">bool</td><td class="py-2 px-3">Split paired-end reads (default: true)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">source</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Force source: "aws", "gcp", "ncbi", "aspera"</td></tr>
+            </tbody>
+          </table>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">list&lt;string&gt;</code> &mdash; paths to downloaded FASTQ files</p>
+          <pre><code class="language-biolang">let fastqs = sra_fastq("SRR1234567", "raw_data/")
+# ["raw_data/SRR1234567_1.fastq.gz", "raw_data/SRR1234567_2.fastq.gz"]
+
+# Download multiple accessions
+let accessions = ["SRR1234567", "SRR1234568", "SRR1234569"]
+let all_files = accessions |> map(|acc| sra_fastq(acc, "raw_data/")) |> flatten
+println("Downloaded", len(all_files), "FASTQ files")</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="llm.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1"><span>&larr;</span> LLM Chat</a>
+        <a href="advanced.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">Advanced <span>&rarr;</span></a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

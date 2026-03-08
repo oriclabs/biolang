@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookbook — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="cookbook/patterns"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Cookbook</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Cookbook</h1>
+        <p>
+          Practical recipes and patterns for common bioinformatics workflows.
+          Each recipe is a self-contained solution you can copy and adapt.
+        </p>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8 not-prose">
+          <a href="patterns.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Common Patterns</h3>
+            <p class="text-sm text-slate-400">Idiomatic BioLang patterns for everyday tasks.</p>
+          </a>
+          <a href="performance.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Performance Tips</h3>
+            <p class="text-sm text-slate-400">Optimize pipelines for speed and memory efficiency.</p>
+          </a>
+          <a href="interop.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Python/R Interop</h3>
+            <p class="text-sm text-slate-400">Call BioLang from Python or R, and vice versa.</p>
+          </a>
+          <a href="containers.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">BioContainers</h3>
+            <p class="text-sm text-slate-400">Run tools in Docker/Singularity containers.</p>
+          </a>
+          <a href="cloud.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Cloud Data</h3>
+            <p class="text-sm text-slate-400">Access S3, GCS, and Azure Blob data.</p>
+          </a>
+          <a href="batch.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Batch Processing</h3>
+            <p class="text-sm text-slate-400">Process hundreds of samples efficiently.</p>
+          </a>
+          <a href="errors.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Error Handling</h3>
+            <p class="text-sm text-slate-400">Graceful error handling with try/catch and result types.</p>
+          </a>
+          <a href="testing.html" class="block bg-slate-900/50 border border-slate-800 rounded-lg p-5 hover:border-violet-500/30 transition-colors">
+            <h3 class="text-white font-semibold mb-1">Testing</h3>
+            <p class="text-sm text-slate-400">Write and run tests for BioLang scripts.</p>
+          </a>
+        </div>
+      </article>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+</body>
+</html>

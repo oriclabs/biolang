@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/cli"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">CLI</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Command-Line Interface</h1>
+        <p>
+          The <code>bl</code> command is BioLang's unified CLI. It handles script execution,
+          the interactive REPL, the language server, code formatting, type checking, project
+          management, plugin management, testing, and benchmarking. Install it once and you
+          have everything you need.
+        </p>
+
+        <h2>bl run</h2>
+        <p>
+          Execute a BioLang script. This is the most common command:
+        </p>
+        <pre><code class="language-bash"># Run a script
+bl run analysis.bl
+
+# Run with arguments (accessible via args() builtin)
+bl run pipeline.bl --input reads.fastq --output results/
+
+# Run from stdin
+echo 'print("hello")' | bl run -
+
+# Run with verbose output (shows timing info)
+bl run analysis.bl --verbose
+
+# Run with a specific data directory
+bl run analysis.bl --data-dir /mnt/data/
+
+# Dry run — parse and type-check without executing
+bl run analysis.bl --dry-run</code></pre>
+
+        <h2>bl repl</h2>
+        <p>
+          Launch the interactive Read-Eval-Print Loop. See the
+          <a href="repl.html" class="text-violet-400">REPL page</a> for full details:
+        </p>
+        <pre><code class="language-bash"># Start the REPL
+bl repl
+
+# Start with a script pre-loaded into the environment
+bl repl --load setup.bl
+
+# Start with specific plugins enabled
+bl repl --plugin my-plugin</code></pre>
+
+        <h2>bl lsp</h2>
+        <p>
+          Start the Language Server Protocol server. Typically launched by your editor, not
+          run directly. See the <a href="lsp.html" class="text-violet-400">LSP page</a>
+          for editor configuration:
+        </p>
+        <pre><code class="language-bash"># Start LSP server (communicates over stdin/stdout)
+bl lsp
+
+# Start with debug logging
+bl lsp --log-level debug --log-file /tmp/bl-lsp.log</code></pre>
+
+        <h2>bl check</h2>
+        <p>
+          Type-check and validate a script without executing it. Reports errors and warnings:
+        </p>
+        <pre><code class="language-bash"># Check a single file
+bl check analysis.bl
+
+# Check all .bl files in a directory
+bl check src/
+
+# Check with strict mode (warnings become errors)
+bl check --strict analysis.bl
+
+# Output in JSON format (for CI integration)
+bl check --format json analysis.bl</code></pre>
+        <p>Example output:</p>
+        <pre><code class="language-text">analysis.bl:12:5: error: undefined variable 'samplse' (did you mean 'samples'?)
+analysis.bl:24:1: warning: unused variable 'temp_result'
+analysis.bl:31:10: error: type mismatch: expected DNA, got RNA
+
+2 errors, 1 warning</code></pre>
+
+        <h2>bl fmt</h2>
+        <p>
+          Format BioLang source code according to the standard style. Handles indentation,
+          spacing, pipe chain formatting, and comment alignment:
+        </p>
+        <pre><code class="language-bash"># Format a file in place
+bl fmt analysis.bl
+
+# Format all .bl files in current directory
+bl fmt .
+
+# Check if files are formatted (exit code 1 if not — useful in CI)
+bl fmt --check analysis.bl
+
+# Print formatted output to stdout instead of modifying the file
+bl fmt --stdout analysis.bl
+
+# Format with specific options
+bl fmt --indent-width 4 --max-line-length 100 analysis.bl</code></pre>
+
+        <h2>bl add / bl remove</h2>
+        <p>
+          Manage project dependencies (plugins):
+        </p>
+        <pre><code class="language-bash"># Add a plugin to the current project
+bl add plot-tools
+bl add stats-extra
+
+# Add a specific version
+bl add plot-tools@1.2.0
+
+# Add from a git repository
+bl add git:https://github.com/user/bl-plugin.git
+
+# Add from a local path
+bl add path:../my-plugin
+
+# Remove a plugin
+bl remove plot-tools
+
+# List installed plugins
+bl plugins</code></pre>
+
+        <h2>bl plugins</h2>
+        <p>
+          List, search, and manage plugins:
+        </p>
+        <pre><code class="language-bash"># List installed plugins
+bl plugins
+
+# List with details
+bl plugins --verbose
+
+# Search the plugin registry
+bl plugins search "statistics"
+
+# Show details for a specific plugin
+bl plugins info plot-tools
+
+# Update all plugins
+bl plugins update
+
+# Update a specific plugin
+bl plugins update plot-tools</code></pre>
+
+        <h2>bl init</h2>
+        <p>
+          Initialize a new BioLang project with standard directory structure:
+        </p>
+        <pre><code class="language-bash"># Create a new project in the current directory
+bl init
+
+# Create a new project in a named directory
+bl init my-analysis
+
+# Initialize with a specific template
+bl init --template rnaseq-pipeline my-project
+bl init --template variant-calling my-project</code></pre>
+        <p>Generated project structure:</p>
+        <pre><code class="language-text">my-analysis/
+  biolang.toml       # Project manifest
+  src/
+    main.bl          # Entry point
+  data/              # Input data directory
+  results/           # Output directory
+  tests/
+    test_main.bl     # Test file</code></pre>
+
+        <h2>bl install</h2>
+        <p>
+          Install all dependencies listed in <code>biolang.toml</code>:
+        </p>
+        <pre><code class="language-bash"># Install all project dependencies
+bl install
+
+# Install with verbose output
+bl install --verbose
+
+# Install and lock versions
+bl install --lock</code></pre>
+
+        <h2>bl test</h2>
+        <p>
+          Run tests defined in <code>.bl</code> files. Test functions are any function whose
+          name starts with <code>test_</code>:
+        </p>
+        <pre><code class="language-bash"># Run all tests
+bl test
+
+# Run tests in a specific file
+bl test tests/test_pipeline.bl
+
+# Run tests matching a pattern
+bl test --filter "test_gc_content"
+
+# Run with verbose output (shows each test name)
+bl test --verbose</code></pre>
+        <p>Example test file:</p>
+        <pre><code class="language-biolang"># tests/test_sequences.bl
+
+let test_gc_content = || {
+  let seq = dna"ATCGATCG"
+  assert(seq |> gc_content() == 0.5)
+}
+
+let test_reverse_complement = || {
+  let seq = dna"ATCG"
+  assert(seq |> reverse_complement() == dna"CGAT")
+}
+
+let test_transcribe = || {
+  let seq = dna"ATCG"
+  let rna = seq |> transcribe()
+  assert(rna == rna"AUCG")
+}</code></pre>
+
+        <h2>bl bench</h2>
+        <p>
+          Run benchmarks to measure performance of BioLang code. Benchmark functions are
+          prefixed with <code>bench_</code>:
+        </p>
+        <pre><code class="language-bash"># Run all benchmarks
+bl bench
+
+# Run benchmarks in a specific file
+bl bench benchmarks/bench_kmers.bl
+
+# Run with specific iteration count
+bl bench --iterations 100
+
+# Output in JSON format
+bl bench --format json</code></pre>
+        <p>Example benchmark file:</p>
+        <pre><code class="language-biolang"># benchmarks/bench_kmers.bl
+
+let bench_kmer_count = || {
+  let seq = dna"ATCGATCGATCG" * 1000    # Repeat 1000 times
+  seq |> kmer_count(21)
+}
+
+let bench_gc_content = || {
+  let seq = dna"ATCGATCGATCG" * 10000
+  seq |> gc_content()
+}</code></pre>
+
+        <h2>Global Options</h2>
+        <p>
+          These flags are available on all <code>bl</code> subcommands:
+        </p>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Flag</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">--verbose, -v</td><td class="py-3 px-4">Verbose output</td></tr>
+              <tr><td class="py-3 px-4 font-mono">--quiet, -q</td><td class="py-3 px-4">Suppress non-error output</td></tr>
+              <tr><td class="py-3 px-4 font-mono">--color &lt;auto|always|never&gt;</td><td class="py-3 px-4">Color output mode</td></tr>
+              <tr><td class="py-3 px-4 font-mono">--version</td><td class="py-3 px-4">Print version</td></tr>
+              <tr><td class="py-3 px-4 font-mono">--help, -h</td><td class="py-3 px-4">Print help</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Environment Variables</h2>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Variable</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">BIOLANG_PATH</td><td class="py-3 px-4">Additional search paths for imports (colon-separated)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">NCBI_API_KEY</td><td class="py-3 px-4">NCBI API key for higher rate limits</td></tr>
+              <tr><td class="py-3 px-4 font-mono">COSMIC_API_KEY</td><td class="py-3 px-4">COSMIC database API key</td></tr>
+              <tr><td class="py-3 px-4 font-mono">BL_LOG</td><td class="py-3 px-4">Log level (trace, debug, info, warn, error)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <section id="notebook" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-4">Notebook Mode</h2>
+          <p class="text-slate-400 mb-4">Run literate <code class="text-violet-400">.bln</code> notebooks that interleave Markdown prose with BioLang code.</p>
+          <pre><code class="language-bash">bl notebook analysis.bln</code></pre>
+          <h3 class="text-lg font-semibold text-white mt-6 mb-3">.bln Format</h3>
+          <p class="text-slate-400 mb-4">Markdown text is printed, code blocks between <code class="text-violet-400">---</code> separators are evaluated. Output is interleaved.</p>
+          <pre><code class="language-text">## Load Data
+Read the FASTQ file and compute basic stats.
+---
+let reads = fastq("sample.fq")
+let stats = fastq_stats(reads)
+print(stats)
+---
+## Results
+The statistics above show the quality distribution.
+---
+let filtered = reads |> filter(|r| mean_phred(r.quality) > 25)
+print("Kept", len(filtered), "of", len(reads), "reads")
+---</code></pre>
+          <p class="text-slate-400 mt-4">The interpreter state carries over between code blocks, so variables defined in one block are available in later blocks.</p>
+        </section>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <div></div>
+        <a href="repl.html" class="text-violet-400 hover:text-violet-300">REPL &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

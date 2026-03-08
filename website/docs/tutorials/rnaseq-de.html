@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RNA-seq Differential Expression — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/rnaseq-de"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">RNA-seq Differential Expression</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-sm text-slate-500">~35 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">RNA-seq Differential Expression</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          Analyze RNA-seq count data to identify differentially expressed genes between
+          conditions. This tutorial covers normalization, statistical testing, visualization
+          with volcano plots, and pathway enrichment analysis.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Loading and inspecting count matrices</li>
+            <li>CPM and TPM normalization</li>
+            <li>Running differential expression analysis</li>
+            <li>Multiple testing correction (FDR)</li>
+            <li>Creating volcano and MA plots</li>
+            <li>Gene set and pathway enrichment</li>
+          </ul>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Loading the Count Matrix</h2>
+        <p>
+          A count matrix has genes as rows and samples as columns. Each cell contains the
+          number of reads mapped to that gene in that sample.
+        </p>
+        <pre><code class="language-biolang"># rnaseq.bio — differential expression analysis
+
+# Read the count matrix
+let counts = csv("data/counts.csv")
+
+print(f"Genes: {nrow(counts)}")
+print(f"Samples: {ncol(counts) - 1}")  # minus the gene column
+print(head(counts, 5))
+
+# Define sample groups
+let design = from_records([
+  { sample: "ctrl_1", group: "control" },
+  { sample: "ctrl_2", group: "control" },
+  { sample: "ctrl_3", group: "control" },
+  { sample: "treat_1", group: "treated" },
+  { sample: "treat_2", group: "treated" },
+  { sample: "treat_3", group: "treated" },
+])
+
+print("Design:")
+print(design)</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Exploratory Data Analysis</h2>
+        <pre><code class="language-biolang"># Library sizes (total reads per sample)
+let sample_cols = ["ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3"]
+
+let lib_sizes = sample_cols
+  |> map(|s| { sample: s, total_reads: sum(col(counts, s)) })
+  |> from_records()
+
+print("\n=== Library Sizes ===")
+print(lib_sizes)
+
+# How many genes have zero counts in all samples?
+let zero_genes = counts
+  |> filter(|row| {
+    sample_cols |> all(|s| row[s] == 0)
+  })
+print(f"Genes with zero counts in all samples: {nrow(zero_genes)}")
+
+# Filter out very low-count genes
+let min_count = 10
+let min_samples = 3
+
+let expressed = counts |> filter(|row| {
+  let n_above = sample_cols |> count_if(|s| row[s] >= min_count)
+  n_above >= min_samples
+})
+print(f"Genes after filtering: {nrow(expressed)}")</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Normalization</h2>
+        <pre><code class="language-biolang"># CPM normalization (Counts Per Million)
+# Apply CPM to each sample column
+let cpm_table = expressed
+for s in sample_cols {
+  let vals = col(expressed, s)
+  cpm_table = mutate(cpm_table, s, cpm(vals))
+}
+
+print("CPM matrix:")
+print(head(cpm_table, 3))
+
+# TPM normalization (Transcripts Per Kilobase Million)
+# Requires gene lengths
+let gene_lengths = csv("data/gene_lengths.csv")  # gene, length
+
+let with_lengths = inner_join(expressed, gene_lengths, "gene")
+let lengths = col(with_lengths, "length")
+
+let tpm_table = with_lengths
+for s in sample_cols {
+  let vals = col(with_lengths, s)
+  tpm_table = mutate(tpm_table, s, tpm(vals, lengths))
+}
+
+print("\nTPM matrix:")
+print(head(tpm_table, 3))
+
+# Log2 transform for visualization
+let log_cpm = cpm_table
+for s in sample_cols {
+  let vals = col(cpm_table, s)
+  log_cpm = mutate(log_cpm, s, map(vals, |v| log2(v + 1.0)))
+}
+
+# Check the distribution
+for s in sample_cols {
+  let vals = col(log_cpm, s)
+  print(f"{s}: mean={round(mean(vals), 2)}, median={round(median(vals), 2)}")
+}</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Differential Expression Testing</h2>
+        <pre><code class="language-biolang"># Run differential expression analysis
+# diff_expr takes the count table and the number of control columns
+# Columns should be ordered: gene, control_1..N, treated_1..M
+let de_results = diff_expr(expressed, 3)
+
+print("DE results:")
+print(head(de_results, 5))
+# ┌────────┬──────────┬──────────┬──────────┬──────────┐
+# │ gene   │ log2fc   │ pvalue   │ fdr      │ mean_expr│
+# ├────────┼──────────┼──────────┼──────────┼──────────┤
+# │ MYC    │    3.42  │ 1.2e-08  │ 5.6e-06  │   412.5  │
+# │ TP53   │   -2.18  │ 3.4e-06  │ 8.1e-04  │   156.3  │
+# │ ...    │    ...   │    ...   │    ...   │     ...  │
+
+# Count significant genes
+let sig = de_results |> filter(|row| row["fdr"] < 0.05 and abs(row["log2fc"]) > 1.0)
+let up = sig |> filter(|row| row["log2fc"] > 0.0)
+let down = sig |> filter(|row| row["log2fc"] < 0.0)
+
+print("\n=== Summary ===")
+print(f"Significant (FDR<0.05, |log2FC|>1): {nrow(sig)}")
+print(f"  Upregulated:   {nrow(up)}")
+print(f"  Downregulated: {nrow(down)}")</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Multiple Testing Correction</h2>
+        <pre><code class="language-biolang"># BioLang supports multiple correction methods
+let bh = de_results  # Already has FDR via Benjamini-Hochberg (default)
+
+# Apply Bonferroni for comparison
+let n_genes = nrow(de_results)
+let pvals = col(de_results, "pvalue")
+let bonf_pvals = map(pvals, |p| min(p * n_genes, 1.0))
+let bonf = mutate(de_results, "bonf_pvalue", bonf_pvals)
+
+# Compare methods
+let n_bh = nrow(filter(bh, |row| row["fdr"] < 0.05))
+let n_bonf = nrow(filter(bonf, |row| row["bonf_pvalue"] < 0.05))
+
+print("Significant genes (FDR<0.05):")
+print(f"  Benjamini-Hochberg: {n_bh}")
+print(f"  Bonferroni:         {n_bonf}")
+
+# Q-value approach
+let qvalues = p_adjust(col(de_results, "pvalue"), "bh")
+let de_with_q = mutate(de_results, "qvalue", qvalues)
+</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Volcano Plot</h2>
+        <pre><code class="language-biolang"># Create a volcano plot
+let vp = volcano(de_results, {
+  title: "Treated vs Control",
+})
+
+save_svg(vp, "results/volcano.svg")
+print("Volcano plot saved")
+
+# Volcano plot with custom options
+let vp2 = volcano(de_results, {
+  title:  "Treated vs Control (custom)",
+  fc_threshold: 1.0,
+  fdr_threshold: 0.05,
+})</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — MA Plot</h2>
+        <pre><code class="language-biolang"># MA plot: log2FC vs mean expression
+let ma = ma_plot(de_results, {
+  title: "MA Plot — Treated vs Control",
+})
+
+save_svg(ma, "results/ma_plot.svg")
+print("MA plot saved")</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Heatmap of Top Genes</h2>
+        <pre><code class="language-biolang"># Select top 50 DE genes for heatmap
+let top_sorted = de_results |> arrange("fdr") |> head(50)
+let top_genes = col(top_sorted, "gene")
+
+# Extract normalized expression for these genes
+let heatmap_data = log_cpm
+  |> filter(|row| row["gene"] in top_genes)
+  |> select("gene", "ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3")
+
+# Z-score normalize each sample column for visualization
+let z_scored = heatmap_data
+for s in sample_cols {
+  let vals = col(heatmap_data, s)
+  z_scored = mutate(z_scored, s, normalize(vals, "zscore"))
+}
+
+# Generate heatmap
+let hm = heatmap(z_scored, {
+  title: "Top 50 DE Genes (z-score)",
+})
+
+save_svg(hm, "results/heatmap.svg")
+print("Heatmap saved to results/heatmap.svg")</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Pathway Enrichment</h2>
+        <pre><code class="language-biolang"># Pathway enrichment using KEGG
+let sig_genes = col(sig, "gene")
+
+# Look up KEGG pathways for significant genes
+let kegg_hits = map(sig_genes, |g| kegg_find("genes", g))
+
+# GO annotations for significant genes
+let go_hits = map(sig_genes, |g| go_annotations(g))
+
+# Reactome pathways
+let pathway_hits = map(sig_genes, |g| reactome_pathways(g))
+
+print("\n=== Pathway Results ===")
+print(f"Genes queried: {len(sig_genes)}")
+
+# Collect results into a summary table
+let kegg_summary = from_records(map(sig_genes, |g| {
+  gene: g,
+  kegg: kegg_find("genes", g),
+}))
+
+print(head(kegg_summary, 10))
+
+# Visualize with a plot
+let p = plot(kegg_summary, {
+  title: "KEGG Pathway Enrichment",
+})
+save_svg(p, "results/enrichment.svg")</code></pre>
+
+        <!-- Step 10 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Complete Pipeline</h2>
+        <pre><code class="language-biolang"># rnaseq_pipeline.bio — full DE analysis pipeline
+
+fn run_de_analysis(counts_file, design_file, output_dir) {
+  # Load data
+  let counts = csv(counts_file)
+  let design = csv(design_file)
+  let samples = col(design, "sample")
+  let n_ctrl = nrow(filter(design, |r| r["group"] == "control"))
+
+  # Filter low-count genes
+  let expressed = counts |> filter(|row|
+    samples |> count_if(|s| row[s] >= 10) >= 3
+  )
+
+  # Differential expression
+  let de = diff_expr(expressed, n_ctrl)
+
+  # Write full results
+  write_csv(de, f"{output_dir}/de_results.csv")
+
+  # Significant genes
+  let sig = de |> filter(|r| r["fdr"] < 0.05 and abs(r["log2fc"]) > 1.0)
+  write_csv(sig, f"{output_dir}/significant_genes.csv")
+
+  # Plots
+  let vp = volcano(de)
+  save_svg(vp, f"{output_dir}/volcano.svg")
+
+  let ma = ma_plot(de)
+  save_svg(ma, f"{output_dir}/ma_plot.svg")
+
+  # Summary
+  print("=== DE Analysis Complete ===")
+  print(f"Total genes tested: {nrow(de)}")
+  print(f"Significant (FDR<0.05, |FC|>2): {nrow(sig)}")
+  let up_count = nrow(filter(sig, |r| r["log2fc"] > 0))
+  let down_count = nrow(filter(sig, |r| r["log2fc"] < 0))
+  print(f"  Up: {up_count}")
+  print(f"  Down: {down_count}")
+  print(f"Results saved to {output_dir}/")
+}
+
+run_de_analysis("data/counts.csv", "data/design.csv", "results")</code></pre>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Explore protein-level analysis in the
+            <a href="protein-analysis.html" class="text-violet-400 hover:underline">Protein Analysis</a> tutorial.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="variant-analysis.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Variant Analysis</a>
+        <a href="protein-analysis.html" class="text-violet-400 hover:text-violet-300 text-sm">Protein Analysis &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

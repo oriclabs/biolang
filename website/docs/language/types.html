@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User-Defined Types — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="language/types"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
+        <span class="text-slate-300">User-Defined Types</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>User-Defined Types</h1>
+        <p>
+          BioLang supports user-defined types through <code>struct</code>, <code>enum</code>,
+          <code>trait</code>, and <code>impl</code> blocks. These constructs let you model complex
+          biological data with type safety while keeping the pipe-first ergonomics of the language.
+        </p>
+
+        <h2>Structs</h2>
+        <p>
+          Structs define named records with typed fields:
+        </p>
+        <pre><code class="language-biolang">struct Gene {
+  symbol: String,
+  entrez_id: Int,
+  chrom: String,
+  start: Int,
+  end: Int,
+  strand: String,
+  biotype: String
+}
+
+# Create an instance
+let brca1 = Gene {
+  symbol: "BRCA1",
+  entrez_id: 672,
+  chrom: "chr17",
+  start: 43044295,
+  end: 43125364,
+  strand: "-",
+  biotype: "protein_coding"
+}
+
+# Access fields
+print(f"{brca1.symbol} on {brca1.chrom}")
+let length = brca1.end - brca1.start</code></pre>
+
+        <h3>Default Field Values</h3>
+        <pre><code class="language-biolang">struct AlignmentConfig {
+  min_mapq: Int = 30,
+  max_mismatch: Int = 3,
+  paired_only: Bool = true,
+  reference: String,          # Required — no default
+  output_format: String = "bam"
+}
+
+# Only need to specify required fields and overrides
+let config = AlignmentConfig {
+  reference: "hg38.fa",
+  min_mapq: 20              # Override default
+}
+# config.paired_only is true (default)</code></pre>
+
+        <h3>Struct Update Syntax</h3>
+        <pre><code class="language-biolang"># Create a new struct based on an existing one
+let strict_config = AlignmentConfig {
+  ...config,                 # Copy all fields from config
+  min_mapq: 40,             # Override specific fields
+  max_mismatch: 1
+}
+
+# Useful for configuration variants
+let tumor_config = AlignmentConfig { ...base_config, paired_only: false }
+let normal_config = AlignmentConfig { ...base_config, min_mapq: 20 }</code></pre>
+
+        <h2>Enums</h2>
+        <p>
+          Enums define types that can be one of several variants. Each variant can optionally
+          carry associated data:
+        </p>
+        <pre><code class="language-biolang"># Simple enum (no data)
+enum Strand {
+  Plus,
+  Minus,
+  Unknown
+}
+
+let s = Strand.Plus
+let symbol = match s {
+  Strand.Plus => "+",
+  Strand.Minus => "-",
+  Strand.Unknown => "."
+}
+
+# Enum with associated data
+enum VariantType {
+  Snv(String, String),           # ref, alt
+  Insertion(String),              # inserted sequence
+  Deletion(Int),                  # deleted length
+  Complex(String, String),        # ref, alt
+  StructuralVariant(SvType, Int)  # type, size
+}
+
+enum SvType {
+  Deletion,
+  Duplication,
+  Inversion,
+  Translocation
+}</code></pre>
+
+        <h3>Enum Methods</h3>
+        <pre><code class="language-biolang">enum ReadPair {
+  Paired(Read, Read),
+  Single(Read),
+  Orphan(Read)
+}
+
+impl ReadPair {
+  fn is_paired(self) -> Bool {
+    match self {
+      Paired(_, _) => true,
+      _ => false
+    }
+  }
+
+  fn reads(self) -> List[Read] {
+    match self {
+      Paired(r1, r2) => [r1, r2],
+      Single(r) => [r],
+      Orphan(r) => [r]
+    }
+  }
+
+  fn total_bases(self) -> Int {
+    self |> reads() |> map(|r| seq_len(r.seq)) |> sum()
+  }
+}</code></pre>
+
+        <h2>Impl Blocks</h2>
+        <p>
+          Add methods to structs and enums with <code>impl</code> blocks. The first parameter
+          <code>self</code> refers to the instance:
+        </p>
+        <pre><code class="language-biolang">struct GenomicInterval {
+  chrom: String,
+  start: Int,
+  end: Int,
+  strand: Strand = Strand.Unknown
+}
+
+impl GenomicInterval {
+  # Constructor with validation
+  fn new(chrom: String, start: Int, end: Int) -> Result[GenomicInterval] {
+    if start < 0 { return Err("start must be non-negative") }
+    if end <= start { return Err("end must be greater than start") }
+    Ok(GenomicInterval { chrom: chrom, start: start, end: end })
+  }
+
+  fn width(self) -> Int {
+    self.end - self.start
+  }
+
+  fn midpoint(self) -> Int {
+    (self.start + self.end) / 2
+  }
+
+  fn overlaps(self, other: GenomicInterval) -> Bool {
+    self.chrom == other.chrom &&
+    self.start < other.end &&
+    self.end > other.start
+  }
+
+  fn merge(self, other: GenomicInterval) -> Result[GenomicInterval] {
+    if !self.overlaps(other) {
+      return Err("intervals do not overlap")
+    }
+    Ok(GenomicInterval {
+      chrom: self.chrom,
+      start: min(self.start, other.start),
+      end: max(self.end, other.end)
+    })
+  }
+
+  fn to_string(self) -> String {
+    f"{self.chrom}:{self.start}-{self.end}"
+  }
+}
+
+# Usage
+let region = GenomicInterval.new("chr1", 1000, 2000)?
+print(f"Region: {region.to_string()}, width: {region.width()}")
+
+# Works with pipes
+let merged = regions
+  |> sort_by(|r| (r.chrom, r.start))
+  |> reduce(|acc, r| if acc.overlaps(r) { acc.merge(r) |> unwrap() } else { r })</code></pre>
+
+        <h2>Traits</h2>
+        <p>
+          Traits define shared behavior that multiple types can implement:
+        </p>
+        <pre><code class="language-biolang">trait Sequenceable {
+  fn sequence(self) -> DNA
+  fn length(self) -> Int
+  fn gc_content(self) -> Float {
+    # Default implementation
+    let seq = self.sequence()
+    let gc = gc_content(seq)
+    gc
+  }
+}
+
+struct FastqRecord {
+  id: String,
+  seq: DNA,
+  quality: List[Int]
+}
+
+impl Sequenceable for FastqRecord {
+  fn sequence(self) -> DNA { self.seq }
+  fn length(self) -> Int { seq_len(self.seq) }
+}
+
+struct FastaRecord {
+  header: String,
+  seq: DNA
+}
+
+impl Sequenceable for FastaRecord {
+  fn sequence(self) -> DNA { self.seq }
+  fn length(self) -> Int { seq_len(self.seq) }
+}
+
+# Now both types can be used where Sequenceable is expected
+fn analyze_sequence(item: Sequenceable) {
+  print(f"Length: {item.length()}, GC: {item.gc_content()}")
+}</code></pre>
+
+        <h2>Generics</h2>
+        <p>
+          Functions, structs, and traits can be parameterized with type variables:
+        </p>
+        <pre><code class="language-biolang"># Generic function
+fn first_or_default[T](items: List[T], default: T) -> T {
+  if len(items) > 0 { items[0] } else { default }
+}
+
+let gene = first_or_default(gene_list, "UNKNOWN")
+let score = first_or_default(score_list, 0.0)
+
+# Generic struct
+struct Pair[A, B] {
+  first: A,
+  second: B
+}
+
+let gene_score = Pair { first: "BRCA1", second: 0.95 }
+
+# Generic with trait bounds
+fn max_by_score[T: HasScore](items: List[T]) -> Option[T] {
+  if len(items) == 0 { return None }
+  Some(items |> reduce(|best, item|
+    if item.score() > best.score() { item } else { best }
+  ))
+}
+
+# Multiple bounds
+fn process[T: Sequenceable + Printable](item: T) {
+  print(f"Processing: {item.to_string()}")
+  let gc = item.gc_content()
+  print(f"GC content: {gc}")
+}</code></pre>
+
+        <h2>Type Aliases</h2>
+        <pre><code class="language-biolang"># Create shorter names for complex types
+type GeneMap = Map[String, Gene]
+type VariantList = List[Variant]
+type ScoredResult = (String, Float, Bool)
+type Pipeline = fn(List[Read]) -> Result[Table]
+
+# Usage
+fn build_gene_index(genes: List[Gene]) -> GeneMap {
+  genes |> map(|g| (g.symbol, g)) |> to_map()
+}
+
+let pipeline: Pipeline = |reads| {
+  let filtered = reads |> filter(|r| mean_phred(r.quality) >= 30)
+  Ok(to_table(filtered))
+}</code></pre>
+
+        <h2>Implementing Display</h2>
+        <pre><code class="language-biolang"># The Display trait controls string interpolation and print()
+trait Display {
+  fn to_string(self) -> String
+}
+
+struct Variant {
+  chrom: String,
+  pos: Int,
+  ref_allele: String,
+  alt_allele: String,
+  qual: Float
+}
+
+impl Display for Variant {
+  fn to_string(self) -> String {
+    f"{self.chrom}:{self.pos} {self.ref_allele}>{self.alt_allele} (Q={self.qual})"
+  }
+}
+
+let v = Variant { chrom: "chr17", pos: 43044295, ref_allele: "A", alt_allele: "G", qual: 99.0 }
+print(f"Found variant: {v}")
+# Output: Found variant: chr17:43044295 A>G (Q=99)</code></pre>
+
+        <h2>Practical Example: Pipeline Types</h2>
+        <pre><code class="language-biolang">struct SampleManifest {
+  sample_id: String,
+  fastq_r1: String,
+  fastq_r2: Option[String],
+  reference: String,
+  panel: Option[String]
+}
+
+struct PipelineResult {
+  sample_id: String,
+  total_reads: Int,
+  mapped_reads: Int,
+  mean_coverage: Float,
+  variants_found: Int,
+  qc_pass: Bool
+}
+
+impl PipelineResult {
+  fn mapping_rate(self) -> Float {
+    self.mapped_reads / self.total_reads
+  }
+
+  fn summary(self) -> String {
+    let status = if self.qc_pass { "PASS" } else { "FAIL" }
+    f"[{status}] {self.sample_id}: {self.mean_coverage}x coverage, {self.variants_found} variants"
+  }
+}
+
+fn run_pipeline(manifest: SampleManifest) -> Result[PipelineResult] {
+  let reads = read_fastq(manifest.fastq_r1)?
+  let aligned = align(reads, manifest.reference)?
+  let variants = call_variants(aligned)?
+
+  Ok(PipelineResult {
+    sample_id: manifest.sample_id,
+    total_reads: len(reads),
+    mapped_reads: aligned |> filter(|r| r.is_mapped) |> len(),
+    mean_coverage: compute_coverage(aligned),
+    variants_found: len(variants),
+    qc_pass: compute_coverage(aligned) >= 30.0
+  })
+}</code></pre>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="modules.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Modules
+        </a>
+        <a href="style.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Style Guide <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

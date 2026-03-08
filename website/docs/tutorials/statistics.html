@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statistical Analysis — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/statistics"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Statistical Analysis</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-sm text-slate-500">~30 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Statistical Analysis</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          BioLang includes a comprehensive statistics library designed for biological data.
+          This tutorial covers hypothesis testing, correlation, dimensionality reduction,
+          and clustering -- all the tools you need to analyze experimental results.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Descriptive statistics and distributions</li>
+            <li>t-tests, Wilcoxon, and paired comparisons</li>
+            <li>ANOVA</li>
+            <li>Correlation and regression</li>
+            <li>PCA visualization</li>
+            <li>Clustering with heatmaps</li>
+          </ul>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Descriptive Statistics</h2>
+        <pre><code class="language-biolang"># stats.bio — statistical analysis
+
+let data = csv("data/experiment.csv")
+
+# Extract a column as a list (table field access returns column)
+let values = col(data, "expression")
+
+print("=== Descriptive Statistics ===")
+print(f"N:        {len(values)}")
+print(f"Mean:     {round(mean(values), 3)}")
+print(f"Median:   {round(median(values), 3)}")
+print(f"Std Dev:  {round(stdev(values), 3)}")
+print(f"Variance: {round(variance(values), 3)}")
+print(f"Min:      {min(values)}")
+print(f"Max:      {max(values)}")
+print(f"Range:    {max(values) - min(values)}")
+
+# Quantiles
+let q25 = quantile(values, 0.25)
+let q50 = quantile(values, 0.50)
+let q75 = quantile(values, 0.75)
+print(f"\n25th percentile: {round(q25, 3)}")
+print(f"50th percentile: {round(q50, 3)}")
+print(f"75th percentile: {round(q75, 3)}")
+print(f"IQR:             {round(q75 - q25, 3)}")
+
+# Summary for all numeric columns at once
+let summary = describe(data)
+print(summary)</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Comparing Distributions</h2>
+        <pre><code class="language-biolang"># Extract groups for comparison
+let ctrl_rows = data |> filter(|r| r.group == "control")
+let treat_rows = data |> filter(|r| r.group == "treated")
+let control = col(ctrl_rows, "expression")
+let treated = col(treat_rows, "expression")
+
+# Kolmogorov-Smirnov test: do two samples come from the same distribution?
+let ks = ks_test(control, treated)
+print("=== KS Test (control vs treated) ===")
+print(f"Statistic: {round(ks.statistic, 4)}")
+print(f"p-value:   {round(ks.pvalue, 4)}")
+
+if ks.pvalue < 0.05 {
+  print("Distributions differ significantly — consider non-parametric tests")
+} else {
+  print("No significant difference in distributions — parametric tests are appropriate")
+}
+
+# Compare basic distribution properties
+print(f"\nControl — mean: {round(mean(control), 3)}, stdev: {round(stdev(control), 3)}")
+print(f"Treated — mean: {round(mean(treated), 3)}, stdev: {round(stdev(treated), 3)}")</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — t-Tests and Non-Parametric Alternatives</h2>
+        <pre><code class="language-biolang"># Independent two-sample t-test (Welch's by default)
+let t_result = ttest(control, treated)
+print("=== Independent t-Test (Welch's) ===")
+print(f"t-statistic: {round(t_result.t_statistic, 4)}")
+print(f"p-value:     {round(t_result.p_value, 6)}")
+print(f"df:          {round(t_result.df, 1)}")
+
+# Paired t-test (for before/after measurements)
+let before = col(data, "before_treatment")
+let after  = col(data, "after_treatment")
+let paired = ttest_paired(before, after)
+print(f"\nPaired t-test p-value: {round(paired.p_value, 6)}")
+
+# Non-parametric: Wilcoxon rank-sum test (two independent samples)
+let w = wilcoxon(control, treated)
+print("\n=== Wilcoxon Rank-Sum Test ===")
+print(f"U-statistic: {round(w.u_statistic, 1)}")
+print(f"p-value:     {round(w.p_value, 6)}")</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — ANOVA</h2>
+        <pre><code class="language-biolang"># One-way ANOVA for multiple groups
+# group_by returns a Map of group_name -> Table
+let groups = group_by(data, "treatment")
+
+# Extract expression columns from each group into a list of lists
+let group_names = colnames(data) |> filter(|c| c == "treatment")
+let treatment_names = col(data, "treatment") |> unique()
+
+let group_lists = treatment_names |> map(|name| {
+  let subset = data |> filter(|r| r.treatment == name)
+  col(subset, "expression")
+})
+
+let anova_result = anova(group_lists)
+print("=== One-Way ANOVA ===")
+print(f"F-statistic: {round(anova_result.f_statistic, 3)}")
+print(f"p-value:     {round(anova_result.p_value, 6)}")
+print(f"df between:  {anova_result.df_between}")
+print(f"df within:   {anova_result.df_within}")
+
+# If significant, do pairwise t-tests with p-value adjustment
+if anova_result.p_value < 0.05 {
+  print("\n=== Pairwise Comparisons ===")
+  let pvals = []
+  let labels = []
+  for i in 0..len(treatment_names) {
+    for j in (i+1)..len(treatment_names) {
+      let a = group_lists[i]
+      let b = group_lists[j]
+      let t = ttest(a, b)
+      pvals = pvals + [t.p_value]
+      labels = labels + [f"{treatment_names[i]} vs {treatment_names[j]}"]
+    }
+  }
+  let adjusted = p_adjust(pvals, "bh")
+  for k in 0..len(labels) {
+    let sig = if adjusted[k] < 0.05 { "*" } else { "ns" }
+    print(f"  {labels[k]}: p={round(adjusted[k], 4)} {sig}")
+  }
+}</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Correlation</h2>
+        <pre><code class="language-biolang"># Pearson correlation (returns a Float)
+let x = col(data, "gene_a_expression")
+let y = col(data, "gene_b_expression")
+
+let r = cor(x, y)
+print("=== Pearson Correlation ===")
+print(f"r: {round(r, 4)}")
+
+# Spearman rank correlation (returns a Record)
+let rho = spearman(x, y)
+print(f"\nSpearman rho: {round(rho.coefficient, 4)}")
+print(f"Spearman p:   {round(rho.pvalue, 4)}")
+
+# Kendall rank correlation (returns a Record)
+let tau = kendall(x, y)
+print(f"Kendall tau:  {round(tau.coefficient, 4)}")
+print(f"Kendall p:    {round(tau.pvalue, 4)}")
+
+# Compute correlations for multiple gene pairs
+let gene_cols = ["gene_a", "gene_b", "gene_c", "gene_d", "gene_e"]
+print("\n=== Pairwise Correlations ===")
+for i in 0..len(gene_cols) {
+  for j in (i+1)..len(gene_cols) {
+    let a = col(data, gene_cols[i])
+    let b = col(data, gene_cols[j])
+    let r = cor(a, b)
+    print(f"  {gene_cols[i]} ~ {gene_cols[j]}: r={round(r, 3)}")
+  }
+}</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Linear Regression</h2>
+        <pre><code class="language-biolang"># Simple linear regression: lm(x_list, y_list)
+let dosage = col(data, "dosage")
+let expression = col(data, "expression")
+let model = lm(dosage, expression)
+
+print("=== Linear Regression ===")
+print(f"Intercept:  {round(model.intercept, 3)}")
+print(f"Slope:      {round(model.slope, 3)}")
+print(f"R-squared:  {round(model.r_squared, 4)}")
+print(f"p-value:    {round(model.p_value, 6)}")
+
+# Visualize the fit
+plot(data, {
+  x:      "dosage",
+  y:      "expression",
+  kind:   "scatter",
+  title:  "Expression vs Dosage",
+  output: "results/regression.svg",
+})</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — PCA Visualization</h2>
+        <pre><code class="language-biolang"># Load expression matrix (samples as rows, genes as columns)
+let expr = csv("data/expression_matrix.csv")
+
+# pca_plot performs PCA and renders a scatter plot of PC1 vs PC2
+# It accepts a table and a config record
+pca_plot(expr, {
+  color_by: "group",
+  label:    "sample",
+  title:    "PCA — RNA-seq Samples",
+  output:   "results/pca.svg",
+})
+
+print("PCA plot saved to results/pca.svg")</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Clustering and Heatmaps</h2>
+        <pre><code class="language-biolang"># Clustered heatmap with hierarchical clustering built in
+let all_cols = colnames(expr)
+let gene_cols = all_cols |> filter(|c| c != "sample" and c != "group")
+let matrix = select(expr, gene_cols)
+
+clustered_heatmap(matrix, {
+  row_labels: col(expr, "sample"),
+  title:      "Sample Clustering — Expression",
+  output:     "results/clustered_heatmap.svg",
+})
+
+print("Clustered heatmap saved to results/clustered_heatmap.svg")</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Multiple Testing and FDR</h2>
+        <pre><code class="language-biolang"># When running many tests, we need to correct for multiple comparisons
+
+# Run a t-test per gene
+let all_cols = colnames(expr)
+let gene_cols = all_cols |> filter(|c| c != "sample" and c != "group")
+
+let results = gene_cols |> map(|gene| {
+  let ctrl_rows = expr |> filter(|r| r.group == "control")
+  let treat_rows = expr |> filter(|r| r.group == "treated")
+  let ctrl = col(ctrl_rows, gene)
+  let treat = col(treat_rows, gene)
+  let result = ttest(ctrl, treat)
+  { gene: gene, pvalue: result.p_value, t_stat: result.t_statistic }
+}) |> to_table()
+
+# Collect raw p-values and apply correction methods
+let raw_pvals = col(results, "pvalue")
+
+let bh_adjusted   = p_adjust(raw_pvals, "bh")
+let bonf_adjusted  = p_adjust(raw_pvals, "bonferroni")
+let holm_adjusted  = p_adjust(raw_pvals, "holm")
+
+# Add adjusted columns using mutate
+let corrected = results
+  |> mutate("bh_fdr", bh_adjusted)
+  |> mutate("bonferroni", bonf_adjusted)
+  |> mutate("holm", holm_adjusted)
+
+# Compare methods
+for method in ["bh_fdr", "bonferroni", "holm"] {
+  let n_sig = corrected |> filter(|r| r[method] < 0.05) |> nrow()
+  print(f"{method}: {n_sig} significant genes")
+}
+
+# Write results
+corrected
+  |> arrange("bh_fdr")
+  |> write_csv("results/gene_tests.csv")</code></pre>
+
+        <!-- Step 10 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Complete Statistical Workflow</h2>
+        <pre><code class="language-biolang"># stats_pipeline.bio — full statistical analysis
+
+fn statistical_analysis(data_file, output_dir) {
+  let data = csv(data_file)
+
+  # 1. Descriptive statistics
+  let desc = describe(data)
+  desc |> write_csv(f"{output_dir}/descriptive_stats.csv")
+
+  # 2. Summary per group
+  let treatment_names = col(data, "treatment") |> unique()
+  for name in treatment_names {
+    let subset = data |> filter(|r| r.treatment == name)
+    let vals = col(subset, "expression")
+    print(f"{name}: mean={round(mean(vals), 3)}, stdev={round(stdev(vals), 3)}, n={len(vals)}")
+  }
+
+  # 3. ANOVA across groups
+  let group_lists = treatment_names |> map(|name| {
+    let subset = data |> filter(|r| r.treatment == name)
+    col(subset, "expression")
+  })
+  let anova_result = anova(group_lists)
+  print(f"\nANOVA: F={round(anova_result.f_statistic, 3)}, p={round(anova_result.p_value, 6)}")
+
+  # 4. PCA visualization
+  let all_cols = colnames(data)
+  let numeric_cols = all_cols |> filter(|c| c != "sample" and c != "treatment" and c != "group")
+  pca_plot(select(data, numeric_cols + ["treatment"]), {
+    color_by: "treatment",
+    output:   f"{output_dir}/pca.svg",
+  })
+
+  # 5. Clustered heatmap
+  clustered_heatmap(select(data, numeric_cols), {
+    title:  "Expression Heatmap",
+    output: f"{output_dir}/heatmap.svg",
+  })
+
+  print(f"\nAnalysis complete. Results in {output_dir}/")
+}
+
+statistical_analysis("data/experiment.csv", "results")</code></pre>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Learn how to create publication-quality figures in the
+            <a href="visualization.html" class="text-violet-400 hover:underline">Visualization</a> tutorial.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="databases.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Querying Databases</a>
+        <a href="visualization.html" class="text-violet-400 hover:text-violet-300 text-sm">Visualization &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

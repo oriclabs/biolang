@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Variant Analysis — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/variant-analysis"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Variant Analysis</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-sm text-slate-500">~30 minutes</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-4">Variant Analysis</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          Learn how to read VCF files, filter variants by quality and functional impact,
+          annotate variants with gene information from Ensembl, and generate summary
+          statistics and plots.
+        </p>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
+          <h3 class="text-white font-semibold mb-3">What you will learn</h3>
+          <ul class="space-y-1 text-slate-400 text-sm">
+            <li>Reading and parsing VCF files</li>
+            <li>Filtering variants by FILTER, QUAL, and INFO fields</li>
+            <li>Annotating variants with Ensembl gene information</li>
+            <li>Counting variants per chromosome and type</li>
+            <li>Generating summary tables and a Manhattan plot</li>
+          </ul>
+        </div>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8">
+          <p class="text-sm text-slate-400 mb-0">
+            <strong class="text-white">Sample data:</strong> BioLang includes a VCF file at
+            <code>examples/sample-data/calls.vcf</code> with 12 variants across 5 chromosomes.
+            You can use it for this tutorial or substitute your own VCF.
+          </p>
+        </div>
+
+        <!-- Step 1 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Reading a VCF File</h2>
+        <p>
+          BioLang has a built-in VCF parser that understands the full VCF 4.3 specification,
+          including INFO, FORMAT, and genotype fields.
+        </p>
+        <pre><code class="language-biolang"># variants.bio — VCF variant analysis
+
+let variants = vcf("examples/sample-data/calls.vcf") |> collect()
+
+# Total variant count
+print(f"Total variants: {len(variants)}")
+
+# Inspect a single variant
+let v = head(variants, 1) |> first()
+print(f"Chrom:  {v.chrom}")
+print(f"Pos:    {v.pos}")
+print(f"ID:     {v.id}")
+print(f"Ref:    {v.ref}")
+print(f"Alt:    {v.alt}")
+print(f"Qual:   {v.quality}")
+print(f"Filter: {v.filter}")
+
+# Access INFO fields (info is a Record)
+print(f"DP: {v.info.DP}")
+print(f"AF: {v.info.AF}")</code></pre>
+
+        <!-- Step 2 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Filtering Variants</h2>
+        <p>
+          Apply standard quality filters to keep only reliable variant calls.
+        </p>
+        <pre><code class="language-biolang"># Keep only PASS variants with QUAL >= 30
+let passed = variants
+  |> filter(|v| v.filter == "PASS" and v.quality >= 30.0)
+
+print(f"After PASS + QUAL>=30: {len(passed)} variants")
+
+# Further filter by depth
+let depth_filtered = passed
+  |> filter(|v| v.info.DP >= 10)
+
+print(f"After DP>=10: {len(depth_filtered)} variants")
+
+# Filter by allele frequency (for population data)
+let common = depth_filtered
+  |> filter(|v| v.info.AF >= 0.01)
+
+let rare = depth_filtered
+  |> filter(|v| v.info.AF < 0.01)
+
+print(f"Common variants (AF>=1%): {len(common)}")
+print(f"Rare variants (AF<1%):    {len(rare)}")</code></pre>
+
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Classifying Variant Types</h2>
+        <pre><code class="language-biolang"># Use built-in variant classification and Ts/Tv ratio
+# Each variant has: variant_type, is_snp, is_indel, is_transition, is_transversion
+
+# Count variant types using value_counts on a table
+let type_table = passed
+  |> map(|v| {chrom: v.chrom, pos: v.pos, vtype: v.variant_type})
+  |> to_table()
+
+let type_counts = value_counts(type_table, "vtype")
+print("\n=== Variant Types ===")
+print(type_counts)
+
+# Compute transition/transversion ratio directly
+let ti_tv = tstv_ratio(passed)
+print(f"\nTi/Tv ratio: {round(ti_tv, 3)}")</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Variants Per Chromosome</h2>
+        <pre><code class="language-biolang"># Count variants per chromosome
+let chrom_table = passed
+  |> map(|v| {chromosome: v.chrom, pos: v.pos})
+  |> to_table()
+
+let chrom_counts = value_counts(chrom_table, "chromosome")
+  |> arrange("count", order: "desc")
+
+print("\n=== Variants Per Chromosome ===")
+print(chrom_counts)
+
+# Density: variants per megabase
+let chrom_lengths = {
+  "chr1": 248956422, "chr2": 242193529, "chr3": 198295559,
+  "chr4": 190214555, "chr5": 181538259, "chr6": 170805979,
+  # ... (abbreviated for clarity)
+  "chrX": 156040895, "chrY": 57227415,
+}
+
+let counts_list = col(chrom_counts, "count")
+let chroms_list = col(chrom_counts, "chromosome")
+let per_mb = map(counts_list, |c| round(c / 248.0, 2))
+let density = mutate(chrom_counts, "per_mb", per_mb)
+print(density)</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Annotating with Ensembl VEP</h2>
+        <p>
+          Use <code>ensembl_vep()</code> to predict variant consequences via the Ensembl
+          Variant Effect Predictor. Pass variants in HGVS notation.
+        </p>
+        <pre><code class="language-biolang"># Annotate variants using Ensembl VEP
+# ensembl_vep takes HGVS notation: "chrom:g.posRef>Alt"
+let annotated = passed |> map(|v| {
+  let hgvs = f"{v.chrom}:g.{v.pos}{v.ref}>{v.alt}"
+  let vep = ensembl_vep(hgvs)
+
+  # Get the most severe consequence
+  let worst = if len(vep) > 0 then vep.most_severe_consequence else "unknown"
+
+  # Get impact level
+  let impact = if len(vep) > 0 then vep.impact else "MODIFIER"
+
+  { variant: v, consequence: worst, impact: impact }
+})
+
+# Filter for high-impact variants
+let high_impact = annotated |> filter(|a|
+  a.impact == "HIGH"
+)
+print(f"High-impact variants: {len(high_impact)}")
+
+# Filter for specific consequence types
+let lof_types = ["stop_gained", "frameshift_variant",
+    "splice_donor_variant", "splice_acceptor_variant"]
+let lof = annotated |> filter(|a|
+  a.consequence in lof_types
+)
+print(f"Loss-of-function variants: {len(lof)}")</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Building a Summary Table</h2>
+        <pre><code class="language-biolang"># Create a summary table of high-impact variants
+let summary = high_impact
+  |> map(|a| {
+    chrom:       a.variant.chrom,
+    pos:         a.variant.pos,
+    ref:         a.variant.ref,
+    alt:         a.variant.alt,
+    quality:     a.variant.quality,
+    consequence: a.consequence,
+    impact:      a.impact,
+    af:          a.variant.info.AF,
+  })
+  |> to_table()
+  |> arrange("quality", order: "desc")
+
+print("\n=== High-Impact Variants ===")
+print(summary)
+
+# Write to CSV for downstream use
+write_csv(summary, "results/high_impact_variants.csv")</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Genotype Analysis</h2>
+        <pre><code class="language-biolang"># Analyze variant zygosity using built-in properties
+# Each variant has: is_het, is_hom_ref, is_hom_alt
+
+let het_table = passed
+  |> map(|v| {
+    chrom:  v.chrom,
+    pos:    v.pos,
+    is_het: v.is_het,
+    is_hom: v.is_hom_alt,
+  })
+  |> to_table()
+
+# Count heterozygous variants
+let het_only = filter(het_table, |row| row.is_het == true)
+print(f"Heterozygous variants: {nrow(het_only)}")
+
+# Compute het/hom ratio using built-in
+let hh_ratio = het_hom_ratio(passed)
+print(f"Het/Hom ratio: {round(hh_ratio, 3)}")
+
+# Overall variant statistics
+let stats = variant_summary(passed)
+print(f"Variant stats: {stats}")</code></pre>
+
+        <!-- Step 8 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Visualizing Variants</h2>
+        <pre><code class="language-biolang"># Build a table of variant positions and quality for plotting
+let plot_data = passed
+  |> map(|v| {
+    chrom:   v.chrom,
+    pos:     v.pos,
+    quality: v.quality,
+    dp:      v.info.DP,
+  })
+  |> to_table()
+
+# Scatter plot of quality by position
+plot(plot_data, {
+  x:     "pos",
+  y:     "quality",
+  title: "Variant Quality by Position",
+})
+
+# Histogram of quality scores
+let qual_table = passed
+  |> map(|v| {quality: v.quality})
+  |> to_table()
+histogram(qual_table)
+
+print("Plots rendered")</code></pre>
+
+        <!-- Step 9 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Complete Variant Analysis Pipeline</h2>
+        <pre><code class="language-biolang"># variant_pipeline.bio — end-to-end variant analysis
+
+fn analyze_vcf(input, output_dir) {
+  print("=== Variant Analysis Pipeline ===\n")
+
+  # 1. Read and filter
+  let raw = vcf(input) |> collect()
+  print(f"Raw variants: {len(raw)}")
+
+  let filtered = raw
+    |> filter(|v| v.filter == "PASS")
+    |> filter(|v| v.quality >= 30.0)
+    |> filter(|v| v.info.DP >= 10)
+  print(f"After filtering: {len(filtered)}")
+
+  # 2. Classify using built-in variant_type
+  let type_tbl = filtered
+    |> map(|v| {vtype: v.variant_type})
+    |> to_table()
+  let types = value_counts(type_tbl, "vtype")
+  print(f"\nVariant types:")
+  print(types)
+
+  # 3. Annotate with VEP (for a subset — VEP queries are rate-limited)
+  let subset = head(filtered, 50)
+  let annotated = subset |> map(|v| {
+    let hgvs = f"{v.chrom}:g.{v.pos}{v.ref}>{v.alt}"
+    let vep = ensembl_vep(hgvs)
+    let consequence = if len(vep) > 0 then vep.most_severe_consequence else "unknown"
+    { variant: v, consequence: consequence }
+  })
+
+  # 4. Summarize by consequence type
+  let conseq_tbl = annotated
+    |> map(|a| {consequence: a.consequence})
+    |> to_table()
+  let by_consequence = value_counts(conseq_tbl, "consequence")
+  print(f"\nConsequence types:")
+  print(by_consequence)
+
+  # 5. Write filtered variants to CSV
+  let summary = filtered |> map(|v| {
+    chrom: v.chrom, pos: v.pos, ref: v.ref,
+    alt: v.alt, quality: v.quality, vtype: v.variant_type,
+  }) |> to_table()
+
+  write_csv(summary, f"{output_dir}/filtered_variants.csv")
+
+  print(f"\nDone. Results in {output_dir}/")
+}
+
+analyze_vcf("data/sample.vcf.gz", "results")</code></pre>
+
+        <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
+          <h3 class="text-white font-semibold mb-2">Next Steps</h3>
+          <p class="text-slate-400 text-sm">
+            Continue to <a href="rnaseq-de.html" class="text-violet-400 hover:underline">RNA-seq Differential Expression</a>
+            to learn how to analyze gene expression data with BioLang.
+          </p>
+        </div>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="tables.html" class="text-violet-400 hover:text-violet-300 text-sm">&larr; Working with Tables</a>
+        <a href="rnaseq-de.html" class="text-violet-400 hover:text-violet-300 text-sm">RNA-seq DE &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

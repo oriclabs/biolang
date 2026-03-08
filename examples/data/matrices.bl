@@ -1,0 +1,61 @@
+# matrices.bl — Matrix operations and gene expression analysis
+
+# ── Creation ───────────────────────────────────────────────────
+let m = matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+println("Matrix m:")
+println(m)
+println("Dimensions: " + str(dim(m)))
+
+# ── Special matrices ───────────────────────────────────────────
+println("Zeros 3x4: " + str(dim(zeros(3, 4))))
+println("Identity 3x3:")
+println(eye(3))
+
+# ── Transpose ──────────────────────────────────────────────────
+println("Transpose:")
+println(transpose(m))
+
+# ── Arithmetic ─────────────────────────────────────────────────
+let a = matrix([[1, 2], [3, 4]])
+let b = matrix([[5, 6], [7, 8]])
+println("A + B: " + str(mat_add(a, b)))
+println("A - B: " + str(mat_sub(a, b)))
+println("A * B: " + str(mat_mul(a, b)))
+println("A x 3: " + str(mat_scale(a, 3)))
+
+# ── Dot product ────────────────────────────────────────────────
+println("A dot B:")
+println(dot(a, b))
+
+# ── Aggregates ─────────────────────────────────────────────────
+println("Row sums: " + str(row_sums(m)) + "  Col sums: " + str(col_sums(m)))
+println("Row means: " + str(row_means(m)) + "  Col means: " + str(col_means(m)))
+
+# ── Gene expression workflow ───────────────────────────────────
+# 4 genes x 6 samples (3 control, 3 treated)
+let expr = matrix([
+    [10.2, 12.5, 11.0, 25.3, 28.1, 26.7],   # Gene A: up
+    [ 5.1,  4.8,  5.3,  5.0,  4.9,  5.2],   # Gene B: stable
+    [20.0, 18.5, 19.2,  8.1,  7.5,  9.0],   # Gene C: down
+    [ 3.2,  3.5,  3.1, 15.6, 14.8, 16.2],   # Gene D: up
+])
+println("\nExpression: " + str(dim(expr)))
+println("Gene means: " + str(row_means(expr)))
+
+# Sample correlation and distance
+let expr_t = transpose(expr)
+println("Correlation matrix:")
+println(cor_matrix(expr_t))
+println("Covariance matrix:")
+println(cov_matrix(expr_t))
+println("Distance matrix:")
+println(dist_matrix(expr_t))
+
+# ── PCA ────────────────────────────────────────────────────────
+let pc = pca(expr_t)
+println("Variance explained: " + str(pc.variance_explained))
+println("PC1 loadings: " + str(pc.loadings[0]))
+let ctrl_pc1 = mean([pc.scores[0][0], pc.scores[1][0], pc.scores[2][0]])
+let treat_pc1 = mean([pc.scores[3][0], pc.scores[4][0], pc.scores[5][0]])
+println("PC1 control=" + str(ctrl_pc1) + " treated=" + str(treat_pc1))
+println("Separated: " + str(sign(ctrl_pc1) != sign(treat_pc1)))

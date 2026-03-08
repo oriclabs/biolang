@@ -1,0 +1,22 @@
+# Rosalind: GBK — GenBank Introduction
+# https://rosalind.info/problems/gbk/
+#
+# Given: A genus name, two dates in YYYY/M/D format.
+# Return: Number of Nucleotide GenBank entries for that genus published between the dates.
+
+let genus = "Anthoxanthum"
+let date_from = "2003/07/25"
+let date_to = "2005/12/27"
+
+# Build NCBI Entrez query with organism and date range
+let query = genus + "[Organism] AND (\"" + date_from + "\"[PDAT] : \"" + date_to + "\"[PDAT])"
+
+try {
+    let result = ncbi_search("nucleotide", query)
+    println("Result:   " + str(result.count))
+    println("Expected: 7")
+    println("Note:     Count may differ as GenBank is updated over time")
+} catch e {
+    println("NCBI query failed: " + str(e))
+    println("Expected: 7 (from Rosalind sample)")
+}

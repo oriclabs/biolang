@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/advanced"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Advanced</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Advanced</h1>
+        <p class="text-lg text-slate-400 mb-8">15 functions for parallelism, data provenance, set operations, genomic intervals, and type guards. Power-user features for high-performance bioinformatics pipelines.</p>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Parallelism</h2>
+
+        <section class="mb-12" id="par_map">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">par_map</span></h2>
+          <p class="text-slate-400 mt-2">Parallel version of <code>map</code>. Distributes work across multiple threads. Order is preserved.</p>
+          <pre><code class="language-biolang">par_map(list, fn, threads?) -> list</code></pre>
+          <table class="w-full text-sm mt-4">
+            <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">list</td><td class="py-2 px-3">list</td><td class="py-2 px-3">Input list</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">fn</td><td class="py-2 px-3">function</td><td class="py-2 px-3">Transformation (must be side-effect free)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">threads</td><td class="py-2 px-3">int (optional)</td><td class="py-2 px-3">Thread count (default: CPU count)</td></tr>
+            </tbody>
+          </table>
+          <pre><code class="language-biolang"># Process FASTQ files in parallel
+let files = glob("raw_data/*.fastq.gz")
+let stats = par_map(files, |f| {
+  let lines = read_lines(f)
+  let n_reads = len(lines) / 4
+  {"file": f, "reads": n_reads}
+})
+
+# Parallel checksums
+let checksums = par_map(glob("*.bam"), |f| {
+  {"file": f, "sha256": sha256(read_text(f))}
+})</code></pre>
+        </section>
+
+        <section class="mb-12" id="par_filter">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">par_filter</span></h2>
+          <p class="text-slate-400 mt-2">Parallel version of <code>filter</code>. Order is preserved.</p>
+          <pre><code class="language-biolang">par_filter(list, fn) -> list</code></pre>
+          <pre><code class="language-biolang"># Filter large list in parallel
+let valid = par_filter(sequences, |seq| {
+  len(seq) >= 100 and not contains(seq, "N")
+})</code></pre>
+        </section>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Provenance</h2>
+
+        <section class="mb-12" id="provenance">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">provenance</span></h2>
+          <p class="text-slate-400 mt-2">Get the data lineage / provenance chain for a value. Returns a map describing how the value was created: source files, transformations applied, timestamps.</p>
+          <pre><code class="language-biolang">provenance(value) -> map</code></pre>
+          <pre><code class="language-biolang">let data = csv("input.csv")
+  |> filter(|r| r.pvalue < 0.05)
+  |> mutate("log2fc_abs", |r| abs(r.log2fc))
+
+let prov = provenance(data)
+println(json_pretty(prov))
+# {
+#   "source": "input.csv",
+#   "operations": [
+#     {"op": "csv", "timestamp": "2026-03-05T14:30:00Z"},
+#     {"op": "filter", "predicate": "r.pvalue < 0.05", "rows_before": 10000, "rows_after": 523},
+#     {"op": "mutate", "column": "log2fc_abs"}
+#   ]
+# }</code></pre>
+        </section>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Set Operations</h2>
+
+        <section class="mb-12" id="sets">
+          <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">union</span> / <span class="text-violet-400 font-mono">intersection</span> / <span class="text-violet-400 font-mono">difference</span></h2>
+          <p class="text-slate-400 mt-2">Mathematical set operations on lists. Results are deduplicated.</p>
+          <pre><code class="language-biolang">union(a, b) -> list
+intersection(a, b) -> list
+difference(a, b) -> list          # elements in a but not in b</code></pre>
+          <pre><code class="language-biolang">let de_genes = ["BRCA1", "TP53", "EGFR", "KRAS", "MYC"]
+let pathway_genes = ["TP53", "MDM2", "CDKN2A", "BRCA1", "ATM"]
+
+intersection(de_genes, pathway_genes)   # ["BRCA1", "TP53"]
+union(de_genes, pathway_genes)          # ["BRCA1", "TP53", "EGFR", "KRAS", "MYC", "MDM2", "CDKN2A", "ATM"]
+difference(de_genes, pathway_genes)     # ["EGFR", "KRAS", "MYC"]
+
+# Venn diagram overlap
+let upregulated = filter(de, |r| r.log2fc > 1) |> map(|r| r.gene)
+let chip_targets = read_lines("chip_peaks_genes.txt")
+let overlap = intersection(upregulated, chip_targets)
+println("Upregulated AND bound:", len(overlap), "genes")</code></pre>
+        </section>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Type Guards</h2>
+
+        <section class="mb-12" id="type-guards">
+          <h2 class="text-2xl font-bold text-white">Type Check Functions</h2>
+          <p class="text-slate-400 mt-2">Predicate functions that return <code>true</code> if a value matches the specified type. Useful for validating input in generic functions and pipelines.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Function</th><th class="text-left py-2 px-3 text-slate-400">Signature</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
+              <tbody>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">is_dna</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">is_dna(s) -> bool</td><td class="py-2 px-3">String contains only [ATCGNatcgn]</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">is_rna</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">is_rna(s) -> bool</td><td class="py-2 px-3">String contains only [AUCGNaucgn]</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">is_protein</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">is_protein(s) -> bool</td><td class="py-2 px-3">String contains only valid amino acid letters</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">is_table</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">is_table(v) -> bool</td><td class="py-2 px-3">Value is a table</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">is_list</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">is_list(v) -> bool</td><td class="py-2 px-3">Value is a list</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">is_map</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">is_map(v) -> bool</td><td class="py-2 px-3">Value is a map</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">is_num</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">is_num(v) -> bool</td><td class="py-2 px-3">Value is int or float</td></tr>
+                <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-violet-400">is_str</td><td class="py-2 px-3 font-mono text-cyan-400 text-xs">is_str(v) -> bool</td><td class="py-2 px-3">Value is a string</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <pre><code class="language-biolang">is_dna("ATCGATCG")     # true
+is_dna("ATCXATCG")     # false (X is not valid DNA)
+is_rna("AUCGAUCG")     # true
+is_protein("MKLVFG")   # true
+
+# Validate input
+fn process_sequence(seq) {
+  assert(is_str(seq), "Expected string input")
+  if is_dna(seq) {
+    println("Processing DNA sequence")
+  } else if is_rna(seq) {
+    println("Processing RNA sequence")
+  } else if is_protein(seq) {
+    println("Processing protein sequence")
+  } else {
+    println("Unknown sequence type")
+  }
+}
+
+# Guard in pipeline
+let inputs = ["ATCGATCG", "not a sequence", "MKLVFG"]
+let valid_dna = filter(inputs, is_dna)   # ["ATCGATCG"]</code></pre>
+        </section>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="transfer.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span>&larr;</span> Transfer
+        </a>
+        <div></div>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>
