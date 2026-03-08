@@ -86,11 +86,9 @@ jobs:
 
       - name: Generate checksums
         run: |
-          cd artifacts
-          find . -name '*.tar.gz' -o -name '*.zip' | while read f; do
-            sha256sum "$f" >> ../checksums.sha256
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) | while read f; do
+            sha256sum "$f" >> checksums.sha256
           done
-          cd ..
           cat checksums.sha256
 
       - name: Create GitHub Release
