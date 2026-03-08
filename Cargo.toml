@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/bio-core",
     "crates/bl-core",
     "crates/bl-lexer",
     "crates/bl-parser",
@@ -20,7 +21,7 @@ edition = "2021"
 license = "MIT"
 
 [workspace.dependencies]
-bio-core = { path = "../bio-core" }
+bio-core = { path = "crates/bio-core" }
 bl-core = { path = "crates/bl-core" }
 bl-lexer = { path = "crates/bl-lexer" }
 bl-parser = { path = "crates/bl-parser" }

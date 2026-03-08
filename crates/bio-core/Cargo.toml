@@ -1,0 +1,8 @@
+[package]
+name = "bio-core"
+version.workspace = true
+edition.workspace = true
+license = "MIT"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
