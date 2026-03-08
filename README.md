@@ -223,3 +223,5 @@ MIT -- see [LICENSE](LICENSE).
 ## Contributing
 
 BioLang is developed by [ORIC Labs](https://github.com/oriclabs). Issues and pull requests welcome.
+
+Built with Claude (vibe coding). 🧬
