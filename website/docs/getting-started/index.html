@@ -95,14 +95,14 @@ $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"</code></pre>
 
         <h3>Linux (x86_64)</h3>
         <pre><code class="language-bash">curl -Lo biolang.tar.gz \
-  https://github.com/biolang/biolang/releases/latest/download/biolang-x86_64-linux.tar.gz
+  https://github.com/oriclabs/biolang/releases/latest/download/biolang-x86_64-linux.tar.gz
 tar xzf biolang.tar.gz
 sudo mv bl /usr/local/bin/
 bl --version</code></pre>
 
         <h3>Linux (aarch64)</h3>
         <pre><code class="language-bash">curl -Lo biolang.tar.gz \
-  https://github.com/biolang/biolang/releases/latest/download/biolang-aarch64-linux.tar.gz
+  https://github.com/oriclabs/biolang/releases/latest/download/biolang-aarch64-linux.tar.gz
 tar xzf biolang.tar.gz
 sudo mv bl /usr/local/bin/
 bl --version</code></pre>
@@ -110,11 +110,11 @@ bl --version</code></pre>
         <h3>macOS (Apple Silicon &amp; Intel)</h3>
         <pre><code class="language-bash"># Apple Silicon (M1/M2/M3/M4)
 curl -Lo biolang.tar.gz \
-  https://github.com/biolang/biolang/releases/latest/download/biolang-aarch64-macos.tar.gz
+  https://github.com/oriclabs/biolang/releases/latest/download/biolang-aarch64-macos.tar.gz
 
 # Intel
 curl -Lo biolang.tar.gz \
-  https://github.com/biolang/biolang/releases/latest/download/biolang-x86_64-macos.tar.gz
+  https://github.com/oriclabs/biolang/releases/latest/download/biolang-x86_64-macos.tar.gz
 
 tar xzf biolang.tar.gz
 sudo mv bl /usr/local/bin/
@@ -127,11 +127,11 @@ bl --version</code></pre>
         <h3>Windows</h3>
         <p>
           Download <code>biolang-x86_64-windows.zip</code> from the
-          <a href="https://github.com/biolang/biolang/releases" class="text-violet-400 hover:text-violet-300">releases page</a>,
+          <a href="https://github.com/oriclabs/biolang/releases" class="text-violet-400 hover:text-violet-300">releases page</a>,
           extract it, and add the folder to your <code>PATH</code>.
         </p>
         <pre><code class="language-bash"># PowerShell
-Invoke-WebRequest -Uri "https://github.com/biolang/biolang/releases/latest/download/biolang-x86_64-windows.zip" -OutFile biolang.zip
+Invoke-WebRequest -Uri "https://github.com/oriclabs/biolang/releases/latest/download/biolang-x86_64-windows.zip" -OutFile biolang.zip
 Expand-Archive biolang.zip -DestinationPath "$env:LOCALAPPDATA\biolang"
 $env:PATH += ";$env:LOCALAPPDATA\biolang"
 bl --version</code></pre>
@@ -140,7 +140,7 @@ bl --version</code></pre>
         <p>
           Clone the repository and build with Cargo. This requires Rust 1.75 or later.
         </p>
-        <pre><code class="language-bash">git clone https://github.com/biolang/biolang.git
+        <pre><code class="language-bash">git clone https://github.com/oriclabs/biolang.git
 cd biolang
 cargo build --release
 # Binary is at target/release/bl</code></pre>

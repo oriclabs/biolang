@@ -108,7 +108,7 @@ cargo install biolang
 Or build from source:
 
 ```bash
-git clone https://github.com/bioras/biolang
+git clone https://github.com/oriclabs/biolang
 cd biolang
 cargo build --release
 ```

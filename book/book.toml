@@ -11,4 +11,4 @@ build-dir = "../website/book"
 [output.html]
 default-theme = "light"
 preferred-dark-theme = "ayu"
-git-repository-url = "https://github.com/bioras/biolang"
+git-repository-url = "https://github.com/oriclabs/biolang"

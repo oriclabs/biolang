@@ -17,7 +17,7 @@ This installs the `bl` binary, which provides both the REPL and the script runne
 ### From source
 
 ```bash
-git clone https://github.com/biolang/biolang.git
+git clone https://github.com/oriclabs/biolang.git
 cd biolang
 cargo build --release
 cp target/release/bl ~/.local/bin/
