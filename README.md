@@ -1,5 +1,7 @@
 # BioLang
 
+> **Warning**: BioLang is experimental and under active development. The language syntax, builtins, and APIs may change without notice between releases. Not recommended for production use yet. Feedback and bug reports are welcome.
+
 A pipe-first domain-specific language (DSL) for bioinformatics.
 
 BioLang is a DSL purpose-built for genomics and molecular biology. It brings
