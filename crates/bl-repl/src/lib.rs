@@ -747,7 +747,7 @@ fn print_banner() {
  | |_) | | (_) | |__| (_| | | | | (_| |
  |____/|_|\___/|_____\__,_|_| |_|\__, |
                                   |___/{RESET}
- {DIM}BioLang — pipe-first bioinformatics{RESET}
+ {DIM}BioLang — pipe-first bioinformatics DSL{RESET}
  {DIM}v{VERSION}{RESET}
 
  {BOLD}Commands:{RESET}  {CYAN}:help{RESET}  {CYAN}:builtins{RESET}  {CYAN}:quit{RESET}  {CYAN}?{RESET}name  {CYAN}:load{RESET} <file>  {DIM}Tab for completion{RESET}

@@ -9,7 +9,7 @@ use std::time::Instant;
 #[command(
     name = "bl",
     version = "0.1.0",
-    about = "BioLang — pipe-first bioinformatics scripting language"
+    about = "BioLang — pipe-first bioinformatics DSL"
 )]
 struct Cli {
     #[command(subcommand)]

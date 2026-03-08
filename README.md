@@ -1,10 +1,11 @@
 # BioLang
 
-A pipe-first programming language for bioinformatics.
+A pipe-first domain-specific language (DSL) for bioinformatics.
 
-BioLang brings first-class biological types, 400+ domain builtins, and composable
-pipelines to genomics and molecular biology workflows. Write analysis scripts
-that read like the science they describe.
+BioLang is a DSL purpose-built for genomics and molecular biology. It brings
+first-class biological types, 400+ domain builtins, and composable pipelines
+to bioinformatics workflows. Write analysis scripts that read like the science
+they describe.
 
 ```
 let reads = read_fastq("sample_R1.fq.gz")
@@ -194,6 +195,7 @@ sha256sum -c checksums.sha256
 
 ```
 crates/
+  bio-core/    -- Shared bio types (DNA, RNA, Protein, Variant, Gene, etc.)
   bl-core/     -- AST, Value, Table, Type, Span, Error
   bl-lexer/    -- Tokenizer
   bl-parser/   -- Recursive descent + Pratt expression parser
