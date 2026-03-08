@@ -158,6 +158,38 @@ let variants = ensembl_vep("17:43044295:G:A")
 print(variants)
 ```
 
+## Releases
+
+Pre-built binaries are published on every tagged release for 4 platforms:
+
+| Platform | Archive | Binaries |
+|---|---|---|
+| Linux x86_64 | `biolang-linux-x86_64.tar.gz` | `bl`, `bl-lsp` |
+| macOS x86_64 | `biolang-macos-x86_64.tar.gz` | `bl`, `bl-lsp` |
+| macOS ARM (Apple Silicon) | `biolang-macos-aarch64.tar.gz` | `bl`, `bl-lsp` |
+| Windows x86_64 | `biolang-windows-x86_64.zip` | `bl.exe`, `bl-lsp.exe` |
+
+Download from [Releases](https://github.com/oriclabs/biolang/releases).
+
+Each release includes:
+- **`bl`** -- main CLI: run scripts, interactive REPL, manage plugins
+- **`bl-lsp`** -- language server for editor integration (VS Code, Neovim, etc.)
+- **`checksums.sha256`** -- SHA-256 checksums for all archives
+
+Releases are built automatically via GitHub Actions when a version tag is pushed:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+# CI builds all 4 platform binaries and creates a GitHub Release
+```
+
+### Verify downloads
+
+```bash
+sha256sum -c checksums.sha256
+```
+
 ## Crate Structure
 
 ```
