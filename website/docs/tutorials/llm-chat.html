@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial: LLM Chat — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/llm-chat"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">LLM Chat</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-xs text-slate-500">~20 min</span>
+        </div>
+
+        <h1>Tutorial: LLM Chat</h1>
+        <p>
+          BioLang has built-in LLM integration via <code>chat()</code> and <code>chat_code()</code>.
+          Ask questions about your data, generate BioLang code from natural language, and
+          use AI to interpret analysis results — all from within your scripts.
+        </p>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8 not-prose">
+          <p class="text-sm text-slate-400 mb-0">
+            <strong class="text-white">Prerequisites:</strong> An API key for at least one
+            supported provider: Anthropic (Claude), OpenAI, or a local Ollama instance.
+          </p>
+        </div>
+
+        <h2>What you'll learn</h2>
+        <ul>
+          <li>Configuring LLM providers via environment variables</li>
+          <li>Using <code>chat()</code> for conversational questions</li>
+          <li>Using <code>chat_code()</code> to generate BioLang code</li>
+          <li>Passing analysis context to the LLM</li>
+          <li>Building AI-assisted analysis workflows</li>
+        </ul>
+
+        <!-- Step 1 -->
+        <h2>Step 1: Configure a provider</h2>
+        <p>
+          BioLang auto-detects your LLM provider from environment variables. Set one of
+          these before running your script:
+        </p>
+        <pre><code class="language-bash"># Option A: Anthropic (Claude)
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Option B: OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Option C: Ollama (local, no API key needed)
+export OLLAMA_MODEL="llama3"
+
+# Option D: Any OpenAI-compatible API
+export LLM_BASE_URL="http://localhost:1234"
+export LLM_MODEL="mistral"</code></pre>
+        <p>
+          Detection priority: Anthropic &rarr; OpenAI &rarr; Ollama &rarr; OpenAI-compatible.
+          You can also override the model:
+        </p>
+        <pre><code class="language-bash"># Use a specific Anthropic model
+export ANTHROPIC_API_KEY="sk-ant-..."
+export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+
+# Use a specific OpenAI model
+export OPENAI_API_KEY="sk-..."
+export OPENAI_MODEL="gpt-4o"</code></pre>
+
+        <!-- Step 2 -->
+        <h2>Step 2: Ask a question with <code>chat()</code></h2>
+        <p>
+          The <code>chat()</code> function sends a message to the LLM and returns the
+          response as a string. It uses a bioinformatics-aware system prompt, so it
+          understands BioLang syntax and genomics concepts.
+        </p>
+        <pre><code class="language-biolang"># Simple question
+let answer = chat("What is the significance of a Ti/Tv ratio above 2.0 in human WGS?")
+print(answer)</code></pre>
+        <pre><code class="language-biolang"># Ask about a specific analysis approach
+let advice = chat("How should I filter somatic variants from a tumor-normal pair VCF?")
+print(advice)</code></pre>
+
+        <!-- Step 3 -->
+        <h2>Step 3: Pass context to the LLM</h2>
+        <p>
+          The real power of <code>chat()</code> is the optional second argument — you can
+          pass any BioLang value as context. The LLM sees it alongside your question.
+        </p>
+        <pre><code class="language-biolang"># Pass a data summary as context
+let stats = {
+  total_reads: 48_000_000,
+  passing_q30: 42_500_000,
+  mean_gc: 0.412,
+  duplicate_rate: 0.18,
+  mean_coverage: 32.5,
+}
+
+let interpretation = chat("Interpret these QC metrics. Any red flags?", stats)
+print(interpretation)</code></pre>
+        <pre><code class="language-biolang"># Pass a table of results
+let de_results = [
+  {gene: "TP53", log2fc: 3.2, pvalue: 1.2e-8},
+  {gene: "BRCA1", log2fc: 2.8, pvalue: 4.5e-7},
+  {gene: "MYC", log2fc: -2.1, pvalue: 3.3e-6},
+  {gene: "CDK4", log2fc: 1.5, pvalue: 0.002},
+]
+
+let analysis = chat("What biological processes are suggested by these DE genes?", de_results)
+print(analysis)</code></pre>
+        <pre><code class="language-biolang"># Pass an error message for debugging help
+let error_msg = "Error at line 42: type mismatch: expected DNA, got Str"
+let fix = chat("How do I fix this BioLang error?", error_msg)
+print(fix)</code></pre>
+
+        <!-- Step 4 -->
+        <h2>Step 4: Generate code with <code>chat_code()</code></h2>
+        <p>
+          <code>chat_code()</code> returns pure BioLang code — no explanations, no markdown
+          fences. It's designed for code generation that you can evaluate or save.
+        </p>
+        <pre><code class="language-biolang"># Generate a script from a description
+let code = chat_code("Read a FASTQ file, filter reads with mean Phred > 30, and print the count")
+print(code)
+# Output (pure BioLang code):
+# let reads = read_fastq("input.fastq")
+#   |> filter(|r| mean_phred(r.quality) > 30)
+# print(f"Passing reads: {len(reads)}")</code></pre>
+        <pre><code class="language-biolang"># Generate code with context about your data
+let schema = {
+  file: "samples.tsv",
+  columns: ["sample_id", "condition", "replicate", "fastq_r1", "fastq_r2"],
+  rows: 24,
+}
+
+let pipeline_code = chat_code(
+  "Write a pipeline that processes each sample: filter reads, compute GC, and summarize by condition",
+  schema
+)
+print(pipeline_code)</code></pre>
+
+        <!-- Step 5 -->
+        <h2>Step 5: Check available models</h2>
+        <p>
+          Use <code>llm_models()</code> to see which provider and model are configured:
+        </p>
+        <pre><code class="language-biolang">let models = llm_models()
+print(models)
+# {provider: "anthropic", model: "claude-sonnet-4-20250514"}</code></pre>
+
+        <!-- Step 6 -->
+        <h2>Step 6: Real-world patterns</h2>
+
+        <h3>Interpret enrichment results</h3>
+        <pre><code class="language-biolang">let gene_sets = [
+  {name: "P53_PATHWAY", genes: ["TP53", "CDKN1A", "BAX", "MDM2"]},
+  {name: "DNA_REPAIR", genes: ["BRCA1", "RAD51", "ATM", "CHEK2"]},
+]
+let de_genes = ["TP53", "CDKN1A", "BAX", "BRCA1", "ATM", "RAD51"]
+
+let ora = enrich(de_genes, gene_sets, 20000)
+let summary = chat("Summarize these enrichment results in biological terms", ora)
+print(summary)</code></pre>
+
+        <h3>Explain a variant</h3>
+        <pre><code class="language-biolang">let v = variant("chr17", 7674220, "G", "A")
+let vep = ensembl_vep("17:7674220:G:A")
+
+let explanation = chat("What is the clinical significance of this TP53 variant?", vep)
+print(explanation)</code></pre>
+
+        <h3>Generate a report summary</h3>
+        <pre><code class="language-biolang"># After running your analysis, ask the LLM to write a summary
+let results = {
+  samples: 24,
+  de_genes: 342,
+  enriched_pathways: 8,
+  top_pathway: "P53_SIGNALING",
+  top_gene: "TP53",
+  species: "human",
+  tissue: "breast tumor",
+}
+
+let report = chat(
+  "Write a one-paragraph methods and results summary for a paper, based on these analysis results",
+  results
+)
+print(report)</code></pre>
+
+        <h3>Debug a pipeline</h3>
+        <pre><code class="language-biolang"># Capture an error and ask the LLM for help
+let result = try(|| {
+  let reads = read_fastq("missing_file.fq.gz")
+  reads |> filter(|r| mean_phred(r.quality) > 30)
+})
+
+if is_error(result) {
+  let help = chat("I got this error in my BioLang script. How do I fix it?", str(result))
+  print(help)
+}</code></pre>
+
+        <!-- Supported context types -->
+        <h2>Context types</h2>
+        <p>
+          The second argument to <code>chat()</code> and <code>chat_code()</code> accepts
+          any BioLang value. Here's how each type is formatted for the LLM:
+        </p>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Type</th>
+                <th class="py-3 px-4">Format sent to LLM</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">Str</td><td class="py-3 px-4">Passed as-is</td></tr>
+              <tr><td class="py-3 px-4 font-mono">Record / Map</td><td class="py-3 px-4">Key-value lines (<code>key: value</code>)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">List</td><td class="py-3 px-4">One item per line</td></tr>
+              <tr><td class="py-3 px-4 font-mono">Table</td><td class="py-3 px-4">TSV format (header + rows)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">Other</td><td class="py-3 px-4">String representation</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Builtin reference -->
+        <h2>Builtin reference</h2>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Function</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">chat(message, context?)</td><td class="py-3 px-4">Send a question to the LLM, get a natural language response</td></tr>
+              <tr><td class="py-3 px-4 font-mono">chat_code(message, context?)</td><td class="py-3 px-4">Generate pure BioLang code from a description</td></tr>
+              <tr><td class="py-3 px-4 font-mono">llm_models()</td><td class="py-3 px-4">Show configured provider and model</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Environment variables -->
+        <h2>Environment variables</h2>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Variable</th>
+                <th class="py-3 px-4">Provider</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">ANTHROPIC_API_KEY</td><td class="py-3 px-4">Anthropic</td><td class="py-3 px-4">API key (highest priority)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">ANTHROPIC_MODEL</td><td class="py-3 px-4">Anthropic</td><td class="py-3 px-4">Model override (default: claude-sonnet-4-20250514)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">OPENAI_API_KEY</td><td class="py-3 px-4">OpenAI</td><td class="py-3 px-4">API key</td></tr>
+              <tr><td class="py-3 px-4 font-mono">OPENAI_MODEL</td><td class="py-3 px-4">OpenAI</td><td class="py-3 px-4">Model override (default: gpt-4o)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">OLLAMA_MODEL</td><td class="py-3 px-4">Ollama</td><td class="py-3 px-4">Model name (e.g. llama3, mistral)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">LLM_BASE_URL</td><td class="py-3 px-4">OpenAI-compatible</td><td class="py-3 px-4">API base URL for any compatible provider</td></tr>
+              <tr><td class="py-3 px-4 font-mono">LLM_MODEL</td><td class="py-3 px-4">OpenAI-compatible</td><td class="py-3 px-4">Model name</td></tr>
+              <tr><td class="py-3 px-4 font-mono">LLM_API_KEY</td><td class="py-3 px-4">OpenAI-compatible</td><td class="py-3 px-4">API key (optional for local servers)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Tips</h2>
+        <ul>
+          <li><strong>Be specific in your prompts</strong> — "Explain this VCF" is worse than "Are any of these variants likely pathogenic? Focus on TP53 and BRCA1."</li>
+          <li><strong>Pass structured context</strong> — Records and Tables give the LLM more to work with than plain strings</li>
+          <li><strong>Use <code>chat_code()</code> for automation</strong> — generate repetitive boilerplate or scaffold scripts from descriptions</li>
+          <li><strong>Ollama is free</strong> — for local development, install Ollama and use models like <code>llama3</code> or <code>mistral</code> with no API costs</li>
+          <li><strong>Context is appended, not replaced</strong> — the bioinformatics system prompt is always present, so the LLM understands BioLang by default</li>
+        </ul>
+
+        <h2>What's next</h2>
+        <ul>
+          <li><a href="../builtins/llm.html" class="text-violet-400 hover:text-violet-300">LLM Chat reference</a> — full builtin documentation</li>
+          <li><a href="notebooks.html" class="text-violet-400 hover:text-violet-300">Notebooks</a> — combine LLM-generated insights with literate analysis</li>
+          <li><a href="enrichment.html" class="text-violet-400 hover:text-violet-300">Enrichment Analysis</a> — run enrichment and interpret results with LLM</li>
+        </ul>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="enrichment.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Enrichment
+        </a>
+        <a href="multispecies.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Multi-species <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

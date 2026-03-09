@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial: Knowledge Graphs — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/knowledge-graphs"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Knowledge Graphs</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-xs text-slate-500">~30 min</span>
+        </div>
+
+        <h1>Tutorial: Knowledge Graphs</h1>
+        <p>
+          In this tutorial you'll build a protein interaction network from scratch, query it
+          for biological insights, and combine it with API data from STRING. You'll learn
+          BioLang's graph builtins and how to use graphs for pathway analysis.
+        </p>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8 not-prose">
+          <p class="text-sm text-slate-400 mb-0">
+            <strong class="text-white">Prerequisites:</strong> Familiarity with basic BioLang syntax
+            from <a href="hello-genomics.html" class="text-violet-400 hover:text-violet-300">Hello Genomics</a>
+            and <a href="tables.html" class="text-violet-400 hover:text-violet-300">Tables</a>.
+          </p>
+        </div>
+
+        <h2>What you'll build</h2>
+        <p>
+          A gene interaction graph for the p53 tumor suppressor pathway. You'll create
+          nodes, add weighted edges, find shortest paths, identify connected components,
+          extract subgraphs, and combine the graph with STRING database scores.
+        </p>
+
+        <!-- Step 1 -->
+        <h2>Step 1: Create a graph</h2>
+        <p>
+          Start with an empty graph and add some nodes:
+        </p>
+        <pre><code class="language-biolang"># Create an empty undirected graph
+let g = graph()
+
+# Add nodes with attributes
+let g = add_node(g, "TP53", {role: "tumor_suppressor", chr: "17p13.1"})
+let g = add_node(g, "MDM2", {role: "oncogene", chr: "12q15"})
+let g = add_node(g, "CDKN1A", {role: "cdk_inhibitor", chr: "6p21.2"})
+let g = add_node(g, "BAX", {role: "pro_apoptotic", chr: "19q13.33"})
+let g = add_node(g, "BCL2", {role: "anti_apoptotic", chr: "18q21.33"})
+
+print(f"Nodes: {node_count(g)}")  # 5</code></pre>
+
+        <!-- Step 2 -->
+        <h2>Step 2: Add edges</h2>
+        <p>
+          Connect genes with weighted edges representing interaction confidence:
+        </p>
+        <pre><code class="language-biolang"># TP53 interactions
+let g = add_edge(g, "TP53", "MDM2", {score: 0.999, type: "inhibition"})
+let g = add_edge(g, "TP53", "CDKN1A", {score: 0.998, type: "activation"})
+let g = add_edge(g, "TP53", "BAX", {score: 0.992, type: "activation"})
+
+# Apoptosis regulators
+let g = add_edge(g, "BAX", "BCL2", {score: 0.976, type: "inhibition"})
+
+# MDM2 feedback
+let g = add_edge(g, "MDM2", "CDKN1A", {score: 0.871, type: "inhibition"})
+
+print(f"Edges: {edge_count(g)}")  # 5</code></pre>
+        <p>
+          Nodes are auto-created when you add edges, so you can skip <code>add_node()</code>
+          if you don't need attributes. But adding attributes makes the graph more useful
+          for downstream analysis.
+        </p>
+
+        <!-- Step 3 -->
+        <h2>Step 3: Query the graph</h2>
+        <p>
+          Use graph builtins to explore relationships:
+        </p>
+        <pre><code class="language-biolang"># Direct neighbors
+let tp53_partners = neighbors(g, "TP53")
+print(f"TP53 interacts with: {tp53_partners}")
+# ["BAX", "CDKN1A", "MDM2"]
+
+# Node degree (number of connections)
+print(f"TP53 degree: {degree(g, 'TP53')}")    # 3
+print(f"BCL2 degree: {degree(g, 'BCL2')}")    # 1
+
+# Check if an edge exists
+print(has_edge(g, "TP53", "BAX"))     # true
+print(has_edge(g, "BCL2", "MDM2"))    # false</code></pre>
+
+        <!-- Step 4 -->
+        <h2>Step 4: Shortest paths</h2>
+        <p>
+          Find the shortest path between any two genes:
+        </p>
+        <pre><code class="language-biolang"># How does BCL2 connect to MDM2?
+let path = shortest_path(g, "BCL2", "MDM2")
+print(f"BCL2 → MDM2: {path}")
+# ["BCL2", "BAX", "TP53", "MDM2"]
+
+# No path between disconnected components returns nil
+let g2 = add_node(g, "ISOLATED_GENE", {})
+let path2 = shortest_path(g, "ISOLATED_GENE", "TP53")
+print(path2)  # nil</code></pre>
+
+        <!-- Step 5 -->
+        <h2>Step 5: Network analysis</h2>
+        <p>
+          Analyze the global structure of the network:
+        </p>
+        <pre><code class="language-biolang"># Connected components
+let components = connected_components(g)
+print(f"Components: {len(components)}")
+components |> each(|c| print(f"  {c}"))
+
+# Get all nodes and edges as data
+let all_nodes = nodes(g)
+print(f"All nodes: {all_nodes}")
+
+let edge_table = edges(g)
+print(edge_table)
+# Table with columns: source, target, and any edge attributes</code></pre>
+
+        <!-- Step 6 -->
+        <h2>Step 6: Extract subgraphs</h2>
+        <p>
+          Pull out a subset of the network for focused analysis:
+        </p>
+        <pre><code class="language-biolang"># Extract the apoptosis subnetwork
+let apoptosis_genes = ["TP53", "BAX", "BCL2"]
+let sub = subgraph(g, apoptosis_genes)
+
+print(f"Subgraph: {node_count(sub)} nodes, {edge_count(sub)} edges")
+# Subgraph: 3 nodes, 2 edges (TP53-BAX, BAX-BCL2)
+# The MDM2 and CDKN1A edges are excluded</code></pre>
+
+        <!-- Step 7 -->
+        <h2>Step 7: Build from data</h2>
+        <p>
+          In practice you'll build graphs from files or API results, not by hand.
+          Here's how to construct a graph from a CSV edge list:
+        </p>
+        <pre><code class="language-biolang"># Suppose interactions.csv has columns: gene_a, gene_b, score
+let edges_data = read_csv("interactions.csv")
+
+let g = graph()
+let g = edges_data |> reduce(g, |g, row| {
+  add_edge(g, row.gene_a, row.gene_b, {score: into(row.score, "Float")})
+})
+
+print(f"Built graph: {node_count(g)} genes, {edge_count(g)} interactions")</code></pre>
+
+        <!-- Step 8 -->
+        <h2>Step 8: Combine with STRING API</h2>
+        <p>
+          Fetch real interaction data from the STRING database and build a graph:
+        </p>
+        <pre><code class="language-biolang"># Fetch TP53 interaction network from STRING
+let network = string_network("TP53", {species: 9606, limit: 20})
+
+# Build a graph from the API results
+let g = graph()
+let g = network |> reduce(g, |g, row| {
+  add_edge(g, row.preferredName_A, row.preferredName_B, {
+    score: row.score,
+    nscore: row.nscore,
+    escore: row.escore
+  })
+})
+
+print(f"STRING network: {node_count(g)} proteins, {edge_count(g)} interactions")
+
+# Find hub genes (highest degree)
+let hub_genes = nodes(g)
+  |> map(|n| {gene: n, degree: degree(g, n)})
+  |> sort_by(|r| r.degree, desc: true)
+  |> take(5)
+
+print("Top 5 hub genes:")
+hub_genes |> each(|r| print(f"  {r.gene}: {r.degree} connections"))</code></pre>
+
+        <!-- Step 9 -->
+        <h2>Step 9: Directed graphs</h2>
+        <p>
+          For regulatory networks where direction matters, create a directed graph:
+        </p>
+        <pre><code class="language-biolang"># Directed graph: edges have a direction
+let dg = graph(directed: true)
+
+let dg = add_edge(dg, "TP53", "CDKN1A", {type: "activates"})
+let dg = add_edge(dg, "TP53", "BAX", {type: "activates"})
+let dg = add_edge(dg, "MDM2", "TP53", {type: "inhibits"})
+let dg = add_edge(dg, "TP53", "MDM2", {type: "activates"})
+
+# In directed graphs, neighbors returns outgoing connections only
+let tp53_targets = neighbors(dg, "TP53")
+print(f"TP53 activates/inhibits: {tp53_targets}")
+# ["BAX", "CDKN1A", "MDM2"]
+
+# MDM2 only has one outgoing edge
+let mdm2_targets = neighbors(dg, "MDM2")
+print(f"MDM2 targets: {mdm2_targets}")
+# ["TP53"]</code></pre>
+
+        <!-- Step 10 -->
+        <h2>Step 10: Removing nodes and edges</h2>
+        <p>
+          Simulate knockouts by removing genes from the network:
+        </p>
+        <pre><code class="language-biolang"># What happens if we knock out TP53?
+let ko = remove_node(g, "TP53")
+print(f"After TP53 knockout: {node_count(ko)} nodes, {edge_count(ko)} edges")
+
+# How many components now?
+let ko_components = connected_components(ko)
+print(f"Components after knockout: {len(ko_components)}")
+ko_components |> each(|c| print(f"  {c}"))
+
+# Remove a specific interaction
+let g_no_feedback = remove_edge(g, "MDM2", "CDKN1A")
+print(f"Removed MDM2-CDKN1A: {edge_count(g_no_feedback)} edges remain")</code></pre>
+
+        <h2>Complete example</h2>
+        <p>Here's the full analysis as a notebook-ready script:</p>
+        <pre><code class="language-biolang"># p53_network.bl — Build and analyze the p53 interaction network
+
+# Build the graph
+let g = graph()
+let g = add_edge(g, "TP53", "MDM2", {score: 0.999, type: "inhibition"})
+let g = add_edge(g, "TP53", "CDKN1A", {score: 0.998, type: "activation"})
+let g = add_edge(g, "TP53", "BAX", {score: 0.992, type: "activation"})
+let g = add_edge(g, "BAX", "BCL2", {score: 0.976, type: "inhibition"})
+let g = add_edge(g, "MDM2", "CDKN1A", {score: 0.871, type: "inhibition"})
+let g = add_edge(g, "CDKN1A", "CDK2", {score: 0.945, type: "inhibition"})
+let g = add_edge(g, "CDK2", "RB1", {score: 0.932, type: "phosphorylation"})
+
+print(f"Network: {node_count(g)} genes, {edge_count(g)} interactions")
+print(f"Components: {len(connected_components(g))}")
+
+# Hub analysis
+let hubs = nodes(g)
+  |> map(|n| {gene: n, deg: degree(g, n)})
+  |> sort_by(|r| r.deg, desc: true)
+
+print("\nDegree ranking:")
+hubs |> each(|r| print(f"  {r.gene}: {r.deg}"))
+
+# Path from cell cycle to apoptosis
+let path = shortest_path(g, "CDK2", "BCL2")
+print(f"\nCell cycle → apoptosis: {path}")
+
+# TP53 knockout simulation
+let ko = remove_node(g, "TP53")
+let ko_comp = connected_components(ko)
+print(f"\nTP53 knockout: {len(ko_comp)} disconnected components")
+ko_comp |> each(|c| print(f"  {c}"))</code></pre>
+
+        <h2>Builtin reference</h2>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Function</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">graph(directed?)</td><td class="py-3 px-4">Create empty graph (undirected by default)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">add_node(g, id, attrs?)</td><td class="py-3 px-4">Add node with optional attributes</td></tr>
+              <tr><td class="py-3 px-4 font-mono">add_edge(g, src, tgt, attrs?)</td><td class="py-3 px-4">Add edge (auto-creates nodes)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">remove_node(g, id)</td><td class="py-3 px-4">Remove node and its edges</td></tr>
+              <tr><td class="py-3 px-4 font-mono">remove_edge(g, src, tgt)</td><td class="py-3 px-4">Remove specific edge</td></tr>
+              <tr><td class="py-3 px-4 font-mono">neighbors(g, id)</td><td class="py-3 px-4">List of adjacent nodes</td></tr>
+              <tr><td class="py-3 px-4 font-mono">degree(g, id)</td><td class="py-3 px-4">Number of connections</td></tr>
+              <tr><td class="py-3 px-4 font-mono">has_edge(g, src, tgt)</td><td class="py-3 px-4">Check if edge exists</td></tr>
+              <tr><td class="py-3 px-4 font-mono">nodes(g)</td><td class="py-3 px-4">List of all node IDs</td></tr>
+              <tr><td class="py-3 px-4 font-mono">edges(g)</td><td class="py-3 px-4">Table of all edges</td></tr>
+              <tr><td class="py-3 px-4 font-mono">node_count(g)</td><td class="py-3 px-4">Number of nodes</td></tr>
+              <tr><td class="py-3 px-4 font-mono">edge_count(g)</td><td class="py-3 px-4">Number of edges</td></tr>
+              <tr><td class="py-3 px-4 font-mono">shortest_path(g, src, tgt)</td><td class="py-3 px-4">BFS shortest path (list or nil)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">connected_components(g)</td><td class="py-3 px-4">List of component node lists</td></tr>
+              <tr><td class="py-3 px-4 font-mono">subgraph(g, node_list)</td><td class="py-3 px-4">Extract induced subgraph</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>What's next</h2>
+        <ul>
+          <li><a href="enrichment.html" class="text-violet-400 hover:text-violet-300">Enrichment Analysis</a> — combine graphs with gene set enrichment</li>
+          <li><a href="../builtins/graphs.html" class="text-violet-400 hover:text-violet-300">Knowledge Graphs reference</a> — full builtin documentation</li>
+          <li><a href="databases.html" class="text-violet-400 hover:text-violet-300">Querying Databases</a> — fetch data from NCBI, Ensembl, and more</li>
+        </ul>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="visualization.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Visualization
+        </a>
+        <a href="enrichment.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Enrichment Analysis <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

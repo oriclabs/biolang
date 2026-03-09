@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial: Enrichment Analysis — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/enrichment"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Enrichment Analysis</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-cyan-400/20 text-cyan-400">Intermediate</span>
+          <span class="text-xs text-slate-500">~30 min</span>
+        </div>
+
+        <h1>Tutorial: Enrichment Analysis</h1>
+        <p>
+          In this tutorial you'll run over-representation analysis (ORA) and gene set
+          enrichment analysis (GSEA) on differentially expressed genes. You'll learn how
+          to load gene sets, run statistical tests, apply multiple-testing correction, and
+          interpret the results.
+        </p>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8 not-prose">
+          <p class="text-sm text-slate-400 mb-0">
+            <strong class="text-white">Prerequisites:</strong> Familiarity with
+            <a href="tables.html" class="text-violet-400 hover:text-violet-300">Tables</a> and
+            <a href="statistics.html" class="text-violet-400 hover:text-violet-300">Statistics</a> tutorials.
+          </p>
+        </div>
+
+        <h2>What you'll learn</h2>
+        <ul>
+          <li>Loading gene sets from GMT files</li>
+          <li>Over-representation analysis (ORA) with the hypergeometric test</li>
+          <li>Gene set enrichment analysis (GSEA) with permutation testing</li>
+          <li>Multiple-testing correction (Benjamini-Hochberg)</li>
+          <li>Combining enrichment with knowledge graphs</li>
+        </ul>
+
+        <!-- Step 1 -->
+        <h2>Step 1: Prepare your gene list</h2>
+        <p>
+          Start with a set of differentially expressed genes. In a real workflow these
+          come from your DE analysis; here we'll use a curated list:
+        </p>
+        <pre><code class="language-biolang"># Upregulated genes from a differential expression analysis
+let de_genes = [
+  "TP53", "CDKN1A", "BAX", "GADD45A", "MDM2",
+  "CCND1", "CDK4", "RB1", "E2F1", "BRCA1",
+  "CHEK2", "ATM", "ATR", "RAD51", "XRCC5"
+]
+print(f"DE genes: {len(de_genes)}")</code></pre>
+
+        <!-- Step 2 -->
+        <h2>Step 2: Load gene sets</h2>
+        <p>
+          Gene sets are typically distributed in GMT (Gene Matrix Transposed) format.
+          Each line is: <code>SET_NAME &lt;tab&gt; description &lt;tab&gt; gene1 &lt;tab&gt; gene2 ...</code>
+        </p>
+        <pre><code class="language-biolang"># Load gene sets from a GMT file
+let gene_sets = read_gmt("hallmark.gmt")
+print(f"Loaded {len(gene_sets)} gene sets")
+
+# Inspect one gene set
+let first = gene_sets |> first()
+print(f"Name: {first.name}")
+print(f"Genes: {len(first.genes)}")</code></pre>
+        <p>
+          If you don't have a GMT file, you can also define gene sets inline:
+        </p>
+        <pre><code class="language-biolang"># Manual gene sets for testing
+let gene_sets = [
+  {name: "HALLMARK_P53_PATHWAY", genes: ["TP53", "CDKN1A", "BAX", "GADD45A", "MDM2", "SESN1", "SESN2", "DDB2", "POLK"]},
+  {name: "HALLMARK_G2M_CHECKPOINT", genes: ["CDK1", "CCNB1", "CCND1", "CDK4", "E2F1", "RB1", "CDC25A", "CHEK1"]},
+  {name: "HALLMARK_DNA_REPAIR", genes: ["BRCA1", "BRCA2", "RAD51", "XRCC5", "ATM", "ATR", "CHEK2", "MLH1", "MSH2"]},
+  {name: "HALLMARK_APOPTOSIS", genes: ["BAX", "BCL2", "CASP3", "CASP9", "BID", "BAK1", "CYCS", "APAF1"]},
+  {name: "HALLMARK_MYC_TARGETS", genes: ["MYC", "MAX", "NCL", "NPM1", "RPS3", "RPL5", "NOP56", "FBL"]},
+]</code></pre>
+
+        <!-- Step 3 -->
+        <h2>Step 3: Over-representation analysis (ORA)</h2>
+        <p>
+          ORA uses the hypergeometric test to determine whether your gene list is
+          significantly enriched for specific gene sets compared to what you'd expect
+          by chance.
+        </p>
+        <pre><code class="language-biolang"># Run ORA
+# Arguments: gene list, gene sets, background size (total genes in genome)
+let background_size = 20000
+let ora_results = enrich(de_genes, gene_sets, background_size)
+
+print("ORA results:")
+ora_results |> each(|r| {
+  print(f"  {r.term}: p={r.pvalue:.4e}, overlap={r.overlap}/{r.term_size}")
+})</code></pre>
+        <p>
+          The <code>enrich()</code> function returns a list of records, each containing:
+        </p>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Field</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">term</td><td class="py-3 px-4">Gene set name</td></tr>
+              <tr><td class="py-3 px-4 font-mono">pvalue</td><td class="py-3 px-4">Hypergeometric p-value</td></tr>
+              <tr><td class="py-3 px-4 font-mono">fdr</td><td class="py-3 px-4">BH-adjusted p-value</td></tr>
+              <tr><td class="py-3 px-4 font-mono">overlap</td><td class="py-3 px-4">Number of DE genes in this set</td></tr>
+              <tr><td class="py-3 px-4 font-mono">term_size</td><td class="py-3 px-4">Total genes in this set</td></tr>
+              <tr><td class="py-3 px-4 font-mono">genes</td><td class="py-3 px-4">List of overlapping genes</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Step 4 -->
+        <h2>Step 4: Filter significant results</h2>
+        <pre><code class="language-biolang"># Filter by FDR < 0.05
+let significant = ora_results
+  |> filter(|r| r.fdr < 0.05)
+  |> sort_by(|r| r.fdr)
+
+print(f"\nSignificant pathways (FDR < 0.05): {len(significant)}")
+significant |> each(|r| {
+  print(f"  {r.term}")
+  print(f"    FDR: {r.fdr:.4e}, Overlap: {r.overlap}/{r.term_size}")
+  print(f"    Genes: {r.genes}")
+})</code></pre>
+
+        <!-- Step 5 -->
+        <h2>Step 5: Gene set enrichment analysis (GSEA)</h2>
+        <p>
+          Unlike ORA, GSEA doesn't require a cutoff. It takes a <strong>ranked</strong>
+          gene list (e.g. by fold change or test statistic) and tests whether genes in
+          each set tend to cluster at the top or bottom of the ranking.
+        </p>
+        <pre><code class="language-biolang"># Create a ranked gene list (gene name + ranking metric)
+# In practice this comes from your DE results
+let ranked_genes = [
+  {gene: "BAX", score: 4.2},
+  {gene: "CDKN1A", score: 3.8},
+  {gene: "TP53", score: 3.5},
+  {gene: "GADD45A", score: 3.1},
+  {gene: "BRCA1", score: 2.7},
+  {gene: "ATM", score: 2.3},
+  {gene: "RAD51", score: 1.9},
+  {gene: "CCND1", score: 0.5},
+  {gene: "CDK4", score: 0.3},
+  {gene: "E2F1", score: -0.2},
+  {gene: "RB1", score: -0.8},
+  {gene: "MYC", score: -1.5},
+  {gene: "BCL2", score: -2.1},
+]
+
+# Run GSEA with permutation testing
+let gsea_results = gsea(ranked_genes, gene_sets, {
+  permutations: 1000,
+  gene_col: "gene",
+  score_col: "score"
+})
+
+print("GSEA results:")
+gsea_results |> each(|r| {
+  print(f"  {r.term}: NES={r.nes:.3f}, p={r.pvalue:.4e}, FDR={r.fdr:.4e}")
+})</code></pre>
+        <p>
+          GSEA results include:
+        </p>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Field</th>
+                <th class="py-3 px-4">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">term</td><td class="py-3 px-4">Gene set name</td></tr>
+              <tr><td class="py-3 px-4 font-mono">es</td><td class="py-3 px-4">Enrichment score</td></tr>
+              <tr><td class="py-3 px-4 font-mono">nes</td><td class="py-3 px-4">Normalized enrichment score</td></tr>
+              <tr><td class="py-3 px-4 font-mono">pvalue</td><td class="py-3 px-4">Permutation p-value</td></tr>
+              <tr><td class="py-3 px-4 font-mono">fdr</td><td class="py-3 px-4">BH-adjusted p-value</td></tr>
+              <tr><td class="py-3 px-4 font-mono">size</td><td class="py-3 px-4">Genes in set found in ranked list</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Step 6 -->
+        <h2>Step 6: Multiple-testing correction</h2>
+        <p>
+          Both <code>enrich()</code> and <code>gsea()</code> apply BH correction
+          automatically. You can also apply it manually to any list of p-values:
+        </p>
+        <pre><code class="language-biolang"># Manual BH correction
+let raw_pvalues = [0.001, 0.013, 0.039, 0.052, 0.11, 0.23, 0.45]
+let adjusted = p_adjust(raw_pvalues, "bh")
+print("Raw → Adjusted:")
+range(0, len(raw_pvalues)) |> each(|i| {
+  print(f"  {raw_pvalues[i]:.3f} → {adjusted[i]:.3f}")
+})</code></pre>
+
+        <!-- Step 7 -->
+        <h2>Step 7: Combine with knowledge graphs</h2>
+        <p>
+          Use enrichment results to build a pathway-gene network:
+        </p>
+        <pre><code class="language-biolang"># Build a bipartite graph: pathways ↔ genes
+let g = graph()
+
+significant |> each(|pathway| {
+  pathway.genes |> each(|gene| {
+    let g = add_edge(g, pathway.term, gene, {fdr: pathway.fdr})
+  })
+})
+
+print(f"Pathway-gene network: {node_count(g)} nodes, {edge_count(g)} edges")
+
+# Which genes appear in multiple significant pathways?
+let gene_nodes = nodes(g) |> filter(|n| !starts_with(n, "HALLMARK_"))
+let multi_pathway = gene_nodes
+  |> map(|n| {gene: n, pathways: degree(g, n)})
+  |> filter(|r| r.pathways > 1)
+  |> sort_by(|r| r.pathways, desc: true)
+
+print("\nGenes in multiple enriched pathways:")
+multi_pathway |> each(|r| print(f"  {r.gene}: {r.pathways} pathways"))</code></pre>
+
+        <!-- Complete example -->
+        <h2>Complete example</h2>
+        <pre><code class="language-biolang"># enrichment_analysis.bl — Full ORA + GSEA workflow
+
+# Define gene sets (or load from GMT: read_gmt("hallmark.gmt"))
+let gene_sets = [
+  {name: "P53_PATHWAY", genes: ["TP53", "CDKN1A", "BAX", "GADD45A", "MDM2", "SESN1", "DDB2"]},
+  {name: "DNA_REPAIR", genes: ["BRCA1", "RAD51", "XRCC5", "ATM", "ATR", "CHEK2", "MLH1"]},
+  {name: "G2M_CHECKPOINT", genes: ["CDK1", "CCND1", "CDK4", "E2F1", "RB1", "CHEK1"]},
+  {name: "APOPTOSIS", genes: ["BAX", "BCL2", "CASP3", "CASP9", "BID", "BAK1"]},
+]
+
+# DE genes
+let de_genes = ["TP53", "CDKN1A", "BAX", "GADD45A", "MDM2", "BRCA1", "CHEK2",
+                "ATM", "ATR", "RAD51", "XRCC5", "CCND1", "CDK4", "RB1", "E2F1"]
+
+# ORA
+print("=== Over-Representation Analysis ===")
+let ora = enrich(de_genes, gene_sets, 20000)
+  |> filter(|r| r.fdr < 0.05)
+  |> sort_by(|r| r.fdr)
+
+ora |> each(|r| print(f"  {r.term}: FDR={r.fdr:.4e}, {r.overlap}/{r.term_size} genes"))
+
+# GSEA with ranked list
+print("\n=== Gene Set Enrichment Analysis ===")
+let ranked = [
+  {gene: "BAX", score: 4.2}, {gene: "CDKN1A", score: 3.8},
+  {gene: "TP53", score: 3.5}, {gene: "GADD45A", score: 3.1},
+  {gene: "BRCA1", score: 2.7}, {gene: "ATM", score: 2.3},
+  {gene: "RAD51", score: 1.9}, {gene: "CCND1", score: 0.5},
+  {gene: "CDK4", score: 0.3}, {gene: "E2F1", score: -0.2},
+  {gene: "RB1", score: -0.8}, {gene: "BCL2", score: -2.1},
+]
+
+let gsea_res = gsea(ranked, gene_sets, {permutations: 1000})
+  |> sort_by(|r| r.fdr)
+
+gsea_res |> each(|r| print(f"  {r.term}: NES={r.nes:.3f}, FDR={r.fdr:.4e}"))
+
+# Pathway network
+print("\n=== Pathway-Gene Network ===")
+let g = graph()
+ora |> each(|pw| pw.genes |> each(|gene| {
+  let g = add_edge(g, pw.term, gene, {fdr: pw.fdr})
+}))
+print(f"Network: {node_count(g)} nodes, {edge_count(g)} edges")</code></pre>
+
+        <h2>What's next</h2>
+        <ul>
+          <li><a href="../builtins/pdb-enrichment.html" class="text-violet-400 hover:text-violet-300">PDB, PubMed & Enrichment reference</a> — full builtin documentation</li>
+          <li><a href="knowledge-graphs.html" class="text-violet-400 hover:text-violet-300">Knowledge Graphs</a> — build interaction networks</li>
+          <li><a href="rnaseq-de.html" class="text-violet-400 hover:text-violet-300">RNA-seq DE</a> — run enrichment on real differential expression results</li>
+        </ul>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="knowledge-graphs.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Knowledge Graphs
+        </a>
+        <a href="multispecies.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Multi-species <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>
