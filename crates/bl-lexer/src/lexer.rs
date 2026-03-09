@@ -848,6 +848,45 @@ impl Lexer {
         }
 
         self.advance(); // consume closing "
+
+        // Validate bio literal characters
+        let kind_tag = make_token("".into());
+        let validation: Option<(&str, Box<dyn Fn(char) -> bool>)> = match &kind_tag {
+            TokenKind::DnaLit(_) => Some((
+                "DNA",
+                Box::new(|c: char| "ACGTNRYWSMKBDHVacgtnrywsmkbdhv".contains(c)),
+            )),
+            TokenKind::RnaLit(_) => Some((
+                "RNA",
+                Box::new(|c: char| "ACGUNRYWSMKBDHVacgunrywsmkbdhv".contains(c)),
+            )),
+            TokenKind::ProteinLit(_) => Some((
+                "protein",
+                Box::new(|c: char| "ACDEFGHIKLMNPQRSTVWYXBZJUOacdefghiklmnpqrstvwyxbzjuo*".contains(c)),
+            )),
+            TokenKind::QualLit(_) => Some((
+                "quality",
+                Box::new(|c: char| c.is_ascii() && (c as u8) >= 33 && (c as u8) <= 126),
+            )),
+            _ => None,
+        };
+
+        if let Some((kind, is_valid)) = validation {
+            for (i, ch) in value.chars().enumerate() {
+                if !is_valid(ch) {
+                    let msg = format!(
+                        "invalid character '{}' at position {} in {} literal",
+                        ch, i + 1, kind
+                    );
+                    return Err(BioLangError::new(
+                        ErrorKind::UnexpectedChar,
+                        &msg,
+                        Some(Span::new(start, self.pos)),
+                    ));
+                }
+            }
+        }
+
         self.tokens
             .push(Token::new(make_token(value), Span::new(start, self.pos)));
         Ok(())

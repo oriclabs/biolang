@@ -290,6 +290,74 @@ fn test_bio_literal_newline_is_error() {
     assert!(lex_err("dna\"AT\nCG\""));
 }
 
+// ===== Bio literal validation =====
+
+#[test]
+fn test_dna_iupac_valid() {
+    assert_eq!(lex(r#"dna"ACGTNRYWSMKBDHV""#), vec![TokenKind::DnaLit("ACGTNRYWSMKBDHV".into())]);
+}
+
+#[test]
+fn test_dna_lowercase_valid() {
+    assert_eq!(lex(r#"dna"acgtn""#), vec![TokenKind::DnaLit("acgtn".into())]);
+}
+
+#[test]
+fn test_dna_rejects_u() {
+    assert!(lex_err(r#"dna"ATCGU""#));
+}
+
+#[test]
+fn test_dna_rejects_invalid_char() {
+    assert!(lex_err(r#"dna"ATCGX""#));
+}
+
+#[test]
+fn test_dna_rejects_number() {
+    assert!(lex_err(r#"dna"ATC1G""#));
+}
+
+#[test]
+fn test_rna_iupac_valid() {
+    assert_eq!(lex(r#"rna"ACGUNRYWSMKBDHV""#), vec![TokenKind::RnaLit("ACGUNRYWSMKBDHV".into())]);
+}
+
+#[test]
+fn test_rna_rejects_t() {
+    assert!(lex_err(r#"rna"AUCGT""#));
+}
+
+#[test]
+fn test_rna_rejects_invalid_char() {
+    assert!(lex_err(r#"rna"AUCGX""#));
+}
+
+#[test]
+fn test_protein_standard_valid() {
+    assert_eq!(lex(r#"protein"ACDEFGHIKLMNPQRSTVWY""#), vec![TokenKind::ProteinLit("ACDEFGHIKLMNPQRSTVWY".into())]);
+}
+
+#[test]
+fn test_protein_extended_valid() {
+    // B=Asx, Z=Glx, J=Leu/Ile, U=Sec, O=Pyl, X=unknown, *=stop
+    assert_eq!(lex(r#"protein"BZJUOX*""#), vec![TokenKind::ProteinLit("BZJUOX*".into())]);
+}
+
+#[test]
+fn test_protein_rejects_invalid_char() {
+    assert!(lex_err(r#"protein"MVL1K""#));
+}
+
+#[test]
+fn test_qual_valid() {
+    assert_eq!(lex(r#"qual"!@IIIII~""#), vec![TokenKind::QualLit("!@IIIII~".into())]);
+}
+
+#[test]
+fn test_qual_rejects_space() {
+    assert!(lex_err(r#"qual"II II""#));
+}
+
 // ===== Strings =====
 
 #[test]

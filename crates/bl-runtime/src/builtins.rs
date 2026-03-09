@@ -1120,8 +1120,29 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     ))
                 }
             };
+            if chrom.is_empty() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "interval() chrom must not be empty",
+                    None,
+                ));
+            }
             let start = require_int(&args[1], "interval")?;
             let end = require_int(&args[2], "interval")?;
+            if start < 0 {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("interval() start must be non-negative, got {start}"),
+                    None,
+                ));
+            }
+            if end < start {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("interval() end ({end}) must be >= start ({start})"),
+                    None,
+                ));
+            }
             let strand = if args.len() > 3 {
                 match &args[3] {
                     Value::Str(s) => match s.as_str() {
@@ -2042,18 +2063,42 @@ fn builtin_gene(args: Vec<Value>) -> Result<Value> {
             let get_int = |m: &HashMap<String, Value>, k: &str| -> i64 {
                 m.get(k).and_then(|v| v.as_int()).unwrap_or(0)
             };
+            let symbol = get_str(map, "symbol");
+            if symbol.is_empty() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "gene() symbol must not be empty",
+                    None,
+                ));
+            }
+            let start = get_int(map, "start");
+            let end = get_int(map, "end");
+            if end != 0 && end < start {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("gene() end ({end}) must be >= start ({start})"),
+                    None,
+                ));
+            }
             Ok(Value::Gene {
-                symbol: get_str(map, "symbol"),
+                symbol,
                 gene_id: get_str(map, "gene_id"),
                 chrom: get_str(map, "chrom"),
-                start: get_int(map, "start"),
-                end: get_int(map, "end"),
+                start,
+                end,
                 strand: get_str(map, "strand"),
                 biotype: get_str(map, "biotype"),
                 description: get_str(map, "description"),
             })
         }
         Value::Str(symbol) => {
+            if symbol.is_empty() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "gene() symbol must not be empty",
+                    None,
+                ));
+            }
             // Construct a Gene with just a symbol (lookup can be done via ensembl_gene)
             Ok(Value::Gene {
                 symbol: symbol.clone(),
@@ -2084,6 +2129,13 @@ fn builtin_variant(args: Vec<Value>) -> Result<Value> {
             other => return Err(BioLangError::type_error(
                 format!("variant() pos must be Int, got {}", other.type_of()), None)),
         };
+        if pos < 0 {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("variant() pos must be non-negative, got {pos}"),
+                None,
+            ));
+        }
         let ref_allele = if args.len() >= 3 {
             match &args[2] {
                 Value::Str(s) => s.clone(),
@@ -2098,6 +2150,22 @@ fn builtin_variant(args: Vec<Value>) -> Result<Value> {
                     format!("variant() alt must be String, got {}", other.type_of()), None)),
             }
         } else { String::new() };
+        // Validate allele characters (IUPAC DNA + . for missing + * for deletion)
+        let valid_allele = |s: &str| s.is_empty() || s.chars().all(|c| "ACGTNRYWSMKBDHVacgtnrywsmkbdhv.*".contains(c));
+        if !valid_allele(&ref_allele) {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("variant() ref allele contains invalid characters: {ref_allele}"),
+                None,
+            ));
+        }
+        if !valid_allele(&alt_allele) {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("variant() alt allele contains invalid characters: {alt_allele}"),
+                None,
+            ));
+        }
         return Ok(Value::Variant {
             chrom, pos, id: String::new(), ref_allele, alt_allele,
             quality: 0.0, filter: String::new(), info: HashMap::new(),
@@ -2828,9 +2896,26 @@ fn builtin_aligned_read(args: Vec<Value>) -> Result<Value> {
             let get_int = |m: &std::collections::HashMap<String, Value>, k: &str| -> i64 {
                 m.get(k).and_then(|v| v.as_int()).unwrap_or(0)
             };
+            let flag = get_int(map, "flag");
+            if flag < 0 || flag > 4095 {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("aligned_read() flag must be 0-4095, got {flag}"),
+                    None,
+                ));
+            }
+            let seq = get_str(map, "seq");
+            let qual = get_str(map, "qual");
+            if !seq.is_empty() && !qual.is_empty() && seq.len() != qual.len() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("aligned_read() seq length ({}) must match qual length ({})", seq.len(), qual.len()),
+                    None,
+                ));
+            }
             Ok(Value::AlignedRead(bl_core::bio_core::AlignedRead {
                 qname: get_str(map, "qname"),
-                flag: get_int(map, "flag") as u16,
+                flag: flag as u16,
                 rname: get_str(map, "rname"),
                 pos: get_int(map, "pos"),
                 mapq: get_int(map, "mapq") as u8,
@@ -2838,8 +2923,8 @@ fn builtin_aligned_read(args: Vec<Value>) -> Result<Value> {
                 rnext: get_str(map, "rnext"),
                 pnext: get_int(map, "pnext"),
                 tlen: get_int(map, "tlen"),
-                seq: get_str(map, "seq"),
-                qual: get_str(map, "qual"),
+                seq,
+                qual,
             }))
         }
         _ => Err(BioLangError::type_error("aligned_read() requires Record", None)),

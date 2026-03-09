@@ -34,9 +34,6 @@ reads
 - **Notifications** -- Slack, Teams, Telegram, Discord, email alerts from pipelines
 - **Streams** -- lazy evaluation for large files without loading into memory
 - **Tables** -- R-like data frames with filter, mutate, group_by, summarize, join
-- **LLM chat** -- built-in `chat()` and `chat_code()` using Anthropic, OpenAI, or Ollama directly from scripts and REPL
-- **BioContainers** -- pull and run BioContainers images directly from your pipelines
-- **Workflow catalog** -- search and view nf-core and Galaxy workflows without leaving your environment
 - **Plugin system** -- extend with Python, TypeScript, R, or native plugins
 - **LSP** -- language server with diagnostics, completion, and hover
 
@@ -226,5 +223,3 @@ MIT -- see [LICENSE](LICENSE).
 ## Contributing
 
 BioLang is developed by [ORIC Labs](https://github.com/oriclabs). Issues and pull requests welcome.
-
-Built with Claude (vibe coding). 🧬

@@ -820,3 +820,161 @@ fn test_given_empty_block() {
     let result = eval("given {}");
     assert_eq!(result, Value::Nil);
 }
+
+// ===== Bio type validation tests =====
+
+// -- DNA literal validation --
+
+#[test]
+fn test_dna_rejects_u() {
+    assert!(eval_err(r#"let x = dna"ATCGU""#));
+}
+
+#[test]
+fn test_dna_rejects_numbers() {
+    assert!(eval_err(r#"let x = dna"ATC1G""#));
+}
+
+#[test]
+fn test_dna_accepts_iupac() {
+    let result = eval(r#"dna"ACGTNRYWSMKBDHV""#);
+    assert!(matches!(result, Value::DNA(_)));
+}
+
+// -- RNA literal validation --
+
+#[test]
+fn test_rna_rejects_t() {
+    assert!(eval_err(r#"let x = rna"AUCGT""#));
+}
+
+#[test]
+fn test_rna_accepts_iupac() {
+    let result = eval(r#"rna"ACGUNRYWSMKBDHV""#);
+    assert!(matches!(result, Value::RNA(_)));
+}
+
+// -- Protein literal validation --
+
+#[test]
+fn test_protein_rejects_numbers() {
+    assert!(eval_err(r#"let x = protein"MVL1K""#));
+}
+
+#[test]
+fn test_protein_accepts_stop_codon() {
+    let result = eval(r#"protein"MVLK*""#);
+    assert!(matches!(result, Value::Protein(_)));
+}
+
+// -- Interval validation --
+
+#[test]
+fn test_interval_valid() {
+    let result = eval(r#"interval("chr1", 100, 200)"#);
+    assert!(matches!(result, Value::Interval(_)));
+}
+
+#[test]
+fn test_interval_rejects_end_before_start() {
+    assert!(eval_err(r#"interval("chr1", 200, 100)"#));
+}
+
+#[test]
+fn test_interval_rejects_empty_chrom() {
+    assert!(eval_err(r#"interval("", 100, 200)"#));
+}
+
+#[test]
+fn test_interval_rejects_negative_start() {
+    assert!(eval_err(r#"interval("chr1", -1, 200)"#));
+}
+
+#[test]
+fn test_interval_allows_equal_start_end() {
+    // Zero-length intervals (point features) are valid in BED format
+    let result = eval(r#"interval("chr1", 100, 100)"#);
+    assert!(matches!(result, Value::Interval(_)));
+}
+
+// -- Variant validation --
+
+#[test]
+fn test_variant_valid() {
+    let result = eval(r#"variant("chr7", 55181378, "T", "A")"#);
+    assert!(matches!(result, Value::Variant { .. }));
+}
+
+#[test]
+fn test_variant_rejects_negative_pos() {
+    assert!(eval_err(r#"variant("chr7", -1, "T", "A")"#));
+}
+
+#[test]
+fn test_variant_rejects_invalid_ref_allele() {
+    assert!(eval_err(r#"variant("chr7", 100, "XYZ", "A")"#));
+}
+
+#[test]
+fn test_variant_rejects_invalid_alt_allele() {
+    assert!(eval_err(r#"variant("chr7", 100, "T", "123")"#));
+}
+
+#[test]
+fn test_variant_accepts_iupac_alleles() {
+    let result = eval(r#"variant("chr7", 100, "N", "R")"#);
+    assert!(matches!(result, Value::Variant { .. }));
+}
+
+#[test]
+fn test_variant_accepts_deletion_star() {
+    let result = eval(r#"variant("chr7", 100, "AT", "*")"#);
+    assert!(matches!(result, Value::Variant { .. }));
+}
+
+// -- Gene validation --
+
+#[test]
+fn test_gene_valid_from_string() {
+    let result = eval(r#"gene("BRCA1")"#);
+    assert!(matches!(result, Value::Gene { .. }));
+}
+
+#[test]
+fn test_gene_rejects_empty_symbol() {
+    assert!(eval_err(r#"gene("")"#));
+}
+
+#[test]
+fn test_gene_record_rejects_empty_symbol() {
+    assert!(eval_err(r#"gene({symbol: "", chrom: "chr17", start: 100, end: 200})"#));
+}
+
+#[test]
+fn test_gene_record_rejects_end_before_start() {
+    assert!(eval_err(r#"gene({symbol: "BRCA1", chrom: "chr17", start: 200, end: 100})"#));
+}
+
+#[test]
+fn test_gene_record_valid() {
+    let result = eval(r#"gene({symbol: "BRCA1", chrom: "chr17", start: 100, end: 200})"#);
+    assert!(matches!(result, Value::Gene { .. }));
+}
+
+// -- AlignedRead validation --
+
+#[test]
+fn test_aligned_read_rejects_flag_out_of_range() {
+    assert!(eval_err(r#"aligned_read({qname: "r1", flag: 5000, seq: "ATCG", qual: "IIII"})"#));
+}
+
+#[test]
+fn test_aligned_read_rejects_seq_qual_mismatch() {
+    assert!(eval_err(r#"aligned_read({qname: "r1", flag: 0, seq: "ATCG", qual: "II"})"#));
+}
+
+#[test]
+fn test_aligned_read_valid() {
+    let result = eval(r#"aligned_read({qname: "r1", flag: 0, seq: "ATCG", qual: "IIII"})"#);
+    assert!(matches!(result, Value::AlignedRead(_)));
+}
