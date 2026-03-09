@@ -19,6 +19,8 @@ pub fn graph_builtin_list() -> Vec<(&'static str, Arity)> {
         ("has_edge", Arity::Exact(3)),
         ("subgraph", Arity::Exact(2)),
         ("node_attr", Arity::Exact(2)),
+        ("node_count", Arity::Exact(1)),
+        ("edge_count", Arity::Exact(1)),
     ]
 }
 
@@ -40,6 +42,8 @@ pub fn is_graph_builtin(name: &str) -> bool {
             | "has_edge"
             | "subgraph"
             | "node_attr"
+            | "node_count"
+            | "edge_count"
     )
 }
 
@@ -60,6 +64,8 @@ pub fn call_graph_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "has_edge" => builtin_has_edge(args),
         "subgraph" => builtin_subgraph(args),
         "node_attr" => builtin_node_attr(args),
+        "node_count" => builtin_node_count(args),
+        "edge_count" => builtin_edge_count(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown graph builtin '{name}'"),
@@ -467,6 +473,20 @@ fn builtin_edges(args: Vec<Value>) -> Result<Value> {
         }
     }
     Ok(Value::Table(Table::new(cols, rows)))
+}
+
+/// node_count(g) → Int
+fn builtin_node_count(args: Vec<Value>) -> Result<Value> {
+    let g = extract_graph(&args[0])?;
+    let nodes = get_nodes(g);
+    Ok(Value::Int(nodes.len() as i64))
+}
+
+/// edge_count(g) → Int
+fn builtin_edge_count(args: Vec<Value>) -> Result<Value> {
+    let g = extract_graph(&args[0])?;
+    let edges = get_edges(g);
+    Ok(Value::Int(edges.len() as i64))
 }
 
 /// has_node(g, id) → Bool
