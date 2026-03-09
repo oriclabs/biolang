@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial: Literate Notebooks — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tutorials/notebooks"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Literate Notebooks</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-400">Beginner</span>
+          <span class="text-xs text-slate-500">~20 min</span>
+        </div>
+
+        <h1>Tutorial: Literate Notebooks</h1>
+        <p>
+          In this tutorial you'll create a BioLang notebook (<code>.bln</code>) that
+          documents a complete GC content analysis. You'll learn the notebook format,
+          cell directives, HTML export, and Jupyter conversion.
+        </p>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8 not-prose">
+          <p class="text-sm text-slate-400 mb-0">
+            <strong class="text-white">Prerequisites:</strong> BioLang installed
+            (<code>bl --version</code>). Familiarity with basic BioLang syntax from
+            <a href="hello-genomics.html" class="text-violet-400 hover:text-violet-300">Hello Genomics</a>.
+          </p>
+        </div>
+
+        <h2>What you'll build</h2>
+        <p>
+          A reproducible analysis notebook that loads FASTA sequences, computes GC
+          content statistics, identifies outlier contigs, and exports a shareable HTML
+          report. The final notebook will use cell directives to keep the narrative clean.
+        </p>
+
+        <!-- Step 1 -->
+        <h2>Step 1: Create a basic notebook</h2>
+        <p>
+          Create a file called <code>gc_analysis.bln</code>. A <code>.bln</code> file
+          is just text &mdash; Markdown prose interleaved with BioLang code blocks.
+        </p>
+        <p>Start with a title and a single code block:</p>
+        <pre><code class="language-text"># GC Content Analysis
+
+This notebook analyzes per-contig GC content from a FASTA file.
+
+```biolang
+let seq = dna"ATCGATCGATCG"
+print(f"GC content: {gc_content(seq)}")
+```</code></pre>
+        <p>Run it:</p>
+        <pre><code class="language-bash">bl notebook gc_analysis.bln</code></pre>
+        <p>
+          You'll see the heading rendered in bold, the prose text, then the output of
+          the code block. The terminal uses ANSI colors for a clean reading experience.
+        </p>
+
+        <!-- Step 2 -->
+        <h2>Step 2: Add multiple cells</h2>
+        <p>
+          Notebooks carry state between code blocks. Variables defined in one cell are
+          available in all later cells. Expand the notebook:
+        </p>
+        <pre><code class="language-text"># GC Content Analysis
+
+This notebook analyzes per-contig GC content from a FASTA file.
+
+## Load Data
+
+Read the sample FASTA file shipped with BioLang.
+
+```biolang
+let seqs = read_fasta("examples/sample-data/contigs.fa")
+print(f"Loaded {len(seqs)} sequences")
+```
+
+## Compute Statistics
+
+Calculate GC content for each sequence and summarize.
+
+```biolang
+let gc_values = seqs |> map(|s| gc_content(s.seq))
+let mu = mean(gc_values)
+let sigma = stdev(gc_values)
+print(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
+print(f"Range: {min(gc_values):.3f} - {max(gc_values):.3f}")
+```
+
+## Find Outliers
+
+Flag contigs with GC more than 2 standard deviations from the mean.
+These may indicate contamination or horizontal gene transfer.
+
+```biolang
+let outliers = seqs
+  |> filter(|s| abs(gc_content(s.seq) - mu) > 2.0 * sigma)
+print(f"Found {len(outliers)} outlier contigs")
+outliers |> each(|s| print(f"  {s.id}: GC={gc_content(s.seq):.3f}"))
+```</code></pre>
+        <p>
+          Run it again. Each section prints its heading, prose, and code output in
+          sequence &mdash; a narrative that tells the story of your analysis.
+        </p>
+
+        <!-- Step 3 -->
+        <h2>Step 3: Use cell directives</h2>
+        <p>
+          Cell directives are special comments at the top of a code block that control
+          how it behaves. Add them to clean up the notebook.
+        </p>
+
+        <h3><code># @hide</code> &mdash; silent setup</h3>
+        <p>
+          Configuration code that readers don't need to see. It runs but doesn't appear
+          in the output:
+        </p>
+        <pre><code class="language-text">## Setup
+
+```biolang
+# @hide
+let threshold = 2.0
+let min_length = 100
+```</code></pre>
+
+        <h3><code># @echo</code> &mdash; show your work</h3>
+        <p>
+          For key analysis steps, show both the code and its output:
+        </p>
+        <pre><code class="language-text">## Analysis
+
+```biolang
+# @echo
+let gc_values = seqs |> map(|s| gc_content(s.seq))
+let mu = mean(gc_values)
+print(f"Mean GC: {mu:.3f}")
+```</code></pre>
+        <p>
+          This prints the code first (dimmed), then executes it and shows the output.
+          Readers see exactly what ran.
+        </p>
+
+        <h3><code># @skip</code> &mdash; draft cells</h3>
+        <p>
+          Temporarily disable a cell without deleting it. Useful during development:
+        </p>
+        <pre><code class="language-text">```biolang
+# @skip
+# TODO: add k-mer analysis once data is ready
+let kmers = seqs |> map(|s| kmer_count(s.seq, 21))
+```</code></pre>
+
+        <h3><code># @hide-output</code> &mdash; quiet execution</h3>
+        <p>
+          Show the code but suppress printed output. Good for assignments that produce
+          verbose intermediate results:
+        </p>
+        <pre><code class="language-text">```biolang
+# @hide-output
+let gc_table = seqs
+  |> map(|s| {id: s.id, length: seq_len(s.seq), gc: gc_content(s.seq)})
+  |> table()
+```</code></pre>
+
+        <!-- Step 4 -->
+        <h2>Step 4: Export to HTML</h2>
+        <p>
+          Generate a self-contained HTML report with syntax highlighting:
+        </p>
+        <pre><code class="language-bash">bl notebook gc_analysis.bln --export html > gc_report.html</code></pre>
+        <p>
+          Open <code>gc_report.html</code> in a browser. You'll see:
+        </p>
+        <ul>
+          <li>Rendered Markdown headings and prose</li>
+          <li>Syntax-highlighted code blocks (keywords in purple, strings in green, pipes in cyan)</li>
+          <li>Code output in a separate block</li>
+          <li>A dark-themed design with no external dependencies</li>
+        </ul>
+        <p>
+          The HTML is a single file &mdash; share it via email, put it on a web server,
+          or include it in a lab notebook. No BioLang installation needed to view it.
+        </p>
+
+        <!-- Step 5 -->
+        <h2>Step 5: Jupyter interop</h2>
+        <p>
+          If you have existing Jupyter notebooks, convert them to <code>.bln</code>:
+        </p>
+        <pre><code class="language-bash"># Import: .ipynb to .bln
+bl notebook experiment.ipynb --from-ipynb > experiment.bln</code></pre>
+        <p>
+          Markdown cells become prose sections. Code cells become fenced
+          <code>```biolang</code> blocks. Outputs are discarded (they'll regenerate when
+          you run the notebook).
+        </p>
+        <p>Going the other way:</p>
+        <pre><code class="language-bash"># Export: .bln to .ipynb
+bl notebook gc_analysis.bln --to-ipynb > gc_analysis.ipynb</code></pre>
+        <p>
+          The resulting <code>.ipynb</code> uses nbformat v4 and opens in JupyterLab,
+          VS Code, or any notebook viewer. Code cells are tagged with
+          <code>"language": "biolang"</code>.
+        </p>
+
+        <!-- Step 6 -->
+        <h2>Step 6: Dash delimiters (alternative syntax)</h2>
+        <p>
+          Instead of fenced code blocks, you can use <code>---</code> on its own line
+          to delimit code. This is the original BioLang notebook format:
+        </p>
+        <pre><code class="language-text">## Load Data
+---
+let seqs = read_fasta("contigs.fa")
+print(f"Loaded {len(seqs)} sequences")
+---
+## Results
+The output above shows the sequence count.</code></pre>
+        <p>
+          Both styles can be mixed in the same file. Fenced blocks are recommended for
+          new notebooks since they're compatible with standard Markdown renderers.
+        </p>
+
+        <!-- Complete notebook -->
+        <h2>Complete notebook</h2>
+        <p>Here's the final version with all features combined:</p>
+        <pre><code class="language-text"># GC Content Analysis
+
+A reproducible analysis of per-contig GC content.
+Outlier contigs may indicate contamination or HGT events.
+
+## Setup
+
+```biolang
+# @hide
+let threshold = 2.0
+```
+
+## Load Data
+
+Read the FASTA file and report basic counts.
+
+```biolang
+let seqs = read_fasta("examples/sample-data/contigs.fa")
+print(f"Loaded {len(seqs)} sequences")
+```
+
+## Compute GC Statistics
+
+```biolang
+# @echo
+let gc_values = seqs |> map(|s| gc_content(s.seq))
+let mu = mean(gc_values)
+let sigma = stdev(gc_values)
+print(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
+```
+
+## Build Results Table
+
+```biolang
+# @hide-output
+let gc_table = seqs
+  |> map(|s| {id: s.id, length: seq_len(s.seq), gc: gc_content(s.seq)})
+  |> table()
+```
+
+## Identify Outliers
+
+Contigs more than **2 standard deviations** from the mean
+may represent contamination or horizontal gene transfer.
+
+```biolang
+let outliers = gc_table
+  |> filter(|row| abs(row.gc - mu) > threshold * sigma)
+  |> sort("gc", descending: true)
+
+print(f"Found {len(outliers)} outlier contigs:")
+outliers |> each(|row| print(f"  {row.id}: GC={row.gc:.3f}, length={row.length}"))
+```
+
+## Summary
+
+> Review flagged contigs before downstream assembly.
+> Consider BLAST against nt database to confirm contamination.</code></pre>
+        <p>Run, export, or convert:</p>
+        <pre><code class="language-bash"># Terminal
+bl notebook gc_analysis.bln
+
+# HTML report
+bl notebook gc_analysis.bln --export html > report.html
+
+# Jupyter
+bl notebook gc_analysis.bln --to-ipynb > gc_analysis.ipynb</code></pre>
+
+        <!-- Tips -->
+        <h2>Tips and best practices</h2>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Practice</th>
+                <th class="py-3 px-4">Why</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4">Use <code># @hide</code> for setup</td>
+                <td class="py-3 px-4">Keeps the narrative focused on the science, not boilerplate</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">Use <code># @echo</code> for key steps</td>
+                <td class="py-3 px-4">Readers see exactly what code produced each result</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">Use <code># @skip</code> during development</td>
+                <td class="py-3 px-4">Disable expensive cells without deleting them</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">Prefer fenced blocks over <code>---</code></td>
+                <td class="py-3 px-4">Standard Markdown &mdash; GitHub, editors, and viewers render them correctly</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">One concept per cell</td>
+                <td class="py-3 px-4">Easier to understand, debug, and reorder</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">Version control <code>.bln</code> files</td>
+                <td class="py-3 px-4">They're plain text &mdash; git diff works perfectly</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4">Export HTML for sharing</td>
+                <td class="py-3 px-4">Self-contained file, no BioLang needed to view</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- What's next -->
+        <h2>What's next</h2>
+        <ul>
+          <li><a href="../tools/notebook.html" class="text-violet-400 hover:text-violet-300">Notebooks reference</a> &mdash; full format spec and directive details</li>
+          <li><a href="variant-analysis.html" class="text-violet-400 hover:text-violet-300">Variant Analysis</a> &mdash; try writing it as a notebook instead of a script</li>
+          <li><a href="visualization.html" class="text-violet-400 hover:text-violet-300">Visualization</a> &mdash; add plots to your notebook reports</li>
+        </ul>
+
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="tables.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span aria-hidden="true">&larr;</span> Tables
+        </a>
+        <a href="variant-analysis.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          Variant Analysis <span aria-hidden="true">&rarr;</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>
