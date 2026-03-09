@@ -265,6 +265,38 @@ let bench_gc_content = || {
   seq |> gc_content()
 }</code></pre>
 
+        <h2>bl version</h2>
+        <p>
+          Show the current BioLang version and check for updates from GitHub Releases:
+        </p>
+        <pre><code class="language-bash">bl version
+# BioLang v0.1.0
+#
+# Checking for updates... up to date.</code></pre>
+        <p>
+          If a newer version is available, it will tell you to run <code>bl upgrade</code>.
+        </p>
+
+        <h2>bl upgrade</h2>
+        <p>
+          Download and install the latest BioLang release. Automatically detects your
+          platform and downloads the correct binary from GitHub Releases:
+        </p>
+        <pre><code class="language-bash">bl upgrade
+# BioLang v0.1.0
+#
+# Checking for latest release... v0.2.0 found.
+# Downloading biolang-linux-x86_64.tar.gz...
+# Extracting...
+# Replacing /usr/local/bin/bl...
+# Upgraded to BioLang v0.2.0!</code></pre>
+        <p>
+          BioLang also checks for updates automatically in the background when you run
+          <code>bl run</code> or <code>bl repl</code>. This check runs at most once per 24 hours,
+          never blocks startup, and prints a one-line notice to stderr if a newer version is
+          available. Disable with <code>BIOLANG_NO_UPDATE_CHECK=1</code>.
+        </p>
+
         <h2>Global Options</h2>
         <p>
           These flags are available on all <code>bl</code> subcommands:
@@ -300,30 +332,55 @@ let bench_gc_content = || {
               <tr><td class="py-3 px-4 font-mono">BIOLANG_PATH</td><td class="py-3 px-4">Additional search paths for imports (colon-separated)</td></tr>
               <tr><td class="py-3 px-4 font-mono">NCBI_API_KEY</td><td class="py-3 px-4">NCBI API key for higher rate limits</td></tr>
               <tr><td class="py-3 px-4 font-mono">COSMIC_API_KEY</td><td class="py-3 px-4">COSMIC database API key</td></tr>
+              <tr><td class="py-3 px-4 font-mono">BIOLANG_NO_UPDATE_CHECK</td><td class="py-3 px-4">Set to <code>1</code> to disable automatic update checking</td></tr>
               <tr><td class="py-3 px-4 font-mono">BL_LOG</td><td class="py-3 px-4">Log level (trace, debug, info, warn, error)</td></tr>
             </tbody>
           </table>
         </div>
 
         <section id="notebook" class="mt-12">
-          <h2 class="text-2xl font-bold text-white mb-4">Notebook Mode</h2>
-          <p class="text-slate-400 mb-4">Run literate <code class="text-violet-400">.bln</code> notebooks that interleave Markdown prose with BioLang code.</p>
-          <pre><code class="language-bash">bl notebook analysis.bln</code></pre>
+          <h2 class="text-2xl font-bold text-white mb-4">bl notebook</h2>
+          <p class="text-slate-400 mb-4">
+            Run literate <code class="text-violet-400">.bln</code> notebooks that interleave
+            Markdown prose with BioLang code. See the
+            <a href="notebook.html" class="text-violet-400 hover:text-violet-300">Notebooks page</a>
+            for the full guide.
+          </p>
+          <pre><code class="language-bash"># Run a notebook in the terminal
+bl notebook analysis.bln
+
+# Export to standalone HTML with syntax highlighting
+bl notebook analysis.bln --export html
+
+# Convert Jupyter .ipynb to .bln format
+bl notebook experiment.ipynb --from-ipynb
+
+# Convert .bln to Jupyter .ipynb format
+bl notebook analysis.bln --to-ipynb</code></pre>
           <h3 class="text-lg font-semibold text-white mt-6 mb-3">.bln Format</h3>
-          <p class="text-slate-400 mb-4">Markdown text is printed, code blocks between <code class="text-violet-400">---</code> separators are evaluated. Output is interleaved.</p>
+          <p class="text-slate-400 mb-4">
+            Supports both fenced code blocks (<code class="text-violet-400">```biolang</code>)
+            and dash delimiters (<code class="text-violet-400">---</code>). Cell directives
+            (<code class="text-violet-400"># @hide</code>, <code class="text-violet-400"># @skip</code>,
+            <code class="text-violet-400"># @echo</code>, <code class="text-violet-400"># @hide-output</code>)
+            control how each cell is displayed and executed.
+          </p>
           <pre><code class="language-text">## Load Data
 Read the FASTQ file and compute basic stats.
----
-let reads = fastq("sample.fq")
+
+```biolang
+let reads = read_fastq("sample.fq")
 let stats = fastq_stats(reads)
 print(stats)
----
-## Results
-The statistics above show the quality distribution.
----
+```
+
+## Filter Results
+
+```bl
+# @echo
 let filtered = reads |> filter(|r| mean_phred(r.quality) > 25)
-print("Kept", len(filtered), "of", len(reads), "reads")
----</code></pre>
+print(f"Kept {len(filtered)} of {len(reads)} reads")
+```</code></pre>
           <p class="text-slate-400 mt-4">The interpreter state carries over between code blocks, so variables defined in one block are available in later blocks.</p>
         </section>
       </article>

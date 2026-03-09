@@ -302,6 +302,11 @@ pub fn register_builtins(env: &mut Environment) {
         builtins.push((name, arity));
     }
 
+    // Add graph builtins
+    for (name, arity) in crate::graph::graph_builtin_list() {
+        builtins.push((name, arity));
+    }
+
     // Add container builtins (native only — subprocess + network)
     #[cfg(feature = "native")]
     for (name, arity) in crate::container::container_builtin_list() {
@@ -2039,6 +2044,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         }
         _ if crate::markdown::is_markdown_builtin(name) => {
             crate::markdown::call_markdown_builtin(name, args)
+        }
+        _ if crate::graph::is_graph_builtin(name) => {
+            crate::graph::call_graph_builtin(name, args)
         }
         #[cfg(feature = "native")]
         _ => bl_bio::call_bio_builtin(name, args),

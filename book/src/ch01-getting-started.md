@@ -29,6 +29,35 @@ cp target/release/bl ~/.local/bin/
 bl --version
 ```
 
+### Updating
+
+BioLang has built-in update checking. Run `bl version` to see the current version
+and check if a newer release is available:
+
+```bash
+bl version
+# BioLang v0.1.0
+# Checking for updates... up to date.
+```
+
+To upgrade to the latest release:
+
+```bash
+bl upgrade
+```
+
+This downloads the correct binary for your platform from GitHub Releases and
+replaces the current `bl` executable.
+
+BioLang also checks for updates automatically in the background when you run
+`bl run` or `bl repl`. If a newer version is available, a one-line notice
+appears on stderr. This check runs at most once per 24 hours and never blocks
+startup. Disable it with:
+
+```bash
+export BIOLANG_NO_UPDATE_CHECK=1
+```
+
 ## The REPL
 
 Launch the interactive REPL:

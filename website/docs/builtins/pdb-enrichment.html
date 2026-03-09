@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDB, PubMed &amp; Enrichment — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/pdb-enrichment"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">PDB, PubMed &amp; Enrichment</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">PDB, PubMed &amp; Enrichment</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          11 builtins for querying protein structures from the RCSB PDB, searching
+          biomedical literature via PubMed, and running gene set enrichment analysis.
+          All functions return structured records or tables ready for piping.
+        </p>
+
+        <!-- ============================================================ -->
+        <!-- PDB STRUCTURES                                               -->
+        <!-- ============================================================ -->
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">PDB Structures</h2>
+
+        <!-- pdb_entry -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="pdb_entry">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pdb_entry(pdb_id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String &rarr; Record</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Fetches an entry from the RCSB Protein Data Bank. Returns a record with
+              structural metadata including the title, experimental method, resolution,
+              source organism, and release date.
+            </p>
+            <pre><code class="language-biolang">let hb = pdb_entry("4HHB")
+print(hb.title)         # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN..."
+print(hb.method)        # "X-RAY DIFFRACTION"
+print(hb.resolution)    # 1.74
+print(hb.organism)      # "Homo sapiens"
+print(hb.release_date)  # "1984-07-17"</code></pre>
+          </div>
+        </section>
+
+        <!-- pdb_search -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="pdb_search">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pdb_search(query)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Searches the PDB by keyword. Returns a list of PDB IDs matching the query.
+              Use the results with <code>pdb_entry()</code> to fetch full metadata.
+            </p>
+            <pre><code class="language-biolang">let ids = pdb_search("insulin receptor")
+print(len(ids))   # number of matching structures
+print(ids[0..5])  # first 5 PDB IDs
+
+# Fetch details for the top hits
+ids[0..3]
+  |> map(|id| pdb_entry(id))
+  |> each(|e| print(e.title + " — " + str(e.resolution) + " A"))</code></pre>
+          </div>
+        </section>
+
+        <!-- pdb_chains -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="pdb_chains">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pdb_chains(pdb_id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Lists the polymer chains in a structure. Each entry is a record with
+              chain ID, entity ID, and description.
+            </p>
+            <pre><code class="language-biolang">let chains = pdb_chains("4HHB")
+chains |> each(|c| print(c.chain_id + ": " + c.description))
+# A: HEMOGLOBIN (DEOXY) (ALPHA CHAIN)
+# B: HEMOGLOBIN (DEOXY) (BETA CHAIN)
+# C: HEMOGLOBIN (DEOXY) (ALPHA CHAIN)
+# D: HEMOGLOBIN (DEOXY) (BETA CHAIN)</code></pre>
+          </div>
+        </section>
+
+        <!-- pdb_entity -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="pdb_entity">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pdb_entity(pdb_id, entity_id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String, Int &rarr; Record</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Fetches detailed information about a specific entity within a structure.
+              Returns a record with the entity description, type, molecular weight,
+              chain assignments, and organism source.
+            </p>
+            <pre><code class="language-biolang">let alpha = pdb_entity("4HHB", 1)
+print(alpha.description)   # "HEMOGLOBIN ALPHA CHAIN"
+print(alpha.type)          # "polypeptide(L)"
+print(alpha.weight)        # 15126.4
+print(alpha.chains)        # ["A", "C"]</code></pre>
+          </div>
+        </section>
+
+        <!-- pdb_sequence -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="pdb_sequence">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pdb_sequence(pdb_id, entity_id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String, Int &rarr; String</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Retrieves the amino acid sequence for a given entity. Returns a plain
+              protein sequence string suitable for alignment or further analysis.
+            </p>
+            <pre><code class="language-biolang">let seq = pdb_sequence("4HHB", 1)
+print(len(seq))       # 141 residues
+print(seq[0..20])     # "VLSPADKTNVKAAWGKVGAH"</code></pre>
+          </div>
+        </section>
+
+        <!-- PDB real-world example -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Example: Compare Hemoglobin Chains</h2>
+
+        <p class="mb-4">
+          Fetch both hemoglobin subunit sequences from PDB entry 4HHB and compare
+          their lengths and composition.
+        </p>
+
+        <pre><code class="language-biolang"># Fetch chain information
+let chains = pdb_chains("4HHB")
+let entities = chains
+  |> map(|c| c.entity_id)
+  |> unique()
+
+# Get sequences for each unique entity
+let seqs = entities |> map(|eid| {
+  entity_id: eid,
+  info: pdb_entity("4HHB", eid),
+  sequence: pdb_sequence("4HHB", eid),
+})
+
+# Compare subunits
+seqs |> each(|s| {
+  let seq = s.sequence
+  print(s.info.description)
+  print("  Length:   " + str(len(seq)) + " residues")
+  print("  Chains:  " + join(s.info.chains, ", "))
+  print("  His pct: " + str(round(count(seq, "H") / len(seq) * 100, 1)) + "%")
+})
+
+# Output:
+#   HEMOGLOBIN ALPHA CHAIN
+#     Length:   141 residues
+#     Chains:  A, C
+#     His pct: 7.1%
+#   HEMOGLOBIN BETA CHAIN
+#     Length:   146 residues
+#     Chains:  B, D
+#     His pct: 6.2%</code></pre>
+
+        <!-- ============================================================ -->
+        <!-- PUBMED                                                       -->
+        <!-- ============================================================ -->
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">PubMed</h2>
+
+        <!-- pubmed_search -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="pubmed_search">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pubmed_search(query, max_results?)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String, Int? &rarr; Record</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Searches PubMed via the NCBI E-utilities. Returns a record with
+              <code>count</code> (total matches in the database) and <code>ids</code>
+              (list of PMIDs for the returned page). The optional second argument
+              limits how many IDs are returned (default 20).
+            </p>
+            <pre><code class="language-biolang">let results = pubmed_search("CRISPR Cas9 therapy", 5)
+print(results.count)   # total matching articles (e.g., 12847)
+print(results.ids)     # ["39847123", "39841056", "39838901", "39835444", "39831200"]</code></pre>
+          </div>
+        </section>
+
+        <!-- pubmed_abstract -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="pubmed_abstract">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">pubmed_abstract(pmid)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String &rarr; Record</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Fetches the abstract and metadata for a single PubMed article. Returns a
+              record with <code>title</code>, <code>abstract</code>, <code>authors</code>,
+              <code>journal</code>, <code>year</code>, and <code>doi</code>.
+            </p>
+            <pre><code class="language-biolang">let paper = pubmed_abstract("32553272")
+print(paper.title)     # "Search-and-replace genome editing without..."
+print(paper.journal)   # "Nature"
+print(paper.year)      # 2020
+print(paper.authors[0]) # "Anzalone AV"</code></pre>
+          </div>
+        </section>
+
+        <!-- PubMed pipeline example -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Example: Literature Review Pipeline</h2>
+
+        <p class="mb-4">
+          Search for recent papers on a topic, fetch their abstracts, and build a
+          summary table for review.
+        </p>
+
+        <pre><code class="language-biolang"># Search for recent gene therapy papers
+let hits = pubmed_search("AAV gene therapy retinal dystrophy", 10)
+print("Found " + str(hits.count) + " total articles, fetching top 10")
+
+# Fetch abstracts for each result
+let papers = hits.ids |> map(|pmid| pubmed_abstract(pmid))
+
+# Build a summary table
+let review = papers |> map(|p| {
+  year: p.year,
+  first_author: p.authors[0],
+  journal: p.journal,
+  title: p.title,
+  doi: p.doi,
+})
+
+# Sort by year descending and display
+review
+  |> to_table()
+  |> sort_by(|r| -r.year)
+  |> print()
+
+# Export for reference management
+review |> to_table() |> write_tsv("literature_review.tsv")</code></pre>
+
+        <!-- ============================================================ -->
+        <!-- ENRICHMENT ANALYSIS                                          -->
+        <!-- ============================================================ -->
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Enrichment Analysis</h2>
+
+        <p class="mb-4">
+          BioLang provides builtins for two standard gene set enrichment approaches:
+          over-representation analysis (ORA) and gene set enrichment analysis (GSEA).
+          Both work with gene sets in GMT format and return tables of significant terms.
+        </p>
+
+        <!-- read_gmt -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="read_gmt">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">read_gmt(path)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">String &rarr; Record</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Reads a Gene Matrix Transposed (GMT) file. Each line defines one gene set
+              as: <code>set_name\tdescription\tgene1\tgene2\t...</code>. Returns a record
+              mapping set names to their gene lists.
+            </p>
+            <pre><code class="language-biolang"># GMT format (tab-separated):
+#   GO:0006915  Apoptotic process  BAX  BCL2  CASP3  CASP9  TP53
+#   GO:0007049  Cell cycle         CDK1 CDK2  CCNB1  CCND1  RB1
+
+let gene_sets = read_gmt("c5.go.bp.v2024.1.symbols.gmt")
+print(len(keys(gene_sets)))  # number of gene sets loaded
+print(gene_sets["GO:0006915"])  # ["BAX", "BCL2", "CASP3", "CASP9", "TP53"]</code></pre>
+          </div>
+        </section>
+
+        <!-- enrich (ORA) -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="enrich">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">enrich(genes, gene_sets, background)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">List, Record, List &rarr; Table</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Performs over-representation analysis (ORA) using the hypergeometric test.
+              Tests whether each gene set is enriched in your gene list relative to the
+              background. Returns a table with columns: <code>term</code>,
+              <code>overlap</code>, <code>set_size</code>, <code>p_value</code>,
+              <code>fdr</code> (Benjamini-Hochberg adjusted), and <code>genes</code>
+              (the overlapping gene symbols). Rows are sorted by p-value ascending.
+            </p>
+            <pre><code class="language-biolang">let de_genes = ["TP53", "BRCA1", "CDK2", "CASP3", "BAX", "BCL2", "MYC"]
+let gene_sets = read_gmt("c5.go.bp.v2024.1.symbols.gmt")
+let background = read_lines("all_expressed_genes.txt")
+
+let ora = enrich(de_genes, gene_sets, background)
+ora
+  |> filter(|r| r.fdr < 0.05)
+  |> print()
+
+#  term           | overlap | set_size | p_value  | fdr     | genes
+# ----------------+---------+----------+----------+---------+-----------------------
+#  GO:0006915     | 4       | 312      | 1.2e-06  | 3.4e-04 | TP53,BAX,BCL2,CASP3
+#  GO:0008219     | 3       | 198      | 8.7e-05  | 0.012   | TP53,BAX,CASP3
+#  ...</code></pre>
+          </div>
+        </section>
+
+        <!-- gsea -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="gsea">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">gsea(ranked_genes, gene_sets)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Table, Record &rarr; Table</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Performs Gene Set Enrichment Analysis on a pre-ranked gene list. The
+              <code>ranked_genes</code> table must have <code>gene</code> and
+              <code>score</code> columns (e.g., log2 fold change or signed
+              <code>-log10(p)</code>). Uses a permutation test (1000 permutations) to
+              compute enrichment scores and significance. Returns a table with:
+              <code>term</code>, <code>es</code> (enrichment score), <code>nes</code>
+              (normalized ES), <code>p_value</code>, <code>fdr</code>, and
+              <code>leading_edge</code> (the core enrichment genes).
+            </p>
+            <pre><code class="language-biolang"># Prepare ranked gene list (e.g., from differential expression)
+let de_results = read_tsv("de_results.tsv")
+let ranked = de_results
+  |> mutate(score = |r| r.log2fc * -log10(r.pvalue))
+  |> select(["gene", "score"])
+  |> sort_by(|r| -r.score)
+
+let gene_sets = read_gmt("h.all.v2024.1.symbols.gmt")
+
+let gsea_results = gsea(ranked, gene_sets)
+gsea_results
+  |> filter(|r| r.fdr < 0.25)
+  |> print()
+
+#  term                      | es    | nes   | p_value | fdr   | leading_edge
+# ---------------------------+-------+-------+---------+-------+-------------------
+#  HALLMARK_APOPTOSIS        | 0.62  | 2.14  | 0.0     | 0.002 | BAX,CASP3,TP53...
+#  HALLMARK_P53_PATHWAY      | 0.58  | 2.01  | 0.001   | 0.008 | CDKN1A,MDM2,BAX...
+#  HALLMARK_MYC_TARGETS_V1   | -0.45 | -1.87 | 0.002   | 0.015 | NOP56,RRP1,NPM1...</code></pre>
+          </div>
+        </section>
+
+        <!-- write_gmt -->
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="write_gmt">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">write_gmt(gene_sets, path)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Record, String &rarr; Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Writes a gene set collection to GMT format. Useful for creating custom
+              gene set databases or exporting filtered results.
+            </p>
+            <pre><code class="language-biolang"># Build a custom gene set collection
+let my_sets = {
+  "DNA_repair": ["BRCA1", "BRCA2", "RAD51", "ATM", "ATR", "XRCC1"],
+  "Apoptosis_core": ["BAX", "BCL2", "CASP3", "CASP9", "TP53", "BID"],
+  "Cell_cycle_CDKs": ["CDK1", "CDK2", "CDK4", "CDK6", "CCND1", "CCNB1"],
+}
+
+write_gmt(my_sets, "custom_pathways.gmt")</code></pre>
+          </div>
+        </section>
+
+        <!-- GMT format explanation -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">GMT Format</h2>
+
+        <p class="mb-4">
+          The Gene Matrix Transposed (GMT) format is a tab-delimited text file widely
+          used by MSigDB, Enrichr, and other enrichment tools. Each line defines one
+          gene set:
+        </p>
+
+        <pre><code class="language-plaintext">SET_NAME    description_or_url    GENE1    GENE2    GENE3    ...
+HALLMARK_APOPTOSIS    https://www.gsea-msigdb.org/...    AIM2    ALKBH5    ANP32B    ...
+HALLMARK_P53_PATHWAY    https://www.gsea-msigdb.org/...    AEN    ANKLE1    APC    ...</code></pre>
+
+        <p class="mt-4 mb-4">
+          The first column is the set name, the second is a description (often a URL),
+          and all remaining columns are gene symbols. BioLang&rsquo;s <code>read_gmt()</code>
+          discards the description column and maps set names to gene lists. Common GMT
+          sources include the
+          <a href="https://www.gsea-msigdb.org/" class="text-violet-400 hover:text-violet-300">Molecular Signatures Database (MSigDB)</a>,
+          Gene Ontology, KEGG, and Reactome exports.
+        </p>
+
+        <!-- Real-world enrichment pipeline -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Example: RNA-seq Enrichment Pipeline</h2>
+
+        <p class="mb-4">
+          A complete workflow: load differential expression results, run both ORA
+          and GSEA, and export the significant pathways.
+        </p>
+
+        <pre><code class="language-biolang"># Load differential expression results
+let de = read_tsv("deseq2_results.tsv")
+  |> filter(|r| !is_nan(r.padj))
+
+# --- Over-Representation Analysis ---
+
+# Select significant DE genes (padj < 0.05, |log2FC| > 1)
+let sig_genes = de
+  |> filter(|r| r.padj < 0.05 and abs(r.log2fc) > 1.0)
+  |> map(|r| r.gene)
+
+# All tested genes as background
+let background = de |> map(|r| r.gene)
+
+# Load GO Biological Process gene sets
+let go_bp = read_gmt("c5.go.bp.v2024.1.symbols.gmt")
+
+# Run ORA
+let ora_results = enrich(sig_genes, go_bp, background)
+let sig_ora = ora_results |> filter(|r| r.fdr < 0.05)
+print("ORA: " + str(nrow(sig_ora)) + " significant GO terms")
+sig_ora |> head(10) |> print()
+
+# --- Gene Set Enrichment Analysis ---
+
+# Rank all genes by signed significance
+let ranked = de
+  |> mutate(score = |r| sign(r.log2fc) * -log10(max(r.pvalue, 1e-300)))
+  |> select(["gene", "score"])
+  |> sort_by(|r| -r.score)
+
+# Load Hallmark gene sets
+let hallmarks = read_gmt("h.all.v2024.1.symbols.gmt")
+
+# Run GSEA
+let gsea_results = gsea(ranked, hallmarks)
+let sig_gsea = gsea_results |> filter(|r| r.fdr < 0.25)
+print("GSEA: " + str(nrow(sig_gsea)) + " significant hallmark pathways")
+
+# Separate up- and down-regulated pathways
+let up_paths = sig_gsea |> filter(|r| r.nes > 0) |> sort_by(|r| -r.nes)
+let dn_paths = sig_gsea |> filter(|r| r.nes < 0) |> sort_by(|r| r.nes)
+
+print("Upregulated pathways:")
+up_paths |> each(|r| print("  " + r.term + " (NES=" + str(round(r.nes, 2)) + ")"))
+
+print("Downregulated pathways:")
+dn_paths |> each(|r| print("  " + r.term + " (NES=" + str(round(r.nes, 2)) + ")"))
+
+# Export results
+sig_ora |> write_tsv("ora_significant.tsv")
+sig_gsea |> write_tsv("gsea_significant.tsv")</code></pre>
+
+        <!-- ============================================================ -->
+        <!-- REFERENCE TABLES                                             -->
+        <!-- ============================================================ -->
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">PDB Reference</h2>
+
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr><th>Builtin</th><th>Returns</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>pdb_entry(pdb_id)</code></td><td>Record</td><td>Fetch structure metadata (title, method, resolution, organism, release_date)</td></tr>
+              <tr><td><code>pdb_search(query)</code></td><td>List</td><td>Search PDB by keyword; returns list of PDB IDs</td></tr>
+              <tr><td><code>pdb_chains(pdb_id)</code></td><td>List</td><td>List polymer chains (chain_id, entity_id, description)</td></tr>
+              <tr><td><code>pdb_entity(pdb_id, entity_id)</code></td><td>Record</td><td>Entity detail (description, type, weight, chains)</td></tr>
+              <tr><td><code>pdb_sequence(pdb_id, entity_id)</code></td><td>String</td><td>Amino acid sequence for an entity</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">PubMed Reference</h2>
+
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr><th>Builtin</th><th>Returns</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>pubmed_search(query, max?)</code></td><td>Record</td><td>Search PubMed; returns {count, ids}</td></tr>
+              <tr><td><code>pubmed_abstract(pmid)</code></td><td>Record</td><td>Fetch article metadata and abstract text</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Enrichment Reference</h2>
+
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr><th>Builtin</th><th>Returns</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>read_gmt(path)</code></td><td>Record</td><td>Load GMT file as {set_name: [genes]} record</td></tr>
+              <tr><td><code>write_gmt(gene_sets, path)</code></td><td>Nil</td><td>Write gene set collection to GMT format</td></tr>
+              <tr><td><code>enrich(genes, sets, bg)</code></td><td>Table</td><td>Over-representation analysis (hypergeometric + BH FDR)</td></tr>
+              <tr><td><code>gsea(ranked, sets)</code></td><td>Table</td><td>Gene Set Enrichment Analysis (permutation test, 1000 perms)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </article>
+    </main>
+  </div>
+  <script src="../../js/components.js"></script>
+  <script>hljs.highlightAll();</script>
+</body>
+</html>

@@ -17,6 +17,7 @@ pub mod table_ops;
 pub mod text_ops;
 pub mod viz;
 pub mod bio_plots;
+pub mod graph;
 pub mod markdown;
 
 // Native-only (require filesystem, network, or subprocess)

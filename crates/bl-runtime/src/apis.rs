@@ -85,6 +85,12 @@ pub fn apis_builtin_list() -> Vec<(&'static str, Arity)> {
         // PDB
         ("pdb_entry", Arity::Exact(1)),
         ("pdb_search", Arity::Exact(1)),
+        ("pdb_entity", Arity::Exact(2)),
+        ("pdb_sequence", Arity::Exact(2)),
+        ("pdb_chains", Arity::Exact(1)),
+        // PubMed
+        ("pubmed_search", Arity::Range(1, 2)),
+        ("pubmed_abstract", Arity::Exact(1)),
         // Reactome
         ("reactome_search", Arity::Exact(1)),
         ("reactome_pathways", Arity::Range(1, 2)),
@@ -149,6 +155,11 @@ pub fn is_apis_builtin(name: &str) -> bool {
             | "string_enrichment"
             | "pdb_entry"
             | "pdb_search"
+            | "pdb_entity"
+            | "pdb_sequence"
+            | "pdb_chains"
+            | "pubmed_search"
+            | "pubmed_abstract"
             | "reactome_search"
             | "reactome_pathways"
             | "go_term"
@@ -212,6 +223,11 @@ pub fn call_apis_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         // PDB
         "pdb_entry" => builtin_pdb_entry(args),
         "pdb_search" => builtin_pdb_search(args),
+        "pdb_entity" => builtin_pdb_entity(args),
+        "pdb_sequence" => builtin_pdb_sequence(args),
+        "pdb_chains" => builtin_pdb_chains(args),
+        "pubmed_search" => builtin_pubmed_search(args),
+        "pubmed_abstract" => builtin_pubmed_abstract(args),
         // Reactome
         "reactome_search" => builtin_reactome_search(args),
         "reactome_pathways" => builtin_reactome_pathways(args),
@@ -887,6 +903,74 @@ fn builtin_pdb_search(args: Vec<Value>) -> Result<Value> {
     let query = require_str(&args[0], "pdb_search")?;
     let ids = api_call(&format!("pdb_search(\"{query}\")"), || PDB.with(|c| c.search(query)))?;
     Ok(Value::List(ids.into_iter().map(Value::Str).collect()))
+}
+
+fn builtin_pdb_entity(args: Vec<Value>) -> Result<Value> {
+    let pdb_id = require_str(&args[0], "pdb_entity")?;
+    let entity_id = require_int(&args[1], "pdb_entity")? as u32;
+    let ent = api_call(&format!("pdb_entity(\"{pdb_id}\", {entity_id})"), || {
+        PDB.with(|c| c.entity(pdb_id, entity_id))
+    })?;
+    let mut map = HashMap::new();
+    map.insert("entity_id".into(), Value::Int(ent.entity_id as i64));
+    map.insert("description".into(), Value::Str(ent.description));
+    map.insert("entity_type".into(), Value::Str(ent.entity_type));
+    map.insert("sequence".into(), Value::Str(ent.sequence));
+    Ok(Value::Record(map))
+}
+
+fn builtin_pdb_sequence(args: Vec<Value>) -> Result<Value> {
+    let pdb_id = require_str(&args[0], "pdb_sequence")?;
+    let entity_id = require_int(&args[1], "pdb_sequence")? as u32;
+    let seq = api_call(&format!("pdb_sequence(\"{pdb_id}\", {entity_id})"), || {
+        PDB.with(|c| c.sequence(pdb_id, entity_id))
+    })?;
+    Ok(Value::Protein(bl_core::value::BioSequence { data: seq.to_uppercase() }))
+}
+
+fn builtin_pdb_chains(args: Vec<Value>) -> Result<Value> {
+    let pdb_id = require_str(&args[0], "pdb_chains")?;
+    // Fetch entities 1..10 and collect those that exist
+    let mut chains = Vec::new();
+    for i in 1..=10u32 {
+        match PDB.with(|c| c.entity(pdb_id, i)) {
+            Ok(ent) => {
+                let mut map = HashMap::new();
+                map.insert("entity_id".into(), Value::Int(ent.entity_id as i64));
+                map.insert("description".into(), Value::Str(ent.description));
+                map.insert("entity_type".into(), Value::Str(ent.entity_type));
+                map.insert("sequence".into(), Value::Str(ent.sequence));
+                chains.push(Value::Record(map));
+            }
+            Err(_) => break,
+        }
+    }
+    Ok(Value::List(chains))
+}
+
+// ---------------------------------------------------------------------------
+// PubMed builtins
+// ---------------------------------------------------------------------------
+
+fn builtin_pubmed_search(args: Vec<Value>) -> Result<Value> {
+    let query = require_str(&args[0], "pubmed_search")?;
+    let max = if args.len() > 1 { require_int(&args[1], "pubmed_search")? as usize } else { 10 };
+    let result = api_call(&format!("pubmed_search(\"{query}\")"), || {
+        NCBI.with(|c| c.search_pubmed(query, max))
+    })?;
+    let ids: Vec<Value> = result.ids.into_iter().map(Value::Str).collect();
+    let mut map = HashMap::new();
+    map.insert("count".into(), Value::Int(result.count as i64));
+    map.insert("ids".into(), Value::List(ids));
+    Ok(Value::Record(map))
+}
+
+fn builtin_pubmed_abstract(args: Vec<Value>) -> Result<Value> {
+    let pmid = require_str(&args[0], "pubmed_abstract")?;
+    let text = api_call(&format!("pubmed_abstract(\"{pmid}\")"), || {
+        NCBI.with(|c| c.efetch_text("pubmed", &[pmid], "abstract"))
+    })?;
+    Ok(Value::Str(text))
 }
 
 // ---------------------------------------------------------------------------

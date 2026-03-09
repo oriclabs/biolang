@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notebooks — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/notebook"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Notebooks</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Literate Notebooks</h1>
+        <p>
+          BioLang notebooks (<code>.bln</code> files) interleave Markdown prose with executable
+          BioLang code. They're perfect for documenting analyses, creating reproducible reports,
+          and sharing results with collaborators.
+        </p>
+
+        <h2>Quick Start</h2>
+        <pre><code class="language-bash"># Run a notebook in the terminal
+bl notebook analysis.bln
+
+# Export to standalone HTML
+bl notebook analysis.bln --export html
+
+# Convert from Jupyter
+bl notebook experiment.ipynb --from-ipynb > experiment.bln
+
+# Convert to Jupyter
+bl notebook experiment.bln --to-ipynb > experiment.ipynb</code></pre>
+
+        <h2>The .bln Format</h2>
+        <p>
+          A <code>.bln</code> file is plain text. Markdown prose is rendered, and code blocks
+          are evaluated. Interpreter state carries over between blocks &mdash; variables defined
+          in one block are available in all later blocks.
+        </p>
+
+        <h3>Fenced Code Blocks</h3>
+        <p>
+          Use standard Markdown fenced code blocks with <code>biolang</code>, <code>bl</code>,
+          or no language tag:
+        </p>
+        <pre><code class="language-text">## Sample Quality Control
+
+Load the FASTQ file and check basic statistics.
+
+```biolang
+let reads = read_fastq("sample_R1.fastq.gz")
+let stats = fastq_stats(reads)
+print(stats)
+```
+
+## Filter Low-Quality Reads
+
+Keep only reads with mean Phred score above 25.
+
+```bl
+let filtered = reads |> filter(|r| mean_phred(r.quality) > 25)
+print(f"Kept {len(filtered)} of {len(reads)} reads")
+```</code></pre>
+
+        <h3>Dash-Delimited Code Blocks</h3>
+        <p>
+          Alternatively, use <code>---</code> on its own line to delimit code blocks. This
+          is the original BioLang notebook format:
+        </p>
+        <pre><code class="language-text">## Load Data
+Read the FASTA file and compute per-sequence GC content.
+---
+let seqs = read_fasta("contigs.fa")
+let gc_table = seqs |> map(|s| {id: s.id, gc: gc_content(s.seq)}) |> table()
+print(gc_table)
+---
+## Results
+The table above shows GC content per contig.</code></pre>
+        <p>
+          You can mix both styles in the same notebook. Code blocks with other language tags
+          (e.g. <code>```python</code>) are treated as prose and displayed but not executed.
+        </p>
+
+        <h2>Cell Directives</h2>
+        <p>
+          Add special comment annotations at the top of a code block to control how it behaves:
+        </p>
+        <div class="not-prose overflow-x-auto mb-8">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Directive</th>
+                <th class="py-3 px-4">Effect</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4 font-mono"># @hide</td>
+                <td class="py-3 px-4">Execute the code but don't display it in output. Useful for setup code.</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono"># @skip</td>
+                <td class="py-3 px-4">Don't execute this block. Useful for draft or commented-out cells.</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono"># @echo</td>
+                <td class="py-3 px-4">Print the code before executing it. Shows both code and output.</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono"># @hide-output</td>
+                <td class="py-3 px-4">Execute the code (and show it) but suppress any printed output.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Directives are stripped from the code before execution. You can combine them:</p>
+        <pre><code class="language-text">```biolang
+# @echo
+# @hide-output
+let config = {min_quality: 30, threads: 8}
+let reference = "GRCh38"
+```</code></pre>
+
+        <h2>HTML Export</h2>
+        <p>
+          Export a notebook to a self-contained HTML file with syntax highlighting and a
+          dark-themed design:
+        </p>
+        <pre><code class="language-bash">bl notebook analysis.bln --export html > report.html</code></pre>
+        <p>
+          The HTML output includes inline CSS styling, BioLang syntax highlighting with
+          color-coded keywords, strings, comments, and pipe operators. It's a single file
+          with no external dependencies &mdash; perfect for sharing via email or publishing.
+        </p>
+
+        <h2>Jupyter Interop</h2>
+        <p>
+          Convert between BioLang's <code>.bln</code> format and Jupyter's <code>.ipynb</code>
+          format for compatibility with the Jupyter ecosystem.
+        </p>
+
+        <h3>Import from Jupyter</h3>
+        <pre><code class="language-bash"># Convert .ipynb to .bln (prints to stdout)
+bl notebook experiment.ipynb --from-ipynb > experiment.bln</code></pre>
+        <p>
+          Markdown cells become prose sections. Code cells are wrapped in fenced
+          <code>```biolang</code> blocks. Outputs are discarded (they'll be regenerated when
+          you run the notebook).
+        </p>
+
+        <h3>Export to Jupyter</h3>
+        <pre><code class="language-bash"># Convert .bln to .ipynb (prints to stdout)
+bl notebook analysis.bln --to-ipynb > analysis.ipynb</code></pre>
+        <p>
+          Prose sections become Markdown cells. Code blocks become code cells with
+          <code>"language": "biolang"</code> metadata. The resulting notebook uses
+          nbformat v4 and can be opened in JupyterLab, VS Code, or any notebook viewer.
+        </p>
+
+        <h2>Terminal Rendering</h2>
+        <p>
+          When you run <code>bl notebook file.bln</code> in a terminal, prose sections are
+          rendered with ANSI styling:
+        </p>
+        <ul>
+          <li><strong>Headings</strong> &mdash; bold, underlined, with level indicators</li>
+          <li><strong>Inline code</strong> &mdash; cyan highlight</li>
+          <li><strong>Bold</strong> and <em>italic</em> &mdash; ANSI bold/italic</li>
+          <li><strong>Blockquotes</strong> &mdash; indented with <code>|</code> prefix in dim text</li>
+          <li><strong>Lists</strong> &mdash; bullet points with indentation</li>
+        </ul>
+        <p>
+          Code blocks are executed in order. Output is interleaved between prose sections,
+          making it easy to follow an analysis step by step.
+        </p>
+
+        <h2>Example Notebook</h2>
+        <p>Here's a complete <code>.bln</code> notebook demonstrating the key features:</p>
+        <pre><code class="language-text"># GC Content Analysis
+
+This notebook analyzes GC content across a set of contigs
+and identifies potential outliers.
+
+## Setup
+
+```biolang
+# @hide
+let min_gc = 0.3
+let max_gc = 0.7
+```
+
+## Load Data
+
+Read the FASTA file and compute per-sequence statistics.
+
+```biolang
+let seqs = read_fasta("contigs.fa")
+print(f"Loaded {len(seqs)} sequences")
+```
+
+## Compute GC Content
+
+```biolang
+# @echo
+let gc_values = seqs |> map(|s| gc_content(s.seq))
+let mean_gc = mean(gc_values)
+let std_gc = stdev(gc_values)
+print(f"Mean GC: {mean_gc:.3f} +/- {std_gc:.4f}")
+```
+
+## Identify Outliers
+
+Flag contigs with GC content more than 2 standard deviations
+from the mean &mdash; these may indicate contamination or
+horizontal gene transfer.
+
+```biolang
+let outliers = seqs
+  |> filter(|s| {
+    let gc = gc_content(s.seq)
+    abs(gc - mean_gc) > 2.0 * std_gc
+  })
+print(f"Found {len(outliers)} outlier contigs")
+outliers |> each(|s| print(f"  {s.id}: GC={gc_content(s.seq):.3f}"))
+```
+
+## Summary
+
+> The analysis identified potential contaminant contigs based
+> on anomalous GC content. Review these sequences before
+> downstream assembly or annotation.</code></pre>
+
+        <h2>Tips</h2>
+        <ul>
+          <li>Use <code># @hide</code> for configuration and imports to keep the narrative clean</li>
+          <li>Use <code># @echo</code> for key analysis steps so readers see both code and results</li>
+          <li>Use <code># @skip</code> to temporarily disable expensive computation during development</li>
+          <li>Use <code># @hide-output</code> when you want to show the code but not its (verbose) output</li>
+          <li>State carries across cells &mdash; define variables once and reuse them throughout</li>
+          <li>The HTML export is self-contained: share <code>report.html</code> directly</li>
+          <li>Use <code>--from-ipynb</code> to migrate existing Jupyter notebooks to BioLang</li>
+        </ul>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="repl.html" class="text-violet-400 hover:text-violet-300">&larr; REPL</a>
+        <a href="lsp.html" class="text-violet-400 hover:text-violet-300">LSP &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

@@ -288,7 +288,7 @@ chat("What pathways involve BRCA1 and TP53?")</code></pre>
         </div>
         <div class="feature-cell text-center">
           <span class="text-sm font-semibold text-white">PDB</span>
-          <p class="text-xs text-slate-500 mt-1">Structures, search</p>
+          <p class="text-xs text-slate-500 mt-1">Entries, chains, sequences, search</p>
         </div>
         <div class="feature-cell text-center">
           <span class="text-sm font-semibold text-white">Reactome</span>
@@ -321,6 +321,37 @@ chat("What pathways involve BRCA1 and TP53?")</code></pre>
         <div class="feature-cell text-center">
           <span class="text-sm font-semibold text-white">Galaxy ToolShed</span>
           <p class="text-xs text-slate-500 mt-1">Tool repositories, categories</p>
+        </div>
+      </div>
+
+      <!-- ── Knowledge Graphs & Enrichment ── -->
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-emerald-400 rounded-full"></span> Knowledge Graphs, Enrichment &amp; Literature
+      </h2>
+      <div class="feature-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">GRAPH</span>
+            <span class="font-semibold text-white text-sm">Knowledge Graphs</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Built-in graph data structure for PPI networks, regulatory networks, and pathways.</p>
+          <div class="mini-code">let g = graph()<br>let g = add_edge(g, "BRCA1", "TP53")<br>neighbors(g, "BRCA1")<br>shortest_path(g, "A", "B")<br>connected_components(g)</div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">ENRICH</span>
+            <span class="font-semibold text-white text-sm">Enrichment Analysis</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">ORA (hypergeometric + BH FDR) and GSEA (permutation-based) with GMT file parsing.</p>
+          <div class="mini-code">let sets = read_gmt("hallmark.gmt")<br>enrich(genes, sets, 20000)<br>gsea(ranked, sets)<br><span class="text-slate-500"># Filter by FDR &lt; 0.05</span></div>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-bio">PDB</span>
+            <span class="font-semibold text-white text-sm">PDB &amp; PubMed</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Fetch PDB structures, chains, sequences. Search PubMed and retrieve abstracts.</p>
+          <div class="mini-code">pdb_entry("4HHB")<br>pdb_chains("4HHB")<br>pdb_sequence("4HHB", 1)<br>pubmed_search("CRISPR", 10)<br>pubmed_abstract(pmid)</div>
         </div>
       </div>
 
@@ -530,6 +561,13 @@ chat("What pathways involve BRCA1 and TP53?")</code></pre>
             <span class="font-semibold text-white text-sm">LSP Server</span>
           </div>
           <p class="text-xs text-slate-400">Diagnostics, completion, hover — works with VS Code, Neovim, Helix.</p>
+        </div>
+        <div class="feature-cell">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag tag-data">DOC</span>
+            <span class="font-semibold text-white text-sm">Literate Notebooks</span>
+          </div>
+          <p class="text-xs text-slate-400">.bln format: Markdown + code. Cell directives, HTML export, Jupyter import/export.</p>
         </div>
         <div class="feature-cell">
           <div class="flex items-center gap-2 mb-2">

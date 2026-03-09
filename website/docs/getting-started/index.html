@@ -155,7 +155,27 @@ cargo build --release
 # Binary is at target/debug/bl</code></pre>
 
         <h2>Updating</h2>
-        <p>To update an existing Cargo installation to the latest version:</p>
+        <p>
+          BioLang has a built-in self-update mechanism. Check your current version and whether
+          an update is available:
+        </p>
+        <pre><code class="language-bash">bl version
+# BioLang v0.1.0
+# Checking for updates... up to date.</code></pre>
+        <p>Upgrade to the latest release with a single command:</p>
+        <pre><code class="language-bash">bl upgrade</code></pre>
+        <p>
+          This downloads the correct binary for your platform from GitHub Releases and replaces
+          the current <code>bl</code> executable automatically.
+        </p>
+        <p>
+          BioLang also checks for updates in the background when you run <code>bl run</code> or
+          <code>bl repl</code>. If a newer version is available, a one-line notice appears on stderr.
+          This check runs at most once per 24 hours and never blocks startup. Disable it with:
+        </p>
+        <pre><code class="language-bash">export BIOLANG_NO_UPDATE_CHECK=1</code></pre>
+        <h3>Alternative update methods</h3>
+        <p>If you installed via Cargo:</p>
         <pre><code class="language-bash">cargo install bl-cli --force</code></pre>
         <p>For Homebrew:</p>
         <pre><code class="language-bash">brew upgrade biolang</code></pre>

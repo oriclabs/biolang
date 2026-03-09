@@ -31,10 +31,13 @@
 - [Bio APIs](./ch15-bio-apis.md)
 - [Streams & Scale](./ch16-streams-scale.md)
 - [SQLite & Notifications](./ch16b-sqlite-notifications.md)
+- [Knowledge Graphs](./ch16c-knowledge-graphs.md)
+- [PDB & Enrichment](./ch16d-pdb-enrichment.md)
 
 # Extending BioLang
 
-- [Plugins & Extending](./ch17-plugins.md)
+- [Literate Notebooks](./ch17-notebooks.md)
+- [Plugins & Extending](./ch18-plugins.md)
 
 # Appendix
 

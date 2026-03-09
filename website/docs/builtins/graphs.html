@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Graphs — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="builtins/graphs"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Builtins Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Knowledge Graphs</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1 class="text-4xl font-bold text-white mb-2">Knowledge Graphs</h1>
+        <p class="text-lg text-slate-400 mb-8">
+          15 builtins for building and querying graph data structures. Model protein-protein interactions,
+          gene regulatory networks, metabolic pathways, and ontology hierarchies as first-class graphs
+          in BioLang. Supports both directed and undirected graphs with arbitrary node and edge attributes.
+        </p>
+
+        <!-- Creating Graphs -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Creating Graphs</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="graph">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">graph(directed?)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Bool? &rarr; Graph</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Creates a new graph. Call with no arguments for an undirected graph, or pass
+              <code>true</code> for a directed graph. Directed graphs distinguish edge direction
+              &mdash; useful for regulatory networks and signaling cascades.
+            </p>
+            <pre><code class="language-biolang"># Undirected graph (e.g., protein-protein interactions)
+let ppi = graph()
+
+# Directed graph (e.g., gene regulatory network)
+let grn = graph(true)</code></pre>
+          </div>
+        </section>
+
+        <!-- Adding Nodes and Edges -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Adding Nodes and Edges</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="add_node">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">add_node(g, id, attrs?)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String, Record? &rarr; Graph</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Adds a node with the given identifier and optional attribute record. If the node already
+              exists, its attributes are updated. Returns the graph for chaining.
+            </p>
+            <pre><code class="language-biolang">let g = graph()
+  |> add_node("TP53", {type: "tumor_suppressor", chrom: "chr17"})
+  |> add_node("MDM2", {type: "oncogene", chrom: "chr12"})
+  |> add_node("BRCA1", {type: "tumor_suppressor", chrom: "chr17"})</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="add_edge">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">add_edge(g, from, to, attrs?)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String, String, Record? &rarr; Graph</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Adds an edge between two nodes with optional attributes. If either node does not yet
+              exist, it is automatically created with empty attributes. Returns the graph for chaining.
+            </p>
+            <pre><code class="language-biolang">let g = graph()
+  |> add_edge("TP53", "MDM2", {score: 0.99, source: "STRING"})
+  |> add_edge("TP53", "BRCA1", {score: 0.95, source: "STRING"})
+  |> add_edge("BRCA1", "BARD1", {score: 0.97, source: "STRING"})
+
+# Nodes TP53, MDM2, BRCA1, and BARD1 are created automatically</code></pre>
+          </div>
+        </section>
+
+        <!-- Querying -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Querying</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="nodes">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">nodes(g)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns a list of all node identifiers in the graph.
+            </p>
+            <pre><code class="language-biolang">let ids = nodes(g)
+# ["TP53", "MDM2", "BRCA1", "BARD1"]</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="edges">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">edges(g)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns a list of all edges as records with <code>from</code>, <code>to</code>, and any
+              attached attributes.
+            </p>
+            <pre><code class="language-biolang">let all_edges = edges(g)
+all_edges |> each(|e| print(e.from + " -- " + e.to + " score=" + str(e.score)))</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="has_node">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">has_node(g, id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String &rarr; Bool</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns <code>true</code> if the graph contains a node with the given identifier.
+            </p>
+            <pre><code class="language-biolang">has_node(g, "TP53")    # true
+has_node(g, "EGFR")    # false</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="has_edge">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">has_edge(g, from, to)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String, String &rarr; Bool</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns <code>true</code> if an edge exists between the two nodes. In undirected graphs,
+              order does not matter. In directed graphs, checks specifically for an edge from
+              <code>from</code> to <code>to</code>.
+            </p>
+            <pre><code class="language-biolang">has_edge(g, "TP53", "MDM2")   # true
+has_edge(g, "MDM2", "BARD1")  # false</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="neighbors">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">neighbors(g, id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns a list of node identifiers directly connected to the given node. In directed
+              graphs, returns outgoing neighbors only.
+            </p>
+            <pre><code class="language-biolang">let tp53_partners = neighbors(g, "TP53")
+# ["MDM2", "BRCA1"]
+
+print(str(len(tp53_partners)) + " interaction partners for TP53")</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="degree">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">degree(g, id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String &rarr; Int</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns the number of edges connected to the given node. In directed graphs, counts
+              both incoming and outgoing edges.
+            </p>
+            <pre><code class="language-biolang">let d = degree(g, "TP53")
+# 2 (connected to MDM2 and BRCA1)</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="shortest_path">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">shortest_path(g, from, to)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String, String &rarr; List | Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Finds the shortest path between two nodes using breadth-first search. Returns a list
+              of node identifiers forming the path, or <code>nil</code> if no path exists.
+            </p>
+            <pre><code class="language-biolang">let path = shortest_path(g, "MDM2", "BARD1")
+# ["MDM2", "TP53", "BRCA1", "BARD1"]
+
+if path != nil then
+  print("Path length: " + str(len(path) - 1) + " edges")
+else
+  print("No path found")
+end</code></pre>
+          </div>
+        </section>
+
+        <!-- Graph Analysis -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Graph Analysis</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="connected_components">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">connected_components(g)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph &rarr; List</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns a list of connected components, where each component is a list of node identifiers.
+              Useful for identifying separate clusters in interaction networks.
+            </p>
+            <pre><code class="language-biolang"># Build a network with two disconnected clusters
+let g = graph()
+  |> add_edge("TP53", "MDM2", {})
+  |> add_edge("TP53", "BRCA1", {})
+  |> add_edge("KRAS", "BRAF", {})
+  |> add_edge("BRAF", "MEK1", {})
+
+let components = connected_components(g)
+# [["TP53", "MDM2", "BRCA1"], ["KRAS", "BRAF", "MEK1"]]
+
+print(str(len(components)) + " connected components")</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="subgraph">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">subgraph(g, node_ids)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, List &rarr; Graph</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Extracts a subgraph containing only the specified nodes and edges between them.
+              Node and edge attributes are preserved.
+            </p>
+            <pre><code class="language-biolang"># Extract the p53 neighborhood
+let tp53_subnet = subgraph(g, ["TP53", "MDM2", "BRCA1"])
+
+print(str(len(nodes(tp53_subnet))) + " nodes in subgraph")
+print(str(len(edges(tp53_subnet))) + " edges in subgraph")</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="node_attr">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">node_attr(g, id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String &rarr; Record | Nil</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Returns the attribute record attached to a node, or <code>nil</code> if the node does
+              not exist.
+            </p>
+            <pre><code class="language-biolang">let attrs = node_attr(g, "TP53")
+# {type: "tumor_suppressor", chrom: "chr17"}
+
+print(attrs.type)   # "tumor_suppressor"</code></pre>
+          </div>
+        </section>
+
+        <!-- Removing Nodes and Edges -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Removing Nodes and Edges</h2>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="remove_node">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">remove_node(g, id)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String &rarr; Graph</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Removes a node and all edges connected to it. Returns the graph for chaining.
+            </p>
+            <pre><code class="language-biolang">let g = g |> remove_node("MDM2")
+
+has_node(g, "MDM2")          # false
+has_edge(g, "TP53", "MDM2")  # false (edge removed too)</code></pre>
+          </div>
+        </section>
+
+        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="remove_edge">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+            <code class="text-violet-400 font-semibold">remove_edge(g, from, to)</code>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Graph, String, String &rarr; Graph</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-slate-400 mb-3">
+              Removes the edge between two nodes. The nodes themselves remain in the graph.
+              Returns the graph for chaining.
+            </p>
+            <pre><code class="language-biolang">let g = g |> remove_edge("TP53", "BRCA1")
+
+has_node(g, "TP53")           # true (node still exists)
+has_edge(g, "TP53", "BRCA1")  # false (edge removed)</code></pre>
+          </div>
+        </section>
+
+        <!-- Directed vs Undirected -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Directed vs Undirected</h2>
+
+        <p class="mb-4">
+          The choice between directed and undirected affects edge lookup, neighbor queries, and
+          path traversal. Undirected graphs treat edges as bidirectional; directed graphs respect
+          edge direction.
+        </p>
+
+        <pre><code class="language-biolang"># Undirected: protein-protein interactions are symmetric
+let ppi = graph()
+  |> add_edge("TP53", "MDM2", {})
+
+has_edge(ppi, "TP53", "MDM2")  # true
+has_edge(ppi, "MDM2", "TP53")  # true  (symmetric)
+neighbors(ppi, "MDM2")         # ["TP53"]
+
+# Directed: transcription factor regulates target gene
+let grn = graph(true)
+  |> add_edge("TP53", "CDKN1A", {type: "activates"})
+  |> add_edge("TP53", "BAX", {type: "activates"})
+  |> add_edge("MYC", "TP53", {type: "represses"})
+
+has_edge(grn, "TP53", "CDKN1A")  # true
+has_edge(grn, "CDKN1A", "TP53")  # false (directed)
+neighbors(grn, "TP53")           # ["CDKN1A", "BAX"] (outgoing only)
+degree(grn, "TP53")              # 3 (2 outgoing + 1 incoming)</code></pre>
+
+        <!-- Real-World Example -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Real-World Example: STRING Network Analysis</h2>
+
+        <p class="mb-4">
+          Build a protein-protein interaction network from the STRING database, identify hub genes
+          by degree centrality, and check connectivity between genes of interest.
+        </p>
+
+        <pre><code class="language-biolang"># Query STRING for TP53 interaction partners
+let interactions = string_network("TP53", {species: 9606, score_threshold: 700})
+
+# Build graph from STRING results
+let ppi = graph()
+interactions |> each(|row| {
+  ppi = add_edge(ppi, row.preferredName_A, row.preferredName_B, {
+    score: row.score,
+    source: "STRING"
+  })
+})
+
+print(str(len(nodes(ppi))) + " proteins in network")
+print(str(len(edges(ppi))) + " interactions")
+
+# Find hub genes (highest degree)
+let hub_genes = nodes(ppi)
+  |> map(|n| {gene: n, degree: degree(ppi, n)})
+  |> sort_by(|x| 0 - x.degree)
+  |> take(10)
+
+print("Top 10 hub genes:")
+hub_genes |> each(|h| print("  " + h.gene + ": " + str(h.degree) + " interactions"))
+
+# Check connectivity between two genes
+let path = shortest_path(ppi, "MDM2", "BRCA1")
+if path != nil then
+  print("Path from MDM2 to BRCA1: " + join(path, " -> "))
+  print("Distance: " + str(len(path) - 1) + " edges")
+else
+  print("MDM2 and BRCA1 are not connected")
+end
+
+# Identify network clusters
+let components = connected_components(ppi)
+print(str(len(components)) + " connected components")
+components
+  |> filter(|c| len(c) >= 3)
+  |> each(|c| print("  Cluster (" + str(len(c)) + " genes): " + join(take(c, 5), ", ")))
+
+# Extract subnetwork of tumor suppressors
+let ts_genes = nodes(ppi)
+  |> filter(|n| {
+    let a = node_attr(ppi, n)
+    a != nil and a.type == "tumor_suppressor"
+  })
+let ts_subnet = subgraph(ppi, ts_genes)
+print(str(len(nodes(ts_subnet))) + " tumor suppressors, " + str(len(edges(ts_subnet))) + " interactions")</code></pre>
+
+        <!-- Builtin Reference Table -->
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6">Builtin Reference</h2>
+
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr><th>Builtin</th><th>Returns</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>graph(directed?)</code></td><td>Graph</td><td>Create a new graph; pass <code>true</code> for directed</td></tr>
+              <tr><td><code>add_node(g, id, attrs?)</code></td><td>Graph</td><td>Add or update a node with optional attributes</td></tr>
+              <tr><td><code>add_edge(g, from, to, attrs?)</code></td><td>Graph</td><td>Add an edge; auto-creates missing nodes</td></tr>
+              <tr><td><code>nodes(g)</code></td><td>List</td><td>List all node identifiers</td></tr>
+              <tr><td><code>edges(g)</code></td><td>List</td><td>List all edges as records (from, to, attrs)</td></tr>
+              <tr><td><code>has_node(g, id)</code></td><td>Bool</td><td>Check if a node exists</td></tr>
+              <tr><td><code>has_edge(g, from, to)</code></td><td>Bool</td><td>Check if an edge exists between two nodes</td></tr>
+              <tr><td><code>neighbors(g, id)</code></td><td>List</td><td>List directly connected node identifiers</td></tr>
+              <tr><td><code>degree(g, id)</code></td><td>Int</td><td>Count edges connected to a node</td></tr>
+              <tr><td><code>shortest_path(g, from, to)</code></td><td>List | Nil</td><td>BFS shortest path; nil if unreachable</td></tr>
+              <tr><td><code>connected_components(g)</code></td><td>List</td><td>List of node-id lists per component</td></tr>
+              <tr><td><code>subgraph(g, node_ids)</code></td><td>Graph</td><td>Extract subgraph with given nodes and their edges</td></tr>
+              <tr><td><code>node_attr(g, id)</code></td><td>Record | Nil</td><td>Get attribute record for a node</td></tr>
+              <tr><td><code>remove_node(g, id)</code></td><td>Graph</td><td>Remove a node and all its edges</td></tr>
+              <tr><td><code>remove_edge(g, from, to)</code></td><td>Graph</td><td>Remove an edge; nodes remain</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </article>
+    </main>
+  </div>
+  <script src="../../js/components.js"></script>
+  <script>hljs.highlightAll();</script>
+</body>
+</html>

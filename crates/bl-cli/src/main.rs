@@ -1,4 +1,5 @@
 mod notebook;
+mod update;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -8,7 +9,7 @@ use std::time::Instant;
 #[derive(Parser)]
 #[command(
     name = "bl",
-    version = "0.1.0",
+    version = "0.2.0",
     about = "BioLang — pipe-first bioinformatics DSL"
 )]
 struct Cli {
@@ -53,8 +54,17 @@ enum Commands {
     },
     /// Run a literate notebook (.bln file)
     Notebook {
-        /// Path to the .bln notebook file
+        /// Path to the .bln or .ipynb file
         file: String,
+        /// Export format: html
+        #[arg(long)]
+        export: Option<String>,
+        /// Convert Jupyter .ipynb to .bln format (prints to stdout)
+        #[arg(long)]
+        from_ipynb: bool,
+        /// Convert .bln to Jupyter .ipynb format (prints to stdout)
+        #[arg(long)]
+        to_ipynb: bool,
     },
     /// Install package dependencies
     Install {
@@ -67,6 +77,10 @@ enum Commands {
         #[arg(long)]
         branch: Option<String>,
     },
+    /// Show version and check for updates
+    Version,
+    /// Upgrade to the latest release
+    Upgrade,
 }
 
 fn main() {
@@ -79,9 +93,35 @@ fn main() {
         .spawn(|| {
             let cli = Cli::parse();
 
+            // Background update check for interactive commands
+            match &cli.command {
+                Some(Commands::Run { .. })
+                | Some(Commands::Repl)
+                | None => {
+                    update::check_for_updates_background();
+                }
+                _ => {}
+            }
+
             match cli.command {
                 Some(Commands::Run { file, verbose }) => run_file(&file, verbose),
-                Some(Commands::Notebook { file }) => notebook::run_notebook(&file),
+                Some(Commands::Notebook { file, export, from_ipynb, to_ipynb }) => {
+                    if from_ipynb {
+                        notebook::ipynb_to_bln(&file);
+                    } else if to_ipynb {
+                        notebook::bln_to_ipynb(&file);
+                    } else if let Some(fmt) = export {
+                        match fmt.as_str() {
+                            "html" => notebook::export_html(&file),
+                            _ => {
+                                eprintln!("Unknown export format '{fmt}'. Supported: html");
+                                process::exit(1);
+                            }
+                        }
+                    } else {
+                        notebook::run_notebook(&file);
+                    }
+                }
                 Some(Commands::Lsp) => cmd_lsp(),
                 Some(Commands::Add { name, path }) => cmd_add(&name, path.as_deref()),
                 Some(Commands::Remove { name }) => cmd_remove(&name),
@@ -92,6 +132,8 @@ fn main() {
                     git,
                     branch,
                 }) => cmd_install(source.as_deref(), git.as_deref(), branch.as_deref()),
+                Some(Commands::Version) => update::cmd_version(),
+                Some(Commands::Upgrade) => update::cmd_upgrade(),
                 Some(Commands::Repl) | None => start_repl(),
             }
         })

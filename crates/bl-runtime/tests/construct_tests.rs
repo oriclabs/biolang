@@ -947,17 +947,27 @@ fn test_gene_rejects_empty_symbol() {
 
 #[test]
 fn test_gene_record_rejects_empty_symbol() {
-    assert!(eval_err(r#"gene({symbol: "", chrom: "chr17", start: 100, end: 200})"#));
+    // Use string keys to avoid `end` being a keyword token
+    assert!(eval_err(r#"
+let r = {"symbol": "", "chrom": "chr17", "start": 100, "end": 200}
+gene(r)
+"#));
 }
 
 #[test]
 fn test_gene_record_rejects_end_before_start() {
-    assert!(eval_err(r#"gene({symbol: "BRCA1", chrom: "chr17", start: 200, end: 100})"#));
+    assert!(eval_err(r#"
+let r = {"symbol": "BRCA1", "chrom": "chr17", "start": 200, "end": 100}
+gene(r)
+"#));
 }
 
 #[test]
 fn test_gene_record_valid() {
-    let result = eval(r#"gene({symbol: "BRCA1", chrom: "chr17", start: 100, end: 200})"#);
+    let result = eval(r#"
+let r = {"symbol": "BRCA1", "chrom": "chr17", "start": 100, "end": 200}
+gene(r)
+"#);
     assert!(matches!(result, Value::Gene { .. }));
 }
 
@@ -965,16 +975,263 @@ fn test_gene_record_valid() {
 
 #[test]
 fn test_aligned_read_rejects_flag_out_of_range() {
-    assert!(eval_err(r#"aligned_read({qname: "r1", flag: 5000, seq: "ATCG", qual: "IIII"})"#));
+    assert!(eval_err(r#"
+let r = {qname: "r1", flag: 5000, seq: "ATCG", qual: "IIII"}
+aligned_read(r)
+"#));
 }
 
 #[test]
 fn test_aligned_read_rejects_seq_qual_mismatch() {
-    assert!(eval_err(r#"aligned_read({qname: "r1", flag: 0, seq: "ATCG", qual: "II"})"#));
+    assert!(eval_err(r#"
+let r = {qname: "r1", flag: 0, seq: "ATCG", qual: "II"}
+aligned_read(r)
+"#));
 }
 
 #[test]
 fn test_aligned_read_valid() {
-    let result = eval(r#"aligned_read({qname: "r1", flag: 0, seq: "ATCG", qual: "IIII"})"#);
+    let result = eval(r#"
+let r = {qname: "r1", flag: 0, seq: "ATCG", qual: "IIII"}
+aligned_read(r)
+"#);
     assert!(matches!(result, Value::AlignedRead(_)));
+}
+
+// ===== Graph builtin tests =====
+
+#[test]
+fn test_graph_create_empty() {
+    let result = eval("graph()");
+    assert!(matches!(result, Value::Record(_)));
+}
+
+#[test]
+fn test_graph_add_node() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_node(g, "A")
+        has_node(g, "A")
+    "#);
+    assert_eq!(result, Value::Bool(true));
+}
+
+#[test]
+fn test_graph_add_node_with_attrs() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_node(g, "BRCA1", {biotype: "protein_coding"})
+        node_attr(g, "BRCA1")
+    "#);
+    if let Value::Record(m) = result {
+        assert_eq!(m.get("biotype"), Some(&Value::Str("protein_coding".into())));
+    } else {
+        panic!("expected Record");
+    }
+}
+
+#[test]
+fn test_graph_add_edge() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        has_edge(g, "A", "B")
+    "#);
+    assert_eq!(result, Value::Bool(true));
+}
+
+#[test]
+fn test_graph_auto_adds_nodes_on_edge() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "X", "Y")
+        has_node(g, "X")
+    "#);
+    assert_eq!(result, Value::Bool(true));
+}
+
+#[test]
+fn test_graph_neighbors() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = add_edge(g, "A", "C")
+        neighbors(g, "A")
+    "#);
+    if let Value::List(items) = result {
+        let names: Vec<&str> = items.iter().filter_map(|v| v.as_str()).collect();
+        assert!(names.contains(&"B"));
+        assert!(names.contains(&"C"));
+    } else {
+        panic!("expected List");
+    }
+}
+
+#[test]
+fn test_graph_undirected_neighbors() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        neighbors(g, "B")
+    "#);
+    if let Value::List(items) = result {
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].as_str(), Some("A"));
+    } else {
+        panic!("expected List");
+    }
+}
+
+#[test]
+fn test_graph_directed_no_reverse_neighbor() {
+    let result = eval(r#"
+        let g = graph(true)
+        let g = add_edge(g, "A", "B")
+        neighbors(g, "B")
+    "#);
+    if let Value::List(items) = result {
+        assert_eq!(items.len(), 0);
+    } else {
+        panic!("expected List");
+    }
+}
+
+#[test]
+fn test_graph_degree() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = add_edge(g, "A", "C")
+        degree(g, "A")
+    "#);
+    assert_eq!(result, Value::Int(2));
+}
+
+#[test]
+fn test_graph_shortest_path() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = add_edge(g, "B", "C")
+        let g = add_edge(g, "C", "D")
+        shortest_path(g, "A", "D")
+    "#);
+    if let Value::List(items) = result {
+        let path: Vec<&str> = items.iter().filter_map(|v| v.as_str()).collect();
+        assert_eq!(path, vec!["A", "B", "C", "D"]);
+    } else {
+        panic!("expected List");
+    }
+}
+
+#[test]
+fn test_graph_no_path_returns_nil() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_node(g, "A")
+        let g = add_node(g, "B")
+        shortest_path(g, "A", "B")
+    "#);
+    assert_eq!(result, Value::Nil);
+}
+
+#[test]
+fn test_graph_nodes_list() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_node(g, "B")
+        let g = add_node(g, "A")
+        nodes(g)
+    "#);
+    if let Value::List(items) = result {
+        let names: Vec<&str> = items.iter().filter_map(|v| v.as_str()).collect();
+        assert_eq!(names, vec!["A", "B"]); // sorted
+    } else {
+        panic!("expected List");
+    }
+}
+
+#[test]
+fn test_graph_remove_node() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = add_edge(g, "B", "C")
+        let g = remove_node(g, "B")
+        has_node(g, "B")
+    "#);
+    assert_eq!(result, Value::Bool(false));
+}
+
+#[test]
+fn test_graph_remove_node_removes_edges() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = add_edge(g, "B", "C")
+        let g = remove_node(g, "B")
+        has_edge(g, "A", "B")
+    "#);
+    assert_eq!(result, Value::Bool(false));
+}
+
+#[test]
+fn test_graph_remove_edge() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = remove_edge(g, "A", "B")
+        has_edge(g, "A", "B")
+    "#);
+    assert_eq!(result, Value::Bool(false));
+}
+
+#[test]
+fn test_graph_edges_table() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B", {weight: 0.9})
+        edges(g)
+    "#);
+    assert!(matches!(result, Value::Table(_)));
+}
+
+#[test]
+fn test_graph_subgraph() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = add_edge(g, "B", "C")
+        let g = add_edge(g, "C", "D")
+        let sub = subgraph(g, ["A", "B"])
+        has_edge(sub, "A", "B")
+    "#);
+    assert_eq!(result, Value::Bool(true));
+}
+
+#[test]
+fn test_graph_subgraph_excludes_outside_edges() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = add_edge(g, "B", "C")
+        let sub = subgraph(g, ["A", "B"])
+        has_edge(sub, "B", "C")
+    "#);
+    assert_eq!(result, Value::Bool(false));
+}
+
+#[test]
+fn test_graph_connected_components() {
+    let result = eval(r#"
+        let g = graph()
+        let g = add_edge(g, "A", "B")
+        let g = add_node(g, "C")
+        connected_components(g)
+    "#);
+    if let Value::List(components) = result {
+        assert_eq!(components.len(), 2);
+    } else {
+        panic!("expected List");
+    }
 }

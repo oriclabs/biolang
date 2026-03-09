@@ -34,7 +34,16 @@ reads
 - **Notifications** -- Slack, Teams, Telegram, Discord, email alerts from pipelines
 - **Streams** -- lazy evaluation for large files without loading into memory
 - **Tables** -- R-like data frames with filter, mutate, group_by, summarize, join
+- **Knowledge graphs** -- `graph()`, `add_node()`, `add_edge()`, `shortest_path()`, `connected_components()`, `subgraph()`
+- **Enrichment analysis** -- ORA with hypergeometric test, GSEA with permutation, BH correction, GMT parsing
+- **PDB structures** -- fetch entries, chains, sequences from RCSB Protein Data Bank
+- **PubMed** -- search articles and fetch abstracts directly from scripts
+- **LLM chat** -- built-in `chat()` and `chat_code()` using Anthropic, OpenAI, or Ollama
+- **BioContainers** -- pull and run 9,000+ containerized tools from your pipelines
+- **Workflow catalog** -- search and view nf-core and Galaxy workflows
+- **Literate notebooks** -- `.bln` format with Markdown + code, cell directives, HTML export, Jupyter import/export
 - **Plugin system** -- extend with Python, TypeScript, R, or native plugins
+- **Self-update** -- `bl version` checks for updates, `bl upgrade` downloads the latest release
 - **LSP** -- language server with diagnostics, completion, and hover
 
 ## Install
@@ -76,6 +85,18 @@ bl repl
 
 # Start language server (for editor integration)
 bl lsp
+
+# Run a literate notebook
+bl notebook analysis.bln
+
+# Export notebook to HTML
+bl notebook analysis.bln --export html
+
+# Check for updates
+bl version
+
+# Upgrade to the latest release
+bl upgrade
 ```
 
 ### Hello FASTQ
@@ -159,6 +180,38 @@ print(gene.description)
 
 let variants = ensembl_vep("17:43044295:G:A")
 print(variants)
+```
+
+### Knowledge graphs
+
+```
+# Build a protein interaction network
+let g = graph()
+let g = add_edge(g, "BRCA1", "TP53", {score: 0.99})
+let g = add_edge(g, "TP53", "MDM2", {score: 0.97})
+let g = add_edge(g, "BRCA1", "BARD1", {score: 0.95})
+
+neighbors(g, "BRCA1")       # ["BARD1", "TP53"]
+shortest_path(g, "MDM2", "BARD1")  # ["MDM2", "TP53", "BRCA1", "BARD1"]
+degree(g, "BRCA1")          # 2
+```
+
+### Enrichment analysis
+
+```
+let gene_sets = read_gmt("hallmark.gmt")
+let my_genes = ["BRCA1", "TP53", "CDK2", "CCND1", "RB1"]
+let results = enrich(my_genes, gene_sets, 20000)
+results |> filter(|r| r.fdr < 0.05) |> print()
+```
+
+### PDB structures
+
+```
+let entry = pdb_entry("4HHB")
+print(entry.title)          # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN"
+let chains = pdb_chains("4HHB")
+chains |> each(|c| print(c.description + ": " + str(len(c.sequence)) + " residues"))
 ```
 
 ## Releases
