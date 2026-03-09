@@ -9,6 +9,14 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-09
+
+### Added
+- `node_count()` and `edge_count()` graph builtins
+- Tutorials: Knowledge Graphs, Enrichment Analysis, LLM Chat, Notebooks
+- Tutorial `.bl` scripts in `examples/tutorials/` for all documentation chapters
+- CHANGELOG.md for release tracking
+
 ### Fixed
 - API return type mismatches across 90+ example scripts, website docs, and book chapters
 - `string_network()` examples now pass List argument (was incorrectly passing single String)
@@ -19,13 +27,6 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `kegg_find()` field names corrected: `.id`, `.description`
 - Fabricated function references removed from tutorials and docs
 - Added `is_record()` guards for polymorphic `ncbi_gene()` returns
-
-### Added
-- `node_count()` and `edge_count()` graph builtins
-- Tutorials: Knowledge Graphs, Enrichment Analysis, LLM Chat, Notebooks
-- Tutorial `.bl` scripts in `examples/tutorials/` for all documentation chapters
-
-### Fixed
 - REPL history for multi-line inputs
 
 ---
@@ -71,6 +72,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/oriclabs/biolang/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/oriclabs/biolang/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/oriclabs/biolang/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/oriclabs/biolang/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/oriclabs/biolang/releases/tag/v0.1.0
