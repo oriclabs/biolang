@@ -171,11 +171,7 @@ let ranked_genes = [
 ]
 
 # Run GSEA with permutation testing
-let gsea_results = gsea(ranked_genes, gene_sets, {
-  permutations: 1000,
-  gene_col: "gene",
-  score_col: "score"
-})
+let gsea_results = gsea(ranked_genes, gene_sets)
 
 print("GSEA results:")
 gsea_results |> each(|r| {
@@ -278,7 +274,7 @@ let ranked = [
   {gene: "RB1", score: -0.8}, {gene: "BCL2", score: -2.1},
 ]
 
-let gsea_res = gsea(ranked, gene_sets, {permutations: 1000})
+let gsea_res = gsea(ranked, gene_sets)
   |> sort_by(|r| r.fdr)
 
 gsea_res |> each(|r| print(f"  {r.term}: NES={r.nes:.3f}, FDR={r.fdr:.4e}"))

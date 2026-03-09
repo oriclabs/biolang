@@ -203,13 +203,13 @@ print(report)</code></pre>
 
         <h3>Debug a pipeline</h3>
         <pre><code class="language-biolang"># Capture an error and ask the LLM for help
-let result = try(|| {
+let result = try_call(|| {
   let reads = read_fastq("missing_file.fq.gz")
   reads |> filter(|r| mean_phred(r.quality) > 30)
 })
 
-if is_error(result) {
-  let help = chat("I got this error in my BioLang script. How do I fix it?", str(result))
+if result == nil {
+  let help = chat("I got an error reading a FASTQ file in BioLang. How do I debug missing file issues?")
   print(help)
 }</code></pre>
 

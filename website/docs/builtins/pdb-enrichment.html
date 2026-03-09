@@ -337,7 +337,7 @@ ora
               <code>leading_edge</code> (the core enrichment genes).
             </p>
             <pre><code class="language-biolang"># Prepare ranked gene list (e.g., from differential expression)
-let de_results = read_tsv("de_results.tsv")
+let de_results = tsv("de_results.tsv")
 let ranked = de_results
   |> mutate(score = |r| r.log2fc * -log10(r.pvalue))
   |> select(["gene", "score"])
@@ -355,28 +355,6 @@ gsea_results
 #  HALLMARK_APOPTOSIS        | 0.62  | 2.14  | 0.0     | 0.002 | BAX,CASP3,TP53...
 #  HALLMARK_P53_PATHWAY      | 0.58  | 2.01  | 0.001   | 0.008 | CDKN1A,MDM2,BAX...
 #  HALLMARK_MYC_TARGETS_V1   | -0.45 | -1.87 | 0.002   | 0.015 | NOP56,RRP1,NPM1...</code></pre>
-          </div>
-        </section>
-
-        <!-- write_gmt -->
-        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden" id="write_gmt">
-          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
-            <code class="text-violet-400 font-semibold">write_gmt(gene_sets, path)</code>
-            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Record, String &rarr; Nil</span>
-          </div>
-          <div class="p-4">
-            <p class="text-sm text-slate-400 mb-3">
-              Writes a gene set collection to GMT format. Useful for creating custom
-              gene set databases or exporting filtered results.
-            </p>
-            <pre><code class="language-biolang"># Build a custom gene set collection
-let my_sets = {
-  "DNA_repair": ["BRCA1", "BRCA2", "RAD51", "ATM", "ATR", "XRCC1"],
-  "Apoptosis_core": ["BAX", "BCL2", "CASP3", "CASP9", "TP53", "BID"],
-  "Cell_cycle_CDKs": ["CDK1", "CDK2", "CDK4", "CDK6", "CCND1", "CCNB1"],
-}
-
-write_gmt(my_sets, "custom_pathways.gmt")</code></pre>
           </div>
         </section>
 
@@ -411,7 +389,7 @@ HALLMARK_P53_PATHWAY    https://www.gsea-msigdb.org/...    AEN    ANKLE1    APC 
         </p>
 
         <pre><code class="language-biolang"># Load differential expression results
-let de = read_tsv("deseq2_results.tsv")
+let de = tsv("deseq2_results.tsv")
   |> filter(|r| !is_nan(r.padj))
 
 # --- Over-Representation Analysis ---
@@ -507,7 +485,6 @@ sig_gsea |> write_tsv("gsea_significant.tsv")</code></pre>
             </thead>
             <tbody>
               <tr><td><code>read_gmt(path)</code></td><td>Record</td><td>Load GMT file as {set_name: [genes]} record</td></tr>
-              <tr><td><code>write_gmt(gene_sets, path)</code></td><td>Nil</td><td>Write gene set collection to GMT format</td></tr>
               <tr><td><code>enrich(genes, sets, bg)</code></td><td>Table</td><td>Over-representation analysis (hypergeometric + BH FDR)</td></tr>
               <tr><td><code>gsea(ranked, sets)</code></td><td>Table</td><td>Gene Set Enrichment Analysis (permutation test, 1000 perms)</td></tr>
             </tbody>

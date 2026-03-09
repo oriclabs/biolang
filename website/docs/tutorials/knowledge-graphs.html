@@ -161,7 +161,7 @@ print(f"Subgraph: {node_count(sub)} nodes, {edge_count(sub)} edges")
           Here's how to construct a graph from a CSV edge list:
         </p>
         <pre><code class="language-biolang"># Suppose interactions.csv has columns: gene_a, gene_b, score
-let edges_data = read_csv("interactions.csv")
+let edges_data = csv("interactions.csv")
 
 let g = graph()
 let g = edges_data |> reduce(g, |g, row| {
