@@ -130,13 +130,13 @@ let braf_info    = ncbi_gene("BRAF")
 let pten_info    = ncbi_gene("PTEN")
 let mapk_pathway = kegg_find("pathway", "MAPK signaling")
 let braf_paths   = reactome_pathways("BRAF")
-let braf_network = string_network("BRAF", 9606)
+let braf_network = string_network(["BRAF"], 9606)
 let braf_protein = uniprot_entry("P15056")
 
-println("BRAF summary: " + braf_info.summary)
-println("PTEN summary: " + pten_info.summary)
-println("MAPK pathway hits: " + len(mapk_pathway))
-println("BRAF interaction partners: " + len(braf_network.partners))
+if is_record(braf_info) then println("BRAF summary: " + braf_info.summary) else println("BRAF IDs: " + str(braf_info))
+if is_record(pten_info) then println("PTEN summary: " + pten_info.summary) else println("PTEN IDs: " + str(pten_info))
+println("MAPK pathway hits: " + str(len(mapk_pathway)))
+println("BRAF interaction partners: " + str(len(braf_network)))
 
 # ── 10. Visualizations ──
 println("=== Visualizations ===")

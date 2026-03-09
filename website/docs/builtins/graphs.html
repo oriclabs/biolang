@@ -340,12 +340,12 @@ degree(grn, "TP53")              # 3 (2 outgoing + 1 incoming)</code></pre>
         </p>
 
         <pre><code class="language-biolang"># Query STRING for TP53 interaction partners
-let interactions = string_network("TP53", {species: 9606, score_threshold: 700})
+let interactions = string_network(["TP53"], 9606)
 
-# Build graph from STRING results
+# Build graph from STRING results — each record has {protein_a, protein_b, score}
 let ppi = graph()
 interactions |> each(|row| {
-  ppi = add_edge(ppi, row.preferredName_A, row.preferredName_B, {
+  ppi = add_edge(ppi, row.protein_a, row.protein_b, {
     score: row.score,
     source: "STRING"
   })

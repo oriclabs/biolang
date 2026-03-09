@@ -1,0 +1,134 @@
+# visualization.bl — Data Visualization
+# Tutorial: https://lang.bio/docs/tutorials/visualization.html
+#
+# Run with: bl run examples/tutorials/visualization.bl
+#
+# Note: Plot functions generate SVG output. Use save_svg() to
+# write plots to disk.
+
+# ── 1. Scatter & Line Plots ──────────────────────────────────
+
+let data = table({
+  dose:     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  response: [2.1, 4.3, 5.8, 8.1, 9.9, 12.2, 13.8, 16.1, 18.0, 20.2],
+})
+
+let p = plot(data, {
+  x:      "dose",
+  y:      "response",
+  title:  "Dose-Response Relationship",
+  xlabel: "Dose (mg)",
+  ylabel: "Response",
+})
+
+# Line plot
+let time_data = table({
+  hour:       [0, 1, 2, 4, 8, 12, 24],
+  expression: [1.0, 1.2, 2.5, 5.1, 8.3, 6.2, 3.1],
+})
+
+let p2 = plot(time_data, {
+  x:      "hour",
+  y:      "expression",
+  mode:   "line",
+  title:  "Expression Over Time",
+  xlabel: "Time (hours)",
+  ylabel: "Relative Expression",
+  color:  "#8b5cf6",
+})
+
+# ── 2. Histograms ────────────────────────────────────────────
+
+let gc_values = [
+  0.38, 0.42, 0.45, 0.47, 0.49, 0.50, 0.51, 0.52, 0.48, 0.44,
+  0.41, 0.53, 0.55, 0.46, 0.43, 0.50, 0.49, 0.47, 0.51, 0.39,
+  0.56, 0.44, 0.48, 0.52, 0.46, 0.41, 0.50, 0.53, 0.47, 0.45,
+]
+
+let h = histogram(gc_values, {
+  bins:   15,
+  title:  "GC Content Distribution",
+  xlabel: "GC Content",
+  ylabel: "Frequency",
+  color:  "#8b5cf6",
+})
+
+# ── 3. Volcano Plot ──────────────────────────────────────────
+
+let de = table({
+  gene:   ["TP53", "BRCA1", "MYC", "EGFR", "KRAS",
+           "ACTB", "GAPDH", "RPS6", "CDH1", "VEGFA",
+           "PTEN", "RB1", "APC", "NRAS", "RAF1"],
+  log2fc: [2.5, -3.1, 4.2, 1.8, -0.3,
+           0.1, -0.05, 0.2, -2.8, 3.5,
+           -1.9, 0.4, -0.1, 0.6, 0.15],
+  pvalue: [1e-12, 5e-10, 1e-15, 2e-6, 0.45,
+           0.82, 0.91, 0.55, 3e-8, 1e-11,
+           5e-5, 0.12, 0.73, 0.08, 0.65],
+})
+
+let v = volcano(de, {
+  x:             "log2fc",
+  y:             "pvalue",
+  label:         "gene",
+  fc_threshold:  1.0,
+  p_threshold:   0.05,
+  title:         "Treated vs Control",
+  xlabel:        "log2 Fold Change",
+  ylabel:        "-log10(p-value)",
+  colors: {
+    up:   "#22d3ee",
+    down: "#8b5cf6",
+    ns:   "#475569",
+  },
+})
+
+# ── 4. Heatmap ───────────────────────────────────────────────
+
+let expr = table({
+  gene:    ["TP53", "BRCA1", "MYC", "EGFR", "KRAS", "VEGFA"],
+  ctrl_1:  [5.2, 3.1, 8.5, 4.2, 7.1, 2.8],
+  ctrl_2:  [5.5, 3.4, 8.2, 4.0, 7.3, 3.0],
+  ctrl_3:  [5.0, 3.0, 8.8, 4.5, 6.9, 2.6],
+  treat_1: [8.1, 1.2, 12.5, 6.8, 7.0, 6.5],
+  treat_2: [7.8, 1.5, 12.1, 7.0, 7.2, 6.2],
+  treat_3: [8.5, 1.0, 13.0, 6.5, 6.8, 7.0],
+})
+
+let h2 = heatmap(expr, {
+  row_labels:    "gene",
+  col_labels:    ["ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3"],
+  cluster_rows:  true,
+  cluster_cols:  true,
+  color_scale:   "blue_white_red",
+  title:         "Gene Expression Heatmap",
+})
+
+# ── 5. Genome Track ──────────────────────────────────────────
+
+let peaks = table({
+  chrom:  ["chr1", "chr1", "chr1", "chr1", "chr1"],
+  start:  [1000, 5000, 12000, 18000, 25000],
+  end:    [2500, 7500, 14000, 19500, 28000],
+  name:   ["peak_1", "peak_2", "peak_3", "peak_4", "peak_5"],
+  score:  [45.2, 82.1, 33.5, 91.0, 55.8],
+})
+
+let t = genome_track(peaks, {
+  chrom:    "chrom",
+  start:    "start",
+  end:      "end",
+  label:    "name",
+  score:    "score",
+  color_by: "score",
+  title:    "ChIP-seq Peak Scores",
+})
+
+# ── 6. Saving Plots ──────────────────────────────────────────
+
+# save_svg(p, "results/dose_response.svg")
+# save_svg(v, "results/volcano.svg")
+# save_svg(h2, "results/heatmap.svg")
+
+print("Visualization tutorial complete.")
+print("Use save_svg(plot, path) to save any plot to an SVG file.")

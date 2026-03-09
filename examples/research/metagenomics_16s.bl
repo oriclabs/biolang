@@ -152,7 +152,7 @@ println("IBD-depleted (log2FC < -1): " + ibd_depleted |> map(|r| r.taxon))
 println("=== Taxonomy & Pathway Lookups ===")
 
 let faecal_info = ncbi_search("taxonomy", "Faecalibacterium prausnitzii")
-println("F. prausnitzii — IDs: " + str(faecal_info.ids) + " (count: " + faecal_info.count + ")")
+println("F. prausnitzii — IDs: " + str(faecal_info) + " (count: " + str(len(faecal_info)) + ")")
 
 let bacteroides_kegg = kegg_find("organism", "Bacteroides")
 println("Bacteroides KEGG organisms: " + len(bacteroides_kegg) + " entries")

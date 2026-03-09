@@ -258,9 +258,19 @@ pub fn read_fastq_table(path: &str) -> Result<Value> {
         Value::Stream(s) => s.collect_all(),
         _ => unreachable!(),
     };
+    let total = items.len();
+    let show_progress = total >= 10000;
+    if total >= 50000 {
+        eprintln!("\x1b[33mWarning:\x1b[0m read_fastq() is loading {} reads into memory. \
+            For large files, use fastq() for streaming: \
+            fastq(\"file.fq.gz\") |> filter(...) |> kmer_count(k)", total);
+    }
     let columns = vec!["id".into(), "description".into(), "seq".into(), "length".into(), "quality".into()];
-    let mut rows = Vec::with_capacity(items.len());
-    for item in items {
+    let mut rows = Vec::with_capacity(total);
+    for (i, item) in items.into_iter().enumerate() {
+        if show_progress && (i % 20000 == 0) {
+            eprint!("\r\x1b[2Kread_fastq: loading {}/{} reads...", i, total);
+        }
         if let Value::Record(map) = item {
             rows.push(vec![
                 map.get("id").cloned().unwrap_or(Value::Nil),
@@ -270,6 +280,9 @@ pub fn read_fastq_table(path: &str) -> Result<Value> {
                 map.get("quality").cloned().unwrap_or(Value::Nil),
             ]);
         }
+    }
+    if show_progress {
+        eprint!("\r\x1b[2K"); // clear progress line
     }
     Ok(Value::Table(Table::new(columns, rows)))
 }
@@ -474,12 +487,7 @@ pub fn read_gff(path: &str) -> Result<Value> {
 /// Read a VCF file, returning a Table.
 pub fn read_vcf(path: &str) -> Result<Value> {
     let content = read_file_content(path, "vcf")?;
-    let columns: Vec<String> = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
-
-    let mut rows: Vec<Vec<Value>> = Vec::new();
+    let mut variants: Vec<Value> = Vec::new();
     for line in content.lines() {
         if line.is_empty() || line.starts_with('#') {
             continue;
@@ -488,20 +496,28 @@ pub fn read_vcf(path: &str) -> Result<Value> {
         if fields.len() < 8 {
             continue;
         }
-        let row = vec![
-            Value::Str(fields[0].to_string()),   // chrom
-            parse_int_field(fields[1]),            // pos
-            Value::Str(fields[2].to_string()),   // id
-            Value::Str(fields[3].to_string()),   // ref
-            Value::Str(fields[4].to_string()),   // alt
-            parse_numeric_field(fields[5]),        // qual
-            Value::Str(fields[6].to_string()),   // filter
-            Value::Str(fields[7].to_string()),   // info
-        ];
-        rows.push(row);
+        let quality = match parse_numeric_field(fields[5]) {
+            Value::Float(f) => f,
+            Value::Int(i) => i as f64,
+            _ => 0.0,
+        };
+        let info = match parse_vcf_info_field(fields[7]) {
+            Value::Record(m) => m,
+            _ => HashMap::new(),
+        };
+        variants.push(Value::Variant {
+            chrom: fields[0].to_string(),
+            pos: fields[1].parse::<i64>().unwrap_or(0),
+            id: fields[2].to_string(),
+            ref_allele: fields[3].to_string(),
+            alt_allele: fields[4].to_string(),
+            quality,
+            filter: fields[6].to_string(),
+            info,
+        });
     }
 
-    Ok(Value::Table(Table::new(columns, rows)))
+    Ok(Value::List(variants))
 }
 
 fn read_file_content(path: &str, func: &str) -> Result<String> {
@@ -529,6 +545,9 @@ fn parse_int_field(s: &str) -> Value {
 }
 
 fn parse_numeric_field(s: &str) -> Value {
+    if s == "." {
+        return Value::Nil; // VCF missing value
+    }
     if let Ok(n) = s.parse::<i64>() {
         Value::Int(n)
     } else if let Ok(f) = s.parse::<f64>() {
@@ -536,6 +555,35 @@ fn parse_numeric_field(s: &str) -> Value {
     } else {
         Value::Str(s.to_string())
     }
+}
+
+/// Parse a VCF INFO string (e.g. "DP=30;AF=0.5;MQ=60;DB") into a Record.
+/// Key=Value pairs become {key: value}, bare flags become {key: true}.
+/// Comma-separated values (e.g. "AF=0.45,0.12") become a List.
+/// Values are parsed as Int, Float, or Str. "." means empty record.
+fn parse_vcf_info_field(s: &str) -> Value {
+    if s == "." || s.is_empty() {
+        return Value::Record(HashMap::new());
+    }
+    let mut map = HashMap::new();
+    for part in s.split(';') {
+        if part.is_empty() {
+            continue;
+        }
+        if let Some((key, val)) = part.split_once('=') {
+            if val.contains(',') {
+                // Multi-value field → parse each element, return as List
+                let items: Vec<Value> = val.split(',').map(|v| parse_numeric_field(v)).collect();
+                map.insert(key.to_string(), Value::List(items));
+            } else {
+                map.insert(key.to_string(), parse_numeric_field(val));
+            }
+        } else {
+            // Bare flag (e.g. "DB", "PASS")
+            map.insert(part.to_string(), Value::Bool(true));
+        }
+    }
+    Value::Record(map)
 }
 
 fn parse_score_field(s: &str) -> Value {
@@ -793,13 +841,9 @@ pub fn validate_file(path: &str) -> Result<Value> {
 /// Returns a Table of matching records.
 pub fn vcf_filter(path: &str, expr: &str) -> Result<Value> {
     let content = read_file_content(path, "vcf_filter")?;
-    let columns: Vec<String> = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
 
     let filters = parse_vcf_filters(expr)?;
-    let mut rows: Vec<Vec<Value>> = Vec::new();
+    let mut variants: Vec<Value> = Vec::new();
 
     for line in content.lines() {
         if line.is_empty() || line.starts_with('#') {
@@ -820,21 +864,29 @@ pub fn vcf_filter(path: &str, expr: &str) -> Result<Value> {
         }
 
         if pass {
-            let row = vec![
-                Value::Str(fields[0].to_string()),
-                parse_int_field(fields[1]),
-                Value::Str(fields[2].to_string()),
-                Value::Str(fields[3].to_string()),
-                Value::Str(fields[4].to_string()),
-                parse_numeric_field(fields[5]),
-                Value::Str(fields[6].to_string()),
-                Value::Str(fields[7].to_string()),
-            ];
-            rows.push(row);
+            let quality = match parse_numeric_field(fields[5]) {
+                Value::Float(f) => f,
+                Value::Int(i) => i as f64,
+                _ => 0.0,
+            };
+            let info = match parse_vcf_info_field(fields[7]) {
+                Value::Record(m) => m,
+                _ => HashMap::new(),
+            };
+            variants.push(Value::Variant {
+                chrom: fields[0].to_string(),
+                pos: fields[1].parse::<i64>().unwrap_or(0),
+                id: fields[2].to_string(),
+                ref_allele: fields[3].to_string(),
+                alt_allele: fields[4].to_string(),
+                quality,
+                filter: fields[6].to_string(),
+                info,
+            });
         }
     }
 
-    Ok(Value::Table(Table::new(columns, rows)))
+    Ok(Value::List(variants))
 }
 
 enum VcfCondition {
@@ -1397,16 +1449,25 @@ impl<R: std::io::BufRead + Send> Iterator for VcfIter<R> {
             if fields.len() < 8 {
                 continue;
             }
-            let mut map = HashMap::new();
-            map.insert("chrom".into(), Value::Str(fields[0].to_string()));
-            map.insert("pos".into(), parse_int_field(fields[1]));
-            map.insert("id".into(), Value::Str(fields[2].to_string()));
-            map.insert("ref".into(), Value::Str(fields[3].to_string()));
-            map.insert("alt".into(), Value::Str(fields[4].to_string()));
-            map.insert("qual".into(), parse_numeric_field(fields[5]));
-            map.insert("filter".into(), Value::Str(fields[6].to_string()));
-            map.insert("info".into(), Value::Str(fields[7].to_string()));
-            return Some(Value::Record(map));
+            let quality = match parse_numeric_field(fields[5]) {
+                Value::Float(f) => f,
+                Value::Int(i) => i as f64,
+                _ => 0.0,
+            };
+            let info = match parse_vcf_info_field(fields[7]) {
+                Value::Record(m) => m,
+                _ => HashMap::new(),
+            };
+            return Some(Value::Variant {
+                chrom: fields[0].to_string(),
+                pos: fields[1].parse::<i64>().unwrap_or(0),
+                id: fields[2].to_string(),
+                ref_allele: fields[3].to_string(),
+                alt_allele: fields[4].to_string(),
+                quality,
+                filter: fields[6].to_string(),
+                info,
+            });
         }
     }
 }
@@ -2024,19 +2085,37 @@ pub fn write_vcf(records: &Value, path: &str) -> Result<Value> {
     writeln!(file, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
     let mut count = 0i64;
     for item in items {
-        if let Value::Record(map) = item {
-            let chrom = map.get("chrom").map(|v| format!("{v}")).unwrap_or(".".into());
-            let pos = map.get("pos").map(|v| format!("{v}")).unwrap_or("0".into());
-            let id = map.get("id").map(|v| format!("{v}")).unwrap_or(".".into());
-            let ref_allele = map.get("ref").map(|v| format!("{v}")).unwrap_or(".".into());
-            let alt = map.get("alt").map(|v| format!("{v}")).unwrap_or(".".into());
-            let qual = map.get("qual").map(|v| format!("{v}")).unwrap_or(".".into());
-            let filter = map.get("filter").map(|v| format!("{v}")).unwrap_or(".".into());
-            let info = map.get("info").map(|v| format!("{v}")).unwrap_or(".".into());
-            writeln!(file, "{chrom}\t{pos}\t{id}\t{ref_allele}\t{alt}\t{qual}\t{filter}\t{info}")
-                .map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
-            count += 1;
-        }
+        let (chrom, pos, id, ref_a, alt, qual, filt, info_str) = match item {
+            Value::Variant { chrom, pos, id, ref_allele, alt_allele, quality, filter, info } => {
+                let info_s = if info.is_empty() {
+                    ".".to_string()
+                } else {
+                    info.iter()
+                        .map(|(k, v)| match v {
+                            Value::Bool(true) => k.clone(),
+                            _ => format!("{k}={v}"),
+                        })
+                        .collect::<Vec<_>>()
+                        .join(";")
+                };
+                (chrom.clone(), format!("{pos}"), id.clone(), ref_allele.clone(), alt_allele.clone(), format!("{quality}"), filter.clone(), info_s)
+            }
+            Value::Record(map) => {
+                let chrom = map.get("chrom").map(|v| format!("{v}")).unwrap_or(".".into());
+                let pos = map.get("pos").map(|v| format!("{v}")).unwrap_or("0".into());
+                let id = map.get("id").map(|v| format!("{v}")).unwrap_or(".".into());
+                let ref_a = map.get("ref").map(|v| format!("{v}")).unwrap_or(".".into());
+                let alt = map.get("alt").map(|v| format!("{v}")).unwrap_or(".".into());
+                let qual = map.get("qual").or_else(|| map.get("quality")).map(|v| format!("{v}")).unwrap_or(".".into());
+                let filt = map.get("filter").map(|v| format!("{v}")).unwrap_or(".".into());
+                let info = map.get("info").map(|v| format!("{v}")).unwrap_or(".".into());
+                (chrom, pos, id, ref_a, alt, qual, filt, info)
+            }
+            _ => continue,
+        };
+        writeln!(file, "{chrom}\t{pos}\t{id}\t{ref_a}\t{alt}\t{qual}\t{filt}\t{info_str}")
+            .map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+        count += 1;
     }
     Ok(Value::Int(count))
 }

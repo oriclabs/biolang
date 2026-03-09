@@ -47,6 +47,16 @@
           </ul>
         </div>
 
+        <!-- Run this tutorial -->
+        <div class="rounded-xl border border-emerald-800/50 bg-emerald-900/20 p-4 mb-8 flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          <div class="text-sm text-emerald-300/90">
+            <strong>Run this tutorial:</strong> Download
+            <a href="https://github.com/bioras/biolang/blob/main/examples/tutorials/databases.bl" class="text-emerald-400 hover:underline">databases.bl</a>
+            and run it with <code class="text-emerald-300">bl run examples/tutorials/databases.bl</code>
+          </div>
+        </div>
+
         <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8">
           <p class="text-sm text-slate-400 mb-0">
             <strong class="text-white">Network access:</strong> All database functions make
@@ -93,12 +103,12 @@ for s in summaries {
 let fasta = ncbi_sequence("NM_000546.6")
 print(f"FASTA (first 200 chars): {fasta[0..200]}...")
 
-# Or use ncbi_fetch for more control over database and return type
-let xml = ncbi_fetch("7157", "gene")  # fetch gene XML by ID
+# Or use ncbi_fetch for more control — ncbi_fetch(ids, db, [rettype])
+let xml = ncbi_fetch(["7157"], "gene")  # fetch gene XML by ID
 print(f"Gene XML length: {len(xml)} chars")
 
 # Fetch nucleotide sequences
-let seq_fasta = ncbi_fetch("NM_000546.6", "nucleotide")
+let seq_fasta = ncbi_fetch("NM_000546.6", "nucleotide")  # single ID string works too
 print(seq_fasta[0..100])
 
 # Search PubMed — returns list of PMIDs

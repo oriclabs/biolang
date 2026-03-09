@@ -91,14 +91,35 @@ let sample_names = abundance |> colnames |> filter(|c| { c != "genus" })
 
 let alpha = sample_names |> map(|sample| {
   let counts = abundance |> map(|row| { row[sample] |> int }) |> filter(|c| { c > 0 })
+  let total = counts |> sum |> float
+  let proportions = counts |> map(|c| { c |> float / total })
+
+  # Shannon diversity: -sum(p * ln(p))
+  let shannon = proportions |> map(|p| { -p * log(p) }) |> sum
+
+  # Simpson diversity: 1 - sum(p^2)
+  let simpson = 1.0 - (proportions |> map(|p| { pow(p, 2) }) |> sum)
+
+  # Chao1: richness + (singletons^2 / (2 * doubletons))
+  let richness = counts |> len
+  let singletons = counts |> filter(|c| { c == 1 }) |> len |> float
+  let doubletons = counts |> filter(|c| { c == 2 }) |> len |> float
+  let chao1 = if doubletons > 0.0 {
+    richness |> float + (singletons * singletons) / (2.0 * doubletons)
+  } else {
+    richness |> float
+  }
+
+  # Pielou evenness: shannon / ln(richness)
+  let evenness = if richness > 1 { shannon / log(richness |> float) } else { 0.0 }
 
   {
     sample: sample,
-    richness: counts |> len,
-    shannon: counts |> shannon_diversity,
-    simpson: counts |> simpson_diversity,
-    chao1: counts |> chao1_estimate,
-    evenness: counts |> pielou_evenness
+    richness: richness,
+    shannon: shannon,
+    simpson: simpson,
+    chao1: chao1,
+    evenness: evenness
   }
 })
 
@@ -120,25 +141,35 @@ let count_matrix = sample_names |> map(|sample| {
   abundance |> map(|row| { row[sample] |> int })
 })
 
-# Pairwise Bray-Curtis
-let bc_matrix = bray_curtis_matrix(count_matrix)
+# Pairwise Bray-Curtis dissimilarity
+let n = count_matrix |> len
+let bc_matrix = range(0, n) |> map(|i| {
+  range(0, n) |> map(|j| {
+    let a = count_matrix[i]
+    let b = count_matrix[j]
+    let sum_min = range(0, a |> len) |> map(|k| { min(a[k], b[k]) }) |> sum |> float
+    let sum_a = a |> sum |> float
+    let sum_b = b |> sum |> float
+    1.0 - (2.0 * sum_min / (sum_a + sum_b))
+  })
+})
 
-# PCoA ordination
-let pcoa = bc_matrix |> pcoa(n_components: 3)
+# PCA on distance matrix as ordination approximation
+let pca_result = matrix(bc_matrix) |> pca(n_components: 3)
 
-print("PCoA variance explained:")
-for i, var in pcoa.variance_ratio |> enumerate |> take(3) {
+print("PCA on Bray-Curtis (variance explained):")
+for i, var in pca_result.variance_ratio |> enumerate |> take(3) {
   print(f"  Axis {i + 1}: {(var * 100.0) |> round(1)}%")
 }
 
 # Export coordinates
 let coords = sample_names |> enumerate |> map(|i, name| { {
   sample: name,
-  pcoa1: pcoa.components[i][0],
-  pcoa2: pcoa.components[i][1],
-  pcoa3: pcoa.components[i][2]
+  axis1: pca_result.components[i][0],
+  axis2: pca_result.components[i][1],
+  axis3: pca_result.components[i][2]
 }})
-coords |> write_tsv("pcoa_coordinates.tsv")</code></pre>
+coords |> write_tsv("ordination_coordinates.tsv")</code></pre>
 
         <h2>Differential Abundance</h2>
 

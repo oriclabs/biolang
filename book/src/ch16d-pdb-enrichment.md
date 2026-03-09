@@ -40,7 +40,6 @@ print(entity.sequence)
 # Get sequence as Protein value
 let seq = pdb_sequence("4HHB", 1)
 print(len(seq))             # sequence length
-print(molecular_weight(seq)) # if available
 ```
 
 ### Real-World Example: Compare Hemoglobin Chains
@@ -60,10 +59,10 @@ Search PubMed and retrieve abstracts:
 ```
 # Search for recent CRISPR papers
 let results = pubmed_search("CRISPR Cas9 therapy", 5)
-print("Total results: " + str(results.count))
+print("Total results: " + str(len(results)))
 
 # Fetch abstract for a specific paper
-let abstract = pubmed_abstract(results.ids[0])
+let abstract = pubmed_abstract(results[0])
 print(abstract)
 ```
 
@@ -74,8 +73,8 @@ print(abstract)
 let gene = "BRCA1"
 let results = pubmed_search(gene + " cancer therapy 2024", 20)
 
-print("Found " + str(results.count) + " papers for " + gene)
-results.ids
+print("Found " + str(len(results)) + " papers for " + gene)
+results
   |> take(5)
   |> each(|pmid|
     let text = pubmed_abstract(pmid)
@@ -117,7 +116,7 @@ For ranked gene lists (e.g., by fold change or t-statistic):
 
 ```
 # Prepare ranked table with gene and score columns
-let ranked = read_tsv("de_results.tsv")
+let ranked = tsv("de_results.tsv")
   |> select(["gene", "log2fc"])
   |> rename({log2fc: "score"})
   |> sort_by(|r| r.score, desc: true)
@@ -153,7 +152,7 @@ Standard sources:
 
 ```
 # 1. Read differential expression results
-let de = read_tsv("deseq2_results.tsv")
+let de = tsv("deseq2_results.tsv")
 
 # 2. Get significant genes
 let sig_genes = de

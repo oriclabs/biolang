@@ -184,6 +184,8 @@ hits |> each(|h| print(h.subject + " identity=" + str(h.identity)
 Plugin functions integrate seamlessly with pipes and other BioLang features.
 
 ```
+import "blast-wrapper"
+
 read_fasta("contigs.fa")
   |> filter(|r| len(r.seq) > kb(1))
   |> write_fasta("long_contigs.fa")
@@ -661,10 +663,10 @@ let samples = lims_samples(project: "WGS-2024-042", status: "sequenced")
 
 # Process each sample
 let results = samples |> par_map(|sample| {
-  let bam = bwa_mem("GRCh38.fa", sample.fastq_r1, sample.fastq_r2, threads: 8)
-    |> samtools_sort(threads: 4)
-  let stats = samtools_flagstat(bam)
-  let depth = samtools_depth(bam) |> mean()
+  let bam = tool("bwa-mem2", "-t 8 -x sr " + "GRCh38.fa " + sample.fastq_r1 + " " + sample.fastq_r2)
+    |> tool("samtools", "sort -@ 4")
+  let stats = tool("samtools", "flagstat " + bam)
+  let depth = tool("samtools", "depth -a " + bam) |> mean()
 
   let qc = if stats.mapped_pct > 90 and depth > 30 then "pass"
            else if stats.mapped_pct > 80 then "warning"

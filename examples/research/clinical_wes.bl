@@ -94,12 +94,17 @@ println("=== Gene-Disease Association Lookup ===")
 println("\n--- Database Lookups ---")
 try {
     let mecp2_gene = ncbi_gene("MECP2")
-    println("MECP2 NCBI Gene IDs: " + str(mecp2_gene.ids) + " (" + str(mecp2_gene.count) + " results)")
+    # ncbi_gene returns Record (single result) or List of IDs (multiple)
+    if is_record(mecp2_gene) then
+        println("MECP2 NCBI Gene: " + mecp2_gene.symbol + " (ID: " + mecp2_gene.id + ") — " + mecp2_gene.name)
+    else
+        println("MECP2 NCBI Gene IDs: " + str(mecp2_gene) + " (" + str(len(mecp2_gene)) + " results)")
 } catch e { println("MECP2 NCBI lookup: " + str(e)) }
 
 try {
     let mecp2_clinvar = ncbi_search("clinvar", "MECP2[gene] AND pathogenic[clinsig]")
-    println("MECP2 pathogenic ClinVar records: " + str(len(mecp2_clinvar.ids)))
+    # ncbi_search returns List of ID strings directly
+    println("MECP2 pathogenic ClinVar records: " + str(len(mecp2_clinvar)))
 } catch e { println("ClinVar lookup: " + str(e)) }
 
 try {

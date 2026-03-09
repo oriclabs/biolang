@@ -1,0 +1,28 @@
+# plugins.bl — Using BioLang Plugins
+# Tutorial: https://lang.bio/docs/tutorials/plugins.html
+#
+# Run with: bl run examples/tutorials/plugins.bl
+#
+# Note: This tutorial demonstrates the plugin import system.
+# The motif_finder plugin must be installed first:
+#   bl add motif_finder
+
+import "motif_finder"
+
+# Find motifs in promoter sequences
+let seqs = ["ATCGATCGATCG", "GATCGATCGATC", "CGATCGATCGAT"]
+
+let motifs = find_motifs(seqs, 6, 10, 0.3, "enumerate")
+
+print("=== Discovered Motifs ===")
+print(motifs)
+
+# Generate an ASCII logo for aligned sequences
+let alignment = ["ATCG", "ATCG", "ATCG", "AACG"]
+let logo = motif_logo(alignment, "results/top_motif_logo.svg", "ascii")
+print(logo)
+
+# Scan with a known PWM loaded from CSV
+let pwm = csv("data/known_pwm.csv")
+let hits = scan_motif(seqs, pwm, 0.85)
+print(hits)

@@ -1,0 +1,49 @@
+# llm-chat.bl — LLM Chat Integration
+# Tutorial: https://lang.bio/docs/tutorials/llm-chat.html
+#
+# Run with: bl run examples/tutorials/llm-chat.bl
+#
+# Note: Requires an LLM API key. Set one of:
+#   ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL
+
+# ── 1. Simple Question ────────────────────────────────────────
+
+let answer = chat("What is the significance of a Ti/Tv ratio above 2.0 in human WGS?")
+print(answer)
+
+# ── 2. Pass Data Context ─────────────────────────────────────
+
+let stats = {
+  total_reads: 48_000_000,
+  passing_q30: 42_500_000,
+  mean_gc: 0.412,
+  duplicate_rate: 0.18,
+  mean_coverage: 32.5,
+}
+
+let interpretation = chat("Interpret these QC metrics. Any red flags?", stats)
+print(interpretation)
+
+# ── 3. Analyze DE Results ────────────────────────────────────
+
+let de_results = [
+  {gene: "TP53", log2fc: 3.2, pvalue: 1.2e-8},
+  {gene: "BRCA1", log2fc: 2.8, pvalue: 4.5e-7},
+  {gene: "MYC", log2fc: -2.1, pvalue: 3.3e-6},
+  {gene: "CDK4", log2fc: 1.5, pvalue: 0.002},
+]
+
+let analysis = chat("What biological processes are suggested by these DE genes?", de_results)
+print(analysis)
+
+# ── 4. Code Generation ───────────────────────────────────────
+
+let code = chat_code("Read a FASTQ file, filter reads with mean Phred > 30, and print the count")
+print(code)
+
+# ── 5. Check Available Models ────────────────────────────────
+
+let models = llm_models()
+print(f"\nAvailable: {models}")
+
+print("\nLLM chat tutorial complete.")

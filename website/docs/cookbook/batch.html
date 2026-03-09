@@ -106,7 +106,7 @@ fn process_sample(sample) {
   mkdir(out_dir)
 
   # Count total reads and compute mean length
-  let reads = fastq(sample["fastq_r1"]) |> collect
+  let reads = read_fastq(sample["fastq_r1"])
   let total = len(reads)
   let lengths = map(reads, |r| r.length)
   let avg_len = round(mean(lengths), 1)
@@ -173,7 +173,7 @@ let total = len(files)
 
 let results = []
 for i, f in enumerate(files) {
-  let reads = fastq(f) |> collect
+  let reads = read_fastq(f)
   let lengths = map(reads, |r| r.length)
   print("[#{i + 1}/#{total}] #{f}: #{len(reads)} reads")
   push(results, { file: f, reads: len(reads), mean_len: round(mean(lengths), 1) })

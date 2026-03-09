@@ -86,6 +86,24 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("error_rate", Arity::Exact(1)),
         ("trim_quality", Arity::Exact(2)),
         ("ode_solve", Arity::Exact(3)),
+        // GLM & clustering
+        ("glm", Arity::Range(2, 3)),
+        ("kmeans", Arity::Range(2, 3)),
+        // Distribution functions
+        ("dnorm", Arity::Range(1, 3)),
+        ("pnorm", Arity::Range(1, 3)),
+        ("qnorm", Arity::Range(1, 3)),
+        ("dbinom", Arity::Exact(3)),
+        ("pbinom", Arity::Exact(3)),
+        ("dpois", Arity::Exact(2)),
+        ("ppois", Arity::Exact(2)),
+        ("dunif", Arity::Range(1, 3)),
+        ("punif", Arity::Range(1, 3)),
+        ("dexp", Arity::Range(1, 2)),
+        ("pexp", Arity::Range(1, 2)),
+        ("rnorm", Arity::Range(1, 3)),
+        ("rbinom", Arity::Exact(3)),
+        ("rpois", Arity::Exact(2)),
     ]
 }
 
@@ -166,6 +184,22 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "error_rate"
             | "trim_quality"
             | "ode_solve"
+            | "glm"
+            | "kmeans"
+            | "dnorm"
+            | "pnorm"
+            | "qnorm"
+            | "dbinom"
+            | "pbinom"
+            | "dpois"
+            | "ppois"
+            | "dunif"
+            | "punif"
+            | "dexp"
+            | "pexp"
+            | "rnorm"
+            | "rbinom"
+            | "rpois"
     )
 }
 
@@ -238,7 +272,14 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "ks_test" => builtin_ks_test(args),
         "spearman" => builtin_spearman(args),
         "kendall" => builtin_kendall(args),
-        "kaplan_meier" => builtin_kaplan_meier(args),
+        "kaplan_meier" => {
+            // Route Table/Record input to bio_plots (visualization), List input to stats
+            if matches!(&args[0], Value::Table(_) | Value::Record(_)) {
+                crate::bio_plots::call_bio_plots_builtin("kaplan_meier", args)
+            } else {
+                builtin_kaplan_meier(args)
+            }
+        }
         "cox_ph" => builtin_cox_ph(args),
         "mean_phred" => builtin_mean_phred(args),
         "min_phred" => builtin_min_phred(args),
@@ -249,6 +290,22 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             "ode_solve() requires a closure and must be called via HOF dispatch",
             None,
         )),
+        "glm" => builtin_glm(args),
+        "kmeans" => builtin_kmeans(args),
+        "dnorm" => builtin_dnorm(args),
+        "pnorm" => builtin_pnorm(args),
+        "qnorm" => builtin_qnorm(args),
+        "dbinom" => builtin_dbinom(args),
+        "pbinom" => builtin_pbinom(args),
+        "dpois" => builtin_dpois(args),
+        "ppois" => builtin_ppois(args),
+        "dunif" => builtin_dunif(args),
+        "punif" => builtin_punif(args),
+        "dexp" => builtin_dexp(args),
+        "pexp" => builtin_pexp(args),
+        "rnorm" => builtin_rnorm(args),
+        "rbinom" => builtin_rbinom(args),
+        "rpois" => builtin_rpois(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown stats builtin '{name}'"),
@@ -1565,24 +1622,40 @@ fn builtin_cox_ph(args: Vec<Value>) -> Result<Value> {
     ]))
 }
 
+fn str_to_phred(s: &str) -> Vec<u8> {
+    s.bytes().map(|b| b.saturating_sub(33)).collect()
+}
+
 fn builtin_mean_phred(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::Quality(scores) => Ok(Value::Float(bl_core::bio_core::QualityOps::mean_phred(scores))),
-        _ => Err(BioLangError::type_error("mean_phred() requires Quality value", None)),
+        Value::Str(s) => {
+            let scores = str_to_phred(s);
+            Ok(Value::Float(bl_core::bio_core::QualityOps::mean_phred(&scores)))
+        }
+        _ => Err(BioLangError::type_error("mean_phred() requires Quality or Str value", None)),
     }
 }
 
 fn builtin_min_phred(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::Quality(scores) => Ok(Value::Int(bl_core::bio_core::QualityOps::min_phred(scores) as i64)),
-        _ => Err(BioLangError::type_error("min_phred() requires Quality value", None)),
+        Value::Str(s) => {
+            let scores = str_to_phred(s);
+            Ok(Value::Int(bl_core::bio_core::QualityOps::min_phred(&scores) as i64))
+        }
+        _ => Err(BioLangError::type_error("min_phred() requires Quality or Str value", None)),
     }
 }
 
 fn builtin_error_rate(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::Quality(scores) => Ok(Value::Float(bl_core::bio_core::QualityOps::error_rate(scores))),
-        _ => Err(BioLangError::type_error("error_rate() requires Quality value", None)),
+        Value::Str(s) => {
+            let scores = str_to_phred(s);
+            Ok(Value::Float(bl_core::bio_core::QualityOps::error_rate(&scores)))
+        }
+        _ => Err(BioLangError::type_error("error_rate() requires Quality or Str value", None)),
     }
 }
 
@@ -1595,5 +1668,536 @@ fn builtin_trim_quality(args: Vec<Value>) -> Result<Value> {
         }
         _ => Err(BioLangError::type_error("trim_quality() requires Quality value", None)),
     }
+}
+
+// ── GLM (Generalized Linear Model) ─────────────────────────────────────────
+
+fn builtin_glm(args: Vec<Value>) -> Result<Value> {
+    // glm(formula, table) or glm(formula, table, family)
+    let family = if args.len() >= 3 {
+        match &args[2] {
+            Value::Str(s) => s.as_str().to_string(),
+            Value::Record(map) => {
+                map.get("family")
+                    .and_then(|v| if let Value::Str(s) = v { Some(s.clone()) } else { None })
+                    .unwrap_or_else(|| "binomial".to_string())
+            }
+            _ => "binomial".to_string(),
+        }
+    } else {
+        "binomial".to_string()
+    };
+
+    let (formula_expr, table) = match (&args[0], &args[1]) {
+        (Value::Formula(f), Value::Table(t)) => (f, t),
+        _ => return Err(BioLangError::type_error(
+            format!("glm() requires (formula, Table), got ({}, {})", args[0].type_of(), args[1].type_of()),
+            None,
+        )),
+    };
+
+    let (response_col, predictor_cols) = parse_formula_columns(formula_expr, table)?;
+    let y = extract_column_floats(table, &response_col, "glm")?;
+
+    match family.as_str() {
+        "binomial" | "logistic" => {
+            if predictor_cols.len() == 1 {
+                // Simple logistic regression
+                let x = extract_column_floats(table, &predictor_cols[0], "glm")?;
+                let res = bl_core::bio_core::stats_ops::logistic_regression(&x, &y)
+                    .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+
+                Ok(make_record(vec![
+                    ("coefficients", Value::List(res.coefficients.into_iter().map(Value::Float).collect())),
+                    ("p_values", Value::List(res.p_values.into_iter().map(Value::Float).collect())),
+                    ("log_likelihood", Value::Float(res.log_likelihood)),
+                    ("aic", Value::Float(res.aic)),
+                    ("family", Value::Str("binomial".into())),
+                ]))
+            } else {
+                // Multi-predictor: use iteratively reweighted least squares
+                let x_matrix: Vec<Vec<f64>> = (0..table.num_rows())
+                    .map(|i| {
+                        predictor_cols.iter().map(|col| {
+                            let ci = table.col_index(col).unwrap();
+                            to_f64(&table.rows[i][ci]).unwrap_or(0.0)
+                        }).collect()
+                    })
+                    .collect();
+
+                let res = logistic_regression_multi(&y, &x_matrix)
+                    .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+
+                Ok(make_record(vec![
+                    ("coefficients", Value::List(res.0.into_iter().map(Value::Float).collect())),
+                    ("p_values", Value::List(res.1.into_iter().map(Value::Float).collect())),
+                    ("log_likelihood", Value::Float(res.2)),
+                    ("aic", Value::Float(res.3)),
+                    ("family", Value::Str("binomial".into())),
+                ]))
+            }
+        }
+        "gaussian" | "linear" => {
+            // Falls back to lm()
+            builtin_lm(args[..2].to_vec())
+        }
+        "poisson" => {
+            // Simple Poisson regression via IRLS
+            let x_matrix: Vec<Vec<f64>> = (0..table.num_rows())
+                .map(|i| {
+                    predictor_cols.iter().map(|col| {
+                        let ci = table.col_index(col).unwrap();
+                        to_f64(&table.rows[i][ci]).unwrap_or(0.0)
+                    }).collect()
+                })
+                .collect();
+
+            let res = poisson_regression(&y, &x_matrix)
+                .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+
+            Ok(make_record(vec![
+                ("coefficients", Value::List(res.0.into_iter().map(Value::Float).collect())),
+                ("p_values", Value::List(res.1.into_iter().map(Value::Float).collect())),
+                ("deviance", Value::Float(res.2)),
+                ("aic", Value::Float(res.3)),
+                ("family", Value::Str("poisson".into())),
+            ]))
+        }
+        _ => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("glm() unknown family '{family}'. Supported: binomial, gaussian, poisson"),
+            None,
+        )),
+    }
+}
+
+/// Multi-predictor logistic regression via IRLS.
+/// Returns (coefficients, p_values, log_likelihood, aic).
+fn logistic_regression_multi(y: &[f64], x: &[Vec<f64>]) -> std::result::Result<(Vec<f64>, Vec<f64>, f64, f64), String> {
+    let n = y.len();
+    if n < 2 || x.is_empty() || x[0].is_empty() { return Err("insufficient data".into()); }
+    let p = x[0].len() + 1; // +1 for intercept
+
+    // Build design matrix with intercept
+    let mut beta = vec![0.0; p];
+    let max_iter = 50;
+
+    for _ in 0..max_iter {
+        let mut mu: Vec<f64> = Vec::with_capacity(n);
+        for i in 0..n {
+            let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+            mu.push(1.0 / (1.0 + (-eta).exp()));
+        }
+
+        // Weights W = mu * (1 - mu)
+        let w: Vec<f64> = mu.iter().map(|&m| {
+            let v = m * (1.0 - m);
+            if v < 1e-10 { 1e-10 } else { v }
+        }).collect();
+
+        // Working response z = eta + (y - mu) / w
+        let z: Vec<f64> = (0..n).map(|i| {
+            let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+            eta + (y[i] - mu[i]) / w[i]
+        }).collect();
+
+        // Weighted least squares: (X'WX)^-1 X'Wz
+        let mut xtwx = vec![vec![0.0; p]; p];
+        let mut xtwz = vec![0.0; p];
+
+        for i in 0..n {
+            let xi = std::iter::once(1.0).chain(x[i].iter().copied()).collect::<Vec<_>>();
+            for j in 0..p {
+                xtwz[j] += xi[j] * w[i] * z[i];
+                for k in 0..p {
+                    xtwx[j][k] += xi[j] * w[i] * xi[k];
+                }
+            }
+        }
+
+        let new_beta = solve_linear_system(&xtwx, &xtwz).ok_or("singular matrix in GLM")?;
+        let max_change: f64 = beta.iter().zip(&new_beta).map(|(a, b)| (a - b).abs()).fold(0.0, f64::max);
+        beta = new_beta;
+        if max_change < 1e-8 { break; }
+    }
+
+    // Log-likelihood
+    let ll: f64 = (0..n).map(|i| {
+        let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+        let mu = 1.0 / (1.0 + (-eta).exp());
+        let mu = mu.clamp(1e-15, 1.0 - 1e-15);
+        y[i] * mu.ln() + (1.0 - y[i]) * (1.0 - mu).ln()
+    }).sum();
+
+    let aic = -2.0 * ll + 2.0 * p as f64;
+
+    // Approximate p-values from Wald test (using diagonal of (X'WX)^-1)
+    let mut mu: Vec<f64> = Vec::with_capacity(n);
+    for i in 0..n {
+        let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+        mu.push(1.0 / (1.0 + (-eta).exp()));
+    }
+    let w: Vec<f64> = mu.iter().map(|&m| { let v = m * (1.0 - m); if v < 1e-10 { 1e-10 } else { v } }).collect();
+    let mut xtwx = vec![vec![0.0; p]; p];
+    for i in 0..n {
+        let xi = std::iter::once(1.0).chain(x[i].iter().copied()).collect::<Vec<_>>();
+        for j in 0..p {
+            for k in 0..p {
+                xtwx[j][k] += xi[j] * w[i] * xi[k];
+            }
+        }
+    }
+    let inv = invert_matrix(&xtwx).unwrap_or_else(|| vec![vec![0.0; p]; p]);
+    let p_values: Vec<f64> = (0..p).map(|j| {
+        let se = inv[j][j].abs().sqrt();
+        if se > 0.0 {
+            let z = beta[j] / se;
+            2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()))
+        } else { 1.0 }
+    }).collect();
+
+    Ok((beta, p_values, ll, aic))
+}
+
+/// Poisson regression via IRLS.
+/// Returns (coefficients, p_values, deviance, aic).
+fn poisson_regression(y: &[f64], x: &[Vec<f64>]) -> std::result::Result<(Vec<f64>, Vec<f64>, f64, f64), String> {
+    let n = y.len();
+    if n < 2 || x.is_empty() || x[0].is_empty() { return Err("insufficient data".into()); }
+    let p = x[0].len() + 1;
+
+    let mut beta = vec![0.0; p];
+    beta[0] = y.iter().map(|&yi| (yi.max(0.01)).ln()).sum::<f64>() / n as f64;
+
+    for _ in 0..50 {
+        let mu: Vec<f64> = (0..n).map(|i| {
+            let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+            eta.exp().min(1e10)
+        }).collect();
+
+        let z: Vec<f64> = (0..n).map(|i| {
+            let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+            eta + (y[i] - mu[i]) / mu[i].max(1e-10)
+        }).collect();
+
+        let mut xtwx = vec![vec![0.0; p]; p];
+        let mut xtwz = vec![0.0; p];
+        for i in 0..n {
+            let xi = std::iter::once(1.0).chain(x[i].iter().copied()).collect::<Vec<_>>();
+            let w = mu[i].max(1e-10);
+            for j in 0..p {
+                xtwz[j] += xi[j] * w * z[i];
+                for k in 0..p {
+                    xtwx[j][k] += xi[j] * w * xi[k];
+                }
+            }
+        }
+
+        let new_beta = solve_linear_system(&xtwx, &xtwz).ok_or("singular matrix in Poisson GLM")?;
+        let max_change: f64 = beta.iter().zip(&new_beta).map(|(a, b)| (a - b).abs()).fold(0.0, f64::max);
+        beta = new_beta;
+        if max_change < 1e-8 { break; }
+    }
+
+    // Deviance
+    let deviance: f64 = (0..n).map(|i| {
+        let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+        let mu = eta.exp().max(1e-15);
+        if y[i] > 0.0 { 2.0 * (y[i] * (y[i] / mu).ln() - (y[i] - mu)) } else { 2.0 * mu }
+    }).sum();
+
+    // Log-likelihood for AIC
+    let ll: f64 = (0..n).map(|i| {
+        let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+        let mu = eta.exp().max(1e-15);
+        y[i] * mu.ln() - mu
+    }).sum();
+    let aic = -2.0 * ll + 2.0 * p as f64;
+
+    // P-values
+    let mu: Vec<f64> = (0..n).map(|i| {
+        let eta = beta[0] + x[i].iter().zip(&beta[1..]).map(|(xi, bi)| xi * bi).sum::<f64>();
+        eta.exp().max(1e-10)
+    }).collect();
+    let mut xtwx = vec![vec![0.0; p]; p];
+    for i in 0..n {
+        let xi = std::iter::once(1.0).chain(x[i].iter().copied()).collect::<Vec<_>>();
+        for j in 0..p {
+            for k in 0..p { xtwx[j][k] += xi[j] * mu[i] * xi[k]; }
+        }
+    }
+    let inv = invert_matrix(&xtwx).unwrap_or_else(|| vec![vec![0.0; p]; p]);
+    let p_values: Vec<f64> = (0..p).map(|j| {
+        let se = inv[j][j].abs().sqrt();
+        if se > 0.0 {
+            let z = beta[j] / se;
+            2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()))
+        } else { 1.0 }
+    }).collect();
+
+    Ok((beta, p_values, deviance, aic))
+}
+
+/// Solve Ax = b via Gaussian elimination with partial pivoting.
+fn solve_linear_system(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
+    let n = a.len();
+    let mut aug: Vec<Vec<f64>> = a.iter().enumerate().map(|(i, row)| {
+        let mut r = row.clone();
+        r.push(b[i]);
+        r
+    }).collect();
+
+    for col in 0..n {
+        let pivot = (col..n).max_by(|&i, &j|
+            aug[i][col].abs().partial_cmp(&aug[j][col].abs()).unwrap_or(std::cmp::Ordering::Equal)
+        )?;
+        aug.swap(col, pivot);
+        if aug[col][col].abs() < 1e-15 { return None; }
+        let div = aug[col][col];
+        for j in col..=n { aug[col][j] /= div; }
+        for i in 0..n {
+            if i == col { continue; }
+            let factor = aug[i][col];
+            for j in col..=n { aug[i][j] -= factor * aug[col][j]; }
+        }
+    }
+
+    Some(aug.iter().map(|row| row[n]).collect())
+}
+
+/// Invert a square matrix via Gauss-Jordan elimination.
+fn invert_matrix(a: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let n = a.len();
+    let mut aug: Vec<Vec<f64>> = (0..n).map(|i| {
+        let mut row = a[i].clone();
+        row.extend((0..n).map(|j| if i == j { 1.0 } else { 0.0 }));
+        row
+    }).collect();
+
+    for col in 0..n {
+        let pivot = (col..n).max_by(|&i, &j|
+            aug[i][col].abs().partial_cmp(&aug[j][col].abs()).unwrap_or(std::cmp::Ordering::Equal)
+        )?;
+        aug.swap(col, pivot);
+        if aug[col][col].abs() < 1e-15 { return None; }
+        let div = aug[col][col];
+        for j in 0..2*n { aug[col][j] /= div; }
+        for i in 0..n {
+            if i == col { continue; }
+            let factor = aug[i][col];
+            for j in 0..2*n { aug[i][j] -= factor * aug[col][j]; }
+        }
+    }
+
+    Some(aug.iter().map(|row| row[n..].to_vec()).collect())
+}
+
+// ── K-Means Builtin ─────────────────────────────────────────────────────────
+
+fn builtin_kmeans(args: Vec<Value>) -> Result<Value> {
+    let k = require_int(&args[1], "kmeans")? as usize;
+    let max_iter = if args.len() >= 3 { require_int(&args[2], "kmeans")? as usize } else { 100 };
+
+    // Accept Table or Matrix
+    let data: Vec<Vec<f64>> = match &args[0] {
+        Value::Table(t) => {
+            // Use all numeric columns
+            let numeric_cols: Vec<usize> = (0..t.columns.len())
+                .filter(|&ci| t.rows.iter().any(|r| matches!(&r[ci], Value::Int(_) | Value::Float(_))))
+                .collect();
+            if numeric_cols.is_empty() {
+                return Err(BioLangError::type_error("kmeans() table has no numeric columns", None));
+            }
+            t.rows.iter().map(|row| {
+                numeric_cols.iter().map(|&ci| to_f64(&row[ci]).unwrap_or(0.0)).collect()
+            }).collect()
+        }
+        Value::Matrix(m) => {
+            (0..m.nrow).map(|i| m.row(i)).collect()
+        }
+        Value::List(items) => {
+            // List of lists
+            items.iter().map(|v| {
+                match v {
+                    Value::List(inner) => inner.iter().map(|x| to_f64(x).unwrap_or(0.0)).collect(),
+                    _ => vec![to_f64(v).unwrap_or(0.0)],
+                }
+            }).collect()
+        }
+        other => return Err(BioLangError::type_error(
+            format!("kmeans() requires Table, Matrix, or List, got {}", other.type_of()), None)),
+    };
+
+    let res = bl_core::bio_core::stats_ops::kmeans(&data, k, max_iter)
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+
+    let centroid_cols: Vec<String> = (0..res.centroids.first().map(|c| c.len()).unwrap_or(0))
+        .map(|i| format!("dim_{}", i + 1))
+        .collect();
+    let centroid_rows: Vec<Vec<Value>> = res.centroids.iter()
+        .map(|c| c.iter().map(|&v| Value::Float(v)).collect())
+        .collect();
+
+    Ok(make_record(vec![
+        ("clusters", Value::List(res.clusters.into_iter().map(|c| Value::Int(c as i64)).collect())),
+        ("centroids", Value::Table(bl_core::value::Table::new(centroid_cols, centroid_rows))),
+        ("iterations", Value::Int(res.iterations as i64)),
+        ("inertia", Value::Float(res.inertia)),
+    ]))
+}
+
+// ── Distribution Functions ──────────────────────────────────────────────────
+
+fn opt_float(args: &[Value], idx: usize, default: f64) -> f64 {
+    if idx < args.len() { to_f64(&args[idx]).unwrap_or(default) } else { default }
+}
+
+fn builtin_dnorm(args: Vec<Value>) -> Result<Value> {
+    let x = require_num(&args[0], "dnorm")?;
+    let mean = opt_float(&args, 1, 0.0);
+    let sd = opt_float(&args, 2, 1.0);
+    if sd <= 0.0 { return Err(BioLangError::type_error("dnorm() sd must be positive", None)); }
+    let z = (x - mean) / sd;
+    Ok(Value::Float(bl_core::bio_core::stats_ops::normal_pdf(z) / sd))
+}
+
+fn builtin_pnorm(args: Vec<Value>) -> Result<Value> {
+    let x = require_num(&args[0], "pnorm")?;
+    let mean = opt_float(&args, 1, 0.0);
+    let sd = opt_float(&args, 2, 1.0);
+    if sd <= 0.0 { return Err(BioLangError::type_error("pnorm() sd must be positive", None)); }
+    let z = (x - mean) / sd;
+    Ok(Value::Float(bl_core::bio_core::stats_ops::normal_cdf(z)))
+}
+
+fn builtin_qnorm(args: Vec<Value>) -> Result<Value> {
+    let p = require_num(&args[0], "qnorm")?;
+    let mean = opt_float(&args, 1, 0.0);
+    let sd = opt_float(&args, 2, 1.0);
+    if sd <= 0.0 { return Err(BioLangError::type_error("qnorm() sd must be positive", None)); }
+    if p <= 0.0 || p >= 1.0 {
+        return Err(BioLangError::type_error("qnorm() p must be in (0, 1)", None));
+    }
+    Ok(Value::Float(bl_core::bio_core::stats_ops::normal_quantile(p) * sd + mean))
+}
+
+fn builtin_dbinom(args: Vec<Value>) -> Result<Value> {
+    let k = require_int(&args[0], "dbinom")? as u64;
+    let n = require_int(&args[1], "dbinom")? as u64;
+    let p = require_num(&args[2], "dbinom")?;
+    Ok(Value::Float(bl_core::bio_core::stats_ops::binomial_pmf(k, n, p)))
+}
+
+fn builtin_pbinom(args: Vec<Value>) -> Result<Value> {
+    let k = require_int(&args[0], "pbinom")? as u64;
+    let n = require_int(&args[1], "pbinom")? as u64;
+    let p = require_num(&args[2], "pbinom")?;
+    Ok(Value::Float(bl_core::bio_core::stats_ops::binom_cdf(k, n, p)))
+}
+
+fn builtin_dpois(args: Vec<Value>) -> Result<Value> {
+    let k = require_int(&args[0], "dpois")? as u64;
+    let lambda = require_num(&args[1], "dpois")?;
+    Ok(Value::Float(bl_core::bio_core::stats_ops::poisson_pmf_exact(k, lambda)))
+}
+
+fn builtin_ppois(args: Vec<Value>) -> Result<Value> {
+    let k = require_int(&args[0], "ppois")? as u64;
+    let lambda = require_num(&args[1], "ppois")?;
+    Ok(Value::Float(bl_core::bio_core::stats_ops::poisson_cdf_exact(k, lambda)))
+}
+
+fn builtin_dunif(args: Vec<Value>) -> Result<Value> {
+    let x = require_num(&args[0], "dunif")?;
+    let a = opt_float(&args, 1, 0.0);
+    let b = opt_float(&args, 2, 1.0);
+    Ok(Value::Float(bl_core::bio_core::stats_ops::uniform_pdf(x, a, b)))
+}
+
+fn builtin_punif(args: Vec<Value>) -> Result<Value> {
+    let x = require_num(&args[0], "punif")?;
+    let a = opt_float(&args, 1, 0.0);
+    let b = opt_float(&args, 2, 1.0);
+    Ok(Value::Float(bl_core::bio_core::stats_ops::uniform_cdf(x, a, b)))
+}
+
+fn builtin_dexp(args: Vec<Value>) -> Result<Value> {
+    let x = require_num(&args[0], "dexp")?;
+    let rate = opt_float(&args, 1, 1.0);
+    Ok(Value::Float(bl_core::bio_core::stats_ops::exponential_pdf(x, rate)))
+}
+
+fn builtin_pexp(args: Vec<Value>) -> Result<Value> {
+    let x = require_num(&args[0], "pexp")?;
+    let rate = opt_float(&args, 1, 1.0);
+    Ok(Value::Float(bl_core::bio_core::stats_ops::exponential_cdf(x, rate)))
+}
+
+// ── Random Variate Generators ───────────────────────────────────────────────
+
+fn builtin_rnorm(args: Vec<Value>) -> Result<Value> {
+    let n = require_int(&args[0], "rnorm")? as usize;
+    let mean = opt_float(&args, 1, 0.0);
+    let sd = opt_float(&args, 2, 1.0);
+    if sd <= 0.0 { return Err(BioLangError::type_error("rnorm() sd must be positive", None)); }
+    // Box-Muller transform using the existing xorshift64 RNG
+    let mut result = Vec::with_capacity(n);
+    for _ in 0..n {
+        let u1: f64 = xorshift_f64();
+        let u2: f64 = xorshift_f64();
+        let z = (-2.0 * u1.max(1e-15).ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
+        result.push(Value::Float(z * sd + mean));
+    }
+    Ok(Value::List(result))
+}
+
+fn builtin_rbinom(args: Vec<Value>) -> Result<Value> {
+    let n = require_int(&args[0], "rbinom")? as usize;
+    let trials = require_int(&args[1], "rbinom")? as usize;
+    let p = require_num(&args[2], "rbinom")?;
+    let mut result = Vec::with_capacity(n);
+    for _ in 0..n {
+        let mut successes = 0i64;
+        for _ in 0..trials {
+            if xorshift_f64() < p { successes += 1; }
+        }
+        result.push(Value::Int(successes));
+    }
+    Ok(Value::List(result))
+}
+
+fn builtin_rpois(args: Vec<Value>) -> Result<Value> {
+    let n = require_int(&args[0], "rpois")? as usize;
+    let lambda = require_num(&args[1], "rpois")?;
+    // Knuth's algorithm for Poisson random variates
+    let mut result = Vec::with_capacity(n);
+    let l = (-lambda).exp();
+    for _ in 0..n {
+        let mut k = 0i64;
+        let mut p_val = 1.0;
+        loop {
+            k += 1;
+            p_val *= xorshift_f64();
+            if p_val <= l { break; }
+        }
+        result.push(Value::Int(k - 1));
+    }
+    Ok(Value::List(result))
+}
+
+/// Thread-local xorshift64 PRNG (same as used in random() builtin).
+fn xorshift_f64() -> f64 {
+    use std::cell::Cell;
+    thread_local! {
+        static STATE: Cell<u64> = Cell::new(0x12345678_9abcdef0);
+    }
+    STATE.with(|s| {
+        let mut x = s.get();
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        s.set(x);
+        (x >> 11) as f64 / (1u64 << 53) as f64
+    })
 }
 

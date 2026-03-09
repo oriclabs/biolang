@@ -651,16 +651,17 @@ fn test_gff_write_roundtrip() {
 fn test_vcf_table_basic() {
     let path = test_data_dir().join("test.vcf");
     let result = read_vcf(path.to_str().unwrap()).unwrap();
-    if let Value::Table(t) = result {
-        assert_eq!(t.num_rows(), 3);
-        assert_eq!(t.num_cols(), 8);
-        assert_eq!(t.columns[0], "chrom");
-        assert_eq!(t.columns[1], "pos");
-        assert_eq!(t.rows[0][0], Value::Str("chr1".into()));
-        assert_eq!(t.rows[0][1], Value::Int(10177));
-        assert_eq!(t.rows[0][3], Value::Str("A".into())); // REF
+    if let Value::List(items) = result {
+        assert_eq!(items.len(), 3);
+        if let Value::Variant { chrom, pos, ref_allele, .. } = &items[0] {
+            assert_eq!(chrom, "chr1");
+            assert_eq!(*pos, 10177);
+            assert_eq!(ref_allele, "A");
+        } else {
+            panic!("expected Variant");
+        }
     } else {
-        panic!("expected Table");
+        panic!("expected List");
     }
 }
 
@@ -671,12 +672,12 @@ fn test_vcf_stream_basic() {
     if let Value::Stream(s) = result {
         let items = s.collect_all();
         assert_eq!(items.len(), 3);
-        if let Value::Record(map) = &items[0] {
-            assert_eq!(map.get("chrom"), Some(&Value::Str("chr1".into())));
-            assert_eq!(map.get("pos"), Some(&Value::Int(10177)));
-            assert_eq!(map.get("ref"), Some(&Value::Str("A".into())));
+        if let Value::Variant { chrom, pos, ref_allele, .. } = &items[0] {
+            assert_eq!(chrom, "chr1");
+            assert_eq!(*pos, 10177);
+            assert_eq!(ref_allele, "A");
         } else {
-            panic!("expected Record");
+            panic!("expected Variant");
         }
     } else {
         panic!("expected Stream");
@@ -693,19 +694,23 @@ fn test_vcf_absolute_path() {
     let path = test_data_dir().join("test.vcf");
     let abs = std::fs::canonicalize(&path).unwrap();
     let result = read_vcf(abs.to_str().unwrap()).unwrap();
-    assert!(matches!(result, Value::Table(_)));
+    assert!(matches!(result, Value::List(_)));
 }
 
 #[test]
 fn test_vcf_single_record() {
     let path = test_data_dir().join("single.vcf");
     let result = read_vcf(path.to_str().unwrap()).unwrap();
-    if let Value::Table(t) = result {
-        assert_eq!(t.num_rows(), 1);
-        assert_eq!(t.rows[0][0], Value::Str("chr1".into()));
-        assert_eq!(t.rows[0][1], Value::Int(10177));
+    if let Value::List(items) = result {
+        assert_eq!(items.len(), 1);
+        if let Value::Variant { chrom, pos, .. } = &items[0] {
+            assert_eq!(chrom, "chr1");
+            assert_eq!(*pos, 10177);
+        } else {
+            panic!("expected Variant");
+        }
     } else {
-        panic!("expected Table");
+        panic!("expected List");
     }
 }
 
@@ -713,10 +718,10 @@ fn test_vcf_single_record() {
 fn test_vcf_empty_file() {
     let path = test_data_dir().join("empty.vcf");
     let result = read_vcf(path.to_str().unwrap()).unwrap();
-    if let Value::Table(t) = result {
-        assert_eq!(t.num_rows(), 0);
+    if let Value::List(items) = result {
+        assert_eq!(items.len(), 0);
     } else {
-        panic!("expected Table");
+        panic!("expected List");
     }
 }
 
@@ -736,14 +741,15 @@ fn test_vcf_stream_exhaustion() {
 fn test_vcf_info_field() {
     let path = test_data_dir().join("test.vcf");
     let result = read_vcf(path.to_str().unwrap()).unwrap();
-    if let Value::Table(t) = result {
-        let info = &t.rows[0][7]; // INFO column
-        if let Value::Str(s) = info {
-            assert!(s.contains("AF="), "INFO should contain AF: {s}");
-            assert!(s.contains("DP="), "INFO should contain DP: {s}");
+    if let Value::List(items) = result {
+        if let Value::Variant { info, .. } = &items[0] {
+            assert!(info.contains_key("AF"), "INFO should contain AF");
+            assert!(info.contains_key("DP"), "INFO should contain DP");
+        } else {
+            panic!("expected Variant");
         }
     } else {
-        panic!("expected Table");
+        panic!("expected List");
     }
 }
 
@@ -751,41 +757,38 @@ fn test_vcf_info_field() {
 fn test_vcf_indel() {
     let path = test_data_dir().join("test.vcf");
     let result = read_vcf(path.to_str().unwrap()).unwrap();
-    if let Value::Table(t) = result {
+    if let Value::List(items) = result {
         // Third row is a deletion (22bp REF -> 1bp ALT)
-        assert_eq!(t.rows[2][0], Value::Str("chr2".into()));
-        let ref_allele = &t.rows[2][3];
-        if let Value::Str(s) = ref_allele {
-            assert!(s.len() > 1, "indel REF should be multi-base: {s}");
+        if let Value::Variant { chrom, ref_allele, .. } = &items[2] {
+            assert_eq!(chrom, "chr2");
+            assert!(ref_allele.len() > 1, "indel REF should be multi-base: {ref_allele}");
+        } else {
+            panic!("expected Variant");
         }
     } else {
-        panic!("expected Table");
+        panic!("expected List");
     }
 }
 
 #[test]
 fn test_vcf_write_roundtrip() {
     let path = test_data_dir().join("test.vcf");
-    let table = read_vcf(path.to_str().unwrap()).unwrap();
-    let records = if let Value::Table(t) = &table {
-        (0..t.num_rows())
-            .map(|i| Value::Record(t.row_to_record(i)))
-            .collect::<Vec<_>>()
-    } else {
-        panic!("expected Table");
-    };
+    let variants = read_vcf(path.to_str().unwrap()).unwrap();
+    let items1 = if let Value::List(ref l) = variants { l.clone() } else { panic!("expected List") };
 
     let out_path = tmp_path("roundtrip.vcf");
-    let count = write_vcf(&Value::List(records), out_path.to_str().unwrap()).unwrap();
+    let count = write_vcf(&variants, out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(3));
 
-    let table2 = read_vcf(out_path.to_str().unwrap()).unwrap();
-    if let (Value::Table(t1), Value::Table(t2)) = (&table, &table2) {
-        assert_eq!(t1.num_rows(), t2.num_rows());
-        for i in 0..t1.num_rows() {
-            assert_eq!(t1.rows[i][0], t2.rows[i][0], "chrom mismatch at row {i}");
-            assert_eq!(t1.rows[i][1], t2.rows[i][1], "pos mismatch at row {i}");
-            assert_eq!(t1.rows[i][3], t2.rows[i][3], "ref mismatch at row {i}");
+    let variants2 = read_vcf(out_path.to_str().unwrap()).unwrap();
+    let items2 = if let Value::List(ref l) = variants2 { l.clone() } else { panic!("expected List") };
+    assert_eq!(items1.len(), items2.len());
+    for i in 0..items1.len() {
+        if let (Value::Variant { chrom: c1, pos: p1, ref_allele: r1, .. },
+                Value::Variant { chrom: c2, pos: p2, ref_allele: r2, .. }) = (&items1[i], &items2[i]) {
+            assert_eq!(c1, c2, "chrom mismatch at row {i}");
+            assert_eq!(p1, p2, "pos mismatch at row {i}");
+            assert_eq!(r1, r2, "ref mismatch at row {i}");
         }
     }
     let _ = std::fs::remove_file(&out_path);

@@ -21,7 +21,30 @@ pub fn is_plot_builtin(name: &str) -> bool {
     )
 }
 
+/// Normalize single-Record calling convention for plot functions.
+/// `func({data: table, title: "..."})` → `func(table, {title: "..."})`
+/// `func({values: [...], bins: 8})` → `func([...], {bins: 8})`
+fn normalize_plot_args(args: Vec<Value>) -> Vec<Value> {
+    if args.len() == 1 {
+        if let Value::Record(ref map) = args[0] {
+            // Try "data" first, then "values" as the primary data key
+            for key in &["data", "values"] {
+                if let Some(data) = map.get(*key) {
+                    let mut opts = map.clone();
+                    opts.remove(*key);
+                    if opts.is_empty() {
+                        return vec![data.clone()];
+                    }
+                    return vec![data.clone(), Value::Record(opts)];
+                }
+            }
+        }
+    }
+    args
+}
+
 pub fn call_plot_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
+    let args = normalize_plot_args(args);
     match name {
         "plot" => builtin_plot(args),
         "heatmap" => builtin_heatmap(args),
@@ -239,6 +262,23 @@ pub(crate) fn require_table<'a>(val: &'a Value, func: &str) -> Result<&'a Table>
 // ── Builtins ────────────────────────────────────────────────────
 
 fn builtin_plot(args: Vec<Value>) -> Result<Value> {
+    // Handle Record with x/y lists: plot({x: [...], y: [...], title: "..."})
+    let args = if args.len() == 1 {
+        if let Value::Record(ref map) = args[0] {
+            if map.contains_key("x") && map.contains_key("y") {
+                if let (Value::List(xv), Value::List(yv)) = (&map["x"], &map["y"]) {
+                    let rows: Vec<Vec<Value>> = xv.iter().zip(yv.iter())
+                        .map(|(x, y)| vec![x.clone(), y.clone()]).collect();
+                    let table = Value::Table(Table::new(vec!["x".into(), "y".into()], rows));
+                    let mut opts = map.clone();
+                    opts.remove("x");
+                    opts.remove("y");
+                    if opts.is_empty() { vec![table] } else { vec![table, Value::Record(opts)] }
+                } else { args }
+            } else { args }
+        } else { args }
+    } else { args };
+
     let opts = parse_options(&args);
     let plot_type = get_opt_str(&opts, "type", "scatter").to_string();
     let width = get_opt_f64(&opts, "width", 800.0);
@@ -338,29 +378,49 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
 }
 
 fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
-    let table = require_table(&args[0], "heatmap")?;
     let opts = parse_options(&args);
     let width = get_opt_f64(&opts, "width", 800.0);
     let height = get_opt_f64(&opts, "height", 600.0);
     let title = get_opt_str(&opts, "title", "Heatmap").to_string();
 
-    let mut all_vals: Vec<f64> = Vec::new();
-    let mut cols_data: Vec<Vec<f64>> = Vec::new();
-    for col in &table.columns {
-        let vals = extract_table_col(table, col)?;
-        for &v in &vals {
-            if v.is_finite() { all_vals.push(v); }
+    // Extract data from Table or Matrix
+    let (col_names, cols_data, all_vals, nrows) = match &args[0] {
+        Value::Table(table) => {
+            let mut all_v: Vec<f64> = Vec::new();
+            let mut cd: Vec<Vec<f64>> = Vec::new();
+            for col in &table.columns {
+                let vals = extract_table_col(table, col)?;
+                for &v in &vals { if v.is_finite() { all_v.push(v); } }
+                cd.push(vals);
+            }
+            let nr = table.num_rows();
+            (table.columns.clone(), cd, all_v, nr)
         }
-        cols_data.push(vals);
-    }
+        Value::Matrix(m) => {
+            let cn: Vec<String> = m.col_names.clone()
+                .unwrap_or_else(|| (0..m.ncol).map(|i| format!("col{i}")).collect());
+            let mut all_v: Vec<f64> = Vec::new();
+            let mut cd: Vec<Vec<f64>> = Vec::new();
+            for c in 0..m.ncol {
+                let mut col_v = Vec::with_capacity(m.nrow);
+                for r in 0..m.nrow {
+                    let v = m.data[r * m.ncol + c];
+                    col_v.push(v);
+                    if v.is_finite() { all_v.push(v); }
+                }
+                cd.push(col_v);
+            }
+            (cn, cd, all_v, m.nrow)
+        }
+        _ => return Err(BioLangError::type_error("heatmap() requires Table or Matrix", None)),
+    };
 
     let (vmin, vmax) = col_range(&all_vals);
     let mut canvas = SvgCanvas::new(width, height);
     canvas.margin.left = 80.0;
     canvas.margin.bottom = 60.0;
 
-    let nrows = table.num_rows();
-    let ncols = table.num_cols();
+    let ncols = col_names.len();
     let cell_w = canvas.plot_width() / ncols as f64;
     let cell_h = canvas.plot_height() / nrows as f64;
 
@@ -375,7 +435,7 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     }
 
     // Column labels
-    for (ci, col) in table.columns.iter().enumerate() {
+    for (ci, col) in col_names.iter().enumerate() {
         let x = canvas.margin.left + (ci as f64 + 0.5) * cell_w;
         canvas.add_text_rotated(x, canvas.margin.top + canvas.plot_height() + 10.0, col, 45.0, "start", 10.0);
     }

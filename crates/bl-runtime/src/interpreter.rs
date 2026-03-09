@@ -1182,6 +1182,11 @@ impl Interpreter {
                 self.eval_binary(*op, &lhs, &rhs, expr.span)
             }
             Expr::Pipe { left, right } => self.eval_pipe(left, right),
+            Expr::PipeInto { value, name } => {
+                let val = self.eval_expr(value)?;
+                self.env.define(name.clone(), val.clone());
+                Ok(val)
+            }
             Expr::Call { callee, args } => self.eval_call(callee, args, expr.span),
             Expr::Field { object, field, optional } => {
                 let obj = self.eval_expr(object)?;
@@ -1260,7 +1265,7 @@ impl Interpreter {
                         "id" => Ok(Value::Str(id.clone())),
                         "ref_allele" | "ref" => Ok(Value::Str(ref_allele.clone())),
                         "alt_allele" | "alt" => Ok(Value::Str(alt_allele.clone())),
-                        "quality" => Ok(Value::Float(quality)),
+                        "quality" | "qual" => Ok(Value::Float(quality)),
                         "filter" => Ok(Value::Str(filter.clone())),
                         "info" => Ok(Value::Record(info.clone())),
                         // Computed variant classification properties
@@ -2569,7 +2574,7 @@ impl Interpreter {
     fn call_hof_with_values(
         &mut self,
         name: &str,
-        args: Vec<Value>,
+        mut args: Vec<Value>,
         span: bl_core::span::Span,
     ) -> Result<Value> {
         match name {
@@ -3944,37 +3949,145 @@ impl Interpreter {
                 if args.len() != 2 {
                     return Err(BioLangError::runtime(
                         ErrorKind::ArityError,
-                        "sort_by() takes exactly 2 arguments (list, fn)",
+                        "sort_by() takes exactly 2 arguments (collection, fn)",
                         Some(span),
                     ));
                 }
-                let items = match &args[0] {
-                    Value::List(l) => l.clone(),
-                    other => {
-                        return Err(BioLangError::type_error(
-                            format!("sort_by() requires List, got {}", other.type_of()),
-                            Some(span),
-                        ))
+                // If first arg is a Stream, collect it into a List with a warning
+                if let Value::Stream(ref stream) = args[0] {
+                    eprintln!("\x1b[33mWarning:\x1b[0m sort_by() must collect the entire stream into memory to sort.");
+                    eprintln!("  Tip: kmer_count() already returns results sorted by count (descending).");
+                    eprintln!("  Use head(n) to get the top N entries without sorting: |> head(20)");
+                    let mut items = Vec::new();
+                    loop {
+                        match stream.next() {
+                            Some(v) => {
+                                if items.len() % 100_000 == 0 && items.len() > 0 {
+                                    eprint!("\r\x1b[2K  Collected {} items...", items.len());
+                                }
+                                items.push(v);
+                            }
+                            None => break,
+                        }
                     }
-                };
-                let func = args[1].clone();
-                // Compute sort keys
-                let mut keyed: Vec<(Value, Value)> = Vec::with_capacity(items.len());
-                for item in items {
-                    let key = self.call_value(&func, vec![item.clone()], span)?;
-                    keyed.push((key, item));
+                    if items.len() >= 100_000 {
+                        eprintln!("\r\x1b[2K  Collected {} items — sorting...", items.len());
+                    }
+                    args[0] = Value::List(items);
                 }
-                keyed.sort_by(|(ka, _), (kb, _)| {
-                    match (ka, kb) {
-                        (Value::Int(a), Value::Int(b)) => a.cmp(b),
-                        (Value::Float(a), Value::Float(b)) => a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
-                        (Value::Int(a), Value::Float(b)) => (*a as f64).partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
-                        (Value::Float(a), Value::Int(b)) => a.partial_cmp(&(*b as f64)).unwrap_or(std::cmp::Ordering::Equal),
-                        (Value::Str(a), Value::Str(b)) => a.cmp(b),
-                        _ => std::cmp::Ordering::Equal,
+                let func = args[1].clone();
+                // Detect if it's a 2-arg comparator or 1-arg key function
+                let is_comparator = match &func {
+                    Value::Function { params, .. } => params.len() >= 2,
+                    _ => false,
+                };
+
+                if is_comparator {
+                    // 2-arg comparator mode: sort_by(coll, |a, b| a.x - b.x)
+                    let coll_to_items = |coll: &Value| -> Result<(Vec<Value>, bool, Vec<String>)> {
+                        match coll {
+                            Value::List(l) => Ok((l.clone(), false, vec![])),
+                            Value::Table(tbl) => {
+                                let cols = tbl.columns.clone();
+                                let items: Vec<Value> = tbl.rows.iter().map(|row| {
+                                    let mut rec = std::collections::HashMap::new();
+                                    for (j, col) in cols.iter().enumerate() {
+                                        if j < row.len() {
+                                            rec.insert(col.clone(), row[j].clone());
+                                        }
+                                    }
+                                    Value::Record(rec)
+                                }).collect();
+                                Ok((items, true, cols))
+                            }
+                            other => Err(BioLangError::type_error(
+                                format!("sort_by() requires List or Table, got {}", other.type_of()),
+                                Some(span),
+                            )),
+                        }
+                    };
+                    let (mut items, is_table, cols) = coll_to_items(&args[0])?;
+                    let mut err = None;
+                    items.sort_by(|a, b| {
+                        if err.is_some() {
+                            return std::cmp::Ordering::Equal;
+                        }
+                        match self.call_value(&func, vec![a.clone(), b.clone()], span) {
+                            Ok(Value::Int(n)) if n < 0 => std::cmp::Ordering::Less,
+                            Ok(Value::Int(n)) if n > 0 => std::cmp::Ordering::Greater,
+                            Ok(Value::Int(_)) => std::cmp::Ordering::Equal,
+                            Ok(_) => {
+                                err = Some(BioLangError::type_error(
+                                    "sort_by compare function must return Int",
+                                    Some(span),
+                                ));
+                                std::cmp::Ordering::Equal
+                            }
+                            Err(e) => { err = Some(e); std::cmp::Ordering::Equal }
+                        }
+                    });
+                    if let Some(e) = err { return Err(e); }
+                    if is_table {
+                        // Convert records back to table rows
+                        let mut rows = Vec::with_capacity(items.len());
+                        for item in &items {
+                            if let Value::Record(rec) = item {
+                                let row: Vec<Value> = cols.iter().map(|c| rec.get(c).cloned().unwrap_or(Value::Nil)).collect();
+                                rows.push(row);
+                            }
+                        }
+                        Ok(Value::Table(bl_core::value::Table::new(cols, rows)))
+                    } else {
+                        Ok(Value::List(items))
                     }
-                });
-                Ok(Value::List(keyed.into_iter().map(|(_, v)| v).collect()))
+                } else {
+                    // 1-arg key function mode: sort_by(coll, |r| r.score)
+                    let cmp_keys = |ka: &Value, kb: &Value| -> std::cmp::Ordering {
+                        match (ka, kb) {
+                            (Value::Int(a), Value::Int(b)) => a.cmp(b),
+                            (Value::Float(a), Value::Float(b)) => a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
+                            (Value::Int(a), Value::Float(b)) => (*a as f64).partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
+                            (Value::Float(a), Value::Int(b)) => a.partial_cmp(&(*b as f64)).unwrap_or(std::cmp::Ordering::Equal),
+                            (Value::Str(a), Value::Str(b)) => a.cmp(b),
+                            _ => std::cmp::Ordering::Equal,
+                        }
+                    };
+                    match &args[0] {
+                        Value::List(l) => {
+                            let items = l.clone();
+                            let mut keyed: Vec<(Value, Value)> = Vec::with_capacity(items.len());
+                            for item in items {
+                                let key = self.call_value(&func, vec![item.clone()], span)?;
+                                keyed.push((key, item));
+                            }
+                            keyed.sort_by(|(ka, _), (kb, _)| cmp_keys(ka, kb));
+                            Ok(Value::List(keyed.into_iter().map(|(_, v)| v).collect()))
+                        }
+                        Value::Table(tbl) => {
+                            let cols = &tbl.columns;
+                            let mut keyed: Vec<(Value, usize)> = Vec::with_capacity(tbl.rows.len());
+                            for (i, row) in tbl.rows.iter().enumerate() {
+                                let mut rec = std::collections::HashMap::new();
+                                for (j, col) in cols.iter().enumerate() {
+                                    if j < row.len() {
+                                        rec.insert(col.clone(), row[j].clone());
+                                    }
+                                }
+                                let key = self.call_value(&func, vec![Value::Record(rec)], span)?;
+                                keyed.push((key, i));
+                            }
+                            keyed.sort_by(|(ka, _), (kb, _)| cmp_keys(ka, kb));
+                            let sorted_rows: Vec<Vec<Value>> = keyed.iter().map(|(_, i)| tbl.rows[*i].clone()).collect();
+                            Ok(Value::Table(bl_core::value::Table::new(cols.clone(), sorted_rows)))
+                        }
+                        other => {
+                            Err(BioLangError::type_error(
+                                format!("sort_by() requires List or Table, got {}", other.type_of()),
+                                Some(span),
+                            ))
+                        }
+                    }
+                }
             }
             "count_if" => {
                 if args.len() != 2 {
@@ -4626,6 +4739,20 @@ fn compare_op(
     pred: fn(std::cmp::Ordering) -> bool,
     span: bl_core::span::Span,
 ) -> Result<Value> {
+    // Nil compared to anything → false (useful for missing VCF fields, etc.)
+    if matches!(lhs, Value::Nil) || matches!(rhs, Value::Nil) {
+        return Ok(Value::Bool(false));
+    }
+    // Auto-unwrap single-element lists; for multi-element, compare first element.
+    // This supports VCF INFO fields like AF=0.35,0.10 where v.info.AF is a List.
+    let lhs = match lhs {
+        Value::List(items) if !items.is_empty() => &items[0],
+        other => other,
+    };
+    let rhs = match rhs {
+        Value::List(items) if !items.is_empty() => &items[0],
+        other => other,
+    };
     let ordering = match (lhs, rhs) {
         (Value::Int(a), Value::Int(b)) => a.cmp(b),
         (Value::Float(a), Value::Float(b)) => a
@@ -4716,6 +4843,10 @@ fn verbose_expr_label(expr: &Expr) -> String {
             let l = verbose_expr_label(&left.node);
             let r = verbose_expr_label(&right.node);
             format!("{l} |> {r}")
+        }
+        Expr::PipeInto { value, name } => {
+            let v = verbose_expr_label(&value.node);
+            format!("{v} |> into {name}")
         }
         Expr::Ident(name) => name.clone(),
         Expr::Field { object, field, .. } => {

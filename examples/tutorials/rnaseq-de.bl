@@ -1,0 +1,96 @@
+# rnaseq-de.bl — RNA-seq Differential Expression
+# Tutorial: https://lang.bio/docs/tutorials/rnaseq-de.html
+#
+# Run with: bl run examples/tutorials/rnaseq-de.bl
+#
+# Note: This tutorial requires count matrix CSV files (data/counts.csv,
+# data/gene_lengths.csv). The code below demonstrates the API and
+# workflow. Sections requiring external data are wrapped in comments
+# with inline sample data where possible.
+
+# ── 1. Experiment Design ─────────────────────────────────────
+
+let design = from_records([
+  { sample: "ctrl_1", group: "control" },
+  { sample: "ctrl_2", group: "control" },
+  { sample: "ctrl_3", group: "control" },
+  { sample: "treat_1", group: "treated" },
+  { sample: "treat_2", group: "treated" },
+  { sample: "treat_3", group: "treated" },
+])
+
+print("=== Experiment Design ===")
+print(design)
+
+let sample_cols = ["ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3"]
+
+# ── 2. Read Count Matrix ─────────────────────────────────────
+
+# In practice: let counts = csv("data/counts.csv")
+# For demo, build a small table inline
+let counts = from_records([
+  { gene: "TP53",  ctrl_1: 150, ctrl_2: 142, ctrl_3: 138, treat_1: 580, treat_2: 560, treat_3: 610 },
+  { gene: "BRCA1", ctrl_1:  90, ctrl_2:  88, ctrl_3:  95, treat_1:  25, treat_2:  30, treat_3:  22 },
+  { gene: "MYC",   ctrl_1: 200, ctrl_2: 210, ctrl_3: 195, treat_1: 850, treat_2: 820, treat_3: 900 },
+  { gene: "ACTB",  ctrl_1: 500, ctrl_2: 510, ctrl_3: 490, treat_1: 505, treat_2: 495, treat_3: 515 },
+  { gene: "GAPDH", ctrl_1: 450, ctrl_2: 440, ctrl_3: 460, treat_1: 455, treat_2: 445, treat_3: 465 },
+  { gene: "EGFR",  ctrl_1:  60, ctrl_2:  55, ctrl_3:  58, treat_1: 280, treat_2: 260, treat_3: 300 },
+  { gene: "CDH1",  ctrl_1: 120, ctrl_2: 125, ctrl_3: 118, treat_1:  30, treat_2:  35, treat_3:  28 },
+  { gene: "VEGFA", ctrl_1:  40, ctrl_2:  38, ctrl_3:  42, treat_1: 190, treat_2: 180, treat_3: 200 },
+])
+
+print(f"\nGenes: {nrow(counts)}")
+print(f"Samples: {ncol(counts) - 1}")
+print(head(counts, 5))
+
+# ── 3. Library Sizes ─────────────────────────────────────────
+
+let lib_sizes = sample_cols |>
+  map(|s| { sample: s, total_reads: sum(col(counts, s)) }) |>
+  from_records()
+
+print("\n=== Library Sizes ===")
+print(lib_sizes)
+
+# ── 4. Filtering Low-Count Genes ─────────────────────────────
+
+let min_count = 10
+let min_samples = 3
+
+let expressed = counts |> filter(|row| {
+  let n_above = sample_cols |> count_if(|s| row[s] >= min_count)
+  n_above >= min_samples
+})
+print(f"\nGenes after filtering: {nrow(expressed)}")
+
+# ── 5. Differential Expression ───────────────────────────────
+
+# diff_expr(count_table, n_control_columns)
+let de_results = diff_expr(expressed, 3)
+
+print("\n=== DE Results ===")
+print(head(de_results, 5))
+
+# Count significant genes
+let sig = de_results |> filter(|row| row["fdr"] < 0.05 and abs(row["log2fc"]) > 1.0)
+let up = sig |> filter(|row| row["log2fc"] > 0.0)
+let down = sig |> filter(|row| row["log2fc"] < 0.0)
+
+print(f"\nSignificant (FDR<0.05, |log2FC|>1): {nrow(sig)}")
+print(f"  Upregulated:   {nrow(up)}")
+print(f"  Downregulated: {nrow(down)}")
+
+# ── 6. Multiple Testing Comparison ───────────────────────────
+
+let pvals = col(de_results, "pvalue")
+let bh = p_adjust(pvals, "bh")
+let bonf = p_adjust(pvals, "bonferroni")
+
+let n_bh = bh |> count_if(|p| p < 0.05)
+let n_bonf = bonf |> count_if(|p| p < 0.05)
+
+print(f"\nSignificant genes (p<0.05):")
+print(f"  Benjamini-Hochberg: {n_bh}")
+print(f"  Bonferroni:         {n_bonf}")
+
+print("\nRNA-seq DE tutorial complete.")

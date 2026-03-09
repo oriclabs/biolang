@@ -5,9 +5,13 @@ let gene_symbol = "TP53"
 println("=== Multi-Database Report for", gene_symbol, "===\n")
 
 # 1. NCBI (US) — get gene ID and basic info
+# ncbi_gene returns Record (single result) or List of IDs (multiple)
 let ncbi = ncbi_gene(gene_symbol)
 println("1. NCBI Gene")
-println("   Gene IDs:", ncbi.ids)
+if is_record(ncbi) then
+    println("   Gene:", ncbi.symbol, "(ID:", ncbi.id + ")")
+else
+    println("   Gene IDs:", ncbi)
 
 # 2. NCBI Datasets (US) — modern gene info
 let datasets = datasets_gene(gene_symbol)

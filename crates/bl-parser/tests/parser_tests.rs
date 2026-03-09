@@ -1755,6 +1755,21 @@ fn test_method_chain_with_pipe() {
 }
 
 #[test]
+fn test_pipe_into_binding() {
+    let prog = parse("[1, 2, 3] |> len() |> into count");
+    match &prog.stmts[0].node {
+        Stmt::Expr(expr) => match &expr.node {
+            Expr::PipeInto { value, name } => {
+                assert_eq!(name, "count");
+                assert!(matches!(value.node, Expr::Pipe { .. }));
+            }
+            other => panic!("expected PipeInto, got {other:?}"),
+        },
+        other => panic!("expected Expr, got {other:?}"),
+    }
+}
+
+#[test]
 fn test_nested_index_access() {
     let prog = parse("matrix[0][1]");
     match &prog.stmts[0].node {

@@ -1,0 +1,118 @@
+# tables.bl — Working with Tables
+# Tutorial: https://lang.bio/docs/tutorials/tables.html
+#
+# Run with: bl run examples/tutorials/tables.bl
+# Note: This tutorial uses sample CSV files. Sections requiring external
+# data files are shown as comments. The in-memory examples run as-is.
+
+# ── 1. Building Tables from Records ─────────────────────────
+
+let data = from_records([
+  { gene: "TP53",  expr: 142.5, pvalue: 0.001 },
+  { gene: "BRCA1", expr:  87.3, pvalue: 0.023 },
+  { gene: "MYC",   expr: 512.4, pvalue: 0.0001 },
+  { gene: "EGFR",  expr: 245.1, pvalue: 0.045 },
+])
+
+print("=== Gene Expression Table ===")
+print(data)
+print(f"Rows: {nrow(data)}, Cols: {ncol(data)}")
+print(f"Columns: {colnames(data)}")
+
+# ── 2. Column Operations ─────────────────────────────────────
+
+# Select specific columns
+let subset = data |> select("gene", "expr")
+print("\nSelected columns:")
+print(subset)
+
+# Add a computed column
+let with_sig = data |> mutate("significant", |row| row.pvalue < 0.01)
+print("\nWith significance flag:")
+print(with_sig)
+
+# ── 3. Filtering ─────────────────────────────────────────────
+
+# Filter by expression level
+let high_expr = data |> filter(|row| row.expr > 100.0)
+print(f"\nHigh expression genes: {nrow(high_expr)}")
+print(high_expr)
+
+# Filter using a gene list
+let target_genes = ["TP53", "EGFR"]
+let targets = data |> filter(|row| row.gene in target_genes)
+print(f"\nTarget genes found: {nrow(targets)}")
+
+# ── 4. Sorting ───────────────────────────────────────────────
+
+let sorted_desc = data |> arrange("expr", "desc")
+print("\nSorted by expression (descending):")
+print(sorted_desc)
+
+# ── 5. Column Statistics ─────────────────────────────────────
+
+let exprs = col(data, "expr")
+print(f"\nMean expression: {round(mean(exprs), 2)}")
+print(f"Median: {round(median(exprs), 2)}")
+print(f"Std: {round(stdev(exprs), 2)}")
+
+# ── 6. Joins ─────────────────────────────────────────────────
+
+let annotations = from_records([
+  { gene: "TP53",  chromosome: "chr17", description: "tumor protein p53" },
+  { gene: "MYC",   chromosome: "chr8",  description: "MYC proto-oncogene" },
+  { gene: "EGFR",  chromosome: "chr7",  description: "epidermal growth factor receptor" },
+  { gene: "KRAS",  chromosome: "chr12", description: "KRAS proto-oncogene" },
+])
+
+# Inner join: only genes in both
+let annotated = inner_join(data, annotations, "gene")
+print("\nInner join (annotated):")
+print(annotated)
+
+# Left join: keep all expression rows
+let full = left_join(data, annotations, "gene")
+print("\nLeft join:")
+print(full)
+
+# ── 7. Pivot ─────────────────────────────────────────────────
+
+let expr_wide = from_records([
+  { gene: "TP53",  sample1: 142.5, sample2: 138.2, sample3: 155.8, group: "control" },
+  { gene: "BRCA1", sample1:  87.3, sample2:  92.1, sample3:  84.6, group: "control" },
+  { gene: "MYC",   sample1: 512.4, sample2: 498.7, sample3: 534.1, group: "case" },
+])
+
+let long = pivot_longer(expr_wide, ["sample1", "sample2", "sample3"], "sample", "expression")
+print("\nPivot longer:")
+print(long)
+
+let wide = pivot_wider(long, "sample", "expression")
+print("\nPivot wider (round-trip):")
+print(wide)
+
+# ── 8. Group By & Summarize ──────────────────────────────────
+
+let groups = expr_wide |> group_by("group")
+
+let summary = summarize(groups, |key, g| {
+  group:   key,
+  count:   nrow(g),
+  mean_s1: mean(col(g, "sample1")),
+  max_s1:  max(col(g, "sample1")),
+})
+
+print("\nGroup summary:")
+print(summary)
+
+# ── 9. Pipeline: Build, Process, Display ─────────────────────
+
+data |>
+  filter(|row| row.expr > 100.0) |>
+  mutate("log_expr", |row| log2(row.expr + 1.0)) |>
+  arrange("log_expr", "desc") |>
+  select("gene", "log_expr", "pvalue") |>
+  into result
+
+print("\nPipeline result:")
+print(result)

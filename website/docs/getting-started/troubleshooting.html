@@ -110,6 +110,23 @@ let reads = read_fastq("data/sample.fastq")
 # Absolute path — always works
 let reads = read_fastq("/home/user/data/sample.fastq")</code></pre>
 
+        <h3>Windows paths with backslashes</h3>
+        <p>
+          Backslashes in regular strings are escape characters (<code>\n</code> = newline,
+          <code>\t</code> = tab, <code>\r</code> = carriage return). A path like
+          <code>"C:\Users\rajba\data"</code> breaks because <code>\r</code> becomes a carriage
+          return. Use raw strings with the <code>r"..."</code> prefix &mdash; backslashes are
+          treated literally:
+        </p>
+        <pre><code class="language-biolang"># Wrong — \r becomes carriage return, \n becomes newline
+let reads = read_fastq("C:\Users\rajba\new_data\reads.fq.gz")
+
+# Correct — raw string, backslashes are literal
+let reads = read_fastq(r"C:\Users\rajba\new_data\reads.fq.gz")
+
+# Also correct — forward slashes work on all platforms
+let reads = read_fastq("C:/Users/rajba/new_data/reads.fq.gz")</code></pre>
+
         <h3>Reading large files runs out of memory</h3>
         <p>
           Use streaming instead of loading the entire file into memory:

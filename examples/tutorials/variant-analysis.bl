@@ -1,0 +1,117 @@
+# variant-analysis.bl — VCF Variant Analysis
+# Tutorial: https://lang.bio/docs/tutorials/variant-analysis.html
+#
+# Run with: bl run examples/tutorials/variant-analysis.bl
+
+# ── 1. Loading VCF Data ──────────────────────────────────────
+
+let variants = vcf("examples/sample-data/calls.vcf") |> collect()
+
+print(f"Total variants: {len(variants)}")
+
+let v = head(variants, 1) |> first()
+print(f"Chrom:  {v.chrom}")
+print(f"Pos:    {v.pos}")
+print(f"ID:     {v.id}")
+print(f"Ref:    {v.ref}")
+print(f"Alt:    {v.alt}")
+print(f"Qual:   {v.quality}")
+print(f"Filter: {v.filter}")
+
+# Access INFO fields (info is a Record)
+print(f"DP: {v.info.DP}")
+print(f"AF: {v.info.AF}")
+
+# ── 2. Quality Filtering ─────────────────────────────────────
+
+# Keep only PASS variants with QUAL >= 30
+let passed = variants |>
+  filter(|v| v.filter == "PASS" and v.quality >= 30.0)
+
+print(f"After PASS + QUAL>=30: {len(passed)} variants")
+
+# Further filter by depth
+let depth_filtered = passed |>
+  filter(|v| v.info.DP >= 10)
+
+print(f"After DP>=10: {len(depth_filtered)} variants")
+
+# Filter by allele frequency
+let common = depth_filtered |>
+  filter(|v| v.info.AF >= 0.01)
+
+let rare = depth_filtered |>
+  filter(|v| v.info.AF < 0.01)
+
+print(f"Common variants (AF>=1%): {len(common)}")
+print(f"Rare variants (AF<1%):    {len(rare)}")
+
+# ── 3. Variant Classification ────────────────────────────────
+
+# Count variant types
+passed |>
+  map(|v| {chrom: v.chrom, pos: v.pos, vtype: variant_type(v)}) |>
+  to_table() |>
+  into type_table
+
+let type_counts = value_counts(type_table, "vtype")
+print("\n=== Variant Types ===")
+print(type_counts)
+
+# Compute transition/transversion ratio
+let ti_tv = tstv_ratio(passed)
+print(f"\nTi/Tv ratio: {round(ti_tv, 3)}")
+
+# ── 4. Variants Per Chromosome ───────────────────────────────
+
+passed |>
+  map(|v| {chromosome: v.chrom, pos: v.pos}) |>
+  to_table() |>
+  into chrom_table
+
+let chrom_counts = value_counts(chrom_table, "chromosome") |>
+  rename("value", "chromosome") |>
+  arrange("count", "desc")
+
+print("\n=== Variants Per Chromosome ===")
+print(chrom_counts)
+
+# ── 5. Zygosity Analysis ─────────────────────────────────────
+
+passed |>
+  map(|v| {
+    chrom:  v.chrom,
+    pos:    v.pos,
+    is_het: is_het(v),
+    is_hom: is_hom_alt(v),
+  }) |>
+  to_table() |>
+  into het_table
+
+let het_only = filter(het_table, |row| row.is_het == true)
+print(f"\nHeterozygous variants: {nrow(het_only)}")
+
+let hh_ratio = het_hom_ratio(passed)
+print(f"Het/Hom ratio: {round(hh_ratio, 3)}")
+
+let stats = variant_summary(passed)
+print(f"Variant stats: {stats}")
+
+# ── 6. Summary Table ─────────────────────────────────────────
+
+passed |>
+  map(|v| {
+    chrom:   v.chrom,
+    pos:     v.pos,
+    ref:     v.ref,
+    alt:     v.alt,
+    quality: v.quality,
+    vtype:   variant_type(v),
+    af:      v.info.AF,
+  }) |>
+  to_table() |>
+  arrange("quality", "desc") |>
+  into summary
+
+print("\n=== Variant Summary ===")
+print(summary)

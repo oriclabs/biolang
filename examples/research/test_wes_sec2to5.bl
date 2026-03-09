@@ -20,7 +20,10 @@ println("Functional:", functional |> count())
 println("--- DB lookups ---")
 try {
     let mecp2_gene = ncbi_gene("MECP2")
-    println("MECP2 gene IDs:", mecp2_gene.ids)
+    if is_record(mecp2_gene) then
+        println("MECP2 gene:", mecp2_gene.symbol, "(ID:", mecp2_gene.id + ")")
+    else
+        println("MECP2 gene IDs:", mecp2_gene)
 } catch e {
     println("MECP2 lookup skipped:", e)
 }

@@ -1,0 +1,83 @@
+# enrichment.bl — Pathway Enrichment Analysis
+# Tutorial: https://lang.bio/docs/tutorials/enrichment.html
+#
+# Run with: bl run examples/tutorials/enrichment.bl
+
+# ── 1. Define DE Genes ───────────────────────────────────────
+
+let de_genes = [
+  "TP53", "CDKN1A", "BAX", "GADD45A", "MDM2",
+  "CCND1", "CDK4", "RB1", "E2F1", "BRCA1",
+  "CHEK2", "ATM", "ATR", "RAD51", "XRCC5"
+]
+print(f"DE genes: {len(de_genes)}")
+
+# ── 2. Define Gene Sets ──────────────────────────────────────
+
+# In practice: let gene_sets = read_gmt("hallmark.gmt")
+let gene_sets = [
+  {name: "HALLMARK_P53_PATHWAY", genes: ["TP53", "CDKN1A", "BAX", "GADD45A", "MDM2", "SESN1", "SESN2", "DDB2", "POLK"]},
+  {name: "HALLMARK_G2M_CHECKPOINT", genes: ["CDK1", "CCNB1", "CCND1", "CDK4", "E2F1", "RB1", "CDC25A", "CHEK1"]},
+  {name: "HALLMARK_DNA_REPAIR", genes: ["BRCA1", "BRCA2", "RAD51", "XRCC5", "ATM", "ATR", "CHEK2", "MLH1", "MSH2"]},
+  {name: "HALLMARK_APOPTOSIS", genes: ["BAX", "BCL2", "CASP3", "CASP9", "BID", "BAK1", "CYCS", "APAF1"]},
+  {name: "HALLMARK_MYC_TARGETS", genes: ["MYC", "MAX", "NCL", "NPM1", "RPS3", "RPL5", "NOP56", "FBL"]},
+]
+
+# ── 3. Over-Representation Analysis (ORA) ────────────────────
+
+let background_size = 20000
+let ora_results = enrich(de_genes, gene_sets, background_size)
+
+print("\n=== ORA Results ===")
+ora_results |> each(|r| {
+  print(f"  {r.term}: p={r.pvalue}, overlap={r.overlap}/{r.term_size}")
+})
+
+# Filter by FDR
+let significant = ora_results |>
+  filter(|r| r.fdr < 0.05) |>
+  sort_by(|r| r.fdr)
+
+print(f"\nSignificant pathways (FDR < 0.05): {len(significant)}")
+significant |> each(|r| {
+  print(f"  {r.term}")
+  print(f"    FDR: {r.fdr}, Overlap: {r.overlap}/{r.term_size}")
+  print(f"    Genes: {r.genes}")
+})
+
+# ── 4. Gene Set Enrichment Analysis (GSEA) ────────────────────
+
+let ranked_genes = [
+  {gene: "BAX", score: 4.2},
+  {gene: "CDKN1A", score: 3.8},
+  {gene: "TP53", score: 3.5},
+  {gene: "GADD45A", score: 3.1},
+  {gene: "BRCA1", score: 2.7},
+  {gene: "ATM", score: 2.3},
+  {gene: "RAD51", score: 1.9},
+  {gene: "CCND1", score: 0.5},
+  {gene: "CDK4", score: 0.3},
+  {gene: "E2F1", score: -0.2},
+  {gene: "RB1", score: -0.8},
+  {gene: "MYC", score: -1.5},
+  {gene: "BCL2", score: -2.1},
+]
+
+let gsea_results = gsea(ranked_genes, gene_sets)
+
+print("\n=== GSEA Results ===")
+gsea_results |> each(|r| {
+  print(f"  {r.term}: NES={r.nes}, p={r.pvalue}, FDR={r.fdr}")
+})
+
+# ── 5. Multiple Testing Correction ───────────────────────────
+
+let raw_pvalues = [0.001, 0.013, 0.039, 0.052, 0.11, 0.23, 0.45]
+let adjusted = p_adjust(raw_pvalues, "bh")
+print("\n=== BH Correction ===")
+print("Raw     Adjusted")
+range(0, len(raw_pvalues)) |> each(|i| {
+  print(f"  {raw_pvalues[i]}  {round(adjusted[i], 3)}")
+})
+
+print("\nEnrichment tutorial complete.")

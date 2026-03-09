@@ -48,23 +48,47 @@ seq = kmer_decode(0)                 # => "AAAA"</code></pre>
 
         <h2>kmer_count</h2>
         <p>
-          Count all k-mer occurrences in a sequence. Returns a map from k-mer strings to
-          their counts:
+          Count all k-mer occurrences in a sequence, list, table, or stream. Returns a Table
+          with <code>kmer</code> and <code>count</code> columns, <strong>sorted by count descending</strong>.
+          Accepts DNA, RNA, strings, lists of sequences, records with a <code>seq</code> field,
+          and FASTQ streams.
         </p>
         <pre><code class="language-biolang">let seq = dna"ATCGATCGATCGATCG"
 
-# Count all 4-mers — returns a map from k-mer string to count
+# Count all 4-mers — returns a Table sorted by count (descending)
 let counts = kmer_count(seq, 4)
-# => { "ATCG": 4, "TCGA": 3, "CGAT": 3, "GATC": 3 }
+print(counts)   # Table: kmer | count
 
-# Access specific counts
-print(counts["ATCG"])   # => 4
-
-# Most frequent k-mers
-kmer_count(seq, 6)
-  |> to_table()
+# Stream mode — constant memory for large FASTQ files
+fastq("reads.fq.gz")
+  |> kmer_count(21)
   |> head(10)
   |> print()</code></pre>
+
+        <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 my-6">
+          <h4 class="text-amber-400 font-semibold mb-2">Memory Options for Large Datasets</h4>
+          <p class="text-slate-400 text-sm mb-3">
+            For whole-genome or deep-sequencing data, k-mer counting can generate millions of unique entries.
+            BioLang provides three strategies to manage memory:
+          </p>
+          <table class="text-sm text-slate-400 w-full">
+            <tr class="border-b border-slate-800">
+              <td class="py-2 pr-4 font-mono text-violet-400">kmer_count(seq, 21)</td>
+              <td class="py-2">Default — in-memory up to ~2M unique k-mers, then <strong>auto-spills to a temporary SQLite database on disk</strong>. No code changes needed.</td>
+            </tr>
+            <tr class="border-b border-slate-800">
+              <td class="py-2 pr-4 font-mono text-violet-400">kmer_count(seq, 21, 100)</td>
+              <td class="py-2"><strong>Top-N mode</strong> — only keeps the top N most frequent k-mers. Uses bounded memory with periodic pruning. Best when you only need the most common k-mers.</td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-violet-400">fastq(...) |> kmer_count(21)</td>
+              <td class="py-2"><strong>Streaming</strong> — processes reads one at a time without loading all reads into memory. Combine with <code>head(n)</code> to limit output.</td>
+            </tr>
+          </table>
+          <p class="text-slate-500 text-xs mt-3">
+            The result is always sorted by count descending — no need for <code>sort_by</code> after <code>kmer_count</code>.
+          </p>
+        </div>
 
         <h2>kmer_spectrum</h2>
         <p>
@@ -115,24 +139,16 @@ print(seq)</code></pre>
         <p>
           K-mer analysis enables fast taxonomic classification without alignment:
         </p>
-        <pre><code class="language-biolang"># Build k-mer profiles for reference genomes
-let refs = fasta("reference_genomes.fa")
-  |> map(|r| { id: r.id, profile: kmer_count(r.seq, 21) })
-  |> collect()
-
-# Analyze k-mer composition of reads
+        <pre><code class="language-biolang"># Top 21-mers across all reads — streaming, bounded memory
 fastq("metagenome.fq.gz")
-  |> map(|read| {
-    id: read.id,
-    counts: kmer_count(read.seq, 21)
-  })
-  |> collect()
-  |> map(|r| {
-    id: r.id,
-    unique_kmers: len(r.counts)
-  })
-  |> to_table()
-  |> print()</code></pre>
+  |> kmer_count(21, 50)
+  |> print()
+
+# Or full k-mer profile (auto-spills to disk for large datasets)
+fastq("metagenome.fq.gz")
+  |> kmer_count(21)
+  |> head(20)
+  |> bar_chart("Top 21-mers")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="intervals.html" class="text-violet-400 hover:text-violet-300">&larr; Intervals</a>

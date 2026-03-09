@@ -55,7 +55,7 @@ counts
 ```
 let gene = ncbi_gene("TP53")
 let pathways = reactome_pathways("TP53")
-let interactions = string_network("TP53", species: 9606)
+let interactions = string_network(["TP53"], 9606)
 ```
 
 **Pipelines are a language construct.** Not a separate workflow engine — pipelines with stages, parallel execution, and dependency tracking are part of the language itself:

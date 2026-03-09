@@ -168,8 +168,9 @@ print(tree)</code></pre>
 
 # 1. Load sequences and compute k-mer profiles
 let seqs = fasta("samples.fa") |> collect()
+# kmer_count returns a Table per sequence — top 50 k-mers each
 let profiles = seqs
-  |> map(|r| kmer_count(r.seq, 21))
+  |> map(|r| kmer_count(r.seq, 21, 50))
   |> collect()
 
 # 2. Build distance matrix via sketching

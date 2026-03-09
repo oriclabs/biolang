@@ -17,12 +17,12 @@ let hq = reads |> filter(|r| mean(r.qual) > 30)
 print("High-quality reads: " + str(nrow(hq)))
 
 # ── VCF: variant analysis ──
-let variants = vcf("examples/sample-data/calls.vcf", "table")
-print("\nVariants loaded: " + str(nrow(variants)))
+let variants = vcf("examples/sample-data/calls.vcf")
+print("\nVariants loaded: " + str(len(variants)))
 
-# Filter PASS variants with quality > 50
-let pass_vars = variants |> filter(|v| v.filter == "PASS" and v.qual > 50)
-print("PASS variants (qual > 50): " + str(nrow(pass_vars)))
+# Filter PASS variants with quality > 50 — use |> into for left-to-right binding
+variants |> filter(|v| v.filter == "PASS" and v.quality > 50) |> into pass_vars
+print("PASS variants (qual > 50): " + str(len(pass_vars)))
 
 # ── BED: genomic regions ──
 let promoters = bed("examples/sample-data/promoters.bed", "table")

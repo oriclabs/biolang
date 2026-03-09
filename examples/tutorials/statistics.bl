@@ -1,0 +1,99 @@
+# statistics.bl — Statistical Analysis
+# Tutorial: https://lang.bio/docs/tutorials/statistics.html
+#
+# Run with: bl run examples/tutorials/statistics.bl
+#
+# Note: Sections that require external CSV data files (experiment.csv,
+# expression_matrix.csv) are shown as comments. In-memory examples run as-is.
+
+# ── 1. Descriptive Statistics ────────────────────────────────
+
+let values = [142.5, 87.3, 512.4, 245.1, 98.6, 310.2, 67.8, 423.5, 189.0, 55.2]
+
+print("=== Descriptive Statistics ===")
+print(f"N:        {len(values)}")
+print(f"Mean:     {round(mean(values), 3)}")
+print(f"Median:   {round(median(values), 3)}")
+print(f"Std Dev:  {round(stdev(values), 3)}")
+print(f"Variance: {round(variance(values), 3)}")
+print(f"Min:      {min(values)}")
+print(f"Max:      {max(values)}")
+print(f"Range:    {max(values) - min(values)}")
+
+let q25 = quantile(values, 0.25)
+let q50 = quantile(values, 0.50)
+let q75 = quantile(values, 0.75)
+print(f"\n25th percentile: {round(q25, 3)}")
+print(f"50th percentile: {round(q50, 3)}")
+print(f"75th percentile: {round(q75, 3)}")
+print(f"IQR:             {round(q75 - q25, 3)}")
+
+# ── 2. Hypothesis Testing ────────────────────────────────────
+
+let control = [142.5, 87.3, 98.6, 67.8, 55.2, 110.0, 95.4, 78.3]
+let treated = [512.4, 245.1, 310.2, 423.5, 189.0, 380.1, 290.5, 350.8]
+
+# Independent two-sample t-test (Welch's)
+let t_result = ttest(control, treated)
+print("\n=== Independent t-Test (Welch's) ===")
+print(f"t-statistic: {round(t_result.t_statistic, 4)}")
+print(f"p-value:     {round(t_result.p_value, 6)}")
+print(f"df:          {round(t_result.df, 1)}")
+
+# Non-parametric: Wilcoxon rank-sum test
+let w = wilcoxon(control, treated)
+print("\n=== Wilcoxon Rank-Sum Test ===")
+print(f"U-statistic: {round(w.u_statistic, 1)}")
+print(f"p-value:     {round(w.p_value, 6)}")
+
+# ── 3. Correlation ───────────────────────────────────────────
+
+let x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+let y = [2.1, 4.0, 5.8, 8.2, 9.9, 12.1, 13.9, 16.0]
+
+let r = cor(x, y)
+print("\n=== Pearson Correlation ===")
+print(f"r: {round(r, 4)}")
+
+let rho = spearman(x, y)
+print(f"Spearman rho: {round(rho.coefficient, 4)}")
+
+# ── 4. Linear Regression ─────────────────────────────────────
+
+let dosage = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+let expression = [2.1, 4.0, 5.8, 8.2, 9.9, 12.1, 13.9, 16.0]
+let model = lm(dosage, expression)
+
+print("\n=== Linear Regression ===")
+print(f"Intercept:  {round(model.intercept, 3)}")
+print(f"Slope:      {round(model.slope, 3)}")
+print(f"R-squared:  {round(model.r_squared, 4)}")
+print(f"p-value:    {round(model.p_value, 6)}")
+
+# ── 5. Multiple Testing Correction ───────────────────────────
+
+let raw_pvals = [0.001, 0.013, 0.039, 0.052, 0.11, 0.23, 0.45]
+
+let bh_adjusted = p_adjust(raw_pvals, "bh")
+let bonf_adjusted = p_adjust(raw_pvals, "bonferroni")
+
+print("\n=== Multiple Testing Correction ===")
+print("Raw        BH         Bonferroni")
+for i in range(0, len(raw_pvals)) {
+  print(f"{raw_pvals[i]}    {round(bh_adjusted[i], 4)}    {round(bonf_adjusted[i], 4)}")
+}
+
+# ── 6. ANOVA ─────────────────────────────────────────────────
+
+let group_a = [5.1, 4.8, 5.3, 5.0, 4.9]
+let group_b = [7.2, 6.8, 7.5, 7.0, 7.3]
+let group_c = [3.1, 3.5, 2.8, 3.3, 3.0]
+
+let anova_result = anova([group_a, group_b, group_c])
+print("\n=== One-Way ANOVA ===")
+print(f"F-statistic: {round(anova_result.f_statistic, 3)}")
+print(f"p-value:     {round(anova_result.p_value, 6)}")
+print(f"df between:  {anova_result.df_between}")
+print(f"df within:   {anova_result.df_within}")
+
+print("\nStatistics tutorial complete.")

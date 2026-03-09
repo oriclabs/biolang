@@ -46,6 +46,16 @@
           </ul>
         </div>
 
+        <!-- Run this tutorial -->
+        <div class="rounded-xl border border-emerald-800/50 bg-emerald-900/20 p-4 mb-8 flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          <div class="text-sm text-emerald-300/90">
+            <strong>Run this tutorial:</strong> Download
+            <a href="https://github.com/bioras/biolang/blob/main/examples/tutorials/variant-analysis.bl" class="text-emerald-400 hover:underline">variant-analysis.bl</a>
+            and run it with <code class="text-emerald-300">bl run examples/tutorials/variant-analysis.bl</code>
+          </div>
+        </div>
+
         <div class="rounded-xl border border-slate-700 bg-slate-800/40 p-4 mb-8">
           <p class="text-sm text-slate-400 mb-0">
             <strong class="text-white">Sample data:</strong> BioLang includes a VCF file at
@@ -92,18 +102,16 @@ let passed = variants
 
 print(f"After PASS + QUAL>=30: {len(passed)} variants")
 
-# Further filter by depth
-let depth_filtered = passed
+# Further filter by depth — use |> into for left-to-right binding
+passed
   |> filter(|v| v.info.DP >= 10)
+  |> into depth_filtered
 
 print(f"After DP>=10: {len(depth_filtered)} variants")
 
 # Filter by allele frequency (for population data)
-let common = depth_filtered
-  |> filter(|v| v.info.AF >= 0.01)
-
-let rare = depth_filtered
-  |> filter(|v| v.info.AF < 0.01)
+depth_filtered |> filter(|v| v.info.AF >= 0.01) |> into common
+depth_filtered |> filter(|v| v.info.AF < 0.01) |> into rare
 
 print(f"Common variants (AF>=1%): {len(common)}")
 print(f"Rare variants (AF<1%):    {len(rare)}")</code></pre>
@@ -114,11 +122,12 @@ print(f"Rare variants (AF<1%):    {len(rare)}")</code></pre>
 # Each variant has: variant_type, is_snp, is_indel, is_transition, is_transversion
 
 # Count variant types using value_counts on a table
-let type_table = passed
+passed
   |> map(|v| {chrom: v.chrom, pos: v.pos, vtype: v.variant_type})
   |> to_table()
+  |> into type_table
 
-let type_counts = value_counts(type_table, "vtype")
+value_counts(type_table, "vtype") |> into type_counts
 print("\n=== Variant Types ===")
 print(type_counts)
 
@@ -133,8 +142,10 @@ let chrom_table = passed
   |> map(|v| {chromosome: v.chrom, pos: v.pos})
   |> to_table()
 
-let chrom_counts = value_counts(chrom_table, "chromosome")
-  |> arrange("count", order: "desc")
+value_counts(chrom_table, "chromosome")
+  |> rename("value", "chromosome")
+  |> arrange("count", "desc")
+  |> into chrom_counts
 
 print("\n=== Variants Per Chromosome ===")
 print(chrom_counts)
@@ -203,7 +214,7 @@ let summary = high_impact
     af:          a.variant.info.AF,
   })
   |> to_table()
-  |> arrange("quality", order: "desc")
+  |> arrange("quality", "desc")
 
 print("\n=== High-Impact Variants ===")
 print(summary)

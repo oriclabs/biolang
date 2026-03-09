@@ -176,7 +176,7 @@ pub fn register_builtins(env: &mut Environment) {
         ("interval_tree", Arity::Exact(1)),
         ("query_overlaps", Arity::Range(4, 4)),
         ("query_nearest", Arity::Range(3, 4)),
-        ("coverage", Arity::Exact(1)),
+        ("coverage", Arity::Range(1, 4)),
         // Batch 2: Bio — sequence pattern matching
         ("motif_find", Arity::Exact(2)),
         ("motif_count", Arity::Exact(2)),
@@ -216,6 +216,8 @@ pub fn register_builtins(env: &mut Environment) {
         ("is_multiallelic", Arity::Exact(1)),
         ("variant_type", Arity::Exact(1)),
         ("variant_summary", Arity::Exact(1)),
+        ("tstv_ratio", Arity::Exact(1)),
+        ("het_hom_ratio", Arity::Exact(1)),
         ("parse_vcf_info", Arity::Exact(1)),
         // Collection: partition, sort_by (HOFs dispatched in interpreter)
         ("partition", Arity::Exact(2)),
@@ -394,7 +396,7 @@ pub fn register_builtins(env: &mut Environment) {
         ("kmer_decode", Arity::Exact(1)),
         ("kmer_rc", Arity::Exact(1)),
         ("kmer_canonical", Arity::Exact(1)),
-        ("kmer_count", Arity::Exact(2)),
+        ("kmer_count", Arity::Range(2, 3)),
         ("kmer_spectrum", Arity::Exact(1)),
         ("minimizers", Arity::Exact(3)),
     ]);
@@ -819,6 +821,11 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 Ok(Value::List(r))
             }
             Value::Str(s) => Ok(Value::Str(s.chars().rev().collect())),
+            Value::Table(t) => {
+                let mut rows = t.rows.clone();
+                rows.reverse();
+                Ok(Value::Table(Table::new(t.columns.clone(), rows)))
+            }
             other => Err(BioLangError::type_error(
                 format!("reverse() not supported for {}", other.type_of()),
                 None,
@@ -843,8 +850,12 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     let strs: Vec<String> = items.iter().map(|v| format!("{v}")).collect();
                     Ok(Value::Str(strs.join(&sep)))
                 }
+                Value::Table(t) => {
+                    let strs: Vec<String> = table_to_records(t).iter().map(|v| format!("{v}")).collect();
+                    Ok(Value::Str(strs.join(&sep)))
+                }
                 other => Err(BioLangError::type_error(
-                    format!("join() requires List, got {}", other.type_of()),
+                    format!("join() requires List or Table, got {}", other.type_of()),
                     None,
                 )),
             }
@@ -980,15 +991,24 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                         None,
                     ));
                 }
-                Ok(Value::List(s.collect_all()))
+                let items = s.collect_all();
+                if items.len() > 1_000_000 {
+                    eprintln!(
+                        "\x1b[33mWarning:\x1b[0m collect() materialized {} items into memory.",
+                        items.len()
+                    );
+                    eprintln!("  Tip: Use head(n) or take(n) before collect() to limit memory usage.");
+                }
+                Ok(Value::List(items))
             }
             Value::List(l) => Ok(Value::List(l)),
+            Value::Table(t) => Ok(Value::Table(t)), // pass through
             Value::Range { start, end, inclusive } => {
                 let end_val = if inclusive { end + 1 } else { end };
                 Ok(Value::List((start..end_val).map(Value::Int).collect()))
             }
             other => Err(BioLangError::type_error(
-                format!("collect() requires Stream, List, or Range, got {}", other.type_of()),
+                format!("collect() requires Stream, List, Table, or Range, got {}", other.type_of()),
                 None,
             )),
         },
@@ -1028,17 +1048,25 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Ok(Value::List(items))
                 }
                 Value::List(l) => Ok(Value::List(l.into_iter().take(n).collect())),
+                Value::Table(t) => {
+                    let rows = t.rows.into_iter().take(n).collect();
+                    Ok(Value::Table(Table::new(t.columns, rows)))
+                }
                 other => Err(BioLangError::type_error(
-                    format!("take() requires Stream or List, got {}", other.type_of()),
+                    format!("take() requires Stream, List, or Table, got {}", other.type_of()),
                     None,
                 )),
             }
         }
         "to_stream" => match args.into_iter().next().unwrap() {
             Value::List(l) => Ok(Value::Stream(StreamValue::from_list("list", l))),
+            Value::Table(t) => {
+                let records = table_to_records(&t);
+                Ok(Value::Stream(StreamValue::from_list("table", records)))
+            }
             Value::Stream(s) => Ok(Value::Stream(s)),
             other => Err(BioLangError::type_error(
-                format!("to_stream() requires List, got {}", other.type_of()),
+                format!("to_stream() requires List or Table, got {}", other.type_of()),
                 None,
             )),
         },
@@ -1298,18 +1326,20 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "zip" => {
             let list_a = match &args[0] {
                 Value::List(l) => l.clone(),
+                Value::Table(t) => table_to_records(t),
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("zip() requires List, got {}", other.type_of()),
+                        format!("zip() requires List or Table, got {}", other.type_of()),
                         None,
                     ))
                 }
             };
             let list_b = match &args[1] {
                 Value::List(l) => l.clone(),
+                Value::Table(t) => table_to_records(t),
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("zip() requires List, got {}", other.type_of()),
+                        format!("zip() requires List or Table, got {}", other.type_of()),
                         None,
                     ))
                 }
@@ -1322,11 +1352,13 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             Ok(Value::List(pairs))
         }
         "enumerate" => {
+            let owned;
             let items = match &args[0] {
                 Value::List(l) => l,
+                Value::Table(t) => { owned = table_to_records(t); &owned }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("enumerate() requires List, got {}", other.type_of()),
+                        format!("enumerate() requires List or Table, got {}", other.type_of()),
                         None,
                     ))
                 }
@@ -1340,16 +1372,17 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         }
         "flatten" => {
             let items = match &args[0] {
-                Value::List(l) => l,
+                Value::List(l) => l.clone(),
+                Value::Table(t) => table_to_records(t),
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("flatten() requires List, got {}", other.type_of()),
+                        format!("flatten() requires List or Table, got {}", other.type_of()),
                         None,
                     ))
                 }
             };
             let mut result = Vec::new();
-            for item in items {
+            for item in &items {
                 match item {
                     Value::List(inner) => result.extend(inner.iter().cloned()),
                     other => result.push(other.clone()),
@@ -1358,11 +1391,13 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             Ok(Value::List(result))
         }
         "chunk" => {
+            let owned;
             let items = match &args[0] {
                 Value::List(l) => l,
+                Value::Table(t) => { owned = table_to_records(t); &owned }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("chunk() requires List, got {}", other.type_of()),
+                        format!("chunk() requires List or Table, got {}", other.type_of()),
                         None,
                     ))
                 }
@@ -1384,8 +1419,16 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "first" => {
             match &args[0] {
                 Value::List(l) => Ok(l.first().cloned().unwrap_or(Value::Nil)),
+                Value::Table(t) => {
+                    if t.rows.is_empty() {
+                        Ok(Value::Nil)
+                    } else {
+                        Ok(Value::Record(t.row_to_record(0)))
+                    }
+                }
+                Value::Stream(s) => Ok(s.next().unwrap_or(Value::Nil)),
                 other => Err(BioLangError::type_error(
-                    format!("first() requires List, got {}", other.type_of()),
+                    format!("first() requires List, Table, or Stream, got {}", other.type_of()),
                     None,
                 )),
             }
@@ -1393,35 +1436,56 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "last" => {
             match &args[0] {
                 Value::List(l) => Ok(l.last().cloned().unwrap_or(Value::Nil)),
+                Value::Table(t) => {
+                    if t.rows.is_empty() {
+                        Ok(Value::Nil)
+                    } else {
+                        Ok(Value::Record(t.row_to_record(t.rows.len() - 1)))
+                    }
+                }
+                Value::Stream(s) => {
+                    let mut last_val = Value::Nil;
+                    while let Some(v) = s.next() {
+                        last_val = v;
+                    }
+                    Ok(last_val)
+                }
                 other => Err(BioLangError::type_error(
-                    format!("last() requires List, got {}", other.type_of()),
+                    format!("last() requires List, Table, or Stream, got {}", other.type_of()),
                     None,
                 )),
             }
         }
         "drop" => {
+            let n = if args.len() > 1 {
+                require_int(&args[1], "drop")? as usize
+            } else {
+                1
+            };
             match &args[0] {
                 Value::List(l) => {
-                    let n = if args.len() > 1 {
-                        require_int(&args[1], "drop")? as usize
-                    } else {
-                        1
-                    };
                     let start = n.min(l.len());
                     Ok(Value::List(l[start..].to_vec()))
                 }
+                Value::Table(t) => {
+                    let start = n.min(t.rows.len());
+                    let rows = t.rows[start..].to_vec();
+                    Ok(Value::Table(Table::new(t.columns.clone(), rows)))
+                }
                 other => Err(BioLangError::type_error(
-                    format!("drop() requires List, got {}", other.type_of()),
+                    format!("drop() requires List or Table, got {}", other.type_of()),
                     None,
                 )),
             }
         }
         "window" => {
+            let owned;
             let items = match &args[0] {
                 Value::List(l) => l,
+                Value::Table(t) => { owned = table_to_records(t); &owned }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("window() requires List, got {}", other.type_of()),
+                        format!("window() requires List or Table, got {}", other.type_of()),
                         None,
                     ))
                 }
@@ -1446,10 +1510,17 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "frequencies" => {
             let items = match args.into_iter().next().unwrap() {
                 Value::List(l) => l,
+                Value::Table(t) => table_to_records(&t),
                 Value::Stream(s) => {
                     let mut v = Vec::new();
                     while let Some(item) = s.next() {
                         v.push(item);
+                        if v.len() == 1_000_001 {
+                            eprintln!(
+                                "\x1b[33mWarning:\x1b[0m frequencies() is consuming a large stream into memory."
+                            );
+                            eprintln!("  Tip: Use head(n) before frequencies() to limit memory usage.");
+                        }
                     }
                     v
                 }
@@ -1782,7 +1853,14 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "interval_tree" => builtin_interval_tree(&args),
         "query_overlaps" => builtin_query_overlaps(&args),
         "query_nearest" => builtin_query_nearest(&args),
-        "coverage" => builtin_coverage(&args),
+        "coverage" => {
+            // Interval-tree coverage for Record, viz coverage for List
+            if matches!(&args[0], Value::List(_)) {
+                crate::viz::call_viz_builtin("coverage", args)
+            } else {
+                builtin_coverage(&args)
+            }
+        }
         // ── Sequence pattern matching (F14) ──────────────────────
         "motif_find" => builtin_motif_find(&args),
         "motif_count" => builtin_motif_count(&args),
@@ -2009,6 +2087,8 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "is_multiallelic" => builtin_variant_predicate(&args, "is_multiallelic"),
         "variant_type" => builtin_variant_type(&args),
         "variant_summary" => builtin_variant_summary(&args),
+        "tstv_ratio" => builtin_tstv_ratio(&args),
+        "het_hom_ratio" => builtin_het_hom_ratio(&args),
         "parse_vcf_info" => builtin_parse_vcf_info(&args),
         #[cfg(feature = "native")]
         _ if crate::enrich::is_enrich_builtin(name) => {
@@ -2562,6 +2642,13 @@ fn require_int(val: &Value, func: &str) -> Result<i64> {
             None,
         )),
     }
+}
+
+/// Convert a Table's rows into a Vec of Record Values.
+fn table_to_records(t: &Table) -> Vec<Value> {
+    (0..t.rows.len())
+        .map(|i| Value::Record(t.row_to_record(i)))
+        .collect()
 }
 
 fn list_min(items: &[Value]) -> Result<Value> {
@@ -3154,6 +3241,66 @@ fn builtin_variant_summary(args: &[Value]) -> Result<Value> {
     Ok(Value::Record(rec))
 }
 
+fn builtin_tstv_ratio(args: &[Value]) -> Result<Value> {
+    let items = match &args[0] {
+        Value::List(items) => items,
+        other => return Err(BioLangError::type_error(
+            format!("tstv_ratio() requires List of Variants, got {}", other.type_of()),
+            None,
+        )),
+    };
+    let mut transitions = 0u64;
+    let mut transversions = 0u64;
+    for item in items {
+        if let Value::Variant { ref_allele, alt_allele, .. } = item {
+            for alt in alt_allele.split(',') {
+                if bl_core::bio_core::vcf_ops::classify_variant(ref_allele, alt) == bl_core::bio_core::VariantType::Snp {
+                    if bl_core::bio_core::vcf_ops::is_transition(ref_allele, alt) {
+                        transitions += 1;
+                    } else {
+                        transversions += 1;
+                    }
+                }
+            }
+        }
+    }
+    let ratio = if transversions > 0 { transitions as f64 / transversions as f64 } else { 0.0 };
+    Ok(Value::Float(ratio))
+}
+
+fn builtin_het_hom_ratio(args: &[Value]) -> Result<Value> {
+    let items = match &args[0] {
+        Value::List(items) => items,
+        other => return Err(BioLangError::type_error(
+            format!("het_hom_ratio() requires List of Variants, got {}", other.type_of()),
+            None,
+        )),
+    };
+    let mut het = 0u64;
+    let mut hom = 0u64;
+    for item in items {
+        if let Value::Variant { ref info, .. } = item {
+            let gt_str = info.get("GT").or_else(|| info.get("gt"));
+            if let Some(Value::Str(gt)) = gt_str {
+                let sep = if gt.contains('|') { '|' } else { '/' };
+                let alleles: Vec<Option<u8>> = gt.split(sep)
+                    .map(|a| if a == "." { None } else { a.parse().ok() })
+                    .collect();
+                let vals: Vec<u8> = alleles.iter().filter_map(|a| *a).collect();
+                if vals.len() >= 2 {
+                    if vals.windows(2).any(|w| w[0] != w[1]) {
+                        het += 1;
+                    } else if vals[0] > 0 {
+                        hom += 1;
+                    }
+                }
+            }
+        }
+    }
+    let ratio = if hom > 0 { het as f64 / hom as f64 } else { 0.0 };
+    Ok(Value::Float(ratio))
+}
+
 fn builtin_parse_vcf_info(args: &[Value]) -> Result<Value> {
     use std::collections::HashMap;
     let info_str = match &args[0] {
@@ -3163,6 +3310,9 @@ fn builtin_parse_vcf_info(args: &[Value]) -> Result<Value> {
             None,
         )),
     };
+    if info_str == "." || info_str.is_empty() {
+        return Ok(Value::Record(HashMap::new()));
+    }
     let mut rec = HashMap::new();
     for part in info_str.split(';') {
         let part = part.trim();
@@ -3170,8 +3320,15 @@ fn builtin_parse_vcf_info(args: &[Value]) -> Result<Value> {
             continue;
         }
         if let Some((key, val)) = part.split_once('=') {
-            // Try to parse as number
-            if let Ok(n) = val.parse::<i64>() {
+            if val.contains(',') {
+                // Multi-value: parse each element
+                let items: Vec<Value> = val.split(',').map(|v| {
+                    if let Ok(n) = v.parse::<i64>() { Value::Int(n) }
+                    else if let Ok(f) = v.parse::<f64>() { Value::Float(f) }
+                    else { Value::Str(v.to_string()) }
+                }).collect();
+                rec.insert(key.to_string(), Value::List(items));
+            } else if let Ok(n) = val.parse::<i64>() {
                 rec.insert(key.to_string(), Value::Int(n));
             } else if let Ok(f) = val.parse::<f64>() {
                 rec.insert(key.to_string(), Value::Float(f));
@@ -3672,18 +3829,33 @@ fn builtin_kmer_canonical(args: Vec<Value>) -> Result<Value> {
     }
 }
 
+fn extract_seq_str(val: &Value) -> Option<String> {
+    match val {
+        Value::DNA(s) | Value::RNA(s) => Some(s.data.clone()),
+        Value::Str(s) => Some(s.clone()),
+        Value::Record(map) => {
+            // Extract "seq" field from record (FASTQ stream records)
+            map.get("seq").and_then(|v| extract_seq_str(v))
+        }
+        _ => None,
+    }
+}
+
+/// Maximum k-mer entries to keep in memory before spilling to disk.
+/// ~2M entries ≈ 300MB with 21-mers. Beyond this, auto-spill to SQLite temp DB.
+const KMER_SPILL_THRESHOLD: usize = 2_000_000;
+/// Size of the write-back buffer after spilling.
+/// Accumulate this many entries in memory before flushing to SQLite.
+const KMER_FLUSH_BUFFER: usize = 500_000;
+/// Minimum free disk space (in bytes) required before spilling to disk.
+/// If less than this is available, fall back to top-N pruning instead.
+/// 500 MB — a conservative estimate for large k-mer DBs.
+const KMER_MIN_DISK_BYTES: u64 = 500 * 1024 * 1024;
+/// Default top-N to use when disk space is insufficient for spilling.
+const KMER_DISK_FALLBACK_TOP_N: usize = 100_000;
+
 fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
     use bl_core::bio_core::Kmer;
-    let seq = match &args[0] {
-        Value::DNA(s) | Value::RNA(s) => &s.data,
-        Value::Str(s) => s,
-        other => {
-            return Err(BioLangError::type_error(
-                format!("kmer_count() requires DNA/RNA/Str, got {}", other.type_of()),
-                None,
-            ))
-        }
-    };
     let k = match &args[1] {
         Value::Int(n) => *n as u8,
         other => {
@@ -3693,22 +3865,512 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
             ))
         }
     };
-    let counts = Kmer::count(seq, k);
-    let mut rows: Vec<Vec<Value>> = counts
-        .into_iter()
-        .map(|(km, cnt)| vec![Value::Str(km.decode()), Value::Int(cnt as i64)])
-        .collect();
-    rows.sort_by(|a, b| {
-        if let (Value::Int(ca), Value::Int(cb)) = (&a[1], &b[1]) {
-            cb.cmp(ca)
-        } else {
-            std::cmp::Ordering::Equal
+
+    // Optional 3rd arg: top N (bounded memory mode)
+    let top_n: Option<usize> = if args.len() >= 3 {
+        match &args[2] {
+            Value::Int(n) if *n > 0 => Some(*n as usize),
+            _ => None,
         }
-    });
-    Ok(Value::Table(Table::new(
-        vec!["kmer".into(), "count".into()],
-        rows,
-    )))
+    } else {
+        None
+    };
+
+    // Stream mode: iterate without collecting into memory
+    if let Value::Stream(stream) = &args[0] {
+        let mut counter = KmerCounter::new(top_n);
+        let mut seq_count = 0usize;
+        loop {
+            let item = match stream.next() {
+                Some(v) => v,
+                None => break,
+            };
+            if let Some(seq) = extract_seq_str(&item) {
+                let counts = Kmer::count(&seq, k);
+                counter.add_batch(&counts)?;
+            }
+            seq_count += 1;
+            if seq_count >= 1000 && seq_count % 10000 == 0 {
+                eprint!("\r\x1b[2Kkmer_count: {} sequences, {} unique k-mers{}...",
+                    seq_count, counter.len(), counter.mode_label());
+            }
+        }
+        if seq_count >= 1000 {
+            eprint!("\r\x1b[2K");
+        }
+        return counter.into_value(top_n);
+    }
+
+    // Non-stream: collect sequences first
+    let seqs: Vec<String> = match &args[0] {
+        Value::DNA(s) | Value::RNA(s) => vec![s.data.clone()],
+        Value::Str(s) => vec![s.clone()],
+        Value::List(items) => {
+            let mut out = Vec::with_capacity(items.len());
+            for item in items {
+                match extract_seq_str(item) {
+                    Some(s) => out.push(s),
+                    None => {
+                        return Err(BioLangError::type_error(
+                            format!("kmer_count() list items must be DNA/RNA/Str/Record, got {}", item.type_of()),
+                            None,
+                        ))
+                    }
+                }
+            }
+            out
+        }
+        Value::Table(tbl) => {
+            let mut out = Vec::new();
+            if let Some(col_idx) = tbl.columns.iter().position(|c| c == "seq") {
+                for row in &tbl.rows {
+                    if col_idx < row.len() {
+                        if let Some(s) = extract_seq_str(&row[col_idx]) {
+                            out.push(s);
+                        }
+                    }
+                }
+            } else {
+                return Err(BioLangError::type_error(
+                    "kmer_count() table must have a 'seq' column",
+                    None,
+                ));
+            }
+            out
+        }
+        other => {
+            return Err(BioLangError::type_error(
+                format!("kmer_count() requires DNA/RNA/Str/List/Table/Stream, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+
+    // Aggregate k-mer counts across all sequences
+    let total = seqs.len();
+    let show_progress = total >= 1000;
+    let mut counter = KmerCounter::new(top_n);
+    for (i, seq) in seqs.iter().enumerate() {
+        if show_progress && (i % 10000 == 0 || i == total - 1) {
+            eprint!("\r\x1b[2Kkmer_count: {}/{} sequences ({:.0}%), {} unique k-mers{}...",
+                i + 1, total, (i + 1) as f64 / total as f64 * 100.0,
+                counter.len(), counter.mode_label());
+        }
+        let counts = Kmer::count(seq, k);
+        counter.add_batch(&counts)?;
+    }
+    if show_progress {
+        eprint!("\r\x1b[2K");
+    }
+
+    counter.into_value(top_n)
+}
+
+// ── K-mer Counter with auto disk spill ─────────────────────────────
+
+/// Two-tier k-mer counter: starts in-memory, auto-spills to SQLite temp DB
+/// when memory threshold is exceeded. Transparent to callers.
+struct KmerCounter {
+    /// In-memory HashMap — used until threshold exceeded
+    mem: Option<std::collections::HashMap<String, i64>>,
+    /// SQLite temp DB — activated after spill
+    #[cfg(feature = "native")]
+    db: Option<KmerDiskStore>,
+    /// Total unique k-mers (tracked across both tiers)
+    unique_count: usize,
+    /// Whether we've spilled to disk
+    spilled: bool,
+    /// Top-N mode: if set, use bounded memory with pruning instead of disk spill
+    top_n: Option<usize>,
+}
+
+impl KmerCounter {
+    fn new(top_n: Option<usize>) -> Self {
+        Self {
+            mem: Some(std::collections::HashMap::new()),
+            #[cfg(feature = "native")]
+            db: None,
+            unique_count: 0,
+            spilled: false,
+            top_n,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.unique_count
+    }
+
+    fn mode_label(&self) -> &'static str {
+        if self.spilled {
+            " [disk]"
+        } else if self.top_n.is_some() {
+            " [top-N]"
+        } else {
+            ""
+        }
+    }
+
+    /// Try to create a SQLite temp DB and flush the in-memory map to it.
+    /// Returns the DB on success, or a human-readable reason on failure.
+    #[cfg(feature = "native")]
+    fn try_spill_to_disk(mem: &mut std::collections::HashMap<String, i64>) -> std::result::Result<KmerDiskStore, String> {
+        // Check available disk space before creating DB
+        let tmp = std::env::temp_dir();
+        match check_disk_space(&tmp) {
+            Some(avail) if avail < KMER_MIN_DISK_BYTES => {
+                return Err(format!(
+                    "only {:.0} MB free in temp dir, need at least {:.0} MB",
+                    avail as f64 / (1024.0 * 1024.0),
+                    KMER_MIN_DISK_BYTES as f64 / (1024.0 * 1024.0),
+                ));
+            }
+            _ => {} // Unknown or sufficient — proceed
+        }
+
+        let mut db = KmerDiskStore::new().map_err(|e| format!("{e}"))?;
+        db.flush_map(mem).map_err(|e| format!("{e}"))?;
+        Ok(db)
+    }
+
+    fn add_batch(&mut self, counts: &std::collections::HashMap<bl_core::bio_core::Kmer, u64>) -> Result<()> {
+        // Top-N mode: use in-memory with pruning
+        if let Some(top_n) = self.top_n {
+            let mem = self.mem.as_mut().unwrap();
+            for (km, cnt) in counts {
+                *mem.entry(km.decode()).or_insert(0) += *cnt as i64;
+            }
+            // Prune: when HashMap grows to 10x top_n, keep only entries with
+            // count above the median. This is approximate but bounded memory.
+            let prune_at = std::cmp::max(top_n * 10, 100_000);
+            if mem.len() > prune_at {
+                let mut counts_vec: Vec<i64> = mem.values().copied().collect();
+                counts_vec.sort_unstable();
+                // Keep entries above the median count
+                let cutoff = counts_vec[counts_vec.len() / 2];
+                mem.retain(|_, v| *v > cutoff);
+                self.unique_count = mem.len();
+            } else {
+                self.unique_count = mem.len();
+            }
+            return Ok(());
+        }
+
+        // Normal mode: in-memory with auto-spill to disk
+        #[cfg(feature = "native")]
+        {
+            // Always accumulate into in-memory buffer first
+            let mem = self.mem.as_mut().unwrap();
+            for (km, cnt) in counts {
+                *mem.entry(km.decode()).or_insert(0) += *cnt as i64;
+            }
+
+            if self.spilled {
+                // Write-back buffer mode: flush to SQLite when buffer is large enough
+                if mem.len() >= KMER_FLUSH_BUFFER {
+                    let db = self.db.as_mut().unwrap();
+                    if let Err(e) = db.flush_map(mem) {
+                        // Disk full mid-operation — switch to top-N pruning
+                        eprintln!("\x1b[33mWarning:\x1b[0m disk write failed ({e}), switching to top-{KMER_DISK_FALLBACK_TOP_N} pruning mode.");
+                        // Drop the DB (cleans up temp file)
+                        self.db = None;
+                        self.spilled = false;
+                        self.top_n = Some(KMER_DISK_FALLBACK_TOP_N);
+                        // Prune to manageable size
+                        let prune_at = KMER_DISK_FALLBACK_TOP_N * 10;
+                        if mem.len() > prune_at {
+                            let mut counts_vec: Vec<i64> = mem.values().copied().collect();
+                            counts_vec.sort_unstable();
+                            let cutoff = counts_vec[counts_vec.len() / 2];
+                            mem.retain(|_, v| *v > cutoff);
+                        }
+                        self.unique_count = mem.len();
+                        return Ok(());
+                    }
+                }
+                // unique_count is approximate in buffered mode — that's fine for progress display
+                self.unique_count += counts.len();
+                return Ok(());
+            }
+
+            self.unique_count = mem.len();
+
+            // Check threshold — spill to disk if exceeded
+            if mem.len() > KMER_SPILL_THRESHOLD {
+                eprintln!("\r\x1b[2K\x1b[33mNote:\x1b[0m {} unique k-mers exceed memory threshold — switching to disk-backed counting...", mem.len());
+                match Self::try_spill_to_disk(mem) {
+                    Ok(db) => {
+                        self.db = Some(db);
+                        self.spilled = true;
+                    }
+                    Err(reason) => {
+                        // Disk spill failed — fall back to top-N pruning
+                        eprintln!("\x1b[33mWarning:\x1b[0m disk spill failed ({reason}), falling back to top-{KMER_DISK_FALLBACK_TOP_N} pruning mode.");
+                        eprintln!("  Results will be approximate — only the highest-count k-mers are retained.");
+                        self.top_n = Some(KMER_DISK_FALLBACK_TOP_N);
+                        // Immediately prune the current map
+                        let prune_at = KMER_DISK_FALLBACK_TOP_N * 10;
+                        if mem.len() > prune_at {
+                            let mut counts_vec: Vec<i64> = mem.values().copied().collect();
+                            counts_vec.sort_unstable();
+                            let cutoff = counts_vec[counts_vec.len() / 2];
+                            mem.retain(|_, v| *v > cutoff);
+                        }
+                        self.unique_count = mem.len();
+                    }
+                }
+            }
+        }
+
+        #[cfg(not(feature = "native"))]
+        {
+            let mem = self.mem.as_mut().unwrap();
+            for (km, cnt) in counts {
+                *mem.entry(km.decode()).or_insert(0) += *cnt as i64;
+            }
+            self.unique_count = mem.len();
+        }
+
+        Ok(())
+    }
+
+    fn into_value(mut self, top_n: Option<usize>) -> Result<Value> {
+        #[cfg(feature = "native")]
+        if self.spilled {
+            // Flush any remaining in-memory buffer to disk
+            if let Some(ref mut mem) = self.mem {
+                if !mem.is_empty() {
+                    let db = self.db.as_mut().unwrap();
+                    db.flush_map(mem)?;
+                }
+            }
+            let limit = top_n.unwrap_or(usize::MAX);
+            let db = self.db.as_ref().unwrap();
+            // For small top-N, materialize into Table directly
+            if limit <= 50_000 {
+                return db.to_table(limit);
+                // KmerDiskStore dropped → temp file cleaned up
+            }
+            // Large result: query sorted rows as compact Vec<(String, i64)>,
+            // drop DB immediately (cleans up temp file), then stream from Vec.
+            // This uses ~40 bytes/entry vs ~200 bytes/entry for a full Table.
+            let rows = db.query_sorted_compact(limit)?;
+            let n = rows.len();
+            eprintln!("\x1b[2m  {} unique k-mers → streaming result (use head(n) or collect)\x1b[0m", n);
+            drop(self); // drops KmerDiskStore → temp file cleaned up
+            let iter = rows.into_iter().map(|(km, cnt)| {
+                let mut rec = std::collections::HashMap::new();
+                rec.insert("kmer".to_string(), Value::Str(km));
+                rec.insert("count".to_string(), Value::Int(cnt));
+                Value::Record(rec)
+            });
+            return Ok(Value::Stream(bl_core::value::StreamValue::new(
+                format!("kmer_count({n} disk)"),
+                Box::new(iter),
+            )));
+        }
+
+        let merged = self.mem.unwrap();
+        let limit = top_n.unwrap_or(usize::MAX);
+
+        // For large results without a top-N limit, return a Stream to avoid
+        // doubling memory by creating a full Table. head(10) will only
+        // consume 10 rows instead of materializing millions.
+        const STREAM_THRESHOLD: usize = 50_000;
+        if limit >= merged.len() && merged.len() > STREAM_THRESHOLD {
+            let n = merged.len();
+            eprintln!("\x1b[2m  {} unique k-mers → streaming result (use head(n) or collect to materialize)\x1b[0m", n);
+            // Sort into Vec<(count, kmer)> descending by count
+            let mut sorted: Vec<(i64, String)> = merged.into_iter().map(|(k, c)| (c, k)).collect();
+            sorted.sort_unstable_by(|a, b| b.0.cmp(&a.0));
+            // Return a Stream that yields {kmer, count} records
+            let iter = sorted.into_iter().map(|(cnt, km)| {
+                let mut rec = std::collections::HashMap::new();
+                rec.insert("kmer".to_string(), Value::Str(km));
+                rec.insert("count".to_string(), Value::Int(cnt));
+                Value::Record(rec)
+            });
+            return Ok(Value::Stream(bl_core::value::StreamValue::new(
+                format!("kmer_count({n})"),
+                Box::new(iter),
+            )));
+        }
+
+        kmer_counts_to_table(merged, limit)
+    }
+}
+
+/// Check available disk space at the given path. Returns bytes available, or None if unknown.
+#[cfg(feature = "native")]
+fn check_disk_space(path: &std::path::Path) -> Option<u64> {
+    // Use Rust's fs::metadata + platform-specific disk space query
+    // On all platforms, we can try to use the `available_space` from fs4 crate,
+    // but to avoid adding a dependency, we shell out briefly:
+    #[cfg(target_os = "windows")]
+    {
+        // PowerShell one-liner to get free bytes on the drive
+        let drive = path.to_string_lossy();
+        let drive_letter = drive.chars().next()?;
+        let output = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-Command",
+                &format!("(Get-PSDrive {drive_letter}).Free")])
+            .output()
+            .ok()?;
+        let s = String::from_utf8_lossy(&output.stdout);
+        s.trim().parse::<u64>().ok()
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let output = std::process::Command::new("df")
+            .args(["-P", "-B1", &path.to_string_lossy()])
+            .output()
+            .ok()?;
+        let s = String::from_utf8_lossy(&output.stdout);
+        // df -P -B1 output: second line, 4th column is available bytes
+        let line = s.lines().nth(1)?;
+        let cols: Vec<&str> = line.split_whitespace().collect();
+        cols.get(3)?.parse::<u64>().ok()
+    }
+}
+
+#[cfg(feature = "native")]
+struct KmerDiskStore {
+    conn: rusqlite::Connection,
+    tmp_path: std::path::PathBuf,
+}
+
+#[cfg(feature = "native")]
+impl Drop for KmerDiskStore {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.tmp_path);
+        crate::tempfiles::unregister(&self.tmp_path);
+    }
+}
+
+#[cfg(feature = "native")]
+impl KmerDiskStore {
+    fn new() -> Result<Self> {
+        let tmp_path = crate::tempfiles::temp_path("kmer");
+        crate::tempfiles::register(tmp_path.clone());
+        let conn = rusqlite::Connection::open(&tmp_path).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("failed to open SQLite temp DB: {e}"), None)
+        })?;
+        conn.execute_batch("
+            PRAGMA journal_mode = OFF;
+            PRAGMA synchronous = OFF;
+            PRAGMA cache_size = -64000;
+            PRAGMA temp_store = MEMORY;
+            PRAGMA page_size = 8192;
+            CREATE TABLE kmers (kmer TEXT PRIMARY KEY, count INTEGER NOT NULL) WITHOUT ROWID;
+        ").map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("SQLite setup failed: {e}"), None)
+        })?;
+        Ok(Self { conn, tmp_path })
+    }
+
+    fn flush_map(&mut self, mem: &mut std::collections::HashMap<String, i64>) -> Result<()> {
+        let tx = self.conn.transaction().map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("SQLite transaction: {e}"), None)
+        })?;
+        {
+            let mut stmt = tx.prepare(
+                "INSERT INTO kmers (kmer, count) VALUES (?1, ?2)
+                 ON CONFLICT(kmer) DO UPDATE SET count = count + ?2"
+            ).map_err(|e| {
+                BioLangError::runtime(ErrorKind::IOError, format!("SQLite prepare: {e}"), None)
+            })?;
+            for (kmer, count) in mem.drain() {
+                stmt.execute(rusqlite::params![kmer, count]).map_err(|e| {
+                    BioLangError::runtime(ErrorKind::IOError, format!("SQLite insert: {e}"), None)
+                })?;
+            }
+        }
+        tx.commit().map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("SQLite commit: {e}"), None)
+        })?;
+        Ok(())
+    }
+
+    fn to_table(&self, limit: usize) -> Result<Value> {
+        let mut stmt = self.conn.prepare(
+            "SELECT kmer, count FROM kmers ORDER BY count DESC LIMIT ?1"
+        ).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
+        })?;
+        let rows: Vec<Vec<Value>> = stmt.query_map([limit as i64], |row| {
+            let kmer: String = row.get(0)?;
+            let count: i64 = row.get(1)?;
+            Ok(vec![Value::Str(kmer), Value::Int(count)])
+        }).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
+        })?.filter_map(|r| r.ok()).collect();
+
+        Ok(Value::Table(Table::new(
+            vec!["kmer".into(), "count".into()],
+            rows,
+        )))
+    }
+
+    /// Query sorted rows as compact (String, i64) pairs — much less memory than Value rows.
+    /// The DB can be dropped immediately after this call; the Vec owns all data.
+    fn query_sorted_compact(&self, limit: usize) -> Result<Vec<(String, i64)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT kmer, count FROM kmers ORDER BY count DESC LIMIT ?1"
+        ).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
+        })?;
+        let rows: Vec<(String, i64)> = stmt.query_map([limit as i64], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        }).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
+        })?.filter_map(|r| r.ok()).collect();
+        Ok(rows)
+    }
+}
+
+fn kmer_counts_to_table(merged: std::collections::HashMap<String, i64>, limit: usize) -> Result<Value> {
+    if limit < merged.len() {
+        // Partial sort: only need top `limit` entries
+        use std::collections::BinaryHeap;
+        use std::cmp::Reverse;
+        let mut heap: BinaryHeap<Reverse<(i64, String)>> = BinaryHeap::with_capacity(limit + 1);
+        for (km, cnt) in merged {
+            heap.push(Reverse((cnt, km)));
+            if heap.len() > limit {
+                heap.pop();
+            }
+        }
+        let mut rows: Vec<Vec<Value>> = heap
+            .into_iter()
+            .map(|Reverse((cnt, km))| vec![Value::Str(km), Value::Int(cnt)])
+            .collect();
+        rows.sort_by(|a, b| {
+            if let (Value::Int(ca), Value::Int(cb)) = (&a[1], &b[1]) {
+                cb.cmp(ca)
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        });
+        Ok(Value::Table(Table::new(
+            vec!["kmer".into(), "count".into()],
+            rows,
+        )))
+    } else {
+        let mut rows: Vec<Vec<Value>> = merged
+            .into_iter()
+            .map(|(km, cnt)| vec![Value::Str(km), Value::Int(cnt)])
+            .collect();
+        rows.sort_by(|a, b| {
+            if let (Value::Int(ca), Value::Int(cb)) = (&a[1], &b[1]) {
+                cb.cmp(ca)
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        });
+        Ok(Value::Table(Table::new(
+            vec!["kmer".into(), "count".into()],
+            rows,
+        )))
+    }
 }
 
 fn builtin_kmer_spectrum(args: Vec<Value>) -> Result<Value> {

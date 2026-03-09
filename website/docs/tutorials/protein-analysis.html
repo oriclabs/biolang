@@ -48,6 +48,16 @@
           </ul>
         </div>
 
+        <!-- Run this tutorial -->
+        <div class="rounded-xl border border-emerald-800/50 bg-emerald-900/20 p-4 mb-8 flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          <div class="text-sm text-emerald-300/90">
+            <strong>Run this tutorial:</strong> Download
+            <a href="https://github.com/bioras/biolang/blob/main/examples/tutorials/protein-analysis.bl" class="text-emerald-400 hover:underline">protein-analysis.bl</a>
+            and run it with <code class="text-emerald-300">bl run examples/tutorials/protein-analysis.bl</code>
+          </div>
+        </div>
+
         <!-- Step 1 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Fetching a Protein from UniProt</h2>
         <pre><code class="language-biolang"># protein.bl — protein analysis
@@ -90,7 +100,7 @@ let counts = aa_types |> map(|aa| {
 })
 
 # Sort by frequency (descending) and display
-let sorted = counts |> sort_by(|a, b| b.count - a.count)
+counts |> sort_by(|a, b| b.count - a.count) |> into sorted
 
 print("\n=== Amino Acid Composition ===")
 for item in sorted {

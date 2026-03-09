@@ -662,6 +662,32 @@ t2[0].name
 }
 
 #[test]
+fn test_table_arrange_desc_positional() {
+    // "desc" as a positional modifier after column name
+    let result = eval(
+        r#"
+let t = table([{name: "Alice", score: 80}, {name: "Bob", score: 95}])
+let t2 = arrange(t, "score", "desc")
+t2[0].name
+"#,
+    );
+    assert_eq!(result, Value::Str("Bob".into()));
+}
+
+#[test]
+fn test_table_arrange_asc_positional() {
+    // "asc" as a positional modifier (explicit ascending)
+    let result = eval(
+        r#"
+let t = table([{name: "Bob", score: 95}, {name: "Alice", score: 80}])
+let t2 = arrange(t, "score", "asc")
+t2[0].name
+"#,
+    );
+    assert_eq!(result, Value::Str("Alice".into()));
+}
+
+#[test]
 fn test_table_distinct() {
     let result = eval(
         r#"

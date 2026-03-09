@@ -1,0 +1,49 @@
+# multispecies.bl — Multi-Species Comparative Genomics
+# Tutorial: https://lang.bio/docs/tutorials/multispecies.html
+#
+# Run with: bl run examples/tutorials/multispecies.bl
+#
+# Note: Requires internet for Ensembl API calls. Rate-limited.
+
+# ── 1. Look Up Orthologs ─────────────────────────────────────
+
+let gene_lookups = [
+  { species: "homo_sapiens",             symbol: "TP53" },
+  { species: "mus_musculus",             symbol: "Trp53" },
+  { species: "danio_rerio",             symbol: "tp53" },
+]
+
+let orthologs = gene_lookups |> map(|entry| {
+  let gene = ensembl_symbol(entry.species, entry.symbol)
+  { species: entry.species, gene_id: gene.id, symbol: gene.symbol,
+    chromosome: gene.chromosome, start: gene.start, end: gene.end }
+})
+
+print("=== TP53 Orthologs ===")
+for orth in orthologs {
+  print(f"{orth.species}  {orth.gene_id}  {orth.symbol}")
+}
+
+# ── 2. Fetch Protein Sequences ───────────────────────────────
+
+let sequences = orthologs |> map(|o| {
+  let seq = ensembl_sequence(o.gene_id, "protein")
+  { name: o.species, gene: o.symbol, sequence: seq.seq }
+})
+
+for s in sequences {
+  print(f"{s.name}: {len(s.sequence)} aa")
+}
+
+# ── 3. Locus Comparison ──────────────────────────────────────
+
+let human_tp53 = ensembl_symbol("homo_sapiens", "TP53")
+let mouse_tp53 = ensembl_symbol("mus_musculus", "Trp53")
+
+print("\n=== TP53 Locus Comparison ===")
+print(f"Human:  chr{human_tp53.chromosome}:{human_tp53.start}-{human_tp53.end}")
+print(f"Mouse:  chr{mouse_tp53.chromosome}:{mouse_tp53.start}-{mouse_tp53.end}")
+print(f"Human locus size: {human_tp53.end - human_tp53.start} bp")
+print(f"Mouse locus size: {mouse_tp53.end - mouse_tp53.start} bp")
+
+print("\nMulti-species tutorial complete.")

@@ -191,6 +191,12 @@ pub enum Expr {
         right: Box<Spanned<Expr>>,
     },
 
+    /// Pipe-into: `expr |> into name` — binds value to name, returns value
+    PipeInto {
+        value: Box<Spanned<Expr>>,
+        name: String,
+    },
+
     /// Function call: `f(a, b, key: value)`
     Call {
         callee: Box<Spanned<Expr>>,

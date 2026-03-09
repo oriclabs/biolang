@@ -30,73 +30,110 @@
         <h2>PDB Parsing</h2>
 
         <h3>Basic structure information</h3>
-        <pre><code class="language-biolang"># Load and inspect a PDB file
-let structure = read_pdb("1ubq.pdb")
+        <pre><code class="language-biolang"># Parse a local PDB file by reading ATOM/HETATM lines
+let lines = read_lines("1ubq.pdb")
 
-print(f"PDB ID: {structure.id}")
-print(f"Title: {structure.title}")
-print(f"Resolution: {structure.resolution} A")
-print(f"Chains: {structure.chains |> map(|x| x.id) |> join(", ")}")
-print(f"Models: {structure.models |> len}")
+# Extract header info
+let title = lines |> filter(|l| { l |> starts_with("TITLE") })
+  |> map(|l| { l |> substr(10, 70) |> trim }) |> join(" ")
+print(f"Title: {title}")
 
-for chain in structure.chains {
-  let residues = chain.residues |> len
-  let atoms = chain.atoms |> len
-  print(f"  Chain {chain.id}: {residues} residues, {atoms} atoms")
+# Parse ATOM records
+let atoms = lines
+  |> filter(|l| { l |> starts_with("ATOM") })
+  |> map(|l| { {
+    name: l |> substr(12, 16) |> trim,
+    resname: l |> substr(17, 20) |> trim,
+    chain: l |> substr(21, 22) |> trim,
+    resid: l |> substr(22, 26) |> trim |> int,
+    x: l |> substr(30, 38) |> trim |> float,
+    y: l |> substr(38, 46) |> trim |> float,
+    z: l |> substr(46, 54) |> trim |> float,
+    bfactor: l |> substr(60, 66) |> trim |> float
+  }})
+
+let chains = atoms |> map(|a| { a.chain }) |> unique
+print(f"Chains: {chains |> join(", ")}")
+print(f"Total atoms: {atoms |> len}")
+
+for ch in chains {
+  let ch_atoms = atoms |> filter(|a| { a.chain == ch })
+  let n_residues = ch_atoms |> map(|a| { a.resid }) |> unique |> len
+  print(f"  Chain {ch}: {n_residues} residues, {ch_atoms |> len} atoms")
 }</code></pre>
 
-        <h3>Extracting atom coordinates</h3>
-        <pre><code class="language-biolang"># Extract C-alpha atoms for a chain
-let structure = read_pdb("protein.pdb")
-let chain_a = structure.chain("A")
-
-let ca_atoms = chain_a.atoms
-  |> filter(|a| { a.name == "CA" })
-  |> map(|a| { {
-    residue: a.resname,
-    resid: a.resid,
-    x: a.x,
-    y: a.y,
-    z: a.z,
-    bfactor: a.bfactor
+        <h3>Extracting C-alpha coordinates</h3>
+        <pre><code class="language-biolang"># Extract C-alpha atoms from a PDB file
+let lines = read_lines("protein.pdb")
+let ca_atoms = lines
+  |> filter(|l| { l |> starts_with("ATOM") })
+  |> map(|l| { {
+    name: l |> substr(12, 16) |> trim,
+    resname: l |> substr(17, 20) |> trim,
+    chain: l |> substr(21, 22) |> trim,
+    resid: l |> substr(22, 26) |> trim |> int,
+    x: l |> substr(30, 38) |> trim |> float,
+    y: l |> substr(38, 46) |> trim |> float,
+    z: l |> substr(46, 54) |> trim |> float,
+    bfactor: l |> substr(60, 66) |> trim |> float
   }})
+  |> filter(|a| { a.name == "CA" && a.chain == "A" })
 
 ca_atoms |> write_tsv("ca_coordinates.tsv")
 print(f"Extracted {ca_atoms |> len} C-alpha atoms")</code></pre>
 
         <h3>Fetching structures from RCSB</h3>
-        <pre><code class="language-biolang"># Download and parse a PDB structure
-let structure = pdb_entry("6LU7")  # SARS-CoV-2 main protease
+        <pre><code class="language-biolang"># Fetch structure metadata from RCSB PDB
+let entry = pdb_entry("6LU7")  # SARS-CoV-2 main protease
+print(f"Title: {entry.title}")
+print(f"Method: {entry.method}")
+print(f"Resolution: {entry.resolution}")
 
-print(f"{structure.title}")
-print(f"Method: {structure.method}")
-print(f"Resolution: {structure.resolution} A")
-print(f"Organism: {structure.organism}")
+# Get chain information
+let chains = pdb_chains("6LU7")
+for ch in chains {
+  print(f"  Chain {ch.id}: {ch.description}")
+}
 
-# Extract sequence from structure
-let sequence = structure.chain("A").residues
-  |> map(|r| { r.name |> three_to_one })
-  |> join("")
-print(f"Chain A sequence ({sequence |> len} aa): {sequence |> take(50)}...")</code></pre>
+# Get protein sequence for chain A
+let seq = pdb_sequence("6LU7", "A")
+print(f"Chain A sequence ({seq |> seq_len} aa): {subseq(seq, 0, 50)}...")</code></pre>
 
         <h2>Contact Maps</h2>
 
         <h3>Residue contact map</h3>
         <pre><code class="language-biolang"># Build a residue contact map from C-alpha distances
-let structure = read_pdb("protein.pdb")
-let chain = structure.chain("A")
+fn parse_atoms(path) {
+  read_lines(path)
+    |> filter(|l| { l |> starts_with("ATOM") })
+    |> map(|l| { {
+      name: l |> substr(12, 16) |> trim,
+      resname: l |> substr(17, 20) |> trim,
+      chain: l |> substr(21, 22) |> trim,
+      resid: l |> substr(22, 26) |> trim |> int,
+      x: l |> substr(30, 38) |> trim |> float,
+      y: l |> substr(38, 46) |> trim |> float,
+      z: l |> substr(46, 54) |> trim |> float,
+      bfactor: l |> substr(60, 66) |> trim |> float
+    }})
+}
 
-let ca_atoms = chain.atoms |> filter(|a| { a.name == "CA" }) |> collect
+fn atom_dist(a, b) {
+  sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2))
+}
+
+let all_atoms = parse_atoms("protein.pdb")
+let ca_atoms = all_atoms |> filter(|a| { a.name == "CA" && a.chain == "A" }) |> collect
 let n = ca_atoms |> len
 let cutoff = 8.0  # Angstroms
 
-# Build contact matrix
+# Build contact list
 let contacts = []
 for i in 0..n {
   for j in (i + 1)..n {
-    let dist = distance(ca_atoms[i], ca_atoms[j])
+    let dist = atom_dist(ca_atoms[i], ca_atoms[j])
     if dist <= cutoff {
-      contacts |> push({
+      contacts = contacts |> push({
         res_i: ca_atoms[i].resid,
         res_j: ca_atoms[j].resid,
         distance: dist |> round(2)
@@ -109,32 +146,32 @@ print(f"Contacts (< {cutoff} A): {contacts |> len}")
 contacts |> write_tsv("contact_map.tsv")
 
 # Sequence separation statistics
-let seq_sep = contacts |> map(|c| { (c.res_j - c.res_i) |> abs })
+let seq_sep = contacts |> map(|c| { abs(c.res_j - c.res_i) })
 print(f"Mean sequence separation: {seq_sep |> mean |> round(1)} residues")
 print(f"Long-range contacts (>12 res): {seq_sep |> filter(|s| { s > 12 }) |> len}")</code></pre>
 
         <h3>Inter-chain contacts</h3>
         <pre><code class="language-biolang"># Find contacts between two chains (protein-protein interface)
-let structure = read_pdb("complex.pdb")
-let chain_a = structure.chain("A").atoms |> collect
-let chain_b = structure.chain("B").atoms |> collect
+let all_atoms = parse_atoms("complex.pdb")
+let chain_a = all_atoms |> filter(|a| { a.chain == "A" }) |> collect
+let chain_b = all_atoms |> filter(|a| { a.chain == "B" }) |> collect
 
 let interface_cutoff = 4.5  # Angstroms
 
 let interface = chain_a |> flat_map(|atom_a| {
   chain_b
-    |> filter(|atom_b| { distance(atom_a, atom_b) <= interface_cutoff })
+    |> filter(|atom_b| { atom_dist(atom_a, atom_b) <= interface_cutoff })
     |> map(|atom_b| { {
       chain_a_res: f"{atom_a.resname}{atom_a.resid}",
       chain_a_atom: atom_a.name,
       chain_b_res: f"{atom_b.resname}{atom_b.resid}",
       chain_b_atom: atom_b.name,
-      distance: distance(atom_a, atom_b) |> round(2)
+      distance: atom_dist(atom_a, atom_b) |> round(2)
     }})
 })
 
-let interface_residues_a = interface |> map(|x| x.chain_a_res) |> unique
-let interface_residues_b = interface |> map(|x| x.chain_b_res) |> unique
+let interface_residues_a = interface |> map(|x| { x.chain_a_res }) |> unique
+let interface_residues_b = interface |> map(|x| { x.chain_b_res }) |> unique
 
 print(f"Interface contacts: {interface |> len}")
 print(f"Interface residues chain A: {interface_residues_a |> len}")
@@ -144,96 +181,137 @@ interface |> write_tsv("interface_contacts.tsv")</code></pre>
         <h2>Ramachandran Analysis</h2>
 
         <h3>Phi/Psi angle calculation</h3>
-        <pre><code class="language-biolang"># Calculate backbone dihedral angles
-let structure = read_pdb("protein.pdb")
-let chain = structure.chain("A")
+        <pre><code class="language-biolang"># Calculate backbone dihedral angles from ATOM coordinates
+# Requires N, CA, C atoms for each residue
+let all_atoms = parse_atoms("protein.pdb")
+let backbone = all_atoms |> filter(|a| { a.chain == "A" && (a.name == "N" || a.name == "CA" || a.name == "C") })
 
-let dihedrals = chain.residues
-  |> filter(|r| { r.has_backbone })
-  |> map(|r| { {
-    resid: r.resid,
-    resname: r.name,
-    phi: r.phi |> to_degrees,
-    psi: r.psi |> to_degrees
-  }})
-  |> filter(|d| { d.phi != None && d.psi != None })
+# Group backbone atoms by residue
+let residue_ids = backbone |> map(|a| { a.resid }) |> unique |> sort
+
+fn get_atom(atoms, resid, name) {
+  atoms |> find(|a| { a.resid == resid && a.name == name })
+}
+
+# Dihedral angle from four points
+fn dihedral(p1, p2, p3, p4) {
+  let b1x = p2.x - p1.x; let b1y = p2.y - p1.y; let b1z = p2.z - p1.z
+  let b2x = p3.x - p2.x; let b2y = p3.y - p2.y; let b2z = p3.z - p2.z
+  let b3x = p4.x - p3.x; let b3y = p4.y - p3.y; let b3z = p4.z - p3.z
+  # Cross products n1 = b1 x b2, n2 = b2 x b3
+  let n1x = b1y * b2z - b1z * b2y
+  let n1y = b1z * b2x - b1x * b2z
+  let n1z = b1x * b2y - b1y * b2x
+  let n2x = b2y * b3z - b2z * b3y
+  let n2y = b2z * b3x - b2x * b3z
+  let n2z = b2x * b3y - b2y * b3x
+  let dot_nn = n1x * n2x + n1y * n2y + n1z * n2z
+  let cross_x = n1y * n2z - n1z * n2y
+  let b2_len = sqrt(b2x * b2x + b2y * b2y + b2z * b2z)
+  atan(b2_len * (b1x * n2x + b1y * n2y + b1z * n2z), dot_nn) * 180.0 / 3.14159265
+}
+
+# Compute phi/psi for each residue (skip first and last)
+let dihedrals = range(1, (residue_ids |> len) - 1) |> map(|idx| {
+  let prev = residue_ids[idx - 1]
+  let curr = residue_ids[idx]
+  let next = residue_ids[idx + 1]
+  let phi = dihedral(
+    get_atom(backbone, prev, "C"), get_atom(backbone, curr, "N"),
+    get_atom(backbone, curr, "CA"), get_atom(backbone, curr, "C")
+  )
+  let psi = dihedral(
+    get_atom(backbone, curr, "N"), get_atom(backbone, curr, "CA"),
+    get_atom(backbone, curr, "C"), get_atom(backbone, next, "N")
+  )
+  let res = get_atom(backbone, curr, "CA")
+  { resid: curr, resname: res.resname, phi: phi |> round(1), psi: psi |> round(1) }
+})
 
 dihedrals |> write_tsv("ramachandran.tsv")
+print(f"Computed dihedral angles for {dihedrals |> len} residues")
 
-# Classify regions
-let allowed = dihedrals |> filter(|d| { is_allowed_region(d.phi, d.psi) }) |> len
-let generous = dihedrals |> filter(|d| { is_generous_region(d.phi, d.psi) }) |> len
-let outliers = dihedrals |> len - allowed - generous
+# Classify: most-favored regions (simplified)
+fn is_favored(phi, psi) {
+  # Alpha helix region
+  (phi > -180.0 && phi < -20.0 && psi > -80.0 && psi < 0.0) ||
+  # Beta sheet region
+  (phi > -180.0 && phi < -40.0 && psi > 50.0 && psi < 180.0)
+}
 
-print("Ramachandran Statistics:")
-print(f"  Most favored: {allowed} ({(allowed |> float / dihedrals |> len * 100.0) |> round(1)}%)")
-print(f"  Allowed:      {generous} ({(generous |> float / dihedrals |> len * 100.0) |> round(1)}%)")
-print(f"  Outliers:     {outliers} ({(outliers |> float / dihedrals |> len * 100.0) |> round(1)}%)")
-
-# List outlier residues
-let outlier_residues = dihedrals
-  |> filter(|d| { !is_allowed_region(d.phi, d.psi) && !is_generous_region(d.phi, d.psi) })
-if outlier_residues |> len > 0 {
-  print("\nOutlier residues:")
-  for r in outlier_residues {
-    print(f"  {r.resname}{r.resid}: phi={r.phi |> round(1)}, psi={r.psi |> round(1)}")
-  }
-}</code></pre>
+let favored = dihedrals |> filter(|d| { is_favored(d.phi, d.psi) }) |> len
+let total = dihedrals |> len
+print(f"Favored region: {favored} ({(favored |> float / total |> float * 100.0) |> round(1)}%)")
+print(f"Other:          {total - favored} ({((total - favored) |> float / total |> float * 100.0) |> round(1)}%)")</code></pre>
 
         <h2>B-factor Analysis</h2>
 
         <h3>B-factor per residue</h3>
         <pre><code class="language-biolang"># Analyze B-factors as a proxy for flexibility
-let structure = read_pdb("protein.pdb")
-let chain = structure.chain("A")
+let all_atoms = parse_atoms("protein.pdb")
+let chain_a = all_atoms |> filter(|a| { a.chain == "A" })
+let residue_ids = chain_a |> map(|a| { a.resid }) |> unique |> sort
 
-let bfactors = chain.residues |> map(|r| {
-  let atom_bfactors = r.atoms |> map(|x| x.bfactor)
+let bfactors = residue_ids |> map(|resid| {
+  let res_atoms = chain_a |> filter(|a| { a.resid == resid })
+  let bfs = res_atoms |> map(|a| { a.bfactor })
+  let ca = res_atoms |> find(|a| { a.name == "CA" })
   {
-    resid: r.resid,
-    resname: r.name,
-    mean_bfactor: atom_bfactors |> mean,
-    ca_bfactor: r.atom("CA")?.bfactor ?? 0.0,
-    n_atoms: atom_bfactors |> len
+    resid: resid,
+    resname: res_atoms |> first |> map(|a| { a.resname }),
+    mean_bfactor: bfs |> mean,
+    ca_bfactor: if ca != None { ca.bfactor } else { 0.0 },
+    n_atoms: bfs |> len
   }
 })
 
-let overall_mean = bfactors |> map(|x| x.mean_bfactor) |> mean
-let overall_std = bfactors |> map(|x| x.mean_bfactor) |> stdev
+let all_means = bfactors |> map(|x| { x.mean_bfactor })
+let overall_mean = all_means |> mean
+let overall_std = all_means |> stdev
 
 print("B-factor Statistics:")
 print(f"  Mean: {overall_mean |> round(2)} A^2")
 print(f"  Std:  {overall_std |> round(2)} A^2")
-print(f"  Range: {bfactors |> map(|x| x.mean_bfactor) |> min |> round(2)} - {bfactors |> map(|x| x.mean_bfactor) |> max |> round(2)}")
+print(f"  Range: {all_means |> min |> round(2)} - {all_means |> max |> round(2)}")
 
 # High B-factor residues (flexible regions)
-let flexible = bfactors
-  |> filter(|r| { r.mean_bfactor > overall_mean + 2.0 * overall_std })
-print("\nHighly flexible residues (>2 SD):")
+let threshold = overall_mean + 2.0 * overall_std
+let flexible = bfactors |> filter(|r| { r.mean_bfactor > threshold })
+print(f"\nHighly flexible residues (>{threshold |> round(1)} A^2):")
 for r in flexible {
   print(f"  {r.resname}{r.resid}: {r.mean_bfactor |> round(2)} A^2")
 }
 
 bfactors |> write_tsv("bfactor_per_residue.tsv")</code></pre>
 
-        <h3>Secondary structure assignment</h3>
-        <pre><code class="language-biolang"># Simple secondary structure from backbone geometry
-let structure = read_pdb("protein.pdb")
-let chain = structure.chain("A")
+        <h3>Secondary structure from DSSP records</h3>
+        <pre><code class="language-biolang"># Parse HELIX and SHEET records from PDB header
+let lines = read_lines("protein.pdb")
 
-let ss = chain |> assign_secondary_structure
+let helices = lines |> filter(|l| { l |> starts_with("HELIX") })
+  |> map(|l| { {
+    type: "H",
+    chain: l |> substr(19, 20) |> trim,
+    start: l |> substr(21, 25) |> trim |> int,
+    end: l |> substr(33, 37) |> trim |> int
+  }})
 
-let helix = ss |> filter(|r| { r.ss == "H" }) |> len
-let sheet = ss |> filter(|r| { r.ss == "E" }) |> len
-let coil = ss |> filter(|r| { r.ss == "C" }) |> len
-let total = ss |> len
+let sheets = lines |> filter(|l| { l |> starts_with("SHEET") })
+  |> map(|l| { {
+    type: "E",
+    chain: l |> substr(21, 22) |> trim,
+    start: l |> substr(22, 26) |> trim |> int,
+    end: l |> substr(33, 37) |> trim |> int
+  }})
 
-print("Secondary Structure:")
-print(f"  Helix: {helix} ({(helix |> float / total * 100.0) |> round(1)}%)")
-print(f"  Sheet: {sheet} ({(sheet |> float / total * 100.0) |> round(1)}%)")
-print(f"  Coil:  {coil} ({(coil |> float / total * 100.0) |> round(1)}%)")
+let helix_res = helices |> map(|h| { h.end - h.start + 1 }) |> sum
+let sheet_res = sheets |> map(|s| { s.end - s.start + 1 }) |> sum
+let total_res = residue_ids |> len
 
-ss |> write_tsv("secondary_structure.tsv")</code></pre>
+print("Secondary Structure (from PDB header):")
+print(f"  Helices: {helices |> len} ({helix_res} residues, {(helix_res |> float / total_res |> float * 100.0) |> round(1)}%)")
+print(f"  Sheets:  {sheets |> len} ({sheet_res} residues, {(sheet_res |> float / total_res |> float * 100.0) |> round(1)}%)")
+print(f"  Coil:    ~{total_res - helix_res - sheet_res} residues")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

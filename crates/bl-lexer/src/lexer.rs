@@ -749,6 +749,7 @@ impl Lexer {
 
         // Check for bio literals: dna"...", rna"...", protein"..."
         // Check for f-string: f"..."
+        // Check for raw string: r"..." (no escape processing, useful for Windows paths)
         if !self.is_at_end() && self.current() == '"' {
             match text.as_str() {
                 "dna" => return self.bio_literal(start, TokenKind::DnaLit),
@@ -756,6 +757,7 @@ impl Lexer {
                 "protein" => return self.bio_literal(start, TokenKind::ProteinLit),
                 "qual" => return self.bio_literal(start, TokenKind::QualLit),
                 "f" => return self.fstring_literal(start),
+                "r" => return self.raw_string(start),
                 _ => {}
             }
         }
@@ -820,6 +822,33 @@ impl Lexer {
         self.advance(); // consume closing "
         self.tokens
             .push(Token::new(TokenKind::FStr(value), Span::new(start, self.pos)));
+        Ok(())
+    }
+
+    fn raw_string(&mut self, start: usize) -> Result<()> {
+        self.advance(); // consume opening "
+        let mut value = String::new();
+        while !self.is_at_end() && self.current() != '"' {
+            if self.current() == '\n' {
+                return Err(BioLangError::new(
+                    ErrorKind::UnterminatedString,
+                    "unterminated raw string (newline)",
+                    Some(Span::new(start, self.pos)),
+                ));
+            }
+            value.push(self.current());
+            self.advance();
+        }
+        if self.is_at_end() {
+            return Err(BioLangError::new(
+                ErrorKind::UnterminatedString,
+                "unterminated raw string",
+                Some(Span::new(start, self.pos)),
+            ));
+        }
+        self.advance(); // consume closing "
+        self.tokens
+            .push(Token::new(TokenKind::Str(value), Span::new(start, self.pos)));
         Ok(())
     }
 

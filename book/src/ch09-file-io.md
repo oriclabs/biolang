@@ -22,7 +22,7 @@ for c in contigs {
 }
 
 # Find the longest contig
-let longest = contigs |> sort(|a, b| len(b.seq) - len(a.seq)) |> first()
+contigs |> sort(|a, b| len(b.seq) - len(a.seq)) |> first() |> into longest
 print("Longest: " + longest.header + " (" + str(len(longest.seq)) + " bp)")
 ```
 
@@ -37,7 +37,7 @@ fields. Quality scores are integer Phred values.
 ```biolang
 let reads = read_fastq("sample_R1.fastq.gz")
 
-let gc_mean = reads |> map(|r| gc_content(r.seq)) |> mean()
+reads |> map(|r| gc_content(r.seq)) |> mean() |> into gc_mean
 let summary = {
     total: len(reads),
     mean_length: reads |> map(|r| len(r.seq)) |> mean(),

@@ -228,29 +228,57 @@ pub fn rank_transform(data: &[f64]) -> Vec<f64> {
 // ── Distribution Functions ───────────────────────────────────────────────────
 
 pub fn normal_cdf(x: f64) -> f64 {
-    let t = 1.0 / (1.0 + 0.2316419 * x.abs());
-    let y = t * (0.319381530 - t * (0.356563782 - t * (1.781477937 - t * 1.330274429)));
-    if x > 0.0 {
-        1.0 - y * (-x * x / 2.0).exp() / (2.0 * std::f64::consts::PI).sqrt()
-    } else {
-        y * (-x * x / 2.0).exp() / (2.0 * std::f64::consts::PI).sqrt()
-    }
+    // Abramowitz & Stegun erf approximation (max error 1.5e-7)
+    // Φ(x) = 0.5 * (1 + erf(x / sqrt(2)))
+    let z = x / std::f64::consts::SQRT_2;
+    let a = z.abs();
+    // Rational approximation of erf
+    let t = 1.0 / (1.0 + 0.3275911 * a);
+    let erf_abs = 1.0 - t * (0.254829592 + t * (-0.284496736 + t * (1.421413741
+        + t * (-1.453152027 + t * 1.061405429)))) * (-a * a).exp();
+    let erf_val = if z >= 0.0 { erf_abs } else { -erf_abs };
+    0.5 * (1.0 + erf_val)
 }
 
 pub fn normal_quantile(p: f64) -> f64 {
+    // Peter Acklam's rational approximation (|error| < 1.15e-9)
     if p <= 0.0 || p >= 1.0 {
         return 0.0;
     }
-    let q = p - 0.5;
-    if q.abs() <= 0.42 {
-        q * (2.50662823884 - 18.61500062529 * q * q + 41.39119773534 * q * q * q * q
-            - 25.44106049637 * q * q * q * q * q * q)
+    const A: [f64; 6] = [
+        -3.969683028665376e+01, 2.209460984245205e+02,
+        -2.759285104469687e+02, 1.383577518672690e+02,
+        -3.066479806614716e+01, 2.506628277459239e+00,
+    ];
+    const B: [f64; 5] = [
+        -5.447609879822406e+01, 1.615858368580409e+02,
+        -1.556989798598866e+02, 6.680131188771972e+01,
+        -1.328068155288572e+01,
+    ];
+    const C: [f64; 6] = [
+        -7.784894002430293e-03, -3.223964580411365e-01,
+        -2.400758277161838e+00, -2.549732539343734e+00,
+         4.374664141464968e+00,  2.938163982698783e+00,
+    ];
+    const D: [f64; 4] = [
+        7.784695709041462e-03, 3.224671290700398e-01,
+        2.445134137142996e+00, 3.754408661907416e+00,
+    ];
+    let p_low = 0.02425;
+    let p_high = 1.0 - p_low;
+    if p < p_low {
+        let q = (-2.0 * p.ln()).sqrt();
+        (((((C[0]*q+C[1])*q+C[2])*q+C[3])*q+C[4])*q+C[5]) /
+         ((((D[0]*q+D[1])*q+D[2])*q+D[3])*q+1.0)
+    } else if p <= p_high {
+        let q = p - 0.5;
+        let r = q * q;
+        (((((A[0]*r+A[1])*r+A[2])*r+A[3])*r+A[4])*r+A[5]) * q /
+         (((((B[0]*r+B[1])*r+B[2])*r+B[3])*r+B[4])*r+1.0)
     } else {
-        let sign = if q > 0.0 { 1.0 } else { -1.0 };
-        let q_abs = q.abs();
-        let ln_val = (1.0 - q_abs).ln();
-        let num = 0.886226899 - ln_val * (0.886226899 - ln_val * (0.374901 * ln_val + 0.488 * ln_val * ln_val));
-        sign * num
+        let q = (-2.0 * (1.0 - p).ln()).sqrt();
+        -(((((C[0]*q+C[1])*q+C[2])*q+C[3])*q+C[4])*q+C[5]) /
+          ((((D[0]*q+D[1])*q+D[2])*q+D[3])*q+1.0)
     }
 }
 
@@ -1324,4 +1352,172 @@ pub fn multiple_linear_regression(y: &[f64], x_matrix: &[Vec<f64>]) -> Result<Mu
         coefficients, std_errors, t_values, p_values,
         r_squared, adj_r_squared, f_statistic, f_p_value,
     })
+}
+
+// ── K-Means Clustering ──────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct KMeansResult {
+    pub clusters: Vec<usize>,
+    pub centroids: Vec<Vec<f64>>,
+    pub iterations: usize,
+    pub inertia: f64,
+}
+
+/// K-means clustering using Lloyd's algorithm with k-means++ initialization.
+pub fn kmeans(data: &[Vec<f64>], k: usize, max_iter: usize) -> Result<KMeansResult, String> {
+    let n = data.len();
+    if n == 0 { return Err("empty data".into()); }
+    if k == 0 || k > n { return Err(format!("k must be in [1, {n}]")); }
+    let d = data[0].len();
+    if d == 0 { return Err("zero-dimensional data".into()); }
+
+    let mut centroids = Vec::with_capacity(k);
+    let first = data.iter().enumerate()
+        .max_by(|(_, a), (_, b)| {
+            let na: f64 = a.iter().map(|x| x * x).sum();
+            let nb: f64 = b.iter().map(|x| x * x).sum();
+            na.partial_cmp(&nb).unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(i, _)| i)
+        .unwrap_or(0);
+    centroids.push(data[first].clone());
+
+    for _ in 1..k {
+        let dists: Vec<f64> = data.iter().map(|p| {
+            centroids.iter().map(|c| euclidean_dist_sq(p, c)).fold(f64::MAX, f64::min)
+        }).collect();
+        let total: f64 = dists.iter().sum();
+        if total == 0.0 {
+            centroids.push(data[0].clone());
+            continue;
+        }
+        let idx = dists.iter().enumerate()
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+            .map(|(i, _)| i)
+            .unwrap_or(0);
+        centroids.push(data[idx].clone());
+    }
+
+    let mut assignments = vec![0usize; n];
+    let mut iterations = 0;
+
+    for _ in 0..max_iter {
+        iterations += 1;
+        let mut changed = false;
+        for i in 0..n {
+            let nearest = centroids.iter().enumerate()
+                .min_by(|(_, a), (_, b)| {
+                    euclidean_dist_sq(&data[i], a)
+                        .partial_cmp(&euclidean_dist_sq(&data[i], b))
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .map(|(j, _)| j)
+                .unwrap_or(0);
+            if assignments[i] != nearest {
+                assignments[i] = nearest;
+                changed = true;
+            }
+        }
+        if !changed { break; }
+        for j in 0..k {
+            let mut new_centroid = vec![0.0; d];
+            let mut count = 0usize;
+            for i in 0..n {
+                if assignments[i] == j {
+                    for dim in 0..d { new_centroid[dim] += data[i][dim]; }
+                    count += 1;
+                }
+            }
+            if count > 0 {
+                for dim in 0..d { new_centroid[dim] /= count as f64; }
+                centroids[j] = new_centroid;
+            }
+        }
+    }
+
+    let inertia: f64 = (0..n)
+        .map(|i| euclidean_dist_sq(&data[i], &centroids[assignments[i]]))
+        .sum();
+
+    Ok(KMeansResult { clusters: assignments, centroids, iterations, inertia })
+}
+
+fn euclidean_dist_sq(a: &[f64], b: &[f64]) -> f64 {
+    a.iter().zip(b).map(|(x, y)| (x - y) * (x - y)).sum()
+}
+
+// ── Distribution Functions ──────────────────────────────────────────────────
+
+/// Normal PDF: φ(x) = (1/√(2π)) * exp(-x²/2)
+pub fn normal_pdf(x: f64) -> f64 {
+    (-x * x / 2.0).exp() / (2.0 * std::f64::consts::PI).sqrt()
+}
+
+/// Lanczos approximation to log-gamma.
+fn ln_gamma(x: f64) -> f64 {
+    if x <= 0.0 { return 0.0; }
+    let coeffs = [
+        76.18009172947146, -86.50532032941677, 24.01409824083091,
+        -1.231739572450155, 1.208650973866179e-3, -5.395239384953e-6,
+    ];
+    let mut y = x;
+    let tmp = x + 5.5;
+    let tmp = tmp - (x + 0.5) * tmp.ln();
+    let mut ser = 1.000000000190015;
+    for &c in &coeffs {
+        y += 1.0;
+        ser += c / y;
+    }
+    -tmp + (2.5066282746310005 * ser / x).ln()
+}
+
+/// Binomial coefficient: C(n, k)
+pub fn binomial_coeff(n: u64, k: u64) -> f64 {
+    if k > n { return 0.0; }
+    (ln_gamma(n as f64 + 1.0) - ln_gamma(k as f64 + 1.0) - ln_gamma((n - k) as f64 + 1.0)).exp()
+}
+
+/// Binomial PMF: P(X = k) = C(n,k) * p^k * (1-p)^(n-k)
+pub fn binomial_pmf(k: u64, n: u64, p: f64) -> f64 {
+    if k > n { return 0.0; }
+    binomial_coeff(n, k) * p.powi(k as i32) * (1.0 - p).powi((n - k) as i32)
+}
+
+/// Binomial CDF: P(X <= k)
+pub fn binom_cdf(k: u64, n: u64, p: f64) -> f64 {
+    (0..=k).map(|i| binomial_pmf(i, n, p)).sum()
+}
+
+/// Poisson PMF: P(X = k) = λ^k * e^(-λ) / k!
+pub fn poisson_pmf_exact(k: u64, lambda: f64) -> f64 {
+    if lambda <= 0.0 { return if k == 0 { 1.0 } else { 0.0 }; }
+    (k as f64 * lambda.ln() - lambda - ln_gamma(k as f64 + 1.0)).exp()
+}
+
+/// Poisson CDF: P(X <= k)
+pub fn poisson_cdf_exact(k: u64, lambda: f64) -> f64 {
+    (0..=k).map(|i| poisson_pmf_exact(i, lambda)).sum()
+}
+
+/// Uniform PDF on [a, b]
+pub fn uniform_pdf(x: f64, a: f64, b: f64) -> f64 {
+    if b <= a { return 0.0; }
+    if x >= a && x <= b { 1.0 / (b - a) } else { 0.0 }
+}
+
+/// Uniform CDF on [a, b]
+pub fn uniform_cdf(x: f64, a: f64, b: f64) -> f64 {
+    if b <= a { return 0.0; }
+    if x < a { 0.0 } else if x > b { 1.0 } else { (x - a) / (b - a) }
+}
+
+/// Exponential PDF: f(x) = rate * exp(-rate * x)
+pub fn exponential_pdf(x: f64, rate: f64) -> f64 {
+    if x < 0.0 || rate <= 0.0 { 0.0 } else { rate * (-rate * x).exp() }
+}
+
+/// Exponential CDF: F(x) = 1 - exp(-rate * x)
+pub fn exponential_cdf(x: f64, rate: f64) -> f64 {
+    if x < 0.0 || rate <= 0.0 { 0.0 } else { 1.0 - (-rate * x).exp() }
 }

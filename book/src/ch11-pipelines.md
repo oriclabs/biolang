@@ -16,7 +16,7 @@ previous stage.
 pipeline fastq_qc {
   stage raw_stats {
     read_fastq("sample_R1.fastq.gz")
-      |> fastq_stats()
+      |> read_stats()
   }
 
   stage filter {
@@ -27,7 +27,7 @@ pipeline fastq_qc {
 
   stage filtered_stats {
     read_fastq("sample_R1.filtered.fastq.gz")
-      |> fastq_stats()
+      |> read_stats()
   }
 }
 ```
@@ -47,16 +47,16 @@ pipeline align_and_sort {
     let ref = "GRCh38.fa"
     let r1 = "tumor_R1.fastq.gz"
     let r2 = "tumor_R2.fastq.gz"
-    bwa_mem(ref, r1, r2, threads: 16)
+    tool("bwa-mem2", "mem -t 16 " + ref + " " + r1 + " " + r2 + " -o aligned.bam")
   }
 
   stage sorted {
     # alignment is the output path from the previous stage
-    samtools_sort(alignment, threads: 8)
+    tool("samtools", "sort -@ 8 -o sorted.bam " + alignment)
   }
 
   stage indexed {
-    samtools_index(sorted)
+    tool("samtools", "index " + sorted)
     sorted  # return the sorted BAM path
   }
 }
@@ -80,9 +80,9 @@ let samples = [
 ]
 
 parallel for sample in samples {
-  let bam = bwa_mem("GRCh38.fa", sample.r1, sample.r2, threads: 4)
-  let sorted = samtools_sort(bam, threads: 4)
-  samtools_index(sorted)
+  let bam = tool("bwa-mem2", "mem -t 4 GRCh38.fa " + sample.r1 + " " + sample.r2 + " -o " + sample.id + ".bam")
+  let sorted = tool("samtools", "sort -@ 4 -o " + sample.id + ".sorted.bam " + bam)
+  tool("samtools", "index " + sorted)
   {id: sample.id, bam: sorted}
 }
 ```
@@ -99,18 +99,18 @@ dependencies.
 ```
 pipeline variant_qc {
   stage aligned {
-    bwa_mem("GRCh38.fa", "sample_R1.fq.gz", "sample_R2.fq.gz")
-      |> samtools_sort(threads: 8)
+    let bam = tool("bwa-mem2", "mem -t 16 GRCh38.fa sample_R1.fq.gz sample_R2.fq.gz -o aligned.bam")
+    tool("samtools", "sort -@ 8 -o aligned.sorted.bam " + bam)
   }
 
   # These two stages depend only on aligned, not on each other.
   # BioLang runs them concurrently.
   stage depth {
-    samtools_depth(aligned) |> mean()
+    tool("samtools", "depth " + aligned) |> mean()
   }
 
   stage flagstat {
-    samtools_flagstat(aligned)
+    tool("samtools", "flagstat " + aligned)
   }
 
   # This stage depends on both depth and flagstat
@@ -147,15 +147,15 @@ pipeline trimmed_alignment {
   }
 
   stage align {
-    let bam = bwa_mem("GRCh38.fa", trim.r1, trim.r2, threads: 16)
+    let bam = tool("bwa-mem2", "mem -t 16 GRCh38.fa " + trim.r1 + " " + trim.r2 + " -o aligned.bam")
     let unsorted = bam
-    let sorted = samtools_sort(bam, threads: 8)
+    let sorted = tool("samtools", "sort -@ 8 -o sorted.bam " + bam)
     defer { remove(unsorted) }
     sorted
   }
 
   stage mark_dups {
-    let deduped = gatk_mark_duplicates(align)
+    let deduped = tool("gatk", "MarkDuplicates -I " + align + " -O deduped.bam -M dup_metrics.txt")
     let metrics = align + ".dup_metrics"
     defer { remove(metrics) }
     deduped
@@ -173,9 +173,8 @@ A complete RNA-seq workflow from raw reads to normalized expression counts.
 ```
 pipeline rnaseq {
   stage qc {
-    let report = fastqc("rnaseq_R1.fq.gz", "rnaseq_R2.fq.gz",
-                         out_dir: "qc/")
-    let stats = read_fastq("rnaseq_R1.fq.gz") |> fastq_stats()
+    let report = tool("fastqc", "rnaseq_R1.fq.gz rnaseq_R2.fq.gz -o qc/")
+    let stats = read_fastq("rnaseq_R1.fq.gz") |> read_stats()
     defer { log("QC complete: " + str(stats.total_reads) + " reads") }
     {report: report, stats: stats}
   }
@@ -193,36 +192,23 @@ pipeline rnaseq {
   }
 
   stage align {
-    star_align(
-      index: "star_index/GRCh38",
-      r1: "trimmed_R1.fq.gz",
-      r2: "trimmed_R2.fq.gz",
-      out_prefix: "aligned/rnaseq_",
-      threads: 16,
-      two_pass: true
-    )
+    tool("STAR", "--genomeDir star_index/GRCh38 --readFilesIn trimmed_R1.fq.gz trimmed_R2.fq.gz --outFileNamePrefix aligned/rnaseq_ --runThreadN 16 --twopassMode Basic")
   }
 
   stage quantify {
-    featurecounts(
-      bam: align,
-      annotation: "gencode.v44.gtf",
-      paired: true,
-      strand: "reverse",
-      threads: 8
-    )
+    tool("featureCounts", "-a gencode.v44.gtf -o counts.txt -p -s 2 -T 8 " + align)
   }
 
   stage normalize {
-    let raw_counts = read_tsv(quantify)
-    let size_factors = raw_counts
-      |> columns(exclude: ["gene_id", "gene_name"])
-      |> each(|col| median(col))
-      |> |medians| median(medians) / medians
+    let raw_counts = tsv(quantify)
+    let count_cols = raw_counts
+      |> select(exclude: ["gene_id", "gene_name"])
+    let medians = count_cols |> each(|col| median(col))
+    let size_factors = medians |> map(|m| median(medians) / m)
 
     raw_counts
-      |> map_columns(exclude: ["gene_id", "gene_name"],
-                     |col, i| col * size_factors[i])
+      |> mutate(exclude: ["gene_id", "gene_name"],
+                |col, i| col * size_factors[i])
       |> write_tsv("normalized_counts.tsv")
   }
 }
@@ -236,14 +222,14 @@ Germline variant calling from FASTQ to annotated VCF.
 pipeline germline_variants {
   stage align {
     let ref = "GRCh38.fa"
-    bwa_mem(ref, "sample_R1.fq.gz", "sample_R2.fq.gz",
-            threads: 16, read_group: "@RG\\tID:S1\\tSM:sample")
-      |> samtools_sort(threads: 8)
-      |> samtools_index()
+    let bam = tool("bwa-mem2", "mem -t 16 -R '@RG\\tID:S1\\tSM:sample' " + ref + " sample_R1.fq.gz sample_R2.fq.gz -o aligned.bam")
+    let sorted = tool("samtools", "sort -@ 8 -o sorted.bam " + bam)
+    tool("samtools", "index " + sorted)
+    sorted
   }
 
   stage mark_dups {
-    gatk_mark_duplicates(align)
+    tool("gatk", "MarkDuplicates -I " + align + " -O deduped.bam -M dup_metrics.txt")
   }
 
   stage bqsr {
@@ -251,45 +237,31 @@ pipeline germline_variants {
       "dbsnp_156.vcf.gz",
       "Mills_and_1000G.indels.vcf.gz",
     ]
-    gatk_base_recalibrator(mark_dups, ref: "GRCh38.fa",
-                           known_sites: known_sites)
-      |> gatk_apply_bqsr(mark_dups, ref: "GRCh38.fa")
+    let table = tool("gatk", "BaseRecalibrator -I " + mark_dups + " -R GRCh38.fa --known-sites " + join(known_sites, " --known-sites ") + " -O recal.table")
+    tool("gatk", "ApplyBQSR -I " + mark_dups + " -R GRCh38.fa --bqsr-recal-file " + table + " -O recal.bam")
   }
 
   stage call {
-    gatk_haplotype_caller(bqsr, ref: "GRCh38.fa",
-                          emit_ref_confidence: "GVCF",
-                          intervals: "exome_targets.bed")
+    tool("gatk", "HaplotypeCaller -I " + bqsr + " -R GRCh38.fa -ERC GVCF -L exome_targets.bed -O sample.g.vcf.gz")
   }
 
   stage genotype {
-    gatk_genotype_gvcfs(call, ref: "GRCh38.fa")
+    tool("gatk", "GenotypeGVCFs -V " + call + " -R GRCh38.fa -O genotyped.vcf.gz")
   }
 
   stage filter {
-    let snps = gatk_select_variants(genotype, type: "SNP")
-      |> gatk_filter(filters: [
-           {name: "QD", expr: "QD < 2.0"},
-           {name: "FS", expr: "FS > 60.0"},
-           {name: "MQ", expr: "MQ < 40.0"},
-         ])
+    let snps_raw = tool("gatk", "SelectVariants -V " + genotype + " --select-type-to-include SNP -O snps.vcf.gz")
+    let snps = tool("gatk", "VariantFiltration -V " + snps_raw + " --filter-name QD --filter-expression 'QD < 2.0' --filter-name FS --filter-expression 'FS > 60.0' --filter-name MQ --filter-expression 'MQ < 40.0' -O snps.filtered.vcf.gz")
 
-    let indels = gatk_select_variants(genotype, type: "INDEL")
-      |> gatk_filter(filters: [
-           {name: "QD", expr: "QD < 2.0"},
-           {name: "FS", expr: "FS > 200.0"},
-         ])
+    let indels_raw = tool("gatk", "SelectVariants -V " + genotype + " --select-type-to-include INDEL -O indels.vcf.gz")
+    let indels = tool("gatk", "VariantFiltration -V " + indels_raw + " --filter-name QD --filter-expression 'QD < 2.0' --filter-name FS --filter-expression 'FS > 200.0' -O indels.filtered.vcf.gz")
 
-    bcftools_concat(snps, indels) |> bcftools_sort()
+    let merged = tool("bcftools", "concat " + snps + " " + indels + " -o merged.vcf.gz")
+    tool("bcftools", "sort " + merged + " -o sorted.vcf.gz")
   }
 
   stage annotate {
-    ensembl_vep(filter,
-                species: "human",
-                assembly: "GRCh38",
-                cache_dir: "vep_cache/",
-                plugins: ["CADD", "SpliceAI"])
-      |> write("sample.annotated.vcf.gz")
+    tool("vep", "--input_file " + filter + " --output_file sample.annotated.vcf.gz --species human --assembly GRCh38 --dir_cache vep_cache/ --plugin CADD --plugin SpliceAI --vcf --compress_output bgzip")
   }
 }
 ```
@@ -299,7 +271,7 @@ pipeline germline_variants {
 Processing a cohort in parallel, then merging results in a final stage.
 
 ```
-let cohort = read_tsv("sample_manifest.tsv")
+let cohort = tsv("sample_manifest.tsv")
   |> map(|row| {
        id: row.sample_id,
        r1: row.fastq_r1,
@@ -310,18 +282,15 @@ let cohort = read_tsv("sample_manifest.tsv")
 pipeline cohort_analysis {
   stage per_sample {
     parallel for sample in cohort {
-      let bam = bwa_mem("GRCh38.fa", sample.r1, sample.r2,
-                        threads: 4,
-                        read_group: "@RG\\tID:" + sample.id + "\\tSM:" + sample.id)
-        |> samtools_sort(threads: 4)
+      let raw_bam = tool("bwa-mem2", "mem -t 4 -R '@RG\\tID:" + sample.id + "\\tSM:" + sample.id + "' GRCh38.fa " + sample.r1 + " " + sample.r2 + " -o " + sample.id + ".bam")
+      let bam = tool("samtools", "sort -@ 4 -o " + sample.id + ".sorted.bam " + raw_bam)
 
-      samtools_index(bam)
+      tool("samtools", "index " + bam)
 
-      let gvcf = gatk_haplotype_caller(bam, ref: "GRCh38.fa",
-                                        emit_ref_confidence: "GVCF")
+      let gvcf = tool("gatk", "HaplotypeCaller -I " + bam + " -R GRCh38.fa -ERC GVCF -O " + sample.id + ".g.vcf.gz")
 
-      let stats = samtools_flagstat(bam)
-      let depth = samtools_depth(bam) |> mean()
+      let stats = tool("samtools", "flagstat " + bam)
+      let depth = tool("samtools", "depth " + bam) |> mean()
 
       {
         id: sample.id,
@@ -338,7 +307,7 @@ pipeline cohort_analysis {
     let failed = per_sample
       |> filter(|s| s.mapped_pct < 90.0 or s.mean_depth < 20.0)
 
-    if length(failed) > 0 then
+    if len(failed) > 0 then
       error("QC failed for: " + join(map(failed, |s| s.id), ", "))
 
     per_sample
@@ -346,28 +315,27 @@ pipeline cohort_analysis {
 
   stage joint_genotype {
     let gvcfs = qc_gate |> map(|s| s.gvcf)
-    gatk_combine_gvcfs(gvcfs, ref: "GRCh38.fa")
-      |> gatk_genotype_gvcfs(ref: "GRCh38.fa")
+    let gvcf_args = gvcfs |> map(|g| "-V " + g) |> join(" ")
+    let combined = tool("gatk", "CombineGVCFs " + gvcf_args + " -R GRCh38.fa -O cohort.g.vcf.gz")
+    tool("gatk", "GenotypeGVCFs -V " + combined + " -R GRCh38.fa -O cohort.vcf.gz")
   }
 
   stage filter_and_annotate {
-    joint_genotype
-      |> gatk_vqsr(ref: "GRCh38.fa",
-                   resources: ["hapmap.vcf.gz", "1000G_omni.vcf.gz"])
-      |> ensembl_vep(species: "human", assembly: "GRCh38")
-      |> write("cohort.annotated.vcf.gz")
+    let recal = tool("gatk", "VariantRecalibrator -V " + joint_genotype + " -R GRCh38.fa --resource:hapmap hapmap.vcf.gz --resource:omni 1000G_omni.vcf.gz -O cohort.recal --tranches-file cohort.tranches")
+    let filtered = tool("gatk", "ApplyVQSR -V " + joint_genotype + " --recal-file cohort.recal --tranches-file cohort.tranches -O cohort.filtered.vcf.gz")
+    tool("vep", "--input_file " + filtered + " --output_file cohort.annotated.vcf.gz --species human --assembly GRCh38 --vcf --compress_output bgzip")
   }
 
   stage summary {
     let variant_counts = read_vcf("cohort.annotated.vcf.gz")
       |> group_by(|v| v.info.consequence)
-      |> map_values(|vs| length(vs))
+      |> map(|g| {consequence: g.0, count: len(g.1)})
 
     let sample_stats = qc_gate
       |> map(|s| {id: s.id, depth: s.mean_depth, mapped: s.mapped_pct})
 
     {
-      n_samples: length(cohort),
+      n_samples: len(cohort),
       variant_counts: variant_counts,
       sample_stats: sample_stats,
     }
@@ -431,11 +399,11 @@ its result for downstream use.
 ```
 pipeline align_one(sample) {
   stage bam {
-    bwa_mem("GRCh38.fa", sample.r1, sample.r2, threads: 8)
-      |> samtools_sort(threads: 4)
+    let raw = tool("bwa-mem2", "mem -t 8 GRCh38.fa " + sample.r1 + " " + sample.r2 + " -o aligned.bam")
+    tool("samtools", "sort -@ 4 -o sorted.bam " + raw)
   }
   stage index {
-    samtools_index(bam)
+    tool("samtools", "index " + bam)
     bam
   }
 }
@@ -445,14 +413,11 @@ pipeline somatic_pair(tumor, normal) {
   stage normal_bam { align_one(normal) }
 
   stage call {
-    mutect2(tumor: tumor_bam, normal: normal_bam,
-            ref: "GRCh38.fa",
-            pon: "pon.vcf.gz",
-            germline: "af-only-gnomad.vcf.gz")
+    tool("gatk", "Mutect2 -I " + tumor_bam + " -I " + normal_bam + " -R GRCh38.fa --panel-of-normals pon.vcf.gz --germline-resource af-only-gnomad.vcf.gz -O somatic.vcf.gz")
   }
 
   stage filter {
-    gatk_filter_mutect(call, ref: "GRCh38.fa")
+    tool("gatk", "FilterMutectCalls -V " + call + " -R GRCh38.fa -O somatic.filtered.vcf.gz")
   }
 }
 

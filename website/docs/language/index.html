@@ -62,11 +62,10 @@
           and writes the result:
         </p>
         <pre><code class="language-biolang"># Filter high-quality reads from a FASTQ file
-import { read_fastq } from "bio/io"
-
-let reads = read_fastq("sample.fastq")
+let reads = fastq("sample.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30)
   |> filter(|r| r.length >= 100)
+  |> collect()
 
 print(f"Kept {len(reads)} high-quality reads")</code></pre>
 
@@ -134,8 +133,7 @@ let translated = seq |> transcribe() |> translate()</code></pre>
           until the stream is consumed:
         </p>
         <pre><code class="language-biolang"># Process a 100 GB FASTQ file with constant memory
-let high_qual = read_fastq("reads.fq.gz")
-  |> to_stream()
+let high_qual = fastq("reads.fq.gz")
   |> filter(|r| mean_phred(r.quality) >= 30)
   |> filter(|r| r.length >= 100)
   |> take(1_000_000)

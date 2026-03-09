@@ -47,6 +47,16 @@
           </ul>
         </div>
 
+        <!-- Run this tutorial -->
+        <div class="rounded-xl border border-emerald-800/50 bg-emerald-900/20 p-4 mb-8 flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          <div class="text-sm text-emerald-300/90">
+            <strong>Run this tutorial:</strong> Download
+            <a href="https://github.com/bioras/biolang/blob/main/examples/tutorials/rnaseq-de.bl" class="text-emerald-400 hover:underline">rnaseq-de.bl</a>
+            and run it with <code class="text-emerald-300">bl run examples/tutorials/rnaseq-de.bl</code>
+          </div>
+        </div>
+
         <!-- Step 1 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Loading the Count Matrix</h2>
         <p>
@@ -163,9 +173,9 @@ print(head(de_results, 5))
 # │ ...    │    ...   │    ...   │    ...   │     ...  │
 
 # Count significant genes
-let sig = de_results |> filter(|row| row["fdr"] < 0.05 and abs(row["log2fc"]) > 1.0)
-let up = sig |> filter(|row| row["log2fc"] > 0.0)
-let down = sig |> filter(|row| row["log2fc"] < 0.0)
+de_results |> filter(|row| row["fdr"] < 0.05 and abs(row["log2fc"]) > 1.0) |> into sig
+sig |> filter(|row| row["log2fc"] > 0.0) |> into up
+sig |> filter(|row| row["log2fc"] < 0.0) |> into down
 
 print("\n=== Summary ===")
 print(f"Significant (FDR<0.05, |log2FC|>1): {nrow(sig)}")

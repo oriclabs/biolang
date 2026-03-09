@@ -52,7 +52,7 @@ let annotated = vcf
       pos: v.pos,
       ref: v.ref,
       alt: v.alt,
-      gene: v.info("gene"),
+      gene: v.info["gene"],
       clinvar_id: clinvar?.variant_id,
       significance: clinvar?.clinical_significance ?? "not_found",
       review_stars: clinvar?.review_stars ?? 0,
@@ -74,11 +74,11 @@ let vcf = read_vcf("annotated.vcf.gz")
 let tier1 = vcf
   |> filter(|v| { v.filter == "PASS" })
   |> filter(|v| {
-    let sig = v.info("CLNSIG") ?? ""
+    let sig = v.info["CLNSIG"] ?? ""
     sig |> contains("Pathogenic") && !(sig |> contains("Conflicting"))
   })
   |> filter(|v| {
-    let revstat = v.info("CLNREVSTAT") ?? ""
+    let revstat = v.info["CLNREVSTAT"] ?? ""
     revstat |> contains("criteria_provided") && !(revstat |> contains("conflicting"))
   })
 
@@ -86,7 +86,7 @@ let tier1 = vcf
 let tier2 = vcf
   |> filter(|v| { v.filter == "PASS" })
   |> filter(|v| {
-    let sig = v.info("CLNSIG") ?? ""
+    let sig = v.info["CLNSIG"] ?? ""
     sig |> contains("Likely_pathogenic")
   })
 
@@ -95,9 +95,9 @@ let disease_genes = read_text("disease_gene_panel.txt") |> split("
 ") |> collect
 let tier3 = vcf
   |> filter(|v| { v.filter == "PASS" })
-  |> filter(|v| { disease_genes |> contains(v.info("gene")) })
-  |> filter(|v| { (v.info("gnomAD_AF") ?? "0") |> float < 0.001 })
-  |> filter(|v| { v.info("IMPACT") == "HIGH" || v.info("IMPACT") == "MODERATE" })
+  |> filter(|v| { disease_genes |> contains(v.info["gene"]) })
+  |> filter(|v| { (v.info["gnomAD_AF"] ?? "0") |> float < 0.001 })
+  |> filter(|v| { v.info["IMPACT"] == "HIGH" || v.info["IMPACT"] == "MODERATE" })
 
 print(f"Tier 1 (known pathogenic):  {tier1 |> len}")
 print(f"Tier 2 (likely pathogenic): {tier2 |> len}")
@@ -115,8 +115,8 @@ let vcf = read_vcf("patient.vcf.gz")
 let rare = vcf
   |> filter(|v| { v.filter == "PASS" })
   |> filter(|v| {
-    let af_all = (v.info("gnomAD_AF") ?? "0") |> float
-    let af_max = (v.info("gnomAD_AF_popmax") ?? "0") |> float
+    let af_all = (v.info["gnomAD_AF"] ?? "0") |> float
+    let af_max = (v.info["gnomAD_AF_popmax"] ?? "0") |> float
     af_all < 0.01 && af_max < 0.01
   })
 
@@ -233,7 +233,7 @@ let pgx_hits = pgx_variants |> map(|pgx| {
     star_allele: pgx["star_allele"],
     rsid: pgx["rsid"],
     drug: pgx["drug"],
-    genotype: match?.genotype(0) ?? "ref/ref",
+    genotype: match?.genotypes |> first ?? "ref/ref",
     phenotype: pgx["phenotype"]
   }
 })

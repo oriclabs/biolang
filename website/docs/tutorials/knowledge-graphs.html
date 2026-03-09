@@ -50,6 +50,16 @@
           extract subgraphs, and combine the graph with STRING database scores.
         </p>
 
+        <!-- Run this tutorial -->
+        <div class="rounded-xl border border-emerald-800/50 bg-emerald-900/20 p-4 mb-8 flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          <div class="text-sm text-emerald-300/90">
+            <strong>Run this tutorial:</strong> Download
+            <a href="https://github.com/bioras/biolang/blob/main/examples/tutorials/knowledge-graphs.bl" class="text-emerald-400 hover:underline">knowledge-graphs.bl</a>
+            and run it with <code class="text-emerald-300">bl run examples/tutorials/knowledge-graphs.bl</code>
+          </div>
+        </div>
+
         <!-- Step 1 -->
         <h2>Step 1: Create a graph</h2>
         <p>
@@ -176,12 +186,12 @@ print(f"Built graph: {node_count(g)} genes, {edge_count(g)} interactions")</code
           Fetch real interaction data from the STRING database and build a graph:
         </p>
         <pre><code class="language-biolang"># Fetch TP53 interaction network from STRING
-let network = string_network("TP53", {species: 9606, limit: 20})
+let network = string_network(["TP53"], 9606)
 
-# Build a graph from the API results
+# Build a graph from the API results — each record has {protein_a, protein_b, score}
 let g = graph()
 let g = network |> reduce(g, |g, row| {
-  add_edge(g, row.preferredName_A, row.preferredName_B, {
+  add_edge(g, row.protein_a, row.protein_b, {
     score: row.score,
     nscore: row.nscore,
     escore: row.escore

@@ -48,6 +48,16 @@
           </ul>
         </div>
 
+        <!-- Run this tutorial -->
+        <div class="rounded-xl border border-emerald-800/50 bg-emerald-900/20 p-4 mb-8 flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          <div class="text-sm text-emerald-300/90">
+            <strong>Run this tutorial:</strong> Download
+            <a href="https://github.com/bioras/biolang/blob/main/examples/tutorials/tables.bl" class="text-emerald-400 hover:underline">tables.bl</a>
+            and run it with <code class="text-emerald-300">bl run examples/tutorials/tables.bl</code>
+          </div>
+        </div>
+
         <!-- Step 1 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Reading a CSV File</h2>
         <p>
@@ -109,14 +119,14 @@ print(f"Control genes: {nrow(controls)}")
 # Filter by expression level
 let high_expr = expr |> filter(|row| row.sample1 > 100.0)
 
-# Combine conditions
-let interesting = expr |> filter(|row|
+# Combine conditions — use |> into for left-to-right binding
+expr |> filter(|row|
   row.group == "case" and row.sample1 > 200.0
-)
+) |> into interesting
 
 # Filter using a list of gene names
 let target_genes = ["TP53", "BRCA1", "EGFR", "KRAS"]
-let targets = expr |> filter(|row| row.gene in target_genes)
+expr |> filter(|row| row.gene in target_genes) |> into targets
 print(f"Found {nrow(targets)} target genes")</code></pre>
 
         <!-- Step 4 -->

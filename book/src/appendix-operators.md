@@ -116,9 +116,12 @@ left-associative unless noted otherwise.
 |---|---|---|---|
 | `\|>` | Pipe | Pass the left-hand value as the first argument to the right-hand function | `reads \|> filter(\|r\| mean_phred(r.quality) > 30)` |
 | `\|>>` | Tap pipe | Like pipe, but passes the value through unchanged; used for side effects | `reads \|>> print \|> len()` |
+| `\|> into` | Pipe bind | Evaluate the left side, bind the result to a name, and return it | `data \|> filter(\|x\| x > 0) \|> into clean` |
 
 The pipe operators are the idiomatic way to build multi-step analysis
-pipelines in BioLang:
+pipelines in BioLang. The `|> into` variant lets you capture an intermediate
+result without breaking left-to-right reading order &mdash; `expr |> into name`
+is equivalent to `let name = expr`:
 
 ```
 read_fastq("sample.fq")

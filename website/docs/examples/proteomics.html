@@ -29,66 +29,83 @@
 
         <h2>Protein Properties</h2>
 
-        <h3>Molecular weight and isoelectric point</h3>
-        <pre><code class="language-biolang"># Calculate basic protein properties
-let protein = protein"MKWVTFISLLFLFSSAYSRGVFRR"
+        <h3>Molecular weight and amino acid composition</h3>
+        <pre><code class="language-biolang"># Amino acid average masses (monoisotopic, Da)
+let aa_mass = {
+  "A": 71.04, "R": 156.10, "N": 114.04, "D": 115.03, "C": 103.01,
+  "E": 129.04, "Q": 128.06, "G": 57.02, "H": 137.06, "I": 113.08,
+  "L": 113.08, "K": 128.09, "M": 131.04, "F": 147.07, "P": 97.05,
+  "S": 87.03, "T": 101.05, "W": 186.08, "Y": 163.06, "V": 99.07
+}
 
-let mw = protein |> molecular_weight
-let pi = protein |> isoelectric_point
-let charge = protein |> net_charge(ph: 7.4)
-let gravy = protein |> gravy_score
+let prot = protein"MKWVTFISLLFLFSSAYSRGVFRR"
+let residues = to_string(prot) |> split("")
 
+# Calculate molecular weight
+let mw = residues |> map(|aa| { aa_mass[aa] }) |> sum
+let mw = mw + 18.02  # add water
 print(f"Molecular weight: {mw |> round(2)} Da")
-print(f"Isoelectric point: {pi |> round(2)}")
-print(f"Net charge at pH 7.4: {charge |> round(2)}")
-print(f"GRAVY score: {gravy |> round(3)}")</code></pre>
+print(f"Sequence length: {prot |> seq_len} aa")</code></pre>
 
         <h3>Amino acid composition</h3>
-        <pre><code class="language-biolang">let protein = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFK"
+        <pre><code class="language-biolang">let prot = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFK"
+let residues = to_string(prot) |> split("")
+let total = residues |> len
 
-let composition = protein |> aa_composition
-let aa_list = composition |> sort_by(|a, b| b.count - a.count)
-for entry in aa_list {
-  let pct = entry.count |> float / (protein |> len) |> float * 100.0
-  print(f"{entry.aa}: {entry.count} ({pct |> round(1)}%)")
+# Count each amino acid using frequencies()
+let composition = residues |> frequencies
+  |> sort_by(|a, b| b.value - a.value)
+
+for entry in composition {
+  let pct = entry.value |> float / total |> float * 100.0
+  print(f"{entry.key}: {entry.value} ({pct |> round(1)}%)")
 }
 
 # Count hydrophobic residues (A, V, I, L, M, F, W, P)
 let hydrophobic_aa = ["A", "V", "I", "L", "M", "F", "W", "P"]
-let hydrophobic = to_string(protein) |> split("") |> filter(|aa| { hydrophobic_aa |> contains(aa) }) |> len
-print(f"\nHydrophobic residues: {hydrophobic}")</code></pre>
+let hydrophobic = residues |> filter(|aa| { hydrophobic_aa |> contains(aa) }) |> len
+print(f"\nHydrophobic residues: {hydrophobic}/{total}")</code></pre>
 
-        <h3>Extinction coefficient</h3>
-        <pre><code class="language-biolang"># Calculate extinction coefficient at 280nm
+        <h3>Extinction coefficient at 280nm</h3>
+        <pre><code class="language-biolang"># Extinction coefficient from Trp, Tyr, and Cys counts
+# E280 = nW * 5500 + nY * 1490 + nC_pairs * 125
 let seq = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKDLGE"
+let residues = to_string(seq) |> split("")
+let counts = residues |> frequencies
 
-let ext_coeff = seq |> extinction_coefficient
-let abs_01 = ext_coeff / (seq |> molecular_weight) * 10.0
+let n_trp = counts |> find(|x| { x.key == "W" }) |> map(|x| x.value) |> first
+let n_tyr = counts |> find(|x| { x.key == "Y" }) |> map(|x| x.value) |> first
+let n_cys = counts |> find(|x| { x.key == "C" }) |> map(|x| x.value) |> first
 
+let ext_coeff = (n_trp * 5500) + (n_tyr * 1490) + ((n_cys / 2) * 125)
 print(f"Extinction coefficient: {ext_coeff} M^-1 cm^-1")
-print(f"Abs 0.1% (1 g/L): {abs_01 |> round(3)}")</code></pre>
+print(f"  Trp: {n_trp}, Tyr: {n_tyr}, Cys: {n_cys}")</code></pre>
 
         <h2>Protein Domain Search</h2>
 
         <h3>Motif scanning</h3>
         <pre><code class="language-biolang"># Search for common protein motifs
-let protein = fasta("protein.fa") |> first
+let records = read_fasta("protein.fa")
+let prot = records |> first
 
 # N-glycosylation sites: N-X-S/T (where X is not P)
-let nglyc_sites = protein.seq |> find_motif("N[^P][ST]")
+let seq_str = to_string(prot.sequence)
+let nglyc_sites = seq_str |> regex_find_all("N[^P][ST]")
 print(f"N-glycosylation sites: {nglyc_sites |> len}")
 for site in nglyc_sites {
-  print(f"  Position {site.start}: {site.match}")
+  print(f"  Match: {site}")
 }
 
-# Phosphorylation sites (simplified)
-let phos_sites = protein.seq |> find_motif("[ST]P")
+# Phosphorylation sites (simplified: S/T followed by P)
+let phos_sites = seq_str |> regex_find_all("[ST]P")
 print(f"Potential phosphorylation sites: {phos_sites |> len}")
 
-# Signal peptide prediction (basic hydrophobicity check)
-let signal = subseq(protein.seq, 0, 30)
-let hydro = signal |> gravy_score
-print(f"N-terminal hydrophobicity: {hydro |> round(3)} (>0.5 suggests signal peptide)")</code></pre>
+# N-terminal hydrophobicity check
+let hydrophobic_aa = ["A", "V", "I", "L", "M", "F", "W", "P"]
+let signal = subseq(prot.sequence, 0, 30) |> to_string |> split("")
+let n_hydro = signal |> filter(|aa| { hydrophobic_aa |> contains(aa) }) |> len
+let hydro_frac = n_hydro |> float / (signal |> len) |> float
+print(f"N-terminal hydrophobic fraction: {hydro_frac |> round(3)} (>0.5 suggests signal peptide)")</code></pre>
 
         <h3>Domain annotation from Pfam hits</h3>
         <pre><code class="language-biolang"># Parse Pfam domain hits
@@ -112,29 +129,58 @@ if has_kinase && has_sh2 {
 
         <h3>In-silico tryptic digest</h3>
         <pre><code class="language-biolang"># Trypsin cleaves after K and R (except when followed by P)
-let protein = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKDLGE"
+let prot = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKDLGE"
+let seq_str = to_string(prot)
 
-let peptides = protein |> digest(enzyme: "trypsin", missed_cleavages: 1)
+# Split at K or R not followed by P using regex
+let peptides = seq_str |> regex_split("[KR](?!P)")
+  |> filter(|p| { p |> len > 0 })
 
-print("Tryptic peptides (up to 1 missed cleavage):")
-for pep in peptides |> sort_by(|p| { p |> len }) {
-  let mz = pep |> monoisotopic_mass / 1.0 + 1.00728  # [M+H]+
+# Amino acid masses for computing peptide mass
+let aa_mass = {
+  "A": 71.04, "R": 156.10, "N": 114.04, "D": 115.03, "C": 103.01,
+  "E": 129.04, "Q": 128.06, "G": 57.02, "H": 137.06, "I": 113.08,
+  "L": 113.08, "K": 128.09, "M": 131.04, "F": 147.07, "P": 97.05,
+  "S": 87.03, "T": 101.05, "W": 186.08, "Y": 163.06, "V": 99.07
+}
+
+fn peptide_mass(pep) {
+  let residues = pep |> split("")
+  let mass = residues |> map(|aa| { aa_mass[aa] }) |> sum
+  mass + 18.02  # add water
+}
+
+print("Tryptic peptides:")
+for pep in peptides |> sort_by(|a, b| len(a) - len(b)) {
+  let mass = peptide_mass(pep)
+  let mz = mass + 1.00728  # [M+H]+
   print(f"  {pep} (m/z: {mz |> round(4)}, length: {pep |> len})")
 }</code></pre>
 
         <h3>Peptide mass fingerprint</h3>
         <pre><code class="language-biolang"># Generate theoretical peptide masses for database matching
-let proteins = fasta("proteome.fa")
+let aa_mass = {
+  "A": 71.04, "R": 156.10, "N": 114.04, "D": 115.03, "C": 103.01,
+  "E": 129.04, "Q": 128.06, "G": 57.02, "H": 137.06, "I": 113.08,
+  "L": 113.08, "K": 128.09, "M": 131.04, "F": 147.07, "P": 97.05,
+  "S": 87.03, "T": 101.05, "W": 186.08, "Y": 163.06, "V": 99.07
+}
+
+fn peptide_mass(pep) {
+  pep |> split("") |> map(|aa| { aa_mass[aa] }) |> sum |> round(4)
+}
+
+let proteins = read_fasta("proteome.fa")
 
 let mass_db = proteins
   |> flat_map(|p| {
-    p.seq |> digest(enzyme: "trypsin", missed_cleavages: 0)
+    let peps = to_string(p.sequence) |> regex_split("[KR](?!P)")
       |> filter(|pep| { pep |> len >= 6 && pep |> len <= 30 })
-      |> map(|pep| { {
-        protein: p.name,
-        peptide: pep |> to_string,
-        mass: pep |> monoisotopic_mass
-      }})
+    peps |> map(|pep| { {
+      protein: p.name,
+      peptide: pep,
+      mass: peptide_mass(pep)
+    }})
   })
   |> sort_by(|a, b| a.mass - b.mass)
 
@@ -172,25 +218,36 @@ matches |> write_tsv("peptide_matches.tsv")</code></pre>
 
         <h3>Pairwise sequence identity</h3>
         <pre><code class="language-biolang"># Compare protein sequences from a FASTA file
-let proteins = fasta("family.fa") |> collect
+let proteins = read_fasta("family.fa") |> collect
 
-for i in 0..proteins |> len {
-  for j in (i + 1)..proteins |> len {
-    let identity = align(proteins[i].seq, proteins[j].seq, matrix: "BLOSUM62")
-      |> pct_identity
-    print(f"{proteins[i].name} vs {proteins[j].name}: {identity |> round(1)}%")
+for i in 0..(proteins |> len) {
+  for j in (i + 1)..(proteins |> len) {
+    let result = align(proteins[i].sequence, proteins[j].sequence)
+    let pct = result.identity * 100.0
+    print(f"{proteins[i].name} vs {proteins[j].name}: {pct |> round(1)}% identity (score: {result.score})")
   }
 }</code></pre>
 
-        <h3>Multiple sequence alignment summary</h3>
-        <pre><code class="language-biolang"># Analyze conservation from an MSA
-let msa = fasta("aligned_proteins.fa")
+        <h3>Multiple sequence alignment conservation</h3>
+        <pre><code class="language-biolang"># Analyze per-column conservation from a pre-aligned FASTA
+let seqs = read_fasta("aligned_proteins.fa") |> collect
+let aligned = seqs |> map(|s| { to_string(s.sequence) |> split("") })
+let n_seqs = aligned |> len
+let n_cols = aligned |> first |> len
 
-let conservation = msa |> column_conservation
+# Compute conservation score per column (fraction of most common residue)
+let conservation = range(0, n_cols) |> map(|col| {
+  let column = aligned |> map(|s| { s[col] })
+  let freqs = column |> filter(|aa| { aa != "-" }) |> frequencies
+  let max_count = freqs |> map(|f| { f.value }) |> max
+  let non_gap = column |> filter(|aa| { aa != "-" }) |> len
+  if non_gap > 0 { max_count |> float / non_gap |> float } else { 0.0 }
+})
+
 let n_conserved = conservation |> filter(|c| { c >= 0.9 }) |> len
 let n_variable = conservation |> filter(|c| { c < 0.5 }) |> len
 
-print(f"MSA columns: {conservation |> len}")
+print(f"MSA columns: {n_cols}")
 print(f"Highly conserved (>=90%): {n_conserved}")
 print(f"Variable (<50%): {n_variable}")
 print(f"Overall conservation: {conservation |> mean |> round(3)}")</code></pre>

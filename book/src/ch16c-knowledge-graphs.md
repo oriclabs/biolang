@@ -141,12 +141,12 @@ neighbors(g, "TARGET")  # [] — directed, no reverse edge
 
 ```
 # Fetch protein interactions from STRING
-let network = string_network("BRCA1", 9606)
+let network = string_network(["BRCA1"], 9606)
 
-# Build graph from API results
+# Build graph from API results — network is list of {protein_a, protein_b, score}
 let g = graph()
 let g = network |> reduce(g, |g, edge|
-    add_edge(g, edge.preferredName_A, edge.preferredName_B, {score: edge.score})
+    add_edge(g, edge.protein_a, edge.protein_b, {score: edge.score})
 )
 
 # Find hub genes (highest degree)

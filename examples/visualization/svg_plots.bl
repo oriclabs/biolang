@@ -8,6 +8,7 @@ let y = map(x, |v| v * v)
 let p = plot({x: x, y: y, title: "Quadratic", xlabel: "X", ylabel: "Y"})
 println("=== Basic Plot ===")
 println("SVG length:", len(p), "chars")
+# save_svg(p,"results/p.svg")
 
 # ── Histogram ──
 # histogram(values, opts?) -> SVG
@@ -15,6 +16,7 @@ let data = [2.1, 3.5, 2.8, 4.1, 3.2, 2.5, 3.8, 4.5, 3.0, 2.9, 3.3, 4.0]
 let h = histogram({values: data, bins: 8, title: "Distribution", xlabel: "Value"})
 println("\n=== Histogram ===")
 println("SVG length:", len(h))
+# save_svg(h,"results/h.svg")
 
 # ── Heatmap ──
 # heatmap(matrix, opts?) -> SVG
@@ -27,7 +29,7 @@ let m = matrix([
 let hm = heatmap({data: m, title: "Correlation Matrix"})
 println("\n=== Heatmap ===")
 println("SVG length:", len(hm))
-
+# save_svg(hm,"results/hm.svg")
 # ── Volcano plot ──
 # volcano(data, opts?) -> SVG
 let volcano_data = table([
@@ -40,19 +42,21 @@ let volcano_data = table([
 let vp = volcano({data: volcano_data, title: "Differential Expression"})
 println("\n=== Volcano Plot ===")
 println("SVG length:", len(vp))
+# save_svg(vp, "results/vp.svg")
 
 # ── MA plot ──
 # ma_plot(data, opts?) -> SVG
 let ma_data = table([
-    {mean_expr: 5.0, log2fc: 2.5},
-    {mean_expr: 8.0, log2fc: -1.8},
-    {mean_expr: 3.0, log2fc: 3.1},
-    {mean_expr: 12.0, log2fc: 0.3},
-    {mean_expr: 6.0, log2fc: -2.2}
+    {baseMean: 5.0, log2fc: 2.5},
+    {baseMean: 8.0, log2fc: -1.8},
+    {baseMean: 3.0, log2fc: 3.1},
+    {baseMean: 12.0, log2fc: 0.3},
+    {baseMean: 6.0, log2fc: -2.2}
 ])
 let mp = ma_plot({data: ma_data, title: "MA Plot"})
 println("\n=== MA Plot ===")
 println("SVG length:", len(mp))
+# save_svg(mp, "results/maplot.svg")
 
 # ── Genome track ──
 # genome_track(data, opts?) -> SVG
@@ -64,9 +68,8 @@ let track_data = table([
 let gt = genome_track({data: track_data, title: "Genomic Region"})
 println("\n=== Genome Track ===")
 println("SVG length:", len(gt))
+# save_svg(gt,"results/gt.svg")
 
 # ── Save to file ──
-# save_svg(svg_string, path)
-# Uncomment to save:
-# save_svg(vp, "/tmp/volcano.svg")
-# println("Saved volcano plot to /tmp/volcano.svg")
+# save_svg(gt, "results/genome_track.svg")
+# save_svg(vp, "results/volcano.svg")

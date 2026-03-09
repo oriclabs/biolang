@@ -175,7 +175,7 @@ while line != None {
 
         <h2>Loop Control: Break and Continue</h2>
         <pre><code class="language-biolang"># break exits the loop immediately
-for read in stream_fastq("sample.fq") {
+for read in fastq("sample.fq") {
   if mean_phred(read.quality) < 10 {
     print("Found corrupted read, stopping")
     break

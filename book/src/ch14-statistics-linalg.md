@@ -301,12 +301,8 @@ let data = sample_ids
   |> matrix()
 
 # Center each gene (column) to zero mean
-let centered = range(0, n_genes)
-  |> fold(data, |mat, j| {
-       let col = mat_col(mat, j)
-       let mu = mean(col)
-       mat_set_col(mat, j, col |> map(|x| x - mu))
-     })
+let col_means = range(0, n_genes) |> map(|j| mean(mat_col(data, j)))
+let centered = mat_map(data, |x, i, j| x - col_means[j])
 
 # Covariance matrix (samples x samples)
 let cov = mat_mul(centered, transpose(centered))

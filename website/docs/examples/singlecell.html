@@ -30,185 +30,199 @@
         <h2>Loading Count Matrices</h2>
 
         <h3>Reading 10x Genomics output</h3>
-        <pre><code class="language-biolang"># Load from 10x Cell Ranger output (MEX format)
-let adata = read_10x_mtx("filtered_feature_bc_matrix/")
+        <pre><code class="language-biolang"># Load 10x MEX format: barcodes, genes, and sparse matrix
+let barcodes = read_lines("filtered_feature_bc_matrix/barcodes.tsv")
+let genes_file = read_lines("filtered_feature_bc_matrix/features.tsv")
+let gene_names = genes_file |> map(|line| { line |> split("\t") |> last })
 
-print(f"Loaded: {adata.n_cells} cells x {adata.n_genes} genes")
-print(f"Sparsity: {(1.0 - adata.nnz / (adata.n_cells * adata.n_genes)) * 100.0 |> round(1)}%")
+# Read Matrix Market file and build sparse matrix
+let mtx_lines = read_lines("filtered_feature_bc_matrix/matrix.mtx")
+  |> filter(|line| { !(line |> starts_with("%")) })
+let header = mtx_lines |> first |> split(" ")
+let n_genes = header[0] |> int
+let n_cells = header[1] |> int
+let entries = mtx_lines |> tail(1)
 
-# Or load from H5 format
-let adata_h5 = read_10x_h5("filtered_feature_bc_matrix.h5")
-print(f"H5: {adata_h5.n_cells} cells x {adata_h5.n_genes} genes")</code></pre>
+# Build sparse matrix from (row, col, value) triplets
+let rows = entries |> map(|line| { let parts = line |> split(" "); (parts[0] |> int) - 1 })
+let cols = entries |> map(|line| { let parts = line |> split(" "); (parts[1] |> int) - 1 })
+let vals = entries |> map(|line| { let parts = line |> split(" "); parts[2] |> float })
+let counts = sparse_matrix(rows, cols, vals)
+
+print(f"Loaded: {n_cells} cells x {n_genes} genes")
+print(f"Non-zero entries: {counts |> nnz}")
+print(f"Sparsity: {(1.0 - (counts |> nnz |> float) / (n_cells * n_genes |> float)) * 100.0 |> round(1)}%")</code></pre>
 
         <h3>Reading from CSV</h3>
         <pre><code class="language-biolang"># Load a dense count matrix (genes as columns, cells as rows)
-let counts = csv("count_matrix.csv", index_col: 0)
-let adata = AnnData(X: counts)
+let counts_table = csv("count_matrix.csv")
+let metadata = csv("cell_metadata.csv")
 
-# Add metadata
-let metadata = csv("cell_metadata.csv", index_col: 0)
-adata.obs = metadata
-print(f"Cells with metadata: {adata.obs |> len}")</code></pre>
+print(f"Count matrix: {counts_table |> len} cells")
+print(f"Metadata fields: {metadata |> head(1) |> keys |> join(", ")}")</code></pre>
 
         <h2>Quality Control</h2>
 
         <h3>Cell and gene filtering</h3>
-        <pre><code class="language-biolang">let adata = read_10x_mtx("filtered_feature_bc_matrix/")
+        <pre><code class="language-biolang"># Assume counts is a sparse matrix (cells x genes) loaded above
+# Compute per-cell QC: total UMIs and genes detected
+let cell_totals = counts |> sparse_row_sums
+let genes_per_cell = counts |> to_dense |> mat_map(|x| { if x > 0.0 { 1.0 } else { 0.0 } }) |> row_sums
 
-# Calculate QC metrics
-adata |> qc_metrics(
-  mito_prefix: "MT-",
-  ribo_prefix: "RPS,RPL"
-)
+# Identify mitochondrial genes (names starting with "MT-")
+let mito_mask = gene_names |> map(|g| { if g |> starts_with("MT-") { 1.0 } else { 0.0 } })
+
+# Compute mito fraction per cell from dense matrix
+let dense = counts |> to_dense
+let mito_sums = range(0, n_cells) |> map(|i| {
+  let cell_row = row(dense, i)
+  zip(cell_row, mito_mask) |> map(|pair| { pair[0] * pair[1] }) |> sum
+})
+let pct_mito = zip(mito_sums, cell_totals) |> map(|pair| {
+  if pair[1] > 0.0 { pair[0] / pair[1] * 100.0 } else { 0.0 }
+})
 
 print("QC Summary:")
-print(f"  Median genes/cell: {adata.obs["n_genes"] |> median}")
-print(f"  Median UMIs/cell:  {adata.obs["total_counts"] |> median}")
-print(f"  Median %mito:      {adata.obs["pct_mito"] |> median |> round(1)}%")
+print(f"  Median genes/cell: {genes_per_cell |> median |> round(0)}")
+print(f"  Median UMIs/cell:  {cell_totals |> median |> round(0)}")
+print(f"  Median %mito:      {pct_mito |> median |> round(1)}%")
 
-# Filter cells
-let pre_filter = adata.n_cells
-adata = adata
-  |> filter_cells(|c| {
-    c["n_genes"] > 200 &&
-    c["n_genes"] < 5000 &&
-    c["total_counts"] > 500 &&
-    c["pct_mito"] < 20.0
-  })
+# Filter cells by QC thresholds
+let keep_cells = range(0, n_cells) |> filter(|i| {
+  genes_per_cell[i] > 200.0 &&
+  genes_per_cell[i] < 5000.0 &&
+  cell_totals[i] > 500.0 &&
+  pct_mito[i] < 20.0
+})
+print(f"Cells passing QC: {keep_cells |> len} / {n_cells}")
 
-# Filter genes (keep genes expressed in at least 3 cells)
-adata = adata |> filter_genes(|g| { g["n_cells"] >= 3 })
-
-print(f"After filtering: {adata.n_cells} cells (removed {pre_filter - adata.n_cells})")
-print(f"Genes retained: {adata.n_genes}")</code></pre>
-
-        <h3>Doublet detection</h3>
-        <pre><code class="language-biolang"># Simple doublet detection based on simulated doublets
-let adata = read_10x_mtx("filtered_feature_bc_matrix/")
-adata |> qc_metrics(mito_prefix: "MT-")
-
-let doublet_scores = adata |> scrublet(expected_doublet_rate: 0.06)
-adata.obs["doublet_score"] = doublet_scores.scores
-adata.obs["is_doublet"] = doublet_scores.predictions
-
-let n_doublets = adata.obs |> filter(|c| { c["is_doublet"] }) |> len
-print(f"Predicted doublets: {n_doublets} ({(n_doublets |> float / adata.n_cells * 100.0) |> round(1)}%)")
-
-# Remove doublets
-adata = adata |> filter_cells(|c| { !c["is_doublet"] })</code></pre>
+# Filter genes (expressed in at least 3 cells)
+let gene_cell_counts = counts |> to_dense |> mat_map(|x| { if x > 0.0 { 1.0 } else { 0.0 } }) |> col_sums
+let keep_genes = range(0, n_genes) |> filter(|j| { gene_cell_counts[j] >= 3.0 })
+print(f"Genes retained: {keep_genes |> len} / {n_genes}")</code></pre>
 
         <h2>Normalization</h2>
 
         <h3>Standard normalization pipeline</h3>
-        <pre><code class="language-biolang">let adata = read_10x_mtx("filtered_feature_bc_matrix/")
+        <pre><code class="language-biolang"># Library size normalization: scale each cell to target_sum, then log1p
+let target_sum = 10000.0
+let cell_totals = counts |> sparse_row_sums
 
-# Library size normalization + log transform
-adata = adata
-  |> normalize_total(target_sum: 10000)
-  |> log1p
+# Normalize: divide each cell's counts by its total, multiply by target
+let norm = counts |> normalize_sparse("total")
+let dense_norm = norm |> to_dense
 
-# Store raw counts for later
-adata.raw = adata.X |> copy
+# Scale to target sum and log-transform
+let scaled = dense_norm |> mat_map(|x| { x * target_sum })
+let log_counts = scaled |> mat_map(|x| { log(x + 1.0) })
 
-# Identify highly variable genes
-adata = adata |> highly_variable_genes(
-  n_top_genes: 2000,
-  method: "seurat_v3"
-)
+print(f"Normalized matrix: {log_counts |> dim}")
 
-let n_hvg = adata.var |> filter(|g| { g["highly_variable"] }) |> len
-print(f"Highly variable genes: {n_hvg}")
+# Find highly variable genes (by variance across cells)
+let gene_means = log_counts |> col_means
+let gene_vars = range(0, n_genes) |> map(|j| {
+  let col_vals = mat_col(log_counts, j)
+  let mu = gene_means[j]
+  col_vals |> map(|x| { pow(x - mu, 2) }) |> mean
+})
 
-# Scale and regress out confounders
-adata = adata
-  |> subset_to_hvg
-  |> scale(max_value: 10.0)
-  |> regress_out(["total_counts", "pct_mito"])</code></pre>
+# Select top 2000 most variable genes
+let gene_indices = range(0, n_genes) |> sort_by(|a, b| { gene_vars[b] - gene_vars[a] })
+let hvg_indices = gene_indices |> take(2000)
+let hvg_names = hvg_indices |> map(|i| { gene_names[i] })
+print(f"Highly variable genes: {hvg_indices |> len}")</code></pre>
 
         <h2>Dimensionality Reduction</h2>
 
-        <h3>PCA, neighbors, and UMAP</h3>
-        <pre><code class="language-biolang"># PCA
-let adata = adata |> pca(n_components: 50)
+        <h3>PCA and UMAP</h3>
+        <pre><code class="language-biolang"># PCA on the log-normalized matrix (50 components)
+let pca_result = pca(log_counts, 50)
+let pc_coords = pca_result.coords       # cells x 50 matrix
+let pc_variance = pca_result.variance    # variance explained per PC
 
 # Check variance explained (elbow plot data)
+let total_var = pc_variance |> sum
 print("Variance explained by top PCs:")
 for i in 0..10 {
-  print(f"  PC{i + 1}: {(adata.uns["pca_variance_ratio"][i] * 100.0) |> round(2)}%")
+  let pct = pc_variance[i] / total_var * 100.0
+  print(f"  PC{i + 1}: {pct |> round(2)}%")
 }
 
-# Build k-nearest neighbor graph
-adata = adata |> neighbors(n_pcs: 30, n_neighbors: 15)
+# UMAP embedding from top 30 PCs
+let pc_30 = range(0, n_cells) |> map(|i| {
+  row(pc_coords, i) |> take(30)
+})
+let pc_matrix = matrix(pc_30)
+let umap_coords = umap(pc_matrix, 2)  # 2D embedding
 
-# UMAP embedding
-adata = adata |> umap(min_dist: 0.3, spread: 1.0)
-
-# Export UMAP coordinates for plotting
-let umap_coords = adata.obsm["X_umap"]
-  |> enumerate
-  |> map(|i, coords| { {
-    cell: adata.obs_names[i],
-    umap1: coords[0],
-    umap2: coords[1]
-  }})
-umap_coords |> write_tsv("umap_coordinates.tsv")</code></pre>
+# Export UMAP coordinates
+let umap_table = range(0, n_cells) |> map(|i| {
+  let coords = row(umap_coords, i)
+  { cell: barcodes[i], umap1: coords[0], umap2: coords[1] }
+})
+umap_table |> write_tsv("umap_coordinates.tsv")
+print(f"UMAP coordinates saved for {n_cells} cells")</code></pre>
 
         <h2>Clustering</h2>
 
         <h3>Leiden clustering</h3>
-        <pre><code class="language-biolang"># Leiden clustering at multiple resolutions
+        <pre><code class="language-biolang"># Leiden clustering at multiple resolutions on PCA coordinates
 let resolutions = [0.3, 0.5, 0.8, 1.0, 1.5]
 
 for res in resolutions {
-  let adata = adata |> leiden(resolution: res, key: f"leiden_{res}")
-  let n_clusters = adata.obs[f"leiden_{res}"] |> unique |> len
+  let clusters = leiden(pc_matrix, res)
+  let n_clusters = clusters |> unique |> len
   print(f"Resolution {res}: {n_clusters} clusters")
 }
 
 # Use resolution 0.8 as default
-adata.obs["cluster"] = adata.obs["leiden_0.8"]
+let clusters = leiden(pc_matrix, 0.8)
 
 # Cluster sizes
-let sizes = adata.obs
-  |> group_by(|x| x.cluster)
-  |> map(|g| { cluster: g.key, size: len(g.values) })
-  |> sort_by(|a, b| a.cluster - b.cluster)
-
-for s in sizes {
-  let pct = s.size |> float / adata.n_cells * 100.0
-  print(f"  Cluster {s.cluster}: {s.size} cells ({pct |> round(1)}%)")
+let cluster_ids = clusters |> unique |> sort
+for cl in cluster_ids {
+  let size = clusters |> filter(|c| { c == cl }) |> len
+  let pct = size |> float / n_cells |> float * 100.0
+  print(f"  Cluster {cl}: {size} cells ({pct |> round(1)}%)")
 }</code></pre>
 
         <h2>Marker Gene Detection</h2>
 
-        <h3>Finding cluster markers</h3>
-        <pre><code class="language-biolang"># Wilcoxon rank-sum test for marker genes
-let markers = adata |> rank_genes_groups(
-  groupby: "cluster",
-  method: "wilcoxon",
-  n_genes: 50
-)
+        <h3>Finding cluster markers with diff_expr</h3>
+        <pre><code class="language-biolang"># Differential expression between each cluster and the rest
+let cluster_ids = clusters |> unique |> sort
+
+let all_markers = cluster_ids |> flat_map(|cl| {
+  # Split cells into this cluster vs rest
+  let in_cluster = range(0, n_cells) |> filter(|i| { clusters[i] == cl })
+  let out_cluster = range(0, n_cells) |> filter(|i| { clusters[i] != cl })
+
+  # Extract expression submatrices as lists of row vectors
+  let in_expr = in_cluster |> map(|i| { row(log_counts, i) })
+  let out_expr = out_cluster |> map(|i| { row(log_counts, i) })
+
+  # diff_expr compares two groups and returns per-gene stats
+  let de = diff_expr(matrix(in_expr), matrix(out_expr))
+
+  # de is a list of {gene_index, log2fc, p_value}
+  de |> sort_by(|a, b| a.p_value - b.p_value)
+     |> take(20)
+     |> map(|m| { {
+       cluster: cl,
+       gene: gene_names[m.gene_index],
+       log2fc: m.log2fc |> round(3),
+       p_value: m.p_value
+     }})
+})
 
 # Print top 5 markers per cluster
-let clusters = adata.obs["cluster"] |> unique |> sort
-for cl in clusters {
-  let top = markers[cl] |> take(5)
-  let genes = top |> map(|x| x.gene) |> join(", ")
+for cl in cluster_ids {
+  let top = all_markers |> filter(|m| { m.cluster == cl }) |> take(5)
+  let genes = top |> map(|m| { m.gene }) |> join(", ")
   print(f"Cluster {cl}: {genes}")
 }
 
-# Export full marker table
-let marker_table = clusters |> flat_map(|cl| {
-  markers[cl] |> map(|m| { {
-    cluster: cl,
-    gene: m.gene,
-    log2fc: m.log2fc,
-    p_value: m.p_value,
-    pct_in: m.pct_in,
-    pct_out: m.pct_out
-  }})
-})
-marker_table |> write_tsv("cluster_markers.tsv")</code></pre>
+all_markers |> write_tsv("cluster_markers.tsv")</code></pre>
 
         <h3>Cell type annotation</h3>
         <pre><code class="language-biolang"># Annotate clusters based on known marker genes
@@ -221,49 +235,64 @@ let known_markers = {
   "Platelets": ["PPBP", "PF4"]
 }
 
-let clusters = adata.obs["cluster"] |> unique |> sort
+# Build gene name to index lookup
+let gene_index = range(0, n_genes) |> reduce({}, |acc, i| {
+  acc[gene_names[i]] = i
+  acc
+})
 
-let annotations = clusters |> map(|cl| {
-  let cluster_cells = adata |> filter_cells(|c| { c["cluster"] == cl })
+let cluster_ids = clusters |> unique |> sort
+let cell_types_list = ["T cells", "B cells", "NK cells", "Monocytes", "Dendritic", "Platelets"]
 
-  let cell_types_list = ["T cells", "B cells", "NK cells", "Monocytes", "Dendritic", "Platelets"]
+let annotations = cluster_ids |> map(|cl| {
+  let cell_indices = range(0, n_cells) |> filter(|i| { clusters[i] == cl })
+
   let scores = cell_types_list |> map(|cell_type| {
-    let genes = known_markers[cell_type]
-    let score = genes |> map(|gene| {
-      cluster_cells.X[gene] |> mean
+    let marker_genes = known_markers[cell_type]
+    let score = marker_genes |> map(|gene| {
+      if has_key(gene_index, gene) {
+        let gi = gene_index[gene]
+        cell_indices |> map(|ci| { row(log_counts, ci)[gi] }) |> mean
+      } else { 0.0 }
     }) |> mean
     { cell_type: cell_type, score: score }
-  })
-  |> sort_by(|a, b| b.score - a.score)
+  }) |> sort_by(|a, b| b.score - a.score)
 
   let best = scores |> first
   print(f"Cluster {cl} => {best.cell_type} (score: {best.score |> round(3)})")
   { cluster: cl, cell_type: best.cell_type }
 })
 
-# Apply annotations
-let annotation_map = annotations |> reduce({}, |acc, a| { acc[a.cluster] = a.cell_type; acc })
-adata.obs["cell_type"] = adata.obs["cluster"] |> map(|cl| { annotation_map[cl] })
+# Map cluster labels to cell types
+let annotation_map = annotations |> reduce({}, |acc, a| {
+  acc[a.cluster] = a.cell_type
+  acc
+})
 
-# Summary
-adata.obs |> group_by(|x| x.cell_type)
-  |> map(|g| { cell_type: g.key, n: len(g.values) })
-  |> sort_by(|a, b| b.n - a.n)
-  |> each(|ct| { print(f"{ct.cell_type}: {ct.n} cells") })</code></pre>
+let cell_types = clusters |> map(|cl| { annotation_map[cl] })
+let type_counts = cell_types |> frequencies |> sort_by(|a, b| b.value - a.value)
+type_counts |> each(|ct| { print(f"{ct.key}: {ct.value} cells") })</code></pre>
 
         <h2>Saving Results</h2>
 
-        <pre><code class="language-biolang"># Save processed data
-adata |> write_h5ad("processed.h5ad")
+        <pre><code class="language-biolang"># Export embeddings with cluster and cell type annotations
+let results = range(0, n_cells) |> map(|i| {
+  let coords = row(umap_coords, i)
+  {
+    cell: barcodes[i],
+    umap1: coords[0] |> round(4),
+    umap2: coords[1] |> round(4),
+    cluster: clusters[i],
+    cell_type: cell_types[i]
+  }
+})
 
-# Export for external tools
-adata.obsm["X_umap"]
-  |> to_table(columns: ["umap1", "umap2"])
-  |> mutate("cell_type", |i, _| { adata.obs["cell_type"][i] })
-  |> mutate("cluster", |i, _| { adata.obs["cluster"][i] })
-  |> write_tsv("cell_embeddings.tsv")
+results |> write_tsv("cell_embeddings.tsv")
+print(f"Saved {results |> len} cells with UMAP coordinates, clusters, and cell types")
 
-print(f"Saved {adata.n_cells} cells with {adata.obs |> colnames |> len} metadata fields")</code></pre>
+# Also export the normalized expression matrix
+log_counts |> matrix_to_table |> write_csv("normalized_expression.csv")
+print("Normalized expression matrix saved")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

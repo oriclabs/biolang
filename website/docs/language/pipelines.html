@@ -362,6 +362,38 @@ let result = pipe_fuse(reads,
 let output = qc_to_variants
 print("Pipeline complete: " + output)</code></pre>
 
+        <h2>Pipe Binding with <code>|&gt; into</code></h2>
+        <p>
+          Inside pipeline stages and regular code, you can use <code>|&gt; into</code> to bind
+          intermediate pipe results to a name without wrapping the chain in
+          <code>let x = ...</code>. The syntax <code>expr |&gt; into name</code> is equivalent to
+          <code>let name = expr</code>, but reads left-to-right.
+        </p>
+        <pre><code class="language-biolang">pipeline annotate {
+  stage load {
+    read_vcf("calls.vcf.gz")
+      |> filter(|v| v.qual >= 30)
+      |> into passing
+
+    # passing is now bound and can be reused
+    print(f"Passing variants: {len(passing)}")
+
+    passing
+      |> filter(|v| v.is_snp)
+      |> into snps
+
+    passing
+      |> filter(|v| v.is_indel)
+      |> into indels
+
+    {snps: snps, indels: indels, total: len(passing)}
+  }
+}</code></pre>
+        <p>
+          This is especially useful in stages where you need to reference intermediate
+          results multiple times without breaking the pipeline flow.
+        </p>
+
         <h2>Summary</h2>
         <div class="overflow-x-auto">
           <table>
@@ -377,6 +409,7 @@ print("Pipeline complete: " + output)</code></pre>
               <tr><td>Defer</td><td><code>defer { cleanup }</code></td><td>Run cleanup on completion (LIFO order)</td></tr>
               <tr><td>Composition</td><td><code>pipeline a(args) { ... }</code></td><td>Pipelines are values; call from other pipelines</td></tr>
               <tr><td>Introspection</td><td><code>pipeline_steps(p)</code></td><td>List stages in a pipeline</td></tr>
+              <tr><td>Pipe binding</td><td><code>expr |&gt; into name</code></td><td>Bind pipe result to a name (left-to-right <code>let</code>)</td></tr>
               <tr><td>Fusion</td><td><code>pipe_fuse(list, ...)</code></td><td>Single-pass optimization</td></tr>
             </tbody>
           </table>

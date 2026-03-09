@@ -1,0 +1,158 @@
+# hello-genomics.bl — Your First BioLang Program
+# Tutorial: https://lang.bio/docs/tutorials/hello-genomics.html
+#
+# Run with: bl run examples/tutorials/hello-genomics.bl
+
+# ── 1. Hello, DNA ────────────────────────────────────────────
+
+let seq = dna"ATGCGATCGATCGATCG"
+print(seq)               # ATGCGATCGATCGATCG
+print(len(seq))          # 17
+print(type(seq))         # DNA
+
+# ── 2. Base Counts & GC Content ──────────────────────────────
+
+let counts = base_counts(seq)
+print(counts)
+# {A: 4, T: 4, G: 5, C: 4}
+
+let gc = gc_content(seq)
+print(gc)          # 0.5294
+print(gc * 100.0)  # 52.94
+
+let at = 1.0 - gc
+print(f"AT content: {at * 100.0}%")
+
+# ── 3. Reverse Complement ────────────────────────────────────
+
+let forward = dna"ATGCGATCG"
+let revcomp = reverse_complement(forward)
+
+print(forward)  # ATGCGATCG
+print(revcomp)  # CGATCGCAT
+
+assert(reverse_complement(revcomp) == forward)
+
+# ── 4. Transcription ─────────────────────────────────────────
+
+let dna_seq = dna"ATGCGATCG"
+
+let rna_seq = transcribe(dna_seq)
+print(rna_seq)          # AUGCGAUCG
+print(type(rna_seq))    # RNA
+
+let direct_rna = rna"AUGCGAUCG"
+assert(rna_seq == direct_rna)
+
+# ── 5. Translation ───────────────────────────────────────────
+
+let gene = dna"ATGGCTAGCAAATGA"
+
+let protein = gene
+  |> transcribe()
+  |> translate()
+
+print(protein)          # MASK*
+print(type(protein))    # Protein
+
+# ── 6. Slicing Sequences ─────────────────────────────────────
+
+let seq = dna"ATGCGATCGATCGATCG"
+
+let first_five = seq[0..5]
+print(first_five)  # ATGCG
+
+let rest = seq[5..]
+print(rest)        # ATCGATCGATCG
+
+let tail = seq[-4..]
+print(tail)        # ATCG
+
+let codon = subseq(seq, 0, 3)
+print(codon)       # ATG
+
+# ── 7. Pattern Matching ──────────────────────────────────────
+
+let seq = dna"ATGCGATCG"
+
+let gc_class = match gc_content(seq) {
+  gc if gc > 0.6  => "high GC",
+  gc if gc > 0.4  => "medium GC",
+  _ => "low GC",
+}
+print(gc_class)  # medium GC
+
+let has_start = match seq[0..3] {
+  dna"ATG" => true,
+  _        => false,
+}
+print(f"Starts with ATG: {has_start}")
+
+# ── 8. Full Analysis Report ──────────────────────────────────
+
+let seq = dna"ATGGCTAGCAAATTTCCCGGGATCGATCGATCGATGA"
+
+let gc      = seq |> gc_content()
+let length  = seq |> len()
+seq |> transcribe() |> translate() |> into protein
+
+let starts = find_motif(seq, dna"ATG")
+
+print("=== Sequence Analysis Report ===")
+print(f"Length:      {length} bp")
+print(f"GC content:  {round(gc * 100.0, 2)}%")
+print(f"Protein:     {protein}")
+print(f"Protein len: {len(protein)} aa")
+print(f"ATG sites:   {starts}")
+print("")
+
+let counts = base_counts(seq)
+for base in ["A", "T", "G", "C"] {
+  let count = counts[base]
+  let bar = repeat("#", count)
+  print(f"{base}: {bar} ({count})")
+}
+
+# ── 9. Building Sequences ────────────────────────────────────
+
+let seq = dna"ATG"
+seq = concat(seq, dna"CCC")
+seq = concat(seq, dna"GGG")
+print(seq)  # ATGCCCGGG
+
+let result = dna""
+for codon in [dna"ATG", dna"GCT", dna"TAA"] {
+  result = concat(result, codon)
+}
+print(result)  # ATGGCTTAA
+
+# ── 10. Custom Functions ─────────────────────────────────────
+
+fn classify_gc(seq) {
+  let gc = gc_content(seq)
+  match gc {
+    g if g >= 0.6  => "high",
+    g if g >= 0.4  => "medium",
+    _ => "low",
+  }
+}
+
+fn summarize(seq) {
+  {
+    length:     len(seq),
+    gc_content: gc_content(seq),
+    gc_class:   classify_gc(seq),
+    has_start:  seq[0..3] == dna"ATG",
+  }
+}
+
+let sequences = [
+  dna"ATGCCCGGGAAATTT",
+  dna"GGCGCGCGCGCGCGC",
+  dna"AAATTTAAATTTAAAT",
+]
+
+for seq in sequences {
+  let info = summarize(seq)
+  print(f"{seq[0..6]}... => GC: {info.gc_class}, len: {info.length}")
+}

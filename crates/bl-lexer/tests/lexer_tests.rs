@@ -869,6 +869,30 @@ fn test_or() {
 }
 
 #[test]
+fn test_and_keyword() {
+    assert_eq!(
+        lex("a and b"),
+        vec![
+            TokenKind::Ident("a".into()),
+            TokenKind::And,
+            TokenKind::Ident("b".into()),
+        ]
+    );
+}
+
+#[test]
+fn test_or_keyword() {
+    assert_eq!(
+        lex("a or b"),
+        vec![
+            TokenKind::Ident("a".into()),
+            TokenKind::Or,
+            TokenKind::Ident("b".into()),
+        ]
+    );
+}
+
+#[test]
 fn test_bang() {
     assert_eq!(
         lex("!x"),

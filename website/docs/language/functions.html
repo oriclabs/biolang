@@ -325,7 +325,7 @@ let tp53_again = fetch_gene_info("TP53")  # instant — cached</code></pre>
 
 # Use in pipe chains
 samples |> map(|s| {
-    let data = read_fastq(s.path)
+    let data = fastq(s.path)
     let stats = describe(data)
     {sample: s.name, ...stats}
 })</code></pre>

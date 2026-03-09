@@ -1235,3 +1235,921 @@ fn test_graph_connected_components() {
         panic!("expected List");
     }
 }
+
+// ============================================================================
+// sort_by on Table
+// ============================================================================
+
+#[test]
+fn test_sort_by_table_ascending() {
+    let result = eval(r#"
+let t = from_records([{name: "alice", score: 80}, {name: "bob", score: 95}, {name: "charlie", score: 70}])
+let sorted = sort_by(t, |r| r.score)
+sorted |> to_records |> map(|r| r.name)
+    "#);
+    assert_eq!(result, Value::List(vec![
+        Value::Str("charlie".into()),
+        Value::Str("alice".into()),
+        Value::Str("bob".into()),
+    ]));
+}
+
+#[test]
+fn test_sort_by_table_descending() {
+    let result = eval(r#"
+let t = from_records([{name: "x", val: 3}, {name: "y", val: 1}, {name: "z", val: 2}])
+let sorted = sort_by(t, |r| -r.val)
+sorted |> to_records |> map(|r| r.name)
+    "#);
+    assert_eq!(result, Value::List(vec![
+        Value::Str("x".into()),
+        Value::Str("z".into()),
+        Value::Str("y".into()),
+    ]));
+}
+
+// ============================================================================
+// kmer_count on List
+// ============================================================================
+
+#[test]
+fn test_kmer_count_on_list() {
+    let result = eval(r#"
+let seqs = [dna"AAAA", dna"AAAA"]
+let counts = kmer_count(seqs, 2)
+# "AA" appears 3 times per "AAAA", so 6 total across 2 sequences
+counts |> filter(|r| r.kmer == "AA") |> map(|r| r.count) |> first
+    "#);
+    assert_eq!(result, Value::Int(6));
+}
+
+// ============================================================================
+// mean_phred on Str (ASCII quality)
+// ============================================================================
+
+#[test]
+fn test_mean_phred_on_string() {
+    // ASCII '!' = 33 = Phred 0, 'I' = 73 = Phred 40
+    let result = eval(r#"
+let q = "IIIII"
+mean_phred(q)
+    "#);
+    if let Value::Float(v) = result {
+        assert!((v - 40.0).abs() < 0.01, "expected ~40.0, got {}", v);
+    } else {
+        panic!("expected Float, got {:?}", result);
+    }
+}
+
+// ============================================================================
+// Raw strings
+// ============================================================================
+
+#[test]
+fn test_raw_string_no_escapes() {
+    let result = eval(r#"
+r"hello\nworld"
+    "#);
+    assert_eq!(result, Value::Str("hello\\nworld".into()));
+}
+
+#[test]
+fn test_raw_string_windows_path() {
+    let result = eval(r#"
+r"C:\Users\data\reads.fq"
+    "#);
+    assert_eq!(result, Value::Str("C:\\Users\\data\\reads.fq".into()));
+}
+
+// ============================================================================
+// sort_by with 2-arg comparator (auto-detect)
+// ============================================================================
+
+#[test]
+fn test_sort_by_comparator_list() {
+    let result = eval(r#"
+let nums = [3, 1, 4, 1, 5]
+sort_by(nums, |a, b| a - b)
+    "#);
+    assert_eq!(result, Value::List(vec![
+        Value::Int(1), Value::Int(1), Value::Int(3), Value::Int(4), Value::Int(5),
+    ]));
+}
+
+#[test]
+fn test_sort_by_comparator_descending() {
+    let result = eval(r#"
+let nums = [3, 1, 4, 1, 5]
+sort_by(nums, |a, b| b - a)
+    "#);
+    assert_eq!(result, Value::List(vec![
+        Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(1), Value::Int(1),
+    ]));
+}
+
+#[test]
+fn test_sort_by_comparator_table() {
+    let result = eval(r#"
+let t = from_records([{name: "a", v: 3}, {name: "b", v: 1}, {name: "c", v: 2}])
+let sorted = sort_by(t, |a, b| b.v - a.v)
+sorted |> to_records |> map(|r| r.name)
+    "#);
+    assert_eq!(result, Value::List(vec![
+        Value::Str("a".into()),
+        Value::Str("c".into()),
+        Value::Str("b".into()),
+    ]));
+}
+
+// ============================================================================
+// kmer_count on stream (via piped records)
+// ============================================================================
+
+#[test]
+fn test_kmer_count_on_record_list() {
+    // Simulate stream records with "seq" field
+    let result = eval(r#"
+let records = [{seq: dna"AAAA"}, {seq: dna"AAAA"}]
+let counts = kmer_count(records, 2)
+counts |> filter(|r| r.kmer == "AA") |> map(|r| r.count) |> first
+    "#);
+    assert_eq!(result, Value::Int(6));
+}
+
+// ============================================================================
+// min_phred and error_rate on Str
+// ============================================================================
+
+#[test]
+fn test_min_phred_on_string() {
+    let result = eval(r#"
+let q = "I!I"
+min_phred(q)
+    "#);
+    // '!' = 33 - 33 = Phred 0
+    assert_eq!(result, Value::Int(0));
+}
+
+#[test]
+fn test_error_rate_on_string() {
+    let result = eval(r#"
+let q = "IIIII"
+error_rate(q)
+    "#);
+    if let Value::Float(v) = result {
+        assert!(v < 0.001, "Phred 40 error rate should be tiny, got {}", v);
+    } else {
+        panic!("expected Float");
+    }
+}
+
+// ============================================================================
+// Raw string in function call
+// ============================================================================
+
+#[test]
+fn test_raw_string_in_expression() {
+    let result = eval(r#"
+let p = r"C:\test\new"
+len(p)
+    "#);
+    assert_eq!(result, Value::Int(11));
+}
+
+// ── Pipe-at-start-of-line (multi-line pipeline) tests ──
+
+#[test]
+fn test_pipe_at_start_of_next_line() {
+    // Lexer strips newlines before |> so this is a single pipeline expression
+    let result = eval(r#"
+[3, 1, 2]
+|> sort()
+|> first()
+    "#);
+    assert_eq!(result, Value::Int(1));
+}
+
+#[test]
+fn test_pipe_at_start_with_indentation() {
+    let result = eval(r#"
+[5, 10, 15, 20]
+  |> filter(|x| x > 8)
+  |> len()
+    "#);
+    assert_eq!(result, Value::Int(3));
+}
+
+#[test]
+fn test_pipe_at_start_mixed_with_trailing() {
+    // Mix of trailing |> on some lines and leading |> on others
+    let result = eval(r#"
+[1, 2, 3, 4, 5] |>
+  filter(|x| x > 2)
+  |> map(|x| x * 10)
+  |> sum()
+    "#);
+    assert_eq!(result, Value::Int(120));
+}
+
+#[test]
+fn test_pipe_at_start_does_not_affect_non_pipe_statements() {
+    // Separate statements without pipes remain independent
+    let result = eval(r#"
+let x = 10
+let y = 20
+x + y
+    "#);
+    assert_eq!(result, Value::Int(30));
+}
+
+#[test]
+fn test_tap_pipe_at_start_of_line() {
+    // ~ (tap pipe) at start of line should also work
+    let result = eval(r#"
+let x = [1, 2, 3]
+  ~ len()
+last(x)
+    "#);
+    assert_eq!(result, Value::Int(3));
+}
+
+#[test]
+fn test_multiline_pipeline_with_lambda() {
+    let result = eval(r#"
+["hello", "world", "foo"]
+  |> filter(|s| len(s) > 3)
+  |> map(|s| upper(s))
+  |> len()
+    "#);
+    assert_eq!(result, Value::Int(2));
+}
+
+#[test]
+fn test_sort_by_on_stream() {
+    // sort_by should collect a stream into a list, then sort
+    let result = eval(r#"
+let s = to_stream([3, 1, 4, 1, 5])
+sort_by(s, |x| x) |> first()
+    "#);
+    assert_eq!(result, Value::Int(1));
+}
+
+#[test]
+fn test_sort_by_stream_comparator() {
+    // sort_by with 2-arg comparator on a stream
+    let result = eval(r#"
+let s = to_stream([{name: "b", val: 2}, {name: "a", val: 1}, {name: "c", val: 3}])
+sort_by(s, |a, b| a.val - b.val) |> first()
+    "#);
+    assert!(matches!(result, Value::Record(_)));
+    if let Value::Record(rec) = result {
+        assert_eq!(rec.get("name"), Some(&Value::Str("a".into())));
+    }
+}
+
+#[test]
+fn test_kmer_count_top_n() {
+    // kmer_count with top N parameter: kmer_count(seq, k, top)
+    let result = eval(r#"
+kmer_count(dna"AAAAAACCCCCCGGGGGGTTTTTT", 2, 2)
+    "#);
+    // Should return only top 2 k-mers by count (sorted descending)
+    if let Value::Table(tbl) = result {
+        assert_eq!(tbl.rows.len(), 2);
+        // Counts should be > 0 and rows sorted descending
+        if let (Value::Int(c1), Value::Int(c2)) = (&tbl.rows[0][1], &tbl.rows[1][1]) {
+            assert!(*c1 >= *c2, "top N should be sorted descending");
+            assert!(*c1 > 0);
+        }
+    } else {
+        panic!("expected Table");
+    }
+}
+
+// ============================================================
+// Table operations — all List ops should also work on Table
+// ============================================================
+
+fn make_table_code() -> &'static str {
+    r#"let t = table([{name: "Alice", age: 30, score: 95}, {name: "Bob", age: 25, score: 88}, {name: "Charlie", age: 35, score: 72}, {name: "Diana", age: 28, score: 91}])"#
+}
+
+#[test]
+fn table_first() {
+    let code = format!("{}\nfirst(t)", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Alice".into())));
+        assert_eq!(r.get("age"), Some(&Value::Int(30)));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_first_empty() {
+    let val = eval(r#"let t = table([])
+first(t)"#);
+    assert_eq!(val, Value::Nil);
+}
+
+#[test]
+fn table_last() {
+    let code = format!("{}\nlast(t)", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Diana".into())));
+        assert_eq!(r.get("score"), Some(&Value::Int(91)));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_last_empty() {
+    let val = eval(r#"let t = table([])
+last(t)"#);
+    assert_eq!(val, Value::Nil);
+}
+
+#[test]
+fn table_reverse() {
+    let code = format!("{}\nlet r = reverse(t)\nfirst(r)", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Diana".into())));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_reverse_preserves_columns() {
+    let code = format!("{}\nlet r = reverse(t)\nlen(r)", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(4));
+}
+
+#[test]
+fn table_take() {
+    let code = format!("{}\nlet r = take(t, 2)\nlen(r)", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(2));
+}
+
+#[test]
+fn table_take_returns_table() {
+    let code = format!("{}\nlet r = take(t, 2)\nfirst(r)", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Alice".into())));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_drop() {
+    let code = format!("{}\nlet r = drop(t, 2)\nlen(r)", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(2));
+}
+
+#[test]
+fn table_drop_first_record() {
+    let code = format!("{}\nlet r = drop(t, 2)\nfirst(r)", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Charlie".into())));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_collect_passthrough() {
+    let code = format!("{}\nlet r = collect(t)\nlen(r)", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(4));
+}
+
+#[test]
+fn table_to_stream_and_collect() {
+    let code = format!("{}\nlet s = to_stream(t)\nlet items = collect(s)\nlen(items)", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(4));
+}
+
+#[test]
+fn table_enumerate() {
+    let code = format!("{}\nlet pairs = enumerate(t)\nlet p = first(pairs)\nfirst(p)", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(0));
+}
+
+#[test]
+fn table_enumerate_second_element_is_record() {
+    let code = format!("{}\nlet pairs = enumerate(t)\nlet p = first(pairs)\nlast(p)", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Alice".into())));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_chunk() {
+    let code = format!("{}\nlet chunks = chunk(t, 2)\nlen(chunks)", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(2));
+}
+
+#[test]
+fn table_chunk_inner_size() {
+    let code = format!("{}\nlet chunks = chunk(t, 3)\nlen(first(chunks))", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(3));
+}
+
+#[test]
+fn table_window() {
+    let code = format!("{}\nlet wins = window(t, 2)\nlen(wins)", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(3));
+}
+
+#[test]
+fn table_window_inner_size() {
+    let code = format!("{}\nlet wins = window(t, 3)\nlen(first(wins))", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(3));
+}
+
+#[test]
+fn table_frequencies() {
+    let code = r#"let t = table([{val: 1}, {val: 2}, {val: 1}, {val: 1}, {val: 2}])
+let f = frequencies(t)
+len(f)"#;
+    let val = eval(code);
+    // Should be a Table with 2 rows (two unique record values)
+    assert_eq!(val, Value::Int(2));
+}
+
+#[test]
+fn table_zip_two_tables() {
+    let code = r#"let a = table([{x: 1}, {x: 2}, {x: 3}])
+let b = table([{y: 10}, {y: 20}, {y: 30}])
+let z = zip(a, b)
+len(z)"#;
+    let val = eval(code);
+    assert_eq!(val, Value::Int(3));
+}
+
+#[test]
+fn table_zip_table_with_list() {
+    let code = r#"let t = table([{x: 1}, {x: 2}, {x: 3}])
+let z = zip(t, [10, 20, 30])
+let pair = first(z)
+first(pair)"#;
+    let val = eval(code);
+    // First element of first pair should be a Record {x: 1}
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("x"), Some(&Value::Int(1)));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_join_to_string() {
+    let code = r#"let t = table([{name: "A"}, {name: "B"}, {name: "C"}])
+join(t, ", ")"#;
+    let val = eval(code);
+    // join on table converts rows to record strings
+    if let Value::Str(s) = val {
+        assert!(s.contains("A"), "join output should contain field values: {}", s);
+    } else {
+        panic!("expected Str, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_flatten() {
+    let code = r#"let t = table([{items: [1, 2]}, {items: [3, 4]}])
+let f = flatten(t)
+len(f)"#;
+    let val = eval(code);
+    // Each row becomes a Record; flatten doesn't unwrap records, so 2 records
+    assert_eq!(val, Value::Int(2));
+}
+
+#[test]
+fn table_pipe_first_last() {
+    // Test pipe syntax with table operations
+    let code = format!("{}\nt |> first()", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Alice".into())));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_pipe_take_first() {
+    let code = format!("{}\nt |> take(2) |> first()", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Alice".into())));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_pipe_reverse_first() {
+    let code = format!("{}\nt |> reverse() |> first()", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        assert_eq!(r.get("name"), Some(&Value::Str("Diana".into())));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+#[test]
+fn table_pipe_drop_len() {
+    let code = format!("{}\nt |> drop(3) |> len()", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(1));
+}
+
+#[test]
+fn table_filter_map_on_table() {
+    // filter and map on Table already work via HOF dispatch, but verify
+    let code = format!("{}\nt |> filter(|r| r.age > 27) |> len()", make_table_code());
+    let val = eval(&code);
+    assert_eq!(val, Value::Int(3)); // Alice(30), Charlie(35), Diana(28)
+}
+
+#[test]
+fn table_sort_by() {
+    let code = format!("{}\nt |> sort_by(|r| r.score) |> first()", make_table_code());
+    let val = eval(&code);
+    if let Value::Record(r) = val {
+        // sort ascending: lowest score first = Charlie (72)
+        assert_eq!(r.get("name"), Some(&Value::Str("Charlie".into())));
+    } else {
+        panic!("expected Record, got {:?}", val);
+    }
+}
+
+// ============================================================
+// `and` / `or` keyword aliases for && / ||
+// ============================================================
+
+#[test]
+fn and_keyword_basic() {
+    let val = eval("true and true");
+    assert_eq!(val, Value::Bool(true));
+}
+
+#[test]
+fn and_keyword_false() {
+    let val = eval("true and false");
+    assert_eq!(val, Value::Bool(false));
+}
+
+#[test]
+fn or_keyword_basic() {
+    let val = eval("false or true");
+    assert_eq!(val, Value::Bool(true));
+}
+
+#[test]
+fn or_keyword_false() {
+    let val = eval("false or false");
+    assert_eq!(val, Value::Bool(false));
+}
+
+#[test]
+fn and_or_combined() {
+    let val = eval("true and false or true");
+    assert_eq!(val, Value::Bool(true));
+}
+
+#[test]
+fn and_in_filter_expression() {
+    let val = eval(r#"[1, 2, 3, 4, 5] |> filter(|x| x > 1 and x < 5) |> len()"#);
+    assert_eq!(val, Value::Int(3));
+}
+
+#[test]
+fn or_in_filter_expression() {
+    let val = eval(r#"[1, 2, 3, 4, 5] |> filter(|x| x == 1 or x == 5) |> len()"#);
+    assert_eq!(val, Value::Int(2));
+}
+
+#[test]
+fn and_with_comparison() {
+    let val = eval(r#"let x = 10
+x > 5 and x < 20"#);
+    assert_eq!(val, Value::Bool(true));
+}
+
+#[test]
+fn and_multiline() {
+    // `and` should suppress newlines like &&
+    let val = eval("true and\ntrue");
+    assert_eq!(val, Value::Bool(true));
+}
+
+// ============================================================
+// Pipe-into — |> into name
+// ============================================================
+
+#[test]
+fn pipe_into_basic() {
+    let val = eval(r#"[1, 2, 3] |> len() |> into count
+count"#);
+    assert_eq!(val, Value::Int(3));
+}
+
+#[test]
+fn pipe_into_creates_binding() {
+    let val = eval(r#"[10, 20, 30] |> map(|x| x * 2) |> into doubled
+doubled"#);
+    assert_eq!(val, Value::List(vec![Value::Int(20), Value::Int(40), Value::Int(60)]));
+}
+
+#[test]
+fn pipe_into_returns_value() {
+    // |> into should also return the value (for chaining or display)
+    let val = eval(r#"42 |> into answer"#);
+    assert_eq!(val, Value::Int(42));
+}
+
+#[test]
+fn pipe_into_chain() {
+    let val = eval(r#"[1, 2, 3, 4, 5]
+  |> filter(|x| x > 2)
+  |> into filtered
+len(filtered)"#);
+    assert_eq!(val, Value::Int(3));
+}
+
+#[test]
+fn pipe_into_shadows_existing() {
+    let val = eval(r#"let x = 10
+[1, 2, 3] |> len() |> into x
+x"#);
+    assert_eq!(val, Value::Int(3));
+}
+
+// ============================================================
+// VCF INFO parsing — parse_vcf_info builtin
+// ============================================================
+
+#[test]
+fn parse_vcf_info_basic() {
+    let val = eval(r#"let info = parse_vcf_info("DP=30;AF=0.5;MQ=60")
+info.DP"#);
+    assert_eq!(val, Value::Int(30));
+}
+
+#[test]
+fn parse_vcf_info_float() {
+    let val = eval(r#"let info = parse_vcf_info("DP=30;AF=0.5;MQ=60")
+info.AF"#);
+    assert_eq!(val, Value::Float(0.5));
+}
+
+#[test]
+fn parse_vcf_info_flag() {
+    let val = eval(r#"let info = parse_vcf_info("DP=30;DB")
+info.DB"#);
+    assert_eq!(val, Value::Bool(true));
+}
+
+#[test]
+fn parse_vcf_info_empty() {
+    let val = eval(r#"let info = parse_vcf_info(".")
+len(keys(info))"#);
+    assert_eq!(val, Value::Int(0));
+}
+
+#[test]
+fn parse_vcf_info_multi_value() {
+    // Comma-separated values become a List
+    let val = eval(r#"let info = parse_vcf_info("AF=0.45,0.12;DP=30")
+len(info.AF)"#);
+    assert_eq!(val, Value::Int(2));
+}
+
+#[test]
+fn parse_vcf_info_multi_value_first() {
+    let val = eval(r#"let info = parse_vcf_info("AF=0.45,0.12")
+first(info.AF)"#);
+    assert_eq!(val, Value::Float(0.45));
+}
+
+#[test]
+fn parse_vcf_info_single_value_is_scalar() {
+    // Single value (no comma) stays as a scalar, not a List
+    let val = eval(r#"let info = parse_vcf_info("AF=0.45;DP=30")
+info.AF >= 0.01"#);
+    assert_eq!(val, Value::Bool(true));
+}
+
+#[test]
+fn parse_vcf_info_multi_value_compare_uses_first() {
+    // Multi-value AF like "0.35,0.10" becomes List; comparison auto-uses first element
+    let val = eval(r#"let info = parse_vcf_info("AF=0.35,0.10")
+info.AF >= 0.01"#);
+    assert_eq!(val, Value::Bool(true));
+}
+
+#[test]
+fn compare_nil_returns_false() {
+    // Missing VCF fields (nil) should not throw — just return false
+    let val = eval("nil >= 10");
+    assert_eq!(val, Value::Bool(false));
+}
+
+// ============================================================
+// Distribution functions
+// ============================================================
+
+#[test]
+fn dnorm_standard() {
+    let val = eval("dnorm(0)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.3989).abs() < 0.001, "dnorm(0) ≈ 0.3989, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn pnorm_standard() {
+    let val = eval("pnorm(0)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.5).abs() < 0.001, "pnorm(0) = 0.5, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn pnorm_with_mean_sd() {
+    let val = eval("pnorm(10, 10, 1)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.5).abs() < 0.001, "pnorm(10, 10, 1) = 0.5, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn qnorm_standard() {
+    let val = eval("qnorm(0.975)");
+    if let Value::Float(f) = val {
+        assert!((f - 1.96).abs() < 0.02, "qnorm(0.975) ≈ 1.96, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn dbinom_basic() {
+    let val = eval("dbinom(3, 10, 0.5)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.1172).abs() < 0.001, "dbinom(3,10,0.5) ≈ 0.1172, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn pbinom_basic() {
+    let val = eval("pbinom(5, 10, 0.5)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.6230).abs() < 0.001, "pbinom(5,10,0.5) ≈ 0.623, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn dpois_basic() {
+    let val = eval("dpois(3, 2.0)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.1804).abs() < 0.001, "dpois(3,2) ≈ 0.1804, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn ppois_basic() {
+    let val = eval("ppois(3, 2.0)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.8571).abs() < 0.001, "ppois(3,2) ≈ 0.857, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn dunif_in_range() {
+    let val = eval("dunif(0.5, 0, 1)");
+    assert_eq!(val, Value::Float(1.0));
+}
+
+#[test]
+fn punif_half() {
+    let val = eval("punif(0.5, 0, 1)");
+    assert_eq!(val, Value::Float(0.5));
+}
+
+#[test]
+fn dexp_basic() {
+    let val = eval("dexp(1.0, 1.0)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.3679).abs() < 0.001, "dexp(1,1) ≈ 0.368, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn pexp_basic() {
+    let val = eval("pexp(1.0, 1.0)");
+    if let Value::Float(f) = val {
+        assert!((f - 0.6321).abs() < 0.001, "pexp(1,1) ≈ 0.632, got {f}");
+    } else { panic!("expected Float"); }
+}
+
+#[test]
+fn rnorm_returns_list() {
+    let val = eval("len(rnorm(100))");
+    assert_eq!(val, Value::Int(100));
+}
+
+#[test]
+fn rbinom_returns_list() {
+    let val = eval("len(rbinom(50, 10, 0.5))");
+    assert_eq!(val, Value::Int(50));
+}
+
+#[test]
+fn rpois_returns_list() {
+    let val = eval("len(rpois(50, 3.0))");
+    assert_eq!(val, Value::Int(50));
+}
+
+// ============================================================
+// K-means clustering
+// ============================================================
+
+#[test]
+fn kmeans_basic() {
+    let code = r#"let data = [[0,0],[0,1],[1,0],[1,1],[10,10],[10,11],[11,10],[11,11]]
+let result = kmeans(data, 2)
+len(result.clusters)"#;
+    let val = eval(code);
+    assert_eq!(val, Value::Int(8));
+}
+
+#[test]
+fn kmeans_returns_centroids() {
+    let code = r#"let data = [[0,0],[0,1],[1,0],[1,1],[10,10],[10,11],[11,10],[11,11]]
+let result = kmeans(data, 2)
+nrow(result.centroids)"#;
+    let val = eval(code);
+    assert_eq!(val, Value::Int(2));
+}
+
+#[test]
+fn kmeans_iterations() {
+    let code = r#"let data = [[0,0],[10,10]]
+let result = kmeans(data, 2)
+result.iterations"#;
+    let val = eval(code);
+    if let Value::Int(n) = val {
+        assert!(n >= 1 && n <= 10, "should converge quickly, got {n} iterations");
+    } else { panic!("expected Int"); }
+}
+
+// ============================================================
+// GLM (logistic regression)
+// ============================================================
+
+#[test]
+fn glm_logistic_basic() {
+    let code = r#"let t = table([
+  {x: 1, y: 0}, {x: 2, y: 0}, {x: 3, y: 0}, {x: 4, y: 0}, {x: 5, y: 0},
+  {x: 6, y: 1}, {x: 7, y: 1}, {x: 8, y: 1}, {x: 9, y: 1}, {x: 10, y: 1}
+])
+let result = glm(~y ~ x, t, "binomial")
+len(result.coefficients)"#;
+    let val = eval(code);
+    assert_eq!(val, Value::Int(2)); // intercept + 1 coefficient
+}
+
+#[test]
+fn glm_has_aic() {
+    let code = r#"let t = table([
+  {x: 1, y: 0}, {x: 2, y: 0}, {x: 3, y: 0}, {x: 4, y: 0}, {x: 5, y: 0},
+  {x: 6, y: 1}, {x: 7, y: 1}, {x: 8, y: 1}, {x: 9, y: 1}, {x: 10, y: 1}
+])
+let result = glm(~y ~ x, t, "binomial")
+result.aic"#;
+    let val = eval(code);
+    if let Value::Float(f) = val {
+        assert!(f > 0.0, "AIC should be positive, got {f}");
+    } else { panic!("expected Float"); }
+}

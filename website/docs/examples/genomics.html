@@ -66,15 +66,23 @@ print(f"Reads with MAPQ >= 30: {bam |> filter(|r| { r.mapq >= 30 }) |> len}")</c
         <pre><code class="language-biolang"># Calculate coverage in fixed-size windows
 let bam = read_bam("aligned.bam")
 
-let coverage = bam
-  |> coverage_windows(window_size: 10000, chrom: "chr1")
-  |> map(|w| { {
-    chrom: w.chrom,
-    start: w.start,
-    end: w.end,
-    mean_depth: w.mean_depth,
-    breadth: w.bases_covered / (w.end - w.start) |> float
-  }})
+let window_size = 10000
+let coverage = range(0, 249250621, window_size)
+  |> map(|start| {
+    let end = start + window_size
+    let depths = bam
+      |> filter(|r| { r.is_mapped && r.chrom == "chr1" && r.pos >= start && r.pos < end })
+      |> map(|r| r.mapq)
+      |> collect
+    let n = depths |> len
+    {
+      chrom: "chr1",
+      start: start,
+      end: end,
+      mean_depth: if n > 0 { depths |> mean } else { 0.0 },
+      breadth: n |> float / window_size |> float
+    }
+  })
 
 coverage |> write_tsv("coverage_windows.tsv")
 
@@ -88,13 +96,19 @@ let targets = read_bed("capture_targets.bed")
 
 let region_cov = targets
   |> map(|t| {
-    let cov = bam |> coverage_at(t.chrom, t.start, t.end)
+    let depths = bam
+      |> filter(|r| { r.is_mapped && r.chrom == t.chrom && r.pos >= t.start && r.pos < t.end })
+      |> map(|r| r.mapq)
+      |> collect
+    let total = depths |> len
+    let avg = if total > 0 { depths |> mean } else { 0.0 }
+    let pct_above = |thresh| if total > 0 { (depths |> filter(|d| d >= thresh) |> len) |> float / total |> float } else { 0.0 }
     {
       gene: t.name,
-      mean_depth: cov.mean,
-      pct_10x: cov.pct_above(10),
-      pct_20x: cov.pct_above(20),
-      pct_30x: cov.pct_above(30)
+      mean_depth: avg,
+      pct_10x: pct_above(10),
+      pct_20x: pct_above(20),
+      pct_30x: pct_above(30)
     }
   })
 
@@ -111,14 +125,20 @@ let vcf = read_vcf("variants.vcf.gz")
 
 let density = vcf
   |> filter(|v| { v.filter == "PASS" })
-  |> group_by_window(chrom: .chrom, pos: .pos, window_size: 100000)
-  |> map(|w| { {
-    chrom: w.chrom,
-    start: w.start,
-    end: w.end,
-    n_variants: w.items |> len,
-    density: w.items |> len |> float / 100000.0
-  }})
+  |> map(|v| { { chrom: v.chrom, window: (v.pos / 100000) * 100000, pos: v.pos } })
+  |> group_by(|v| f"{v.chrom}:{v.window}")
+  |> map(|key, variants| {
+    let parts = key |> split(":")
+    let chrom = parts |> first
+    let start = parts |> last |> int
+    {
+      chrom: chrom,
+      start: start,
+      end: start + 100000,
+      n_variants: variants |> len,
+      density: variants |> len |> float / 100000.0
+    }
+  })
 
 density |> write_tsv("variant_density.tsv")</code></pre>
 
@@ -147,7 +167,7 @@ for type, count in summary {
 
 let genotypes = vcf
   |> filter(|v| { v.filter == "PASS" && is_snp(v) })
-  |> map(|v| { v.genotype(0) })
+  |> map(|v| v.genotypes |> first)
 
 let het_count = genotypes |> filter(|g| { g == "0/1" || g == "0|1" }) |> len
 let total = genotypes |> len

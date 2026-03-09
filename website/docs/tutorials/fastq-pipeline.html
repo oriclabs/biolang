@@ -48,6 +48,16 @@
           </ul>
         </div>
 
+        <!-- Run this tutorial -->
+        <div class="rounded-xl border border-emerald-800/50 bg-emerald-900/20 p-4 mb-8 flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          <div class="text-sm text-emerald-300/90">
+            <strong>Run this tutorial:</strong> Download
+            <a href="https://github.com/bioras/biolang/blob/main/examples/tutorials/fastq-pipeline.bl" class="text-emerald-400 hover:underline">fastq-pipeline.bl</a>
+            and run it with <code class="text-emerald-300">bl run examples/tutorials/fastq-pipeline.bl</code>
+          </div>
+        </div>
+
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Prerequisites</h2>
         <p>
           Complete the <a href="hello-genomics.html" class="text-violet-400 hover:underline">Hello Genomics</a>
@@ -152,11 +162,12 @@ let long_reads = filter_reads(reads, "length", 50)
 let long_list = collect(long_reads)
 print(f"Passed length filter: {len(long_list)} reads")
 
-# You can chain filters using the pipe operator
-let clean = reads
+# Chain filters using the pipe operator — |> into binds the result
+reads
   |> filter_reads("quality", 20)
   |> filter_reads("length", 50)
   |> collect()
+  |> into clean
 
 print(f"After both filters: {len(clean)} reads")</code></pre>
 
@@ -188,31 +199,38 @@ print(f"After hard trim: {len(hard_list)} reads")</code></pre>
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — K-mer Counting</h2>
         <p>
           K-mer profiles help detect contamination, adapter sequences, and biased composition.
+          <code>kmer_count</code> accepts lists, tables, and streams directly — no need to extract sequences manually.
         </p>
-        <pre><code class="language-biolang"># Count k-mers across all reads
-# First collect sequences into a list
-let seqs = map(trimmed_list, |r| r.seq)
-
-# kmer_count(list, k) returns a Record of kmer -> count
+        <pre><code class="language-biolang"># Count k-mers across all trimmed reads
+# kmer_count returns a Table sorted by count (descending)
 let k = 5
-let kmer_counts = kmer_count(seqs, k)
+let kmer_counts = kmer_count(trimmed_list, k)
 print(f"\n=== Top {k}-mers ===")
-print(kmer_counts)
+kmer_counts |> head(10) |> print()
 
 # You can also get k-mers for a single sequence
 let first_kmers = kmers(trimmed_list[0].seq, k)
 print(f"K-mers in first read: {len(first_kmers)}")
 
 # Check for adapter contamination
-# detect_adapters returns a record of detected adapter sequences
 let detected = detect_adapters(reads)
 print("Detected adapters:")
-print(detected)
+print(detected)</code></pre>
 
-# Trim detected adapters (allows up to 1 mismatch)
-let adapter_trimmed = trim_adapters(reads, dna"AGATCGGAAGAG", 1)
-let adapter_trimmed_list = collect(adapter_trimmed)
-print(f"After adapter trimming: {len(adapter_trimmed_list)} reads")</code></pre>
+        <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 my-6">
+          <h4 class="text-amber-400 font-semibold mb-2">K-mer Memory Options</h4>
+          <p class="text-slate-400 text-sm">
+            For large FASTQ files, <code>kmer_count</code> automatically manages memory:
+          </p>
+          <ul class="text-slate-400 text-sm mt-2 space-y-1">
+            <li><strong>Default:</strong> in-memory up to ~2M unique k-mers, then auto-spills to disk (SQLite temp DB)</li>
+            <li><strong>Top-N:</strong> <code>kmer_count(reads, 21, 100)</code> — bounded memory, keeps only top 100</li>
+            <li><strong>Streaming:</strong> <code>fastq("file.fq.gz") |> kmer_count(21)</code> — reads never loaded into memory</li>
+          </ul>
+          <p class="text-slate-500 text-xs mt-2">
+            Results are always sorted by count descending — no <code>sort_by</code> needed after <code>kmer_count</code>.
+          </p>
+        </div>
 
         <!-- Step 7 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Building the Complete Pipeline</h2>

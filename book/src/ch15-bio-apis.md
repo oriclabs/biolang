@@ -182,10 +182,11 @@ Query protein-protein interaction networks from the STRING database.
 
 ```
 # string_network(identifiers, species)
-let network = string_network("TP53", 9606)
-# Returns interaction network data
+# First argument must be a list of protein names
+let network = string_network(["TP53"], 9606)
+# Returns list of: {protein_a, protein_b, score}
 
-print(network)
+network |> each(|i| print(i.protein_a + " <-> " + i.protein_b + " (" + str(i.score) + ")"))
 ```
 
 ## PDB
@@ -381,17 +382,18 @@ let de_genes = tsv("de_results.tsv")
 # Get STRING interactions for the top 50 DE genes
 let top_genes = de_genes |> take(50)
 let network = string_network(top_genes, 9606)
+# Returns list of: {protein_a, protein_b, score}
 
-print(str(len(network.nodes)) + " nodes, "
-      + str(len(network.edges)) + " edges")
+print(str(len(network)) + " interactions")
 
 # Find hub genes (most connections)
-let degree = network.nodes |> map(|node| {
-  let edges = network.edges
-    |> filter(|e| e.source == node.id or e.target == node.id)
-  {gene: node.id, degree: len(edges)}
+let all_proteins = network |> map(|i| i.protein_a) + network |> map(|i| i.protein_b)
+let unique_proteins = all_proteins |> unique()
+let degree = unique_proteins |> map(|p| {
+  let edges = network |> filter(|i| i.protein_a == p || i.protein_b == p)
+  {gene: p, degree: len(edges)}
 })
-  |> sort_by(|d| -d.degree)
+  |> sort(|a, b| b.degree - a.degree)
 
 print("Hub genes:")
 degree |> take(10) |> each(|d| print("  " + d.gene + ": " + str(d.degree) + " interactions"))

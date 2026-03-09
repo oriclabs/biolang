@@ -50,7 +50,7 @@ let date_to = "2005/12/27"
 
 let query = organism + "[Organism] AND " + date_from + ":" + date_to + "[Publication Date]"
 let result = ncbi_search("nucleotide", query)
-print(result.count)</code></pre>
+print(len(result))</code></pre>
         </section>
 
         <!-- FRMT -->
@@ -159,7 +159,7 @@ print(len(passed))</code></pre>
           <p class="text-slate-400 mb-4">Given FASTQ reads and a quality threshold, count positions where the average quality falls below it.</p>
           <pre><code class="language-biolang"># Count positions with average quality below threshold
 let threshold = 20
-let reads = fastq("input.fq")
+let reads = read_fastq("input.fq")
 
 # Collect quality scores per position
 let num_positions = reads |> map(|r| len(r.quality)) |> max

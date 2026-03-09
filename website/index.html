@@ -29,7 +29,7 @@
         <div>
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm mb-6">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            v0.1.0 — Now Available
+            v0.2.0 — Now Available
           </div>
           <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight mb-6">
             A domain-specific<br>
@@ -37,7 +37,7 @@
             <span class="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">bioinformatics</span>
           </h1>
           <p class="text-lg text-slate-400 mb-8 leading-relaxed max-w-lg">
-            A DSL purpose-built for genomics and bioinformatics — native DNA/RNA/protein types, 290+ built-in functions, streaming I/O, 16 bio API clients, and Rust performance with a clean, pipe-first syntax.
+            A DSL purpose-built for genomics and bioinformatics — native DNA/RNA/protein types, 470+ built-in functions, streaming I/O, 16 bio API clients, and Rust performance with a clean, pipe-first syntax.
           </p>
           <div class="flex flex-wrap gap-3">
             <a href="docs/getting-started/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">
@@ -58,14 +58,10 @@
               <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
               <span class="text-slate-500 text-xs ml-2">analysis.bl</span>
             </div>
-<pre class="!p-0 !m-0 !bg-transparent"><code class="language-biolang !p-0 !bg-transparent"># Load FASTQ, filter, and analyze
-let reads = fastq("sample.fq.gz")
-
-reads
+<pre class="!p-0 !m-0 !bg-transparent"><code class="language-biolang !p-0 !bg-transparent"># Stream FASTQ — constant memory
+fastq("sample.fq.gz")
   |> filter(|r| mean_phred(r.quality) >= 30)
-  |> map(|r| r.seq)
   |> kmer_count(21)
-  |> sort(|a, b| b.count - a.count)
   |> head(10)
   |> bar_chart("Top 21-mers")
 
@@ -104,7 +100,7 @@ ncbi_gene("BRCA1")
           <span class="text-violet-400 mt-0.5 shrink-0">&#10003;</span>
           <div>
             <span class="text-white font-medium">No import ceremony</span>
-            <span class="text-slate-400"> &mdash; DNA types, FASTA readers, GC content, k-mers, interval queries, and 290+ functions are available immediately. No <code class="text-xs">pip install</code>, no <code class="text-xs">import</code> boilerplate.</span>
+            <span class="text-slate-400"> &mdash; DNA types, FASTA readers, GC content, k-mers, interval queries, and 470+ functions are available immediately. No <code class="text-xs">pip install</code>, no <code class="text-xs">import</code> boilerplate.</span>
           </div>
         </div>
         <div class="flex gap-3">
@@ -176,7 +172,7 @@ ncbi_gene("BRCA1")
           <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center mb-4">
             <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
           </div>
-          <h3 class="text-lg font-semibold text-white mb-2">290+ Builtins</h3>
+          <h3 class="text-lg font-semibold text-white mb-2">470+ Builtins</h3>
           <p class="text-sm text-slate-400">Statistics, tables, matrices, file I/O (FASTA/FASTQ/VCF/BAM/BED/GFF), plotting, k-mers, alignment, motifs — all built in.</p>
         </div>
         <!-- Card 4 -->
@@ -224,7 +220,7 @@ ncbi_gene("BRCA1")
 
 # GC content, k-mer spectrum
 gc_content(seq)            # 0.5
-kmer_count(seq, 3)         # {ATC: 3, ...}
+kmer_count(seq, 3)         # Table: kmer | count
 seq |> reverse_complement
     |> transcribe
     |> translate</code></pre>
@@ -303,11 +299,10 @@ print(df.describe())</code></pre>
             <span class="text-xs text-violet-400">5 lines</span>
           </div>
           <div class="p-4">
-<pre class="!m-0 text-sm"><code class="language-biolang">fastq("reads.fq")
+<pre class="!m-0 text-sm"><code class="language-biolang">read_fastq("reads.fq")
   |> filter(|r| mean_phred(r.quality) >= 30)
-  |> map(|r| {id: r.id,
-              gc: gc_content(r.seq)})
-  |> collect
+  |> mutate(gc: |r| gc_content(r.seq))
+  |> select("id", "gc")
   |> describe</code></pre>
           </div>
         </div>
@@ -319,11 +314,11 @@ print(df.describe())</code></pre>
   <section class="py-12 border-y border-slate-800 bg-slate-900/20">
     <div class="max-w-4xl mx-auto px-6 flex flex-wrap justify-center gap-8 md:gap-16 text-center">
       <div>
-        <div class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">290+</div>
+        <div class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">470+</div>
         <div class="text-sm text-slate-500 mt-1">Built-in Functions</div>
       </div>
       <div>
-        <div class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">14</div>
+        <div class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">16</div>
         <div class="text-sm text-slate-500 mt-1">Bio API Clients</div>
       </div>
       <div>
@@ -356,7 +351,7 @@ print(df.describe())</code></pre>
           <span class="text-slate-200">bl repl</span>
         </div>
         <div class="text-cyan-400 text-sm mt-2">
-          BioLang v0.1.0 REPL — type :help for commands<br>
+          BioLang v0.2.0 REPL — type :help for commands<br>
           <span class="text-violet-400">bl&gt;</span> <span class="text-slate-200">dna"ATCG" |> gc_content()</span><br>
           <span class="text-green-400">0.5</span>
         </div>

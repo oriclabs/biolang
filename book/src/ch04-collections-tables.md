@@ -227,7 +227,7 @@ Read multiple FASTQ files, compute QC metrics, and build a summary table.
 
 let sample_sheet = csv("samples.csv")
 
-let compute_stats = |reads| {
+let read_stats = |reads| {
   let quals = reads |> map(|r| mean(r.quality))
   let lengths = reads |> map(|r| seq_len(r.seq))
   let gc_vals = reads |> map(|r| gc_content(r.seq))
@@ -243,9 +243,9 @@ let compute_stats = |reads| {
 
 let qc_results = sample_sheet |> map(|row| {
   let r1 = read_fastq(row.fastq_r1)
-  let r1_stats = compute_stats(r1)
+  let r1_stats = read_stats(r1)
   let r2_stats = if !is_nil(row.fastq_r2) then
-    compute_stats(read_fastq(row.fastq_r2))
+    read_stats(read_fastq(row.fastq_r2))
   else nil
 
   {

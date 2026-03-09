@@ -39,7 +39,7 @@ status = "complete"
 |------|----------|-------------|
 | `Int` | `42`, `-1`, `1_000_000` | 64-bit integer |
 | `Float` | `3.14`, `1e-10`, `0.05` | 64-bit float |
-| `Str` | `"hello"`, `f"GC: {gc}"` | UTF-8 string |
+| `Str` | `"hello"`, `f"GC: {gc}"`, `r"C:\data"` | UTF-8 string |
 | `Bool` | `true`, `false` | Boolean |
 | `Nil` | `nil` | Absence of value |
 
@@ -49,6 +49,11 @@ let p_value = 3.2e-8
 let experiment = "RNA-seq time course"
 let is_paired_end = true
 let adapter_seq = nil   # not yet determined
+
+# String variants
+let name = "sample_01"                  # regular string (\n = newline, \t = tab)
+let msg = f"Found {num_samples} reads"  # f-string with interpolation
+let path = r"C:\Users\data\reads.fq"    # raw string (backslashes literal)
 ```
 
 ## Bio Types
@@ -89,8 +94,8 @@ print(region.length)  # => 1000000
 # Interval arithmetic
 let exon1 = interval("chr1", 1000, 1500)
 let exon2 = interval("chr1", 1400, 2000)
-print(overlaps(exon1, exon2))       # => true
-print(intersection(exon1, exon2))   # => interval("chr1", 1400, 1500)
+print(exon1.end > exon2.start && exon2.end > exon1.start)  # => true
+print(intersect(exon1, exon2))      # => interval("chr1", 1400, 1500)
 ```
 
 ### Variant Type

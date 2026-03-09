@@ -34,13 +34,13 @@
           The <code>import</code> statement brings names from a module into the current scope:
         </p>
         <pre><code class="language-biolang"># Import specific names
-import { read_fastq } from "bio/io"
+import { fastq } from "bio/io"
 import { align, index_reference } from "bio/alignment"
 import { gc_content, reverse_complement } from "bio/sequence"
 
 # Import the entire module as a namespace
 import "bio/io" as io
-let reads = io.read_fastq("sample.fq.gz")
+let reads = io.fastq("sample.fq.gz")
 
 # Import all exported names (use sparingly)
 import * from "bio/stats"
@@ -76,7 +76,7 @@ import { PipelineConfig } from "../config.bl"</code></pre>
 import { csv } from "io"           # Built-in I/O
 
 # Bio-specific standard library
-import { read_fasta } from "bio/io" # Bio file I/O
+import { fasta } from "bio/io"      # Bio file I/O
 import { gc_content } from "bio/seq"    # Sequence operations
 
 # Relative import
@@ -152,7 +152,7 @@ let math_mean = math_stats.mean(test_scores)</code></pre>
         </p>
         <pre><code class="language-biolang"># File: bio/mod.bl — umbrella module
 
-pub import { read_fasta, read_fastq } from "bio/io"
+pub import { fasta, fastq, read_fasta, read_fastq } from "bio/io"
 pub import { gc_content, reverse_complement, translate } from "bio/seq"
 pub import { align, index_reference } from "bio/alignment"
 pub import { call_variants, filter_variants } from "bio/variant"
@@ -170,7 +170,7 @@ pub import { call_variants, filter_variants } from "bio/variant"
           </thead>
           <tbody>
             <tr><td><code>io</code></td><td>read_text, write_text, csv, write_csv, tsv, write_tsv, read_json, write_json</td></tr>
-            <tr><td><code>bio/io</code></td><td>read_fasta, read_fastq, read_bam, read_vcf, read_bed, read_gff, stream_*</td></tr>
+            <tr><td><code>bio/io</code></td><td>fasta, fastq, read_fasta, read_fastq, bam, read_bam, vcf, read_vcf, bed, read_bed, gff, read_gff</td></tr>
             <tr><td><code>bio/seq</code></td><td>gc_content, reverse_complement, transcribe, translate, kmers, find_motif</td></tr>
             <tr><td><code>bio/align</code></td><td>align, index_reference, pileup, coverage</td></tr>
             <tr><td><code>bio/variant</code></td><td>call_variants, filter_variants, annotate, merge_vcf</td></tr>

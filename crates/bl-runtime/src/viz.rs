@@ -15,7 +15,7 @@ pub fn viz_builtin_list() -> Vec<(&'static str, Arity)> {
         ("bar_chart", Arity::Range(1, 2)),
         ("boxplot", Arity::Range(1, 2)),
         ("heatmap_ascii", Arity::Range(1, 2)),
-        ("coverage", Arity::Range(1, 2)),
+        ("coverage", Arity::Range(1, 4)),
         ("dotplot", Arity::Range(2, 3)),
         ("alignment_view", Arity::Range(1, 2)),
         ("quality_plot", Arity::Range(1, 2)),
@@ -185,9 +185,47 @@ fn builtin_bar_chart(args: Vec<Value>) -> Result<Value> {
                 })
                 .collect()
         }
+        Value::List(items) => {
+            // List of Records with label/value-like fields (e.g., from head() on a kmer stream)
+            items.iter().filter_map(|item| {
+                if let Value::Record(rec) = item {
+                    // Try common label/value field patterns
+                    let label = rec.get("kmer").or_else(|| rec.get("name")).or_else(|| rec.get("label"))
+                        .or_else(|| rec.get("key")).or_else(|| rec.get("id"));
+                    let value = rec.get("count").or_else(|| rec.get("value")).or_else(|| rec.get("score"))
+                        .or_else(|| rec.get("n"));
+                    match (label, value) {
+                        (Some(l), Some(v)) => Some((format!("{l}"), v.as_float().unwrap_or(0.0))),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }).collect()
+        }
+        Value::Stream(s) => {
+            // Consume up to `limit` items from the stream
+            let mut entries = Vec::new();
+            for _ in 0..limit {
+                match s.next() {
+                    Some(Value::Record(rec)) => {
+                        let label = rec.get("kmer").or_else(|| rec.get("name")).or_else(|| rec.get("label"))
+                            .or_else(|| rec.get("key")).or_else(|| rec.get("id"));
+                        let value = rec.get("count").or_else(|| rec.get("value")).or_else(|| rec.get("score"))
+                            .or_else(|| rec.get("n"));
+                        if let (Some(l), Some(v)) = (label, value) {
+                            entries.push((format!("{l}"), v.as_float().unwrap_or(0.0)));
+                        }
+                    }
+                    Some(_) => {}
+                    None => break,
+                }
+            }
+            entries
+        }
         _ => {
             return Err(BioLangError::type_error(
-                "bar_chart() requires Record or Table",
+                "bar_chart() requires Record, Table, List, or Stream",
                 None,
             ))
         }
@@ -373,9 +411,33 @@ fn builtin_heatmap_ascii(args: Vec<Value>) -> Result<Value> {
             }
             (row_names, col_names, data)
         }
+        Value::List(rows) => {
+            let mut data: Vec<Vec<f64>> = Vec::new();
+            for (i, row_val) in rows.iter().enumerate() {
+                match row_val {
+                    Value::List(cols) => {
+                        let row: Vec<f64> = cols.iter().map(|v| match v {
+                            Value::Int(n) => *n as f64,
+                            Value::Float(f) => *f,
+                            _ => f64::NAN,
+                        }).collect();
+                        data.push(row);
+                    }
+                    _ => return Err(BioLangError::type_error(
+                        &format!("heatmap_ascii() row {i} is not a list"),
+                        None,
+                    )),
+                }
+            }
+            let nrows = data.len();
+            let ncols = if nrows > 0 { data[0].len() } else { 0 };
+            let row_names: Vec<String> = (0..nrows).map(|i| format!("row{i}")).collect();
+            let col_names: Vec<String> = (0..ncols).map(|i| format!("col{i}")).collect();
+            (row_names, col_names, data)
+        }
         _ => {
             return Err(BioLangError::type_error(
-                "heatmap_ascii() requires Table or Matrix",
+                "heatmap_ascii() requires Table, Matrix, or nested List",
                 None,
             ))
         }
@@ -436,6 +498,61 @@ fn builtin_coverage(args: Vec<Value>) -> Result<Value> {
     let width = get_opt_usize(&opts, "width", 80);
 
     match &args[0] {
+        Value::List(items) if !items.is_empty() && matches!(&items[0], Value::List(_)) => {
+            // List<List<Int>> — interval pairs [start, end]
+            let mut intervals: Vec<(i64, i64)> = Vec::new();
+            for item in items {
+                if let Value::List(pair) = item {
+                    if pair.len() >= 2 {
+                        let s = pair[0].as_float().unwrap_or(0.0) as i64;
+                        let e = pair[1].as_float().unwrap_or(0.0) as i64;
+                        intervals.push((s, e));
+                    }
+                }
+            }
+
+            // Determine region from args or data
+            let chrom_label = if args.len() > 1 {
+                if let Value::Str(s) = &args[1] { s.clone() } else { "region".to_string() }
+            } else { "region".to_string() };
+            let region_start = if args.len() > 2 { args[2].as_float().unwrap_or(0.0) as i64 }
+                else { intervals.iter().map(|i| i.0).min().unwrap_or(0) };
+            let region_end = if args.len() > 3 { args[3].as_float().unwrap_or(0.0) as i64 }
+                else { intervals.iter().map(|i| i.1).max().unwrap_or(1) };
+
+            let span = (region_end - region_start).max(1) as usize;
+            let mut depth = vec![0i64; span];
+            for (s, e) in &intervals {
+                let lo = ((*s - region_start).max(0)) as usize;
+                let hi = ((*e - region_start).min(span as i64)) as usize;
+                for pos in lo..hi.min(span) {
+                    depth[pos] += 1;
+                }
+            }
+
+            // Bin to display width
+            let bin_size = (span as f64 / width as f64).max(1.0);
+            let mut binned: Vec<f64> = Vec::new();
+            let mut i = 0.0;
+            while (i as usize) < span {
+                let lo = i as usize;
+                let hi = ((i + bin_size) as usize).min(span);
+                if lo < hi {
+                    let sum: i64 = depth[lo..hi].iter().sum();
+                    binned.push(sum as f64 / (hi - lo) as f64);
+                }
+                i += bin_size;
+            }
+
+            let line = spark_str(&binned);
+            let max_depth = depth.iter().max().unwrap_or(&0);
+            let mean_depth = if span > 0 { depth.iter().sum::<i64>() as f64 / span as f64 } else { 0.0 };
+            let mut out = String::new();
+            out.push_str(&format!("  {chrom_label}:{region_start}-{region_end}\n"));
+            out.push_str(&format!("  {line}\n"));
+            out.push_str(&format!("  max_depth={max_depth}  mean_depth={mean_depth:.1}  intervals={}\n", intervals.len()));
+            write_output(&out);
+        }
         Value::List(_) => {
             let vals = nums_from_value(&args[0], "coverage")?;
             let binned = bin_values(&vals, width);
@@ -682,11 +799,17 @@ fn dotplot_svg(
 // ── 7. alignment_view ───────────────────────────────────────────
 
 fn builtin_alignment_view(args: Vec<Value>) -> Result<Value> {
+    // List<Str> → multiple sequence alignment display
+    if let Value::List(items) = &args[0] {
+        if !items.is_empty() && matches!(&items[0], Value::Str(_)) {
+            return alignment_view_msa(items);
+        }
+    }
     let table = match &args[0] {
         Value::Table(t) => t,
         _ => {
             return Err(BioLangError::type_error(
-                "alignment_view() requires Table (SAM data)",
+                "alignment_view() requires Table (SAM data) or List<Str> (aligned sequences)",
                 None,
             ))
         }
@@ -888,6 +1011,67 @@ fn pack_lanes(
     lanes
 }
 
+/// Render a multiple sequence alignment from a list of aligned strings
+fn alignment_view_msa(seqs: &[Value]) -> Result<Value> {
+    let strings: Vec<&str> = seqs
+        .iter()
+        .filter_map(|v| if let Value::Str(s) = v { Some(s.as_str()) } else { None })
+        .collect();
+
+    if strings.is_empty() {
+        write_output("  (no sequences)\n");
+        return Ok(Value::Nil);
+    }
+
+    let max_len = strings.iter().map(|s| s.len()).max().unwrap_or(0);
+    let reference = strings[0]; // first sequence is the reference
+
+    let mut out = String::new();
+    let label_w = format!("seq{}", strings.len()).len().max(3);
+
+    // Build consensus line showing mismatches and gaps
+    for (i, seq) in strings.iter().enumerate() {
+        out.push_str(&format!("  {:>width$}  ", format!("seq{}", i + 1), width = label_w));
+        for (j, ch) in seq.chars().enumerate() {
+            if i == 0 {
+                // Reference row: show as-is
+                out.push(ch);
+            } else {
+                let ref_ch = reference.chars().nth(j);
+                match ref_ch {
+                    Some(r) if r == ch => out.push('.'),  // match → dot
+                    _ if ch == '-' => out.push('-'),       // gap
+                    _ => out.push(ch),                     // mismatch → show base
+                }
+            }
+        }
+        out.push('\n');
+    }
+
+    // Consensus line
+    out.push_str(&format!("  {:>width$}  ", "", width = label_w));
+    for j in 0..max_len {
+        let mut bases: Vec<char> = Vec::new();
+        for seq in &strings {
+            if let Some(ch) = seq.chars().nth(j) {
+                if ch != '-' {
+                    bases.push(ch);
+                }
+            }
+        }
+        if bases.is_empty() {
+            out.push(' ');
+        } else {
+            let all_same = bases.iter().all(|&b| b == bases[0]);
+            if all_same { out.push('*'); } else { out.push(' '); }
+        }
+    }
+    out.push('\n');
+
+    write_output(&out);
+    Ok(Value::Nil)
+}
+
 fn alignment_svg(
     reads: &[AlignRead],
     view_start: i64,
@@ -961,7 +1145,16 @@ fn builtin_quality_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let format = get_opt_str(&opts, "format", "ascii").to_string();
 
-    match &args[0] {
+    // Convert PHRED+33 quality string to list of quality scores
+    let resolved_arg = match &args[0] {
+        Value::Str(s) => {
+            let quals: Vec<Value> = s.bytes().map(|b| Value::Int((b.saturating_sub(33)) as i64)).collect();
+            Value::List(quals)
+        }
+        other => other.clone(),
+    };
+
+    match &resolved_arg {
         Value::List(items) if !items.is_empty() => {
             // Check if it's List<Int> (single read) or List<List<Int>> (multi read)
             match &items[0] {

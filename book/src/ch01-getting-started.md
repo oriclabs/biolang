@@ -222,9 +222,11 @@ print(f"GC content: {mean_gc:.3f} (range: {min_gc:.3f} - {max_gc:.3f})")
 print(f"Standard deviation: {std_gc:.4f}")
 
 # Flag outlier contigs (GC > 2 std devs from mean)
-let outliers = gc_table
+# |> into binds the pipe result to a variable (like let, but reads left-to-right)
+gc_table
   |> filter(|row| abs(row.gc - mean_gc) > 2.0 * std_gc)
   |> sort("gc", descending: true)
+  |> into outliers
 
 print(f"\nOutlier contigs ({len(outliers)}):")
 outliers |> each(|row| print(f"  {row.name}: GC={row.gc:.3f}, length={row.length}"))

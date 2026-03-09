@@ -1,3 +1,6 @@
 # Section 4: API calls from original
 let mecp2_gene = ncbi_gene("MECP2")
-println("MECP2: " + mecp2_gene.description + " (chr" + mecp2_gene.chromosome + ")")
+if is_record(mecp2_gene) then
+    println("MECP2: " + mecp2_gene.description + " (chr" + mecp2_gene.chromosome + ")")
+else
+    println("MECP2 IDs: " + str(mecp2_gene))

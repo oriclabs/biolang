@@ -1,0 +1,39 @@
+# notebooks.bl — Notebook-Style Analysis
+# Tutorial: https://lang.bio/docs/tutorials/notebooks.html
+#
+# Run with: bl run examples/tutorials/notebooks.bl
+
+# ── 1. Load Sequences ────────────────────────────────────────
+
+let seqs = read_fasta("examples/sample-data/contigs.fa")
+print(f"Loaded {len(seqs)} sequences")
+
+# ── 2. GC Content Statistics ─────────────────────────────────
+
+let gc_values = seqs |> map(|s| gc_content(s.seq))
+let mu = mean(gc_values)
+let sigma = stdev(gc_values)
+print(f"Mean GC: {round(mu, 3)} +/- {round(sigma, 4)}")
+print(f"Range: {round(min(gc_values), 3)} - {round(max(gc_values), 3)}")
+
+# ── 3. Build a Summary Table ─────────────────────────────────
+
+let gc_table = seqs |>
+  map(|s| {id: s.id, length: seq_len(s.seq), gc: gc_content(s.seq)}) |>
+  table()
+
+print(gc_table)
+
+# ── 4. Find Outliers ─────────────────────────────────────────
+
+let threshold = 2.0
+
+let outliers = gc_table |>
+  filter(|row| abs(row.gc - mu) > threshold * sigma)
+
+print(f"\nFound {nrow(outliers)} outlier contigs (>{threshold} SD from mean):")
+for row in outliers |> collect() {
+  print(f"  {row.id}: GC={round(row.gc, 3)}, length={row.length}")
+}
+
+print("\nNotebooks tutorial complete.")

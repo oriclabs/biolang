@@ -1,0 +1,98 @@
+# databases.bl — Querying Biological Databases
+# Tutorial: https://lang.bio/docs/tutorials/databases.html
+#
+# Run with: bl run examples/tutorials/databases.bl
+#
+# Note: Requires an internet connection. API calls to NCBI, Ensembl,
+# UniProt, KEGG, and PDB are made. Set NCBI_API_KEY env var for
+# higher NCBI rate limits.
+
+# ── 1. NCBI Gene Search ─────────────────────────────────────
+
+let gene = ncbi_gene("TP53")
+print(f"Gene ID:     {gene.id}")
+print(f"Symbol:      {gene.symbol}")
+print(f"Name:        {gene.name}")
+print(f"Organism:    {gene.organism}")
+print(f"Chromosome:  {gene.chromosome}")
+
+let ids = ncbi_search("gene", "BRCA1 human")
+print(f"\nFound {len(ids)} gene IDs for 'BRCA1 human'")
+
+# ── 2. NCBI Sequences & PubMed ──────────────────────────────
+
+let fasta = ncbi_sequence("NM_000546.6")
+print(f"\nFASTA (first 100 chars): {fasta[0..100]}...")
+
+let pmids = ncbi_pubmed("TP53 mutation cancer", 5)
+print(f"\nPubMed IDs: {pmids}")
+
+# ── 3. Ensembl ───────────────────────────────────────────────
+
+let gene = ensembl_symbol("human", "TP53")
+print(f"\nEnsembl ID:  {gene.id}")
+print(f"Symbol:      {gene.symbol}")
+print(f"Biotype:     {gene.biotype}")
+print(f"Location:    {gene.chromosome}:{gene.start}-{gene.end}")
+
+# Variant Effect Prediction
+let results = ensembl_vep("17:g.7675088C>T")
+for r in results {
+  print(f"\nVEP: {r.allele_string}")
+  print(f"Most severe: {r.most_severe_consequence}")
+}
+
+# ── 4. UniProt ───────────────────────────────────────────────
+
+let p53 = uniprot_entry("P04637")
+print(f"\nUniProt: {p53.name}")
+print(f"Accession: {p53.accession}")
+print(f"Length:    {p53.sequence_length} aa")
+
+let features = uniprot_features("P04637")
+print(f"Features: {len(features)}")
+
+let go_terms = uniprot_go("P04637")
+print(f"GO terms: {len(go_terms)}")
+
+# ── 5. KEGG ──────────────────────────────────────────────────
+
+let pathways = kegg_find("pathway", "p53 signaling")
+for p in pathways {
+  print(f"\n{p.id}: {p.description}")
+}
+
+let tp53_pathways = kegg_link("pathway", "hsa:7157")
+print(f"\nTP53 participates in {len(tp53_pathways)} pathways")
+
+# ── 6. PDB ───────────────────────────────────────────────────
+
+let pdb_ids = pdb_search("TP53")
+print(f"\nFound {len(pdb_ids)} PDB structures for TP53")
+
+let entry = pdb_entry("1TUP")
+print(f"PDB: {entry.id} — {entry.title}")
+print(f"Method: {entry.method}, Resolution: {entry.resolution}")
+
+# ── 7. Multi-Database Gene Report ────────────────────────────
+
+fn gene_report(symbol) {
+  print(f"\n{'=' * 50}")
+  print(f"Report for {symbol}")
+  print(f"{'=' * 50}")
+
+  let ncbi = ncbi_gene(symbol)
+  print(f"NCBI Gene ID: {ncbi.id}")
+  print(f"Name:         {ncbi.name}")
+
+  let ens = ensembl_symbol("human", symbol)
+  print(f"Ensembl ID:   {ens.id}")
+  print(f"Location:     {ens.chromosome}:{ens.start}-{ens.end}")
+
+  let structures = pdb_search(symbol)
+  print(f"PDB structures: {len(structures)}")
+}
+
+gene_report("TP53")
+
+print("\nDatabases tutorial complete.")

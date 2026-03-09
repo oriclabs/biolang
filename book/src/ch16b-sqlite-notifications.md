@@ -60,7 +60,7 @@ transaction. This is much faster than individual INSERT statements.
 
 ```
 # From a Table (e.g., read from TSV)
-let stats = read_tsv("variant_stats.tsv")
+let stats = tsv("variant_stats.tsv")
 sql_insert(db, "variants", stats)
 
 # From a list of records

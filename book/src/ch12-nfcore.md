@@ -135,7 +135,7 @@ pipeline has had -- a rough proxy for maturity:
 
 ```
 # Count total releases for sarek
-let release_count = nfcore_releases("sarek") |> length
+let release_count = nfcore_releases("sarek") |> len
 print("sarek has " + to_string(release_count) + " releases")
 ```
 
@@ -256,7 +256,7 @@ let config_keys = keys(my_config)
 let missing = schema_keys
   |> filter |k| not(contains(config_keys, k))
 
-if length(missing) > 0 then
+if len(missing) > 0 then
   print("WARNING: unset reference genome parameters:")
   missing |>> each |k| print("  - " + k)
 else
@@ -266,7 +266,7 @@ else
 let extra = config_keys
   |> filter |k| not(contains(schema_keys, k))
 
-if length(extra) > 0 then
+if len(extra) > 0 then
   print("WARNING: config keys not in current schema (possibly deprecated):")
   extra |>> each |k| print("  - " + k)
 ```
@@ -295,13 +295,13 @@ let topics = entries
 
 # Print a summary: topics with 3 or more pipelines
 keys(topics)
-  |> filter |t| length(topics[t]) >= 3
+  |> filter |t| len(topics[t]) >= 3
   |> sort
   |>> each |t| {
     let pipelines = topics[t]
       |> sort_by |a, b| b.stars - a.stars
       |> each |p| p.name
-    print(t + " (" + to_string(length(pipelines)) + " pipelines): " + join(pipelines, ", "))
+    print(t + " (" + to_string(len(pipelines)) + " pipelines): " + join(pipelines, ", "))
   }
 ```
 
@@ -380,7 +380,7 @@ let bl_code = nf_to_bl(parsed)
 print(bl_code)
 
 # Save to a file
-write_file("rnaseq.bl", bl_code)
+write_text("rnaseq.bl", bl_code)
 ```
 
 The generated code maps Nextflow constructs to BioLang equivalents:
@@ -398,11 +398,11 @@ features like pipe chains, error handling, and parallel execution.
 let parsed = nf_parse("sarek_main.nf")
 
 # Show what was extracted
-print("Found " + to_string(length(parsed.processes)) + " processes")
-print("Found " + to_string(length(keys(parsed.params))) + " parameters")
+print("Found " + to_string(len(parsed.processes)) + " processes")
+print("Found " + to_string(len(keys(parsed.params))) + " parameters")
 
 # Generate BioLang code
 let bl_code = nf_to_bl(parsed)
-write_file("sarek.bl", bl_code)
+write_text("sarek.bl", bl_code)
 print("Generated sarek.bl")
 ```

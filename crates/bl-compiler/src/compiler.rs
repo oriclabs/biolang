@@ -718,6 +718,14 @@ impl Compiler {
                     BinaryOp::And | BinaryOp::Or => unreachable!(),
                 };
             }
+            Expr::PipeInto { value, name } => {
+                // `expr |> into name` — evaluate, store, leave value on stack
+                self.compile_expr(value)?;
+                self.emit(OpCode::Dup);
+                let slot = self.resolve_local(name)
+                    .unwrap_or_else(|| self.add_local(name.clone()));
+                self.emit(OpCode::SetLocal(slot));
+            }
             Expr::Pipe { left, right } => {
                 // `a |> f(b, c)` desugars to `f(a, b, c)`
                 match &right.node {

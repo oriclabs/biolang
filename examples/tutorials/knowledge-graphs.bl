@@ -1,0 +1,83 @@
+# knowledge-graphs.bl — Biological Knowledge Graphs
+# Tutorial: https://lang.bio/docs/tutorials/knowledge-graphs.html
+#
+# Run with: bl run examples/tutorials/knowledge-graphs.bl
+
+# ── 1. Create a Graph ────────────────────────────────────────
+
+let g = graph()
+
+let g = add_node(g, "TP53", {role: "tumor_suppressor", chr: "17p13.1"})
+let g = add_node(g, "MDM2", {role: "oncogene", chr: "12q15"})
+let g = add_node(g, "CDKN1A", {role: "cdk_inhibitor", chr: "6p21.2"})
+let g = add_node(g, "BAX", {role: "pro_apoptotic", chr: "19q13.33"})
+let g = add_node(g, "BCL2", {role: "anti_apoptotic", chr: "18q21.33"})
+
+print(f"Nodes: {node_count(g)}")
+
+# ── 2. Add Edges ─────────────────────────────────────────────
+
+let g = add_edge(g, "TP53", "MDM2", {score: 0.999, type: "inhibition"})
+let g = add_edge(g, "TP53", "CDKN1A", {score: 0.998, type: "activation"})
+let g = add_edge(g, "TP53", "BAX", {score: 0.992, type: "activation"})
+let g = add_edge(g, "BAX", "BCL2", {score: 0.976, type: "inhibition"})
+let g = add_edge(g, "MDM2", "CDKN1A", {score: 0.871, type: "inhibition"})
+
+print(f"Edges: {edge_count(g)}")
+
+# ── 3. Query the Graph ───────────────────────────────────────
+
+let tp53_partners = neighbors(g, "TP53")
+print(f"\nTP53 interacts with: {tp53_partners}")
+print(f"TP53 degree: {degree(g, 'TP53')}")
+print(f"BCL2 degree: {degree(g, 'BCL2')}")
+
+print(f"\nTP53-BAX edge exists: {has_edge(g, 'TP53', 'BAX')}")
+print(f"BCL2-MDM2 edge exists: {has_edge(g, 'BCL2', 'MDM2')}")
+
+# ── 4. Shortest Path ─────────────────────────────────────────
+
+let path = shortest_path(g, "BCL2", "MDM2")
+print(f"\nBCL2 -> MDM2 path: {path}")
+
+# ── 5. Connected Components ──────────────────────────────────
+
+let components = connected_components(g)
+print(f"\nComponents: {len(components)}")
+components |> each(|c| print(f"  {c}"))
+
+# ── 6. Subgraph Extraction ───────────────────────────────────
+
+let apoptosis_genes = ["TP53", "BAX", "BCL2"]
+let sub = subgraph(g, apoptosis_genes)
+print(f"\nApoptosis subgraph: {node_count(sub)} nodes, {edge_count(sub)} edges")
+
+# ── 7. Knockout Simulation ───────────────────────────────────
+
+let ko = remove_node(g, "TP53")
+print(f"\nAfter TP53 knockout: {node_count(ko)} nodes, {edge_count(ko)} edges")
+
+let ko_components = connected_components(ko)
+print(f"Components after knockout: {len(ko_components)}")
+ko_components |> each(|c| print(f"  {c}"))
+
+# ── 8. Extended p53 Network ──────────────────────────────────
+
+let g = add_edge(g, "CDKN1A", "CDK2", {score: 0.945, type: "inhibition"})
+let g = add_edge(g, "CDK2", "RB1", {score: 0.932, type: "phosphorylation"})
+
+print(f"\nExtended network: {node_count(g)} genes, {edge_count(g)} interactions")
+
+# Hub analysis
+let hubs = nodes(g) |>
+  map(|n| {gene: n, deg: degree(g, n)}) |>
+  sort_by(|r| r.deg, desc: true)
+
+print("\nDegree ranking:")
+hubs |> each(|r| print(f"  {r.gene}: {r.deg}"))
+
+# Path from cell cycle to apoptosis
+let path = shortest_path(g, "CDK2", "BCL2")
+print(f"\nCell cycle -> apoptosis: {path}")
+
+print("\nKnowledge graphs tutorial complete.")

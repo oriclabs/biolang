@@ -64,14 +64,11 @@ print(compound_text)</code></pre>
           <code>string_network</code> and <code>string_enrichment</code>.
           The <code>species</code> argument is a numeric NCBI taxonomy ID (9606 = human).
         </p>
-        <pre><code class="language-biolang"># Get interaction network for a protein
-let network = string_network("TP53", 9606)
+        <pre><code class="language-biolang"># Get interaction network for a protein (first arg must be a list)
+let network = string_network(["TP53"], 9606)
+# Returns list of: {protein_a, protein_b, score}
 
-network |> map(|i| {
-  protein_a: i.preferredName_A,
-  protein_b: i.preferredName_B,
-  score: i.score
-}) |> to_table() |> print()
+network |> each(|i| print(i.protein_a + " <-> " + i.protein_b + " score: " + str(i.score)))
 
 # Get network for multiple proteins
 let proteins = ["BRCA1", "BRCA2", "RAD51", "ATM", "ATR"]

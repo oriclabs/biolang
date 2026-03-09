@@ -74,6 +74,7 @@ pub enum TokenKind {
     Otherwise,
     Retry,
     Where,
+    Into,
 
     // Regex literal: /pattern/flags
     RegexLit(String, String),
@@ -187,6 +188,9 @@ impl TokenKind {
             "otherwise" => Some(TokenKind::Otherwise),
             "retry" => Some(TokenKind::Retry),
             "where" => Some(TokenKind::Where),
+            "into" => Some(TokenKind::Into),
+            "and" => Some(TokenKind::And),
+            "or" => Some(TokenKind::Or),
             _ => None,
         }
     }
@@ -247,6 +251,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Otherwise => write!(f, "otherwise"),
             TokenKind::Retry => write!(f, "retry"),
             TokenKind::Where => write!(f, "where"),
+            TokenKind::Into => write!(f, "into"),
             TokenKind::RegexLit(pat, flags) => write!(f, "/{pat}/{flags}"),
             TokenKind::DocComment(s) => write!(f, "##{s}"),
             TokenKind::FStr(s) => write!(f, "f\"{s}\""),

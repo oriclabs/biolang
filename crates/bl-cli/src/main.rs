@@ -192,11 +192,13 @@ fn run_file(path: &str, verbose: bool) {
     match interpreter.run(&program) {
         Ok(_) => {
             bl_runtime::builtins::flush_trailing_newline();
+            bl_runtime::tempfiles::cleanup_all();
             let elapsed = start.elapsed();
             eprintln!("\x1b[2m✓ done in {elapsed:.2?}\x1b[0m");
         }
         Err(e) => {
             bl_runtime::builtins::flush_trailing_newline();
+            bl_runtime::tempfiles::cleanup_all();
             eprintln!("{}", e.format_with_source(&source));
             process::exit(1);
         }

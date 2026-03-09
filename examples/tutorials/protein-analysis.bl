@@ -1,0 +1,117 @@
+# protein-analysis.bl — Protein Analysis
+# Tutorial: https://lang.bio/docs/tutorials/protein-analysis.html
+#
+# Run with: bl run examples/tutorials/protein-analysis.bl
+#
+# Note: This tutorial queries UniProt and PDB APIs. An internet
+# connection is required. Some API calls may be rate-limited.
+
+# ── 1. Fetch Protein from UniProt ────────────────────────────
+
+let entry = uniprot_entry("P04637")
+
+print(f"Accession:   {entry.accession}")
+print(f"Name:        {entry.name}")
+print(f"Organism:    {entry.organism}")
+print(f"Length:      {entry.sequence_length} aa")
+print(f"Genes:       {entry.gene_names}")
+
+# Get the FASTA sequence
+let fasta = uniprot_fasta("P04637")
+let raw_seq = fasta |> split("\n") |> drop(1) |> join("")
+let seq = protein(raw_seq)
+print(f"Sequence type: {typeof(seq)}")
+print(f"Length:        {seq_len(seq)} aa")
+
+# ── 2. Amino Acid Composition ────────────────────────────────
+
+let residues = kmers(seq, 1)
+let total = len(residues)
+let aa_types = unique(residues)
+
+aa_types |> map(|aa| {
+  let n = residues |> count_if(|r| r == aa)
+  { amino_acid: aa, count: n, pct: n / total * 100.0 }
+}) |> sort_by(|a, b| b.count - a.count) |> into sorted
+
+print("\n=== Amino Acid Composition ===")
+for item in sorted |> take(10) {
+  print(f"  {item.amino_acid}: {item.count} ({round(item.pct, 1)}%)")
+}
+
+# Property classes
+let charged_aa = ["D", "E", "K", "R", "H"]
+let polar_aa   = ["S", "T", "N", "Q", "Y", "C"]
+let hydro_aa   = ["A", "V", "I", "L", "M", "F", "W", "P"]
+
+let charged = residues |> count_if(|r| any(charged_aa, |a| a == r))
+let polar   = residues |> count_if(|r| any(polar_aa, |a| a == r))
+let hydro   = residues |> count_if(|r| any(hydro_aa, |a| a == r))
+
+print(f"\nCharged:     {charged} ({round(charged / total * 100.0, 1)}%)")
+print(f"Polar:       {polar} ({round(polar / total * 100.0, 1)}%)")
+print(f"Hydrophobic: {hydro} ({round(hydro / total * 100.0, 1)}%)")
+
+# ── 3. Motif Scanning ────────────────────────────────────────
+
+let phospho = find_motif(seq, "[ST]P")
+print(f"\nPhosphorylation sites (SP/TP): {len(phospho)}")
+for pos in phospho |> take(5) {
+  let motif_seq = subseq(seq, pos, 2)
+  print(f"  Position {pos}: {motif_seq}")
+}
+
+let cys_positions = find_motif(seq, "C")
+print(f"\nCysteine residues: {len(cys_positions)}")
+
+# ── 4. UniProt Features ──────────────────────────────────────
+
+let features = uniprot_features("P04637")
+print(f"\nTotal features: {len(features)}")
+
+let domains = features |> filter(|f| f.type == "Domain")
+print("\n=== Annotated Domains ===")
+for d in domains {
+  print(f"  {d.description}: {d.location}")
+}
+
+features |> map(|f| f.type) |> unique() |> into feature_types
+print(f"\nFeature types: {feature_types}")
+
+# ── 5. GO Annotations ────────────────────────────────────────
+
+let go_terms = uniprot_go("P04637")
+print(f"\nGO terms: {len(go_terms)}")
+
+let mol_func = go_terms |> filter(|t| t.category == "molecular_function")
+print(f"Molecular functions: {len(mol_func)}")
+for mf in mol_func |> take(5) {
+  print(f"  {mf.id}: {mf.name}")
+}
+
+# ── 6. PDB Structure ─────────────────────────────────────────
+
+let pdb = pdb_entry("1TUP")
+
+print(f"\n=== PDB Structure ===")
+print(f"ID:         {pdb.id}")
+print(f"Title:      {pdb.title}")
+print(f"Resolution: {pdb.resolution} A")
+print(f"Method:     {pdb.method}")
+
+# ── 7. K-mer Analysis ────────────────────────────────────────
+
+let dipeptides = kmers(seq, 2)
+let dp_types = unique(dipeptides)
+
+dp_types |> map(|dp| {
+  let n = dipeptides |> count_if(|d| d == dp)
+  { dipeptide: dp, count: n }
+}) |> sort_by(|a, b| b.count - a.count) |> into dp_counts
+
+print("\n=== Top 10 Dipeptides ===")
+for item in dp_counts |> take(10) {
+  print(f"  {item.dipeptide}: {item.count}")
+}
+
+print("\nProtein analysis tutorial complete.")

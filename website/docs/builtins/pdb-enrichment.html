@@ -195,8 +195,9 @@ seqs |> each(|s| {
               limits how many IDs are returned (default 20).
             </p>
             <pre><code class="language-biolang">let results = pubmed_search("CRISPR Cas9 therapy", 5)
-print(results.count)   # total matching articles (e.g., 12847)
-print(results.ids)     # ["39847123", "39841056", "39838901", "39835444", "39831200"]</code></pre>
+# pubmed_search returns a list of PMID strings directly
+print(len(results))    # number of IDs returned (up to limit)
+print(results)         # ["39847123", "39841056", "39838901", "39835444", "39831200"]</code></pre>
           </div>
         </section>
 
@@ -230,10 +231,10 @@ print(paper.authors[0]) # "Anzalone AV"</code></pre>
 
         <pre><code class="language-biolang"># Search for recent gene therapy papers
 let hits = pubmed_search("AAV gene therapy retinal dystrophy", 10)
-print("Found " + str(hits.count) + " total articles, fetching top 10")
+print("Found " + str(len(hits)) + " articles")
 
 # Fetch abstracts for each result
-let papers = hits.ids |> map(|pmid| pubmed_abstract(pmid))
+let papers = hits |> map(|pmid| pubmed_abstract(pmid))
 
 # Build a summary table
 let review = papers |> map(|p| {

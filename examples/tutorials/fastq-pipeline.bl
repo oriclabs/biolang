@@ -1,0 +1,79 @@
+# fastq-pipeline.bl — FASTQ Quality Control Pipeline
+# Tutorial: https://lang.bio/docs/tutorials/fastq-pipeline.html
+#
+# Run with: bl run examples/tutorials/fastq-pipeline.bl
+#
+# Note: Uses the included sample data in examples/sample-data/.
+
+# ── 1. Reading FASTQ Data ────────────────────────────────────
+
+let reads = read_fastq("examples/sample-data/reads.fq")
+
+print(f"Total reads: {len(reads)}")
+
+let first = reads[0]
+print(f"ID:       {first.id}")
+print(f"Sequence: {first.seq}")
+print(f"Quality:  {first.quality}")
+print(f"Length:   {first.length}")
+
+# ── 2. Read Statistics ────────────────────────────────────────
+
+let stats = read_stats(reads)
+
+print("\n=== Read Statistics ===")
+print(f"Total reads:  {stats.count}")
+print(f"Mean length:  {round(stats.mean_length, 1)}")
+print(f"Mean quality: {round(stats.mean_quality, 2)}")
+print(f"Mean GC:      {round(stats.gc_content, 4)}")
+print(f"Q20 %:        {round(stats.q20_pct, 1)}")
+print(f"Q30 %:        {round(stats.q30_pct, 1)}")
+
+let gc_values = map(reads, |r| gc_content(r.seq))
+print(f"GC range: {min(gc_values)} - {max(gc_values)}")
+
+# ── 3. Quality Filtering ─────────────────────────────────────
+
+let passed = filter_reads(reads, "quality", 20)
+let passed_list = collect(passed)
+print(f"\nPassed quality filter (Q>=20): {len(passed_list)} reads")
+
+let long_reads = filter_reads(reads, "length", 50)
+let long_list = collect(long_reads)
+print(f"Passed length filter (>=50bp): {len(long_list)} reads")
+
+let clean = reads |>
+  filter_reads("quality", 20) |>
+  filter_reads("length", 50) |>
+  collect()
+
+print(f"After both filters: {len(clean)} reads")
+
+# ── 4. Quality Trimming ──────────────────────────────────────
+
+let trimmed = trim_quality(reads, 20, 30)
+let trimmed_list = collect(trimmed)
+print(f"\nAfter trimming: {len(trimmed_list)} reads")
+
+let raw_stats = read_stats(reads)
+let trim_stats = read_stats(trimmed_list)
+print(f"Mean length before: {round(raw_stats.mean_length, 1)}")
+print(f"Mean length after:  {round(trim_stats.mean_length, 1)}")
+
+# ── 5. K-mer Analysis ────────────────────────────────────────
+
+let k = 5
+let kmer_counts = kmer_count(trimmed_list, k)
+print(f"\n=== Top {k}-mers ===")
+kmer_counts |> head(10) |> print()
+
+let first_kmers = kmers(trimmed_list[0].seq, k)
+print(f"K-mers in first read: {len(first_kmers)}")
+
+# ── 6. Adapter Detection ─────────────────────────────────────
+
+let detected = detect_adapters(reads)
+print("\nDetected adapters:")
+print(detected)
+
+print("\nFASTQ pipeline tutorial complete.")

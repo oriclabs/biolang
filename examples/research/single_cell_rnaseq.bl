@@ -155,7 +155,10 @@ println(table(type_counts))
 # ── 8. Database Validation of Key Markers ──
 let cd3e_info = ncbi_gene("CD3E")
 println("\n=== CD3E (T cell marker) ===")
-println("NCBI Gene IDs:", cd3e_info.ids, "(", cd3e_info.count, "results)")
+if is_record(cd3e_info) then
+    println("NCBI Gene:", cd3e_info.symbol, "(ID:", cd3e_info.id + ")")
+else
+    println("NCBI Gene IDs:", cd3e_info, "(", len(cd3e_info), "results)")
 
 try {
   let cd3e_go = go_annotations("P09693")  # UniProt accession for human CD3E
@@ -165,7 +168,7 @@ try {
 }
 
 try {
-  let cd3e_network = string_network("CD3E", 9606)
+  let cd3e_network = string_network(["CD3E"], 9606)
   println("STRING interaction partners:", len(cd3e_network))
 } catch e {
   println("STRING network: (skipped -", e, ")")

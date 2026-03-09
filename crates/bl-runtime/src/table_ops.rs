@@ -222,22 +222,49 @@ fn builtin_select(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(col_names, new_rows)))
 }
 
-// ── arrange(table, col, ...) — prefix "-" for desc ──────────────────
+// ── arrange(table, col, ...) — prefix "-" for desc, or trailing "desc"/"asc" ─
 
 fn builtin_arrange(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "arrange")?;
 
-    // Parse sort specs: each is a column name, optionally prefixed with "-"
+    // Parse sort specs: column name (optionally prefixed with "-"),
+    // optionally followed by "desc" or "asc" modifier
     let mut specs: Vec<(usize, bool)> = Vec::new(); // (col_index, ascending)
-    for arg in &args[1..] {
-        let s = require_str(arg, "arrange")?;
+    let rest = &args[1..];
+    let mut i = 0;
+    while i < rest.len() {
+        let s = require_str(&rest[i], "arrange")?;
+        let lower = s.to_ascii_lowercase();
+
+        // Skip standalone "desc"/"asc" that already got applied (shouldn't happen, but guard)
+        if (lower == "desc" || lower == "asc") && !specs.is_empty() {
+            i += 1;
+            continue;
+        }
+
         let (name, asc) = if let Some(stripped) = s.strip_prefix('-') {
             (stripped, false)
         } else {
             (s.as_str(), true)
         };
         match table.col_index(name) {
-            Some(i) => specs.push((i, asc)),
+            Some(ci) => {
+                // Check if next arg is a "desc" or "asc" modifier
+                let mut final_asc = asc;
+                if i + 1 < rest.len() {
+                    if let Ok(next) = require_str(&rest[i + 1], "arrange") {
+                        let next_lower = next.to_ascii_lowercase();
+                        if next_lower == "desc" {
+                            final_asc = false;
+                            i += 1; // consume the modifier
+                        } else if next_lower == "asc" {
+                            final_asc = true;
+                            i += 1; // consume the modifier
+                        }
+                    }
+                }
+                specs.push((ci, final_asc));
+            }
             None => {
                 return Err(BioLangError::runtime(
                     ErrorKind::NameError,
@@ -246,6 +273,7 @@ fn builtin_arrange(args: Vec<Value>) -> Result<Value> {
                 ))
             }
         }
+        i += 1;
     }
 
     let mut rows = table.rows.clone();

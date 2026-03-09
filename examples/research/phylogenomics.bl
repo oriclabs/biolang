@@ -112,7 +112,7 @@ println(domain_table)
 
 # UniProt and PDB lookups for spike protein
 let spike_uniprot = uniprot_entry("P0DTC2")
-println("UniProt: " + spike_uniprot.protein_name + " (" + spike_uniprot.length |> str() + " aa)")
+println("UniProt: " + spike_uniprot.name + " (" + spike_uniprot.sequence_length |> str() + " aa)")
 
 let spike_features = uniprot_features("P0DTC2")
 let binding_sites = spike_features |> filter(|f| f.type == "BINDING")
@@ -125,14 +125,18 @@ println("PDB 6VXX: " + spike_pdb.title + " resolution " + spike_pdb.resolution |
 println("=== Database Lookups ===")
 
 let ncbi_hits = ncbi_search("protein", "SARS-CoV-2 spike glycoprotein")
-println("NCBI protein hits: " + len(ncbi_hits.ids) |> str())
+println("NCBI protein hits: " + len(ncbi_hits) |> str())
 
 let kegg_hits = kegg_find("genes", "SARS-CoV-2 spike")
 println("KEGG gene entries: " + len(kegg_hits) |> str())
 
 # Variant effect prediction for key spike mutations
+# ensembl_vep returns List of Records with most_severe_consequence + transcript_consequences
 let vep_n501y = ensembl_vep("S:N501Y")
-println("N501Y effect: " + vep_n501y.consequence + " (SIFT: " + vep_n501y.sift + ")")
+if len(vep_n501y) > 0 then
+    println("N501Y effect: " + vep_n501y[0].most_severe_consequence)
+else
+    println("N501Y: no VEP results")
 
 # ── 8. Evolutionary Rate Analysis (Simplified dN/dS) ──
 println("=== Evolutionary Rate Analysis ===")

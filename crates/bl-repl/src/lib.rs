@@ -57,8 +57,8 @@ const REPL_COMMAND_HINTS: &[(&str, &str)] = &[
 ];
 
 const KEYWORDS: &[&str] = &[
-    "and", "else", "enum", "false", "fn", "for", "if", "import", "in", "let", "match", "nil",
-    "not", "or", "return", "true", "while", "yield",
+    "and", "else", "enum", "false", "fn", "for", "if", "import", "in", "into", "let", "match",
+    "nil", "not", "or", "return", "true", "while", "yield",
 ];
 
 // ── Tab Completion Helper ────────────────────────────────────────
@@ -196,6 +196,11 @@ impl Highlighter for BioHelper {
             Cow::Owned(format!("{DIM}{hint}{desc}{RESET}"))
         }
     }
+
+    fn highlight_char(&self, _line: &str, _pos: usize, _kind: rustyline::highlight::CmdKind) -> bool {
+        // Force redraw so ANSI codes from hints don't leak into history recall
+        true
+    }
 }
 
 impl Validator for BioHelper {}
@@ -237,10 +242,21 @@ impl Repl {
 
         print_banner();
 
+        // Clean up stale temp files from previous crashed sessions
+        bl_runtime::tempfiles::cleanup_stale();
+
         let mut session_inputs: Vec<String> = Vec::new();
+        let mut pending_line: Option<String> = None;
+        // Track the last `let` binding name so |> can reference it
+        // when `_` is not set (let statements produce Nil, not a value)
+        let mut last_let_var: Option<String> = None;
 
         loop {
-            let readline = rl.readline(PROMPT);
+            let readline = if let Some(pl) = pending_line.take() {
+                Ok(pl)
+            } else {
+                rl.readline(PROMPT)
+            };
             match readline {
                 Ok(line) => {
                     let trimmed = line.trim();
@@ -350,9 +366,21 @@ impl Repl {
 
                     // ── Build input (R-style: syntactic completeness) ──
 
-                    // Leading |> with no pending context → pipe from `_`
-                    let mut input = if trimmed.starts_with("|>") {
-                        format!("_\n{line}")
+                    // Leading pipe operator with no pending context → pipe from last result
+                    let piped_from_last = trimmed.starts_with("|>") || trimmed.starts_with('~');
+                    let mut input = if piped_from_last {
+                        // Use `_` if defined, else fall back to the last `let` binding
+                        let has_underscore = self.interpreter.env().get("_", None)
+                            .map(|v| !matches!(v, Value::Nil))
+                            .unwrap_or(false);
+                        let pipe_source = if has_underscore {
+                            "_".to_string()
+                        } else if let Some(ref var) = last_let_var {
+                            var.clone()
+                        } else {
+                            "_".to_string() // fallback — will give a clear error
+                        };
+                        format!("{pipe_source}\n{line}")
                     } else {
                         line
                     };
@@ -360,19 +388,64 @@ impl Repl {
                     // Gather continuation lines while input is incomplete
                     // (unclosed delimiters, trailing |>, trailing operators,
                     //  block keywords without { )
-                    while needs_continuation(&input) {
-                        match rl.readline(CONTINUATION) {
-                            Ok(cont) => {
-                                input.push('\n');
-                                input.push_str(&cont);
+                    loop {
+                        if !needs_continuation(&input) {
+                            // Input looks complete — but peek for a |> continuation
+                            // so that multi-line pipe chains work:
+                            //   let x = expr
+                            //     |> map(...)
+                            //     |> filter(...)
+                            if !could_continue_with_pipe(&input) {
+                                break;
                             }
-                            Err(_) => break,
+                            match rl.readline(CONTINUATION) {
+                                Ok(cont) => {
+                                    let ct = cont.trim();
+                                    if ct.starts_with("|>") || ct.starts_with('~') {
+                                        input.push('\n');
+                                        input.push_str(&cont);
+                                        // keep looping — might be more pipe stages
+                                    } else if ct.is_empty() {
+                                        // blank line ends the expression
+                                        break;
+                                    } else {
+                                        // Not a pipe continuation — save for next iteration
+                                        pending_line = Some(cont);
+                                        break;
+                                    }
+                                }
+                                Err(_) => break,
+                            }
+                        } else {
+                            match rl.readline(CONTINUATION) {
+                                Ok(cont) => {
+                                    input.push('\n');
+                                    input.push_str(&cont);
+                                }
+                                Err(_) => break,
+                            }
                         }
                     }
 
-                    // Input is syntactically complete → add to history and execute
-                    let _ = rl.add_history_entry(&input);
+                    // Add the user-typed input to history (without the pipe-source prefix)
+                    let history_entry = if piped_from_last {
+                        // Strip the "varname\n" prefix we added
+                        if let Some(idx) = input.find('\n') {
+                            input[idx + 1..].to_string()
+                        } else {
+                            input.clone()
+                        }
+                    } else {
+                        input.clone()
+                    };
+                    let _ = rl.add_history_entry(&history_entry);
                     session_inputs.push(input.clone());
+
+                    // Track let binding names for pipe-from-last fallback
+                    if let Some(var) = extract_let_var(&input) {
+                        last_let_var = Some(var);
+                    }
+
                     self.eval_and_print(&input);
                     if let Some(helper) = rl.helper_mut() {
                         helper.refresh_from(&self.interpreter);
@@ -393,6 +466,9 @@ impl Repl {
         if let Some(ref path) = history_path {
             let _ = rl.save_history(path);
         }
+
+        // Clean up any temp files from disk-backed operations (kmer_count, etc.)
+        bl_runtime::tempfiles::cleanup_all();
 
         Ok(())
     }
@@ -1325,6 +1401,57 @@ fn fn_signature(name: &str) -> Option<&'static str> {
 // ── Continuation detection ──────────────────────────────────────
 
 /// Check if the input needs continuation (unclosed delimiters or trailing pipe).
+/// Returns true if the completed input could plausibly be extended with `|>`.
+/// Only returns true when there's already a pipe in progress, so that
+/// normal one-liners like `let x = 5` execute immediately.
+///
+/// Multi-line pipe chains are written with the pipe on the first line:
+///   let passed = variants |>
+///     filter(|v| v.filter == "PASS") |>
+///     map(|v| v.chrom)
+///
+/// Or with a trailing backslash:
+///   let passed = variants \
+///     |> filter(|v| v.filter == "PASS")
+fn could_continue_with_pipe(input: &str) -> bool {
+    // If we already have a multi-line pipe chain, keep accepting more |> lines
+    let line_count = input.lines().count();
+    if line_count >= 2 && input.contains("|>") {
+        // The input already has pipe(s) across lines — peek for more
+        let last_line = input.trim_end().lines().last().unwrap_or("");
+        let last = if let Some(idx) = last_line.find('#') {
+            last_line[..idx].trim_end()
+        } else {
+            last_line.trim_end()
+        };
+        let last_ch = last.chars().last().unwrap_or(' ');
+        return last_ch.is_alphanumeric() || last_ch == '_' || matches!(last_ch, ')' | ']' | '}');
+    }
+    false
+}
+
+/// Extract the variable name from a `let name = ...` statement.
+fn extract_let_var(input: &str) -> Option<String> {
+    let trimmed = input.trim();
+    // Check for `let varname = ...`
+    if trimmed.starts_with("let ") {
+        let rest = trimmed[4..].trim_start();
+        let name: String = rest.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+        if !name.is_empty() {
+            return Some(name);
+        }
+    }
+    // Check for `... |> into varname`
+    if let Some(pos) = trimmed.rfind("|> into ") {
+        let rest = trimmed[pos + 8..].trim();
+        let name: String = rest.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+        if !name.is_empty() {
+            return Some(name);
+        }
+    }
+    None
+}
+
 fn needs_continuation(input: &str) -> bool {
     let mut parens = 0i32;
     let mut braces = 0i32;

@@ -38,10 +38,10 @@
         </p>
         <pre><code class="language-biolang"># ncbi_search(db, term, [max_results])
 
-# Search the gene database
+# Search the gene database — returns list of ID strings
 let results = ncbi_search("gene", "BRCA1")
 print(results)
-# => { count: 1, ids: ["672"], ... }
+# => ["672"]
 
 # Search PubMed for articles
 let articles = ncbi_search("pubmed", "CRISPR AND cancer", 10)
@@ -119,8 +119,8 @@ let summary = genes
     let result = ncbi_search("gene", name)
     {
       symbol: name,
-      ids: result.ids,
-      count: result.count
+      ids: result,
+      count: len(result)
     }
   })
   |> to_table()

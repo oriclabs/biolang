@@ -86,26 +86,44 @@ try {
 
 The `error()` function raises an exception that unwinds to the nearest `catch`.
 
-## retry
+## Retry Loops
 
-Network calls to biological databases are unreliable. The `retry` construct
-repeats a block up to a specified number of attempts, with configurable delay
-between tries.
+Network calls to biological databases are unreliable. Use a loop with
+`try/catch` to retry a block up to a specified number of attempts.
 
 ```biolang
-let gene_info = retry(3, delay: 2000) {
-    fetch_ncbi_gene("BRCA1")
+let gene_info = None
+let attempts = 0
+while attempts < 3 {
+    try {
+        gene_info = ncbi_gene("BRCA1")
+        break
+    } catch e {
+        attempts = attempts + 1
+        if attempts >= 3 { error("All attempts failed: " + e.message) }
+        sleep(2000)
+    }
 }
 ```
 
-If all attempts fail, the last error propagates. Combine `retry` with `try/catch`
-for a fully defensive pattern:
+If all attempts fail, the last error propagates. Combine with an outer
+`try/catch` for a fully defensive pattern:
 
 ```biolang
 let annotation = try {
-    retry(5, delay: 1000) {
-        fetch_ensembl_annotation("ENSG00000139618")
+    let result = None
+    let attempts = 0
+    while attempts < 5 {
+        try {
+            result = ensembl_gene("ENSG00000139618")
+            break
+        } catch e {
+            attempts = attempts + 1
+            if attempts >= 5 { error("All attempts failed: " + e.message) }
+            sleep(1000)
+        }
     }
+    result
 } catch e {
     print("Ensembl unavailable after 5 attempts: " + e.message)
     {gene_name: "BRCA2", source: "fallback_cache"}
@@ -260,7 +278,7 @@ fn parse_fasta_robust(path) {
                     guard len(current_seq) > 0 else {
                         error("Empty sequence for " + current_header)
                     }
-                    guard is_valid_dna(current_seq) else {
+                    guard is_dna(current_seq) else {
                         error("Invalid characters in " + current_header)
                     }
                     records = records + [{header: current_header, seq: current_seq}]
@@ -279,7 +297,7 @@ fn parse_fasta_robust(path) {
     if current_header != None {
         try {
             guard len(current_seq) > 0 else { error("Empty sequence") }
-            guard is_valid_dna(current_seq) else { error("Invalid characters") }
+            guard is_dna(current_seq) else { error("Invalid characters") }
             records = records + [{header: current_header, seq: current_seq}]
         } catch e {
             errors = errors + [{header: current_header, reason: e.message}]
@@ -307,16 +325,26 @@ fn fetch_gene_summaries(gene_ids) {
 
     for id in gene_ids {
         let summary = try {
-            retry(3, delay: 1500) {
-                let url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
-                    + "?db=gene&id=" + str(id) + "&retmode=json"
-                let resp = http_get(url)
-                let data = parse_json(resp.body)
-                guard data?.result != None else {
-                    error("No result field in response")
+            let result = None
+            let attempts = 0
+            while attempts < 3 {
+                try {
+                    let url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+                        + "?db=gene&id=" + str(id) + "&retmode=json"
+                    let resp = http_get(url)
+                    let data = parse_json(resp.body)
+                    guard data?.result != None else {
+                        error("No result field in response")
+                    }
+                    result = data.result[str(id)]
+                    break
+                } catch e {
+                    attempts = attempts + 1
+                    if attempts >= 3 { error("All attempts failed: " + e.message) }
+                    sleep(1500)
                 }
-                data.result[str(id)]
             }
+            result
         } catch e {
             print("Failed to fetch gene " + str(id) + ": " + e.message)
             {gene_id: id, name: "unknown", description: "fetch_failed"}
@@ -393,12 +421,12 @@ write_csv(pathogenic, "pathogenic_report.csv")
 |---|---|---|
 | try/catch | `try { } catch e { }` | Graceful failure handling |
 | error() | `error("msg")` | Raise an exception |
-| retry | `retry(n, delay: ms) { }` | Transient-failure recovery |
+| retry loop | `while attempts < n { try { ... break } catch { ... sleep(ms) } }` | Transient-failure recovery |
 | ?? | `val ?? default` | None substitution |
 | ?. | `obj?.field` | Safe field access |
 | guard | `guard cond else { }` | Precondition assertion |
 
 Layer these mechanisms: `guard` at function entry to reject invalid inputs,
-`?.` and `??` for data access, `try/catch` around I/O and parsing, and `retry`
-for network calls. Together they produce pipelines that finish with partial
+`?.` and `??` for data access, `try/catch` around I/O and parsing, and retry
+loops for network calls. Together they produce pipelines that finish with partial
 results instead of crashing with none.

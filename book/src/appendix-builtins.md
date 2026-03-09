@@ -396,9 +396,9 @@ async-aware and return structured records.
 
 | Builtin | Description |
 |---|---|
-| `ncbi_search(db, query, max?) -> List[Record]` | Search NCBI Entrez databases |
-| `ncbi_gene(gene_id) -> Record` | Fetch NCBI Gene record |
-| `ncbi_sequence(acc) -> Record` | Fetch sequence by accession from NCBI Nucleotide/Protein |
+| `ncbi_search(db, query, max?) -> List[Str]` | Search NCBI Entrez databases (returns ID list) |
+| `ncbi_gene(symbol, max?) -> Record or List[Str]` | Gene lookup: Record if single match, else ID list |
+| `ncbi_sequence(acc) -> Str` | Fetch sequence by accession as FASTA text |
 | `ensembl_gene(ensembl_id) -> Record` | Ensembl gene lookup by Ensembl ID |
 | `ensembl_symbol(species, symbol) -> Record` | Ensembl gene lookup by species and symbol |
 | `ensembl_vep(variants) -> List[Record]` | Variant Effect Predictor annotation |
@@ -407,7 +407,7 @@ async-aware and return structured records.
 | `ucsc_sequence(genome, chrom, start, end) -> Dna` | Fetch genomic sequence from UCSC DAS |
 | `kegg_get(entry) -> Record` | Retrieve a KEGG database entry |
 | `kegg_find(db, query) -> List[Record]` | Search KEGG databases |
-| `string_network(proteins, species?) -> Record` | STRING protein-protein interaction network |
+| `string_network(proteins, species) -> List[Record]` | STRING interactions: {protein_a, protein_b, score} |
 | `pdb_entry(pdb_id) -> Record` | Fetch PDB structure metadata |
 | `reactome_pathways(gene) -> List[Record]` | Reactome pathway memberships for a gene |
 | `go_term(go_id) -> Record` | Gene Ontology term details |
@@ -455,7 +455,7 @@ serialization.
 | `assert(cond, msg?) -> None` | Panic with `msg` if `cond` is false |
 | `sleep(ms) -> None` | Pause execution for `ms` milliseconds |
 | `now() -> Float` | Current timestamp in seconds since epoch |
-| `elapsed(start) -> Float` | Seconds elapsed since `start` (from `now()`) |
+| `now() - start` | Seconds elapsed since `start` (use `now()` for both timestamps) |
 | `bp(n) -> Int` | Identity; documents that `n` is in base pairs |
 | `kb(n) -> Int` | Convert kilobases to base pairs (`n * 1000`) |
 | `mb(n) -> Int` | Convert megabases to base pairs (`n * 1_000_000`) |
@@ -470,5 +470,5 @@ serialization.
 let t0 = now()
 let result = read_fasta("genome.fa")
   |> flat_map(|r| find_orfs(r.seq, 300))
-print("Found " + str(len(result)) + " ORFs in " + str(elapsed(t0)) + "s")
+print("Found " + str(len(result)) + " ORFs in " + str(now() - t0) + "s")
 ```

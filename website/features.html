@@ -102,8 +102,8 @@ chat("What pathways involve BRCA1 and TP53?")</code></pre>
             <span class="tag tag-lang">SYNTAX</span>
             <span class="font-semibold text-white text-sm">Pipe-First Operator</span>
           </div>
-          <p class="text-xs text-slate-400 mb-2">Data flows left-to-right via <code>|&gt;</code>. No nested calls, no temp vars.</p>
-          <div class="mini-code"><span class="text-slate-500">#</span> a |&gt; f(b) = f(a, b)<br>data |&gt; filter(|x| x &gt; 0) |&gt; mean()</div>
+          <p class="text-xs text-slate-400 mb-2">Data flows left-to-right via <code>|&gt;</code>. No nested calls, no temp vars. Use <code>|&gt; into</code> to bind results.</p>
+          <div class="mini-code"><span class="text-slate-500">#</span> a |&gt; f(b) = f(a, b)<br>data |&gt; filter(|x| x &gt; 0) |&gt; mean()<br><span class="text-slate-500">#</span> bind mid-chain<br>data |&gt; filter(|x| x &gt; 0) |&gt; into clean</div>
         </div>
         <div class="feature-cell">
           <div class="flex items-center gap-2 mb-2">

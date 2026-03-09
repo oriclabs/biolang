@@ -86,7 +86,8 @@ Accumulate a value across the entire stream.
 
 ```
 let total_bases = read_fastq("sample.fastq.gz")
-  |> fold(0, |acc, r| acc + r.length)
+  |> map(|r| r.length)
+  |> sum()
 print("Total bases: " + str(total_bases))
 ```
 
@@ -129,7 +130,7 @@ stream). This is essential for computing positional statistics across a genome.
 
 ```
 # Sliding window GC content
-let sequence = read_fasta("chr1.fa") |> first() |> |r| r.seq
+read_fasta("chr1.fa") |> first() |> |r| r.seq |> into sequence
 let win_size = 1000
 let step = 500
 
@@ -175,7 +176,7 @@ let chromosomes = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6",
 let per_chrom_stats = par_map(chromosomes, |chrom| {
   let reads = read_bam("sample.bam") |> filter(|r| r.chrom == chrom)
   let count = reads |> count()
-  let depth = samtools_depth("sample.bam", chrom) |> mean()
+  let depth = tool("samtools", "depth -r " + chrom + " sample.bam") |> col("depth") |> mean()
   {chrom: chrom, reads: count, mean_depth: depth}
 })
 
@@ -355,22 +356,20 @@ let all_results = manifest
 
        par_map(batch, |sample| {
          # Align
-         let bam = bwa_mem("GRCh38.fa", sample.r1, sample.r2, threads: 2)
-           |> samtools_sort(threads: 2)
-         samtools_index(bam)
+         let sam = tool("bwa-mem2", "mem -t 2 GRCh38.fa " + sample.r1 + " " + sample.r2)
+         let bam = tool("samtools", "sort -@ 2 -o " + sample.sample_id + ".sorted.bam " + sam)
+         tool("samtools", "index " + bam)
 
          # QC metrics
-         let flagstat = samtools_flagstat(bam)
-         let depth = samtools_depth(bam) |> mean()
-         let insert_size = picard_insert_size(bam)
+         let flagstat = tool("samtools", "flagstat " + bam)
+         let depth_vals = tool("samtools", "depth " + bam)
+         let mean_depth = depth_vals |> col("depth") |> mean()
 
          {
            id: sample.sample_id,
            bam: bam,
-           mapped_pct: flagstat.mapped_pct,
-           mean_depth: depth,
-           median_insert: insert_size.median,
-           status: if flagstat.mapped_pct > 90 and depth > 20
+           mean_depth: mean_depth,
+           status: if mean_depth > 20
                    then "PASS" else "FAIL",
          }
        })

@@ -179,12 +179,13 @@ let all_exons = read_gff("genes.gff3")
   |> filter(|f| f.type == "gene")
   |> flat_map(|gene| gene.children |> filter(|c| c.type == "exon"))
 
-# Find all k-mers across multiple sequences
-let all_kmers = read_fasta("contigs.fa")
-  |> flat_map(|seq| seq.seq |> window(21) |> map(|w| to_string(w)))
-  |> group_by(|kmer| kmer)
-  |> map(|g| {kmer: g.key, count: len(g.values)})
-  |> sort("count", descending: true)
+# Count k-mers across multiple sequences (auto-spills to disk for large data)
+let top_kmers = fasta("contigs.fa")
+  |> kmer_count(21)        # Table sorted by count descending
+  |> head(20)
+
+# For bounded memory, use the top-N parameter:
+# fasta("contigs.fa") |> kmer_count(21, 100)  # only top 100
 ```
 
 ### `take_while` -- Stream Until Condition Fails
@@ -250,6 +251,43 @@ read_fasta("assembly.fa")
   |> take(10)
   |> each(|row| print(f"#{row.rank}: {row.id} ({row.length} bp)"))
 ```
+
+## Pipe Binding with `|> into`
+
+When you want to capture an intermediate result from a pipe chain, the usual
+approach is `let name = expr`. But this reads right-to-left, breaking the flow.
+The `|> into` operator binds the result of a pipe chain to a name while
+preserving left-to-right reading order:
+
+```
+# Traditional style — reads right-to-left:
+let passed = variants |> filter(|v| v.quality >= 30)
+
+# With |> into — reads left-to-right:
+variants |> filter(|v| v.quality >= 30) |> into passed
+```
+
+The syntax `expr |> into name` is equivalent to `let name = expr`. It evaluates
+the expression, binds the result to `name` (creating or shadowing), and returns
+the value.
+
+This is especially useful in multi-step workflows where you need to reference
+intermediate results:
+
+```
+# Multi-step pipeline with into
+read_fastq("reads.fq")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> into high_quality
+
+high_quality |> map(|r| trim(r, 20)) |> into trimmed
+
+print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")
+```
+
+Each `|> into` step saves the result under a name so it can be reused later,
+without wrapping the whole chain in `let x = (...)`. The pipeline reads
+top-to-bottom, matching the conceptual flow of the analysis.
 
 ## Example: FASTQ Quality Filtering Pipeline
 
@@ -486,9 +524,11 @@ print(f"\nPatient 1 depth outliers (tumor/normal > 3x): {len(depth_comparison)}"
 
 Pipes and transforms are the backbone of BioLang. The `|>` operator turns nested
 function calls into linear, readable workflows. The tap pipe `|>>` lets you
-observe and debug without disrupting the data flow. Higher-order functions like
-`map`, `filter`, `reduce`, `flat_map`, `zip`, and `window` cover the full range
-of data transformation patterns you encounter in bioinformatics pipelines.
+observe and debug without disrupting the data flow. The `|> into` operator
+captures intermediate results without breaking left-to-right reading order.
+Higher-order functions like `map`, `filter`, `reduce`, `flat_map`, `zip`, and
+`window` cover the full range of data transformation patterns you encounter in
+bioinformatics pipelines.
 
 Every example in this chapter represents a real analysis pattern: quality filtering,
 variant annotation, multi-sample comparison. As your pipelines grow more complex,

@@ -87,10 +87,10 @@ for m in top_tp53 {
 
 println("\n=== Querying ClinVar ===")
 let clinvar_tp53 = ncbi_search("clinvar", "TP53[gene] AND pathogenic[clinsig]")
-println("TP53 pathogenic ClinVar records:", len(clinvar_tp53.ids))
+println("TP53 pathogenic ClinVar records:", len(clinvar_tp53))
 
 let clinvar_brca1 = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
-println("BRCA1 pathogenic ClinVar records:", len(clinvar_brca1.ids))
+println("BRCA1 pathogenic ClinVar records:", len(clinvar_brca1))
 
 # ── 7. UniProt Protein Domain Annotation ───────────────────────────
 # p53 (UniProt P04637): check if mutations fall in functional domains.
@@ -104,7 +104,7 @@ let p53_features = uniprot_features("P04637")
 let domains = filter(p53_features, |f| f.type == "Domain")
 println("Found", len(domains), "domains")
 for d in domains {
-    println("  Domain: " + d.description + " [" + str(d.start) + "-" + str(d.end) + "]")
+    println("  Domain: " + d.description + " [" + d.location + "]")
 }
 
 # ── 8. Drug Target Lookup via KEGG ─────────────────────────────────
@@ -115,7 +115,7 @@ println("\n=== Querying KEGG drug targets ===")
 let egfr_drugs = kegg_find("drug", "EGFR inhibitor")
 println("EGFR-targeted drugs in KEGG:", len(egfr_drugs))
 for d in head(egfr_drugs, 5) {
-    println("  " + d.id + ": " + d.name)
+    println("  " + d.id + ": " + d.description)
 }
 
 let braf_drugs = kegg_find("drug", "BRAF inhibitor")

@@ -1,0 +1,91 @@
+# streaming.bl — Streaming Large Files
+# Tutorial: https://lang.bio/docs/tutorials/streaming.html
+#
+# Run with: bl run examples/tutorials/streaming.bl
+#
+# Note: Most examples reference large files (huge.fastq.gz, etc.)
+# that are not included. This script demonstrates the streaming
+# API using the included sample data.
+
+# ── 1. Stream Basics ─────────────────────────────────────────
+
+# Streams are lazy — records are read one at a time, constant memory.
+# let stream = fastq("huge.fastq.gz")
+# print(typeof(stream))  # Stream
+
+# ── 2. Counting & Slicing ────────────────────────────────────
+
+# Count reads without loading them all
+# let n = fastq("huge.fastq.gz") |> count()
+# print(f"Total reads: {n}")
+
+# Take the first N records
+# let first_100 = fastq("huge.fastq.gz") |> take(100) |> collect()
+# print(f"First 100 reads loaded, {len(first_100)} records")
+
+# ── 3. Filter & Transform in a Single Pass ───────────────────
+
+# let gc_values = fastq("huge.fastq.gz")
+#   |> filter(|r| r.length >= 50)
+#   |> map(|r| gc_content(r.seq))
+#   |> collect()
+# print(f"Mean GC: {round(mean(gc_values), 4)}")
+
+# ── 4. Streaming VCF ─────────────────────────────────────────
+
+# VCF streaming works the same way
+let pass_count = vcf("examples/sample-data/calls.vcf") |>
+  filter(|v| v.filter == "PASS") |>
+  count()
+
+print(f"PASS variants (streamed): {pass_count}")
+
+# Stream, filter, collect
+vcf("examples/sample-data/calls.vcf") |>
+  filter(|v| v.filter == "PASS" and v.quality >= 50.0) |>
+  collect() |>
+  into high_qual
+
+print(f"High-quality PASS variants: {len(high_qual)}")
+
+# ── 5. Reduce for Single-Pass Statistics ─────────────────────
+
+vcf("examples/sample-data/calls.vcf") |>
+  filter(|v| v.filter == "PASS") |>
+  reduce(|acc, v| {
+    {
+      n:          acc.n + 1,
+      total_qual: acc.total_qual + v.quality,
+      max_qual:   max(acc.max_qual, v.quality),
+    }
+  }, { n: 0, total_qual: 0.0, max_qual: 0.0 }) |>
+  into stats
+
+print(f"\nStreaming reduce over VCF:")
+print(f"  PASS variants: {stats.n}")
+print(f"  Mean quality:  {round(stats.total_qual / stats.n, 1)}")
+print(f"  Max quality:   {stats.max_qual}")
+
+# ── 6. Streaming FASTA ───────────────────────────────────────
+
+fasta("examples/sample-data/contigs.fa") |>
+  map(|record| {
+    { name: record.id, gc: gc_content(record.seq), len: len(record.seq) }
+  }) |>
+  collect() |>
+  into gc_per_contig
+
+print(f"\nFASTA contigs streamed: {len(gc_per_contig)}")
+for entry in gc_per_contig {
+  print(f"  {entry.name}: GC = {round(entry.gc, 4)}, length = {entry.len}")
+}
+
+# ── 7. Stream BED ────────────────────────────────────────────
+
+# BED records have fields: chrom, start, end, name, score, strand
+# let total_bases = bed("regions.bed")
+#   |> map(|r| r.end - r.start)
+#   |> sum()
+# print(f"Total bases in BED regions: {total_bases}")
+
+print("\nStreaming tutorial complete.")

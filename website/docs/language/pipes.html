@@ -49,19 +49,18 @@ let result = "hello world" |> slice(0, 5)</code></pre>
           feeds its result into the next:
         </p>
         <pre><code class="language-biolang"># Read a FASTA file, filter by length, compute GC content
-let gc_values = read_fasta("genome.fa")
-  |> filter(|seq| seq_len(seq) >= 1000)
-  |> map(|seq| gc_content(seq))
+let gc_values = fasta("genome.fa")
+  |> filter(|r| r.length >= 1000)
+  |> map(|r| gc_content(r.seq))
+  |> collect()
   |> sort()
   |> reverse()
 
-# Variant calling pipeline
-let variants = read_bam("sample.bam")
-  |> filter(|r| r.mapq >= 30)
-  |> pileup("hg38.fa")
-  |> call_variants(min_depth = 10)
-  |> filter(|v| v.qual >= 20.0)
-  |> annotate("clinvar.vcf")</code></pre>
+# Variant analysis pipeline
+let high_impact = vcf("calls.vcf")
+  |> filter(|v| v.qual >= 30.0)
+  |> filter(|v| v.chrom == "chr17")
+  |> collect()</code></pre>
 
         <h2>Pipes with Lambdas</h2>
         <p>
@@ -190,7 +189,7 @@ let result = dna"ATCGATCG"
           operation (like <code>collect</code> or <code>write</code>) is reached:
         </p>
         <pre><code class="language-biolang"># Nothing happens until collect() — all lazy
-let results = stream_fastq("huge.fq.gz")
+let results = fastq("huge.fq.gz")
   |> filter(|r| mean_phred(r.quality) >= 30)
   |> filter(|r| r.length >= 50)
   |> take(10_000)
@@ -214,7 +213,7 @@ let results = stream_fastq("huge.fq.gz")
           for logging, debugging, or writing intermediate results:
         </p>
         <pre><code class="language-biolang"># Log intermediate values without breaking the chain
-let result = read_fastq("sample.fq")
+let result = fastq("sample.fq")
     |> filter(|r| mean_phred(r.quality) > 20)
     |>> print(f"After QC: {len(_)} reads")
     |> map(|r| gc_content(r.seq))
@@ -226,6 +225,35 @@ let data = [3, 1, 4, 1, 5]
     |> sort()
     |>> print(f"Sorted: {_}")
     |> reverse()</code></pre>
+
+        <h2>Pipe Binding with <code>|&gt; into</code></h2>
+        <p>
+          The <code>|&gt; into</code> operator evaluates the left-hand expression, binds the result
+          to a name, and returns the value. It reads left-to-right, avoiding the need to wrap long
+          pipe chains in <code>let x = ...</code> assignments.
+        </p>
+        <pre><code class="language-biolang"># Instead of wrapping a pipe chain in let:
+let passed = variants |> filter(|v| v.quality >= 30)
+
+# You can write:
+variants |> filter(|v| v.quality >= 30) |> into passed</code></pre>
+        <p>
+          <code>expr |&gt; into name</code> is equivalent to <code>let name = expr</code>. The
+          bound name is available in subsequent expressions, and the value itself is returned so
+          you can continue piping if needed.
+        </p>
+        <pre><code class="language-biolang"># Multi-step workflow with into
+read_fastq("reads.fq")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> into high_quality
+
+high_quality |> map(|r| trim(r, 20)) |> into trimmed
+
+print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")</code></pre>
+        <p>
+          This is especially useful when you need to reference an intermediate result later
+          without breaking the left-to-right reading order of a pipeline.
+        </p>
 
         <h2>Common Patterns</h2>
         <pre><code class="language-biolang"># ETL: Extract, Transform, Load
@@ -242,9 +270,11 @@ let safe_result = raw_data
   |> map(|r| unwrap(r))
 
 # Forking a pipeline
-let base = read_fastq("sample.fq") |> filter(|r| mean_phred(r.quality) >= 20)
-let short = base |> filter(|r| r.length < 150) |> collect()
-let long = base |> filter(|r| r.length >= 150) |> collect()</code></pre>
+let base = fastq("sample.fq")
+  |> filter(|r| mean_phred(r.quality) >= 20)
+  |> collect()
+let short = base |> filter(|r| r.length < 150)
+let long = base |> filter(|r| r.length >= 150)</code></pre>
 
         <section id="ufcs" class="mt-12">
           <h2 class="text-2xl font-bold text-white mb-4">Uniform Function Call Syntax (UFCS)</h2>

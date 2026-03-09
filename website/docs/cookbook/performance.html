@@ -99,7 +99,7 @@ let fastq_files = glob("samples/*_R1.fq.gz")
 
 let stats = par_map(fastq_files, |fname| {
   let sample = replace(fname, "_R1.fq.gz", "")
-  let reads = fastq("samples/#{fname}") |> collect
+  let reads = read_fastq("samples/#{fname}")
   let lengths = map(reads, |r| len(r.seq))
   {
     sample: sample,
@@ -150,17 +150,29 @@ fasta("genome.fa")
     print("Processing batch of #{len(batch)} sequences")
   })</code></pre>
 
-        <h3>Hash table sizing</h3>
-        <pre><code class="language-biolang"># Count k-mers efficiently
-# Option 1: Manual counting with a record
-let kmer_counts = {}
-for kmer in kmers(sequence, 21) {
-  kmer_counts[kmer] = (kmer_counts[kmer] ?? 0) + 1
-}
+        <h3>K-mer counting at scale</h3>
+        <p><code>kmer_count</code> has three memory strategies depending on data size:</p>
+        <pre><code class="language-biolang"># Small datasets — entirely in-memory (fast)
+let counts = kmer_count(dna"ATCGATCGATCG", 4)
 
-# Option 2: Use the built-in kmer_count function
-kmer_counts = kmer_count(sequence, 21)
-print("Unique 21-mers: #{len(keys(kmer_counts))}")</code></pre>
+# Large FASTQ — stream reads, auto-spill to disk if > 2M unique k-mers
+fastq("huge.fq.gz")
+  |> kmer_count(21)
+  |> head(20)
+  |> print()
+
+# Bounded memory — only track top N k-mers (periodic pruning)
+fastq("huge.fq.gz")
+  |> kmer_count(21, 100)        # top 100 only
+  |> bar_chart("Top 21-mers")</code></pre>
+        <div class="rounded-xl border border-slate-700 bg-slate-900/40 p-4 my-4">
+          <p class="text-sm text-slate-400">
+            <strong class="text-white">How auto-spill works:</strong> k-mers are counted in a HashMap.
+            When unique entries exceed ~2M (~300 MB), BioLang transparently spills to a temporary
+            SQLite database on disk. Counting continues at disk speed. The temp file is cleaned up
+            automatically. The result table is always sorted by count descending — no <code>sort_by</code> needed.
+          </p>
+        </div>
 
         <h2>I/O Optimization</h2>
 
@@ -215,12 +227,12 @@ print("Read: #{read_time}ms, Filter: #{filter_time}ms")</code></pre>
 let data = fasta("genome.fa") |> collect
 print("Loaded #{len(data)} sequences")
 
-# For large datasets, process in streaming fashion to limit memory
-let kmer_counts = fasta("genome.fa")
-  |> flat_map(|r| kmers(r.seq, 21))
-  |> frequencies
+# For large datasets, use streaming kmer_count (auto-spills to disk)
+let top_kmers = fasta("genome.fa")
+  |> kmer_count(21, 50)     # top 50 k-mers, bounded memory
 
-print("Unique 21-mers: #{len(keys(kmer_counts))}")</code></pre>
+print("Top 50 21-mers:")
+print(top_kmers)</code></pre>
 
         <h2>JIT Compilation</h2>
 

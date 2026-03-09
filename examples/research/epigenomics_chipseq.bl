@@ -171,7 +171,7 @@ println("=== Database Queries ===")
 
 println("\n--- Database Annotations ---")
 let myc_info = ncbi_gene("MYC")
-println("MYC (NCBI): " + myc_info.description)
+if is_record(myc_info) then println("MYC (NCBI): " + myc_info.description) else println("MYC IDs: " + str(myc_info))
 
 let myc_ens = ensembl_gene("ENSG00000136997")
 println("MYC (Ensembl): biotype=" + myc_ens.biotype)
@@ -179,7 +179,7 @@ println("MYC (Ensembl): biotype=" + myc_ens.biotype)
 let myc_go = go_annotations("MYC")
 println("MYC GO terms: " + str(len(myc_go)))
 
-let myc_network = string_network("MYC", 9606)
+let myc_network = string_network(["MYC"], 9606)
 println("MYC interactors (STRING): " + str(len(myc_network)))
 
 let aml_pathway = kegg_find("pathway", "acute myeloid leukemia")

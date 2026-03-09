@@ -145,18 +145,21 @@ let top_hit = annotated[0]
 println("\nTop hit: " + top_hit.rsid + " (" + top_hit.nearest_gene + ")")
 
 let gene_info = ncbi_gene("TCF7L2")
-println("NCBI Gene ID: " + gene_info.gene_id + " | Summary: " + gene_info.summary)
+if is_record(gene_info) then
+    println("NCBI Gene ID: " + gene_info.id + " | Summary: " + gene_info.summary)
+else
+    println("NCBI Gene IDs: " + str(gene_info))
 
 let ensembl = ensembl_gene("ENSG00000148737")
 println("Ensembl biotype: " + ensembl.biotype + " | Description: " + ensembl.description)
 
 let t2d_kegg = kegg_find("disease", "type 2 diabetes")
-println("KEGG disease entry: " + t2d_kegg[0].entry + " - " + t2d_kegg[0].name)
+println("KEGG disease entry: " + t2d_kegg[0].id + " - " + t2d_kegg[0].description)
 
-let ppi_network = string_network("TCF7L2", 9606)
+let ppi_network = string_network(["TCF7L2"], 9606)
 let interactors = ppi_network
   |> filter(|edge| edge.score > 0.7)
-  |> map(|edge| edge.partner)
+  |> map(|edge| edge.protein_b)
 println("STRING interactors (score>0.7): " + join(interactors, ", "))
 
 # ── 9. Forest Plot of Effect Sizes ──

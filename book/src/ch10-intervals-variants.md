@@ -46,19 +46,20 @@ let b = interval("chr1", 150, 250)
 let c = interval("chr1", 300, 400)
 
 # Overlap test
-print(overlaps(a, b))   # true
-print(overlaps(a, c))   # false
+print(a.start < b.end and b.start < a.end)   # true
+print(a.start < c.end and c.start < a.end)   # false
 
 # Containment
 let outer = interval("chr1", 100, 500)
 print(contains(outer, c))  # true
 
 # Distance between non-overlapping intervals
-print(distance(a, c))   # 100
+let dist = if a.end <= c.start then c.start - a.end else a.start - c.end
+print(dist)   # 100
 
 # Merge overlapping intervals into one
-let merged = merge_interval(a, b)
-# interval("chr1", 100, 250)
+let merged = merge_intervals([a, b])
+# [interval("chr1", 100, 250)]
 
 # Intersection
 let common = intersect(a, b)
@@ -99,8 +100,9 @@ Find the closest interval to a query, even if there is no overlap.
 let snp_pos = interval("chr7", 55181378, 55181379)
 let nearest = query_nearest(tree, snp_pos)
 
+let d = if snp_pos.end <= nearest.start then nearest.start - snp_pos.end else snp_pos.start - nearest.end
 print("Nearest feature: " + nearest.name
-    + " at distance " + str(distance(snp_pos, nearest)) + " bp")
+    + " at distance " + str(d) + " bp")
 ```
 
 ### coverage
@@ -247,7 +249,7 @@ for peak in peaks {
             peak_chrom: peak.chrom,
             peak_start: peak.start,
             peak_end: peak.end,
-            overlap_bp: intersect(peak, hit) |> width()
+            overlap_bp: let iv = intersect(peak, hit); iv.end - iv.start
         }]
     }
 }
@@ -293,8 +295,8 @@ let classified = pass_snps |> map(|v| {
     {chrom: v.chrom, pos: v.pos, change: change, class: cls, qual: v.qual}
 })
 
-let ti_count = classified |> filter(|v| v.class == "Ti") |> len()
-let tv_count = classified |> filter(|v| v.class == "Tv") |> len()
+classified |> filter(|v| v.class == "Ti") |> len() |> into ti_count
+classified |> filter(|v| v.class == "Tv") |> len() |> into tv_count
 let ratio = if tv_count > 0 { ti_count / tv_count } else { 0.0 }
 
 print("Transitions: " + str(ti_count))
@@ -318,7 +320,7 @@ let chrom_report = by_chrom |> map(|group| {
     }
 })
 
-let sorted_report = chrom_report |> sort(|a, b| compare(a.chrom, b.chrom))
+chrom_report |> sort(|a, b| compare(a.chrom, b.chrom)) |> into sorted_report
 
 print("\nPer-chromosome Ti/Tv:")
 print("Chrom\tTi\tTv\tRatio\tTotal")
@@ -369,7 +371,7 @@ let annotated = variants |> map(|v| {
     let nearest_dist = if len(overlapping) > 0 {
         0
     } else {
-        distance(pos_interval, nearest)
+        if pos_interval.end <= nearest.start then nearest.start - pos_interval.end else pos_interval.start - nearest.end
     }
 
     {
@@ -419,11 +421,11 @@ write_csv(annotated, "variants_regulatory_annotation.csv")
 | Function | Description |
 |---|---|
 | `interval(chrom, start, end)` | Create an interval |
-| `overlaps(a, b)` | Test for overlap |
+| `a.start < b.end and b.start < a.end` | Test for overlap |
 | `contains(a, b)` | Test containment |
-| `distance(a, b)` | Gap between non-overlapping intervals |
+| `if a.end <= b.start then b.start - a.end else a.start - b.end` | Gap between non-overlapping intervals |
 | `intersect(a, b)` | Overlapping portion |
-| `merge_interval(a, b)` | Union of overlapping pair |
+| `merge_intervals([a, b])` | Merge list of overlapping intervals |
 | `interval_tree(list)` | Build tree for fast queries |
 | `query_overlaps(tree, q)` | All intervals overlapping q |
 | `query_nearest(tree, q)` | Closest interval to q |

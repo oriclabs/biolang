@@ -38,7 +38,7 @@ let amino_acid = match codon {
     "ATG" => "Met"
     "TGG" => "Trp"
     "TAA" | "TAG" | "TGA" => "Stop"
-    _ => lookup_codon_table(codon)
+    _ => codon_usage(codon)
 }
 ```
 
@@ -108,7 +108,7 @@ let target = dna"TATAAA"
 let promoters = read_bed("promoter_regions.bed")
 
 for region in promoters {
-    let seq = extract_sequence(ref_genome, region)
+    let seq = ucsc_sequence("hg38", region.chrom, region.start, region.end)
     if contains(seq, target) {
         print("TATA box found in " + region.name)
         break
@@ -123,7 +123,7 @@ for region in promoters {
 Use `while` when the number of iterations is unknown ahead of time.
 
 ```biolang
-fn find_orf(seq) {
+fn find_orfs_manual(seq) {
     let i = 0
     let in_orf = false
     let orf_start = 0
@@ -144,7 +144,7 @@ fn find_orf(seq) {
     orfs
 }
 
-let orfs = find_orf("ATGAAACCCTAGATGTTTGAATAA")
+let orfs = find_orfs_manual("ATGAAACCCTAGATGTTTGAATAA")
 # [{start: 0, end: 12, length: 12}, {start: 12, end: 24, length: 12}]
 ```
 
@@ -235,20 +235,20 @@ negative checks.
 
 ```biolang
 fn process_bam(path) {
-    let header = read_bam_header(path)
+    let header = sam_header(path)
 
     unless contains(header.sort_order, "coordinate") {
         print("WARNING: BAM is not coordinate-sorted, sorting first")
-        path = sort_bam(path)
+        shell("samtools sort -o " + path + " " + path)
     }
 
     unless file_exists(path + ".bai") {
         print("Indexing BAM")
-        index_bam(path)
+        shell("samtools index " + path)
     }
 
     # Proceed with analysis
-    let stats = bam_stats(path)
+    let stats = flagstat(path)
     stats
 }
 ```
@@ -299,7 +299,7 @@ let genes = read_gff("annotations.gff")
 
 for gene in genes {
     let upstream = interval(gene.chrom, gene.start - 2000, gene.start)
-    let seq = extract_sequence(ref_genome, upstream)
+    let seq = ucsc_sequence("hg38", gene.chrom, gene.start - 2000, gene.start)
     let hits = find_motif(seq, motif)
 
     if len(hits) > 0 {
@@ -342,7 +342,7 @@ let samples = ["S001", "S002", "S003", "S004"]
 let bam_dir = "data/aligned"
 
 for sample in samples {
-    let stats = bam_stats(bam_dir + "/" + sample + ".bam")
+    let stats = flagstat(bam_dir + "/" + sample + ".bam")
     let result = qc_disposition(stats)
 
     if result.pass {
@@ -370,7 +370,7 @@ fn call_variants(bam_path, ref_path, bed_path, min_depth: 10) {
         return {error: "Target BED not found: " + bed_path}
     }
 
-    let header = read_bam_header(bam_path)
+    let header = sam_header(bam_path)
     guard header.sort_order == "coordinate" else {
         return {error: "BAM must be coordinate-sorted"}
     }
@@ -380,10 +380,13 @@ fn call_variants(bam_path, ref_path, bed_path, min_depth: 10) {
 
     # All preconditions met -- run the caller
     let regions = read_bed(bed_path)
-    let raw_calls = pileup_caller(bam_path, ref_path, regions, min_depth)
+    let vcf_out = "calls.vcf"
+    shell("bcftools mpileup -f " + ref_path + " -R " + bed_path + " " + bam_path
+        + " | bcftools call -mv -Ov -o " + vcf_out)
 
+    let raw_calls = read_vcf(vcf_out)
     let filtered = raw_calls
-        |> filter(|v| v.qual >= 30.0 && v.depth >= min_depth)
+        |> filter(|v| v.qual >= 30.0)
 
     {
         total_calls: len(raw_calls),

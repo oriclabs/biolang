@@ -112,8 +112,9 @@ let multiline = "line one
 line two
 line three"
 
-# Raw strings (no interpolation, no escape processing)
+# Raw strings (no escape processing — backslashes are literal)
 let pattern = r"(\w+)\t(\d+)"
+let path = r"C:\Users\data\reads.fq.gz"   # Windows paths
 
 # String operations
 let up = upper(name)              # "BIOLANG"

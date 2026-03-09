@@ -1195,6 +1195,13 @@ impl Parser {
                 Ok(Spanned::new(Expr::QualLit(s), span))
             }
             TokenKind::Ident(_) => self.parse_ident_expr(),
+            // `into` is a keyword after `|>`, but also a builtin function name.
+            // In prefix position (start of expression), treat it as an identifier.
+            TokenKind::Into => {
+                let span = self.current_span();
+                self.advance();
+                Ok(Spanned::new(Expr::Ident("into".to_string()), span))
+            }
             TokenKind::Minus => {
                 let start = self.current_span();
                 self.advance();
@@ -1376,12 +1383,9 @@ impl Parser {
     }
 
     fn is_record_literal(&self) -> bool {
-        // { ident: ...} or { "string": ...} is a record
+        // { key: ...} is a record — key can be ident, string, or keyword (e.g. "end", "type")
         if self.pos + 2 < self.tokens.len() {
-            let key_is_valid = matches!(
-                &self.tokens[self.pos + 1].kind,
-                TokenKind::Ident(_) | TokenKind::Str(_)
-            );
+            let key_is_valid = Self::token_is_record_key(&self.tokens[self.pos + 1].kind);
             if key_is_valid && matches!(&self.tokens[self.pos + 2].kind, TokenKind::Colon) {
                 return true;
             }
@@ -1393,6 +1397,66 @@ impl Parser {
             }
         }
         false
+    }
+
+    /// Check if a token can serve as a record key (identifiers, strings, and keywords)
+    fn token_is_record_key(kind: &TokenKind) -> bool {
+        matches!(kind, TokenKind::Ident(_) | TokenKind::Str(_))
+            || Self::keyword_as_name(kind).is_some()
+    }
+
+    /// Extract a name from a keyword token for use as a record key
+    fn keyword_as_name(kind: &TokenKind) -> Option<&'static str> {
+        match kind {
+            TokenKind::End => Some("end"),
+            TokenKind::Into => Some("into"),
+            TokenKind::As => Some("as"),
+            TokenKind::From => Some("from"),
+            TokenKind::Where => Some("where"),
+            TokenKind::With => Some("with"),
+            TokenKind::Not => Some("not"),
+            TokenKind::And => Some("and"),
+            TokenKind::Or => Some("or"),
+            TokenKind::Do => Some("do"),
+            TokenKind::If => Some("if"),
+            TokenKind::Then => Some("then"),
+            TokenKind::Else => Some("else"),
+            TokenKind::For => Some("for"),
+            TokenKind::In => Some("in"),
+            TokenKind::While => Some("while"),
+            TokenKind::Match => Some("match"),
+            TokenKind::Return => Some("return"),
+            TokenKind::True => Some("true"),
+            TokenKind::False => Some("false"),
+            TokenKind::Nil => Some("nil"),
+            TokenKind::Import => Some("import"),
+            TokenKind::Try => Some("try"),
+            TokenKind::Catch => Some("catch"),
+            TokenKind::Break => Some("break"),
+            TokenKind::Continue => Some("continue"),
+            TokenKind::Fn => Some("fn"),
+            TokenKind::Let => Some("let"),
+            TokenKind::Const => Some("const"),
+            TokenKind::Struct => Some("struct"),
+            TokenKind::Enum => Some("enum"),
+            TokenKind::Trait => Some("trait"),
+            TokenKind::Impl => Some("impl"),
+            TokenKind::Async => Some("async"),
+            TokenKind::Await => Some("await"),
+            TokenKind::Yield => Some("yield"),
+            TokenKind::Stage => Some("stage"),
+            TokenKind::Parallel => Some("parallel"),
+            TokenKind::Pipeline => Some("pipeline"),
+            TokenKind::Assert => Some("assert"),
+            TokenKind::Given => Some("given"),
+            TokenKind::Otherwise => Some("otherwise"),
+            TokenKind::Guard => Some("guard"),
+            TokenKind::Unless => Some("unless"),
+            TokenKind::When => Some("when"),
+            TokenKind::Defer => Some("defer"),
+            TokenKind::Retry => Some("retry"),
+            _ => None,
+        }
     }
 
     fn parse_record(&mut self) -> Result<Spanned<Expr>> {
@@ -1580,10 +1644,28 @@ impl Parser {
 
     fn parse_formula(&mut self) -> Result<Spanned<Expr>> {
         let start = self.current_span();
-        self.advance(); // consume ~
-        let expr = self.parse_precedence(Precedence::Addition)?;
-        let span = start.merge(expr.span);
-        Ok(Spanned::new(Expr::Formula(Box::new(expr)), span))
+        self.advance(); // consume leading ~
+        let lhs = self.parse_precedence(Precedence::Addition)?;
+        // Check for ~ separator (R-style: ~response ~ predictor1 + predictor2)
+        if self.check(&TokenKind::Tilde) {
+            self.advance(); // consume inner ~
+            let rhs = self.parse_precedence(Precedence::Addition)?;
+            let span = start.merge(rhs.span);
+            // Use Binary with Sub as a structural separator — parse_formula_columns
+            // only inspects left/right, not the op
+            let inner = Spanned::new(
+                Expr::Binary {
+                    op: BinaryOp::Sub,
+                    left: Box::new(lhs),
+                    right: Box::new(rhs),
+                },
+                span,
+            );
+            Ok(Spanned::new(Expr::Formula(Box::new(inner)), span))
+        } else {
+            let span = start.merge(lhs.span);
+            Ok(Spanned::new(Expr::Formula(Box::new(lhs)), span))
+        }
     }
 
     fn parse_if_expr(&mut self) -> Result<Spanned<Expr>> {
@@ -1942,6 +2024,19 @@ impl Parser {
             TokenKind::PipeOp => {
                 self.advance();
                 self.skip_newlines();
+                // Check for `|> into name` (pipe-into binding)
+                if matches!(self.current_kind(), TokenKind::Into) {
+                    self.advance();
+                    let name = self.expect_ident()?;
+                    let span = left.span.merge(self.prev_span());
+                    return Ok(Spanned::new(
+                        Expr::PipeInto {
+                            value: Box::new(left),
+                            name,
+                        },
+                        span,
+                    ));
+                }
                 // Check for `|> then var -> expr` (destructuring pipe)
                 if matches!(self.current_kind(), TokenKind::Then) {
                     self.advance();
@@ -2622,7 +2717,8 @@ impl Parser {
     }
 
     fn expect_record_key(&mut self) -> Result<String> {
-        match self.current_kind().clone() {
+        let kind = self.current_kind().clone();
+        match kind {
             TokenKind::Ident(name) => {
                 self.advance();
                 Ok(name)
@@ -2630,6 +2726,11 @@ impl Parser {
             TokenKind::Str(s) => {
                 self.advance();
                 Ok(s)
+            }
+            ref k if Self::keyword_as_name(k).is_some() => {
+                let name = Self::keyword_as_name(k).unwrap().to_string();
+                self.advance();
+                Ok(name)
             }
             other => Err(BioLangError::new(
                 ErrorKind::ExpectedToken,

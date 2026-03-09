@@ -64,7 +64,28 @@ pub fn is_bio_plots_builtin(name: &str) -> bool {
     )
 }
 
+/// Normalize single-Record-with-`data` calling convention:
+///   `func({data: table, title: "..."})` → `func(table, {title: "..."})`
+/// This lets all bio plot functions accept both:
+///   `manhattan(table, {title: "..."})` and `manhattan({data: table, title: "..."})`
+fn normalize_data_args(args: Vec<Value>) -> Vec<Value> {
+    if args.len() == 1 {
+        if let Value::Record(ref map) = args[0] {
+            if let Some(data) = map.get("data") {
+                let mut opts = map.clone();
+                opts.remove("data");
+                if opts.is_empty() {
+                    return vec![data.clone()];
+                }
+                return vec![data.clone(), Value::Record(opts)];
+            }
+        }
+    }
+    args
+}
+
 pub fn call_bio_plots_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
+    let args = normalize_data_args(args);
     match name {
         "manhattan" => builtin_manhattan(args),
         "qq_plot" => builtin_qq_plot(args),
@@ -834,23 +855,31 @@ fn builtin_roc_curve(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let fmt = get_opt_str(&opts, "format", "ascii").to_string();
 
-    let scores = extract_table_col(table, get_opt_str(&opts, "score", "score"))?;
-    let labels = extract_table_col(table, get_opt_str(&opts, "label", "label"))?;
+    // Support precomputed FPR/TPR columns or raw score/label columns
+    let has_fpr_tpr = table.col_index("fpr").is_some() && table.col_index("tpr").is_some();
 
-    let mut indices: Vec<usize> = (0..scores.len()).collect();
-    indices.sort_by(|&a, &b| scores[b].partial_cmp(&scores[a]).unwrap());
+    let (fprs, tprs) = if has_fpr_tpr {
+        (extract_table_col(table, "fpr")?, extract_table_col(table, "tpr")?)
+    } else {
+        let scores = extract_table_col(table, get_opt_str(&opts, "score", "score"))?;
+        let labels = extract_table_col(table, get_opt_str(&opts, "label", "label"))?;
+        let mut indices: Vec<usize> = (0..scores.len()).collect();
+        indices.sort_by(|&a, &b| scores[b].partial_cmp(&scores[a]).unwrap());
+        let total_pos = labels.iter().filter(|&&l| l >= 1.0).count() as f64;
+        let total_neg = labels.len() as f64 - total_pos;
+        let mut fp_v: Vec<f64> = vec![0.0];
+        let mut tp_v: Vec<f64> = vec![0.0];
+        let (mut tp, mut fp) = (0.0, 0.0);
+        for &idx in &indices {
+            if labels[idx] >= 1.0 { tp += 1.0; } else { fp += 1.0; }
+            tp_v.push(if total_pos > 0.0 { tp / total_pos } else { 0.0 });
+            fp_v.push(if total_neg > 0.0 { fp / total_neg } else { 0.0 });
+        }
+        (fp_v, tp_v)
+    };
 
-    let total_pos = labels.iter().filter(|&&l| l >= 1.0).count() as f64;
-    let total_neg = labels.len() as f64 - total_pos;
-    let mut fprs: Vec<f64> = vec![0.0];
-    let mut tprs: Vec<f64> = vec![0.0];
-    let (mut tp, mut fp) = (0.0, 0.0);
-    for &idx in &indices {
-        if labels[idx] >= 1.0 { tp += 1.0; } else { fp += 1.0; }
-        tprs.push(if total_pos > 0.0 { tp / total_pos } else { 0.0 });
-        fprs.push(if total_neg > 0.0 { fp / total_neg } else { 0.0 });
-    }
-    let auc = trapz_auc(&fprs, &tprs);
+    let auc_opt = get_opt_f64(&opts, "auc", -1.0);
+    let auc = if auc_opt >= 0.0 { auc_opt } else { trapz_auc(&fprs, &tprs) };
 
     if fmt == "svg" {
         let w = get_opt_f64(&opts, "width", 600.0);

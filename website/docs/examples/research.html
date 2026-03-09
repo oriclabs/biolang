@@ -122,10 +122,10 @@ for m in top_tp53 {
 # ── 6. ClinVar Pathogenicity Check ─────────────────────────────────
 print("\n=== Querying ClinVar ===")
 let clinvar_tp53 = ncbi_search("clinvar", "TP53[gene] AND pathogenic[clinsig]")
-print("TP53 pathogenic ClinVar records:", len(clinvar_tp53.ids))
+print("TP53 pathogenic ClinVar records:", len(clinvar_tp53))
 
 let clinvar_brca1 = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
-print("BRCA1 pathogenic ClinVar records:", len(clinvar_brca1.ids))
+print("BRCA1 pathogenic ClinVar records:", len(clinvar_brca1))
 
 # ── 7. UniProt Protein Domain Annotation ───────────────────────────
 print("\n=== Querying UniProt ===")
@@ -353,7 +353,7 @@ let ranked_genes = de_results
   |> mutate("rank_score", |row| -log2(row.pvalue) * (row.log2fc |> sign()))
   |> sort(|a, b| b.rank_score - a.rank_score)
 
-let gsea_results = gsea(ranked_genes |> select("gene", "rank_score"), gene_sets, 1000)
+let gsea_results = gsea(ranked_genes |> select("gene", "rank_score"), gene_sets)
 
 print("\nGSEA Results:")
 gsea_results |> map(|row| print(f"  {row.term}\tNES={row.nes:.3f}\tpadj={row.padj:.4f}"))
@@ -542,7 +542,7 @@ annotated |> each(|snp|
 # ── 7-11. Database queries, forest plot, enrichment, report ──
 let top_hit = annotated[0]
 let gene_info = ncbi_gene("TCF7L2")
-let ppi_network = string_network("TCF7L2", 9606)
+let ppi_network = string_network(["TCF7L2"], 9606)
 
 let forest_data = annotated
   |> map(|row| {
@@ -1158,7 +1158,7 @@ print("GC content: " + str(gc_content(se_seq)) + "%")
 
 # ── 7-9. Database queries, visualizations, report ────────────
 let myc_info = ncbi_gene("MYC")
-let myc_network = string_network("MYC", 9606)
+let myc_network = string_network(["MYC"], 9606)
 
 let track = genome_track({data: peaks |> filter(|p| p.gene_near == "MYC"),
                           title: "H3K27ac at MYC locus (chr8)"})
@@ -1367,7 +1367,7 @@ let mecp2_gene = ncbi_gene("MECP2")
 print("MECP2: " + mecp2_gene.description)
 
 let mecp2_clinvar = ncbi_search("clinvar", "MECP2[gene] AND pathogenic[clinsig]")
-print("MECP2 pathogenic ClinVar records: " + str(len(mecp2_clinvar.ids)))
+print("MECP2 pathogenic ClinVar records: " + str(len(mecp2_clinvar)))
 
 let scn1a_gene = ncbi_gene("SCN1A")
 print("SCN1A: " + scn1a_gene.description + " — Dravet syndrome gene")
@@ -1410,7 +1410,7 @@ acmg_final |> each(|v| {
 })
 
 # ── 6. Protein Impact + Phenotype Matching ─────────────────────
-let mecp2_network = string_network("MECP2", 9606)
+let mecp2_network = string_network(["MECP2"], 9606)
 print("MECP2 protein interactors: " + str(len(mecp2_network)))
 
 let patient_phenotypes = ["developmental delay", "seizures", "microcephaly"]

@@ -13,7 +13,7 @@ let query = genus + "[Organism] AND (\"" + date_from + "\"[PDAT] : \"" + date_to
 
 try {
     let result = ncbi_search("nucleotide", query)
-    println("Result:   " + str(result.count))
+    println("Result:   " + str(len(result)))
     println("Expected: 7")
     println("Note:     Count may differ as GenBank is updated over time")
 } catch e {
