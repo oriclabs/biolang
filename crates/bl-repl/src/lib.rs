@@ -248,7 +248,11 @@ impl Repl {
                         continue;
                     }
 
-                    let _ = rl.add_history_entry(&line);
+                    // Add single-line commands to history immediately;
+                    // multi-line inputs are added after continuation is gathered.
+                    if line.starts_with(':') || line.starts_with('?') {
+                        let _ = rl.add_history_entry(&line);
+                    }
 
                     // ?function — quick help lookup
                     if trimmed.starts_with('?') {
@@ -366,7 +370,8 @@ impl Repl {
                         }
                     }
 
-                    // Input is syntactically complete → execute immediately
+                    // Input is syntactically complete → add to history and execute
+                    let _ = rl.add_history_entry(&input);
                     session_inputs.push(input.clone());
                     self.eval_and_print(&input);
                     if let Some(helper) = rl.helper_mut() {
