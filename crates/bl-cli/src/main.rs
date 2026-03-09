@@ -9,7 +9,7 @@ use std::time::Instant;
 #[derive(Parser)]
 #[command(
     name = "bl",
-    version = "0.2.0",
+    version = env!("CARGO_PKG_VERSION"),
     about = "BioLang — pipe-first bioinformatics DSL"
 )]
 struct Cli {

@@ -736,7 +736,7 @@ impl Default for Repl {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-const VERSION: &str = "0.1.0";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn print_banner() {
     println!(
