@@ -1,0 +1,13 @@
+﻿task,language,time_sec,loc
+1_fasta_stats,biolang,1.018,9
+1_fasta_stats,python,1.039,22
+2_fastq_qc,biolang,2.017,13
+2_fastq_qc,python,3.042,14
+6_genome_stats,biolang,1.019,8
+6_genome_stats,python,1.042,22
+9_human_chr22,biolang,1.013,6
+9_human_chr22,python,1.04,21
+gc_content_scale,biolang,1.022,9
+gc_content_scale,python,1.038,8
+reverse_complement,biolang,1.016,5
+reverse_complement,python,1.029,6

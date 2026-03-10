@@ -31,13 +31,16 @@ Thumbs.db
 /book/output/
 /website/book/
 
-# Benchmark generated data, results, and environments
+# Benchmark generated data, environments, and timestamped results
 /benchmarks/data/
 /benchmarks/data_real/
-/benchmarks/results/
 /benchmarks/.venv/
 /benchmarks/.RData
 /benchmarks/.Rhistory
+
+# Keep latest results, ignore timestamped runs
+/benchmarks/results/*
+!/benchmarks/results/latest/
 
 # Node modules (website build)
 node_modules/
