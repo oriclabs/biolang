@@ -1,0 +1,4 @@
+# File I/O: Parse FASTQ (100K reads, ~26 MB)
+let records = read_fastq("data/reads.fq") |> collect()
+println(f"Records: {len(records)}")
+println(f"Total bp: {records |> map(|r| len(r.seq)) |> sum()}")

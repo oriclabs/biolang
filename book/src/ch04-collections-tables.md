@@ -127,13 +127,16 @@ let enriched = samples |> mutate(
 ### `summarize` -- Aggregate Statistics
 
 ```
-let stats = samples |> summarize(
-  n_samples: count(),
-  total_reads: sum(reads),
-  mean_coverage: mean(coverage),
-  min_coverage: min(coverage),
-  max_coverage: max(coverage)
-)
+let coverages = samples |> select("coverage")
+let all_reads = samples |> select("reads")
+
+let stats = {
+  n_samples: len(samples),
+  total_reads: sum(all_reads),
+  mean_coverage: mean(coverages),
+  min_coverage: min(coverages),
+  max_coverage: max(coverages),
+}
 
 print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
 ```
@@ -143,11 +146,12 @@ print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
 ```
 let by_tissue = samples
   |> group_by("tissue")
-  |> summarize(
-    n: count(),
-    mean_cov: mean(coverage),
-    mean_reads: mean(reads)
-  )
+  |> summarize(|tissue, group| {
+    tissue: tissue,
+    n: nrow(group),
+    mean_cov: mean(group |> select("coverage")),
+    mean_reads: mean(group |> select("reads")),
+  })
 
 by_tissue |> each(|row|
   print(f"{row.tissue}: n={row.n}, cov={row.mean_cov:.1f}x, reads={row.mean_reads:.0f}")
@@ -158,10 +162,10 @@ by_tissue |> each(|row|
 
 ```
 # Sort by coverage descending
-let ranked = samples |> sort("coverage", descending: true)
+let ranked = samples |> sort_by(|row| -row.coverage)
 
-# Multi-column sort
-let ordered = samples |> sort(["tissue", "coverage"], descending: [false, true])
+# Sort by a field ascending
+let ordered = samples |> sort_by(|row| row.tissue)
 ```
 
 ### `filter` -- Select Rows by Condition
@@ -189,10 +193,11 @@ let annotations = table([
 ])
 
 # Manual left join via lookup
-let ann_map = annotations |> group_by("sample_id") |> map(|g| {key: g.key, val: g.values[0]})
+let ann_map = annotations |> group_by("sample_id")
 let joined = samples |> map(|row| {
-  let ann = ann_map |> find(|a| a.key == row.sample_id)
-  {...row, patient: ann?.val?.patient ?? "unknown", stage: ann?.val?.stage ?? "unknown"}
+  let ann_rows = ann_map[row.sample_id]
+  let ann = if !is_nil(ann_rows) then first(ann_rows) else nil
+  {...row, patient: ann?.patient ?? "unknown", stage: ann?.stage ?? "unknown"}
 })
 ```
 
@@ -267,11 +272,12 @@ let qc_flagged = qc_table |> mutate(
 )
 
 # Summary by pass/fail
-let summary = qc_flagged |> group_by("qc_pass") |> summarize(
-  count: count(),
-  mean_reads: mean(total_reads),
-  mean_q: mean(mean_quality)
-)
+let summary = qc_flagged |> group_by("qc_pass") |> summarize(|pass, group| {
+  qc_pass: pass,
+  count: nrow(group),
+  mean_reads: mean(group |> select("total_reads")),
+  mean_q: mean(group |> select("mean_quality")),
+})
 
 print("QC Summary:")
 print("=" * 60)
@@ -300,9 +306,7 @@ let counts = csv("gene_counts.csv")   # rows = genes, columns = samples
 let gene_lengths = csv("gene_lengths.csv")  # gene_id, length
 
 # Build a length lookup
-let length_map = gene_lengths
-  |> group_by("gene_id")
-  |> map(|g| {key: g.key, length: g.values[0].length})
+let length_map = gene_lengths |> group_by("gene_id")
 
 # Convert to table with gene metadata
 let expr_table = table(counts)
@@ -319,7 +323,8 @@ print(f"Genes after filter: {len(filtered)}")
 
 # RPK: reads per kilobase — transform each row
 let rpk_table = filtered |> map(|gene_row| {
-  let gene_len = length_map |> find(|g| g.key == gene_row.gene_id)
+  let gene_group = length_map[gene_row.gene_id]
+  let gene_len = if !is_nil(gene_group) then first(gene_group) else nil
   let len_kb = (gene_len?.length ?? 1000) / 1000.0
   let updated = sample_cols |> reduce({...gene_row}, |acc, col| {
     ...acc, [col]: gene_row[col] / len_kb
@@ -352,7 +357,7 @@ let gene_stats = tpm_table |> mutate(
 
 # Top variable genes
 let top_variable = gene_stats
-  |> sort("cv", descending: true)
+  |> sort_by(|g| -g.cv)
   |> take(20)
 
 print("\nTop 20 most variable genes (by CV):")
@@ -405,23 +410,23 @@ print(f"Unique variant sites: {len(unique_sites)}")
 
 # Build genotype matrix: one row per variant site, one column per sample
 let sample_names = sample_vcfs |> map(|s| s.sample)
-let calls_by_key = all_calls |> group_by(|v| v.key)
+let calls_by_key = all_calls |> group_by("key")
 
 let merged = unique_sites |> map(|site_key| {
-  let site_calls = calls_by_key |> find(|g| g.key == site_key)
-  let first = site_calls.values[0]
+  let site_vals = calls_by_key[site_key]
+  let first_call = first(site_vals)
 
   let base = {
-    chrom: first.chrom,
-    pos: first.pos,
-    ref_allele: first.ref_allele,
-    alt_allele: first.alt_allele,
-    n_samples: len(site_calls.values)
+    chrom: first_call.chrom,
+    pos: first_call.pos,
+    ref_allele: first_call.ref_allele,
+    alt_allele: first_call.alt_allele,
+    n_samples: len(site_vals)
   }
 
   # Add per-sample genotype columns
   let gt_fields = sample_names |> reduce({}, |acc, sname| {
-    let call = site_calls.values |> find(|v| v.sample == sname)
+    let call = site_vals |> find(|v| v.sample == sname)
     {...acc, [f"{sname}_GT"]: call?.genotype ?? "./.", [f"{sname}_AF"]: call?.af ?? 0.0}
   })
 
@@ -445,7 +450,7 @@ print(f"\nSomatic candidates: {len(somatic)}")
 print(f"Shared across tumors: {len(shared_tumor)}")
 print(f"\nTop somatic candidates:")
 somatic
-  |> sort("n_samples", descending: true)
+  |> sort_by(|v| -v.n_samples)
   |> take(10)
   |> each(|v| print(f"  {v.chrom}:{v.pos} {v.ref_allele}>{v.alt_allele} (in {v.n_samples} sample(s))"))
 

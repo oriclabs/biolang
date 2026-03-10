@@ -26,7 +26,7 @@ let summary = {
 print("Coverage: mean=" + str(summary.mean) + " median=" + str(summary.median))
 ```
 
-These functions handle missing values gracefully: `None` entries are skipped
+These functions handle missing values gracefully: `nil` entries are skipped
 with a warning.
 
 ## Hypothesis Testing
@@ -113,7 +113,7 @@ let gene_names = genes |> col("gene_name")
 let tumor_cols = colnames(genes) |> filter(|c| starts_with(c, "tumor_"))
 let normal_cols = colnames(genes) |> filter(|c| starts_with(c, "normal_"))
 
-let pvalues = range(0, genes.num_rows)
+let pvalues = range(0, nrow(genes))
   |> map(|i| {
        let t = tumor_cols |> map(|c| col(genes, c)[i])
        let n = normal_cols |> map(|c| col(genes, c)[i])
@@ -292,7 +292,7 @@ Use the covariance matrix eigendecomposition to project samples into PC space.
 ```
 let expr = tsv("tpm_matrix.tsv")
 let sample_ids = expr |> colnames() |> filter(|n| n != "gene_id")
-let n_genes = expr.num_rows
+let n_genes = nrow(expr)
 let n_samples = len(sample_ids)
 
 # Build samples x genes matrix
@@ -300,9 +300,14 @@ let data = sample_ids
   |> map(|id| expr |> col(id))
   |> matrix()
 
-# Center each gene (column) to zero mean
-let col_means = range(0, n_genes) |> map(|j| mean(mat_col(data, j)))
-let centered = mat_map(data, |x, i, j| x - col_means[j])
+# Center each gene (column) to zero mean by rebuilding column-wise
+let centered_data = range(0, n_samples) |> map(|i| {
+  range(0, n_genes) |> map(|j| {
+    let col_vals = mat_col(data, j)
+    col_vals[i] - mean(col_vals)
+  })
+})
+let centered = matrix(centered_data)
 
 # Covariance matrix (samples x samples)
 let cov = mat_mul(centered, transpose(centered))

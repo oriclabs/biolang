@@ -1,0 +1,13 @@
+# QC Pipeline: Read -> Filter -> Stats -> Report
+let records = read_fastq("data/reads.fq") |> collect()
+let filtered = records |> filter(|r| mean_phred(r.quality) >= 25)
+let n = len(filtered)
+let quals = filtered |> map(|r| mean_phred(r.quality))
+let lengths = filtered |> map(|r| r.length)
+
+println("QC Pipeline Results:")
+println(f"  Reads passing filter: {n}")
+println(f"  Mean quality: {round(mean(quals), 1)}")
+println(f"  Mean length: {round(mean(lengths), 1)}")
+println(f"  Min length: {min(lengths)}")
+println(f"  Max length: {max(lengths)}")

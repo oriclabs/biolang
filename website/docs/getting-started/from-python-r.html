@@ -51,7 +51,7 @@
             </tr>
             <tr>
               <td>Pipe operator</td>
-              <td>None (method chains)</td>
+              <td>n/a (method chains)</td>
               <td><code>|&gt;</code> (R 4.1+) / <code>%&gt;%</code></td>
               <td><code>|&gt;</code> (first-class)</td>
             </tr>
@@ -83,13 +83,13 @@
               <td>Null handling</td>
               <td><code>None</code></td>
               <td><code>NA</code> / <code>NULL</code></td>
-              <td><code>None</code> with <code>??</code> operator</td>
+              <td><code>nil</code> with <code>??</code> operator</td>
             </tr>
             <tr>
               <td>Error handling</td>
               <td>try/except</td>
               <td>tryCatch</td>
-              <td><code>try/catch</code> + <code>Result</code> type</td>
+              <td><code>try/catch</code> + <code>error()</code></td>
             </tr>
           </tbody>
         </table>
@@ -171,7 +171,7 @@ read.csv("samples.csv") |>
   |> filter(|row| row["reads"] >= 1_000_000)
   |> mutate(|row| { "million_reads": row["reads"] / 1_000_000.0 })
   |> select(["sample_id", "million_reads"])
-  |> arrange("million_reads", descending: true)
+  |> arrange("-million_reads")
   |> print()</code></pre>
 
         <h2>Reverse Complement</h2>
@@ -353,7 +353,7 @@ results &lt;- mclapply(file_list, process_file, mc.cores = 4)</code></pre>
           </li>
           <li>
             <strong>No <code>NULL</code>/<code>NA</code> propagation.</strong> BioLang uses
-            <code>Option&lt;T&gt;</code> (values are either <code>Some(value)</code> or <code>None</code>).
+            <code>nil</code> for absent values.
             The <code>??</code> operator provides defaults. No silent <code>NA</code> propagation surprises.
           </li>
           <li>

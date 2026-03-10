@@ -25,392 +25,409 @@
         <h1>Pipelines</h1>
         <p>
           Bioinformatics workflows are rarely a single step. A typical analysis chains together
-          quality control, alignment, variant calling, filtering, and annotation into a directed
-          acyclic graph of stages. BioLang provides first-class <code>pipeline</code> blocks that
-          make multi-stage workflows explicit, reproducible, and parallel-aware.
+          quality control, alignment, variant calling, filtering, and annotation. BioLang builds
+          pipelines through <strong>pipe-first composition</strong> using the <code>|&gt;</code>
+          operator. There is no special pipeline keyword &mdash; a pipeline is simply a sequence of
+          pipe chains, variables, and function calls that transform data step by step.
         </p>
-
-        <h2>Pipeline Blocks</h2>
-        <p>
-          A <code>pipeline</code> block declares a named workflow composed of <code>stage</code>
-          blocks. Stages execute sequentially by default, and each stage can reference the output
-          of any previous stage.
-        </p>
-        <pre><code class="language-biolang">pipeline fastq_qc {
-  stage raw_stats {
-    read_fastq("sample_R1.fastq.gz")
-      |> filter(|r| mean_phred(r.quality) >= 20)
-      |> collect()
-      |> len()
-  }
-
-  stage filter {
-    read_fastq("sample_R1.fastq.gz")
-      |> filter(|r| mean_phred(r.quality) >= 30)
-      |> write_fastq("sample_R1.filtered.fastq.gz")
-  }
-
-  stage filtered_stats {
-    read_fastq("sample_R1.filtered.fastq.gz")
-      |> collect()
-      |> len()
-  }
-}</code></pre>
-        <p>
-          When you invoke <code>fastq_qc</code>, BioLang runs <code>raw_stats</code>, then
-          <code>filter</code>, then <code>filtered_stats</code> in order. The return value of the
-          pipeline is the result of the last stage.
-        </p>
-
-        <h2>Passing Data Between Stages</h2>
-        <p>
-          Stages can capture the result of a previous stage by name. The stage name becomes a
-          binding available to all subsequent stages.
-        </p>
-        <pre><code class="language-biolang">pipeline align_and_sort {
-  stage alignment {
-    let ref = "GRCh38.fa"
-    let r1 = "tumor_R1.fastq.gz"
-    let r2 = "tumor_R2.fastq.gz"
-    shell("bwa-mem2 mem -t 16 " + ref + " " + r1 + " " + r2 + " > aligned.sam")
-    "aligned.sam"
-  }
-
-  stage sorted {
-    # alignment is the output path from the previous stage
-    shell("samtools sort -@ 8 " + alignment + " -o sorted.bam")
-    "sorted.bam"
-  }
-
-  stage indexed {
-    shell("samtools index " + sorted)
-    sorted  # return the sorted BAM path
-  }
-}</code></pre>
-        <p>
-          Each stage name resolves to whatever its block evaluated to. This creates an implicit
-          dependency chain without manual wiring.
-        </p>
-
-        <h2>Stage Dependencies and DAG Execution</h2>
-        <p>
-          BioLang infers a dependency graph from which stage names appear in each block. Independent
-          stages run concurrently when the runtime detects no data dependencies.
-        </p>
-        <pre><code class="language-biolang">pipeline variant_qc {
-  stage aligned {
-    shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.fq.gz sample_R2.fq.gz | samtools sort -@ 8 -o aligned.bam")
-    "aligned.bam"
-  }
-
-  # These two stages depend only on aligned, not on each other.
-  # BioLang runs them concurrently.
-  stage depth_check {
-    let bam_reads = read_bam(aligned) |> collect()
-    let mapped = bam_reads |> filter(|r| r.is_mapped) |> len()
-    mapped
-  }
-
-  stage flag_stats {
-    let bam_reads = read_bam(aligned) |> collect()
-    flagstat(bam_reads)
-  }
-
-  # This stage depends on both depth_check and flag_stats
-  stage report {
-    {
-      mapped_reads: depth_check,
-      flagstat: flag_stats,
-      sample: "sample_01",
-    }
-  }
-}</code></pre>
-        <p>
-          The runtime builds a DAG: <code>aligned</code> has no dependencies, <code>depth_check</code>
-          and <code>flag_stats</code> both depend on <code>aligned</code> (and thus run in parallel
-          once it finishes), and <code>report</code> depends on both.
-        </p>
-
-        <h2>Parallel Execution</h2>
-        <p>
-          When you need to process multiple samples, <code>parallel for</code> fans out work across
-          available cores. BioLang schedules iterations concurrently, respecting system resources.
-        </p>
-        <pre><code class="language-biolang">let samples = [
-  {id: "tumor_01", r1: "t01_R1.fq.gz", r2: "t01_R2.fq.gz"},
-  {id: "tumor_02", r1: "t02_R1.fq.gz", r2: "t02_R2.fq.gz"},
-  {id: "tumor_03", r1: "t03_R1.fq.gz", r2: "t03_R2.fq.gz"},
-  {id: "normal_01", r1: "n01_R1.fq.gz", r2: "n01_R2.fq.gz"},
-]
-
-parallel for sample in samples {
-  let bam = sample.id + ".sorted.bam"
-  shell("bwa-mem2 mem -t 4 GRCh38.fa " + sample.r1 + " " + sample.r2
-        + " | samtools sort -@ 4 -o " + bam)
-  shell("samtools index " + bam)
-  {id: sample.id, bam: bam}
-}</code></pre>
-        <p>
-          The result is a list of records, one per sample, collected in the order the iterations
-          complete.
-        </p>
-
-        <h2>Defer for Cleanup</h2>
-        <p>
-          Intermediate files pile up fast. <code>defer</code> registers a cleanup action that runs
-          when the pipeline completes, whether it succeeds or fails. Multiple <code>defer</code>
-          blocks execute in reverse order (LIFO).
-        </p>
-        <pre><code class="language-biolang">pipeline trimmed_alignment {
-  stage trim {
-    let trimmed_r1 = "tmp/trimmed_R1.fq.gz"
-    let trimmed_r2 = "tmp/trimmed_R2.fq.gz"
-    trim_adapters("sample_R1.fq.gz", "sample_R2.fq.gz",
-                  out_r1: trimmed_r1, out_r2: trimmed_r2,
-                  adapter: "AGATCGGAAGAG")
-    defer { remove(trimmed_r1); remove(trimmed_r2) }
-    {r1: trimmed_r1, r2: trimmed_r2}
-  }
-
-  stage align {
-    let bam = "aligned.bam"
-    shell("bwa-mem2 mem -t 16 GRCh38.fa " + trim.r1 + " " + trim.r2
-          + " | samtools sort -@ 8 -o " + bam)
-    let unsorted = "aligned.unsorted.bam"
-    defer { remove(unsorted) }
-    bam
-  }
-}</code></pre>
-        <p>
-          When <code>trimmed_alignment</code> finishes, the deferred blocks fire: the unsorted BAM
-          is removed first, then the trimmed FASTQs. Cleanup happens even if a stage fails.
-        </p>
-
-        <h2>Parameterized Pipelines (Templates)</h2>
-        <p>
-          A pipeline can accept parameters, turning it into a reusable template. When you declare
-          <code>pipeline name(param1, param2) { ... }</code>, BioLang defines a callable function
-          instead of executing immediately. You invoke it like any other function.
-        </p>
-        <pre><code class="language-biolang"># Define a reusable alignment template
-pipeline align_sample(sample_id, r1, r2, reference) {
-  stage aligned {
-    shell("bwa-mem2 mem -t 16 " + reference + " " + r1 + " " + r2
-          + " | samtools sort -@ 8 -o " + sample_id + ".sorted.bam")
-    sample_id + ".sorted.bam"
-  }
-
-  stage indexed {
-    shell("samtools index " + aligned)
-    aligned
-  }
-}
-
-# Call with different inputs — same pipeline, different data
-let tumor = align_sample("tumor", "tumor_R1.fq.gz", "tumor_R2.fq.gz", "GRCh38.fa")
-let normal = align_sample("normal", "normal_R1.fq.gz", "normal_R2.fq.gz", "GRCh38.fa")
-print("Tumor BAM: " + tumor)
-print("Normal BAM: " + normal)</code></pre>
-
-        <p>
-          Parameterized pipelines compose naturally. You can call one template from inside another,
-          loop over a sample list, or pass configuration records as parameters.
-        </p>
-        <pre><code class="language-biolang"># Process a whole cohort with the same template
-let samples = [
-  {id: "S1", r1: "S1_R1.fq.gz", r2: "S1_R2.fq.gz"},
-  {id: "S2", r1: "S2_R1.fq.gz", r2: "S2_R2.fq.gz"},
-  {id: "S3", r1: "S3_R1.fq.gz", r2: "S3_R2.fq.gz"},
-]
-
-let bams = samples |> map(|s| align_sample(s.id, s.r1, s.r2, "GRCh38.fa"))
-print("Aligned " + str(len(bams)) + " samples")</code></pre>
 
         <div class="bg-slate-900 border border-slate-700 rounded-lg p-4 my-4">
-          <p class="text-sm text-slate-400 mb-2"><strong class="text-violet-400">How it works:</strong></p>
-          <ul class="text-sm text-slate-400 list-disc ml-4 space-y-1">
-            <li><code>pipeline name { ... }</code> (no params) — executes immediately, result bound to <code>name</code></li>
-            <li><code>pipeline name(params) { ... }</code> — defines a callable function; nothing runs until you call it</li>
-            <li>The parameter list uses the same syntax as function parameters</li>
-          </ul>
+          <p class="text-sm text-slate-400 mb-2"><strong class="text-violet-400">Key idea:</strong></p>
+          <p class="text-sm text-slate-400">
+            In BioLang, <code>a |&gt; f(b)</code> desugars to <code>f(a, b)</code>. Every function
+            takes the primary data as its first argument, so any function slots naturally into a
+            pipe chain. Pipelines are just chains of <code>|&gt;</code> calls stored in variables.
+          </p>
         </div>
 
-        <h2>Pipeline Composition</h2>
+        <h2>Pipe Chains as Pipelines</h2>
         <p>
-          Pipelines are values. You can call one pipeline from within another or store its result
-          for downstream use.
+          The simplest pipeline is a single pipe chain. Each <code>|&gt;</code> feeds the result
+          of the left side as the first argument to the right side:
         </p>
-        <pre><code class="language-biolang">pipeline align_one(sample) {
-  stage bam {
-    let out = sample.id + ".sorted.bam"
-    shell("bwa-mem2 mem -t 8 GRCh38.fa " + sample.r1 + " " + sample.r2
-          + " | samtools sort -@ 4 -o " + out)
-    out
-  }
-  stage index {
-    shell("samtools index " + bam)
-    bam
-  }
-}
-
-pipeline somatic_pair(tumor, normal) {
-  stage tumor_bam { align_one(tumor) }
-  stage normal_bam { align_one(normal) }
-
-  stage call {
-    shell("gatk Mutect2 -R GRCh38.fa -I " + tumor_bam
-          + " -I " + normal_bam + " -normal " + normal.id
-          + " -O somatic.vcf.gz")
-    "somatic.vcf.gz"
-  }
-}
-
-# Run the composed pipeline
-let result = somatic_pair(
-  {id: "tumor", r1: "tumor_R1.fq.gz", r2: "tumor_R2.fq.gz"},
-  {id: "normal", r1: "normal_R1.fq.gz", r2: "normal_R2.fq.gz"}
-)
-print("Somatic variants written to: " + result)</code></pre>
-
-        <h2>Introspection Builtins</h2>
+        <pre><code class="language-biolang"># Read FASTQ, filter by quality, compute GC content
+let reads = read_fastq("sample.fq.gz") |> collect()
+let filtered = reads |> filter(|r| mean_phred(r.quality) >= 25)
+let gc_vals = filtered |> map(|r| gc_content(r.seq))
+println(f"Passed: {len(filtered)}/{len(reads)}, Mean GC: {mean(gc_vals)}")</code></pre>
         <p>
-          Two builtins help you inspect and optimize pipelines:
+          Each variable captures an intermediate result. The pipe operator has the lowest
+          precedence, so expressions on either side evaluate fully before piping. Newlines after
+          <code>|&gt;</code> are suppressed, so chains can span multiple lines freely.
         </p>
 
-        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden">
-          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
-            <code class="text-violet-400 font-semibold">pipeline_steps(pipeline_record)</code>
-            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Record &rarr; List</span>
-          </div>
-          <div class="p-4">
-            <p class="text-sm text-slate-400 mb-3">
-              Extracts the list of stage names and metadata from a pipeline record.
-            </p>
-            <pre><code class="language-biolang">let steps = pipeline_steps(fastq_qc)
-# [{name: "raw_stats"}, {name: "filter"}, {name: "filtered_stats"}]</code></pre>
-          </div>
-        </section>
-
-        <section class="mb-8 border border-slate-800 rounded-lg overflow-hidden">
-          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
-            <code class="text-violet-400 font-semibold">pipe_fuse(list, op1, op2, ...)</code>
-            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">List, Fns &rarr; List</span>
-          </div>
-          <div class="p-4">
-            <p class="text-sm text-slate-400 mb-3">
-              Fuses multiple pipe operations into a single pass over the data for efficiency.
-              Instead of creating intermediate lists between each operation, <code>pipe_fuse</code>
-              applies all operations in one traversal.
-            </p>
-            <pre><code class="language-biolang"># Without fusion: creates intermediate lists
-let result = reads
-  |> filter(|r| mean_phred(r.quality) >= 30)
-  |> map(|r| gc_content(r.seq))
-  |> filter(|gc| gc >= 0.3 and gc <= 0.7)
-
-# With fusion: single pass
-let result = pipe_fuse(reads,
-  |r| mean_phred(r.quality) >= 30,
-  |r| gc_content(r.seq)
-)</code></pre>
-          </div>
-        </section>
-
-        <h2>Example: QC-to-Variants Pipeline</h2>
-        <p>A complete workflow from raw reads to filtered variants using BioLang builtins:</p>
-        <pre><code class="language-biolang">pipeline qc_to_variants {
-  stage qc {
-    let reads = read_fastq("sample_R1.fq.gz") |> collect()
-    let total = len(reads)
-    let passing = reads |> filter(|r| mean_phred(r.quality) >= 25) |> len()
-    print("QC: " + str(passing) + "/" + str(total) + " reads pass Q25")
-
-    # Write filtered reads
-    reads
-      |> filter(|r| mean_phred(r.quality) >= 25)
-      |> write_fastq("sample_R1.filtered.fq.gz")
-  }
-
-  stage align {
-    shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.filtered.fq.gz"
-          + " | samtools sort -@ 8 -o aligned.bam")
-    shell("samtools index aligned.bam")
-    "aligned.bam"
-  }
-
-  stage call {
-    shell("gatk HaplotypeCaller -R GRCh38.fa -I " + align
-          + " -O raw.vcf.gz")
-    "raw.vcf.gz"
-  }
-
-  stage filter_variants {
-    let variants = read_vcf(call)
-    let snps = variants |> filter(|v| v.is_snp)
-    let indels = variants |> filter(|v| v.is_indel)
-
-    print("SNPs: " + str(len(snps)) + ", Indels: " + str(len(indels)))
-    print("Ti/Tv: " + str(tstv_ratio(snps)))
-
-    variants
-      |> filter(|v| v.quality >= 30.0)
-      |> write_vcf("filtered.vcf.gz")
-  }
-}
-
-# Run the full pipeline
-let output = qc_to_variants
-print("Pipeline complete: " + output)</code></pre>
-
-        <h2>Pipe Binding with <code>|&gt; into</code></h2>
+        <h2>Multi-Step Analysis Patterns</h2>
         <p>
-          Inside pipeline stages and regular code, you can use <code>|&gt; into</code> to bind
-          intermediate pipe results to a name without wrapping the chain in
-          <code>let x = ...</code>. The syntax <code>expr |&gt; into name</code> is equivalent to
-          <code>let name = expr</code>, but reads left-to-right.
+          Real analyses involve multiple stages: loading data, filtering, transforming, grouping,
+          and summarizing. Break each stage into its own variable for clarity:
         </p>
-        <pre><code class="language-biolang">pipeline annotate {
-  stage load {
-    read_vcf("calls.vcf.gz")
-      |> filter(|v| v.qual >= 30)
-      |> into passing
+        <pre><code class="language-biolang"># Variant analysis pipeline
+let variants = read_vcf("calls.vcf") |> collect()
+let high_qual = variants |> filter_by("quality", ">=", 30)
+let classified = high_qual |> classify_variants()
+let by_chrom = classified |> group_by("chrom")
 
-    # passing is now bound and can be reused
-    print(f"Passing variants: {len(passing)}")
+println(f"Total: {len(variants)}, Filtered: {len(high_qual)}")
 
-    passing
-      |> filter(|v| v.is_snp)
-      |> into snps
-
-    passing
-      |> filter(|v| v.is_indel)
-      |> into indels
-
-    {snps: snps, indels: indels, total: len(passing)}
-  }
+# Summarize per chromosome
+for entry in by_chrom {
+  let chrom = entry.key
+  let count = len(entry.values)
+  println(f"  {chrom}: {count} variants")
 }</code></pre>
         <p>
-          This is especially useful in stages where you need to reference intermediate
-          results multiple times without breaking the pipeline flow.
+          You can also write a single long chain when the logic is linear:
         </p>
+        <pre><code class="language-biolang">let top_genes = read_csv("deseq2_results.csv")
+  |> filter(|r| r.padj < 0.05)
+  |> filter(|r| abs(r.log2FoldChange) > 1.0)
+  |> arrange("-log2FoldChange")
+  |> head(20)
+  |> select("gene", "log2FoldChange", "padj")</code></pre>
+
+        <h2>Data Transformation Pipelines</h2>
+        <p>
+          BioLang provides a full set of data transformation functions that are designed to work
+          with pipes: <code>filter</code>, <code>map</code>, <code>mutate</code>,
+          <code>group_by</code>, <code>summarize</code>, <code>select</code>,
+          <code>arrange</code>, and more.
+        </p>
+        <pre><code class="language-biolang"># filter: keep rows matching a predicate
+let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
+
+# map: transform each element
+let lengths = reads |> map(|r| len(r.seq))
+
+# mutate: add or modify columns in a table
+let annotated = data
+  |> mutate(rate: |r| r.passing / r.total * 100)
+  |> mutate(status: |r| if r.rate > 90 then "PASS" else "FAIL")
+
+# group_by + summarize: aggregate by key
+let summary = data
+  |> group_by("cohort")
+  |> summarize(
+    mean_depth: |g| mean(g.depth),
+    sample_count: |g| len(g)
+  )
+
+# select + arrange: pick columns and sort
+let report = summary
+  |> select("cohort", "mean_depth", "sample_count")
+  |> arrange("-mean_depth")</code></pre>
+        <p>
+          These compose into complete ETL pipelines:
+        </p>
+        <pre><code class="language-biolang">let cohort_report = read_csv("samples.csv")
+  |> filter(|r| r.depth > 30)
+  |> mutate(rate: |r| r.passing / r.total * 100)
+  |> group_by("cohort")
+  |> summarize(
+    mean_depth: |g| mean(g.depth),
+    mean_rate: |g| mean(g.rate),
+    n: |g| len(g)
+  )
+  |> arrange("-mean_depth")
+
+println(cohort_report)</code></pre>
+
+        <h2>Parallel Processing</h2>
+        <p>
+          For CPU-intensive work across multiple samples, <code>par_map</code> distributes
+          iterations across available cores. Each iteration runs independently and results
+          are collected into a list:
+        </p>
+        <pre><code class="language-biolang">let samples = [
+  {name: "tumor_01", path: "t01_R1.fq.gz"},
+  {name: "tumor_02", path: "t02_R1.fq.gz"},
+  {name: "normal_01", path: "n01_R1.fq.gz"},
+  {name: "normal_02", path: "n02_R1.fq.gz"},
+]
+
+let results = samples |> par_map(|s| {
+  let reads = read_fastq(s.path) |> collect()
+  let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
+  let gc = passed |> map(|r| gc_content(r.seq)) |> mean()
+  {sample: s.name, total: len(reads), passed: len(passed), mean_gc: gc}
+})
+
+# results is a list of records, one per sample
+for r in results {
+  println(f"{r.sample}: {r.passed}/{r.total} passed, GC={r.mean_gc:.3}")
+}</code></pre>
+        <p>
+          Use <code>par_map</code> when each iteration is independent and the per-item cost
+          is significant (file I/O, sequence processing, external tool calls). For cheap
+          operations on large lists, regular <code>map</code> avoids threading overhead.
+        </p>
+
+        <h2>Shell Integration for External Tools</h2>
+        <p>
+          Many bioinformatics pipelines rely on external tools like BWA, samtools, GATK, and
+          bcftools. BioLang integrates these via the <code>shell</code> function:
+        </p>
+        <pre><code class="language-biolang"># Align reads with BWA and sort with samtools
+shell("bwa-mem2 mem -t 16 GRCh38.fa R1.fq.gz R2.fq.gz | samtools sort -o aligned.bam")
+shell("samtools index aligned.bam")
+
+# Call variants with GATK
+shell("gatk HaplotypeCaller -R GRCh38.fa -I aligned.bam -O raw.vcf.gz")
+
+# Filter with bcftools
+shell("bcftools view -f PASS raw.vcf.gz -Oz -o filtered.vcf.gz")
+shell("bcftools index filtered.vcf.gz")</code></pre>
+        <p>
+          Shell commands integrate naturally with pipe chains. Mix native BioLang analysis
+          with external tools in the same script:
+        </p>
+        <pre><code class="language-biolang"># Native QC, then shell alignment, then native variant analysis
+let reads = read_fastq("sample_R1.fq.gz") |> collect()
+let passed = reads |> filter(|r| mean_phred(r.quality) >= 25) |> len()
+println(f"QC: {passed}/{len(reads)} reads pass Q25")
+
+shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.fq.gz sample_R2.fq.gz | samtools sort -o aligned.bam")
+shell("samtools index aligned.bam")
+shell("gatk HaplotypeCaller -R GRCh38.fa -I aligned.bam -O raw.vcf.gz")
+
+let variants = read_vcf("raw.vcf.gz") |> collect()
+let snps = variants |> filter(|v| v.is_snp)
+let indels = variants |> filter(|v| v.is_indel)
+println(f"SNPs: {len(snps)}, Indels: {len(indels)}")</code></pre>
+
+        <h2>Error Handling in Pipelines</h2>
+        <p>
+          Use <code>try</code>/<code>catch</code> blocks to handle errors gracefully within
+          multi-step pipelines. This prevents a single failure from crashing the entire workflow:
+        </p>
+        <pre><code class="language-biolang"># Wrap a multi-step pipeline in try/catch
+let result = try {
+  let data = read_csv("samples.csv")
+  data |> filter(|r| r.depth > 30)
+      |> mutate(rate: |r| r.passing / r.total * 100)
+      |> group_by("cohort")
+      |> summarize(mean_depth: |g| mean(g.depth))
+} catch e {
+  println("Pipeline error: " + e)
+  nil
+}</code></pre>
+        <p>
+          For per-item error handling, wrap the transformation inside <code>map</code>:
+        </p>
+        <pre><code class="language-biolang"># Process each sample, skip failures
+let results = samples |> map(|s| {
+  try {
+    let reads = read_fastq(s.path) |> collect()
+    let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
+    {sample: s.name, status: "ok", count: len(passed)}
+  } catch e {
+    println(f"Warning: {s.name} failed: {e}")
+    {sample: s.name, status: "error", count: 0}
+  }
+})
+
+let succeeded = results |> filter(|r| r.status == "ok")
+println(f"{len(succeeded)}/{len(results)} samples processed successfully")</code></pre>
+
+        <h2>Notifications</h2>
+        <p>
+          Long-running pipelines benefit from notifications when they complete or encounter
+          errors. Use <code>notify</code> to send alerts:
+        </p>
+        <pre><code class="language-biolang"># Notify on pipeline completion
+let results = samples |> par_map(|s| {
+  let reads = read_fastq(s.path) |> collect()
+  let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
+  {sample: s.name, total: len(reads), passed: len(passed)}
+})
+
+notify({
+  title: "QC Pipeline Complete",
+  fields: {
+    samples: len(results),
+    total_reads: results |> map(|r| r.total) |> sum(),
+    passed_reads: results |> map(|r| r.passed) |> sum()
+  }
+})</code></pre>
+
+        <h2>Example: FASTQ Quality Control Pipeline</h2>
+        <p>A complete QC pipeline from raw reads through filtering and reporting:</p>
+        <pre><code class="language-biolang"># FASTQ Quality Control Pipeline
+let samples = [
+  {id: "S1", r1: "S1_R1.fq.gz"},
+  {id: "S2", r1: "S2_R1.fq.gz"},
+  {id: "S3", r1: "S3_R1.fq.gz"},
+]
+
+let qc_results = samples |> par_map(|s| {
+  let reads = read_fastq(s.r1) |> collect()
+  let total = len(reads)
+
+  # Quality filtering
+  let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
+  let pass_rate = len(passed) / total * 100
+
+  # GC content distribution
+  let gc_vals = passed |> map(|r| gc_content(r.seq))
+  let mean_gc = mean(gc_vals)
+
+  # Length statistics
+  let lengths = passed |> map(|r| len(r.seq))
+
+  {
+    sample: s.id,
+    total_reads: total,
+    passed_reads: len(passed),
+    pass_rate: pass_rate,
+    mean_gc: mean_gc,
+    mean_length: mean(lengths),
+  }
+})
+
+# Summary report
+println("=== QC Summary ===")
+for r in qc_results {
+  println(f"{r.sample}: {r.pass_rate:.1}% pass, GC={r.mean_gc:.3}, len={r.mean_length:.0}")
+}</code></pre>
+
+        <h2>Example: Variant Calling Pipeline</h2>
+        <p>End-to-end pipeline from alignment through variant filtering:</p>
+        <pre><code class="language-biolang"># Variant Calling Pipeline
+let sample_id = "tumor_01"
+let r1 = "tumor_01_R1.fq.gz"
+let r2 = "tumor_01_R2.fq.gz"
+let ref = "GRCh38.fa"
+let bam = sample_id + ".sorted.bam"
+
+# Step 1: Align and sort
+shell(f"bwa-mem2 mem -t 16 {ref} {r1} {r2} | samtools sort -@ 8 -o {bam}")
+shell(f"samtools index {bam}")
+
+# Step 2: Call variants
+shell(f"gatk HaplotypeCaller -R {ref} -I {bam} -O raw.vcf.gz")
+
+# Step 3: Native variant analysis
+let variants = read_vcf("raw.vcf.gz") |> collect()
+
+let high_qual = variants |> filter(|v| v.quality >= 30)
+let snps = high_qual |> filter(|v| v.is_snp)
+let indels = high_qual |> filter(|v| v.is_indel)
+
+println(f"Total variants: {len(variants)}")
+println(f"High quality (Q>=30): {len(high_qual)}")
+println(f"SNPs: {len(snps)}, Indels: {len(indels)}")
+
+# Step 4: Per-chromosome summary
+let by_chrom = high_qual |> group_by("chrom")
+for entry in by_chrom {
+  println(f"  {entry.key}: {len(entry.values)} variants")
+}</code></pre>
+
+        <h2>Example: RNA-seq Differential Expression</h2>
+        <p>Quantification and analysis of RNA-seq data:</p>
+        <pre><code class="language-biolang"># RNA-seq Analysis Pipeline
+let samples = [
+  {id: "ctrl_1", r1: "ctrl_1_R1.fq.gz", group: "control"},
+  {id: "ctrl_2", r1: "ctrl_2_R1.fq.gz", group: "control"},
+  {id: "treat_1", r1: "treat_1_R1.fq.gz", group: "treatment"},
+  {id: "treat_2", r1: "treat_2_R1.fq.gz", group: "treatment"},
+]
+
+# Step 1: QC all samples in parallel
+let qc = samples |> par_map(|s| {
+  let reads = read_fastq(s.r1) |> collect()
+  let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
+  {id: s.id, group: s.group, total: len(reads), passed: len(passed)}
+})
+
+println("=== QC Results ===")
+for r in qc {
+  let rate = r.passed / r.total * 100
+  println(f"{r.id} ({r.group}): {rate:.1}% pass rate")
+}
+
+# Step 2: Align each sample
+for s in samples {
+  let bam = s.id + ".sorted.bam"
+  shell(f"hisat2 -x genome -U {s.r1} | samtools sort -o {bam}")
+  shell(f"samtools index {bam}")
+}
+
+# Step 3: Quantify and analyze counts
+let counts = read_csv("featurecounts_matrix.csv")
+
+let de_genes = counts
+  |> filter(|r| r.padj < 0.05)
+  |> filter(|r| abs(r.log2FoldChange) > 1.0)
+  |> arrange("-log2FoldChange")
+
+let up = de_genes |> filter(|r| r.log2FoldChange > 0)
+let down = de_genes |> filter(|r| r.log2FoldChange < 0)
+
+println(f"\nDE genes (padj<0.05, |log2FC|>1): {len(de_genes)}")
+println(f"  Upregulated: {len(up)}")
+println(f"  Downregulated: {len(down)}")
+
+# Top 10 upregulated genes
+println("\nTop 10 upregulated:")
+let top10 = up |> head(10)
+for g in top10 {
+  println(f"  {g.gene}: log2FC={g.log2FoldChange:.2}, padj={g.padj:.2e}")
+}</code></pre>
+
+        <h2>Pipeline Composition with Functions</h2>
+        <p>
+          Extract reusable pipeline steps into functions. Since BioLang is pipe-first, any
+          function that takes data as its first argument works naturally in a pipe chain:
+        </p>
+        <pre><code class="language-biolang"># Define reusable pipeline steps as functions
+fn qc_reads(path) {
+  let reads = read_fastq(path) |> collect()
+  let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
+  {total: len(reads), passed: len(passed), reads: passed}
+}
+
+fn align_reads(sample_id, r1, r2, ref) {
+  let bam = sample_id + ".sorted.bam"
+  shell(f"bwa-mem2 mem -t 16 {ref} {r1} {r2} | samtools sort -@ 8 -o {bam}")
+  shell(f"samtools index {bam}")
+  bam
+}
+
+fn call_variants(bam, ref) {
+  let vcf = replace(bam, ".bam", ".vcf.gz")
+  shell(f"gatk HaplotypeCaller -R {ref} -I {bam} -O {vcf}")
+  vcf
+}
+
+# Compose into a full pipeline
+let ref = "GRCh38.fa"
+let qc = qc_reads("sample_R1.fq.gz")
+println(f"QC: {qc.passed}/{qc.total} reads passed")
+
+let bam = align_reads("sample", "sample_R1.fq.gz", "sample_R2.fq.gz", ref)
+let vcf = call_variants(bam, ref)
+
+let variants = read_vcf(vcf) |> collect()
+println(f"Called {len(variants)} variants")</code></pre>
 
         <h2>Summary</h2>
         <div class="overflow-x-auto">
           <table>
             <thead>
-              <tr><th>Feature</th><th>Syntax</th><th>Description</th></tr>
+              <tr><th>Pattern</th><th>Syntax</th><th>Description</th></tr>
             </thead>
             <tbody>
-              <tr><td>Pipeline block</td><td><code>pipeline name { ... }</code></td><td>Declare and immediately execute a named workflow</td></tr>
-              <tr><td>Pipeline template</td><td><code>pipeline name(params) { ... }</code></td><td>Define a reusable, callable pipeline</td></tr>
-              <tr><td>Stage</td><td><code>stage name { expr }</code></td><td>Named step; result bound to stage name</td></tr>
-              <tr><td>Stage reference</td><td><code>stage_name</code></td><td>Use previous stage result by name</td></tr>
-              <tr><td>Parallel</td><td><code>parallel for x in list { ... }</code></td><td>Fan out across cores</td></tr>
-              <tr><td>Defer</td><td><code>defer { cleanup }</code></td><td>Run cleanup on completion (LIFO order)</td></tr>
-              <tr><td>Composition</td><td><code>pipeline a(args) { ... }</code></td><td>Pipelines are values; call from other pipelines</td></tr>
-              <tr><td>Introspection</td><td><code>pipeline_steps(p)</code></td><td>List stages in a pipeline</td></tr>
-              <tr><td>Pipe binding</td><td><code>expr |&gt; into name</code></td><td>Bind pipe result to a name (left-to-right <code>let</code>)</td></tr>
-              <tr><td>Fusion</td><td><code>pipe_fuse(list, ...)</code></td><td>Single-pass optimization</td></tr>
+              <tr><td>Pipe chain</td><td><code>a |&gt; f() |&gt; g()</code></td><td>Sequential data transformation</td></tr>
+              <tr><td>Variable capture</td><td><code>let x = a |&gt; f()</code></td><td>Store intermediate results for reuse</td></tr>
+              <tr><td>Filter</td><td><code>data |&gt; filter(|r| predicate)</code></td><td>Keep elements matching a condition</td></tr>
+              <tr><td>Map</td><td><code>data |&gt; map(|r| transform)</code></td><td>Transform each element</td></tr>
+              <tr><td>Group + Summarize</td><td><code>data |&gt; group_by(col) |&gt; summarize(...)</code></td><td>Aggregate data by key</td></tr>
+              <tr><td>Mutate</td><td><code>data |&gt; mutate(col: |r| expr)</code></td><td>Add or modify columns</td></tr>
+              <tr><td>Parallel</td><td><code>items |&gt; par_map(|x| { ... })</code></td><td>Process items across cores</td></tr>
+              <tr><td>Shell</td><td><code>shell("command")</code></td><td>Run external tools (BWA, samtools, GATK, etc.)</td></tr>
+              <tr><td>Error handling</td><td><code>try { ... } catch e { ... }</code></td><td>Recover from errors in a pipeline</td></tr>
+              <tr><td>Notification</td><td><code>notify({title: ..., fields: ...})</code></td><td>Alert on pipeline completion</td></tr>
+              <tr><td>Function composition</td><td><code>fn step(data) { data |&gt; ... }</code></td><td>Extract reusable pipeline steps</td></tr>
             </tbody>
           </table>
         </div>

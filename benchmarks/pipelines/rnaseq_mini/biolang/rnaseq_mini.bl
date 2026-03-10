@@ -1,0 +1,34 @@
+# RNA-seq Mini Pipeline: counts -> normalize -> fold change -> DE genes
+let counts = csv("data/gene_counts.csv") |> collect()
+let conditions = csv("data/conditions.csv") |> collect()
+
+# Get sample names (all columns except "gene")
+let sample_cols = table_schema(counts).columns |> filter(|c| c != "gene")
+let n_samples = len(sample_cols)
+let n_genes = nrow(counts)
+
+# Identify control and treatment samples
+let control_samples = conditions |> filter(|c| c.condition == "control") |> map(|c| c.sample)
+let treatment_samples = conditions |> filter(|c| c.condition == "treatment") |> map(|c| c.sample)
+
+# Compute fold changes per gene row
+let results = counts |> map(|row| {
+    let ctrl_vals = control_samples |> map(|s| row[s])
+    let treat_vals = treatment_samples |> map(|s| row[s])
+    let ctrl_mean = mean(ctrl_vals)
+    let treat_mean = mean(treat_vals)
+    let fc = if ctrl_mean > 0 then treat_mean / ctrl_mean else 0.0
+    let log2fc = if fc > 0 then log2(fc) else 0.0
+    {gene: row.gene, ctrl_mean: round(ctrl_mean, 1), treat_mean: round(treat_mean, 1), fold_change: round(fc, 2), log2fc: round(log2fc, 2)}
+})
+
+let de_genes = results |> filter(|r| abs(r.log2fc) >= 0.585)
+let up = de_genes |> filter(|r| r.log2fc > 0)
+let down = de_genes |> filter(|r| r.log2fc < 0)
+
+println(f"RNA-seq Mini Pipeline:")
+println(f"  Genes: {n_genes}")
+println(f"  Samples: {n_samples}")
+println(f"  DE genes (|log2FC| >= 0.585): {len(de_genes)}")
+println(f"  Upregulated: {len(up)}")
+println(f"  Downregulated: {len(down)}")

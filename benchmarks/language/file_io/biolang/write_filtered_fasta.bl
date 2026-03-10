@@ -1,0 +1,7 @@
+# File I/O: Read FASTA, filter by length, write filtered output
+let records = read_fasta("data/sequences.fa") |> collect()
+let filtered = records |> filter(|r| len(r.seq) >= 2000)
+let written = write_fasta(filtered, "data/filtered_output.fa")
+println(f"Input records: {len(records)}")
+println(f"Filtered records: {len(filtered)}")
+println(f"Written: {written}")

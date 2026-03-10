@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>Playground — BioLang</title>
+  <meta name="description" content="Try BioLang in your browser. No installation required. Write bioinformatics code with native DNA types, pipes, and 530+ builtins.">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --pg-bg: #0a0e1a;
+      --pg-editor-bg: #0d1117;
+      --pg-gutter: #1b2332;
+      --pg-output-bg: #080c14;
+      --pg-border: #1e293b;
+      --pg-accent: #a78bfa;
+      --pg-accent-dim: rgba(167, 139, 250, 0.15);
+      --pg-cyan: #22d3ee;
+      --pg-green: #34d399;
+      --pg-red: #f87171;
+      --pg-text: #e2e8f0;
+      --pg-text-dim: #64748b;
+      --pg-line-num: #334155;
+    }
+    html:not(.dark) {
+      --pg-bg: #f8fafc;
+      --pg-editor-bg: #ffffff;
+      --pg-gutter: #f1f5f9;
+      --pg-output-bg: #f8fafc;
+      --pg-border: #e2e8f0;
+      --pg-accent: #7c3aed;
+      --pg-accent-dim: rgba(124, 58, 237, 0.08);
+      --pg-cyan: #0891b2;
+      --pg-green: #059669;
+      --pg-red: #dc2626;
+      --pg-text: #1e293b;
+      --pg-text-dim: #94a3b8;
+      --pg-line-num: #cbd5e1;
+    }
+
+    .pg-layout {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: calc(100vh - 3.5rem);
+      background: var(--pg-bg);
+    }
+
+    .pg-workspace {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: 0;
+    }
+    @media (max-width: 768px) {
+      .pg-workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+    }
+
+    .pg-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border: 1px solid var(--pg-border);
+    }
+    .pg-panel:first-child {
+      border-right: none;
+    }
+    @media (max-width: 768px) {
+      .pg-panel:first-child {
+        border-right: 1px solid var(--pg-border);
+        border-bottom: none;
+      }
+    }
+
+    .pg-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      height: 36px;
+      background: var(--pg-gutter);
+      border-bottom: 1px solid var(--pg-border);
+      flex-shrink: 0;
+    }
+    .pg-panel-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--pg-text-dim);
+    }
+
+    .pg-editor-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: var(--pg-editor-bg);
+    }
+
+    #pg-editor {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      padding: 16px 16px 16px 52px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--pg-text);
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      tab-size: 2;
+      white-space: pre;
+      overflow: auto;
+      caret-color: var(--pg-accent);
+      z-index: 2;
+    }
+    #pg-editor::selection {
+      background: var(--pg-accent-dim);
+    }
+
+    .pg-line-numbers {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 40px;
+      padding: 16px 8px 16px 0;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--pg-line-num);
+      pointer-events: none;
+      user-select: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .pg-output-wrap {
+      flex: 1;
+      overflow: auto;
+      background: var(--pg-output-bg);
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--pg-text);
+    }
+    .pg-output-wrap:empty::before {
+      content: 'Output will appear here...';
+      color: var(--pg-text-dim);
+      font-style: italic;
+    }
+
+    .pg-output-line { white-space: pre-wrap; word-break: break-word; }
+    .pg-output-error { color: var(--pg-red); }
+    .pg-output-result { color: var(--pg-green); }
+    .pg-output-type { color: var(--pg-text-dim); font-size: 11px; }
+    .pg-output-stdout { color: var(--pg-text); }
+
+    .pg-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--pg-bg);
+      border-bottom: 1px solid var(--pg-border);
+      flex-shrink: 0;
+    }
+
+    .pg-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .pg-btn-run {
+      background: var(--pg-accent);
+      color: #fff;
+      border-color: var(--pg-accent);
+    }
+    .pg-btn-run:hover {
+      filter: brightness(1.15);
+      box-shadow: 0 0 12px rgba(167, 139, 250, 0.3);
+    }
+    .pg-btn-run.running {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .pg-btn-secondary {
+      background: transparent;
+      color: var(--pg-text-dim);
+      border-color: var(--pg-border);
+    }
+    .pg-btn-secondary:hover {
+      color: var(--pg-text);
+      border-color: var(--pg-accent);
+      background: var(--pg-accent-dim);
+    }
+
+    .pg-examples-btn {
+      position: relative;
+    }
+    .pg-examples-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 4px;
+      min-width: 260px;
+      background: var(--pg-editor-bg);
+      border: 1px solid var(--pg-border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 50;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .pg-examples-dropdown.open { display: block; }
+    .pg-examples-dropdown button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--pg-text);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .pg-examples-dropdown button:hover {
+      background: var(--pg-accent-dim);
+      color: var(--pg-accent);
+    }
+    .pg-examples-dropdown .pg-ex-cat {
+      padding: 8px 14px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--pg-text-dim);
+      cursor: default;
+    }
+    .pg-examples-dropdown .pg-ex-cat:hover {
+      background: none;
+      color: var(--pg-text-dim);
+    }
+
+    .pg-status {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--pg-text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pg-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--pg-green);
+    }
+    .pg-status-dot.loading {
+      background: var(--pg-accent);
+      animation: pulse-dot 1s ease-in-out infinite;
+    }
+    .pg-status-dot.error {
+      background: var(--pg-red);
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    .pg-kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      font-size: 10px;
+      border: 1px solid var(--pg-border);
+      border-radius: 3px;
+      color: var(--pg-text-dim);
+      background: var(--pg-gutter);
+    }
+
+    /* DNA helix decoration */
+    .pg-helix {
+      position: absolute;
+      right: -40px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 80px;
+      height: 300px;
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .pg-vars-bar {
+      border-top: 1px solid var(--pg-border);
+      padding: 6px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--pg-text-dim);
+      background: var(--pg-gutter);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      max-height: 60px;
+      overflow-y: auto;
+    }
+    .pg-var-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pg-var-name { color: var(--pg-cyan); }
+    .pg-var-type { color: var(--pg-text-dim); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <noscript><style>body>*{opacity:1!important}</style></noscript>
+  <div data-component="header" data-base-path="."></div>
+
+  <div class="pg-layout" id="pg-app">
+    <!-- Toolbar -->
+    <div class="pg-toolbar">
+      <button class="pg-btn pg-btn-run" id="pg-run" title="Run code">
+        <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor"><path d="M0 0l12 7-12 7z"/></svg>
+        Run
+      </button>
+      <button class="pg-btn pg-btn-secondary" id="pg-clear" title="Clear output">Clear</button>
+      <button class="pg-btn pg-btn-secondary" id="pg-reset" title="Reset interpreter state">Reset</button>
+      <div class="pg-examples-btn">
+        <button class="pg-btn pg-btn-secondary" id="pg-examples-toggle">
+          Examples
+          <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M0 0l4 5 4-5z"/></svg>
+        </button>
+        <div class="pg-examples-dropdown" id="pg-examples-menu"></div>
+      </div>
+      <span class="pg-kbd" style="margin-left:4px">Ctrl+Enter</span>
+      <div class="pg-status">
+        <span class="pg-status-dot loading" id="pg-status-dot"></span>
+        <span id="pg-status-text">Loading WASM...</span>
+      </div>
+    </div>
+
+    <!-- Workspace: Editor + Output -->
+    <div class="pg-workspace">
+      <!-- Editor panel -->
+      <div class="pg-panel">
+        <div class="pg-panel-header">
+          <span class="pg-panel-label">Editor</span>
+          <span style="font-size:11px;color:var(--pg-text-dim);font-family:'JetBrains Mono',monospace">.bl</span>
+        </div>
+        <div class="pg-editor-wrap">
+          <div class="pg-line-numbers" id="pg-line-nums"></div>
+          <textarea id="pg-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+# BioLang Playground — try it live!
+let seq = dna"ATCGATCGATCGATCGATCG"
+print("Sequence:", seq)
+print(f"Length: {len(seq)} bp")
+
+# Count GC content manually
+let s = "ATCGATCGATCGATCGATCG"
+let bases = split(s, "")
+let gc = bases |> filter(|b| b == "G" or b == "C") |> len()
+print(f"GC content: {round(gc / len(bases) * 100, 1)}%")
+
+# K-mer analysis
+let counts = kmer_count(seq, 3)
+print(f"3-mer counts: {counts}")
+
+# Statistics
+let values = [23.1, 45.2, 12.8, 67.3, 34.5, 89.1, 11.2, 56.7]
+print(f"Mean: {round(mean(values), 2)}")
+print(f"Stdev: {round(stdev(values), 2)}")
+</textarea>
+        </div>
+        <div class="pg-vars-bar" id="pg-vars"></div>
+      </div>
+
+      <!-- Output panel -->
+      <div class="pg-panel">
+        <div class="pg-panel-header">
+          <span class="pg-panel-label">Output</span>
+          <span id="pg-timing" style="font-size:11px;color:var(--pg-text-dim);font-family:'JetBrains Mono',monospace"></span>
+        </div>
+        <div class="pg-output-wrap" id="pg-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/wasm-playground.js"></script>
+</body>
+</html>

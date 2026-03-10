@@ -1,0 +1,20 @@
+# Annotation Pipeline (Real Data): ClinVar variants -> filter -> annotate with Ensembl genes
+let variants = vcf("data_real/clinvar_diverse.vcf") |> collect()
+let annotations = csv("data_real/gene_annotations.csv") |> collect()
+
+# Filter passing variants
+let filtered = variants |> filter(|v| v.filter == "." or v.filter == "PASS")
+
+# Count variants per chromosome (single O(n) pass)
+let chrom_counts = filtered |> count_by("chrom")
+
+# Pathway summary (single O(n) pass)
+let pathway_counts = annotations |> count_by("pathway")
+
+println("Annotation Pipeline (Real Data):")
+println(f"  ClinVar variants: {len(variants)}")
+println(f"  After filter: {len(filtered)}")
+println(f"  Chromosomes with variants: {len(chrom_counts)}")
+println(f"  Ensembl genes (chr22): {nrow(annotations)}")
+println("  Pathways:")
+pathway_counts |> head(5) |> each(|p| println(f"    {p.key}: {p.count} genes"))

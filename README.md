@@ -5,7 +5,7 @@
 A pipe-first domain-specific language (DSL) for bioinformatics.
 
 BioLang is a DSL purpose-built for genomics and molecular biology. It brings
-first-class biological types, 400+ domain builtins, and composable pipelines
+first-class biological types, 530+ domain builtins, 15 bio API clients, and composable pipelines
 to bioinformatics workflows. Write analysis scripts that read like the science
 they describe.
 
@@ -26,10 +26,9 @@ reads
 
 - **Bio-native types** -- DNA, RNA, Protein, Interval, Variant, Gene, AlignedRead, Quality
 - **Pipe operator** -- `|>` inserts the left side as the first argument: `a |> f(b)` = `f(a, b)`
-- **400+ builtins** -- FASTQ/FASTA/VCF/BED/GFF I/O, sequence ops, statistics, genomic intervals, tables
-- **Pipelines** -- first-class `pipeline` blocks with stages, DAG execution, `parallel for`, `defer`
-- **Parameterized pipelines** -- reusable templates: `pipeline align(sample, ref) { ... }`
-- **Bio API clients** -- NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, GO, COSMIC
+- **530+ builtins** -- FASTQ/FASTA/VCF/BED/GFF I/O, sequence ops, statistics, genomic intervals, tables, 42 plot types
+- **Pipe-first pipelines** -- compose operations with `|>`, `group_by`, `count_by`, `filter_by` for efficient data processing
+- **15 Bio API clients** -- NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, GO, COSMIC, BioMart, NCBI Datasets, nf-core, BioContainers, Galaxy ToolShed
 - **SQLite** -- built-in database for storing and querying results
 - **Notifications** -- Slack, Teams, Telegram, Discord, email alerts from pipelines
 - **Streams** -- lazy evaluation for large files without loading into memory
@@ -116,24 +115,19 @@ bl run hello.bl
 ### Pipeline example
 
 ```
-pipeline variant_qc {
-  stage align {
-    shell("bwa-mem2 mem -t 16 GRCh38.fa R1.fq.gz R2.fq.gz | samtools sort -o aligned.bam")
-    "aligned.bam"
-  }
+# Variant QC pipeline — sequential pipe-first style
+let variants = read_vcf("calls.vcf") |> collect()
+let filtered = variants |> filter_by("quality", ">=", 30)
+let classified = filtered |> classify_variants()
+let by_chrom = classified |> group_by("chrom")
+let chrom_names = keys(by_chrom)
 
-  stage call {
-    shell("gatk HaplotypeCaller -R GRCh38.fa -I " + align + " -O raw.vcf.gz")
-    "raw.vcf.gz"
-  }
-
-  stage stats {
-    let variants = read_vcf(call) |> collect()
-    let snps = variants |> filter(|v| v.is_snp) |> len()
-    let indels = variants |> filter(|v| v.is_indel) |> len()
-    print("SNPs: " + str(snps) + ", Indels: " + str(indels))
-  }
-}
+println(f"Total: {len(variants)}, Filtered: {len(filtered)}")
+chrom_names |> each(|c| {
+    let vs = by_chrom[c]
+    let snps = vs |> filter_by("variant_type", "==", "SNP") |> len()
+    println(f"  {c}: {len(vs)} variants ({snps} SNPs)")
+})
 ```
 
 ## Language Highlights
@@ -159,7 +153,7 @@ samples
   |> mutate(pass_rate: |r| r.passing / r.total * 100)
   |> group_by(|r| r.cohort)
   |> summarize(mean_depth: |g| mean(g.depth))
-  |> sort_by(|r| r.mean_depth, desc: true)
+  |> arrange("-mean_depth")
   |> print()
 ```
 
@@ -214,6 +208,93 @@ let chains = pdb_chains("4HHB")
 chains |> each(|c| print(c.description + ": " + str(len(c.sequence)) + " residues"))
 ```
 
+### LLM chat
+
+```
+# Ask an LLM about your data (Anthropic, OpenAI, or Ollama)
+let variants = read_vcf("filtered.vcf") |> collect()
+let snps = variants |> filter(|v| is_snp(v)) |> len()
+
+let answer = chat("I found " + str(snps) + " SNPs in my VCF. What's a typical Ti/Tv ratio for exome data?")
+println(answer)
+
+# Generate code from a description
+let code = chat_code("Write a BioLang script to compute GC content per chromosome from a FASTA file")
+println(code)
+```
+
+### Literate notebooks
+
+```bash
+# Run a .bln notebook (Markdown + BioLang code cells)
+bl notebook analysis.bln
+
+# Export to HTML report
+bl notebook analysis.bln --export html
+
+# Convert to/from Jupyter
+bl notebook analysis.bln --export ipynb
+bl notebook imported.ipynb --export bln
+```
+
+Sample `.bln` notebook:
+
+````markdown
+# QC Report
+
+This notebook analyzes FASTQ quality metrics.
+
+```bl
+let reads = read_fastq("sample.fq.gz") |> collect()
+let total = len(reads)
+let q30 = reads |> filter(|r| mean_phred(r.quality) >= 30) |> len()
+println(f"Total: {total}, Q30: {q30}, Rate: {round(q30 / total * 100, 1)}%")
+```
+
+## GC Distribution
+
+```bl {plot}
+reads |> map(|r| gc_content(r.seq)) |> histogram("GC Content")
+```
+````
+
+## Benchmarks
+
+BioLang vs Python (BioPython) vs R (Bioconductor) on 30 bioinformatics tasks -- synthetic and real-world data.
+
+### Linux (WSL2) -- Intel i9-12900K, 16 GB RAM, BioLang 0.2.1, Python 3.12.3, R 4.3.3
+
+| Task | BioLang | Python | R | BL vs Py |
+|---|---|---|---|---|
+| FASTA Small (30 KB) | 0.138s | 0.926s | 1.243s | **6.7x** |
+| FASTA gzipped (1.3 MB) | 0.141s | 0.930s | 1.327s | **6.6x** |
+| Protein K-mers | 0.191s | 1.331s | 1.298s | **7.0x** |
+| ENCODE Peak Overlap | 0.363s | 2.574s | -- | **7.1x** |
+| E. coli Genome | 0.176s | 1.081s | 1.354s | **6.1x** |
+| GC Content (51 MB) | 0.830s | 2.771s | 2.358s | **3.3x** |
+| K-mer Counting (21-mers) | 6.551s | 21.01s | -- | **3.2x** |
+| Chr22 21-mer Count (51 MB) | 10.72s | 28.73s | -- | **2.7x** |
+| FASTQ QC Pipeline | 2.349s | 5.059s | -- | **2.2x** |
+| VCF Filtering | 0.349s | 0.166s | 6.312s | Py 2.1x |
+| CSV Join + Group-by | 0.281s | 0.156s | 0.312s | Py 1.8x |
+
+### Windows 11 -- Intel i9-12900K, 32 GB RAM, BioLang 0.2.1, Python 3.12.4
+
+| Task | BioLang | Python | BL vs Py |
+|---|---|---|---|
+| K-mer Counting (21-mers) | 6.04s | 18.14s | **3.0x** |
+| ENCODE Peak Overlap | 1.03s | 3.03s | **2.9x** |
+| Chr22 21-mer Count (51 MB) | 9.08s | 24.24s | **2.7x** |
+| FASTQ QC Pipeline | 2.03s | 5.06s | **2.5x** |
+| FASTQ (26 MB) | 1.02s | 2.05s | **2.0x** |
+| FASTQ QC | 2.02s | 3.04s | **1.5x** |
+
+Windows process creation adds ~1s overhead per invocation, compressing ratios for fast benchmarks. See Linux results for accurate algorithmic comparison.
+
+BioLang scripts average **50-70% fewer lines** than equivalent Python. K-mer counting uses native 2-bit DNA encoding with canonical (strand-agnostic) counting -- strictly more work than Python's forward-only approach.
+
+See [`benchmarks/`](benchmarks/) for full suite with 30 benchmarks, platform-specific reports, methodology, and reproducible scripts.
+
 ## Releases
 
 Pre-built binaries are published on every tagged release for 4 platforms:
@@ -254,7 +335,7 @@ crates/
   bl-core/     -- AST, Value, Table, Type, Span, Error
   bl-lexer/    -- Tokenizer
   bl-parser/   -- Recursive descent + Pratt expression parser
-  bl-runtime/  -- Tree-walking interpreter, 400+ builtins
+  bl-runtime/  -- Tree-walking interpreter, 530+ builtins
   bl-bio/      -- FASTA/FASTQ/BED/GFF/VCF I/O
   bl-apis/     -- Bio API clients (NCBI, Ensembl, UniProt, etc.)
   bl-compiler/ -- Bytecode compiler (experimental)
@@ -267,6 +348,7 @@ crates/
 ## Documentation
 
 - [Website](https://lang.bio) -- getting started, language reference, builtin docs
+- [Playground](https://lang.bio/playground.html) -- try BioLang in your browser (no install required)
 - [Book](https://lang.bio/book/) -- comprehensive guide with examples
 
 ## License

@@ -126,7 +126,7 @@ simple_type    = "Int" | "Float" | "String" | "Bool"
                ;
 
 generic_type   = IDENT "[" type_list "]" ;
-               (* e.g., List[Int], Map[String, Float], Option[Gene] *)
+               (* e.g., List[Int], Map[String, Float], Set[String] *)
 
 fn_type        = "fn" "(" [ type_list ] ")" "->" type_expr ;
 
@@ -278,7 +278,7 @@ continue_stmt  = "continue" ;</code></pre>
                | "in" | "match" | "return" | "break" | "continue"
                | "import" | "from" | "as" | "pub" | "struct" | "enum"
                | "trait" | "impl" | "type" | "try" | "catch"
-               | "true" | "false" | "None"
+               | "true" | "false" | "nil"
                ;</code></pre>
 
         <h3>Operators and Punctuation</h3>

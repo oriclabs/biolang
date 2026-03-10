@@ -1,0 +1,10 @@
+# BED Interval Overlap: find overlapping regions between two BED files
+let regions = read_bed("data/regions.bed") |> collect()
+let queries = read_bed("data/queries.bed") |> collect()
+
+let tree = interval_tree(regions)
+let total_overlaps = bulk_overlaps(tree, queries)
+
+println(f"Regions: {nrow(regions)}")
+println(f"Queries: {nrow(queries)}")
+println(f"Total overlaps: {total_overlaps}")

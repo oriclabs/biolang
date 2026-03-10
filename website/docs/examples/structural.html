@@ -89,15 +89,15 @@ print(f"Title: {entry.title}")
 print(f"Method: {entry.method}")
 print(f"Resolution: {entry.resolution}")
 
-# Get chain information
-let chains = pdb_chains("6LU7")
-for ch in chains {
-  print(f"  Chain {ch.id}: {ch.description}")
+# Get entity information (chains/subunits)
+let entities = pdb_chains("6LU7")
+for ent in entities {
+  print(f"  Entity {ent.entity_id} ({ent.entity_type}): {ent.description}")
 }
 
-# Get protein sequence for chain A
-let seq = pdb_sequence("6LU7", "A")
-print(f"Chain A sequence ({seq |> seq_len} aa): {subseq(seq, 0, 50)}...")</code></pre>
+# Get protein sequence for entity 1
+let seq = pdb_sequence("6LU7", 1)
+print(f"Entity 1 sequence ({seq |> seq_len} aa): {subseq(seq, 0, 50)}...")</code></pre>
 
         <h2>Contact Maps</h2>
 
@@ -260,7 +260,7 @@ let bfactors = residue_ids |> map(|resid| {
     resid: resid,
     resname: res_atoms |> first |> map(|a| { a.resname }),
     mean_bfactor: bfs |> mean,
-    ca_bfactor: if ca != None { ca.bfactor } else { 0.0 },
+    ca_bfactor: if ca != nil { ca.bfactor } else { 0.0 },
     n_atoms: bfs |> len
   }
 })

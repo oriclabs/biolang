@@ -48,11 +48,11 @@ try {
         }
         "parse_error" => {
             print("Malformed response for " + accession + ", skipping")
-            None
+            nil
         }
         _ => {
             print("Unexpected error: " + e.message)
-            None
+            nil
         }
     }
 }
@@ -92,7 +92,7 @@ Network calls to biological databases are unreliable. Use a loop with
 `try/catch` to retry a block up to a specified number of attempts.
 
 ```biolang
-let gene_info = None
+let gene_info = nil
 let attempts = 0
 while attempts < 3 {
     try {
@@ -111,7 +111,7 @@ If all attempts fail, the last error propagates. Combine with an outer
 
 ```biolang
 let annotation = try {
-    let result = None
+    let result = nil
     let attempts = 0
     while attempts < 5 {
         try {
@@ -137,7 +137,7 @@ For high-traffic APIs, increase delay between retries using a helper:
 ```biolang
 fn fetch_with_backoff(url, max_attempts: 5) {
     let attempt = 0
-    let result = None
+    let result = nil
 
     while attempt < max_attempts {
         try {
@@ -171,7 +171,7 @@ let gene_name = annotation?.gene_name ?? "unknown"
 let af = variant.info?.AF ?? variant.info?.MAF ?? 0.0
 ```
 
-`??` chains naturally. The first non-None value wins:
+`??` chains naturally. The first non-nil value wins:
 
 ```biolang
 let symbol = record.hugo_symbol ?? record.gene_id ?? record.locus_tag ?? "uncharacterised"
@@ -180,13 +180,13 @@ let symbol = record.hugo_symbol ?? record.gene_id ?? record.locus_tag ?? "unchar
 ## Optional Chaining: ?.
 
 The `?.` operator short-circuits a field access chain when any intermediate
-value is `None`. Instead of crashing, the entire expression evaluates to `None`.
+value is `nil`. Instead of crashing, the entire expression evaluates to `nil`.
 
 ```biolang
-# Without optional chaining -- crashes if info is None or CLNSIG is absent
+# Without optional chaining -- crashes if info is nil or CLNSIG is absent
 let sig = variant.info.CLNSIG
 
-# With optional chaining -- returns None safely
+# With optional chaining -- returns nil safely
 let sig = variant.info?.CLNSIG
 
 # Deep chains
@@ -207,7 +207,7 @@ Biological file formats are under-specified. A BED file might have 3 columns
 or 12. A VCF INFO field might omit half the keys. Build defensive accessors.
 
 ```biolang
-fn safe_info(variant, key, default: None) {
+fn safe_info(variant, key, default: nil) {
     try {
         let info = parse_info(variant.info_str)
         info[key] ?? default
@@ -248,12 +248,12 @@ fn robust_parse(lines, parser) {
 
 ### Nil-safe Aggregation
 
-When computing statistics over optional fields, filter out None values first:
+When computing statistics over optional fields, filter out nil values first:
 
 ```biolang
 let qualities = variants
     |> map(|v| v.qual)
-    |> filter(|q| q != None)
+    |> filter(|q| q != nil)
 
 let mean_qual = if len(qualities) > 0 { mean(qualities) } else { 0.0 }
 ```
@@ -266,14 +266,14 @@ Parse a FASTA file that may contain corrupted entries mixed with valid ones.
 fn parse_fasta_robust(path) {
     let raw = read_lines(path)
     let records = []
-    let current_header = None
+    let current_header = nil
     let current_seq = ""
     let errors = []
 
     for line in raw {
         if starts_with(line, ">") {
             # Flush previous record
-            if current_header != None {
+            if current_header != nil {
                 try {
                     guard len(current_seq) > 0 else {
                         error("Empty sequence for " + current_header)
@@ -294,7 +294,7 @@ fn parse_fasta_robust(path) {
     }
 
     # Flush last record
-    if current_header != None {
+    if current_header != nil {
         try {
             guard len(current_seq) > 0 else { error("Empty sequence") }
             guard is_dna(current_seq) else { error("Invalid characters") }
@@ -325,7 +325,7 @@ fn fetch_gene_summaries(gene_ids) {
 
     for id in gene_ids {
         let summary = try {
-            let result = None
+            let result = nil
             let attempts = 0
             while attempts < 3 {
                 try {
@@ -333,7 +333,7 @@ fn fetch_gene_summaries(gene_ids) {
                         + "?db=gene&id=" + str(id) + "&retmode=json"
                     let resp = http_get(url)
                     let data = parse_json(resp.body)
-                    guard data?.result != None else {
+                    guard data?.result != nil else {
                         error("No result field in response")
                     }
                     result = data.result[str(id)]
@@ -422,7 +422,7 @@ write_csv(pathogenic, "pathogenic_report.csv")
 | try/catch | `try { } catch e { }` | Graceful failure handling |
 | error() | `error("msg")` | Raise an exception |
 | retry loop | `while attempts < n { try { ... break } catch { ... sleep(ms) } }` | Transient-failure recovery |
-| ?? | `val ?? default` | None substitution |
+| ?? | `val ?? default` | nil substitution |
 | ?. | `obj?.field` | Safe field access |
 | guard | `guard cond else { }` | Precondition assertion |
 

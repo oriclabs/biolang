@@ -289,8 +289,8 @@ print("=== 4. Differential Expression Testing ===")
 let control_idx = [0, 1, 2]
 let treated_idx = [3, 4, 5]
 
-let control_matrix = raw_counts |> map(|col, i| if contains(control_idx, i) { col } else { None }) |> filter(|col| col != None)
-let treated_matrix = raw_counts |> map(|col, i| if contains(treated_idx, i) { col } else { None }) |> filter(|col| col != None)
+let control_matrix = raw_counts |> map(|col, i| if contains(control_idx, i) { col } else { nil }) |> filter(|col| col != nil)
+let treated_matrix = raw_counts |> map(|col, i| if contains(treated_idx, i) { col } else { nil }) |> filter(|col| col != nil)
 
 let de_results = diff_expr(control_matrix, treated_matrix)
 
@@ -486,11 +486,11 @@ print("=== Identify Significant Hits ===")
 
 let gw_significant = qc_pass
   |> filter(|row| row.pvalue < 5e-8)
-  |> arrange("pvalue")
+  |> sort(|a, b| a.pvalue - b.pvalue)
 
 let suggestive = qc_pass
   |> filter(|row| row.pvalue >= 5e-8 && row.pvalue < 1e-5)
-  |> arrange("pvalue")
+  |> sort(|a, b| a.pvalue - b.pvalue)
 
 print("Genome-wide significant (p < 5e-8): " + str(len(gw_significant)) + " SNPs")
 print("Suggestive (5e-8 <= p < 1e-5): " + str(len(suggestive)) + " SNPs")

@@ -97,6 +97,98 @@ pub fn read_fasta(path: &str) -> Result<Value> {
     }
 }
 
+/// Compute aggregate FASTA statistics in a single native pass.
+/// Returns a Record with: count, total_bp, mean_length, median_length, min_length, max_length,
+/// n50, mean_gc, lengths (List[Int]), gc_values (List[Float]).
+pub fn fasta_stats(path: &str) -> Result<Value> {
+    let stream = read_fasta(path)?;
+    let s = match stream {
+        Value::Stream(s) => s,
+        _ => unreachable!(),
+    };
+
+    // Stream without materializing full records — collect only lengths and gc values
+    let mut lengths: Vec<i64> = Vec::new();
+    let mut gc_values: Vec<f64> = Vec::new();
+    let mut total_bp: i64 = 0;
+    let mut gc_sum: f64 = 0.0;
+
+    while let Some(item) = s.next() {
+        if let Value::Record(rec) = item {
+            let len = match rec.get("length") {
+                Some(Value::Int(n)) => *n,
+                _ => 0,
+            };
+            let gc = match rec.get("gc") {
+                Some(Value::Float(f)) => *f,
+                _ => 0.0,
+            };
+            lengths.push(len);
+            gc_values.push(gc);
+            total_bp += len;
+            gc_sum += gc;
+        }
+    }
+
+    let count = lengths.len();
+
+    if count == 0 {
+        let mut map = HashMap::new();
+        map.insert("count".to_string(), Value::Int(0));
+        map.insert("total_bp".to_string(), Value::Int(0));
+        map.insert("mean_length".to_string(), Value::Float(0.0));
+        map.insert("median_length".to_string(), Value::Float(0.0));
+        map.insert("min_length".to_string(), Value::Int(0));
+        map.insert("max_length".to_string(), Value::Int(0));
+        map.insert("n50".to_string(), Value::Int(0));
+        map.insert("mean_gc".to_string(), Value::Float(0.0));
+        map.insert("lengths".to_string(), Value::List(vec![]));
+        map.insert("gc_values".to_string(), Value::List(vec![]));
+        return Ok(Value::Record(map));
+    }
+
+    let mean_length = total_bp as f64 / count as f64;
+    let mean_gc = gc_sum / count as f64;
+
+    // Sort for median and N50
+    let mut sorted = lengths.clone();
+    sorted.sort_unstable();
+
+    let median_length = if count % 2 == 0 {
+        (sorted[count / 2 - 1] + sorted[count / 2]) as f64 / 2.0
+    } else {
+        sorted[count / 2] as f64
+    };
+
+    let min_length = sorted[0];
+    let max_length = sorted[count - 1];
+
+    // N50: sort descending, accumulate until >= half of total_bp
+    let half = total_bp / 2;
+    let mut cumulative: i64 = 0;
+    let mut n50: i64 = 0;
+    for &l in sorted.iter().rev() {
+        cumulative += l;
+        if cumulative >= half {
+            n50 = l;
+            break;
+        }
+    }
+
+    let mut map = HashMap::new();
+    map.insert("count".to_string(), Value::Int(count as i64));
+    map.insert("total_bp".to_string(), Value::Int(total_bp));
+    map.insert("mean_length".to_string(), Value::Float(mean_length));
+    map.insert("median_length".to_string(), Value::Float(median_length));
+    map.insert("min_length".to_string(), Value::Int(min_length));
+    map.insert("max_length".to_string(), Value::Int(max_length));
+    map.insert("n50".to_string(), Value::Int(n50));
+    map.insert("mean_gc".to_string(), Value::Float(mean_gc));
+    map.insert("lengths".to_string(), Value::List(lengths.into_iter().map(Value::Int).collect()));
+    map.insert("gc_values".to_string(), Value::List(gc_values.into_iter().map(Value::Float).collect()));
+    Ok(Value::Record(map))
+}
+
 /// Read a FASTA file eagerly, returning a Table.
 /// Columns: id, description, seq, length.
 /// For large files, prefer the streaming `read_fasta()` instead.
@@ -342,8 +434,9 @@ impl<R: std::io::BufRead + Send> Iterator for FastaIter<R> {
             Ok(_) => {
                 let seq_str = String::from_utf8_lossy(&seq_buf).to_uppercase();
                 let seq_len = seq_str.len() as i64;
+                let gc = bio_core::seq_ops::gc_content(&seq_str);
 
-                let mut map = HashMap::new();
+                let mut map = HashMap::with_capacity(5);
                 map.insert("id".to_string(), Value::Str(name));
                 map.insert("description".to_string(), Value::Str(description));
                 map.insert(
@@ -351,6 +444,7 @@ impl<R: std::io::BufRead + Send> Iterator for FastaIter<R> {
                     Value::DNA(BioSequence { data: seq_str }),
                 );
                 map.insert("length".to_string(), Value::Int(seq_len));
+                map.insert("gc".to_string(), Value::Float(gc));
                 Some(Value::Record(map))
             }
             Err(_) => None,
@@ -408,33 +502,54 @@ impl<R: std::io::BufRead + Send> Iterator for FastqIter<R> {
 
 /// Read a BED file (BED3/BED6/BED12), returning a Table.
 pub fn read_bed(path: &str) -> Result<Value> {
-    let content = read_file_content(path, "bed")?;
+    use std::io::{BufRead, BufReader};
+
+    let path = resolve_data_path(path);
+    check_format_mismatch(&path, "bed")?;
+    let file = std::fs::File::open(&path).map_err(|e| {
+        BioLangError::runtime(ErrorKind::IOError, format!("bed(): cannot open '{path}': {e}"), None)
+    })?;
+    let reader = BufReader::with_capacity(128 * 1024, file);
     let mut rows: Vec<Vec<Value>> = Vec::new();
     let mut num_fields = 0;
+    let mut line_buf = String::new();
 
-    for line in content.lines() {
+    let mut buf_reader = reader;
+    loop {
+        line_buf.clear();
+        let bytes = buf_reader.read_line(&mut line_buf).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("bed(): read error: {e}"), None)
+        })?;
+        if bytes == 0 { break; }
+        let line = line_buf.trim_end();
         if line.is_empty() || line.starts_with('#') || line.starts_with("track") || line.starts_with("browser") {
             continue;
         }
-        let fields: Vec<&str> = line.split('\t').collect();
-        if fields.len() < 3 {
-            continue;
-        }
+        // Manual tab-split avoids Vec<&str> allocation
+        let mut tabs = line.splitn(7, '\t');
+        let chrom = match tabs.next() { Some(s) => s, None => continue };
+        let start = match tabs.next() { Some(s) => s, None => continue };
+        let end = match tabs.next() { Some(s) => s, None => continue };
+        let name = tabs.next();
+        let score = tabs.next();
+        let strand = tabs.next();
+
+        let nf = 3 + name.is_some() as usize + score.is_some() as usize + strand.is_some() as usize;
         if num_fields == 0 {
-            num_fields = fields.len();
+            num_fields = nf;
         }
-        let mut row = Vec::new();
-        row.push(Value::Str(fields[0].to_string())); // chrom
-        row.push(parse_int_field(fields[1]));          // start
-        row.push(parse_int_field(fields[2]));          // end
-        if fields.len() > 3 {
-            row.push(Value::Str(fields[3].to_string())); // name
+        let mut row = Vec::with_capacity(nf.min(6));
+        row.push(Value::Str(chrom.to_string()));
+        row.push(parse_int_field(start));
+        row.push(parse_int_field(end));
+        if let Some(n) = name {
+            row.push(Value::Str(n.to_string()));
         }
-        if fields.len() > 4 {
-            row.push(parse_numeric_field(fields[4])); // score
+        if let Some(s) = score {
+            row.push(parse_numeric_field(s));
         }
-        if fields.len() > 5 {
-            row.push(Value::Str(fields[5].to_string())); // strand
+        if let Some(s) = strand {
+            row.push(Value::Str(s.to_string()));
         }
         rows.push(row);
     }
@@ -452,32 +567,66 @@ pub fn read_bed(path: &str) -> Result<Value> {
 
 /// Read a GFF3 file, returning a Table.
 pub fn read_gff(path: &str) -> Result<Value> {
-    let content = read_file_content(path, "gff")?;
-    let columns = vec![
+    use std::io::{BufRead, BufReader};
+
+    let path = resolve_data_path(path);
+    check_format_mismatch(&path, "gff")?;
+    let file = std::fs::File::open(&path).map_err(|e| {
+        BioLangError::runtime(ErrorKind::IOError, format!("gff(): cannot open '{path}': {e}"), None)
+    })?;
+    let reader = BufReader::with_capacity(128 * 1024, file);
+    let columns: Vec<String> = vec![
         "seqid", "source", "type", "start", "end", "score", "strand", "phase", "attributes",
-    ];
-    let columns: Vec<String> = columns.iter().map(|s| s.to_string()).collect();
+    ].into_iter().map(|s| s.to_string()).collect();
 
     let mut rows: Vec<Vec<Value>> = Vec::new();
-    for line in content.lines() {
+    let mut line_buf = String::new();
+    let mut buf_reader = reader;
+
+    // String interning for repeated values (seqid, source, type, strand, phase)
+    let mut intern: HashMap<Box<str>, Value> = HashMap::with_capacity(64);
+    let mut intern_val = |s: &str| -> Value {
+        if let Some(cached) = intern.get(s) {
+            return cached.clone();
+        }
+        let val = Value::Str(s.to_string());
+        intern.insert(s.into(), val.clone());
+        val
+    };
+
+    loop {
+        line_buf.clear();
+        let bytes = buf_reader.read_line(&mut line_buf).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("gff(): read error: {e}"), None)
+        })?;
+        if bytes == 0 { break; }
+        let line = line_buf.trim_end();
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        let fields: Vec<&str> = line.split('\t').collect();
-        if fields.len() < 9 {
-            continue;
-        }
-        let row = vec![
-            Value::Str(fields[0].to_string()),   // seqid
-            Value::Str(fields[1].to_string()),   // source
-            Value::Str(fields[2].to_string()),   // type
-            parse_int_field(fields[3]),            // start
-            parse_int_field(fields[4]),            // end
-            parse_score_field(fields[5]),           // score (may be ".")
-            Value::Str(fields[6].to_string()),   // strand
-            Value::Str(fields[7].to_string()),   // phase
-            Value::Str(fields[8].to_string()),   // attributes
-        ];
+        // Manual tab-split avoids Vec<&str> allocation per line
+        let mut tabs = line.splitn(10, '\t');
+        let seqid = match tabs.next() { Some(s) => s, None => continue };
+        let source = match tabs.next() { Some(s) => s, None => continue };
+        let ftype = match tabs.next() { Some(s) => s, None => continue };
+        let start = match tabs.next() { Some(s) => s, None => continue };
+        let end = match tabs.next() { Some(s) => s, None => continue };
+        let score = match tabs.next() { Some(s) => s, None => continue };
+        let strand = match tabs.next() { Some(s) => s, None => continue };
+        let phase = match tabs.next() { Some(s) => s, None => continue };
+        let attrs = match tabs.next() { Some(s) => s, None => continue };
+
+        let mut row = Vec::with_capacity(9);
+        row.push(intern_val(seqid));
+        row.push(intern_val(source));
+        row.push(intern_val(ftype));
+        row.push(parse_int_field(start));
+        row.push(parse_int_field(end));
+        row.push(parse_score_field(score));
+        row.push(intern_val(strand));
+        row.push(intern_val(phase));
+        // Attributes are unique per row — no interning
+        row.push(Value::Str(attrs.to_string()));
         rows.push(row);
     }
 
@@ -486,33 +635,71 @@ pub fn read_gff(path: &str) -> Result<Value> {
 
 /// Read a VCF file, returning a Table.
 pub fn read_vcf(path: &str) -> Result<Value> {
-    let content = read_file_content(path, "vcf")?;
+    use std::io::{BufRead, BufReader};
+
+    let path = resolve_data_path(path);
+    check_format_mismatch(&path, "vcf")?;
+    let file = std::fs::File::open(&path).map_err(|e| {
+        BioLangError::runtime(ErrorKind::IOError, format!("read_vcf(): cannot open '{path}': {e}"), None)
+    })?;
+    let reader = BufReader::with_capacity(128 * 1024, file);
     let mut variants: Vec<Value> = Vec::new();
-    for line in content.lines() {
+    let mut line_buf = String::new();
+    let mut buf_reader = reader;
+
+    // String interning for repeated values (chrom, filter, id)
+    let mut intern: HashMap<Box<str>, String> = HashMap::with_capacity(64);
+    let mut intern_str = |s: &str| -> String {
+        if let Some(cached) = intern.get(s) {
+            return cached.clone();
+        }
+        let owned = s.to_string();
+        intern.insert(s.into(), owned.clone());
+        owned
+    };
+
+    loop {
+        line_buf.clear();
+        let bytes = buf_reader.read_line(&mut line_buf).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("read_vcf(): read error: {e}"), None)
+        })?;
+        if bytes == 0 { break; }
+        let line = line_buf.trim_end();
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        let fields: Vec<&str> = line.split('\t').collect();
-        if fields.len() < 8 {
-            continue;
-        }
-        let quality = match parse_numeric_field(fields[5]) {
-            Value::Float(f) => f,
-            Value::Int(i) => i as f64,
-            _ => 0.0,
+        // Manual tab-split: avoids Vec<&str> allocation per line
+        let mut tabs = line.splitn(9, '\t');
+        let chrom = match tabs.next() { Some(s) => s, None => continue };
+        let pos_s = match tabs.next() { Some(s) => s, None => continue };
+        let id = match tabs.next() { Some(s) => s, None => continue };
+        let ref_a = match tabs.next() { Some(s) => s, None => continue };
+        let alt_a = match tabs.next() { Some(s) => s, None => continue };
+        let qual_s = match tabs.next() { Some(s) => s, None => continue };
+        let filt = match tabs.next() { Some(s) => s, None => continue };
+        let info_s = match tabs.next() { Some(s) => s, None => continue };
+
+        let quality = match qual_s {
+            "." => 0.0,
+            s => s.parse::<f64>().unwrap_or(0.0),
         };
-        let info = match parse_vcf_info_field(fields[7]) {
-            Value::Record(m) => m,
-            _ => HashMap::new(),
+        // Store raw INFO string — parsed lazily on .info access
+        // Skip storing _raw for "." (empty INFO) to reduce allocations
+        let info = if info_s == "." {
+            HashMap::new()
+        } else {
+            let mut m = HashMap::with_capacity(1);
+            m.insert("_raw".into(), Value::Str(info_s.to_string()));
+            m
         };
         variants.push(Value::Variant {
-            chrom: fields[0].to_string(),
-            pos: fields[1].parse::<i64>().unwrap_or(0),
-            id: fields[2].to_string(),
-            ref_allele: fields[3].to_string(),
-            alt_allele: fields[4].to_string(),
+            chrom: intern_str(chrom),
+            pos: pos_s.parse::<i64>().unwrap_or(0),
+            id: intern_str(id),
+            ref_allele: intern_str(ref_a),
+            alt_allele: intern_str(alt_a),
             quality,
-            filter: fields[6].to_string(),
+            filter: intern_str(filt),
             info,
         });
     }
@@ -529,6 +716,21 @@ fn read_file_content(path: &str, func: &str) -> Result<String> {
             format!("file not found: {path}"),
             None,
         ));
+    }
+    // Guard against reading very large files into memory
+    if let Ok(meta) = std::fs::metadata(&path) {
+        let size = meta.len();
+        if size > 500_000_000 {
+            return Err(BioLangError::runtime(
+                ErrorKind::IOError,
+                format!(
+                    "{func}(): file is too large to read eagerly ({} MB). \
+                     Use a streaming reader instead (e.g. read_fasta(), read_vcf_stream()).",
+                    size / 1_000_000
+                ),
+                None,
+            ));
+        }
     }
     check_format_mismatch(&path, func)?;
     std::fs::read_to_string(&path).map_err(|e| {
@@ -1324,7 +1526,7 @@ pub fn read_bedgraph(path: &str) -> Result<Value> {
 // corresponding Table reader, so `collect() |> table()` round-trips.
 
 /// Helper: open a file for streaming — supports .gz via flate2.
-fn open_buf_reader(path: &str) -> Result<Box<dyn std::io::BufRead + Send>> {
+pub fn open_buf_reader(path: &str) -> Result<Box<dyn std::io::BufRead + Send>> {
     let file = open_file(path)?;
     if path.ends_with(".gz") {
         let decoder = flate2::read::GzDecoder::new(file);
@@ -1352,22 +1554,27 @@ impl<R: std::io::BufRead + Send> Iterator for BedIter<R> {
             {
                 continue;
             }
-            let fields: Vec<&str> = line.split('\t').collect();
-            if fields.len() < 3 {
-                continue;
+            let mut tabs = line.splitn(7, '\t');
+            let chrom = match tabs.next() { Some(s) => s, None => continue };
+            let start = match tabs.next() { Some(s) => s, None => continue };
+            let end = match tabs.next() { Some(s) => s, None => continue };
+            let name = tabs.next();
+            let score = tabs.next();
+            let strand = tabs.next();
+
+            let cap = 3 + name.is_some() as usize + score.is_some() as usize + strand.is_some() as usize;
+            let mut map = HashMap::with_capacity(cap);
+            map.insert("chrom".into(), Value::Str(chrom.to_string()));
+            map.insert("start".into(), parse_int_field(start));
+            map.insert("end".into(), parse_int_field(end));
+            if let Some(n) = name {
+                map.insert("name".into(), Value::Str(n.to_string()));
             }
-            let mut map = HashMap::new();
-            map.insert("chrom".into(), Value::Str(fields[0].to_string()));
-            map.insert("start".into(), parse_int_field(fields[1]));
-            map.insert("end".into(), parse_int_field(fields[2]));
-            if fields.len() > 3 {
-                map.insert("name".into(), Value::Str(fields[3].to_string()));
+            if let Some(s) = score {
+                map.insert("score".into(), parse_numeric_field(s));
             }
-            if fields.len() > 4 {
-                map.insert("score".into(), parse_numeric_field(fields[4]));
-            }
-            if fields.len() > 5 {
-                map.insert("strand".into(), Value::Str(fields[5].to_string()));
+            if let Some(s) = strand {
+                map.insert("strand".into(), Value::Str(s.to_string()));
             }
             return Some(Value::Record(map));
         }
@@ -1400,20 +1607,27 @@ impl<R: std::io::BufRead + Send> Iterator for GffIter<R> {
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            let fields: Vec<&str> = line.split('\t').collect();
-            if fields.len() < 9 {
-                continue;
-            }
-            let mut map = HashMap::new();
-            map.insert("seqid".into(), Value::Str(fields[0].to_string()));
-            map.insert("source".into(), Value::Str(fields[1].to_string()));
-            map.insert("type".into(), Value::Str(fields[2].to_string()));
-            map.insert("start".into(), parse_int_field(fields[3]));
-            map.insert("end".into(), parse_int_field(fields[4]));
-            map.insert("score".into(), parse_score_field(fields[5]));
-            map.insert("strand".into(), Value::Str(fields[6].to_string()));
-            map.insert("phase".into(), Value::Str(fields[7].to_string()));
-            map.insert("attributes".into(), Value::Str(fields[8].to_string()));
+            let mut tabs = line.splitn(10, '\t');
+            let seqid = match tabs.next() { Some(s) => s, None => continue };
+            let source = match tabs.next() { Some(s) => s, None => continue };
+            let ftype = match tabs.next() { Some(s) => s, None => continue };
+            let start = match tabs.next() { Some(s) => s, None => continue };
+            let end = match tabs.next() { Some(s) => s, None => continue };
+            let score = match tabs.next() { Some(s) => s, None => continue };
+            let strand = match tabs.next() { Some(s) => s, None => continue };
+            let phase = match tabs.next() { Some(s) => s, None => continue };
+            let attrs = match tabs.next() { Some(s) => s, None => continue };
+
+            let mut map = HashMap::with_capacity(9);
+            map.insert("seqid".into(), Value::Str(seqid.to_string()));
+            map.insert("source".into(), Value::Str(source.to_string()));
+            map.insert("type".into(), Value::Str(ftype.to_string()));
+            map.insert("start".into(), parse_int_field(start));
+            map.insert("end".into(), parse_int_field(end));
+            map.insert("score".into(), parse_score_field(score));
+            map.insert("strand".into(), Value::Str(strand.to_string()));
+            map.insert("phase".into(), Value::Str(phase.to_string()));
+            map.insert("attributes".into(), Value::Str(attrs.to_string()));
             return Some(Value::Record(map));
         }
     }
@@ -1435,6 +1649,18 @@ pub fn read_gff_stream(path: &str) -> Result<Value> {
 
 struct VcfIter<R: std::io::BufRead> {
     lines: std::io::Lines<R>,
+    intern: HashMap<Box<str>, String>,
+}
+
+impl<R: std::io::BufRead + Send> VcfIter<R> {
+    fn intern_str(&mut self, s: &str) -> String {
+        if let Some(cached) = self.intern.get(s) {
+            return cached.clone();
+        }
+        let owned = s.to_string();
+        self.intern.insert(s.into(), owned.clone());
+        owned
+    }
 }
 
 impl<R: std::io::BufRead + Send> Iterator for VcfIter<R> {
@@ -1445,27 +1671,41 @@ impl<R: std::io::BufRead + Send> Iterator for VcfIter<R> {
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            let fields: Vec<&str> = line.split('\t').collect();
-            if fields.len() < 8 {
-                continue;
-            }
-            let quality = match parse_numeric_field(fields[5]) {
-                Value::Float(f) => f,
-                Value::Int(i) => i as f64,
-                _ => 0.0,
+            let mut tabs = line.splitn(9, '\t');
+            let chrom = match tabs.next() { Some(s) => s, None => continue };
+            let pos_s = match tabs.next() { Some(s) => s, None => continue };
+            let id = match tabs.next() { Some(s) => s, None => continue };
+            let ref_a = match tabs.next() { Some(s) => s, None => continue };
+            let alt_a = match tabs.next() { Some(s) => s, None => continue };
+            let qual_s = match tabs.next() { Some(s) => s, None => continue };
+            let filt = match tabs.next() { Some(s) => s, None => continue };
+            let info_s = match tabs.next() { Some(s) => s, None => continue };
+
+            let quality = match qual_s {
+                "." => 0.0,
+                s => s.parse::<f64>().unwrap_or(0.0),
             };
-            let info = match parse_vcf_info_field(fields[7]) {
-                Value::Record(m) => m,
-                _ => HashMap::new(),
+            // Store raw INFO string — parsed lazily on .info access
+            let info = if info_s == "." {
+                HashMap::new()
+            } else {
+                let mut m = HashMap::with_capacity(1);
+                m.insert("_raw".into(), Value::Str(info_s.to_string()));
+                m
             };
+            let chrom_s = self.intern_str(chrom);
+            let id_s = self.intern_str(id);
+            let filt_s = self.intern_str(filt);
+            let ref_s = self.intern_str(ref_a);
+            let alt_s = self.intern_str(alt_a);
             return Some(Value::Variant {
-                chrom: fields[0].to_string(),
-                pos: fields[1].parse::<i64>().unwrap_or(0),
-                id: fields[2].to_string(),
-                ref_allele: fields[3].to_string(),
-                alt_allele: fields[4].to_string(),
+                chrom: chrom_s,
+                pos: pos_s.parse::<i64>().unwrap_or(0),
+                id: id_s,
+                ref_allele: ref_s,
+                alt_allele: alt_s,
                 quality,
-                filter: fields[6].to_string(),
+                filter: filt_s,
                 info,
             });
         }
@@ -1480,7 +1720,7 @@ pub fn read_vcf_stream(path: &str) -> Result<Value> {
     let label = format!("vcf:{path}");
     Ok(Value::Stream(StreamValue::new(
         label,
-        Box::new(VcfIter { lines: reader.lines() }),
+        Box::new(VcfIter { lines: reader.lines(), intern: HashMap::with_capacity(64) }),
     )))
 }
 
@@ -1962,70 +2202,92 @@ fn check_file_exists(path: &str) -> Result<String> {
 /// Write records to a FASTA file.
 /// Takes a List of Records with `id` and `seq` fields, and a path.
 pub fn write_fasta(records: &Value, path: &str) -> Result<Value> {
-    use std::io::Write;
+    use std::io::{BufWriter, Write};
     let path = resolve_write_path(path);
+    let table_records;
     let items = match records {
         Value::List(l) => l,
-        _ => return Err(BioLangError::type_error("write_fasta() requires List of records", None)),
+        Value::Table(t) => {
+            table_records = (0..t.num_rows())
+                .map(|i| Value::Record(t.row_to_record(i)))
+                .collect::<Vec<_>>();
+            &table_records
+        }
+        _ => return Err(BioLangError::type_error("write_fasta() requires List or Table of records", None)),
     };
-    let mut file = File::create(&path).map_err(|e| {
+    let file = File::create(&path).map_err(|e| {
         BioLangError::runtime(ErrorKind::IOError, format!("cannot create '{path}': {e}"), None)
     })?;
+    let mut writer = BufWriter::with_capacity(256 * 1024, file);
     let mut count = 0i64;
     for item in items {
         if let Value::Record(map) = item {
             let id = map.get("id").map(|v| format!("{v}")).unwrap_or_default();
             let desc = map.get("description").map(|v| format!("{v}")).unwrap_or_default();
-            let seq = match map.get("seq") {
-                Some(Value::DNA(s)) | Some(Value::RNA(s)) | Some(Value::Protein(s)) => s.data.clone(),
-                Some(Value::Str(s)) => s.clone(),
-                _ => String::new(),
+            let seq_bytes: &[u8] = match map.get("seq") {
+                Some(Value::DNA(s)) | Some(Value::RNA(s)) | Some(Value::Protein(s)) => s.data.as_bytes(),
+                Some(Value::Str(s)) => s.as_bytes(),
+                _ => b"",
             };
             if desc.is_empty() {
-                writeln!(file, ">{id}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+                writeln!(writer, ">{id}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
             } else {
-                writeln!(file, ">{id} {desc}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+                writeln!(writer, ">{id} {desc}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
             }
             // Write sequence in 80-char lines
-            for chunk in seq.as_bytes().chunks(80) {
-                file.write_all(chunk).map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
-                writeln!(file).map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+            for chunk in seq_bytes.chunks(80) {
+                writer.write_all(chunk).map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+                writer.write_all(b"\n").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
             }
             count += 1;
         }
     }
+    writer.flush().map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
     Ok(Value::Int(count))
 }
 
 /// Write records to a FASTQ file.
 /// Takes a List of Records with `id`, `seq`, `quality` fields, and a path.
 pub fn write_fastq(records: &Value, path: &str) -> Result<Value> {
-    use std::io::Write;
+    use std::io::{BufWriter, Write};
     let path = resolve_write_path(path);
+    let table_records;
     let items = match records {
         Value::List(l) => l,
-        _ => return Err(BioLangError::type_error("write_fastq() requires List of records", None)),
+        Value::Table(t) => {
+            table_records = (0..t.num_rows())
+                .map(|i| Value::Record(t.row_to_record(i)))
+                .collect::<Vec<_>>();
+            &table_records
+        }
+        _ => return Err(BioLangError::type_error("write_fastq() requires List or Table of records", None)),
     };
-    let mut file = File::create(&path).map_err(|e| {
+    let file = File::create(&path).map_err(|e| {
         BioLangError::runtime(ErrorKind::IOError, format!("cannot create '{path}': {e}"), None)
     })?;
+    let mut writer = BufWriter::with_capacity(256 * 1024, file);
     let mut count = 0i64;
     for item in items {
         if let Value::Record(map) = item {
             let id = map.get("id").map(|v| format!("{v}")).unwrap_or_default();
             let seq = match map.get("seq") {
-                Some(Value::DNA(s)) | Some(Value::RNA(s)) | Some(Value::Protein(s)) => s.data.clone(),
-                Some(Value::Str(s)) => s.clone(),
-                _ => String::new(),
+                Some(Value::DNA(s)) | Some(Value::RNA(s)) | Some(Value::Protein(s)) => &s.data,
+                Some(Value::Str(s)) => s,
+                _ => "",
             };
-            let quality = map.get("quality").map(|v| format!("{v}")).unwrap_or_else(|| "I".repeat(seq.len()));
-            writeln!(file, "@{id}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
-            writeln!(file, "{seq}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
-            writeln!(file, "+").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
-            writeln!(file, "{quality}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+            let quality_owned;
+            let quality = match map.get("quality") {
+                Some(v) => { quality_owned = format!("{v}"); &quality_owned }
+                None => { quality_owned = "I".repeat(seq.len()); &quality_owned }
+            };
+            writeln!(writer, "@{id}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+            writeln!(writer, "{seq}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+            writeln!(writer, "+").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
+            writeln!(writer, "{quality}").map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
             count += 1;
         }
     }
+    writer.flush().map_err(|e| BioLangError::runtime(ErrorKind::IOError, e.to_string(), None))?;
     Ok(Value::Int(count))
 }
 
@@ -2073,9 +2335,16 @@ pub fn write_bed(records: &Value, path: &str) -> Result<Value> {
 pub fn write_vcf(records: &Value, path: &str) -> Result<Value> {
     use std::io::Write;
     let path = resolve_write_path(path);
+    let table_records;
     let items = match records {
         Value::List(l) => l,
-        _ => return Err(BioLangError::type_error("write_vcf() requires List of records", None)),
+        Value::Table(t) => {
+            table_records = (0..t.num_rows())
+                .map(|i| Value::Record(t.row_to_record(i)))
+                .collect::<Vec<_>>();
+            &table_records
+        }
+        _ => return Err(BioLangError::type_error("write_vcf() requires List or Table of records", None)),
     };
     let mut file = File::create(&path).map_err(|e| {
         BioLangError::runtime(ErrorKind::IOError, format!("cannot create '{path}': {e}"), None)
@@ -2125,9 +2394,16 @@ pub fn write_vcf(records: &Value, path: &str) -> Result<Value> {
 pub fn write_gff(records: &Value, path: &str) -> Result<Value> {
     use std::io::Write;
     let path = resolve_write_path(path);
+    let table_records;
     let items = match records {
         Value::List(l) => l,
-        _ => return Err(BioLangError::type_error("write_gff() requires List of records", None)),
+        Value::Table(t) => {
+            table_records = (0..t.num_rows())
+                .map(|i| Value::Record(t.row_to_record(i)))
+                .collect::<Vec<_>>();
+            &table_records
+        }
+        _ => return Err(BioLangError::type_error("write_gff() requires List or Table of records", None)),
     };
     let mut file = File::create(&path).map_err(|e| {
         BioLangError::runtime(ErrorKind::IOError, format!("cannot create '{path}': {e}"), None)

@@ -214,33 +214,21 @@ slack({
 
 ### Pipeline Integration
 
-Use `notify()` in pipeline stages or with `defer` for guaranteed delivery:
+Use `notify()` at any point in a pipeline for progress updates:
 
 ```
-pipeline variant_pipeline {
-  defer {
-    notify("Pipeline variant_pipeline finished")
-  }
+# Variant calling pipeline with notifications
+shell("bwa-mem2 mem -t 16 GRCh38.fa R1.fq.gz R2.fq.gz | samtools sort -o aligned.bam")
 
-  stage align {
-    shell("bwa-mem2 mem -t 16 GRCh38.fa R1.fq.gz R2.fq.gz | samtools sort -o aligned.bam")
-    "aligned.bam"
-  }
+shell("gatk HaplotypeCaller -R GRCh38.fa -I aligned.bam -O raw.vcf.gz")
+let variants = read_vcf("raw.vcf.gz") |> collect()
+let snps = variants |> filter(|v| is_snp(v)) |> len()
+let indels = variants |> filter(|v| is_indel(v)) |> len()
 
-  stage call {
-    shell("gatk HaplotypeCaller -R GRCh38.fa -I " + align + " -O raw.vcf.gz")
-    let variants = read_vcf("raw.vcf.gz") |> collect()
-    let snps = variants |> filter(|v| v.is_snp) |> len()
-    let indels = variants |> filter(|v| v.is_indel) |> len()
-
-    notify({
-      title: "Variant Calling Complete",
-      fields: {SNPs: snps, Indels: indels}
-    })
-
-    "raw.vcf.gz"
-  }
-}
+notify({
+  title: "Variant Calling Complete",
+  fields: {SNPs: snps, Indels: indels}
+})
 ```
 
 ### Setup

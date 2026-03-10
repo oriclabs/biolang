@@ -1,0 +1,20 @@
+# Benchmark 8: Real-World Protein Sequence Analysis
+# UniProt reviewed E. coli K-12 proteome.
+
+let stats = fasta_stats("data_real/ecoli_proteome.fa")
+
+println(f"Proteins: {stats.count}")
+println(f"Total residues: {stats.total_bp}")
+println(f"Mean length: {round(stats.mean_length, 1)}")
+println(f"Min length: {stats.min_length}")
+println(f"Max length: {stats.max_length}")
+println(f"N50: {stats.n50}")
+
+# Length distribution
+let short = stats.lengths |> filter(|l| l < 200) |> len()
+let medium = stats.lengths |> filter(|l| l >= 200 && l < 500) |> len()
+let long_p = stats.lengths |> filter(|l| l >= 500) |> len()
+
+println(f"Short (<200 aa): {short}")
+println(f"Medium (200-499 aa): {medium}")
+println(f"Long (>=500 aa): {long_p}")

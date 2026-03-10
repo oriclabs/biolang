@@ -1,0 +1,14 @@
+# Benchmark 3: K-mer Counting
+# Count 21-mers from all sequences in a FASTA file, report top 20.
+
+let seqs = read_fasta("data/sequences.fa") |> collect()
+let k = 21
+
+# Count distinct k-mers (lightweight — no table materialization)
+let distinct = kmer_distinct(seqs, k)
+println(f"Distinct {k}-mers: {distinct}")
+
+# Stream top 20 k-mers (heap-pop, no full sort)
+let top20 = kmer_count(seqs, k) |> head(20)
+println(f"Top 20 {k}-mers:")
+top20 |> each(|row| println(f"  {row.kmer}: {row.count}"))

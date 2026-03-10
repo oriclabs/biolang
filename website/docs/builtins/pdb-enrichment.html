@@ -231,10 +231,10 @@ print(paper.authors[0]) # "Anzalone AV"</code></pre>
 
         <pre><code class="language-biolang"># Search for recent gene therapy papers
 let hits = pubmed_search("AAV gene therapy retinal dystrophy", 10)
-print("Found " + str(len(hits)) + " articles")
+print("Found " + str(hits.count) + " articles")
 
 # Fetch abstracts for each result
-let papers = hits |> map(|pmid| pubmed_abstract(pmid))
+let papers = hits.ids |> map(|pmid| pubmed_abstract(pmid))
 
 # Build a summary table
 let review = papers |> map(|p| {

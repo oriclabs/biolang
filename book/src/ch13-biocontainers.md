@@ -81,7 +81,7 @@ let popular_names = top50 |> map(|t| t.name)
 
 our_tools |> each(|tool| {
   let found = popular_names |> find(|n| n == tool)
-  if found != None then
+  if found != nil then
     print(tool + " is in the top 50")
   else
     print(tool + " is NOT in the top 50")
@@ -169,7 +169,7 @@ to it in a pipeline definition.
 let bc_versions = biocontainers_versions("bcftools")
 let target = bc_versions |> find(|v| starts_with(v.version, "1.18"))
 
-if target != None then
+if target != nil then
   print("bcftools 1.18 available: " + target.images[0])
 else
   print("bcftools 1.18 not found in BioContainers")
@@ -266,7 +266,7 @@ print("  Aliases: " + join(bismark.aliases, ", "))
 # Check image sizes across versions
 bismark.versions |> take(5) |> each(|v| {
   let docker = v.images |> filter(|img| img.type == "Docker") |> first()
-  if docker != None then
+  if docker != nil then
     print("  " + v.version + ": " + str(docker.size / 1000000) + " MB")
 })
 ```
@@ -292,7 +292,7 @@ let audit = pinned |> map(|entry| {
   let all_versions = info.versions |> map(|v| v.version)
 
   # Check if pinned version still exists
-  let exists = all_versions |> find(|v| v == entry.version) != None
+  let exists = all_versions |> find(|v| v == entry.version) != nil
 
   # Check if there is a newer version
   let latest = info.versions |> first()
@@ -305,7 +305,7 @@ let audit = pinned |> map(|entry| {
     let idx = all_versions
       |> enumerate()
       |> find(|pair| pair.value == entry.version)
-    if idx != None then idx.index else -1
+    if idx != nil then idx.index else -1
   }
 
   {

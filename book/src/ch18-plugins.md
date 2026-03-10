@@ -516,7 +516,7 @@ print(str(de.n_significant) + " DE genes ("
 
 # Read the results back into BioLang for further analysis
 let results = tsv(de.results_file)
-  |> filter(|r| r.padj != None and r.padj < 0.01)
+  |> filter(|r| r.padj != nil and r.padj < 0.01)
   |> sort_by(|r| r.padj)
 
 # Cross-reference top hits with bio APIs

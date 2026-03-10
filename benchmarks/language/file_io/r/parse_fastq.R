@@ -1,0 +1,5 @@
+library(ShortRead)
+reads <- readFastq("data/reads.fq")
+seqs <- sread(reads)
+cat(sprintf("Records: %d\n", length(reads)))
+cat(sprintf("Total bp: %d\n", sum(width(seqs))))

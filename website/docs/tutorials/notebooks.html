@@ -298,7 +298,7 @@ may represent contamination or horizontal gene transfer.
 ```biolang
 let outliers = gc_table
   |> filter(|row| abs(row.gc - mu) > threshold * sigma)
-  |> sort("gc", descending: true)
+  |> arrange("-gc")
 
 print(f"Found {len(outliers)} outlier contigs:")
 outliers |> each(|row| print(f"  {row.id}: GC={row.gc:.3f}, length={row.length}"))

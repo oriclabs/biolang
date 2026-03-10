@@ -175,6 +175,8 @@ pub fn register_builtins(env: &mut Environment) {
         // Batch 2: Bio — genomic range queries
         ("interval_tree", Arity::Exact(1)),
         ("query_overlaps", Arity::Range(4, 4)),
+        ("count_overlaps", Arity::Range(4, 4)),
+        ("bulk_overlaps", Arity::Exact(2)),
         ("query_nearest", Arity::Range(3, 4)),
         ("coverage", Arity::Range(1, 4)),
         // Batch 2: Bio — sequence pattern matching
@@ -397,6 +399,7 @@ pub fn register_builtins(env: &mut Environment) {
         ("kmer_rc", Arity::Exact(1)),
         ("kmer_canonical", Arity::Exact(1)),
         ("kmer_count", Arity::Range(2, 3)),
+        ("kmer_distinct", Arity::Exact(2)),
         ("kmer_spectrum", Arity::Exact(1)),
         ("minimizers", Arity::Exact(3)),
     ]);
@@ -576,7 +579,22 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     None,
                 ));
             }
-            let mut result = Vec::new();
+            let count = if step > 0 {
+                ((end - start).max(0) as u64 + step as u64 - 1) / step as u64
+            } else {
+                ((start - end).max(0) as u64 + (-step) as u64 - 1) / (-step) as u64
+            };
+            if count > 10_000_000 {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!(
+                        "range() would produce {count} elements (limit: 10,000,000). \
+                         Use a smaller range or process data with streams."
+                    ),
+                    None,
+                ));
+            }
+            let mut result = Vec::with_capacity(count as usize);
             let mut i = start;
             if step > 0 {
                 while i < end {
@@ -1005,6 +1023,17 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             Value::Table(t) => Ok(Value::Table(t)), // pass through
             Value::Range { start, end, inclusive } => {
                 let end_val = if inclusive { end + 1 } else { end };
+                let count = (end_val - start).max(0) as u64;
+                if count > 10_000_000 {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        format!(
+                            "collect() on range would produce {count} elements (limit: 10,000,000). \
+                             Use a smaller range or process with head()/take()."
+                        ),
+                        None,
+                    ));
+                }
                 Ok(Value::List((start..end_val).map(Value::Int).collect()))
             }
             other => Err(BioLangError::type_error(
@@ -1119,11 +1148,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Ok(Value::Table(Table::new(columns, rows)))
                 }
                 Value::Stream(s) => {
-                    let items = s.collect_all();
                     let mut recs = Vec::new();
-                    for item in &items {
+                    while let Some(item) = s.next() {
                         match item {
-                            Value::Record(map) => recs.push(map.clone()),
+                            Value::Record(map) => recs.push(map),
                             other => {
                                 return Err(BioLangError::type_error(
                                     format!(
@@ -1133,6 +1161,13 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                                     None,
                                 ))
                             }
+                        }
+                        if recs.len() > 1_000_000 {
+                            eprintln!(
+                                "\x1b[33mWarning:\x1b[0m table() materialized {} records from stream.",
+                                recs.len()
+                            );
+                            eprintln!("  Tip: Use head(n) before table() to limit memory usage.");
                         }
                     }
                     Ok(Value::Table(Table::from_records(&recs)))
@@ -1308,11 +1343,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let file = std::fs::File::open(input).map_err(|e| {
                 BioLangError::runtime(ErrorKind::IOError, format!("gunzip() open failed: {e}"), None)
             })?;
-            let mut decoder = flate2::read::GzDecoder::new(file);
+            let decoder = flate2::read::GzDecoder::new(file);
+            // Cap decompressed size at 2 GB to prevent decompression bombs
+            const MAX_DECOMPRESS: u64 = 2_000_000_000;
+            let mut limited = std::io::Read::take(decoder, MAX_DECOMPRESS + 1);
             let mut data = Vec::new();
-            std::io::Read::read_to_end(&mut decoder, &mut data).map_err(|e| {
+            std::io::Read::read_to_end(&mut limited, &mut data).map_err(|e| {
                 BioLangError::runtime(ErrorKind::IOError, format!("gunzip() decompress failed: {e}"), None)
             })?;
+            if data.len() as u64 > MAX_DECOMPRESS {
+                return Err(BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("gunzip() decompressed data exceeds 2 GB limit — possible decompression bomb"),
+                    None,
+                ));
+            }
             std::fs::write(output, &data).map_err(|e| {
                 BioLangError::runtime(ErrorKind::IOError, format!("gunzip() write failed: {e}"), None)
             })?;
@@ -1543,10 +1588,34 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         }
         "repeat" => {
             match (&args[0], &args[1]) {
-                (Value::Str(s), Value::Int(n)) => Ok(Value::Str(s.repeat(*n as usize))),
+                (Value::Str(s), Value::Int(n)) => {
+                    let n = (*n).max(0) as usize;
+                    let total = s.len().saturating_mul(n);
+                    if total > 100_000_000 {
+                        return Err(BioLangError::runtime(
+                            ErrorKind::TypeError,
+                            format!(
+                                "repeat() would produce {total} bytes (limit: 100 MB)"
+                            ),
+                            None,
+                        ));
+                    }
+                    Ok(Value::Str(s.repeat(n)))
+                }
                 (Value::List(l), Value::Int(n)) => {
-                    let mut result = Vec::new();
-                    for _ in 0..*n {
+                    let n = (*n).max(0) as usize;
+                    let total = l.len().saturating_mul(n);
+                    if total > 10_000_000 {
+                        return Err(BioLangError::runtime(
+                            ErrorKind::TypeError,
+                            format!(
+                                "repeat() would produce {total} elements (limit: 10,000,000)"
+                            ),
+                            None,
+                        ));
+                    }
+                    let mut result = Vec::with_capacity(total);
+                    for _ in 0..n {
                         result.extend(l.iter().cloned());
                     }
                     Ok(Value::List(result))
@@ -1852,6 +1921,8 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         // ── Genomic range queries (F13) ──────────────────────────
         "interval_tree" => builtin_interval_tree(&args),
         "query_overlaps" => builtin_query_overlaps(&args),
+        "count_overlaps" => builtin_count_overlaps(&args),
+        "bulk_overlaps" => builtin_bulk_overlaps(&args),
         "query_nearest" => builtin_query_nearest(&args),
         "coverage" => {
             // Interval-tree coverage for Record, viz coverage for List
@@ -2039,6 +2110,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "kmer_rc" => builtin_kmer_rc(args),
         "kmer_canonical" => builtin_kmer_canonical(args),
         "kmer_count" => builtin_kmer_count(args),
+        "kmer_distinct" => builtin_kmer_distinct(args),
         "kmer_spectrum" => builtin_kmer_spectrum(args),
         "minimizers" => builtin_minimizers(args),
         // GAP 3: Streaming
@@ -2775,21 +2847,50 @@ fn builtin_interval_tree(args: &[Value]) -> Result<Value> {
         intervals.sort_by_key(|(s, _, _)| *s);
     }
 
-    // Store as Record: { __type: "interval_tree", __table: original_table, __chroms: {chr -> [[start,end,row_idx],...]} }
+    // Store as Record with parallel arrays per chromosome for fast binary search.
+    // { __type: "interval_tree", __table: Table, __chroms: {chr -> {starts: [...], ends: [...], indices: [...]}} }
     let mut tree = HashMap::new();
     tree.insert("__type".to_string(), Value::Str("interval_tree".to_string()));
 
     let mut chrom_map = HashMap::new();
     for (chr, intervals) in &chroms {
-        let list: Vec<Value> = intervals
-            .iter()
-            .map(|(s, e, ri)| Value::List(vec![Value::Int(*s), Value::Int(*e), Value::Int(*ri as i64)]))
-            .collect();
-        chrom_map.insert(chr.clone(), Value::List(list));
+        let starts: Vec<Value> = intervals.iter().map(|(s, _, _)| Value::Int(*s)).collect();
+        let ends: Vec<Value> = intervals.iter().map(|(_, e, _)| Value::Int(*e)).collect();
+        let indices: Vec<Value> = intervals.iter().map(|(_, _, ri)| Value::Int(*ri as i64)).collect();
+        let mut chr_rec = HashMap::new();
+        chr_rec.insert("starts".to_string(), Value::List(starts));
+        chr_rec.insert("ends".to_string(), Value::List(ends));
+        chr_rec.insert("indices".to_string(), Value::List(indices));
+        chrom_map.insert(chr.clone(), Value::Record(chr_rec));
     }
     tree.insert("__chroms".to_string(), Value::Record(chrom_map));
     tree.insert("__table".to_string(), Value::Table(table.clone()));
     Ok(Value::Record(tree))
+}
+
+/// Extract parallel arrays (starts, ends, indices) from a chromosome record in the interval tree.
+fn extract_chr_arrays<'a>(chr_rec: &'a Value) -> Option<(&'a [Value], &'a [Value], &'a [Value])> {
+    if let Value::Record(m) = chr_rec {
+        let starts = match m.get("starts") { Some(Value::List(l)) => l.as_slice(), _ => return None };
+        let ends = match m.get("ends") { Some(Value::List(l)) => l.as_slice(), _ => return None };
+        let indices = match m.get("indices") { Some(Value::List(l)) => l.as_slice(), _ => return None };
+        Some((starts, ends, indices))
+    } else {
+        None
+    }
+}
+
+/// Extract tree components: table, chrom_data record.
+fn extract_tree_parts(tree: &std::collections::HashMap<String, Value>) -> Result<(&Table, &std::collections::HashMap<String, Value>)> {
+    let table = match tree.get("__table") {
+        Some(Value::Table(t)) => t,
+        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
+    };
+    let chrom_data = match tree.get("__chroms") {
+        Some(Value::Record(m)) => m,
+        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
+    };
+    Ok((&table, chrom_data))
 }
 
 /// Query overlapping intervals from an interval tree.
@@ -2804,47 +2905,143 @@ fn builtin_query_overlaps(args: &[Value]) -> Result<Value> {
         }
     };
     let chrom = match &args[1] {
-        Value::Str(s) => s.clone(),
+        Value::Str(s) => s.as_str(),
         other => return Err(BioLangError::type_error(format!("query_overlaps() chrom requires Str, got {}", other.type_of()), None)),
     };
     let q_start = require_int(&args[2], "query_overlaps")?;
     let q_end = require_int(&args[3], "query_overlaps")?;
 
-    let table = match tree.get("__table") {
-        Some(Value::Table(t)) => t,
-        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
-    };
-    let chrom_data = match tree.get("__chroms") {
-        Some(Value::Record(m)) => m,
-        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
-    };
-    let intervals = match chrom_data.get(&chrom) {
-        Some(Value::List(l)) => l,
+    let (table, chrom_data) = extract_tree_parts(tree)?;
+    let chr_rec = match chrom_data.get(chrom) {
+        Some(v) => v,
         _ => return Ok(Value::Table(Table::new(table.columns.clone(), vec![]))),
     };
+    let (starts, ends, indices) = match extract_chr_arrays(chr_rec) {
+        Some(v) => v,
+        None => return Ok(Value::Table(Table::new(table.columns.clone(), vec![]))),
+    };
 
-    // Binary search: intervals sorted by start. Find cutoff where start >= q_end.
-    // Only need to scan intervals[..cutoff] since no interval with start >= q_end can overlap.
-    let cutoff = intervals.partition_point(|iv| {
-        if let Value::List(triple) = iv {
-            if let Value::Int(n) = &triple[0] { return *n < q_end; }
-        }
-        true
+    // Binary search: starts sorted. Find cutoff where start >= q_end.
+    let cutoff = starts.partition_point(|v| {
+        if let Value::Int(n) = v { *n < q_end } else { true }
     });
     let mut result_rows = Vec::new();
-    for iv in &intervals[..cutoff] {
-        if let Value::List(triple) = iv {
-            let end = match &triple[1] { Value::Int(n) => *n, _ => continue };
-            let row_idx = match &triple[2] { Value::Int(n) => *n as usize, _ => continue };
-            // Overlap: end > q_start (start < q_end already guaranteed by cutoff)
-            if end > q_start {
-                if let Some(row) = table.rows.get(row_idx) {
-                    result_rows.push(row.clone());
-                }
+    for i in 0..cutoff {
+        let end = match &ends[i] { Value::Int(n) => *n, _ => continue };
+        if end > q_start {
+            let row_idx = match &indices[i] { Value::Int(n) => *n as usize, _ => continue };
+            if let Some(row) = table.rows.get(row_idx) {
+                result_rows.push(row.clone());
             }
         }
     }
     Ok(Value::Table(Table::new(table.columns.clone(), result_rows)))
+}
+
+/// Count overlapping intervals without building result Table.
+fn builtin_count_overlaps(args: &[Value]) -> Result<Value> {
+    let tree = match &args[0] {
+        Value::Record(m) => m,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("count_overlaps() requires interval_tree Record, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+    let chrom = match &args[1] {
+        Value::Str(s) => s.as_str(),
+        other => return Err(BioLangError::type_error(format!("count_overlaps() chrom requires Str, got {}", other.type_of()), None)),
+    };
+    let q_start = require_int(&args[2], "count_overlaps")?;
+    let q_end = require_int(&args[3], "count_overlaps")?;
+
+    let (_, chrom_data) = extract_tree_parts(tree)?;
+    let chr_rec = match chrom_data.get(chrom) {
+        Some(v) => v,
+        _ => return Ok(Value::Int(0)),
+    };
+    let (starts, ends, _) = match extract_chr_arrays(chr_rec) {
+        Some(v) => v,
+        None => return Ok(Value::Int(0)),
+    };
+
+    let cutoff = starts.partition_point(|v| {
+        if let Value::Int(n) = v { *n < q_end } else { true }
+    });
+    let mut count: i64 = 0;
+    for i in 0..cutoff {
+        if let Value::Int(end) = &ends[i] {
+            if *end > q_start {
+                count += 1;
+            }
+        }
+    }
+    Ok(Value::Int(count))
+}
+
+/// Bulk overlap counting: count total overlaps between an interval tree and a query Table.
+/// Returns total overlap count as Int. Avoids per-query interpreter dispatch overhead.
+fn builtin_bulk_overlaps(args: &[Value]) -> Result<Value> {
+    let tree = match &args[0] {
+        Value::Record(m) => m,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("bulk_overlaps() requires interval_tree Record, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+    let queries = match &args[1] {
+        Value::Table(t) => t,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("bulk_overlaps() requires Table as second argument, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+
+    let (_, chrom_data) = extract_tree_parts(tree)?;
+
+    // Find chrom, start, end columns in queries table
+    let q_chrom_idx = queries.columns.iter().position(|c| c == "chrom" || c == "chr")
+        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "bulk_overlaps() query table requires 'chrom' column", None))?;
+    let q_start_idx = queries.columns.iter().position(|c| c == "start")
+        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "bulk_overlaps() query table requires 'start' column", None))?;
+    let q_end_idx = queries.columns.iter().position(|c| c == "end")
+        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "bulk_overlaps() query table requires 'end' column", None))?;
+
+    // Pre-extract native arrays per chromosome for zero-overhead inner loop
+    let mut native_chroms: std::collections::HashMap<&str, (Vec<i64>, Vec<i64>)> = std::collections::HashMap::new();
+    for (chr, chr_rec) in chrom_data {
+        if let Some((starts, ends, _)) = extract_chr_arrays(chr_rec) {
+            let s: Vec<i64> = starts.iter().filter_map(|v| if let Value::Int(n) = v { Some(*n) } else { None }).collect();
+            let e: Vec<i64> = ends.iter().filter_map(|v| if let Value::Int(n) = v { Some(*n) } else { None }).collect();
+            native_chroms.insert(chr.as_str(), (s, e));
+        }
+    }
+
+    let mut total: i64 = 0;
+    for row in &queries.rows {
+        let chrom = match &row[q_chrom_idx] {
+            Value::Str(s) => s.as_str(),
+            _ => continue,
+        };
+        let q_start = match &row[q_start_idx] { Value::Int(n) => *n, _ => continue };
+        let q_end = match &row[q_end_idx] { Value::Int(n) => *n, _ => continue };
+
+        if let Some((starts, ends)) = native_chroms.get(chrom) {
+            // Binary search: find cutoff where start >= q_end
+            let cutoff = starts.partition_point(|s| *s < q_end);
+            for i in 0..cutoff {
+                if ends[i] > q_start {
+                    total += 1;
+                }
+            }
+        }
+    }
+    Ok(Value::Int(total))
 }
 
 /// Query nearest intervals from an interval tree.
@@ -2859,59 +3056,48 @@ fn builtin_query_nearest(args: &[Value]) -> Result<Value> {
         }
     };
     let chrom = match &args[1] {
-        Value::Str(s) => s.clone(),
+        Value::Str(s) => s.as_str(),
         other => return Err(BioLangError::type_error(format!("query_nearest() chrom requires Str, got {}", other.type_of()), None)),
     };
     let pos = require_int(&args[2], "query_nearest")?;
     let k = if args.len() > 3 { require_int(&args[3], "query_nearest")? as usize } else { 1 };
 
-    let table = match tree.get("__table") {
-        Some(Value::Table(t)) => t,
-        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
-    };
-    let chrom_data = match tree.get("__chroms") {
-        Some(Value::Record(m)) => m,
-        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
-    };
-    let intervals = match chrom_data.get(&chrom) {
-        Some(Value::List(l)) => l,
+    let (table, chrom_data) = extract_tree_parts(tree)?;
+    let chr_rec = match chrom_data.get(chrom) {
+        Some(v) => v,
         _ => return Ok(Value::Table(Table::new(table.columns.clone(), vec![]))),
+    };
+    let (starts, ends, indices) = match extract_chr_arrays(chr_rec) {
+        Some(v) => v,
+        None => return Ok(Value::Table(Table::new(table.columns.clone(), vec![]))),
     };
 
     // Binary search for insertion point, then expand outward to find k nearest.
-    // Intervals are sorted by start. Find first interval with start > pos.
-    let insert_pt = intervals.partition_point(|iv| {
-        if let Value::List(triple) = iv {
-            if let Value::Int(n) = &triple[0] { return *n <= pos; }
-        }
-        true
+    let insert_pt = starts.partition_point(|v| {
+        if let Value::Int(n) = v { *n <= pos } else { true }
     });
-    // Scan outward from insert_pt in both directions, collecting distances
     let mut scored: Vec<(i64, usize)> = Vec::new();
     let mut left = insert_pt.saturating_sub(1) as isize;
     let mut right = insert_pt;
-    // We need at most k results, but scan wider to be safe (non-overlapping could be skipped)
-    let scan_limit = intervals.len().min(k * 4 + 20);
+    let n = starts.len();
+    let scan_limit = n.min(k * 4 + 20);
     let mut scanned = 0usize;
-    while scanned < scan_limit && (left >= 0 || right < intervals.len()) {
+    while scanned < scan_limit && (left >= 0 || right < n) {
         if left >= 0 {
-            if let Value::List(triple) = &intervals[left as usize] {
-                let start = match &triple[0] { Value::Int(n) => *n, _ => { left -= 1; scanned += 1; continue; } };
-                let end = match &triple[1] { Value::Int(n) => *n, _ => { left -= 1; scanned += 1; continue; } };
-                let row_idx = match &triple[2] { Value::Int(n) => *n as usize, _ => { left -= 1; scanned += 1; continue; } };
-                let dist = if pos < start { start - pos } else if pos > end { pos - end } else { 0 };
-                scored.push((dist, row_idx));
-            }
+            let li = left as usize;
+            let start = match &starts[li] { Value::Int(n) => *n, _ => { left -= 1; scanned += 1; continue; } };
+            let end = match &ends[li] { Value::Int(n) => *n, _ => { left -= 1; scanned += 1; continue; } };
+            let row_idx = match &indices[li] { Value::Int(n) => *n as usize, _ => { left -= 1; scanned += 1; continue; } };
+            let dist = if pos < start { start - pos } else if pos > end { pos - end } else { 0 };
+            scored.push((dist, row_idx));
             left -= 1;
         }
-        if right < intervals.len() {
-            if let Value::List(triple) = &intervals[right] {
-                let start = match &triple[0] { Value::Int(n) => *n, _ => { right += 1; scanned += 1; continue; } };
-                let end = match &triple[1] { Value::Int(n) => *n, _ => { right += 1; scanned += 1; continue; } };
-                let row_idx = match &triple[2] { Value::Int(n) => *n as usize, _ => { right += 1; scanned += 1; continue; } };
-                let dist = if pos < start { start - pos } else if pos > end { pos - end } else { 0 };
-                scored.push((dist, row_idx));
-            }
+        if right < n {
+            let start = match &starts[right] { Value::Int(n) => *n, _ => { right += 1; scanned += 1; continue; } };
+            let end = match &ends[right] { Value::Int(n) => *n, _ => { right += 1; scanned += 1; continue; } };
+            let row_idx = match &indices[right] { Value::Int(n) => *n as usize, _ => { right += 1; scanned += 1; continue; } };
+            let dist = if pos < start { start - pos } else if pos > end { pos - end } else { 0 };
+            scored.push((dist, row_idx));
             right += 1;
         }
         scanned += 1;
@@ -2942,17 +3128,15 @@ fn builtin_coverage(args: &[Value]) -> Result<Value> {
     };
 
     let mut rows = Vec::new();
-    for (chr, intervals) in chrom_data {
-        if let Value::List(ivs) = intervals {
+    for (chr, chr_rec) in chrom_data {
+        if let Some((starts, ends, _)) = extract_chr_arrays(chr_rec) {
             // Sweep line algorithm
             let mut events: Vec<(i64, i32)> = Vec::new();
-            for iv in ivs {
-                if let Value::List(triple) = iv {
-                    let start = match &triple[0] { Value::Int(n) => *n, _ => continue };
-                    let end = match &triple[1] { Value::Int(n) => *n, _ => continue };
-                    events.push((start, 1));
-                    events.push((end, -1));
-                }
+            for i in 0..starts.len() {
+                let start = match &starts[i] { Value::Int(n) => *n, _ => continue };
+                let end = match &ends[i] { Value::Int(n) => *n, _ => continue };
+                events.push((start, 1));
+                events.push((end, -1));
             }
             events.sort_by_key(|(pos, delta)| (*pos, -*delta));
 
@@ -3876,9 +4060,9 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
         None
     };
 
-    // Stream mode: iterate without collecting into memory
+    // Stream mode: iterate without collecting into memory — fast u64 path
     if let Value::Stream(stream) = &args[0] {
-        let mut counter = KmerCounter::new(top_n);
+        let mut fast_counts: rustc_hash::FxHashMap<u64, i64> = rustc_hash::FxHashMap::default();
         let mut seq_count = 0usize;
         loop {
             let item = match stream.next() {
@@ -3886,19 +4070,18 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
                 None => break,
             };
             if let Some(seq) = extract_seq_str(&item) {
-                let counts = Kmer::count(&seq, k);
-                counter.add_batch(&counts)?;
+                Kmer::count_into(&seq, k, &mut fast_counts);
             }
             seq_count += 1;
             if seq_count >= 1000 && seq_count % 10000 == 0 {
-                eprint!("\r\x1b[2Kkmer_count: {} sequences, {} unique k-mers{}...",
-                    seq_count, counter.len(), counter.mode_label());
+                eprint!("\r\x1b[2Kkmer_count: {} sequences, {} unique k-mers...",
+                    seq_count, fast_counts.len());
             }
         }
         if seq_count >= 1000 {
             eprint!("\r\x1b[2K");
         }
-        return counter.into_value(top_n);
+        return fast_counts_to_value(fast_counts, k, top_n);
     }
 
     // Non-stream: collect sequences first
@@ -3946,24 +4129,121 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
         }
     };
 
-    // Aggregate k-mer counts across all sequences
+    // Fast path: count directly into FxHashMap<u64, i64> (no String allocation per kmer)
     let total = seqs.len();
     let show_progress = total >= 1000;
-    let mut counter = KmerCounter::new(top_n);
+    let mut fast_counts: rustc_hash::FxHashMap<u64, i64> = rustc_hash::FxHashMap::default();
     for (i, seq) in seqs.iter().enumerate() {
         if show_progress && (i % 10000 == 0 || i == total - 1) {
-            eprint!("\r\x1b[2Kkmer_count: {}/{} sequences ({:.0}%), {} unique k-mers{}...",
+            eprint!("\r\x1b[2Kkmer_count: {}/{} sequences ({:.0}%), {} unique k-mers...",
                 i + 1, total, (i + 1) as f64 / total as f64 * 100.0,
-                counter.len(), counter.mode_label());
+                fast_counts.len());
         }
-        let counts = Kmer::count(seq, k);
-        counter.add_batch(&counts)?;
+        Kmer::count_into(seq, k, &mut fast_counts);
     }
     if show_progress {
         eprint!("\r\x1b[2K");
     }
 
-    counter.into_value(top_n)
+    // Convert u64 keys to String only for the final output
+    fast_counts_to_value(fast_counts, k, top_n)
+}
+
+fn builtin_kmer_distinct(args: Vec<Value>) -> Result<Value> {
+    use bl_core::bio_core::Kmer;
+    let k = match &args[1] {
+        Value::Int(n) => *n as u8,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("kmer_distinct() k must be Int, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+
+    // Stream mode
+    if let Value::Stream(stream) = &args[0] {
+        let mut fast_counts: rustc_hash::FxHashMap<u64, i64> = rustc_hash::FxHashMap::default();
+        let mut seq_count = 0usize;
+        loop {
+            let item = match stream.next() {
+                Some(v) => v,
+                None => break,
+            };
+            if let Some(seq) = extract_seq_str(&item) {
+                Kmer::count_into(&seq, k, &mut fast_counts);
+            }
+            seq_count += 1;
+            if seq_count >= 1000 && seq_count % 10000 == 0 {
+                eprint!("\r\x1b[2Kkmer_distinct: {} sequences, {} unique k-mers...",
+                    seq_count, fast_counts.len());
+            }
+        }
+        if seq_count >= 1000 {
+            eprint!("\r\x1b[2K");
+        }
+        return Ok(Value::Int(fast_counts.len() as i64));
+    }
+
+    // Non-stream: collect sequences first
+    let seqs: Vec<String> = match &args[0] {
+        Value::DNA(s) | Value::RNA(s) => vec![s.data.clone()],
+        Value::Str(s) => vec![s.clone()],
+        Value::List(items) => {
+            let mut out = Vec::with_capacity(items.len());
+            for item in items {
+                match extract_seq_str(item) {
+                    Some(s) => out.push(s),
+                    None => {
+                        return Err(BioLangError::type_error(
+                            format!("kmer_distinct() list items must be DNA/RNA/Str/Record, got {}", item.type_of()),
+                            None,
+                        ))
+                    }
+                }
+            }
+            out
+        }
+        Value::Table(tbl) => {
+            let mut out = Vec::new();
+            if let Some(col_idx) = tbl.columns.iter().position(|c| c == "seq") {
+                for row in &tbl.rows {
+                    if col_idx < row.len() {
+                        if let Some(s) = extract_seq_str(&row[col_idx]) {
+                            out.push(s);
+                        }
+                    }
+                }
+            } else {
+                return Err(BioLangError::type_error(
+                    "kmer_distinct() table must have a 'seq' column",
+                    None,
+                ));
+            }
+            out
+        }
+        other => {
+            return Err(BioLangError::type_error(
+                format!("kmer_distinct() requires DNA/RNA/Str/List/Table/Stream, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+
+    let total = seqs.len();
+    let show_progress = total >= 1000;
+    let mut fast_counts: rustc_hash::FxHashMap<u64, i64> = rustc_hash::FxHashMap::default();
+    for (i, seq) in seqs.iter().enumerate() {
+        if show_progress && (i % 10000 == 0 || i == total - 1) {
+            eprint!("\r\x1b[2Kkmer_distinct: {}/{} sequences ({:.0}%)...",
+                i + 1, total, (i + 1) as f64 / total as f64 * 100.0);
+        }
+        Kmer::count_into(seq, k, &mut fast_counts);
+    }
+    if show_progress {
+        eprint!("\r\x1b[2K");
+    }
+    Ok(Value::Int(fast_counts.len() as i64))
 }
 
 // ── K-mer Counter with auto disk spill ─────────────────────────────
@@ -3971,8 +4251,12 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
 /// Two-tier k-mer counter: starts in-memory, auto-spills to SQLite temp DB
 /// when memory threshold is exceeded. Transparent to callers.
 struct KmerCounter {
-    /// In-memory HashMap — used until threshold exceeded
+    /// In-memory HashMap — u64 encoded keys for speed, decode only at output
     mem: Option<std::collections::HashMap<String, i64>>,
+    /// Fast integer-keyed counter for direct counting path
+    fast_mem: Option<std::collections::HashMap<u64, i64>>,
+    /// k value for decoding at the end
+    k: u8,
     /// SQLite temp DB — activated after spill
     #[cfg(feature = "native")]
     db: Option<KmerDiskStore>,
@@ -3988,12 +4272,32 @@ impl KmerCounter {
     fn new(top_n: Option<usize>) -> Self {
         Self {
             mem: Some(std::collections::HashMap::new()),
+            fast_mem: None,
+            k: 0,
             #[cfg(feature = "native")]
             db: None,
             unique_count: 0,
             spilled: false,
             top_n,
         }
+    }
+
+    fn new_fast(k: u8, top_n: Option<usize>) -> Self {
+        Self {
+            mem: None,
+            fast_mem: Some(std::collections::HashMap::new()),
+            k,
+            #[cfg(feature = "native")]
+            db: None,
+            unique_count: 0,
+            spilled: false,
+            top_n,
+        }
+    }
+
+    /// Get mutable ref to fast counter
+    fn fast_counter(&mut self) -> &mut std::collections::HashMap<u64, i64> {
+        self.fast_mem.as_mut().unwrap()
     }
 
     fn len(&self) -> usize {
@@ -4370,6 +4674,100 @@ fn kmer_counts_to_table(merged: std::collections::HashMap<String, i64>, limit: u
             vec!["kmer".into(), "count".into()],
             rows,
         )))
+    }
+}
+
+/// Convert u64-keyed kmer counts to Value output.
+/// Decodes kmer integers to strings only at the final output stage.
+fn fast_counts_to_value<S: std::hash::BuildHasher>(counts: std::collections::HashMap<u64, i64, S>, k: u8, top_n: Option<usize>) -> Result<Value> {
+    let limit = top_n.unwrap_or(usize::MAX);
+
+    // Streaming mode for large unbounded results — lazy heap-pop iterator
+    // Heapify is O(n), then each pop is O(log n). take(20) = O(n + 20 log n) ≈ O(n)
+    // vs full sort O(n log n). Massive win when only top-K items consumed.
+    const STREAM_THRESHOLD: usize = 50_000;
+    if limit >= counts.len() && counts.len() > STREAM_THRESHOLD {
+        let n = counts.len();
+        eprintln!("\x1b[2m  {} unique k-mers → streaming result (use head(n) or collect to materialize)\x1b[0m", n);
+        let heap: std::collections::BinaryHeap<(i64, u64)> =
+            counts.into_iter().map(|(enc, c)| (c, enc)).collect();
+        // Lazy iterator: pops from max-heap one at a time
+        let iter = HeapPopIter { heap }.map(move |(cnt, enc)| {
+            let kmer_str = (bl_core::bio_core::Kmer { encoded: enc, k }).decode();
+            let mut rec = std::collections::HashMap::new();
+            rec.insert("kmer".to_string(), Value::Str(kmer_str));
+            rec.insert("count".to_string(), Value::Int(cnt));
+            Value::Record(rec)
+        });
+        return Ok(Value::Stream(bl_core::value::StreamValue::new(
+            format!("kmer_count({n})"),
+            Box::new(iter),
+        )));
+    }
+
+    // Table mode with top-N: BinaryHeap partial sort O(n log limit)
+    if limit < counts.len() {
+        use std::collections::BinaryHeap;
+        use std::cmp::Reverse;
+        let mut heap: BinaryHeap<Reverse<(i64, u64)>> = BinaryHeap::with_capacity(limit + 1);
+        for (enc, cnt) in &counts {
+            heap.push(Reverse((*cnt, *enc)));
+            if heap.len() > limit {
+                heap.pop();
+            }
+        }
+        let mut rows: Vec<Vec<Value>> = heap
+            .into_iter()
+            .map(|Reverse((cnt, enc))| {
+                let kmer_str = (bl_core::bio_core::Kmer { encoded: enc, k }).decode();
+                vec![Value::Str(kmer_str), Value::Int(cnt)]
+            })
+            .collect();
+        rows.sort_by(|a, b| {
+            if let (Value::Int(ca), Value::Int(cb)) = (&a[1], &b[1]) {
+                cb.cmp(ca)
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        });
+        Ok(Value::Table(Table::new(
+            vec!["kmer".into(), "count".into()],
+            rows,
+        )))
+    } else {
+        let mut rows: Vec<Vec<Value>> = counts
+            .into_iter()
+            .map(|(enc, cnt)| {
+                let kmer_str = (bl_core::bio_core::Kmer { encoded: enc, k }).decode();
+                vec![Value::Str(kmer_str), Value::Int(cnt)]
+            })
+            .collect();
+        rows.sort_by(|a, b| {
+            if let (Value::Int(ca), Value::Int(cb)) = (&a[1], &b[1]) {
+                cb.cmp(ca)
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        });
+        Ok(Value::Table(Table::new(
+            vec!["kmer".into(), "count".into()],
+            rows,
+        )))
+    }
+}
+
+/// Lazy iterator that pops from a BinaryHeap one item at a time (max first).
+struct HeapPopIter<T: Ord> {
+    heap: std::collections::BinaryHeap<T>,
+}
+
+impl<T: Ord> Iterator for HeapPopIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.heap.pop()
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.heap.len(), Some(self.heap.len()))
     }
 }
 

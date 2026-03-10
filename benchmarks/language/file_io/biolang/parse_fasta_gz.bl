@@ -1,0 +1,4 @@
+# File I/O: Parse gzipped FASTA (E. coli, ~1.3 MB compressed)
+let records = fasta("data_real/ecoli_genome.fa.gz") |> collect()
+println(f"Records: {len(records)}")
+println(f"Total bp: {records |> map(|r| len(r.seq)) |> sum()}")

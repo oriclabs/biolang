@@ -2,6 +2,10 @@
 name = "bl-lexer"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Tokenizer for BioLang with pipe operators, DNA literals, and newline suppression"
 
 [dependencies]
 bl-core = { workspace = true }

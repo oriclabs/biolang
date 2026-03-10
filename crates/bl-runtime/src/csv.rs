@@ -1,24 +1,29 @@
 use bl_core::error::{BioLangError, ErrorKind, Result};
-use bl_core::value::{Arity, Table, Value};
+use bl_core::value::{Arity, StreamValue, Table, Value};
 use std::collections::HashMap;
+use std::io::BufRead;
 
 pub fn csv_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
         ("csv", Arity::Range(1, 2)),
+        ("read_csv", Arity::Range(1, 2)),
         ("tsv", Arity::Exact(1)),
+        ("read_tsv", Arity::Exact(1)),
         ("write_csv", Arity::Range(2, 3)),
         ("write_tsv", Arity::Exact(2)),
     ]
 }
 
 pub fn is_csv_builtin(name: &str) -> bool {
-    matches!(name, "csv" | "tsv" | "write_csv" | "write_tsv")
+    matches!(name, "csv" | "read_csv" | "tsv" | "read_tsv" | "write_csv" | "write_tsv")
 }
 
 pub fn call_csv_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
     match name {
         "csv" => builtin_csv(args),
+        "read_csv" => builtin_read_csv_eager(args),
         "tsv" => builtin_tsv(args),
+        "read_tsv" => builtin_read_tsv_eager(args),
         "write_csv" => builtin_write_csv(args),
         "write_tsv" => builtin_write_tsv(args),
         _ => Err(BioLangError::runtime(
@@ -39,7 +44,7 @@ fn require_str<'a>(val: &'a Value, func: &str) -> Result<&'a str> {
     }
 }
 
-/// Read a delimited file into a Table.
+/// Read a delimited file into a Table (legacy: reads entire file into string).
 fn read_delimited(path: &str, sep: &str, has_header: bool) -> Result<Value> {
     let content = std::fs::read_to_string(path).map_err(|e| {
         BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot read '{path}': {e}"), None)
@@ -84,6 +89,93 @@ fn read_delimited(path: &str, sep: &str, has_header: bool) -> Result<Value> {
             row.push(parse_field(val));
         }
         rows.push(row);
+    }
+
+    let table = Table::new(col_names, rows);
+    Ok(Value::Table(table))
+}
+
+/// Optimized buffered CSV reader: single-pass line-by-line, no full-file string allocation.
+fn read_delimited_buffered(path: &str, sep: &str, has_header: bool) -> Result<Value> {
+    use std::io::BufRead;
+
+    let file = std::fs::File::open(path).map_err(|e| {
+        BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot open '{path}': {e}"), None)
+    })?;
+    let mut reader = std::io::BufReader::with_capacity(128 * 1024, file);
+    let sep_char = sep.chars().next().unwrap_or(',');
+
+    let mut line_buf = String::new();
+
+    // Read first line (header or first data row)
+    line_buf.clear();
+    let bytes = reader.read_line(&mut line_buf).map_err(|e| {
+        BioLangError::runtime(ErrorKind::IOError, format!("csv: read error: {e}"), None)
+    })?;
+    if bytes == 0 {
+        return Ok(Value::Table(Table::empty()));
+    }
+
+    let first_clean = {
+        let trimmed = line_buf.trim_end();
+        if trimmed.starts_with('\u{feff}') { &trimmed[3..] } else { trimmed }
+    };
+
+    let col_names: Vec<String>;
+    let mut rows: Vec<Vec<Value>> = Vec::new();
+
+    if has_header {
+        col_names = parse_csv_line_char(first_clean, sep_char);
+    } else {
+        let fields = parse_csv_line_char(first_clean, sep_char);
+        let ncols = fields.len();
+        col_names = (0..ncols).map(|i| format!("col{}", i + 1)).collect();
+        let mut row = Vec::with_capacity(ncols);
+        for f in &fields {
+            row.push(parse_field(f));
+        }
+        rows.push(row);
+    }
+
+    let ncols = col_names.len();
+
+    // Fast path: check if file likely has no quoted fields
+    // For simple CSVs, we can use split directly instead of char-by-char parsing
+    loop {
+        line_buf.clear();
+        let bytes = reader.read_line(&mut line_buf).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("csv: read error: {e}"), None)
+        })?;
+        if bytes == 0 { break; }
+        let line = line_buf.trim_end();
+        if line.is_empty() { continue; }
+
+        // Fast path: no quotes in line — use split directly
+        if !line.contains('"') {
+            let mut row = Vec::with_capacity(ncols);
+            let mut count = 0;
+            for field in line.split(sep_char) {
+                if count < ncols {
+                    row.push(parse_field(field));
+                    count += 1;
+                }
+            }
+            // Pad with Nil if fewer fields
+            while count < ncols {
+                row.push(Value::Nil);
+                count += 1;
+            }
+            rows.push(row);
+        } else {
+            // Slow path: handle quoted fields
+            let fields = parse_csv_line_char(line, sep_char);
+            let mut row = Vec::with_capacity(ncols);
+            for i in 0..ncols {
+                let val = fields.get(i).map(|s| s.as_str()).unwrap_or("");
+                row.push(parse_field(val));
+            }
+            rows.push(row);
+        }
     }
 
     let table = Table::new(col_names, rows);
@@ -157,6 +249,26 @@ fn parse_field(s: &str) -> Value {
 fn builtin_csv(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args[0], "csv")?;
     let (sep, has_header) = if args.len() > 1 {
+        let opts = extract_csv_options(&args[1], path)?;
+        // Check for explicit {stream: true} to get streaming mode
+        if wants_stream_csv(&args[1]) {
+            return read_csv_stream(path, &opts.0, opts.1);
+        }
+        opts
+    } else {
+        let sep = if path.ends_with(".tsv") || path.ends_with(".tab") {
+            "\t".to_string()
+        } else {
+            ",".to_string()
+        };
+        (sep, true)
+    };
+    read_delimited_buffered(path, &sep, has_header)
+}
+
+fn builtin_read_csv_eager(args: Vec<Value>) -> Result<Value> {
+    let path = require_str(&args[0], "read_csv")?;
+    let (sep, has_header) = if args.len() > 1 {
         extract_csv_options(&args[1], path)?
     } else {
         let sep = if path.ends_with(".tsv") || path.ends_with(".tab") {
@@ -166,12 +278,26 @@ fn builtin_csv(args: Vec<Value>) -> Result<Value> {
         };
         (sep, true)
     };
-    read_delimited(path, &sep, has_header)
+    read_delimited_buffered(path, &sep, has_header)
 }
 
 fn builtin_tsv(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args[0], "tsv")?;
-    read_delimited(path, "\t", true)
+    read_delimited_buffered(path, "\t", true)
+}
+
+fn builtin_read_tsv_eager(args: Vec<Value>) -> Result<Value> {
+    let path = require_str(&args[0], "read_tsv")?;
+    read_delimited_buffered(path, "\t", true)
+}
+
+fn wants_stream_csv(opts: &Value) -> bool {
+    match opts {
+        Value::Record(m) | Value::Map(m) => {
+            m.get("stream").map(|v| v.is_truthy()).unwrap_or(false)
+        }
+        _ => false,
+    }
 }
 
 fn extract_csv_options(opts: &Value, path: &str) -> Result<(String, bool)> {
@@ -310,4 +436,102 @@ fn extract_write_options(opts: &Value) -> Result<(String, bool)> {
             None,
         )),
     }
+}
+
+// ── Streaming CSV/TSV iterator ──────────────────────────────────
+
+struct CsvIter {
+    lines: std::io::Lines<Box<dyn BufRead + Send>>,
+    col_names: Vec<String>,
+    sep: char,
+}
+
+impl Iterator for CsvIter {
+    type Item = Value;
+    fn next(&mut self) -> Option<Value> {
+        loop {
+            let line = self.lines.next()?.ok()?;
+            if line.is_empty() {
+                continue;
+            }
+            let fields = parse_csv_line_char(&line, self.sep);
+            let mut map = HashMap::new();
+            for (i, col) in self.col_names.iter().enumerate() {
+                let val = fields.get(i).map(|s| s.as_str()).unwrap_or("");
+                map.insert(col.clone(), parse_field(val));
+            }
+            return Some(Value::Record(map));
+        }
+    }
+}
+
+fn read_csv_stream(path: &str, sep: &str, has_header: bool) -> Result<Value> {
+    let file = std::fs::File::open(path).map_err(|e| {
+        BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot open '{path}': {e}"), None)
+    })?;
+    let mut reader: Box<dyn BufRead + Send> = if path.ends_with(".gz") {
+        #[cfg(feature = "native")]
+        {
+            Box::new(std::io::BufReader::new(flate2::read::GzDecoder::new(file)))
+        }
+        #[cfg(not(feature = "native"))]
+        {
+            return Err(BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("csv: gzip support requires native feature: '{path}'"),
+                None,
+            ));
+        }
+    } else {
+        Box::new(std::io::BufReader::new(file))
+    };
+
+    let sep_char = sep.chars().next().unwrap_or(',');
+
+    let col_names = if has_header {
+        let mut header_line = String::new();
+        reader.read_line(&mut header_line).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot read header: {e}"), None)
+        })?;
+        // Remove BOM if present
+        let trimmed = if header_line.starts_with('\u{feff}') {
+            &header_line[3..]
+        } else {
+            &header_line
+        };
+        parse_csv_line_char(trimmed.trim_end_matches('\n').trim_end_matches('\r'), sep_char)
+    } else {
+        // Read first line to determine column count, then chain it back
+        let mut first_line = String::new();
+        reader.read_line(&mut first_line).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot read first line: {e}"), None)
+        })?;
+        let first_trimmed = first_line.trim_end_matches('\n').trim_end_matches('\r');
+        let ncols = parse_csv_line_char(first_trimmed, sep_char).len();
+        let cols: Vec<String> = (0..ncols).map(|i| format!("col{}", i + 1)).collect();
+        // Chain the first line back with the rest via Read::chain
+        use std::io::Read;
+        let first_bytes = first_line.into_bytes();
+        let chain = std::io::Cursor::new(first_bytes).chain(reader);
+        let chained_reader: Box<dyn BufRead + Send> = Box::new(std::io::BufReader::new(chain));
+        let label = format!("csv:{path}");
+        return Ok(Value::Stream(StreamValue::new(
+            label,
+            Box::new(CsvIter {
+                lines: chained_reader.lines(),
+                col_names: cols,
+                sep: sep_char,
+            }),
+        )));
+    };
+
+    let label = format!("csv:{path}");
+    Ok(Value::Stream(StreamValue::new(
+        label,
+        Box::new(CsvIter {
+            lines: reader.lines(),
+            col_names,
+            sep: sep_char,
+        }),
+    )))
 }

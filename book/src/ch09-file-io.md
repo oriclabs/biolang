@@ -237,7 +237,7 @@ for (tx_id, exons) in cds_features {
     let chrom = sorted_exons[0].chrom
     let strand = sorted_exons[0].strand
 
-    guard chrom_seqs[chrom] != None else { continue }
+    guard chrom_seqs[chrom] != nil else { continue }
 
     let seq = sorted_exons
         |> map(|e| slice(chrom_seqs[chrom], e.start - 1, e.end))

@@ -1,0 +1,7 @@
+library(Biostrings)
+records <- readDNAStringSet("data/sequences.fa")
+rc <- reverseComplement(records)
+rc_lengths <- width(rc)
+cat(sprintf("Sequences: %d\n", length(records)))
+cat(sprintf("Total bp (reverse complemented): %d\n", sum(rc_lengths)))
+cat(sprintf("Mean length: %.1f\n", mean(rc_lengths)))

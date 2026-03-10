@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::hash::BuildHasher;
 use std::fmt;
 
 /// A k-mer stored as 2-bit encoded u64.
@@ -118,6 +119,35 @@ impl Kmer {
             *counts.entry(kmer.canonical()).or_insert(0) += 1;
         }
         counts
+    }
+
+    /// Count canonical k-mers directly into a pre-existing u64→i64 counter.
+    /// Avoids per-sequence HashMap allocation and String decoding.
+    /// Generic over hasher so callers can use FxHashMap for speed.
+    pub fn count_into<S: BuildHasher>(seq: &str, k: u8, counter: &mut HashMap<u64, i64, S>) {
+        if k == 0 || k > 32 || (seq.len()) < k as usize {
+            return;
+        }
+        let k_usize = k as usize;
+        let mask = if k == 32 { u64::MAX } else { (1u64 << (2 * k_usize)) - 1 };
+        let bytes = seq.as_bytes();
+        let mut encoded = 0u64;
+        let mut valid_run = 0usize;
+
+        for &b in bytes {
+            if let Some(bits) = Self::encode_base(b) {
+                encoded = ((encoded << 2) | bits) & mask;
+                valid_run += 1;
+                if valid_run >= k_usize {
+                    let kmer = Kmer { encoded, k };
+                    let canonical = kmer.canonical().encoded;
+                    *counter.entry(canonical).or_insert(0) += 1;
+                }
+            } else {
+                valid_run = 0;
+                encoded = 0;
+            }
+        }
     }
 
     /// Compute k-mer spectrum: frequency → how many k-mers have that frequency.

@@ -89,7 +89,7 @@ let records = read_fasta("protein.fa")
 let prot = records |> first
 
 # N-glycosylation sites: N-X-S/T (where X is not P)
-let seq_str = to_string(prot.sequence)
+let seq_str = to_string(prot.seq)
 let nglyc_sites = seq_str |> regex_find_all("N[^P][ST]")
 print(f"N-glycosylation sites: {nglyc_sites |> len}")
 for site in nglyc_sites {
@@ -102,7 +102,7 @@ print(f"Potential phosphorylation sites: {phos_sites |> len}")
 
 # N-terminal hydrophobicity check
 let hydrophobic_aa = ["A", "V", "I", "L", "M", "F", "W", "P"]
-let signal = subseq(prot.sequence, 0, 30) |> to_string |> split("")
+let signal = subseq(prot.seq, 0, 30) |> to_string |> split("")
 let n_hydro = signal |> filter(|aa| { hydrophobic_aa |> contains(aa) }) |> len
 let hydro_frac = n_hydro |> float / (signal |> len) |> float
 print(f"N-terminal hydrophobic fraction: {hydro_frac |> round(3)} (>0.5 suggests signal peptide)")</code></pre>
@@ -174,10 +174,10 @@ let proteins = read_fasta("proteome.fa")
 
 let mass_db = proteins
   |> flat_map(|p| {
-    let peps = to_string(p.sequence) |> regex_split("[KR](?!P)")
+    let peps = to_string(p.seq) |> regex_split("[KR](?!P)")
       |> filter(|pep| { pep |> len >= 6 && pep |> len <= 30 })
     peps |> map(|pep| { {
-      protein: p.name,
+      protein: p.id,
       peptide: pep,
       mass: peptide_mass(pep)
     }})
@@ -216,22 +216,24 @@ matches |> write_tsv("peptide_matches.tsv")</code></pre>
 
         <h2>Protein Comparison</h2>
 
-        <h3>Pairwise sequence identity</h3>
-        <pre><code class="language-biolang"># Compare protein sequences from a FASTA file
+        <h3>Pairwise k-mer similarity</h3>
+        <pre><code class="language-biolang"># Compare protein sequences using k-mer overlap
 let proteins = read_fasta("family.fa") |> collect
 
 for i in 0..(proteins |> len) {
   for j in (i + 1)..(proteins |> len) {
-    let result = align(proteins[i].sequence, proteins[j].sequence)
-    let pct = result.identity * 100.0
-    print(f"{proteins[i].name} vs {proteins[j].name}: {pct |> round(1)}% identity (score: {result.score})")
+    let k1 = proteins[i].seq |> kmers(3) |> set
+    let k2 = proteins[j].seq |> kmers(3) |> set
+    let shared = intersection(k1, k2)
+    let similarity = len(shared) |> float / min(len(k1), len(k2)) |> float
+    print(f"{proteins[i].id} vs {proteins[j].id}: {(similarity * 100.0) |> round(1)}% k-mer similarity")
   }
 }</code></pre>
 
         <h3>Multiple sequence alignment conservation</h3>
         <pre><code class="language-biolang"># Analyze per-column conservation from a pre-aligned FASTA
 let seqs = read_fasta("aligned_proteins.fa") |> collect
-let aligned = seqs |> map(|s| { to_string(s.sequence) |> split("") })
+let aligned = seqs |> map(|s| { to_string(s.seq) |> split("") })
 let n_seqs = aligned |> len
 let n_cols = aligned |> first |> len
 

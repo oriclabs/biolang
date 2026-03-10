@@ -28,6 +28,7 @@ pub fn bio_builtin_list() -> Vec<(&'static str, Arity)> {
         ("fasta", Arity::Range(1, 2)),
         ("fastq", Arity::Range(1, 2)),
         ("read_fasta", Arity::Exact(1)),
+        ("fasta_stats", Arity::Exact(1)),
         ("read_fastq", Arity::Exact(1)),
         ("bed", Arity::Range(1, 2)),
         ("gff", Arity::Range(1, 2)),
@@ -44,7 +45,9 @@ pub fn bio_builtin_list() -> Vec<(&'static str, Arity)> {
         ("bam", Arity::Range(1, 2)),
         ("sam_header", Arity::Exact(1)),
         ("maf", Arity::Range(1, 2)),
+        ("read_maf", Arity::Exact(1)),
         ("bedgraph", Arity::Range(1, 2)),
+        ("read_bedgraph", Arity::Exact(1)),
         // Bio accessor builtins
         ("to_interval", Arity::Exact(1)),
         ("parse_info", Arity::Range(1, 2)),
@@ -243,6 +246,10 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let path = require_str(&args[0], "read_fasta")?;
             crate::io::read_fasta_table(&path)
         }
+        "fasta_stats" => {
+            let path = require_str(&args[0], "fasta_stats")?;
+            crate::io::fasta_stats(&path)
+        }
         "fastq" => {
             let path = require_str(&args[0], "fastq")?;
             if wants_no_stream(&args) {
@@ -255,29 +262,41 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let path = require_str(&args[0], "read_fastq")?;
             crate::io::read_fastq_table(&path)
         }
-        "bed" | "read_bed" => {
+        "bed" => {
             let path = require_str(&args[0], "bed")?;
-            if wants_stream(&args) {
-                crate::io::read_bed_stream(&path)
-            } else {
+            if wants_no_stream(&args) {
                 crate::io::read_bed(&path)
+            } else {
+                crate::io::read_bed_stream(&path)
             }
         }
-        "gff" | "read_gff" => {
+        "read_bed" => {
+            let path = require_str(&args[0], "read_bed")?;
+            crate::io::read_bed(&path)
+        }
+        "gff" => {
             let path = require_str(&args[0], "gff")?;
-            if wants_stream(&args) {
-                crate::io::read_gff_stream(&path)
-            } else {
+            if wants_no_stream(&args) {
                 crate::io::read_gff(&path)
+            } else {
+                crate::io::read_gff_stream(&path)
             }
         }
-        "vcf" | "read_vcf" => {
+        "read_gff" => {
+            let path = require_str(&args[0], "read_gff")?;
+            crate::io::read_gff(&path)
+        }
+        "vcf" => {
             let path = require_str(&args[0], "vcf")?;
-            if wants_stream(&args) {
-                crate::io::read_vcf_stream(&path)
-            } else {
+            if wants_no_stream(&args) {
                 crate::io::read_vcf(&path)
+            } else {
+                crate::io::read_vcf_stream(&path)
             }
+        }
+        "read_vcf" => {
+            let path = require_str(&args[0], "read_vcf")?;
+            crate::io::read_vcf(&path)
         }
         "validate" => {
             let path = require_str(&args[0], "validate")?;
@@ -288,21 +307,29 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let expr = require_str(&args[1], "vcf_filter")?;
             crate::io::vcf_filter(&path, &expr)
         }
-        "sam" | "read_sam" => {
+        "sam" => {
             let path = require_str(&args[0], "sam")?;
-            if wants_stream(&args) {
-                crate::io::read_sam_stream(&path)
-            } else {
+            if wants_no_stream(&args) {
                 crate::io::read_sam(&path)
+            } else {
+                crate::io::read_sam_stream(&path)
             }
         }
-        "bam" | "read_bam" => {
+        "read_sam" => {
+            let path = require_str(&args[0], "read_sam")?;
+            crate::io::read_sam(&path)
+        }
+        "bam" => {
             let path = require_str(&args[0], "bam")?;
-            if wants_stream(&args) {
-                crate::io::read_bam_stream(&path)
-            } else {
+            if wants_no_stream(&args) {
                 crate::io::read_bam(&path)
+            } else {
+                crate::io::read_bam_stream(&path)
             }
+        }
+        "read_bam" => {
+            let path = require_str(&args[0], "read_bam")?;
+            crate::io::read_bam(&path)
         }
         "sam_header" => {
             let path = require_str(&args[0], "sam_header")?;
@@ -310,19 +337,27 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         }
         "maf" => {
             let path = require_str(&args[0], "maf")?;
-            if wants_stream(&args) {
-                crate::io::read_maf_stream(&path)
-            } else {
+            if wants_no_stream(&args) {
                 crate::io::read_maf(&path)
+            } else {
+                crate::io::read_maf_stream(&path)
             }
+        }
+        "read_maf" => {
+            let path = require_str(&args[0], "read_maf")?;
+            crate::io::read_maf(&path)
         }
         "bedgraph" => {
             let path = require_str(&args[0], "bedgraph")?;
-            if wants_stream(&args) {
-                crate::io::read_bedgraph_stream(&path)
-            } else {
+            if wants_no_stream(&args) {
                 crate::io::read_bedgraph(&path)
+            } else {
+                crate::io::read_bedgraph_stream(&path)
             }
+        }
+        "read_bedgraph" => {
+            let path = require_str(&args[0], "read_bedgraph")?;
+            crate::io::read_bedgraph(&path)
         }
         // ── Bio accessor builtins ─────────────────────────────────
         "to_interval" => builtin_to_interval(&args[0]),

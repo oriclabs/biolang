@@ -163,10 +163,10 @@ impl ReadPair {
 
 impl GenomicInterval {
   # Constructor with validation
-  fn new(chrom: String, start: Int, end: Int) -> Result[GenomicInterval] {
-    if start < 0 { return Err("start must be non-negative") }
-    if end <= start { return Err("end must be greater than start") }
-    Ok(GenomicInterval { chrom: chrom, start: start, end: end })
+  fn new(chrom: String, start: Int, end: Int) {
+    if start < 0 { error("start must be non-negative") }
+    if end <= start { error("end must be greater than start") }
+    GenomicInterval { chrom: chrom, start: start, end: end }
   }
 
   fn width(self) -> Int {
@@ -183,15 +183,15 @@ impl GenomicInterval {
     self.end > other.start
   }
 
-  fn merge(self, other: GenomicInterval) -> Result[GenomicInterval] {
+  fn merge(self, other: GenomicInterval) {
     if !self.overlaps(other) {
-      return Err("intervals do not overlap")
+      error("intervals do not overlap")
     }
-    Ok(GenomicInterval {
+    GenomicInterval {
       chrom: self.chrom,
       start: min(self.start, other.start),
       end: max(self.end, other.end)
-    })
+    }
   }
 
   fn to_string(self) -> String {
@@ -200,13 +200,13 @@ impl GenomicInterval {
 }
 
 # Usage
-let region = GenomicInterval.new("chr1", 1000, 2000)?
+let region = GenomicInterval.new("chr1", 1000, 2000)
 print(f"Region: {region.to_string()}, width: {region.width()}")
 
 # Works with pipes
 let merged = regions
   |> sort_by(|r| (r.chrom, r.start))
-  |> reduce(|acc, r| if acc.overlaps(r) { acc.merge(r) |> unwrap() } else { r })</code></pre>
+  |> reduce(|acc, r| if acc.overlaps(r) { acc.merge(r) } else { r })</code></pre>
 
         <h2>Traits</h2>
         <p>
@@ -270,11 +270,11 @@ struct Pair[A, B] {
 let gene_score = Pair { first: "BRCA1", second: 0.95 }
 
 # Generic with trait bounds
-fn max_by_score[T: HasScore](items: List[T]) -> Option[T] {
-  if len(items) == 0 { return None }
-  Some(items |> reduce(|best, item|
+fn max_by_score[T: HasScore](items: List[T]) {
+  if len(items) == 0 { return nil }
+  items |> reduce(|best, item|
     if item.score() > best.score() { item } else { best }
-  ))
+  )
 }
 
 # Multiple bounds
@@ -289,7 +289,7 @@ fn process[T: Sequenceable + Printable](item: T) {
 type GeneMap = Map[String, Gene]
 type VariantList = List[Variant]
 type ScoredResult = (String, Float, Bool)
-type Pipeline = fn(List[Read]) -> Result[Table]
+type Pipeline = fn(List[Read]) -> Table
 
 # Usage
 fn build_gene_index(genes: List[Gene]) -> GeneMap {
@@ -298,7 +298,7 @@ fn build_gene_index(genes: List[Gene]) -> GeneMap {
 
 let pipeline: Pipeline = |reads| {
   let filtered = reads |> filter(|r| mean_phred(r.quality) >= 30)
-  Ok(to_table(filtered))
+  to_table(filtered)
 }</code></pre>
 
         <h2>Implementing Display</h2>
@@ -329,9 +329,9 @@ print(f"Found variant: {v}")
         <pre><code class="language-biolang">struct SampleManifest {
   sample_id: String,
   fastq_r1: String,
-  fastq_r2: Option[String],
+  fastq_r2: String,       # nil if single-end
   reference: String,
-  panel: Option[String]
+  panel: String            # nil if no panel
 }
 
 struct PipelineResult {
@@ -354,19 +354,19 @@ impl PipelineResult {
   }
 }
 
-fn run_pipeline(manifest: SampleManifest) -> Result[PipelineResult] {
-  let reads = read_fastq(manifest.fastq_r1)?
-  let aligned = align(reads, manifest.reference)?
-  let variants = call_variants(aligned)?
+fn run_pipeline(manifest: SampleManifest) {
+  let reads = read_fastq(manifest.fastq_r1)
+  let aligned = align(reads, manifest.reference)
+  let variants = call_variants(aligned)
 
-  Ok(PipelineResult {
+  PipelineResult {
     sample_id: manifest.sample_id,
     total_reads: len(reads),
     mapped_reads: aligned |> filter(|r| r.is_mapped) |> len(),
     mean_coverage: compute_coverage(aligned),
     variants_found: len(variants),
     qc_pass: compute_coverage(aligned) >= 30.0
-  })
+  }
 }</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

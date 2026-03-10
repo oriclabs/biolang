@@ -1,0 +1,10 @@
+# BED Interval Overlap (Real Data): ENCODE H3K27ac vs CTCF peaks
+let regions = read_bed("data_real/encode_h3k27ac_peaks.bed") |> collect()
+let queries = read_bed("data_real/encode_ctcf_peaks.bed") |> collect()
+
+let tree = interval_tree(regions)
+let total_overlaps = bulk_overlaps(tree, queries)
+
+println(f"H3K27ac peaks (regions): {nrow(regions)}")
+println(f"CTCF peaks (queries): {nrow(queries)}")
+println(f"Total overlaps: {total_overlaps}")

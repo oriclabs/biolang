@@ -50,7 +50,7 @@ counts
     |> summarize(mean_expr: |g| mean(g.log_count), n_genes: |g| len(g))
 ```
 
-**Twelve bio databases at your fingertips.** NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, Gene Ontology, COSMIC, BioMart, and NCBI Datasets are built-in — no API keys required for most (NCBI key optional for higher rate limits, COSMIC key required):
+**Fifteen bio databases at your fingertips.** NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, Gene Ontology, COSMIC, BioMart, NCBI Datasets, nf-core, BioContainers, and Galaxy ToolShed are built-in — no API keys required for most (NCBI key optional for higher rate limits, COSMIC key required):
 
 ```
 let gene = ncbi_gene("TP53")
@@ -58,22 +58,18 @@ let pathways = reactome_pathways("TP53")
 let interactions = string_network(["TP53"], 9606)
 ```
 
-**Pipelines are a language construct.** Not a separate workflow engine — pipelines with stages, parallel execution, and dependency tracking are part of the language itself:
+**Pipelines are natural.** Data flows through pipes just like a bioinformatics workflow. No separate workflow engine needed — compose operations with `|>` and use `group_by`, `count_by`, and `filter_by` for efficient data processing:
 
 ```
-pipeline qc_pipeline {
-    stage read_data {
-        read_fastq("sample.fq")
-    }
-    stage filter_reads {
-        read_data.result |> filter(|r| mean(r.quality) >= 25)
-    }
-    stage report {
-        let gc = filter_reads.result |> map(|r| gc_content(r.seq))
-        {mean_gc: mean(gc), n_reads: len(filter_reads.result)}
-    }
-}
+# Complete QC pipeline in 5 lines
+let reads = read_fastq("sample.fq") |> collect()
+let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
+let gc_vals = passed |> map(|r| gc_content(r.seq))
+println(f"Passed: {len(passed)}/{len(reads)}")
+println(f"Mean GC: {mean(gc_vals)}")
 ```
+
+**Fast without trying.** BioLang is implemented in Rust with native I/O. On benchmarks against Python (BioPython) and R (Bioconductor) across 30 bioinformatics tasks, BioLang is up to **7.1x** faster on ENCODE peak overlap, **7.0x** on protein k-mers, **6.7x** on FASTA parsing, **3.3x** on GC content, **3.2x** on k-mer counting — while using 50–70% fewer lines of code. Python's optimized C extensions win on text-heavy VCF/CSV parsing. See [`benchmarks/`](https://github.com/oriclabs/biolang/tree/main/benchmarks) for full results across Linux and Windows.
 
 **Streams handle scale.** File readers return lazy streams. Process a 100 GB FASTQ without loading it into memory. Parallel maps distribute work across cores:
 

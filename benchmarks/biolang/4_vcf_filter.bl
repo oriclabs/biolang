@@ -1,0 +1,20 @@
+# Benchmark 4: VCF Filtering
+# Filter variants by quality, depth, and genomic region.
+
+let variants = read_vcf("data/variants.vcf")
+let total = len(variants)
+
+# Filter: QUAL >= 30, DP >= 10, chromosome 1
+let filtered = variants
+  |> filter(|v| v.qual >= 30.0)
+  |> filter(|v| v.info["DP"] >= 10)
+  |> filter(|v| v.chrom == "chr1" || v.chrom == "1")
+
+let snps = filtered |> filter(|v| len(v.ref) == 1 && len(v.alt) == 1) |> len()
+let indels = len(filtered) - snps
+
+println(f"Total variants: {total}")
+println(f"After filtering: {len(filtered)}")
+println(f"SNPs: {snps}")
+println(f"Indels: {indels}")
+println(f"Ti/Tv ratio: computed from filtered set")

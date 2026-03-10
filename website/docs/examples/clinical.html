@@ -31,13 +31,13 @@
 
         <h3>Query ClinVar for a gene</h3>
         <pre><code class="language-biolang"># Search ClinVar for variants in BRCA1
-let results = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
+let ids = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
 
-print(f"Pathogenic BRCA1 variants: {results |> len}")
-results |> take(10) |> each(|v| {
-  print(f"  {v.variant_id}: {v.name} - {v.clinical_significance}")
-  print(f"    Condition: {v.condition}")
-  print(f"    Review status: {v.review_status}")
+print(f"Pathogenic BRCA1 variant IDs: {ids |> len}")
+# Fetch summaries for the top results
+let summaries = ncbi_summary(ids |> take(10), "clinvar")
+summaries |> each(|s| {
+  print(f"  UID {s.uid}")
 })</code></pre>
 
         <h3>Batch ClinVar annotation</h3>
@@ -46,23 +46,21 @@ let vcf = read_vcf("patient_variants.vcf")
 
 let annotated = vcf
   |> map(|v| {
-    let clinvar = ncbi_search("clinvar", f"{v.chrom}:{v.pos}[chrpos] AND {v.alt}[alt]") |> first
+    let clinvar_ids = ncbi_search("clinvar", f"{v.chrom}:{v.pos}[chrpos] AND {v.alt}[alt]")
     {
       chrom: v.chrom,
       pos: v.pos,
       ref: v.ref,
       alt: v.alt,
       gene: v.info["gene"],
-      clinvar_id: clinvar?.variant_id,
-      significance: clinvar?.clinical_significance ?? "not_found",
-      review_stars: clinvar?.review_stars ?? 0,
-      condition: clinvar?.condition ?? ""
+      clinvar_match: clinvar_ids |> len > 0,
+      clinvar_id: clinvar_ids |> first ?? "none"
     }
   })
 
-let pathogenic = annotated |> filter(|v| { v.significance |> contains("athogenic") })
-print(f"Pathogenic/Likely pathogenic variants: {pathogenic |> len}")
-pathogenic |> write_tsv("clinvar_pathogenic.tsv")</code></pre>
+let with_clinvar = annotated |> filter(|v| { v.clinvar_match })
+print(f"Variants with ClinVar match: {with_clinvar |> len}")
+with_clinvar |> write_tsv("clinvar_annotated.tsv")</code></pre>
 
         <h2>Pathogenicity Filtering</h2>
 

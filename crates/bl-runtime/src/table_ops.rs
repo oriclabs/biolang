@@ -26,6 +26,12 @@ pub fn table_builtin_list() -> Vec<(&'static str, Arity)> {
         ("drop_null", Arity::Range(1, 2)),
         // Aggregation
         ("group_by", Arity::Exact(2)),
+        ("count_by", Arity::Exact(2)),
+        ("filter_by", Arity::Exact(4)),
+        ("multi_filter_by", Arity::AtLeast(4)),
+        ("count_where", Arity::Exact(4)),
+        ("variant_summary", Arity::Range(1, 2)),
+        ("classify_variants", Arity::Exact(1)),
         ("value_counts", Arity::Exact(2)),
         ("describe", Arity::Exact(1)),
         // Combine
@@ -52,6 +58,14 @@ pub fn table_builtin_list() -> Vec<(&'static str, Arity)> {
         ("cummin", Arity::Exact(2)),
         ("rolling_mean", Arity::Exact(3)),
         ("rolling_sum", Arity::Exact(3)),
+        // Column extraction & aggregation
+        ("col_values", Arity::Exact(2)),
+        ("col_mean", Arity::Exact(2)),
+        ("col_sum", Arity::Exact(2)),
+        ("col_stdev", Arity::Exact(2)),
+        ("col_min", Arity::Exact(2)),
+        ("col_max", Arity::Exact(2)),
+        ("group_stats", Arity::Exact(3)),
         // Display
         ("col_width", Arity::Exact(2)),
         // I/O
@@ -83,6 +97,12 @@ pub fn is_table_builtin(name: &str) -> bool {
             | "fill_null"
             | "drop_null"
             | "group_by"
+            | "count_by"
+            | "filter_by"
+            | "multi_filter_by"
+            | "count_where"
+            | "variant_summary"
+            | "classify_variants"
             | "value_counts"
             | "describe"
             | "concat"
@@ -106,6 +126,13 @@ pub fn is_table_builtin(name: &str) -> bool {
             | "cummin"
             | "rolling_mean"
             | "rolling_sum"
+            | "col_values"
+            | "col_mean"
+            | "col_sum"
+            | "col_stdev"
+            | "col_min"
+            | "col_max"
+            | "group_stats"
             | "col_width"
             | "csv"
             | "tsv"
@@ -134,6 +161,12 @@ pub fn call_table_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "fill_null" => builtin_fill_null(args),
         "drop_null" => builtin_drop_null(args),
         "group_by" => builtin_group_by(args),
+        "count_by" => builtin_count_by(args),
+        "filter_by" => builtin_filter_by(args),
+        "multi_filter_by" => builtin_multi_filter_by(args),
+        "count_where" => builtin_count_where(args),
+        "variant_summary" => builtin_variant_summary(args),
+        "classify_variants" => builtin_classify_variants(args),
         "value_counts" => builtin_value_counts(args),
         "describe" => builtin_describe(args),
         "concat" => builtin_concat(args),
@@ -157,6 +190,13 @@ pub fn call_table_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "cummin" => builtin_cummin(args),
         "rolling_mean" => builtin_rolling_mean(args),
         "rolling_sum" => builtin_rolling_sum(args),
+        "col_values" => builtin_col_values(args),
+        "col_mean" => builtin_col_mean(args),
+        "col_sum" => builtin_col_sum(args),
+        "col_stdev" => builtin_col_stdev(args),
+        "col_min" => builtin_col_min(args),
+        "col_max" => builtin_col_max(args),
+        "group_stats" => builtin_group_stats(args),
         "col_width" => builtin_col_width(args),
         "csv" => builtin_read_delimited(args, ','),
         "tsv" => builtin_read_delimited(args, '\t'),
@@ -402,37 +442,641 @@ fn builtin_to_records(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List(records))
 }
 
-// ── group_by(table, col) → Map<String, Table> ──────────────────────
+// ── group_by(collection, col) → Map<String, Table|List> ─────────────
 
 fn builtin_group_by(args: Vec<Value>) -> Result<Value> {
-    let table = require_table(&args[0], "group_by")?;
     let col_name = require_str(&args[1], "group_by")?;
 
-    let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(
-            ErrorKind::NameError,
-            format!("group_by(): column '{col_name}' not found"),
-            None,
-        )
-    })?;
+    match &args[0] {
+        Value::Table(table) => {
+            let ci = table.col_index(&col_name).ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::NameError,
+                    format!("group_by(): column '{col_name}' not found"),
+                    None,
+                )
+            })?;
 
-    let mut group_keys: Vec<String> = Vec::new();
-    let mut group_rows: Vec<Vec<Vec<Value>>> = Vec::new();
-    for row in &table.rows {
-        let key = format!("{}", row[ci]);
-        if let Some(pos) = group_keys.iter().position(|k| k == &key) {
-            group_rows[pos].push(row.clone());
+            let mut groups: HashMap<String, Vec<Vec<Value>>> = HashMap::new();
+            for row in &table.rows {
+                let key = format!("{}", row[ci]);
+                groups.entry(key).or_default().push(row.clone());
+            }
+
+            let mut map = HashMap::new();
+            for (key, rows) in groups {
+                map.insert(key, Value::Table(Table::new(table.columns.clone(), rows)));
+            }
+            Ok(Value::Map(map))
+        }
+        Value::List(items) => {
+            // Group a List of Records/Variants/Maps by field name
+            let mut groups: HashMap<String, Vec<Value>> = HashMap::new();
+            for item in items {
+                let key = match item {
+                    Value::Record(m) | Value::Map(m) => {
+                        m.get(&col_name).map(|v| format!("{v}")).unwrap_or_default()
+                    }
+                    Value::Variant { ref chrom, pos, ref id, ref ref_allele, ref alt_allele, quality, ref filter, ref info } => {
+                        match col_name.as_str() {
+                            "chrom" => chrom.clone(),
+                            "pos" => pos.to_string(),
+                            "id" => id.clone(),
+                            "ref_allele" | "ref" => ref_allele.clone(),
+                            "alt_allele" | "alt" => alt_allele.clone(),
+                            "quality" | "qual" => format!("{quality}"),
+                            "filter" => filter.clone(),
+                            _ => String::new(),
+                        }
+                    }
+                    _ => format!("{item}"),
+                };
+                groups.entry(key).or_default().push(item.clone());
+            }
+            let mut map = HashMap::new();
+            for (key, vals) in groups {
+                map.insert(key, Value::List(vals));
+            }
+            Ok(Value::Map(map))
+        }
+        other => Err(BioLangError::type_error(
+            format!("group_by() requires Table or List, got {}", other.type_of()),
+            None,
+        )),
+    }
+}
+
+// ── count_by(collection, field) → List<Record{key, count}> ─────────
+
+fn builtin_count_by(args: Vec<Value>) -> Result<Value> {
+    let col_name = require_str(&args[1], "count_by")?;
+
+    let mut counts: HashMap<String, i64> = HashMap::new();
+
+    match &args[0] {
+        Value::Table(table) => {
+            let ci = table.col_index(&col_name).ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::NameError,
+                    format!("count_by(): column '{col_name}' not found"),
+                    None,
+                )
+            })?;
+            for row in &table.rows {
+                let key = format!("{}", row[ci]);
+                *counts.entry(key).or_default() += 1;
+            }
+        }
+        Value::List(items) => {
+            for item in items {
+                let key = match item {
+                    Value::Record(m) | Value::Map(m) => {
+                        m.get(&col_name).map(|v| format!("{v}")).unwrap_or_default()
+                    }
+                    Value::Variant { ref chrom, ref filter, .. } => {
+                        match col_name.as_str() {
+                            "chrom" => chrom.clone(),
+                            "filter" => filter.clone(),
+                            _ => format!("{item}"),
+                        }
+                    }
+                    _ => format!("{item}"),
+                };
+                *counts.entry(key).or_default() += 1;
+            }
+        }
+        other => return Err(BioLangError::type_error(
+            format!("count_by() requires Table or List, got {}", other.type_of()),
+            None,
+        )),
+    }
+
+    let mut result: Vec<Value> = counts.into_iter().map(|(key, count)| {
+        let mut rec = HashMap::new();
+        rec.insert("key".to_string(), Value::Str(key));
+        rec.insert("count".to_string(), Value::Int(count));
+        Value::Record(rec)
+    }).collect();
+    result.sort_by(|a, b| {
+        let ca = if let Value::Record(m) = a { m.get("count").and_then(|v| v.as_int()).unwrap_or(0) } else { 0 };
+        let cb = if let Value::Record(m) = b { m.get("count").and_then(|v| v.as_int()).unwrap_or(0) } else { 0 };
+        cb.cmp(&ca) // descending
+    });
+    Ok(Value::List(result))
+}
+
+// ── filter_by(collection, field, op, value) → filtered collection ────
+// Native filter that avoids interpreter dispatch per element.
+// Op: "==", "!=", ">", ">=", "<", "<=", "contains", "starts_with", "ends_with"
+
+fn builtin_filter_by(args: Vec<Value>) -> Result<Value> {
+    let field = require_str(&args[1], "filter_by")?;
+    let op = require_str(&args[2], "filter_by")?;
+    let cmp_val = &args[3];
+
+    // Extract field value from a Variant
+    fn variant_field(v: &Value, field: &str) -> Option<Value> {
+        if let Value::Variant { ref chrom, pos, ref id, ref ref_allele, ref alt_allele, quality, ref filter, ref info } = v {
+            Some(match field {
+                "chrom" => Value::Str(chrom.clone()),
+                "pos" => Value::Int(*pos),
+                "id" => Value::Str(id.clone()),
+                "ref_allele" | "ref" => Value::Str(ref_allele.clone()),
+                "alt_allele" | "alt" => Value::Str(alt_allele.clone()),
+                "quality" | "qual" => Value::Float(*quality),
+                "filter" => Value::Str(filter.clone()),
+                "is_snp" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    Value::Bool(ref_allele.len() == 1 && first_alt.len() == 1)
+                }
+                "is_indel" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    Value::Bool(ref_allele.len() != first_alt.len())
+                }
+                "variant_type" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 { "SNP" }
+                            else if ref_allele.len() != first_alt.len() { "INDEL" }
+                            else { "MNP" };
+                    Value::Str(t.to_string())
+                }
+                _ => {
+                    // Check direct info keys first
+                    if let Some(v) = info.get(field) {
+                        if field != "_raw" { return Some(v.clone()); }
+                    }
+                    // Lazy INFO: parse _raw and look up field
+                    if info.len() == 1 {
+                        if let Some(Value::Str(raw)) = info.get("_raw") {
+                            for part in raw.split(';') {
+                                if part.is_empty() { continue; }
+                                if let Some((key, val)) = part.split_once('=') {
+                                    if key == field {
+                                        if val == "." {
+                                            return Some(Value::Nil);
+                                        } else if let Ok(n) = val.parse::<i64>() {
+                                            return Some(Value::Int(n));
+                                        } else if let Ok(f) = val.parse::<f64>() {
+                                            return Some(Value::Float(f));
+                                        } else {
+                                            return Some(Value::Str(val.to_string()));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return None;
+                }
+            })
         } else {
-            group_keys.push(key);
-            group_rows.push(vec![row.clone()]);
+            None
         }
     }
 
-    let mut map = HashMap::new();
-    for (key, rows) in group_keys.into_iter().zip(group_rows) {
-        map.insert(key, Value::Table(Table::new(table.columns.clone(), rows)));
+    // Extract field from Record/Map
+    fn record_field(v: &Value, field: &str) -> Option<Value> {
+        match v {
+            Value::Record(m) | Value::Map(m) => m.get(field).cloned(),
+            _ => None,
+        }
     }
-    Ok(Value::Map(map))
+
+    // Get field value from any supported type
+    fn get_field(v: &Value, field: &str) -> Option<Value> {
+        variant_field(v, field).or_else(|| record_field(v, field))
+    }
+
+    // Compare two Values with given operator
+    fn compare(field_val: &Value, op: &str, cmp_val: &Value) -> bool {
+        match op {
+            "==" => field_val == cmp_val,
+            "!=" => field_val != cmp_val,
+            ">=" | ">" | "<=" | "<" => {
+                let a = match field_val {
+                    Value::Float(f) => *f,
+                    Value::Int(i) => *i as f64,
+                    _ => return false,
+                };
+                let b = match cmp_val {
+                    Value::Float(f) => *f,
+                    Value::Int(i) => *i as f64,
+                    _ => return false,
+                };
+                match op {
+                    ">=" => a >= b,
+                    ">" => a > b,
+                    "<=" => a <= b,
+                    "<" => a < b,
+                    _ => false,
+                }
+            }
+            "contains" => {
+                if let (Value::Str(a), Value::Str(b)) = (field_val, cmp_val) {
+                    a.contains(b.as_str())
+                } else { false }
+            }
+            "starts_with" => {
+                if let (Value::Str(a), Value::Str(b)) = (field_val, cmp_val) {
+                    a.starts_with(b.as_str())
+                } else { false }
+            }
+            "ends_with" => {
+                if let (Value::Str(a), Value::Str(b)) = (field_val, cmp_val) {
+                    a.ends_with(b.as_str())
+                } else { false }
+            }
+            _ => false,
+        }
+    }
+
+    match &args[0] {
+        Value::Table(table) => {
+            let ci = table.col_index(&field).ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::NameError,
+                    format!("filter_by(): column '{field}' not found"),
+                    None,
+                )
+            })?;
+            let columns = table.columns.clone();
+            let kept_rows: Vec<Vec<Value>> = table.rows.iter()
+                .filter(|row| compare(&row[ci], &op, cmp_val))
+                .cloned()
+                .collect();
+            Ok(Value::Table(bl_core::value::Table::new(columns, kept_rows)))
+        }
+        Value::List(items) => {
+            let result: Vec<Value> = items.iter()
+                .filter(|item| {
+                    get_field(item, &field)
+                        .map(|fv| compare(&fv, &op, cmp_val))
+                        .unwrap_or(false)
+                })
+                .cloned()
+                .collect();
+            Ok(Value::List(result))
+        }
+        other => Err(BioLangError::type_error(
+            format!("filter_by() requires Table or List, got {}", other.type_of()),
+            None,
+        )),
+    }
+}
+
+/// multi_filter_by(collection, field1, op1, val1, field2, op2, val2, ...)
+/// Applies all filter conditions in a single pass — avoids cloning intermediate results.
+fn builtin_multi_filter_by(args: Vec<Value>) -> Result<Value> {
+    if args.len() < 4 || (args.len() - 1) % 3 != 0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::ArityError,
+            "multi_filter_by() takes (collection, field, op, val, ...) in groups of 3",
+            None,
+        ));
+    }
+
+    // Parse conditions
+    let mut conditions: Vec<(String, String, Value)> = Vec::new();
+    let mut i = 1;
+    while i + 2 < args.len() {
+        let field = require_str(&args[i], "multi_filter_by")?;
+        let op = require_str(&args[i + 1], "multi_filter_by")?;
+        let cmp_val = args[i + 2].clone();
+        conditions.push((field, op, cmp_val));
+        i += 3;
+    }
+
+    // Reuse the same field/compare logic from filter_by
+    fn variant_field(v: &Value, field: &str) -> Option<Value> {
+        if let Value::Variant { ref chrom, pos, ref id, ref ref_allele, ref alt_allele, quality, ref filter, ref info } = v {
+            Some(match field {
+                "chrom" => Value::Str(chrom.clone()),
+                "pos" => Value::Int(*pos),
+                "id" => Value::Str(id.clone()),
+                "ref_allele" | "ref" => Value::Str(ref_allele.clone()),
+                "alt_allele" | "alt" => Value::Str(alt_allele.clone()),
+                "quality" | "qual" => Value::Float(*quality),
+                "filter" => Value::Str(filter.clone()),
+                "is_snp" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    Value::Bool(ref_allele.len() == 1 && first_alt.len() == 1)
+                }
+                "is_indel" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    Value::Bool(ref_allele.len() != first_alt.len())
+                }
+                "variant_type" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 { "SNP" }
+                            else if ref_allele.len() != first_alt.len() { "INDEL" }
+                            else { "MNP" };
+                    Value::Str(t.to_string())
+                }
+                _ => {
+                    if let Some(v) = info.get(field) {
+                        if field != "_raw" { return Some(v.clone()); }
+                    }
+                    if info.len() == 1 {
+                        if let Some(Value::Str(raw)) = info.get("_raw") {
+                            for part in raw.split(';') {
+                                if part.is_empty() { continue; }
+                                if let Some((key, val)) = part.split_once('=') {
+                                    if key == field {
+                                        if val == "." { return Some(Value::Nil); }
+                                        else if let Ok(n) = val.parse::<i64>() { return Some(Value::Int(n)); }
+                                        else if let Ok(f) = val.parse::<f64>() { return Some(Value::Float(f)); }
+                                        else { return Some(Value::Str(val.to_string())); }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return None;
+                }
+            })
+        } else {
+            None
+        }
+    }
+
+    fn record_field(v: &Value, field: &str) -> Option<Value> {
+        match v {
+            Value::Record(m) | Value::Map(m) => m.get(field).cloned(),
+            _ => None,
+        }
+    }
+
+    fn get_field(v: &Value, field: &str) -> Option<Value> {
+        variant_field(v, field).or_else(|| record_field(v, field))
+    }
+
+    fn compare(field_val: &Value, op: &str, cmp_val: &Value) -> bool {
+        match op {
+            "==" => field_val == cmp_val,
+            "!=" => field_val != cmp_val,
+            ">=" | ">" | "<=" | "<" => {
+                let a = match field_val {
+                    Value::Float(f) => *f,
+                    Value::Int(i) => *i as f64,
+                    _ => return false,
+                };
+                let b = match cmp_val {
+                    Value::Float(f) => *f,
+                    Value::Int(i) => *i as f64,
+                    _ => return false,
+                };
+                match op { ">=" => a >= b, ">" => a > b, "<=" => a <= b, "<" => a < b, _ => false }
+            }
+            _ => false,
+        }
+    }
+
+    match &args[0] {
+        Value::List(items) => {
+            let result: Vec<Value> = items.iter()
+                .filter(|item| {
+                    conditions.iter().all(|(field, op, cmp_val)| {
+                        get_field(item, field)
+                            .map(|fv| compare(&fv, op, cmp_val))
+                            .unwrap_or(false)
+                    })
+                })
+                .cloned()
+                .collect();
+            Ok(Value::List(result))
+        }
+        Value::Table(table) => {
+            // Resolve column indices upfront
+            let col_specs: Vec<(usize, String, Value)> = conditions.iter().map(|(field, op, cmp_val)| {
+                let ci = table.col_index(field).ok_or_else(|| {
+                    BioLangError::runtime(ErrorKind::NameError, format!("multi_filter_by(): column '{field}' not found"), None)
+                })?;
+                Ok((ci, op.clone(), cmp_val.clone()))
+            }).collect::<Result<Vec<_>>>()?;
+
+            let kept: Vec<Vec<Value>> = table.rows.iter()
+                .filter(|row| {
+                    col_specs.iter().all(|(ci, op, cmp_val)| compare(&row[*ci], op, cmp_val))
+                })
+                .cloned()
+                .collect();
+            Ok(Value::Table(Table::new(table.columns.clone(), kept)))
+        }
+        other => Err(BioLangError::type_error(
+            format!("multi_filter_by() requires Table or List, got {}", other.type_of()), None,
+        )),
+    }
+}
+
+/// count_where(collection, field, op, value) → Int
+/// Like filter_by but only counts matches — no cloning.
+fn builtin_count_where(args: Vec<Value>) -> Result<Value> {
+    let field = require_str(&args[1], "count_where")?;
+    let op = require_str(&args[2], "count_where")?;
+    let cmp_val = &args[3];
+
+    // Reuse field extraction and comparison from filter_by
+    fn variant_field_fast(v: &Value, field: &str) -> Option<Value> {
+        if let Value::Variant { ref chrom, pos, ref ref_allele, ref alt_allele, quality, ref filter, ref info, .. } = v {
+            Some(match field {
+                "chrom" => Value::Str(chrom.clone()),
+                "pos" => Value::Int(*pos),
+                "quality" | "qual" => Value::Float(*quality),
+                "filter" => Value::Str(filter.clone()),
+                "is_snp" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    Value::Bool(ref_allele.len() == 1 && first_alt.len() == 1)
+                }
+                "is_indel" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    Value::Bool(ref_allele.len() != first_alt.len())
+                }
+                "variant_type" => {
+                    let first_alt = alt_allele.split(',').next().unwrap_or("");
+                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 { "SNP" }
+                            else if ref_allele.len() != first_alt.len() { "INDEL" }
+                            else { "MNP" };
+                    Value::Str(t.to_string())
+                }
+                _ => {
+                    if let Some(v) = info.get(field) {
+                        if field != "_raw" { return Some(v.clone()); }
+                    }
+                    if info.len() == 1 {
+                        if let Some(Value::Str(raw)) = info.get("_raw") {
+                            for part in raw.split(';') {
+                                if part.is_empty() { continue; }
+                                if let Some((key, val)) = part.split_once('=') {
+                                    if key == field {
+                                        if val == "." { return Some(Value::Nil); }
+                                        else if let Ok(n) = val.parse::<i64>() { return Some(Value::Int(n)); }
+                                        else if let Ok(f) = val.parse::<f64>() { return Some(Value::Float(f)); }
+                                        else { return Some(Value::Str(val.to_string())); }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return None;
+                }
+            })
+        } else {
+            None
+        }
+    }
+
+    fn get_field(v: &Value, field: &str) -> Option<Value> {
+        variant_field_fast(v, field).or_else(|| match v {
+            Value::Record(m) | Value::Map(m) => m.get(field).cloned(),
+            _ => None,
+        })
+    }
+
+    fn compare(field_val: &Value, op: &str, cmp_val: &Value) -> bool {
+        match op {
+            "==" => field_val == cmp_val,
+            "!=" => field_val != cmp_val,
+            ">=" | ">" | "<=" | "<" => {
+                let a = match field_val {
+                    Value::Float(f) => *f,
+                    Value::Int(i) => *i as f64,
+                    _ => return false,
+                };
+                let b = match cmp_val {
+                    Value::Float(f) => *f,
+                    Value::Int(i) => *i as f64,
+                    _ => return false,
+                };
+                match op { ">=" => a >= b, ">" => a > b, "<=" => a <= b, "<" => a < b, _ => false }
+            }
+            _ => false,
+        }
+    }
+
+    let count = match &args[0] {
+        Value::List(items) => {
+            items.iter()
+                .filter(|item| {
+                    get_field(item, &field)
+                        .map(|fv| compare(&fv, &op, cmp_val))
+                        .unwrap_or(false)
+                })
+                .count()
+        }
+        Value::Table(table) => {
+            let ci = table.col_index(&field).ok_or_else(|| {
+                BioLangError::runtime(ErrorKind::NameError, format!("count_where(): column '{field}' not found"), None)
+            })?;
+            table.rows.iter()
+                .filter(|row| compare(&row[ci], &op, cmp_val))
+                .count()
+        }
+        other => return Err(BioLangError::type_error(
+            format!("count_where() requires Table or List, got {}", other.type_of()), None,
+        )),
+    };
+
+    Ok(Value::Int(count as i64))
+}
+
+/// variant_summary(variants) or variant_summary(variants, group_field)
+/// Single-pass summary: groups variants by field (default "chrom") and counts SNPs/indels.
+/// Returns Table with columns: group, total, snps, indels, mean_qual.
+/// Entirely native — no interpreter dispatch, no cloning.
+fn builtin_variant_summary(args: Vec<Value>) -> Result<Value> {
+    let items = match &args[0] {
+        Value::List(items) => items,
+        other => return Err(BioLangError::type_error(
+            format!("variant_summary() requires List of Variants, got {}", other.type_of()), None,
+        )),
+    };
+
+    let group_field = if args.len() > 1 {
+        require_str(&args[1], "variant_summary")?
+    } else {
+        "chrom".to_string()
+    };
+
+    // Single pass: accumulate stats per group
+    struct GroupStats {
+        total: i64,
+        snps: i64,
+        indels: i64,
+        qual_sum: f64,
+    }
+    let mut groups: HashMap<String, GroupStats> = HashMap::new();
+
+    for item in items {
+        if let Value::Variant { ref chrom, ref ref_allele, ref alt_allele, quality, .. } = item {
+            let key = match group_field.as_str() {
+                "chrom" => chrom.clone(),
+                _ => chrom.clone(), // Default to chrom for now
+            };
+            let stats = groups.entry(key).or_insert(GroupStats {
+                total: 0, snps: 0, indels: 0, qual_sum: 0.0,
+            });
+            stats.total += 1;
+            stats.qual_sum += quality;
+            let first_alt = alt_allele.split(',').next().unwrap_or("");
+            if ref_allele.len() == 1 && first_alt.len() == 1 {
+                stats.snps += 1;
+            } else {
+                stats.indels += 1;
+            }
+        }
+    }
+
+    // Build result Table sorted by total descending
+    let columns = vec![
+        "group".to_string(), "total".to_string(), "snps".to_string(),
+        "indels".to_string(), "mean_qual".to_string(),
+    ];
+    let mut rows: Vec<Vec<Value>> = groups.into_iter().map(|(key, stats)| {
+        vec![
+            Value::Str(key),
+            Value::Int(stats.total),
+            Value::Int(stats.snps),
+            Value::Int(stats.indels),
+            Value::Float(if stats.total > 0 { stats.qual_sum / stats.total as f64 } else { 0.0 }),
+        ]
+    }).collect();
+    rows.sort_by(|a, b| {
+        let ta = if let Value::Int(n) = &a[1] { *n } else { 0 };
+        let tb = if let Value::Int(n) = &b[1] { *n } else { 0 };
+        tb.cmp(&ta)
+    });
+
+    Ok(Value::Table(Table::new(columns, rows)))
+}
+
+// ── classify_variants(variants) → List<Record{chrom, variant_type}> ──
+// Native variant classification avoiding interpreter dispatch per element.
+
+fn builtin_classify_variants(args: Vec<Value>) -> Result<Value> {
+    let items = match &args[0] {
+        Value::List(items) => items,
+        other => return Err(BioLangError::type_error(
+            format!("classify_variants() requires List of Variants, got {}", other.type_of()),
+            None,
+        )),
+    };
+
+    let mut result = Vec::with_capacity(items.len());
+    for item in items {
+        if let Value::Variant { ref chrom, ref ref_allele, ref alt_allele, .. } = item {
+            let first_alt = alt_allele.split(',').next().unwrap_or("");
+            let vtype = if ref_allele.len() == 1 && first_alt.len() == 1 {
+                "SNP"
+            } else {
+                "INDEL"
+            };
+            let mut rec = HashMap::with_capacity(2);
+            rec.insert("chrom".to_string(), Value::Str(chrom.clone()));
+            rec.insert("variant_type".to_string(), Value::Str(vtype.to_string()));
+            result.push(Value::Record(rec));
+        }
+    }
+    Ok(Value::List(result))
 }
 
 // ── drop_cols(table, col1, col2, ...) ────────────────────────────────
@@ -830,23 +1474,28 @@ fn builtin_outer_join(args: Vec<Value>) -> Result<Value> {
     for &i in &right_extra {
         out_cols.push(right.columns[i].clone());
     }
+    // Build hash index on right table for O(n+m) join
+    let mut right_index: std::collections::HashMap<String, Vec<usize>> =
+        std::collections::HashMap::with_capacity(right.rows.len());
+    for (i, rrow) in right.rows.iter().enumerate() {
+        let rkey = format!("{}", rrow[right_ki]);
+        right_index.entry(rkey).or_default().push(i);
+    }
     let mut out_rows: Vec<Vec<Value>> = Vec::new();
     let mut right_matched = vec![false; right.num_rows()];
     for lrow in &left.rows {
         let lkey = format!("{}", lrow[left_ki]);
-        let mut matched = false;
-        for (ri, rrow) in right.rows.iter().enumerate() {
-            if format!("{}", rrow[right_ki]) == lkey {
+        if let Some(indices) = right_index.get(&lkey) {
+            for &ri in indices {
+                let rrow = &right.rows[ri];
                 let mut row = lrow.clone();
                 for &i in &right_extra {
                     row.push(rrow[i].clone());
                 }
                 out_rows.push(row);
                 right_matched[ri] = true;
-                matched = true;
             }
-        }
-        if !matched {
+        } else {
             let mut row = lrow.clone();
             for _ in &right_extra {
                 row.push(Value::Nil);
@@ -872,9 +1521,21 @@ fn builtin_outer_join(args: Vec<Value>) -> Result<Value> {
 fn builtin_cross_join(args: Vec<Value>) -> Result<Value> {
     let left = require_table(&args[0], "cross_join")?;
     let right = require_table(&args[1], "cross_join")?;
+    let product = (left.num_rows() as u64).saturating_mul(right.num_rows() as u64);
+    if product > 10_000_000 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "cross_join() would produce {} rows ({} × {}). Limit: 10,000,000. \
+                 Filter tables before joining.",
+                product, left.num_rows(), right.num_rows()
+            ),
+            None,
+        ));
+    }
     let mut out_cols = left.columns.clone();
     out_cols.extend(right.columns.clone());
-    let mut out_rows = Vec::new();
+    let mut out_rows = Vec::with_capacity(product as usize);
     for lrow in &left.rows {
         for rrow in &right.rows {
             let mut row = lrow.clone();
@@ -895,7 +1556,7 @@ fn builtin_anti_join(args: Vec<Value>) -> Result<Value> {
     let right_ki = right.col_index(&key_col).ok_or_else(|| {
         BioLangError::runtime(ErrorKind::NameError, format!("anti_join(): key '{key_col}' not in right"), None)
     })?;
-    let right_keys: Vec<String> = right.rows.iter().map(|r| format!("{}", r[right_ki])).collect();
+    let right_keys: std::collections::HashSet<String> = right.rows.iter().map(|r| format!("{}", r[right_ki])).collect();
     let rows: Vec<Vec<Value>> = left
         .rows
         .iter()
@@ -915,7 +1576,7 @@ fn builtin_semi_join(args: Vec<Value>) -> Result<Value> {
     let right_ki = right.col_index(&key_col).ok_or_else(|| {
         BioLangError::runtime(ErrorKind::NameError, format!("semi_join(): key '{key_col}' not in right"), None)
     })?;
-    let right_keys: Vec<String> = right.rows.iter().map(|r| format!("{}", r[right_ki])).collect();
+    let right_keys: std::collections::HashSet<String> = right.rows.iter().map(|r| format!("{}", r[right_ki])).collect();
     let rows: Vec<Vec<Value>> = left
         .rows
         .iter()
@@ -1196,6 +1857,170 @@ fn builtin_col_width(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(table))
 }
 
+// ── Column extraction & aggregation (native, no interpreter dispatch) ────
+
+/// Helper: extract numeric values from a column in a Table or List of Records.
+fn extract_col_floats(val: &Value, col: &str, func: &str) -> Result<Vec<f64>> {
+    match val {
+        Value::Table(t) => {
+            let ci = t.col_index(col).ok_or_else(|| {
+                BioLangError::runtime(ErrorKind::NameError, format!("{func}(): column '{col}' not found"), None)
+            })?;
+            Ok(t.rows.iter().filter_map(|row| {
+                match &row[ci] {
+                    Value::Float(f) => Some(*f),
+                    Value::Int(i) => Some(*i as f64),
+                    _ => None,
+                }
+            }).collect())
+        }
+        Value::List(items) => {
+            Ok(items.iter().filter_map(|item| {
+                match item {
+                    Value::Record(m) | Value::Map(m) => m.get(col).and_then(|v| match v {
+                        Value::Float(f) => Some(*f),
+                        Value::Int(i) => Some(*i as f64),
+                        _ => None,
+                    }),
+                    _ => None,
+                }
+            }).collect())
+        }
+        other => Err(BioLangError::type_error(
+            format!("{func}() requires Table or List, got {}", other.type_of()), None,
+        )),
+    }
+}
+
+/// Helper: extract all values from a column.
+fn extract_col_values(val: &Value, col: &str, func: &str) -> Result<Vec<Value>> {
+    match val {
+        Value::Table(t) => {
+            let ci = t.col_index(col).ok_or_else(|| {
+                BioLangError::runtime(ErrorKind::NameError, format!("{func}(): column '{col}' not found"), None)
+            })?;
+            Ok(t.rows.iter().map(|row| row[ci].clone()).collect())
+        }
+        Value::List(items) => {
+            Ok(items.iter().filter_map(|item| {
+                match item {
+                    Value::Record(m) | Value::Map(m) => m.get(col).cloned(),
+                    _ => None,
+                }
+            }).collect())
+        }
+        other => Err(BioLangError::type_error(
+            format!("{func}() requires Table or List, got {}", other.type_of()), None,
+        )),
+    }
+}
+
+fn builtin_col_values(args: Vec<Value>) -> Result<Value> {
+    let col = require_str(&args[1], "col_values")?;
+    Ok(Value::List(extract_col_values(&args[0], &col, "col_values")?))
+}
+
+fn builtin_col_mean(args: Vec<Value>) -> Result<Value> {
+    let col = require_str(&args[1], "col_mean")?;
+    let vals = extract_col_floats(&args[0], &col, "col_mean")?;
+    if vals.is_empty() {
+        return Ok(Value::Float(f64::NAN));
+    }
+    let sum: f64 = vals.iter().sum();
+    Ok(Value::Float(sum / vals.len() as f64))
+}
+
+fn builtin_col_sum(args: Vec<Value>) -> Result<Value> {
+    let col = require_str(&args[1], "col_sum")?;
+    let vals = extract_col_floats(&args[0], &col, "col_sum")?;
+    let sum: f64 = vals.iter().sum();
+    // Return Int if all values were integers
+    if sum == sum.floor() && sum.abs() < i64::MAX as f64 {
+        Ok(Value::Int(sum as i64))
+    } else {
+        Ok(Value::Float(sum))
+    }
+}
+
+fn builtin_col_stdev(args: Vec<Value>) -> Result<Value> {
+    let col = require_str(&args[1], "col_stdev")?;
+    let vals = extract_col_floats(&args[0], &col, "col_stdev")?;
+    if vals.len() < 2 {
+        return Ok(Value::Float(f64::NAN));
+    }
+    let n = vals.len() as f64;
+    let mean = vals.iter().sum::<f64>() / n;
+    let variance = vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n - 1.0);
+    Ok(Value::Float(variance.sqrt()))
+}
+
+fn builtin_col_min(args: Vec<Value>) -> Result<Value> {
+    let col = require_str(&args[1], "col_min")?;
+    let vals = extract_col_floats(&args[0], &col, "col_min")?;
+    Ok(Value::Float(vals.iter().copied().fold(f64::INFINITY, f64::min)))
+}
+
+fn builtin_col_max(args: Vec<Value>) -> Result<Value> {
+    let col = require_str(&args[1], "col_max")?;
+    let vals = extract_col_floats(&args[0], &col, "col_max")?;
+    Ok(Value::Float(vals.iter().copied().fold(f64::NEG_INFINITY, f64::max)))
+}
+
+/// group_stats(grouped_map, col, "mean"|"sum"|"count"|"stdev"|"min"|"max")
+/// Returns List<Record{key, value}> — native aggregation per group, no interpreter dispatch.
+fn builtin_group_stats(args: Vec<Value>) -> Result<Value> {
+    let col = require_str(&args[1], "group_stats")?;
+    let agg = require_str(&args[2], "group_stats")?;
+
+    let groups = match &args[0] {
+        Value::Map(m) => m,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("group_stats() requires Map (from group_by), got {}", other.type_of()), None,
+            ));
+        }
+    };
+
+    let mut results = Vec::with_capacity(groups.len());
+    for (key, subtable) in groups {
+        let vals = extract_col_floats(subtable, &col, "group_stats")?;
+        let n = vals.len();
+        let value = match agg.as_str() {
+            "count" => Value::Int(n as i64),
+            "sum" => {
+                let s: f64 = vals.iter().sum();
+                if s == s.floor() && s.abs() < i64::MAX as f64 { Value::Int(s as i64) } else { Value::Float(s) }
+            }
+            "mean" => {
+                if n == 0 { Value::Float(f64::NAN) }
+                else { Value::Float(vals.iter().sum::<f64>() / n as f64) }
+            }
+            "stdev" => {
+                if n < 2 { Value::Float(f64::NAN) }
+                else {
+                    let mean = vals.iter().sum::<f64>() / n as f64;
+                    let var = vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n as f64 - 1.0);
+                    Value::Float(var.sqrt())
+                }
+            }
+            "min" => Value::Float(vals.iter().copied().fold(f64::INFINITY, f64::min)),
+            "max" => Value::Float(vals.iter().copied().fold(f64::NEG_INFINITY, f64::max)),
+            other => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("group_stats(): unknown aggregation '{other}', expected mean/sum/count/stdev/min/max"),
+                    None,
+                ));
+            }
+        };
+        let mut rec = HashMap::new();
+        rec.insert("key".to_string(), Value::Str(key.clone()));
+        rec.insert("value".to_string(), value);
+        results.push(Value::Record(rec));
+    }
+    Ok(Value::List(results))
+}
+
 // ── CSV/TSV I/O ─────────────────────────────────────────────────────
 
 fn builtin_read_delimited(args: Vec<Value>, delim: char) -> Result<Value> {
@@ -1359,12 +2184,20 @@ fn builtin_inner_join(args: Vec<Value>) -> Result<Value> {
         out_cols.push(right.columns[i].clone());
     }
 
+    // Build hash index on right table for O(n+m) join instead of O(n*m)
+    let mut right_index: std::collections::HashMap<String, Vec<usize>> =
+        std::collections::HashMap::with_capacity(right.rows.len());
+    for (i, rrow) in right.rows.iter().enumerate() {
+        let rkey = format!("{}", rrow[right_ki]);
+        right_index.entry(rkey).or_default().push(i);
+    }
+
     let mut out_rows: Vec<Vec<Value>> = Vec::new();
     for lrow in &left.rows {
         let lkey = format!("{}", lrow[left_ki]);
-        for rrow in &right.rows {
-            let rkey = format!("{}", rrow[right_ki]);
-            if lkey == rkey {
+        if let Some(indices) = right_index.get(&lkey) {
+            for &ri in indices {
+                let rrow = &right.rows[ri];
                 let mut new_row = lrow.clone();
                 for &i in &right_col_indices {
                     new_row.push(rrow[i].clone());
@@ -1405,22 +2238,27 @@ fn builtin_left_join(args: Vec<Value>) -> Result<Value> {
         out_cols.push(right.columns[i].clone());
     }
 
+    // Build hash index on right table for O(n+m) join
+    let mut right_index: std::collections::HashMap<String, Vec<usize>> =
+        std::collections::HashMap::with_capacity(right.rows.len());
+    for (i, rrow) in right.rows.iter().enumerate() {
+        let rkey = format!("{}", rrow[right_ki]);
+        right_index.entry(rkey).or_default().push(i);
+    }
+
     let mut out_rows: Vec<Vec<Value>> = Vec::new();
     for lrow in &left.rows {
         let lkey = format!("{}", lrow[left_ki]);
-        let mut matched = false;
-        for rrow in &right.rows {
-            let rkey = format!("{}", rrow[right_ki]);
-            if lkey == rkey {
+        if let Some(indices) = right_index.get(&lkey) {
+            for &ri in indices {
+                let rrow = &right.rows[ri];
                 let mut new_row = lrow.clone();
                 for &i in &right_col_indices {
                     new_row.push(rrow[i].clone());
                 }
                 out_rows.push(new_row);
-                matched = true;
             }
-        }
-        if !matched {
+        } else {
             let mut new_row = lrow.clone();
             for _ in &right_col_indices {
                 new_row.push(Value::Nil);

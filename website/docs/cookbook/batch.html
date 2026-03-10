@@ -145,7 +145,7 @@ let results = par_map(samples, |sample| {
   try {
     let name = sample["sample_id"]
     let n_reads = fastq(sample["fastq_r1"]) |> count
-    { sample: name, status: "ok", reads: n_reads, error: None }
+    { sample: name, status: "ok", reads: n_reads, error: nil }
   } catch e {
     { sample: sample["sample_id"], status: "failed", reads: 0, error: to_string(e) }
   }

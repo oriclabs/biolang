@@ -51,15 +51,15 @@ let action = match status {
   },
   "failed" => {
     log_error(job_id)
-    None
+    nil
   },
   "running" => {
     print("Still running...")
-    None
+    nil
   },
   _ => {
     print(f"Unknown status: {status}")
-    None
+    nil
   }
 }</code></pre>
 
@@ -202,8 +202,8 @@ match record {
 
 # Nested wildcards
 match result {
-  Ok(_) => print("succeeded"),
-  Err(msg) => print(f"failed: {msg}")
+  {ok: true, ..} => print("succeeded"),
+  {ok: false, error: msg} => print(f"failed: {msg}")
 }</code></pre>
 
         <h2>Or Patterns</h2>
@@ -223,11 +223,11 @@ let priority = match impact {
 }</code></pre>
 
         <h2>Nested Patterns</h2>
-        <pre><code class="language-biolang"># Match on nested Option values
+        <pre><code class="language-biolang"># Match on nested record values
 let value = match result {
-  Ok(Some(data)) => process(data),
-  Ok(None) => default_value(),
-  Err(e) => {
+  {data: d} if d != nil => process(d),
+  {data: nil} => default_value(),
+  {error: e} => {
     log(f"Error: {e}")
     default_value()
   }
@@ -254,7 +254,7 @@ match annotation {
     _ => { severity: 1, label: "benign" }
   })
   |> filter(|r| r.severity >= 2)
-  |> arrange(desc(severity))</code></pre>
+  |> arrange("-severity")</code></pre>
 
         <h2>Exhaustiveness</h2>
         <p>
@@ -284,11 +284,12 @@ let symbol = match strand {
 
         <h2>Match with Binding</h2>
         <pre><code class="language-biolang"># Bind matched value with 'as'
-match parse_int(input) {
-  Ok(n) if n > 0 => print(f"positive: {n}"),
-  Ok(0) => print("zero"),
-  Ok(n) => print(f"negative: {n}"),
-  Err(e) => print(f"not a number: {e}")
+let n = try { int(input) } catch _ { nil }
+match n {
+  v if v != nil && v > 0 => print(f"positive: {v}"),
+  0 => print("zero"),
+  v if v != nil => print(f"negative: {v}"),
+  _ => print(f"not a number: {input}")
 }
 
 # Pattern binding in loops

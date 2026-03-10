@@ -130,7 +130,7 @@ let gc = contig |> gc_content()
 print(f"GC: {gc:.2%}")   # => GC: 56.00%
 
 # Sliding window GC content for detecting isochores
-let gc_windows = contig |> window(size: 10, step: 5) |> map(|w| gc_content(w))
+let gc_windows = contig |> window(10) |> map(|w| gc_content(w))
 print(gc_windows)
 ```
 
@@ -225,7 +225,7 @@ let all_orfs = sequences |> flat_map(|entry| {
 
 print(f"Found {len(all_orfs)} ORFs (>= 300 bp)")
 all_orfs
-  |> sort("length", descending: true)
+  |> sort_by(|orf| -orf.length)
   |> take(20)
   |> each(|orf| print(f"  {orf.seq_id} {orf.strand}:{orf.start}-{orf.end} ({orf.length} bp)"))
 ```
@@ -242,11 +242,14 @@ the codon usage bias.
 let cds_records = read_fasta("cds_sequences.fa")
 
 # Aggregate codons across all coding sequences
-let codon_counts = cds_records
+let codon_list = cds_records
   |> flat_map(|rec| rec.seq |> chunk(3))
   |> filter(|codon| seq_len(codon) == 3)
-  |> group_by(|codon| to_string(codon))
-  |> map(|group| {codon: group.key, count: len(group.values)})
+  |> map(|codon| {codon: to_string(codon)})
+
+let codon_counts = table(codon_list)
+  |> group_by("codon")
+  |> summarize(|key, group| {codon: key, count: nrow(group)})
 
 let total = codon_counts |> map(|c| c.count) |> sum()
 
@@ -257,7 +260,7 @@ let usage_table = codon_counts
     frequency: c.count / total,
     per_thousand: (c.count / total) * 1000.0
   })
-  |> sort("amino_acid")
+  |> sort_by(|c| c.amino_acid)
 
 print(f"Codon usage from {len(cds_records)} sequences ({total} codons)\n")
 print("Codon  AA  Count     Freq   /1000")
@@ -334,7 +337,7 @@ let fragments = if len(all_cuts) == 0 then [seq_len(seq)]
 
 print(f"\nEcoRI + BamHI double digest: {len(fragments)} fragments")
 fragments
-  |> sort(descending: true)
+  |> sort() |> reverse()
   |> enumerate()
   |> each(|i, size| print(f"  Fragment {i + 1}: {size} bp"))
 ```

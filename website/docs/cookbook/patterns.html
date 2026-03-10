@@ -40,7 +40,7 @@ fn quality_filter(stream, min_qual, min_len) {
 fn trim_adapter(stream, adapter) {
   stream |> map(|r| {
     let idx = find_motif(r.seq, adapter)
-    if idx != None {
+    if idx != nil {
       subseq(r.seq, 0, idx)
     } else {
       r
@@ -155,9 +155,9 @@ fn validate_table(data, schema) {
       continue
     }
 
-    # Check for unexpected None values
+    # Check for unexpected nil values
     if spec.required {
-      let nulls = len(filter(data, |row| row[col_name] == None || row[col_name] == ""))
+      let nulls = len(filter(data, |row| row[col_name] == nil || row[col_name] == ""))
       if nulls > 0 {
         push(issues, "#{nulls} missing values in required column: #{col_name}")
       }
@@ -218,7 +218,7 @@ fastq("input.fq.gz")
         <pre><code class="language-biolang"># Required environment variables
 fn require_env(name) {
   let value = env(name)
-  if value == None {
+  if value == nil {
     print("ERROR: Required environment variable #{name} is not set")
     exit(1)
   }

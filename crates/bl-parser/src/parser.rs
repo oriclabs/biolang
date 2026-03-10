@@ -53,6 +53,7 @@ impl Parser {
         self.skip_newlines();
 
         while !self.is_at_end() {
+            let before = self.pos;
             match self.parse_stmt() {
                 Ok(stmt) => stmts.push(stmt),
                 Err(e) => {
@@ -61,6 +62,10 @@ impl Parser {
                 }
             }
             self.skip_newlines();
+            // Safety: if no progress was made, force advance to prevent infinite loop
+            if self.pos == before && !self.is_at_end() {
+                self.advance();
+            }
         }
 
         Ok(ParseResult {
@@ -90,7 +95,6 @@ impl Parser {
                 | TokenKind::Import
                 | TokenKind::From
                 | TokenKind::Return
-                | TokenKind::RBrace
                 | TokenKind::Enum
                 | TokenKind::Struct
                 | TokenKind::Trait

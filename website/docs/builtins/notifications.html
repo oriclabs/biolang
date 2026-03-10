@@ -212,38 +212,19 @@ discord({
           for guaranteed delivery even on failure.
         </p>
 
-        <pre><code class="language-biolang">pipeline variant_pipeline {
-  stage align {
-    shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.fq.gz sample_R2.fq.gz | samtools sort -@ 8 -o aligned.bam")
-    "aligned.bam"
-  }
+        <pre><code class="language-biolang"># Variant calling pipeline with notifications
+shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.fq.gz sample_R2.fq.gz | samtools sort -@ 8 -o aligned.bam")
 
-  stage call {
-    shell("gatk HaplotypeCaller -R GRCh38.fa -I " + align + " -O raw.vcf.gz")
-    let variants = read_vcf("raw.vcf.gz") |> collect()
-    let snps = variants |> filter(|v| v.is_snp) |> len()
-    let indels = variants |> filter(|v| v.is_indel) |> len()
+shell("gatk HaplotypeCaller -R GRCh38.fa -I aligned.bam -O raw.vcf.gz")
+let variants = read_vcf("raw.vcf.gz") |> collect()
+let snps = variants |> filter(|v| is_snp(v)) |> len()
+let indels = variants |> filter(|v| is_indel(v)) |> len()
 
-    # Notify on completion
-    notify({
-      title: "Variant Calling Complete",
-      fields: {SNPs: snps, Indels: indels, output: "raw.vcf.gz"}
-    })
-
-    "raw.vcf.gz"
-  }
-}</code></pre>
-
-        <pre><code class="language-biolang"># Guaranteed notification even on failure
-pipeline safe_analysis {
-  defer {
-    notify("Pipeline safe_analysis finished")
-  }
-
-  stage work {
-    # ... long-running analysis ...
-  }
-}</code></pre>
+# Notify on completion
+notify({
+  title: "Variant Calling Complete",
+  fields: {SNPs: snps, Indels: indels, output: "raw.vcf.gz"}
+})</code></pre>
 
         <!-- Setup Guide -->
         <h2 class="text-2xl font-bold text-white mt-10 mb-6">Setup</h2>

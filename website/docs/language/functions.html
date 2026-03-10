@@ -227,17 +227,17 @@ fn count_leaves(node) -> Int {
           Use <code>return</code> for explicit early returns. The last expression is the implicit
           return value:
         </p>
-        <pre><code class="language-biolang">fn find_gene(name: String, database: Map[String, Gene]) -> Option[Gene] {
+        <pre><code class="language-biolang">fn find_gene(name: String, database: Map[String, Gene]) {
   if name == "" {
-    return None
+    return nil
   }
 
   let normalized = upper(trim(name))
 
   if normalized in database {
-    Some(database[normalized])
+    database[normalized]
   } else {
-    None
+    nil
   }
 }</code></pre>
 

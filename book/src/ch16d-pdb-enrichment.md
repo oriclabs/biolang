@@ -59,7 +59,7 @@ Search PubMed and retrieve abstracts:
 ```
 # Search for recent CRISPR papers
 let results = pubmed_search("CRISPR Cas9 therapy", 5)
-print("Total results: " + str(len(results)))
+print("Total results: " + str(results.count))
 
 # Fetch abstract for a specific paper
 let abstract = pubmed_abstract(results[0])
@@ -73,8 +73,8 @@ print(abstract)
 let gene = "BRCA1"
 let results = pubmed_search(gene + " cancer therapy 2024", 20)
 
-print("Found " + str(len(results)) + " papers for " + gene)
-results
+print("Found " + str(results.count) + " papers for " + gene)
+results.ids
   |> take(5)
   |> each(|pmid|
     let text = pubmed_abstract(pmid)
@@ -119,7 +119,7 @@ For ranked gene lists (e.g., by fold change or t-statistic):
 let ranked = tsv("de_results.tsv")
   |> select(["gene", "log2fc"])
   |> rename({log2fc: "score"})
-  |> sort_by(|r| r.score, desc: true)
+  |> sort_by(|r| -r.score)
 
 # Load gene sets
 let gene_sets = read_gmt("c2.cp.kegg.v2024.1.Hs.symbols.gmt")

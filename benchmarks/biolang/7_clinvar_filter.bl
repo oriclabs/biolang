@@ -1,0 +1,21 @@
+# Benchmark 7: Real-World ClinVar Variant Analysis
+# Filter and classify ClinVar variants from NCBI.
+
+let variants = read_vcf("data_real/clinvar_20k.vcf")
+let total = len(variants)
+
+# Filter: pathogenic or likely pathogenic
+let pathogenic = variants
+  |> filter(|v| has_key(v.info, "CLNSIG") && (v.info["CLNSIG"] == "Pathogenic" || v.info["CLNSIG"] == "Likely_pathogenic" || v.info["CLNSIG"] == "Pathogenic/Likely_pathogenic"))
+
+let chr1_path = pathogenic |> filter(|v| v.chrom == "1" || v.chrom == "chr1")
+
+# Classify variant types
+let snps = pathogenic |> filter(|v| len(v.ref) == 1 && len(v.alt) == 1) |> len()
+let indels = len(pathogenic) - snps
+
+println(f"Total variants: {total}")
+println(f"Pathogenic/Likely pathogenic: {len(pathogenic)}")
+println(f"Pathogenic on chr1: {len(chr1_path)}")
+println(f"Pathogenic SNPs: {snps}")
+println(f"Pathogenic Indels: {indels}")

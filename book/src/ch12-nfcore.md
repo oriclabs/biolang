@@ -386,9 +386,9 @@ write_text("rnaseq.bl", bl_code)
 The generated code maps Nextflow constructs to BioLang equivalents:
 
 - `params.*` become top-level variables
-- `process` blocks become `pipeline { stage ... }` blocks
-- Container, CPU, and memory directives are preserved as stage annotations
-- Workflow call ordering is preserved as comments
+- `process` blocks become function definitions with `shell()` calls
+- Container, CPU, and memory directives are preserved as comments
+- Workflow call ordering maps to sequential pipe chains
 
 This is a starting point -- edit the generated skeleton to add BioLang-specific
 features like pipe chains, error handling, and parallel execution.

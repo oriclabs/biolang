@@ -31,7 +31,7 @@
 
         <h3>Parsing Kraken2 output</h3>
         <pre><code class="language-biolang"># Parse Kraken2 report file
-let report = tsv("kraken2_report.tsv", header: false)
+let report = tsv("kraken2_report.tsv")
   |> map(|row| { {
     pct: row[0] |> trim |> float,
     count_clade: row[1] |> trim |> int,
@@ -58,7 +58,7 @@ let samples = glob("kraken2_reports/*.tsv")
 
 let abundance = samples |> map(|path| {
   let sample_name = basename(path) |> replace(".tsv", "")
-  let report = tsv(path, header: false)
+  let report = tsv(path)
     |> filter(|row| { row[3] |> trim == "G" })  # Genus level
     |> map(|row| { { genus: row[5] |> trim, count: row[2] |> trim |> int } })
   { sample: sample_name, genera: report }
@@ -155,7 +155,7 @@ let bc_matrix = range(0, n) |> map(|i| {
 })
 
 # PCA on distance matrix as ordination approximation
-let pca_result = matrix(bc_matrix) |> pca(n_components: 3)
+let pca_result = matrix(bc_matrix) |> pca(3)
 
 print("PCA on Bray-Curtis (variance explained):")
 for i, var in pca_result.variance_ratio |> enumerate |> take(3) {

@@ -41,66 +41,66 @@ print(f"Min length: {lengths |> min}")  # Could be 0
 let valid = records |> filter(|r| { r.seq |> len > 0 })
 print(f"Sequences with data: {valid |> len}")
 
-# GC content of an empty sequence returns None, not 0
+# GC content of an empty sequence returns nil, not 0
 let empty = dna""
-print(empty |> gc_content)  # None
+print(empty |> gc_content)  # nil
 print(empty |> gc_content ?? 0.0)  # 0.0 (with default)</code></pre>
 
         <h3>Empty FASTQ records</h3>
         <pre><code class="language-biolang"># FASTQ files with zero-length reads (can happen after trimming)
 let reads = fastq("trimmed.fq")
 
-# mean_qual on an empty quality string returns None
+# mean_qual on an empty quality string returns nil
 let safe_reads = reads |> filter(|r| { r.seq |> len > 0 })
 
 # Wrong: will crash on empty reads
 # reads |> map(|r| { mean_phred(r.quality) }) |> mean
 
-# Right: filter first or use None-safe access
+# Right: filter first or use nil-safe access
 let avg_qual = reads
   |> map(|r| { mean_phred(r.quality) })
-  |> filter(|q| { q != None })
+  |> filter(|q| { q != nil })
   |> mean
 print(f"Average quality: {avg_qual |> round(1)}")</code></pre>
 
         <h2>Nil Handling</h2>
 
-        <h3>The None propagation trap</h3>
-        <pre><code class="language-biolang"># None propagates through pipes silently
-let x = None
-let result = x |> to_string |> len  # result is None, not an error
+        <h3>The nil propagation trap</h3>
+        <pre><code class="language-biolang"># nil propagates through pipes silently
+let x = nil
+let result = x |> to_string |> len  # result is nil, not an error
 
 # This means bugs can hide in long pipe chains
 let data = csv("messy.csv")
 let values = data |> map(|row| {
-  # If "score" column is missing or empty, float returns None
+  # If "score" column is missing or empty, float returns nil
   row["score"] |> float
 })
 
-# sum/mean skip None values by default
+# sum/mean skip nil values by default
 print(values |> sum)    # Skips nils
 print(values |> mean)   # Skips nils
-print(values |> len)    # Counts ALL entries including None
+print(values |> len)    # Counts ALL entries including nil
 
-# Count non-None entries
-print(values |> filter(|x| x != None) |> len)  # Only non-None entries</code></pre>
+# Count non-nil entries
+print(values |> filter(|x| x != nil) |> len)  # Only non-nil entries</code></pre>
 
         <h3>Nil in conditionals</h3>
-        <pre><code class="language-biolang"># None is falsy, but not the same as false
-let x = None
+        <pre><code class="language-biolang"># nil is falsy, but not the same as false
+let x = nil
 
 if x { print("truthy") } else { print("falsy") }  # prints "falsy"
 if x == false { print("equal") } else { print("not equal") }  # prints "not equal"
-if x == None { print("is None") }  # prints "is None"
+if x == nil { print("is nil") }  # prints "is nil"
 
-# Use ?? (None coalescing) for defaults
-let name = None
+# Use ?? (nil coalescing) for defaults
+let name = nil
 print(f"Hello, {name ?? "unknown"}")  # "Hello, unknown"
 
-# Use ?. (None-safe access) for chained lookups
-let record = { info: None }
-print(record.info?.gene)  # None, no crash
-print(record.info.gene)   # ERROR: cannot access property on None</code></pre>
+# Use ?. (nil-safe access) for chained lookups
+let record = { info: nil }
+print(record.info?.gene)  # nil, no crash
+print(record.info.gene)   # ERROR: cannot access property on nil</code></pre>
 
         <h2>Large Files</h2>
 
@@ -136,9 +136,9 @@ print(f"Mean quality: {stats.mean_quality |> round(1)}")</code></pre>
 # Phred+33 (Sanger/Illumina 1.8+): ASCII 33-126
 # Phred+64 (Illumina 1.3-1.7):    ASCII 64-126
 
-# BioLang auto-detects encoding, but you can force it:
-let reads_33 = fastq("modern.fq", encoding: "phred33")
-let reads_64 = fastq("old_illumina.fq", encoding: "phred64")
+# BioLang auto-detects encoding from quality score ranges
+let reads_33 = fastq("modern.fq")       # Phred+33 auto-detected
+let reads_64 = fastq("old_illumina.fq") # Phred+64 auto-detected
 
 # Check what encoding was detected
 let reads = fastq("unknown.fq")

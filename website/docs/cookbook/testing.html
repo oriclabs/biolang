@@ -44,8 +44,8 @@ test "GC content calculation" {
   assert_approx_eq(gc, 0.5, tolerance: 0.001)
 }
 
-test "empty sequence GC is None" {
-  assert_eq(dna"" |> gc_content, None)
+test "empty sequence GC is nil" {
+  assert_eq(dna"" |> gc_content, nil)
 }</code></pre>
 
         <h3>Running tests</h3>
@@ -83,9 +83,9 @@ test "float comparison" {
 }
 
 # Nil checks
-test "None assertions" {
-  assert_eq(dna"" |> gc_content, None)
-  assert(dna"ATCG" |> gc_content != None)
+test "nil assertions" {
+  assert_eq(dna"" |> gc_content, nil)
+  assert(dna"ATCG" |> gc_content != nil)
 }
 
 # String matching
@@ -212,7 +212,7 @@ let FIXTURES = "tests/fixtures"
 test "parse Illumina sample sheet" {
   let samples = csv("#{FIXTURES}/SampleSheet.csv")
   assert(len(samples) > 0)
-  assert(all(samples, |s| s["Sample_ID"] != None))
+  assert(all(samples, |s| s["Sample_ID"] != nil))
 }
 
 test "BAM statistics match expected" {

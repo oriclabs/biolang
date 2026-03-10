@@ -1,0 +1,20 @@
+# Annotation Pipeline: Variants -> filter -> annotate with gene info -> pathway summary
+let variants = vcf("data/variants.vcf") |> collect()
+
+# Filter high-quality variants (native — no interpreter dispatch)
+let filtered = variants |> filter_by("quality", ">=", 30)
+
+# Count variants per chromosome (single O(n) pass)
+let chrom_counts = filtered |> count_by("chrom")
+
+# Load annotations and pathway summary (single O(n) pass)
+let annotations = csv("data/gene_annotations.csv")
+let pathway_counts = annotations |> count_by("pathway")
+
+println("Annotation Pipeline:")
+println(f"  Total variants: {len(variants)}")
+println(f"  After quality filter: {len(filtered)}")
+println(f"  Chromosomes with variants: {len(chrom_counts)}")
+println(f"  Annotated genes: {nrow(annotations)}")
+println("  Pathways:")
+pathway_counts |> head(5) |> each(|p| println(f"    {p.key}: {p.count} genes"))

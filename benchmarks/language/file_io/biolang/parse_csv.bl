@@ -1,0 +1,4 @@
+# File I/O: Parse CSV (5K rows)
+let records = csv("data/samples.csv") |> collect()
+println(f"Rows: {nrow(records)}")
+println(f"Columns: {ncol(records)}")

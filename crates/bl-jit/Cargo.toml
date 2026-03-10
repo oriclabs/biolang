@@ -2,6 +2,10 @@
 name = "bl-jit"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "JIT compilation via Cranelift for BioLang hot loops"
 
 [features]
 default = []

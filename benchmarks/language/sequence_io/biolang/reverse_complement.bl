@@ -1,0 +1,6 @@
+# Reverse Complement: reverse complement every sequence in a FASTA
+let records = read_fasta("data/sequences.fa") |> collect()
+let rc_lengths = records |> map(|r| len(reverse_complement(r.seq)))
+println(f"Sequences: {len(records)}")
+println(f"Total bp (reverse complemented): {sum(rc_lengths)}")
+println(f"Mean length: {round(mean(rc_lengths), 1)}")

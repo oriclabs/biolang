@@ -2,6 +2,10 @@
 name = "bl-repl"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Interactive REPL for BioLang with history and tab completion"
 
 [dependencies]
 bl-core = { workspace = true }

@@ -1,0 +1,32 @@
+# Multi-Sample Pipeline: Load sheet -> Per-sample stats -> Aggregate
+let samples = csv("data/samples.csv")
+let metadata = csv("data/metadata.csv")
+
+# Join samples with metadata
+let joined = inner_join(samples, metadata, "sample_id")
+
+# Per-cohort analysis (native group_by returns Map of Tables)
+let cohort_map = joined |> group_by("cohort")
+let cohort_names = keys(cohort_map)
+
+println("Multi-Sample Pipeline Results:")
+println(f"  Total samples: {nrow(joined)}")
+println(f"  Cohorts: {len(cohort_names)}")
+println("")
+
+# Per-cohort summary using native column aggregation
+cohort_names |> each(|name| {
+    let t = cohort_map[name]
+    let n = nrow(t)
+    println(f"  {name}:")
+    println(f"    Samples: {n}")
+    println(f"    Mean depth: {round(col_mean(t, \"depth\"), 1)}")
+    println(f"    Mean quality: {round(col_mean(t, \"quality\"), 1)}")
+    println(f"    Total reads: {col_sum(t, \"read_count\")}")
+})
+
+# Cross-cohort stats using native column aggregation
+println("")
+println(f"  Overall mean depth: {round(col_mean(joined, \"depth\"), 1)}")
+println(f"  Overall mean quality: {round(col_mean(joined, \"quality\"), 1)}")
+println(f"  Depth std dev: {round(col_stdev(joined, \"depth\"), 2)}")

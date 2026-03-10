@@ -1,0 +1,15 @@
+# Variant Pipeline: Read -> Filter -> Classify -> Summarize
+let variants = vcf("data/variants.vcf") |> collect()
+
+# Filter by quality AND depth in a single pass (avoids cloning intermediate list)
+let filtered = variants |> multi_filter_by("quality", ">=", 30, "DP", ">=", 10)
+
+# Native single-pass summary: group by chrom, count SNPs/indels, mean quality
+let summary = variant_summary(filtered)
+
+println("Variant Pipeline Results:")
+println(f"  Chromosomes analyzed: {nrow(summary)}")
+
+summary |> head(5) |> to_records() |> each(|c| {
+    println(f"  {c.group}: {c.total} variants ({c.snps} SNPs, {c.indels} indels)")
+})

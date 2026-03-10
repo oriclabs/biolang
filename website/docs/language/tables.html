@@ -102,8 +102,8 @@ let chr17 = variants |> filter(|r| r.chrom == "chr17")
 let target_genes = ["BRCA1", "TP53", "KRAS"]
 let targets = variants |> filter(|r| r.gene in target_genes)
 
-# Remove None values
-let clean = data |> filter(|r| r.score != None)</code></pre>
+# Remove nil values
+let clean = data |> filter(|r| r.score != nil)</code></pre>
 
         <h2>Arrange</h2>
         <p>
@@ -112,11 +112,11 @@ let clean = data |> filter(|r| r.score != None)</code></pre>
         <pre><code class="language-biolang"># Sort ascending (default)
 let sorted = variants |> arrange("frequency")
 
-# Sort descending
-let top_freq = variants |> arrange(desc("frequency"))
+# Sort descending (prefix "-")
+let top_freq = variants |> arrange("-frequency")
 
 # Multi-column sort
-let ordered = variants |> arrange("chrom", desc("position"))
+let ordered = variants |> arrange("chrom", "-position")
 
 # Sort by computed value
 let by_name_len = variants |> arrange(|r| len(r.gene))</code></pre>
@@ -269,7 +269,7 @@ let bottom5 = variants |> tail(5)
 let middle = variants |> slice(10..20)
 
 # Top n by value (arrange + head)
-let top_freq = variants |> arrange(desc("frequency")) |> head(3)
+let top_freq = variants |> arrange("-frequency") |> head(3)
 let bottom_freq = variants |> arrange("frequency") |> head(3)
 
 # Random sample
@@ -295,7 +295,7 @@ let report = read_vcf("cohort.vcf")
     rare_count = sum(is_rare),
     samples = count(distinct(sample_id))
   )
-  |> arrange(desc(variant_count))
+  |> arrange("-variant_count")
   |> head(50)</code></pre>
 
         <h2>Writing Tables</h2>

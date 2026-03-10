@@ -743,8 +743,14 @@ fn test_vcf_info_field() {
     let result = read_vcf(path.to_str().unwrap()).unwrap();
     if let Value::List(items) = result {
         if let Value::Variant { info, .. } = &items[0] {
-            assert!(info.contains_key("AF"), "INFO should contain AF");
-            assert!(info.contains_key("DP"), "INFO should contain DP");
+            // INFO is now stored as raw string for lazy parsing
+            assert!(info.contains_key("_raw"), "INFO should contain _raw key");
+            if let Some(Value::Str(raw)) = info.get("_raw") {
+                assert!(raw.contains("AF="), "raw INFO should contain AF=");
+                assert!(raw.contains("DP="), "raw INFO should contain DP=");
+            } else {
+                panic!("_raw should be a string");
+            }
         } else {
             panic!("expected Variant");
         }
@@ -1277,4 +1283,116 @@ fn test_write_fastq_empty_list() {
     let count = write_fastq(&Value::List(vec![]), out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(0));
     let _ = std::fs::remove_file(&out_path);
+}
+
+// ════════════════════════════════════════════════════════════════
+// BufRead-based GFF/BED parsing tests (regression for OOM fix)
+// ════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_read_gff_bufread_basic() {
+    let path = test_data_dir().join("test.gff");
+    let result = read_gff(path.to_str().unwrap()).unwrap();
+    if let Value::Table(t) = &result {
+        assert_eq!(t.columns.len(), 9);
+        assert_eq!(t.columns[0], "seqid");
+        assert_eq!(t.columns[2], "type");
+        assert_eq!(t.columns[8], "attributes");
+        assert!(t.rows.len() >= 3, "expected at least 3 GFF rows");
+        // Check first row
+        assert_eq!(t.rows[0][0], Value::Str("chr1".to_string()));
+        assert_eq!(t.rows[0][2], Value::Str("gene".to_string()));
+        assert_eq!(t.rows[0][3], Value::Int(11869)); // start
+        assert_eq!(t.rows[0][4], Value::Int(14409)); // end
+    } else {
+        panic!("read_gff should return Table");
+    }
+}
+
+#[test]
+fn test_read_gff_skips_comments() {
+    let path = test_data_dir().join("test.gff");
+    let result = read_gff(path.to_str().unwrap()).unwrap();
+    if let Value::Table(t) = &result {
+        // The test.gff has 1 comment line + 3 data lines
+        assert_eq!(t.rows.len(), 3);
+    } else {
+        panic!("read_gff should return Table");
+    }
+}
+
+#[test]
+fn test_read_gff_empty() {
+    let path = test_data_dir().join("empty.gff");
+    let result = read_gff(path.to_str().unwrap()).unwrap();
+    if let Value::Table(t) = &result {
+        assert_eq!(t.rows.len(), 0);
+        assert_eq!(t.columns.len(), 9);
+    } else {
+        panic!("read_gff should return Table");
+    }
+}
+
+#[test]
+fn test_read_gff_single() {
+    let path = test_data_dir().join("single.gff");
+    let result = read_gff(path.to_str().unwrap()).unwrap();
+    if let Value::Table(t) = &result {
+        assert_eq!(t.rows.len(), 1);
+    } else {
+        panic!("read_gff should return Table");
+    }
+}
+
+#[test]
+fn test_read_bed_bufread_basic() {
+    let path = test_data_dir().join("test.bed");
+    let result = read_bed(path.to_str().unwrap()).unwrap();
+    if let Value::Table(t) = &result {
+        assert!(t.columns.len() >= 3);
+        assert_eq!(t.columns[0], "chrom");
+        assert_eq!(t.columns[1], "start");
+        assert_eq!(t.columns[2], "end");
+        assert_eq!(t.rows.len(), 4);
+        // Check first row
+        assert_eq!(t.rows[0][0], Value::Str("chr1".to_string()));
+        assert_eq!(t.rows[0][1], Value::Int(10000));
+        assert_eq!(t.rows[0][2], Value::Int(10500));
+    } else {
+        panic!("read_bed should return Table");
+    }
+}
+
+#[test]
+fn test_read_bed_bufread_empty() {
+    let path = test_data_dir().join("empty.bed");
+    let result = read_bed(path.to_str().unwrap()).unwrap();
+    if let Value::Table(t) = &result {
+        assert_eq!(t.rows.len(), 0);
+    } else {
+        panic!("read_bed should return Table");
+    }
+}
+
+#[test]
+fn test_read_bed_bufread_bed3() {
+    let path = test_data_dir().join("bed3.bed");
+    let result = read_bed(path.to_str().unwrap()).unwrap();
+    if let Value::Table(t) = &result {
+        assert_eq!(t.columns.len(), 3); // BED3 only has chrom, start, end
+        assert!(t.rows.len() >= 1);
+    } else {
+        panic!("read_bed should return Table");
+    }
+}
+
+#[test]
+fn test_read_bed_bufread_multi() {
+    let path = test_data_dir().join("multi.bed");
+    let result = read_bed(path.to_str().unwrap()).unwrap();
+    if let Value::Table(t) = &result {
+        assert!(t.rows.len() >= 2, "multi.bed should have multiple rows");
+    } else {
+        panic!("read_bed should return Table");
+    }
 }

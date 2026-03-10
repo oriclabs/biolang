@@ -1,0 +1,4 @@
+# File I/O: Parse small FASTA (SARS-CoV-2, ~30 KB)
+let records = fasta("data_real/sarscov2_genome.fa") |> collect()
+println(f"Records: {len(records)}")
+println(f"Total bp: {records |> map(|r| len(r.seq)) |> sum()}")

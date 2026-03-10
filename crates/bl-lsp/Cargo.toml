@@ -2,6 +2,10 @@
 name = "bl-lsp"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Language Server Protocol implementation for BioLang"
 
 [[bin]]
 name = "bl-lsp"

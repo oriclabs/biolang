@@ -2,6 +2,10 @@
 name = "bl-core"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "AST, Value, Table, and error types for the BioLang language"
 
 [dependencies]
 bio-core = { workspace = true }

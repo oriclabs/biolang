@@ -154,24 +154,24 @@ let fst_values = vcf
     let af1 = if p1_gts |> len > 0 {
       let alt1 = p1_gts |> filter(|g| { g == "0/1" || g == "1/0" }) |> len |> float + p1_gts |> filter(|g| { g == "1/1" }) |> len |> float * 2.0
       alt1 / (p1_gts |> len |> float * 2.0)
-    } else { None }
+    } else { nil }
 
     let af2 = if p2_gts |> len > 0 {
       let alt2 = p2_gts |> filter(|g| { g == "0/1" || g == "1/0" }) |> len |> float + p2_gts |> filter(|g| { g == "1/1" }) |> len |> float * 2.0
       alt2 / (p2_gts |> len |> float * 2.0)
-    } else { None }
+    } else { nil }
 
     # Hudson Fst estimator: (af1 - af2)^2 / (af_mean * (1 - af_mean))
-    let fst = if af1 != None && af2 != None {
+    let fst = if af1 != nil && af2 != nil {
       let af_mean = (af1 + af2) / 2.0
       if af_mean > 0.0 && af_mean < 1.0 {
         pow(af1 - af2, 2) / (af_mean * (1.0 - af_mean))
-      } else { None }
-    } else { None }
+      } else { nil }
+    } else { nil }
 
     { chrom: v.chrom, pos: v.pos, fst: fst }
   })
-  |> filter(|r| { r.fst != None })
+  |> filter(|r| { r.fst != nil })
 
 let genome_fst = fst_values |> map(|x| x.fst) |> mean
 print(f"Genome-wide Fst: {genome_fst |> round(4)}")
@@ -249,7 +249,7 @@ let geno_rows = filtered |> map(|x| {
 let geno_matrix = matrix(geno_rows)
 
 # Run PCA
-let pca_result = geno_matrix |> pca(n_components: 10)
+let pca_result = geno_matrix |> pca(10)
 
 print("Variance explained:")
 for i, var_pct in pca_result.variance_ratio |> enumerate {
@@ -272,7 +272,7 @@ pc_data |> write_tsv("pca_coordinates.tsv")</code></pre>
 let pc_data = tsv("pca_coordinates.tsv")
 let pop_map = tsv("population_map.tsv")
 
-let labeled = pc_data |> left_join(pop_map, on: "sample")
+let labeled = pc_data |> left_join(pop_map, "sample")
 
 # Build distance matrix from PC space, then cluster with Leiden
 let coord_vals = labeled |> map(|r| {
@@ -289,7 +289,7 @@ let adj = range(0, n) |> map(|i| {
   let neighbors = dists |> map(|pair| pair[0])
   range(0, n) |> map(|j| { if neighbors |> contains(j) { 1.0 } else { 0.0 } })
 })
-let clusters = leiden(matrix(adj), resolution: 0.8)
+let clusters = leiden(matrix(adj), 0.8)
 
 # Compare clusters to known populations
 let comparison = labeled

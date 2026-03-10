@@ -154,7 +154,7 @@ let orfs = find_orfs_manual("ATGAAACCCTAGATGTTTGAATAA")
 
 ```biolang
 let variants = read_vcf("somatic.vcf")
-let first_pathogenic = None
+let first_pathogenic = nil
 
 for v in variants {
     # Skip low-quality calls

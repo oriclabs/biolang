@@ -205,7 +205,7 @@ let result = ncbi_search("gene", "BRCA1")
 result = try {
   ncbi_search("gene", "BRCA1")
 } catch err {
-  print("API error:", err.message)
+  print("API error:", err)
   nil
 }
 

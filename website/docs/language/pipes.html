@@ -145,7 +145,7 @@ let y = items |> (filter(|x| x > 0) |> len())</code></pre>
 let summary = csv("experiment.csv")
   |> filter(|row| row.p_value < 0.05)
   |> select("gene", "log2fc", "p_value")
-  |> arrange(desc(log2fc))
+  |> arrange("-log2fc")
   |> head(20)
   |> str()</code></pre>
 
@@ -174,14 +174,14 @@ let result = dna"ATCGATCG"
         <pre><code class="language-biolang">let report = csv("variants.csv")
   |> select("gene", "variant", "impact", "frequency")
   |> filter(|r| r.impact == "HIGH")
-  |> arrange(desc(frequency))
+  |> arrange("-frequency")
   |> group_by("gene")
   |> summarize(
     variant_count = n(),
     max_freq = max(frequency)
   )
   |> filter(|r| r.variant_count >= 3)
-  |> arrange(desc(variant_count))</code></pre>
+  |> arrange("-variant_count")</code></pre>
 
         <h2>Pipes with Streams</h2>
         <p>
@@ -202,7 +202,7 @@ let results = fastq("huge.fq.gz")
         <pre><code class="language-biolang">let result = data
   |> filter(|r| r.score > 0.5)
   |> tap(|d| print(f"After filter: {len(d)} rows"))
-  |> arrange(desc(score))
+  |> arrange("-score")
   |> tap(|d| print(f"Top score: {d[0].score}"))
   |> head(10)</code></pre>
 
@@ -260,14 +260,13 @@ print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")</code></pre>
 let cleaned = csv("raw_data.csv")
   |> select(new_col = "old_col")
   |> mutate(score = |r| r.raw_score / 100.0)
-  |> filter(|r| r.score != None)
+  |> filter(|r| r.score != nil)
   |> write_csv("cleaned.csv")
 
 # Pipeline with error handling
 let safe_result = raw_data
-  |> map(|item| try { process(item) } catch _ { None })
-  |> filter(|r| r != None)
-  |> map(|r| unwrap(r))
+  |> map(|item| try { process(item) } catch _ { nil })
+  |> filter(|r| r != nil)
 
 # Forking a pipeline
 let base = fastq("sample.fq")

@@ -144,7 +144,7 @@ fn process_sample(sample) {
 let result = data
   |> filter(|r| r.quality >= threshold)
   |> map(|r| transform(r))
-  |> arrange(desc(score))
+  |> arrange("-score")
 
 # Break long function calls at argument boundaries
 let config = AlignmentConfig {
@@ -196,13 +196,13 @@ fn analyze(sample) {
 
         <h3>Prefer Pipes Over Nesting</h3>
         <pre><code class="language-biolang"># BAD — deeply nested, hard to read
-let result = arrange(filter(select(data, "gene", "score"), |r| r.score > 0.5), desc("score"))
+let result = arrange(filter(select(data, "gene", "score"), |r| r.score > 0.5), "-score")
 
 # GOOD — pipe chain, easy to follow
 let result = data
   |> select("gene", "score")
   |> filter(|r| r.score > 0.5)
-  |> arrange(desc("score"))</code></pre>
+  |> arrange("-score")</code></pre>
 
         <h3>Prefer Functional Style</h3>
         <pre><code class="language-biolang"># BAD — unnecessary loop accumulation
@@ -216,9 +216,9 @@ let total = values |> sum()
 
 # OK — loop when it is genuinely clearer
 let retries = 0
-let result = None
-while retries < 3 && result == None {
-  result = try { fetch(url) } catch _ { None }
+let result = nil
+while retries < 3 && result == nil {
+  result = try { fetch(url) } catch _ { nil }
   retries = retries + 1
 }</code></pre>
 
@@ -237,20 +237,23 @@ let evens = numbers |> filter(|n| n % 2 == 0)</code></pre>
 
         <h3>Handle Errors Explicitly</h3>
         <pre><code class="language-biolang"># BAD — ignoring potential errors
-let data = csv("input.csv") |> unwrap()
+let data = csv("input.csv")
 
 # GOOD — handle the error case
-let data = match csv("input.csv") {
-  Ok(d) => d,
-  Err(e) => {
-    print(f"Failed to read input: {e.message}")
-    exit(1)
-  }
+let data = try {
+  csv("input.csv")
+} catch e {
+  print(f"Failed to read input: {e}")
+  exit(1)
 }
 
-# GOOD — propagate with context
-let data = csv("input.csv")
-  |> context("loading sample data")?</code></pre>
+# GOOD — let errors propagate, catch at top level
+try {
+  let data = csv("input.csv")
+  process(data)
+} catch e {
+  print(f"Pipeline failed: {e}")
+}</code></pre>
 
         <h3>Prefer Descriptive Function Signatures</h3>
         <pre><code class="language-biolang"># BAD — no types, unclear purpose

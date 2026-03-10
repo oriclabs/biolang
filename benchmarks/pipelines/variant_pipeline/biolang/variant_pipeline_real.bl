@@ -1,0 +1,26 @@
+# Variant Pipeline (Real Data): ClinVar -> Filter -> Classify -> Summarize
+let variants = vcf("data_real/clinvar_diverse.vcf") |> collect()
+
+# Filter (ClinVar uses "." for PASS)
+let filtered = variants |> filter(|v| v.filter == "." or v.filter == "PASS")
+
+# Classify (native — no interpreter dispatch)
+let classified = filtered |> classify_variants()
+
+# Group by chromosome (single O(n) pass)
+let by_chrom = classified |> group_by("chrom")
+let chrom_names = keys(by_chrom)
+
+println("Variant Pipeline (ClinVar Real Data):")
+println(f"  Chromosomes analyzed: {len(chrom_names)}")
+
+let summaries = chrom_names |> map(|c| {
+    let vs = by_chrom[c]
+    let total = len(vs)
+    let snps = vs |> filter_by("variant_type", "==", "SNP") |> len()
+    {chrom: c, total: total, snps: snps, indels: total - snps}
+}) |> sort_by(|a, b| b.total - a.total)
+
+summaries |> head(5) |> each(|c| {
+    println(f"  {c.chrom}: {c.total} variants ({c.snps} SNPs, {c.indels} indels)")
+})

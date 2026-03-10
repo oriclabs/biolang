@@ -119,7 +119,7 @@ let translated = seq |> transcribe() |> translate()</code></pre>
         <pre><code class="language-biolang">let variants = read_vcf("calls.vcf")
   |> select("chrom", "pos", "ref_allele", "alt_allele", "qual")
   |> filter(|v| v.qual >= 30.0)
-  |> arrange(desc(qual))
+  |> arrange("-qual")
   |> group_by("chrom")
   |> summarize(
     count = n(),
@@ -164,28 +164,30 @@ let scores: List[Float] = [0.1, 0.5, 0.9]</code></pre>
             <tr><td>Primitives</td><td><code>Int</code>, <code>Float</code>, <code>String</code>, <code>Bool</code></td></tr>
             <tr><td>Collections</td><td><code>List</code>, <code>Map</code>, <code>Set</code>, <code>Table</code>, <code>Matrix</code></td></tr>
             <tr><td>Biology</td><td><code>DNA</code>, <code>RNA</code>, <code>Protein</code>, <code>Interval</code></td></tr>
-            <tr><td>Control</td><td><code>Option</code>, <code>Result</code>, <code>Stream</code></td></tr>
+            <tr><td>Control</td><td><code>Stream</code></td></tr>
           </tbody>
         </table>
 
         <h2>Error Handling</h2>
         <p>
-          BioLang provides both exception-style and result-style error handling, letting you
-          choose the right approach for each situation:
+          BioLang provides <code>try</code>/<code>catch</code> for error handling,
+          <code>error()</code> for throwing errors, <code>??</code> for nil coalescing,
+          and <code>?.</code> for safe navigation:
         </p>
-        <pre><code class="language-biolang"># Result type with ? operator
-fn load_reference(path: String) -> Result[DNA] {
-  let seqs = read_fasta(path)?
-  let seq = first(seqs)?
-  Ok(seq.seq)
+        <pre><code class="language-biolang"># Functions throw errors with error()
+fn load_reference(path: String) {
+  let seqs = read_fasta(path)
+  let seq = first(seqs)
+  if seq == nil { error("No sequences in reference") }
+  seq.seq
 }
 
 # try/catch for top-level scripts
 try {
-  let ref_seq = load_reference("hg38.fa")?
+  let ref_seq = load_reference("hg38.fa")
   let aligned = align(reads, ref_seq)
 } catch e {
-  print(f"Pipeline failed: {e.message}")
+  print(f"Pipeline failed: {e}")
 }</code></pre>
 
         <h2>Next Steps</h2>

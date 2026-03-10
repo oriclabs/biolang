@@ -99,7 +99,7 @@
         <h2>FASTA Operations</h2>
 
         <h3>Sequence lengths from a FASTA</h3>
-        <pre><code class="language-biolang">fasta("genome.fa") |> map(|r| [r.name, len(r.seq)]) |> print</code></pre>
+        <pre><code class="language-biolang">fasta("genome.fa") |> map(|r| [r.id, len(r.seq)]) |> print</code></pre>
 
         <h3>Filter sequences by length</h3>
         <pre><code class="language-biolang">fasta("contigs.fa") |> filter(|r| len(r.seq) >= 1000) |> write_fasta("long.fa")</code></pre>

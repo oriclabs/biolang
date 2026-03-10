@@ -224,9 +224,9 @@ let results = blastn(
 
         <h2>Conditional Imports</h2>
         <pre><code class="language-biolang"># Import only if available
-let plotting = try { import "plot" } catch _ { None }
+let plotting = try { import "plot" } catch _ { nil }
 
-if plotting != None {
+if plotting != nil {
   plotting.scatter(x_values, y_values, title = "Results")
 } else {
   print("Plotting not available — install with: bl add plot")
@@ -234,12 +234,13 @@ if plotting != None {
 
 # Feature-gated imports
 import { read_bam } from "bio/io"
-let has_samtools = try { import "samtools" } catch _ { None }
+let has_samtools = try { import "samtools" } catch _ { nil }
 
-fn sort_bam(path: String) -> Result[String] {
-  match has_samtools {
-    Some(st) => st.sort(path),
-    None => Err("samtools plugin required — run: bl add samtools")
+fn sort_bam(path: String) {
+  if has_samtools != nil {
+    has_samtools.sort(path)
+  } else {
+    error("samtools plugin required — run: bl add samtools")
   }
 }</code></pre>
 

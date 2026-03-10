@@ -1,0 +1,7 @@
+# File I/O: Parse real Ensembl GFF3 annotations (chr22)
+let features = gff("data_real/ensembl_chr22.gff3", {stream: false})
+let genes = count_where(features, "type", "==", "gene")
+let exons = count_where(features, "type", "==", "exon")
+println(f"Total features: {nrow(features)}")
+println(f"Genes: {genes}")
+println(f"Exons: {exons}")

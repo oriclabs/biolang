@@ -2836,3 +2836,205 @@ half(7.0)
     );
     assert_eq!(result, Value::Float(3.5));
 }
+
+// ── Interval tree + count_overlaps + bulk_overlaps tests ────────────────
+
+// Helper to build a BED-like table in BioLang code
+fn bed_table(rows: &[(&str, i64, i64)]) -> String {
+    let records: Vec<String> = rows.iter()
+        .map(|(c, s, e)| format!("{{chrom: \"{c}\", start: {s}, end: {e}}}"))
+        .collect();
+    format!("table([{}])", records.join(", "))
+}
+
+#[test]
+fn test_interval_tree_basic() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+tree.__type
+"#,
+        bed_table(&[("chr1", 100, 200), ("chr1", 150, 300), ("chr1", 500, 600), ("chr2", 100, 200)])
+    ));
+    assert_eq!(result, Value::Str("interval_tree".to_string()));
+}
+
+#[test]
+fn test_query_overlaps_returns_table() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+let hits = query_overlaps(tree, "chr1", 120, 250)
+nrow(hits)
+"#,
+        bed_table(&[("chr1", 100, 200), ("chr1", 150, 300), ("chr1", 500, 600), ("chr2", 100, 200)])
+    ));
+    assert_eq!(result, Value::Int(2)); // [100,200] and [150,300] overlap [120,250]
+}
+
+#[test]
+fn test_query_overlaps_no_match() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+let hits = query_overlaps(tree, "chr1", 300, 400)
+nrow(hits)
+"#,
+        bed_table(&[("chr1", 100, 200), ("chr1", 500, 600)])
+    ));
+    assert_eq!(result, Value::Int(0));
+}
+
+#[test]
+fn test_query_overlaps_wrong_chrom() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+let hits = query_overlaps(tree, "chr3", 100, 200)
+nrow(hits)
+"#,
+        bed_table(&[("chr1", 100, 200)])
+    ));
+    assert_eq!(result, Value::Int(0));
+}
+
+#[test]
+fn test_count_overlaps_basic() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+count_overlaps(tree, "chr1", 120, 250)
+"#,
+        bed_table(&[("chr1", 100, 200), ("chr1", 150, 300), ("chr1", 500, 600), ("chr2", 100, 200)])
+    ));
+    assert_eq!(result, Value::Int(2));
+}
+
+#[test]
+fn test_count_overlaps_none() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+count_overlaps(tree, "chr1", 300, 400)
+"#,
+        bed_table(&[("chr1", 100, 200), ("chr1", 500, 600)])
+    ));
+    assert_eq!(result, Value::Int(0));
+}
+
+#[test]
+fn test_count_overlaps_missing_chrom() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+count_overlaps(tree, "chrX", 100, 200)
+"#,
+        bed_table(&[("chr1", 100, 200)])
+    ));
+    assert_eq!(result, Value::Int(0));
+}
+
+#[test]
+fn test_bulk_overlaps_basic() {
+    let result = eval(&format!(
+        r#"
+let regions = {}
+let queries = {}
+let tree = interval_tree(regions)
+bulk_overlaps(tree, queries)
+"#,
+        bed_table(&[("chr1", 100, 200), ("chr1", 150, 300), ("chr1", 500, 600), ("chr2", 100, 200)]),
+        bed_table(&[("chr1", 120, 250), ("chr1", 550, 650), ("chr2", 50, 150), ("chr3", 100, 200)])
+    ));
+    // Query 1: [120,250] overlaps [100,200] and [150,300] = 2
+    // Query 2: [550,650] overlaps [500,600] = 1
+    // Query 3: [50,150] overlaps [100,200] on chr2 = 1
+    // Query 4: chr3 has nothing = 0
+    assert_eq!(result, Value::Int(4));
+}
+
+#[test]
+fn test_bulk_overlaps_single_no_match() {
+    // Single query that doesn't match any region
+    let result = eval(&format!(
+        r#"
+let regions = {}
+let queries = {}
+let tree = interval_tree(regions)
+bulk_overlaps(tree, queries)
+"#,
+        bed_table(&[("chr1", 100, 200)]),
+        bed_table(&[("chrX", 999, 1000)])
+    ));
+    assert_eq!(result, Value::Int(0));
+}
+
+#[test]
+fn test_bulk_overlaps_no_overlap() {
+    let result = eval(&format!(
+        r#"
+let regions = {}
+let queries = {}
+let tree = interval_tree(regions)
+bulk_overlaps(tree, queries)
+"#,
+        bed_table(&[("chr1", 100, 200)]),
+        bed_table(&[("chr1", 300, 400), ("chr2", 100, 200)])
+    ));
+    assert_eq!(result, Value::Int(0));
+}
+
+#[test]
+fn test_count_overlaps_matches_bulk() {
+    let result = eval(&format!(
+        r#"
+let regions = {}
+let tree = interval_tree(regions)
+let c1 = count_overlaps(tree, "chr1", 12, 25)
+let c2 = count_overlaps(tree, "chr1", 52, 58)
+let c3 = count_overlaps(tree, "chr1", 100, 200)
+
+let queries = {}
+let bulk = bulk_overlaps(tree, queries)
+bulk == c1 + c2 + c3
+"#,
+        bed_table(&[("chr1", 10, 20), ("chr1", 15, 30), ("chr1", 50, 60), ("chr1", 55, 70)]),
+        bed_table(&[("chr1", 12, 25), ("chr1", 52, 58), ("chr1", 100, 200)])
+    ));
+    assert_eq!(result, Value::Bool(true));
+}
+
+#[test]
+fn test_query_nearest() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+let nearest = query_nearest(tree, "chr1", 350)
+nrow(nearest)
+"#,
+        bed_table(&[("chr1", 100, 200), ("chr1", 500, 600), ("chr1", 900, 1000)])
+    ));
+    assert_eq!(result, Value::Int(1));
+}
+
+#[test]
+fn test_coverage_basic() {
+    let result = eval(&format!(
+        r#"
+let t = {}
+let tree = interval_tree(t)
+let cov = coverage(tree)
+nrow(cov) > 0
+"#,
+        bed_table(&[("chr1", 100, 200), ("chr1", 150, 250)])
+    ));
+    assert_eq!(result, Value::Bool(true));
+}

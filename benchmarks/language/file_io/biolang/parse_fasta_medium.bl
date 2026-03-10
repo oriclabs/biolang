@@ -1,0 +1,4 @@
+# File I/O: Parse medium FASTA (E. coli, ~4.6 MB)
+let records = fasta("data_real/ecoli_genome.fa") |> collect()
+println(f"Records: {len(records)}")
+println(f"Total bp: {records |> map(|r| len(r.seq)) |> sum()}")

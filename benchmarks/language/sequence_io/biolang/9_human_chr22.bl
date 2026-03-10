@@ -1,0 +1,10 @@
+# Benchmark 9: Real-World Human Chromosome 22 Stats
+# Human GRCh38 chr22 from NCBI (~51 MB).
+
+let stats = fasta_stats("data_real/human_chr22.fa")
+
+println(f"Sequences: {stats.count}")
+println(f"Total bp: {stats.total_bp}")
+println(f"Mean length: {round(stats.mean_length, 1)}")
+println(f"Mean GC: {round(stats.mean_gc, 4)}")
+println(f"N50: {stats.n50}")

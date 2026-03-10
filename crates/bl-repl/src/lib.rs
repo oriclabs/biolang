@@ -1089,6 +1089,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("translate", "translate(rna|dna) → Protein", "bio"),
     ("gc_content", "gc_content(seq) → Float", "bio"),
     ("read_fasta", "read_fasta(path) → List[Record]", "bio"),
+    ("fasta_stats", "fasta_stats(path) → Record{count,total_bp,mean_length,n50,...}", "bio"),
     ("read_fastq", "read_fastq(path) → List[Record]", "bio"),
     ("read_bed", "read_bed(path) → Table", "bio"),
     ("read_gff", "read_gff(path) → Table", "bio"),
@@ -1255,6 +1256,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("kmer_rc", "kmer_rc(kmer) → Kmer (reverse complement)", "kmer"),
     ("kmer_canonical", "kmer_canonical(kmer) → Kmer (canonical form)", "kmer"),
     ("kmer_count", "kmer_count(seq, k) → Table{kmer, count}", "kmer"),
+    ("kmer_distinct", "kmer_distinct(seq, k) → Int (distinct k-mer count)", "kmer"),
     ("kmer_spectrum", "kmer_spectrum(counts) → Table{frequency, count}", "kmer"),
     ("minimizers", "minimizers(seq, k, w) → List[{kmer, pos}]", "kmer"),
     // GAP 3: Streaming

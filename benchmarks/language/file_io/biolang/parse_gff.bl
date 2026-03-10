@@ -1,0 +1,7 @@
+# File I/O: Parse GFF3 annotations (5,000 genes with exons)
+let features = gff("data/annotations.gff3", {stream: false})
+let genes = count_where(features, "type", "==", "gene")
+let exons = count_where(features, "type", "==", "exon")
+println(f"Total features: {nrow(features)}")
+println(f"Genes: {genes}")
+println(f"Exons: {exons}")

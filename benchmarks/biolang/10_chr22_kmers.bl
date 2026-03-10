@@ -1,0 +1,14 @@
+# Benchmark 10: Large-Scale K-mer Counting
+# 21-mer counting on human chromosome 22 (~51 MB).
+
+let seqs = fasta("data_real/human_chr22.fa") |> collect()
+let k = 21
+
+# Count distinct k-mers (lightweight — no table materialization)
+let distinct = kmer_distinct(seqs, k)
+println(f"Distinct {k}-mers: {distinct}")
+
+# Stream top 20 k-mers (heap-pop, no full sort)
+let top20 = kmer_count(seqs, k) |> head(20)
+println(f"Top 20 {k}-mers from human chr22:")
+top20 |> each(|row| println(f"  {row.kmer}: {row.count}"))

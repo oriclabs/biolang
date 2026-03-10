@@ -210,18 +210,19 @@ let only_a = difference(samples_a, samples_b)       # {"S1"}</code></pre>
 )
 
 let filtered = filter(t, |r| r.score > 0.8)
-let sorted = arrange(t, desc(score))</code></pre>
+let sorted = arrange(t, "-score")</code></pre>
 
-        <h2>Option and Result</h2>
-        <pre><code class="language-biolang"># Option — represents a value that may be absent
-let found: Option[String] = find("genes", |g| g.symbol == "BRCA1")
-let name = found |> unwrap_or("unknown")
+        <h2>Nil and Error Handling</h2>
+        <pre><code class="language-biolang"># nil — represents the absence of a value
+let found = find("genes", |g| g.symbol == "BRCA1")
+let name = found ?? "unknown"
 
-# Result — represents success or failure
-let parsed: Result[Table] = try { csv("data.csv") }
-match parsed {
-  Ok(data) => print(f"Loaded {num_rows(data)} rows"),
-  Err(e) => print(f"Failed: {e.message}")
+# try/catch for fallible operations
+let data = try {
+  csv("data.csv")
+} catch e {
+  print(f"Failed: {e}")
+  nil
 }</code></pre>
 
         <h2>Type Conversions</h2>

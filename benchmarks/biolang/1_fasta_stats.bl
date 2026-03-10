@@ -1,0 +1,13 @@
+# Benchmark 1: FASTA Statistics
+# Compute GC content, length distribution, and N50 from a FASTA file.
+
+let stats = fasta_stats("data/sequences.fa")
+
+println(f"Sequences: {stats.count}")
+println(f"Total bp: {stats.total_bp}")
+println(f"Mean length: {round(stats.mean_length, 1)}")
+println(f"Median length: {round(stats.median_length, 1)}")
+println(f"Min length: {stats.min_length}")
+println(f"Max length: {stats.max_length}")
+println(f"Mean GC: {round(stats.mean_gc, 4)}")
+println(f"N50: {stats.n50}")

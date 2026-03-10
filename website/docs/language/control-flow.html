@@ -53,7 +53,7 @@ let category = variant.impact
 
         <h2>If Without Else</h2>
         <p>
-          An <code>if</code> without an <code>else</code> branch returns <code>None</code> when
+          An <code>if</code> without an <code>else</code> branch returns <code>nil</code> when
           the condition is false. When used as a statement (ignoring the return value), the else
           is not required:
         </p>
@@ -62,18 +62,18 @@ if verbose {
   print(f"Processing {len(reads)} reads")
 }
 
-# As expression without else — returns Option
+# As expression without else — returns nil when false
 let maybe_value = if condition { compute_value() }
-# maybe_value is None if condition is false
+# maybe_value is nil if condition is false
 
 # Guard clause pattern
 fn process(data) {
   if len(data) == 0 {
-    return Err("empty input")
+    error("empty input")
   }
 
   # Main logic here
-  Ok(transform(data))
+  transform(data)
 }</code></pre>
 
         <h2>Conditional Chains</h2>
@@ -158,18 +158,18 @@ for chunk in variants |> chunk(1000) {
         <h2>While Loops</h2>
         <pre><code class="language-biolang"># Basic while loop
 let attempts = 0
-let result = None
+let result = nil
 
-while attempts < 3 && result == None {
-  result = try { fetch_data(url) } catch _ { None }
+while attempts < 3 && result == nil {
+  result = try { fetch_data(url) } catch _ { nil }
   attempts = attempts + 1
 }
 
 # Read until EOF
 let lines = []
 let line = read_line(file)
-while line != None {
-  lines = push(lines, unwrap(line))
+while line != nil {
+  lines = push(lines, line)
   line = read_line(file)
 }</code></pre>
 
@@ -206,7 +206,7 @@ let found = for variant in variants {
     break variant
   }
 }
-# found is Option — None if no break was reached
+# found is nil if no break was reached
 
 # Search with index
 let position = for (i, base) in enumerate(sequence) {
@@ -277,10 +277,10 @@ plot(data,
 
 # In list construction
 let flags = [
-  if is_duplicate { "DUP" } else { None },
-  if is_supplementary { "SUPP" } else { None },
-  if failed_qc { "FAIL" } else { None }
-] |> filter(|f| f != None)</code></pre>
+  if is_duplicate { "DUP" } else { nil },
+  if is_supplementary { "SUPP" } else { nil },
+  if failed_qc { "FAIL" } else { nil }
+] |> filter(|f| f != nil)</code></pre>
 
         <h2>Given / Otherwise</h2>
         <p>
@@ -309,7 +309,7 @@ let qc_status = given {
         </p>
         <pre><code class="language-biolang"># Search for a specific motif
 for seq in sequences {
-    if find_motif(seq, "TATAAA") != None {
+    if find_motif(seq, "TATAAA") != nil {
         print(f"Found TATA box in {seq.id}")
         break
     }

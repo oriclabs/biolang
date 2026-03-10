@@ -1,0 +1,27 @@
+# Benchmark 5: CSV Wrangling
+# Group-by, summarize, and join on tabular sample data.
+
+let samples = csv("data/samples.csv")
+let metadata = csv("data/metadata.csv")
+
+# Join samples with metadata
+let joined = inner_join(samples, metadata, "sample_id")
+
+# Group by cohort, compute statistics
+let grouped = joined |> group_by("cohort")
+let summary = grouped |> summarize(|key, rows| {
+  cohort: key,
+  count: len(rows),
+  mean_depth: mean(rows |> map(|r| r.depth)),
+  mean_quality: mean(rows |> map(|r| r.quality)),
+  total_reads: sum(rows |> map(|r| r.read_count))
+}) |> arrange("-mean_depth")
+
+println("Cohort Summary:")
+summary |> each(|row| {
+  println(f"  {row.cohort}: n={row.count}, depth={round(row.mean_depth, 1)}, qual={round(row.mean_quality, 1)}, reads={row.total_reads}")
+})
+
+# Filter to high-quality samples
+let hq = joined |> filter(|r| r.quality >= 30 && r.depth >= 20)
+println(f"\nHigh-quality samples: {len(hq)} / {nrow(joined)}")

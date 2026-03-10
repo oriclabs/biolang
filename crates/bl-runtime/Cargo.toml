@@ -2,6 +2,10 @@
 name = "bl-runtime"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Tree-walking interpreter with 270+ builtins for BioLang"
 
 [features]
 default = ["native"]
@@ -32,6 +36,7 @@ crc32fast = "1"
 hmac = "0.12"
 hex = "0.4"
 base64 = "0.22"
+rustc-hash = "2"
 toml = { version = "0.8", optional = true }
 dirs = { version = "5", optional = true }
 rusqlite = { version = "0.31", features = ["bundled"], optional = true }

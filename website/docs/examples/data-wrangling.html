@@ -76,7 +76,8 @@ data |> drop_cols("internal_id", "notes") |> write_csv("clean.csv")</code></pre>
         <h3>Renaming columns</h3>
         <pre><code class="language-biolang">let data = tsv("results.tsv")
 data
-  |> rename("chr" => "chrom", "pos" => "position")
+  |> rename("chr", "chrom")
+  |> rename("pos", "position")
   |> write_tsv("renamed.tsv")</code></pre>
 
         <h3>Adding computed columns</h3>
@@ -138,20 +139,13 @@ counts
         <pre><code class="language-biolang"># Wide to long format
 let wide = csv("expression_wide.csv")
 wide
-  |> pivot_longer(
-    cols: ["sample_a", "sample_b", "sample_c"],
-    names_to: "sample",
-    values_to: "expression"
-  )
+  |> pivot_longer(["sample_a", "sample_b", "sample_c"], "sample", "expression")
   |> write_csv("expression_long.csv")
 
 # Long to wide format
 let long_data = csv("expression_long.csv")
 long_data
-  |> pivot_wider(
-    names_from: "sample",
-    values_from: "expression"
-  )
+  |> pivot_wider("sample", "expression")
   |> write_csv("expression_wide_again.csv")</code></pre>
 
         <h2>Merging and Joining</h2>
@@ -161,12 +155,12 @@ long_data
 let counts = tsv("examples/sample-data/counts.tsv")  # chrom, start, end, count
 
 # Inner join on gene_id
-let merged = genes |> inner_join(counts, on: "gene_id")
+let merged = genes |> inner_join(counts, "gene_id")
 merged |> head(5) |> print
 
-# Left join to keep all genes (unmatched get None)
-let full = genes |> left_join(counts, on: "gene_id")
-let missing = full |> filter(|row| { row["count"] == None })
+# Left join to keep all genes (unmatched get nil)
+let full = genes |> left_join(counts, "gene_id")
+let missing = full |> filter(|row| { row["count"] == nil })
 print(f"Genes without counts: {missing |> len}")</code></pre>
 
         <h3>Concatenating tables</h3>

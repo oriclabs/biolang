@@ -2,7 +2,9 @@
 name = "bl-apis"
 version.workspace = true
 edition.workspace = true
-license = "MIT"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 description = "Typed bioinformatics API clients for NCBI, Ensembl, UniProt, KEGG, and more"
 
 [dependencies]

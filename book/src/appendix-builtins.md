@@ -48,7 +48,7 @@ General-purpose operations on lists, records, and sets.
 | `flatten(nested) -> List` | Flatten one level of nesting |
 | `reverse(list) -> List` | Reverse element order |
 | `contains(coll, item) -> Bool` | True if `item` is present |
-| `index_of(list, item) -> Int \| None` | First index of `item`, or None |
+| `index_of(list, item) -> Int \| Nil` | First index of `item`, or nil |
 | `last(list) -> Any` | Last element |
 | `first(list) -> Any` | First element |
 | `head(list, n) -> List` | First `n` elements |
@@ -89,14 +89,14 @@ BioLang's pipeline style.
 | `filter(coll, fn) -> List` | Keep elements where `fn` returns true |
 | `reduce(coll, init, fn) -> Any` | Fold elements into a single value |
 | `sort(coll, fn?) -> List` | Sort, optionally by comparator |
-| `each(coll, fn) -> None` | Execute `fn` for side effects on every element |
+| `each(coll, fn) -> Nil` | Execute `fn` for side effects on every element |
 | `flat_map(coll, fn) -> List` | Map then flatten one level |
 | `take_while(coll, fn) -> List` | Take leading elements while predicate holds |
 | `any(coll, fn) -> Bool` | True if `fn` returns true for at least one element |
 | `all(coll, fn) -> Bool` | True if `fn` returns true for every element |
 | `none(coll, fn) -> Bool` | True if `fn` returns true for no elements |
-| `find(coll, fn) -> Any \| None` | First element satisfying `fn` |
-| `find_index(coll, fn) -> Int \| None` | Index of first element satisfying `fn` |
+| `find(coll, fn) -> Any \| Nil` | First element satisfying `fn` |
+| `find_index(coll, fn) -> Int \| Nil` | Index of first element satisfying `fn` |
 | `par_map(coll, fn) -> List` | Parallel map across available cores |
 | `par_filter(coll, fn) -> List` | Parallel filter across available cores |
 | `mat_map(matrix, fn) -> Matrix` | Apply `fn` element-wise to a matrix |
@@ -126,8 +126,8 @@ sample sheets, variant tables, and expression matrices.
 | `join(a, b, on, how?) -> Table` | Join two tables on a key column |
 | `csv(path) -> Table` | Read a CSV file into a table |
 | `tsv(path) -> Table` | Read a TSV file into a table |
-| `write_csv(tbl, path) -> None` | Write a table to CSV |
-| `write_tsv(tbl, path) -> None` | Write a table to TSV |
+| `write_csv(tbl, path) -> Nil` | Write a table to CSV |
+| `write_tsv(tbl, path) -> Nil` | Write a table to TSV |
 | `nrow(tbl) -> Int` | Number of rows |
 | `ncol(tbl) -> Int` | Number of columns |
 | `colnames(tbl) -> List[Str]` | Column name list |
@@ -155,9 +155,9 @@ streams that integrate with pipes; writers flush on completion.
 | `read_vcf(path) -> List[Record]` | Parse VCF; each record has `chrom`, `pos`, `ref`, `alt`, `qual`, `info` fields |
 | `read_bed(path) -> List[Record]` | Parse BED; each record has `chrom`, `start`, `end` and optional fields |
 | `read_gff(path) -> List[Record]` | Parse GFF/GTF; each record has `seqid`, `type`, `start`, `end`, `attributes` |
-| `write_fasta(records, path) -> None` | Write records to FASTA format |
-| `write_fastq(records, path) -> None` | Write records to FASTQ format |
-| `write_bed(records, path) -> None` | Write records to BED format |
+| `write_fasta(records, path) -> Nil` | Write records to FASTA format |
+| `write_fastq(records, path) -> Nil` | Write records to FASTQ format |
+| `write_bed(records, path) -> Nil` | Write records to BED format |
 
 ```
 # Example: filter FASTQ reads by quality and write survivors
@@ -181,8 +181,8 @@ Interval arithmetic for coordinate-based genomic analysis. Intervals carry
 | `query_nearest(tree, query, k?) -> List[Interval]` | K nearest intervals to the query |
 | `coverage(intervals) -> List[Record]` | Per-base or per-region coverage depth |
 | `merge_intervals(intervals, dist?) -> List[Interval]` | Merge overlapping or nearby intervals |
-| `intersect_intervals(a, b) -> List[Interval]` | Pairwise intersection of two interval sets |
-| `subtract_intervals(a, b) -> List[Interval]` | Regions in `a` not covered by `b` |
+| `intersect(a, b) -> List[Interval]` | Pairwise intersection of two interval sets |
+| `subtract(a, b) -> List[Interval]` | Regions in `a` not covered by `b` |
 
 ```
 # Example: find promoter-peak overlaps
@@ -278,7 +278,7 @@ numerical biology.
 | `trace(m) -> Float` | Sum of diagonal elements |
 | `norm(m, p?) -> Float` | Matrix or vector norm (default: Frobenius / L2) |
 | `rank(m) -> Int` | Numerical rank |
-| `identity(n) -> Matrix` | n x n identity matrix |
+| `eye(n) -> Matrix` | n x n identity matrix |
 | `zeros(rows, cols) -> Matrix` | Matrix of zeros |
 | `ones(rows, cols) -> Matrix` | Matrix of ones |
 | `diag(values) -> Matrix` | Diagonal matrix from a list of values |
@@ -340,7 +340,7 @@ Text manipulation for parsing identifiers, annotations, and formatted output.
 | `starts_with(s, prefix) -> Bool` | True if `s` begins with `prefix` |
 | `ends_with(s, suffix) -> Bool` | True if `s` ends with `suffix` |
 | `replace(s, from, to) -> Str` | Replace all occurrences |
-| `matches(s, pattern) -> Bool` | True if regex `pattern` matches |
+| `regex_match(s, pattern) -> Bool` | True if regex `pattern` matches |
 | `format(template, ...args) -> Str` | Printf-style formatting |
 
 BioLang also supports **f-strings** for inline interpolation:
@@ -451,18 +451,18 @@ serialization.
 
 | Builtin | Description |
 |---|---|
-| `print(val) -> None` | Print a value followed by a newline |
-| `assert(cond, msg?) -> None` | Panic with `msg` if `cond` is false |
-| `sleep(ms) -> None` | Pause execution for `ms` milliseconds |
+| `print(val) -> Nil` | Print a value followed by a newline |
+| `assert(cond, msg?) -> Nil` | Panic with `msg` if `cond` is false |
+| `sleep(ms) -> Nil` | Pause execution for `ms` milliseconds |
 | `now() -> Float` | Current timestamp in seconds since epoch |
 | `now() - start` | Seconds elapsed since `start` (use `now()` for both timestamps) |
 | `bp(n) -> Int` | Identity; documents that `n` is in base pairs |
 | `kb(n) -> Int` | Convert kilobases to base pairs (`n * 1000`) |
 | `mb(n) -> Int` | Convert megabases to base pairs (`n * 1_000_000`) |
 | `gb(n) -> Int` | Convert gigabases to base pairs (`n * 1_000_000_000`) |
-| `to_json(val) -> Str` | Serialize any value to a JSON string |
-| `from_json(s) -> Any` | Parse a JSON string into a BioLang value |
-| `env(name) -> Str \| None` | Read an environment variable |
+| `json_stringify(val) -> Str` | Serialize any value to a JSON string |
+| `json_parse(s) -> Any` | Parse a JSON string into a BioLang value |
+| `env(name) -> Str \| Nil` | Read an environment variable |
 | `exit(code?) -> Never` | Terminate the process with an exit code (default: 0) |
 
 ```

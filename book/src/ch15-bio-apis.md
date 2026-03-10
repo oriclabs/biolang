@@ -346,7 +346,7 @@ let interpreted = variants |> map(|v| {
       |> |cg| cg.mutations
       |> find(|m| m.aa_change == worst.amino_acid_change)
   else
-    None
+    nil
 
   {
     variant: v,
@@ -355,8 +355,8 @@ let interpreted = variants |> map(|v| {
     impact: worst.impact,
     sift: worst.sift_prediction,
     polyphen: worst.polyphen_prediction,
-    cosmic_count: if cosmic_info != None then cosmic_info.count else 0,
-    cosmic_known: cosmic_info != None,
+    cosmic_count: if cosmic_info != nil then cosmic_info.count else 0,
+    cosmic_known: cosmic_info != nil,
   }
 })
 

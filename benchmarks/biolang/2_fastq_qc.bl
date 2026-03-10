@@ -1,0 +1,17 @@
+# Benchmark 2: FASTQ Quality Control
+# Read count, Q30 rate, length distribution from a FASTQ file.
+
+let reads = read_fastq("data/reads.fq") |> collect()
+let total = len(reads)
+let lengths = reads |> map(|r| seq_len(r.seq))
+let qualities = reads |> map(|r| mean_phred(r.quality))
+let q30_count = qualities |> filter(|q| q >= 30.0) |> len()
+let q30_rate = round(q30_count * 100.0 / total, 3)
+
+println(f"Total reads: {total}")
+println(f"Q30 rate: {q30_rate}%")
+println(f"Mean length: {round(mean(lengths), 1)}")
+println(f"Min length: {min(lengths)}")
+println(f"Max length: {max(lengths)}")
+println(f"Mean quality: {round(mean(qualities), 2)}")
+println(f"Median quality: {round(median(qualities), 2)}")

@@ -130,6 +130,17 @@ impl Interpreter {
                 .collect()),
             Value::Range { start, end, inclusive } => {
                 let end_val = if *inclusive { *end + 1 } else { *end };
+                let count = (end_val - *start).max(0) as u64;
+                if count > 10_000_000 {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        format!(
+                            "range too large to materialize ({count} elements). \
+                             Use a stream or reduce the range. Max: 10,000,000 elements."
+                        ),
+                        Some(span),
+                    ));
+                }
                 Ok((*start..end_val).map(Value::Int).collect())
             }
             Value::Stream(s) => {
@@ -306,6 +317,57 @@ impl Interpreter {
             }
             Stmt::For { pattern, iter, when_guard, body, else_body } => {
                 let iterable = self.eval_expr(iter)?;
+
+                // Streams are consumed lazily — one item at a time, no materialization
+                if let Value::Stream(ref s) = iterable {
+                    if s.is_exhausted() {
+                        return Err(BioLangError::runtime(
+                            ErrorKind::TypeError,
+                            format!(
+                                "stream already consumed: Stream({}) has been fully iterated.",
+                                s.label
+                            ),
+                            Some(iter.span),
+                        ));
+                    }
+                    let mut last = Value::Nil;
+                    let mut did_break = false;
+                    while let Some(item) = s.next() {
+                        let prev = self.env.push_scope();
+                        self.bind_for_pattern(pattern, item);
+                        if let Some(guard) = when_guard {
+                            let cond = self.eval_expr(guard)?;
+                            if !cond.is_truthy() {
+                                self.env.pop_scope(prev);
+                                continue;
+                            }
+                        }
+                        match self.exec_block(body) {
+                            Ok(val) => last = val,
+                            Err(e) if e.kind == ErrorKind::Break => {
+                                self.env.pop_scope(prev);
+                                did_break = true;
+                                break;
+                            }
+                            Err(e) if e.kind == ErrorKind::Continue => {
+                                self.env.pop_scope(prev);
+                                continue;
+                            }
+                            Err(e) => {
+                                self.env.pop_scope(prev);
+                                return Err(e);
+                            }
+                        }
+                        self.env.pop_scope(prev);
+                    }
+                    if !did_break {
+                        if let Some(eb) = else_body {
+                            last = self.exec_block(eb)?;
+                        }
+                    }
+                    return Ok(last);
+                }
+
                 let items = self.value_to_iter(&iterable, iter.span)?;
 
                 let mut last = Value::Nil;
@@ -1267,7 +1329,43 @@ impl Interpreter {
                         "alt_allele" | "alt" => Ok(Value::Str(alt_allele.clone())),
                         "quality" | "qual" => Ok(Value::Float(quality)),
                         "filter" => Ok(Value::Str(filter.clone())),
-                        "info" => Ok(Value::Record(info.clone())),
+                        "info" => {
+                            // Lazy INFO parsing: if _raw key present, parse it now
+                            if info.len() == 1 {
+                                if let Some(Value::Str(raw)) = info.get("_raw") {
+                                    if raw == "." || raw.is_empty() {
+                                        return Ok(Value::Record(HashMap::new()));
+                                    }
+                                    let mut map = HashMap::new();
+                                    for part in raw.split(';') {
+                                        if part.is_empty() { continue; }
+                                        if let Some((key, val)) = part.split_once('=') {
+                                            if val.contains(',') {
+                                                let items: Vec<Value> = val.split(',').map(|v| {
+                                                    if v == "." { Value::Nil }
+                                                    else if let Ok(n) = v.parse::<i64>() { Value::Int(n) }
+                                                    else if let Ok(f) = v.parse::<f64>() { Value::Float(f) }
+                                                    else { Value::Str(v.to_string()) }
+                                                }).collect();
+                                                map.insert(key.to_string(), Value::List(items));
+                                            } else if val == "." {
+                                                map.insert(key.to_string(), Value::Nil);
+                                            } else if let Ok(n) = val.parse::<i64>() {
+                                                map.insert(key.to_string(), Value::Int(n));
+                                            } else if let Ok(f) = val.parse::<f64>() {
+                                                map.insert(key.to_string(), Value::Float(f));
+                                            } else {
+                                                map.insert(key.to_string(), Value::Str(val.to_string()));
+                                            }
+                                        } else {
+                                            map.insert(part.to_string(), Value::Bool(true));
+                                        }
+                                    }
+                                    return Ok(Value::Record(map));
+                                }
+                            }
+                            Ok(Value::Record(info.clone()))
+                        }
                         // Computed variant classification properties
                         "is_snp" => {
                             let first_alt = alt_allele.split(',').next().unwrap_or("");
@@ -2586,21 +2684,20 @@ impl Interpreter {
                         Some(span),
                     ));
                 }
-                // Table: map each row (as Record) through closure
-                if let Value::Table(t) = &args[0] {
-                    let func = args[1].clone();
-                    let mut result = Vec::new();
-                    for i in 0..t.num_rows() {
-                        let row_rec = Value::Record(t.row_to_record(i));
-                        result.push(self.call_value(&func, vec![row_rec], span)?);
+                let func = args.pop().unwrap();
+                let collection = args.pop().unwrap();
+                match collection {
+                    Value::Table(t) => {
+                        let mut result = Vec::with_capacity(t.num_rows());
+                        for i in 0..t.num_rows() {
+                            let row_rec = Value::Record(t.row_to_record(i));
+                            result.push(self.call_value(&func, vec![row_rec], span)?);
+                        }
+                        Ok(Value::List(result))
                     }
-                    return Ok(Value::List(result));
-                }
-                let func = args[1].clone();
-                match &args[0] {
-                    Value::List(l) => {
-                        let mut result = Vec::new();
-                        for item in l.clone() {
+                    Value::List(items) => {
+                        let mut result = Vec::with_capacity(items.len());
+                        for item in items {
                             result.push(self.call_value(&func, vec![item], span)?);
                         }
                         Ok(Value::List(result))
@@ -2618,7 +2715,6 @@ impl Interpreter {
                                 Some(span),
                             ));
                         }
-                        // Lazy stream map: transform items on-demand via thread
                         let source = s.clone();
                         let env_snapshot = self.env.clone();
                         let (tx, rx) = std::sync::mpsc::sync_channel::<Value>(1);
@@ -2649,11 +2745,12 @@ impl Interpreter {
                         Some(span),
                     ));
                 }
-                let func = args[1].clone();
-                match &args[0] {
-                    Value::List(l) => {
-                        let mut results = Vec::with_capacity(l.len());
-                        for item in l.clone() {
+                let func = args.pop().unwrap();
+                let collection = args.pop().unwrap();
+                match collection {
+                    Value::List(items) => {
+                        let mut results = Vec::with_capacity(items.len());
+                        for item in items {
                             results.push(self.call_value(&func, vec![item], span)?);
                         }
                         Ok(Value::List(results))
@@ -2700,25 +2797,24 @@ impl Interpreter {
                         Some(span),
                     ));
                 }
-                // Table: filter rows, return filtered Table
-                if let Value::Table(t) = &args[0] {
-                    let func = args[1].clone();
-                    let columns = t.columns.clone();
-                    let mut kept_rows = Vec::new();
-                    for i in 0..t.num_rows() {
-                        let row_rec = Value::Record(t.row_to_record(i));
-                        let keep = self.call_value(&func, vec![row_rec], span)?;
-                        if keep.is_truthy() {
-                            kept_rows.push(t.rows[i].clone());
+                let func = args.pop().unwrap();
+                let collection = args.pop().unwrap();
+                match collection {
+                    Value::Table(t) => {
+                        let columns = t.columns.clone();
+                        let mut kept_rows = Vec::new();
+                        for i in 0..t.num_rows() {
+                            let row_rec = Value::Record(t.row_to_record(i));
+                            let keep = self.call_value(&func, vec![row_rec], span)?;
+                            if keep.is_truthy() {
+                                kept_rows.push(t.rows[i].clone());
+                            }
                         }
+                        Ok(Value::Table(bl_core::value::Table::new(columns, kept_rows)))
                     }
-                    return Ok(Value::Table(bl_core::value::Table::new(columns, kept_rows)));
-                }
-                let func = args[1].clone();
-                match &args[0] {
-                    Value::List(l) => {
+                    Value::List(items) => {
                         let mut result = Vec::new();
-                        for item in l.clone() {
+                        for item in items {
                             let keep = self.call_value(&func, vec![item.clone()], span)?;
                             if keep.is_truthy() {
                                 result.push(item);
@@ -2739,7 +2835,6 @@ impl Interpreter {
                                 Some(span),
                             ));
                         }
-                        // Lazy stream filter: filter items on-demand via thread
                         let source = s.clone();
                         let env_snapshot = self.env.clone();
                         let (tx, rx) = std::sync::mpsc::sync_channel::<Value>(1);
@@ -4097,15 +4192,20 @@ impl Interpreter {
                         Some(span),
                     ));
                 }
+                let func = args[1].clone();
+                let mut count = 0i64;
+                // Stream: count in place without materializing
+                if let Value::Stream(s) = &args[0] {
+                    while let Some(item) = s.next() {
+                        let result = self.call_value(&func, vec![item], span)?;
+                        if result.is_truthy() {
+                            count += 1;
+                        }
+                    }
+                    return Ok(Value::Int(count));
+                }
                 let items = match &args[0] {
                     Value::List(l) => l.clone(),
-                    Value::Stream(s) => {
-                        let mut v = Vec::new();
-                        while let Some(item) = s.next() {
-                            v.push(item);
-                        }
-                        v
-                    }
                     other => {
                         return Err(BioLangError::type_error(
                             format!("count_if() requires List or Stream, got {}", other.type_of()),
@@ -4113,8 +4213,6 @@ impl Interpreter {
                         ))
                     }
                 };
-                let func = args[1].clone();
-                let mut count = 0i64;
                 for item in items {
                     let result = self.call_value(&func, vec![item], span)?;
                     if result.is_truthy() {
@@ -4514,6 +4612,18 @@ impl Interpreter {
             BinaryOp::Mul => match (lhs, rhs) {
                 // String repeat: "ATG" * 3
                 (Value::Str(s), Value::Int(n)) | (Value::Int(n), Value::Str(s)) if *n >= 0 => {
+                    let total = s.len().saturating_mul(*n as usize);
+                    if total > 100_000_000 {
+                        return Err(BioLangError::runtime(
+                            ErrorKind::TypeError,
+                            format!(
+                                "string repeat would produce {} bytes (limit: 100 MB). \
+                                 Reduce the repeat count.",
+                                total
+                            ),
+                            Some(span),
+                        ));
+                    }
                     Ok(Value::Str(s.repeat(*n as usize)))
                 }
                 _ => numeric_op(lhs, rhs, |a, b| a * b, |a, b| a * b, "*", span),

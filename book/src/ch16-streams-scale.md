@@ -145,7 +145,7 @@ gc_track |> write_tsv("chr1_gc_content.tsv")
 ```
 
 For windowed operations on streams (where you cannot look back), use
-`sliding_window` which maintains a buffer.
+`window` which maintains a buffer.
 
 ```
 # Compute rolling average base quality across a BAM
@@ -216,7 +216,7 @@ print("Coverage: " + str(coverage) + "x")
 
 # Filter regions by size
 let large_svs = read_vcf("structural_variants.vcf.gz")
-  |> filter(|v| v.info.SVLEN != None and abs(v.info.SVLEN) > mb(1))
+  |> filter(|v| v.info.SVLEN != nil and abs(v.info.SVLEN) > mb(1))
 
 print(str(large_svs |> count()) + " SVs larger than 1 Mb")
 ```

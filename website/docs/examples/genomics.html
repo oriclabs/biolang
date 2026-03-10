@@ -55,7 +55,7 @@ bam
 let mapq_dist = bam
   |> filter(|r| r.is_mapped)
   |> map(|r| r.mapq)
-  |> histogram(bins: 60)
+  |> histogram(60)
 
 mapq_dist |> write_tsv("mapq_distribution.tsv")
 print(f"Reads with MAPQ >= 30: {bam |> filter(|r| { r.mapq >= 30 }) |> len}")</code></pre>
@@ -200,7 +200,7 @@ let genome = fasta("genome.fa")
 for record in genome {
   let sites = find_motif(record.seq, "GAATTC")
   if sites |> len > 0 {
-    print(f"{record.name}: {sites |> len} EcoRI sites")
+    print(f"{record.id}: {sites |> len} EcoRI sites")
     sites |> take(5) |> each(|pos| {
       print(f"  Position: {pos}")
     })

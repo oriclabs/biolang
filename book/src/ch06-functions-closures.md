@@ -135,7 +135,7 @@ functions fluently:
 ```biolang
 let top_genes = counts
     |> filter(|g| g.biotype == "protein_coding")
-    |> sort(|g| g.tpm, descending: true)
+    |> sort_by(|g| -g.tpm)
     |> take(100)
     |> map(|g| g.gene_name)
 ```
@@ -156,11 +156,10 @@ fn log2_fold_change(treated, control) where control > 0.0 {
 }
 
 fn call_consensus(reads) where len(reads) >= 3 {
-    let bases = reads |> map(|r| r.base)
-    bases |> group_by(|b| b)
-         |> sort(|g| len(g.values), descending: true)
-         |> first()
-         |> map(|g| g.key)
+    let bases = reads |> map(|r| {base: r.base})
+    let counts = table(bases) |> group_by("base")
+      |> summarize(|base, group| {base: base, n: nrow(group)})
+    counts |> sort_by(|g| -g.n) |> first() |> |g| g.base
 }
 ```
 
@@ -188,25 +187,26 @@ let g2 = gc_of_kmer("ATCGGC")  # cache hit
 
 Memoization is especially valuable when combined with recursion.
 
-## Other Decorators
+## Decorator Notes
 
-Decorators are annotations placed before a function definition. Besides
-`@memoize`, BioLang supports user-defined decorators.
+`@memoize` is currently the only built-in decorator. For cross-cutting
+concerns like timing or input validation, use wrapper functions or `where`
+clauses.
 
 ```biolang
-@log_timing
-fn align_reads(fastq, ref_genome) {
-    # ... alignment logic ...
+# Use a wrapper function for timing
+fn timed_align(fastq, ref_genome) {
+    let t0 = now()
+    let result = align_reads(fastq, ref_genome)
+    print("Alignment took " + str(now() - t0) + "s")
+    result
 }
 
-@validate_inputs
+# Use where clauses for input validation
 fn merge_bams(bam_paths) where len(bam_paths) > 0 {
     # ... merge logic ...
 }
 ```
-
-Decorators wrap the function transparently -- the original signature and
-behaviour are preserved, with the decorator adding cross-cutting logic.
 
 ## Recursion
 
