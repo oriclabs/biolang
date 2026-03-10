@@ -1,0 +1,10 @@
+# Filter VCF by QUAL>=30, count variants per chromosome. Output JSON.
+let variants = vcf("data/variants.vcf") |> collect()
+let total = len(variants)
+let passed = variants |> filter_by("quality", ">=", 30)
+let passed_count = len(passed)
+let chrom_counts = passed |> count_by("chrom")
+
+let output = {total_variants: total, passed_qual30: passed_count,
+              per_chromosome: chrom_counts}
+println(json_stringify(output, 2))

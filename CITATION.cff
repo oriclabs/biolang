@@ -2,11 +2,11 @@ cff-version: 1.2.0
 message: "If you use BioLang in your research, please cite it as below."
 type: software
 title: "BioLang"
-abstract: "A pipe-first domain-specific language for bioinformatics with native DNA/RNA/Protein types, 270+ builtins, and streaming file I/O."
+abstract: "A pipe-first domain-specific language for bioinformatics with native DNA/RNA/Protein types, 750+ builtins, and streaming file I/O."
 license: MIT
 url: "https://lang.bio"
 repository-code: "https://github.com/oriclabs/biolang"
-version: "0.2.1"
+version: "0.3.0"
 date-released: "2026-03-10"
 keywords:
   - bioinformatics
@@ -16,6 +16,6 @@ keywords:
   - pipe-first
   - rust
 authors:
-  - family-names: "Bajwa"
+  - family-names: "Bandi"
     given-names: "Raj"
     affiliation: "ORIC Labs"

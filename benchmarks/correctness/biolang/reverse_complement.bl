@@ -1,0 +1,9 @@
+# Reverse complement all sequences from FASTA. Output JSON.
+let seqs = read_fasta("data/contigs.fa")
+let results = {}
+seqs |> each(|s| {
+    let rc = reverse_complement(s.seq)
+    results = merge(results, {[s.id]: str(rc)})
+})
+let output = {sequences: results}
+println(json_stringify(output, 2))

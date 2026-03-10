@@ -1,0 +1,10 @@
+# Compute GC content per sequence from a FASTA file. Output JSON.
+let seqs = read_fasta("data/contigs.fa")
+let results = seqs |> map(|s| {
+    let gc = gc_content(s.seq)
+    {id: s.id, gc: round(gc, 6)}
+})
+let obj = {}
+results |> each(|r| { obj = merge(obj, {[r.id]: r.gc}) })
+let output = {gc_per_sequence: obj, n_sequences: len(results)}
+println(json_stringify(output, 2))

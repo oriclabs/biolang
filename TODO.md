@@ -44,7 +44,7 @@
 - [ ] Paste a raw DNA sequence → auto-detect and wrap as `dna"..."`
 - [ ] Paste a FASTA block → auto-parse into record
 - [ ] Paste a UniProt/PDB ID → auto-fetch and display summary
-- [ ] Tab-completion for all 270+ builtins with signature hints
+- [ ] Tab-completion for all 750+ builtins with signature hints
 - [ ] `:help gc_content` shows usage, example, and return type inline
 
 ### One-Line Database Queries

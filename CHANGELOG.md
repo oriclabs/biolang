@@ -49,7 +49,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - **Core language**: pipe-first syntax (`|>`), lambdas (`|x| expr`), pattern matching
 - **Bio literals**: `dna"ATCG"`, `rna"AUGC"`, `protein"MKT..."` with compile-time type
-- **270+ builtins** covering:
+- **750+ builtins** covering:
   - Sequence ops: `complement`, `reverse_complement`, `translate`, `gc_content`, `kmer_count`
   - File I/O: `read_fasta`, `read_fastq`, `read_vcf`, `read_bed`, `read_gff`, `write_fasta`
   - Statistics: `mean`, `median`, `sd`, `cor`, `t_test`, `chi_sq`, `p_adjust`, `anova`

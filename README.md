@@ -5,7 +5,7 @@
 A pipe-first domain-specific language (DSL) for bioinformatics.
 
 BioLang is a DSL purpose-built for genomics and molecular biology. It brings
-first-class biological types, 530+ domain builtins, 15 bio API clients, and composable pipelines
+first-class biological types, 750+ domain builtins, 15 bio API clients, and composable pipelines
 to bioinformatics workflows. Write analysis scripts that read like the science
 they describe.
 
@@ -26,7 +26,7 @@ reads
 
 - **Bio-native types** -- DNA, RNA, Protein, Interval, Variant, Gene, AlignedRead, Quality
 - **Pipe operator** -- `|>` inserts the left side as the first argument: `a |> f(b)` = `f(a, b)`
-- **530+ builtins** -- FASTQ/FASTA/VCF/BED/GFF I/O, sequence ops, statistics, genomic intervals, tables, 42 plot types
+- **750+ builtins** -- FASTQ/FASTA/VCF/BED/GFF I/O, sequence ops, statistics, genomic intervals, tables, 42 plot types
 - **Pipe-first pipelines** -- compose operations with `|>`, `group_by`, `count_by`, `filter_by` for efficient data processing
 - **15 Bio API clients** -- NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, GO, COSMIC, BioMart, NCBI Datasets, nf-core, BioContainers, Galaxy ToolShed
 - **SQLite** -- built-in database for storing and querying results
@@ -335,7 +335,7 @@ crates/
   bl-core/     -- AST, Value, Table, Type, Span, Error
   bl-lexer/    -- Tokenizer
   bl-parser/   -- Recursive descent + Pratt expression parser
-  bl-runtime/  -- Tree-walking interpreter, 530+ builtins
+  bl-runtime/  -- Tree-walking interpreter, 750+ builtins
   bl-bio/      -- FASTA/FASTQ/BED/GFF/VCF I/O
   bl-apis/     -- Bio API clients (NCBI, Ensembl, UniProt, etc.)
   bl-compiler/ -- Bytecode compiler (experimental)

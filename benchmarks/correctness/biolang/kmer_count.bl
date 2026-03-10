@@ -1,0 +1,21 @@
+# Count canonical 5-mers from first sequence in FASTA. Output JSON.
+let seqs = read_fasta("data/contigs.fa")
+let first = seqs |> head(1)
+let seq = first[0].seq
+let k = 5
+let kmer_list = kmers(seq, k)
+let counts = frequencies(kmer_list)
+let total = len(kmer_list)
+let unique_count = len(keys(counts))
+
+# Sort by count descending, take top 20
+let sorted_pairs = keys(counts)
+    |> map(|key| {kmer: key, count: counts[key]})
+    |> sort_by(|a, b| b.count - a.count)
+    |> head(20)
+let top = {}
+sorted_pairs |> each(|p| { top = merge(top, {[p.kmer]: p.count}) })
+
+let output = {sequence_id: first[0].id, k: k, total_kmers: total,
+              unique_canonical: unique_count, top_20: top}
+println(json_stringify(output, 2))

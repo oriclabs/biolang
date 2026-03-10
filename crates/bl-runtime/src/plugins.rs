@@ -37,8 +37,13 @@ pub fn normalize_plugin_name(import_path: &str) -> String {
 /// Returns `(plugin_dir, manifest)` or `None`.
 pub fn resolve_plugin(import_path: &str) -> Option<(PathBuf, PluginManifest)> {
     let dir = plugins_dir()?;
+    resolve_plugin_in(import_path, &dir)
+}
+
+/// Resolve a plugin manifest within a specific plugins root directory.
+pub fn resolve_plugin_in(import_path: &str, plugins_root: &Path) -> Option<(PathBuf, PluginManifest)> {
     let name = normalize_plugin_name(import_path);
-    let plugin_dir = dir.join(&name);
+    let plugin_dir = plugins_root.join(&name);
     let manifest_path = plugin_dir.join("plugin.json");
 
     if !manifest_path.is_file() {
@@ -68,7 +73,19 @@ pub fn load_plugin(import_path: &str) -> bl_core::error::Result<HashMap<String, 
         Some(pair) => pair,
         None => return Ok(HashMap::new()),
     };
+    build_plugin_exports(&plugin_dir, &manifest)
+}
 
+/// Load a plugin from a specific plugins root directory.
+pub fn load_plugin_in(import_path: &str, plugins_root: &Path) -> bl_core::error::Result<HashMap<String, Value>> {
+    let (plugin_dir, manifest) = match resolve_plugin_in(import_path, plugins_root) {
+        Some(pair) => pair,
+        None => return Ok(HashMap::new()),
+    };
+    build_plugin_exports(&plugin_dir, &manifest)
+}
+
+fn build_plugin_exports(plugin_dir: &Path, manifest: &PluginManifest) -> bl_core::error::Result<HashMap<String, Value>> {
     let mut exports = HashMap::new();
     for op in &manifest.operations {
         exports.insert(
@@ -76,7 +93,7 @@ pub fn load_plugin(import_path: &str) -> bl_core::error::Result<HashMap<String, 
             Value::PluginFunction {
                 plugin_name: manifest.name.clone(),
                 operation: op.clone(),
-                plugin_dir: plugin_dir.clone(),
+                plugin_dir: plugin_dir.to_path_buf(),
                 kind: manifest.kind.clone(),
                 entrypoint: manifest.entrypoint.clone(),
             },
@@ -375,12 +392,10 @@ mod tests {
 
     #[test]
     fn test_resolve_and_load_plugin() {
-        // Create a temporary plugin directory
-        let dir = tempfile::tempdir().unwrap();
-        let plugin_dir = dir.path().join("test-math");
+        let tmp = tempfile::tempdir().unwrap();
+        let plugin_dir = tmp.path().join("test-math");
         std::fs::create_dir_all(&plugin_dir).unwrap();
 
-        // Write manifest
         let manifest = serde_json::json!({
             "spec_version": "1",
             "name": "test-math",
@@ -395,37 +410,24 @@ mod tests {
             serde_json::to_string(&manifest).unwrap(),
         )
         .unwrap();
-
-        // Write a dummy entrypoint
         std::fs::write(plugin_dir.join("main.py"), "# dummy").unwrap();
 
-        // Override HOME so resolve_plugin finds our temp dir
-        let orig_home = std::env::var("USERPROFILE")
-            .or_else(|_| std::env::var("HOME"))
-            .ok();
-
-        // We can't easily override plugins_dir, so test resolve_plugin indirectly
-        // by testing manifest parsing
-        let content = std::fs::read_to_string(plugin_dir.join("plugin.json")).unwrap();
-        let parsed: PluginManifest = serde_json::from_str(&content).unwrap();
+        // Use resolve_plugin_in to test resolution in an isolated dir
+        let result = resolve_plugin_in("test.math", tmp.path());
+        assert!(result.is_some());
+        let (dir, parsed) = result.unwrap();
         assert_eq!(parsed.name, "test-math");
         assert_eq!(parsed.operations, vec!["square", "double"]);
         assert_eq!(parsed.kind, "python");
-
-        // Restore env
-        drop(orig_home);
+        assert_eq!(dir, plugin_dir);
     }
 
     #[test]
     fn test_load_plugin_creates_functions() {
-        // Create a temporary plugin at the actual plugins directory
-        let dir = match plugins_dir() {
-            Some(d) => d,
-            None => return, // Skip if no home dir
-        };
-
-        let plugin_dir = dir.join("_test-plugin-unit");
-        let _ = std::fs::create_dir_all(&plugin_dir);
+        // Use a temp directory so the test is isolated from ~/.biolang/plugins/
+        let tmp = tempfile::tempdir().unwrap();
+        let plugin_dir = tmp.path().join("_test-plugin-unit");
+        std::fs::create_dir_all(&plugin_dir).unwrap();
 
         let manifest = serde_json::json!({
             "spec_version": "1",
@@ -436,13 +438,14 @@ mod tests {
             "entrypoint": "main.py",
             "operations": ["op_a", "op_b"]
         });
-        let _ = std::fs::write(
+        std::fs::write(
             plugin_dir.join("plugin.json"),
             serde_json::to_string(&manifest).unwrap(),
-        );
-        let _ = std::fs::write(plugin_dir.join("main.py"), "# test");
+        )
+        .unwrap();
+        std::fs::write(plugin_dir.join("main.py"), "# test").unwrap();
 
-        let exports = load_plugin("_test.plugin.unit").unwrap();
+        let exports = load_plugin_in("_test.plugin.unit", tmp.path()).unwrap();
         assert_eq!(exports.len(), 2);
         assert!(exports.contains_key("op_a"));
         assert!(exports.contains_key("op_b"));
@@ -459,9 +462,7 @@ mod tests {
         } else {
             panic!("expected PluginFunction");
         }
-
-        // Cleanup
-        let _ = std::fs::remove_dir_all(&plugin_dir);
+        // tmp dir auto-cleaned on drop
     }
 
     #[test]
