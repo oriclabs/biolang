@@ -1,0 +1,13 @@
+# Parse BED, compute total span, count per chromosome, merge overlapping. Output JSON.
+let intervals = read_bed("data/promoters.bed")
+let n = len(intervals)
+let total_span = intervals |> map(|iv| iv.end - iv.start) |> sum()
+let per_chrom = intervals |> count_by("chrom")
+
+# Merge overlapping
+let merged = merge_intervals(intervals)
+let merged_count = len(merged)
+
+let output = {n_intervals: n, total_span: total_span,
+              per_chromosome: per_chrom, merged_count: merged_count}
+println(json_stringify(output, 2))

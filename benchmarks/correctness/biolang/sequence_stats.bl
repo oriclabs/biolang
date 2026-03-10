@@ -1,0 +1,28 @@
+# Compute N50, total length, sequence count, mean GC from FASTA. Output JSON.
+let seqs = read_fasta("data/contigs.fa")
+let lengths = seqs |> map(|s| seq_len(s.seq))
+let gc_vals = seqs |> map(|s| gc_content(s.seq))
+
+let n_seqs = len(lengths)
+let total_len = sum(lengths)
+let min_len = min(lengths)
+let max_len = max(lengths)
+let mean_gc_val = round(mean(gc_vals), 6)
+
+# N50
+let sorted_lens = lengths |> sort() |> reverse()
+let half = total_len / 2
+let cumulative = 0
+let n50 = 0
+sorted_lens |> each(|l| {
+    if cumulative < half then {
+        cumulative = cumulative + l
+        if cumulative >= half then {
+            n50 = l
+        }
+    }
+})
+
+let output = {n_sequences: n_seqs, total_length: total_len, n50: n50,
+              min_length: min_len, max_length: max_len, mean_gc: mean_gc_val}
+println(json_stringify(output, 2))
