@@ -1,0 +1,197 @@
+# Day 18: Genomic Coordinates and Intervals
+# Complete BioLang interval analysis
+
+# ── 1. Creating intervals ─────────────────────────────────────────────
+
+print("=== Creating Intervals ===\n")
+
+let brca1 = interval("chr17", 43044295, 43125483)
+let tp53 = interval("chr17", 7668402, 7687550)
+
+print(f"BRCA1: {brca1}")
+print(f"  Chromosome: {brca1.chrom}")
+print(f"  Start: {brca1.start}")
+print(f"  End: {brca1.end}")
+print(f"  Length: {brca1.end - brca1.start} bp")
+
+print(f"\nTP53: {tp53}")
+print(f"  Length: {tp53.end - tp53.start} bp")
+
+# With strand
+let gene = interval("chr17", 43044295, 43125483, strand: "-")
+print(f"Strand: {gene.strand}")
+
+# ── 2. Reading BED files ──────────────────────────────────────────────
+
+print("\n=== Reading BED Files ===\n")
+
+let exons = read_bed("data/exons.bed")
+print(f"Exon regions: {len(exons)}")
+
+# Convert to intervals
+let intervals = exons |> map(|r| interval(r.chrom, r.start, r.end))
+
+# Calculate total exonic bases
+let total = exons |> map(|r| r.end - r.start) |> reduce(|a, b| a + b)
+print(f"Total exonic bases: {total}")
+
+# Show first 5 exons
+print("\nFirst 5 exons:")
+for i in range(0, 5) {
+    let e = exons[i]
+    print(f"  {e.name}: {e.chrom}:{e.start}-{e.end} ({e.end - e.start} bp)")
+}
+
+# ── 3. Interval trees and overlap queries ─────────────────────────────
+
+print("\n=== Interval Trees ===\n")
+
+let regions = [
+    interval("chr17", 43044295, 43050000),
+    interval("chr17", 43060000, 43070000),
+    interval("chr17", 43080000, 43090000),
+    interval("chr17", 43100000, 43125483),
+]
+let tree = interval_tree(regions)
+
+# Query overlaps
+let query = interval("chr17", 43065000, 43085000)
+let hits = query_overlaps(tree, query)
+print(f"Query: {query}")
+print(f"Overlapping regions: {len(hits)}")
+
+# Count overlaps
+let n = count_overlaps(tree, query)
+print(f"Number of overlaps: {n}")
+
+# Bulk overlaps
+print("\nBulk overlap queries:")
+let queries = [
+    interval("chr17", 43045000, 43046000),
+    interval("chr17", 43065000, 43066000),
+    interval("chr17", 43095000, 43096000),
+]
+let results = bulk_overlaps(tree, queries)
+for i in range(0, len(queries)) {
+    print(f"  Query {i}: {len(results[i])} overlaps")
+}
+
+# Nearest query
+let lonely = interval("chr17", 43055000, 43056000)
+let nearest = query_nearest(tree, lonely)
+print(f"\nNearest to {lonely}: {nearest}")
+
+# ── 4. Variant-in-region filtering ────────────────────────────────────
+
+print("\n=== Variant-in-Region Filtering ===\n")
+
+let variants = read_vcf("data/variants.vcf")
+let exon_intervals = exons |> map(|e| interval(e.chrom, e.start, e.end))
+let exon_tree = interval_tree(exon_intervals)
+
+# Check each variant
+let exonic_variants = variants |> filter(|v| {
+    let v_interval = interval(v.chrom, v.pos - 1, v.pos)  # VCF 1-based -> 0-based
+    count_overlaps(exon_tree, v_interval) > 0
+})
+
+print(f"Total variants: {len(variants)}")
+print(f"Exonic variants: {len(exonic_variants)}")
+print(f"Intronic/intergenic: {len(variants) - len(exonic_variants)}")
+
+# ── 5. Coverage analysis ──────────────────────────────────────────────
+
+print("\n=== Coverage Analysis ===\n")
+
+let reads = [
+    [100, 250],
+    [150, 300],
+    [200, 350],
+    [400, 550],
+    [420, 600],
+]
+coverage(reads, "chr1")
+
+# ── 6. Coordinate conversion ──────────────────────────────────────────
+
+print("\n=== Coordinate Conversion ===\n")
+
+fn bed_to_vcf(chrom, start, end) {
+    {chrom: chrom, pos: start + 1}
+}
+
+fn vcf_to_bed(chrom, pos) {
+    {chrom: chrom, start: pos - 1, end: pos}
+}
+
+let bed_region = {chrom: "chr17", start: 43044294, end: 43044295}
+let vcf_pos = bed_to_vcf(bed_region.chrom, bed_region.start, bed_region.end)
+print(f"BED {bed_region.start}-{bed_region.end} -> VCF pos {vcf_pos.pos}")
+
+let vcf_variant = {chrom: "chr17", pos: 43044295}
+let bed_coords = vcf_to_bed(vcf_variant.chrom, vcf_variant.pos)
+print(f"VCF pos {vcf_variant.pos} -> BED {bed_coords.start}-{bed_coords.end}")
+
+let roundtrip = bed_to_vcf(bed_coords.chrom, bed_coords.start, bed_coords.end)
+print(f"Round-trip VCF pos: {roundtrip.pos} (should be {vcf_variant.pos})")
+
+# ── 7. GFF annotations ────────────────────────────────────────────────
+
+print("\n=== GFF Annotations ===\n")
+
+let features = read_gff("data/annotations.gff")
+
+let brca1_exons = features
+    |> filter(|f| f.type == "exon")
+    |> filter(|f| contains(str(f), "BRCA1"))
+
+print(f"BRCA1 exons: {len(brca1_exons)}")
+
+let exon_tree2 = interval_tree(
+    brca1_exons |> map(|e| interval(e.chrom, e.start - 1, e.end))
+)
+print(f"Interval tree built from {len(brca1_exons)} exons")
+
+# ── 8. Writing BED files ──────────────────────────────────────────────
+
+print("\n=== Writing BED Files ===\n")
+
+let high_coverage = [
+    {chrom: "chr17", start: 43044295, end: 43050000},
+    {chrom: "chr17", start: 43100000, end: 43125483},
+]
+write_bed(high_coverage, "results/high_coverage.bed")
+print("Wrote high-coverage regions to BED file")
+
+# ── 9. Complete exome report ──────────────────────────────────────────
+
+print("\n=== Exome Coverage Report ===\n")
+
+let targets = read_bed("data/exons.bed")
+let total_target_bp = targets |> map(|r| r.end - r.start) |> reduce(|a, b| a + b)
+print(f"Target regions: {len(targets)}")
+print(f"Total target bases: {total_target_bp}")
+
+let report_tree = interval_tree(targets |> map(|t| interval(t.chrom, t.start, t.end)))
+
+let all_variants = read_vcf("data/variants.vcf")
+let on_target = all_variants |> filter(|v| {
+    count_overlaps(report_tree, interval(v.chrom, v.pos - 1, v.pos)) > 0
+}) |> collect()
+
+let off_target = len(all_variants) - len(on_target)
+print(f"\nVariant classification:")
+print(f"  On-target:  {len(on_target)}")
+print(f"  Off-target: {off_target}")
+print(f"  On-target rate: {round(len(on_target) / len(all_variants) * 100, 1)}%")
+
+let by_chrom = on_target
+    |> to_table()
+    |> group_by("chrom")
+    |> summarize(|chrom, rows| {chrom: chrom, n: len(rows)})
+print(f"\nOn-target variants per chromosome:")
+print(by_chrom)
+
+write_csv(on_target |> to_table(), "results/on_target_variants.csv")
+print("\nResults saved")
+print("\n=== Report complete ===")

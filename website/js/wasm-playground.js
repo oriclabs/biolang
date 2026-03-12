@@ -130,7 +130,12 @@
       // Show result or error
       if (result.ok) {
         if (result.value && result.value !== 'nil' && result.value !== '()') {
-          appendOutput(result.value, 'result', result.type);
+          // Detect SVG output — render inline
+          if (result.value.trimStart().indexOf('<svg') === 0) {
+            appendSvg(result.value);
+          } else {
+            appendOutput(result.value, 'result', result.type);
+          }
         }
       } else if (result.error) {
         appendOutput(result.error, 'error');
@@ -164,6 +169,16 @@
     }
 
     output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function appendSvg(svgStr) {
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'background:#fff;border-radius:4px;padding:8px;margin:4px 0;overflow-x:auto;max-width:100%';
+    wrapper.innerHTML = svgStr;
+    var svg = wrapper.querySelector('svg');
+    if (svg) { svg.style.maxWidth = '100%'; svg.style.height = 'auto'; }
+    output.appendChild(wrapper);
     output.scrollTop = output.scrollHeight;
   }
 
@@ -214,15 +229,13 @@
     { name: 'Hello DNA', code:
       '# DNA sequence basics\n' +
       'let seq = dna"ATCGATCGATCG"\n' +
-      'print("Sequence:", seq)\n' +
-      'print(f"Length: {len(seq)} bp")\n\n' +
+      'println(f"Sequence: {seq}")\n' +
+      'println(f"Length:   {seq_len(seq)} bp")\n' +
+      'println(f"GC:      {round(gc_content(seq) * 100, 1)}%")\n\n' +
       '# DNA literals are first-class types\n' +
       'let prot = protein"MKAF"\n' +
-      'print("Protein:", prot)\n' +
-      'print(f"Protein length: {len(prot)} aa")\n\n' +
-      '# K-mer analysis\n' +
-      'let counts = kmer_count(seq, 3)\n' +
-      'print(f"3-mer counts: {counts}")\n'
+      'println(f"Protein: {prot}")\n' +
+      'println(f"Protein length: {len(prot)} aa")\n'
     },
     { name: 'Variables & Types', code:
       '# BioLang is dynamically typed\n' +
@@ -231,10 +244,10 @@
       'let ratio = 0.95\n' +
       'let active = true\n' +
       'let genes = ["TP53", "EGFR", "BRCA1"]\n\n' +
-      'print(f"Gene: {name}")\n' +
-      'print(f"Count: {count}")\n' +
-      'print(f"Genes: {genes}")\n' +
-      'print(f"Length: {len(genes)}")\n'
+      'println(f"Gene: {name}")\n' +
+      'println(f"Count: {count}")\n' +
+      'println(f"Genes: {genes}")\n' +
+      'println(f"Length: {len(genes)}")\n'
     },
     { name: 'Pipes & Transforms', code:
       '# Pipe operator |> passes result as first argument\n' +
@@ -243,72 +256,112 @@
       '  |> filter(|n| n > 3)\n' +
       '  |> sort()\n' +
       '  |> map(|n| n * 10)\n\n' +
-      'print(f"Original: {nums}")\n' +
-      'print(f"Filtered, sorted, scaled: {result}")\n' +
-      'print(f"Sum: {sum(result)}")\n'
+      'println(f"Original: {nums}")\n' +
+      'println(f"Filtered, sorted, scaled: {result}")\n' +
+      'println(f"Sum: {sum(result)}")\n'
     },
     { cat: 'Bioinformatics' },
+    { name: 'DNA Operations', code:
+      '# Full DNA analysis pipeline\n' +
+      'let seq = dna"ATCGATCGATCG"\n' +
+      'println(f"Sequence:    {seq}")\n' +
+      'println(f"Complement:  {complement(seq)}")\n' +
+      'println(f"Rev-comp:    {reverse_complement(seq)}")\n' +
+      'println(f"Transcribed: {transcribe(seq)}")\n\n' +
+      '# Translate a coding sequence\n' +
+      'let coding = dna"ATGAAAGCTTTTGACTGA"\n' +
+      'println(f"DNA:     {coding}")\n' +
+      'println(f"Protein: {translate(coding)}")\n'
+    },
     { name: 'GC Content Analysis', code:
-      '# Analyze GC content of multiple sequences\n' +
-      'fn calc_gc(s) {\n' +
-      '  let bases = split(s, "")\n' +
-      '  let gc = bases |> filter(|b| b == "G" or b == "C") |> len()\n' +
-      '  round(gc / len(bases) * 100, 1)\n' +
-      '}\n\n' +
+      '# Analyze GC content using built-in functions\n' +
       'let sequences = [\n' +
-      '  "ATCGATCGATCGATCG",\n' +
-      '  "GCGCGCGCATATATAT",\n' +
-      '  "AAATTTAAATTTAAAT",\n' +
-      '  "GCGCGCGCGCGCGCGC"\n' +
+      '  dna"ATCGATCGATCGATCG",\n' +
+      '  dna"GCGCGCGCATATATAT",\n' +
+      '  dna"AAATTTAAATTTAAAT",\n' +
+      '  dna"GCGCGCGCGCGCGCGC"\n' +
       ']\n\n' +
-      'let gc_values = sequences |> map(|s| calc_gc(s))\n' +
-      'print(f"GC% values: {gc_values}")\n' +
-      'print(f"Mean GC%: {round(mean(gc_values), 1)}")\n' +
-      'print(f"Min GC%: {min(gc_values)}")\n' +
-      'print(f"Max GC%: {max(gc_values)}")\n'
+      'let gc_values = sequences |> map(|s| round(gc_content(s) * 100, 1))\n' +
+      'println(f"GC% values: {gc_values}")\n' +
+      'println(f"Mean GC%:   {round(mean(gc_values), 1)}")\n' +
+      'println(f"Min GC%:    {min(gc_values)}")\n' +
+      'println(f"Max GC%:    {max(gc_values)}")\n'
     },
     { name: 'K-mer Counting', code:
       '# Count k-mers in a DNA sequence\n' +
-      'let seq = dna"ATCGATCGATCGATCG"\n' +
-      'let k = 3\n\n' +
+      'let seq = dna"ATCGATCGATCGATCG"\n\n' +
       '# kmer_count returns a table of k-mer frequencies\n' +
-      'let counts = kmer_count(seq, k)\n' +
-      'print(f"{k}-mer counts:")\n' +
-      'print(counts)\n\n' +
+      'let tri = kmer_count(seq, 3)\n' +
+      'println("3-mer counts:")\n' +
+      'println(tri)\n\n' +
       '# Try different k values\n' +
       'let di = kmer_count(seq, 2)\n' +
-      'print(f"\\n2-mer counts:")\n' +
-      'print(di)\n'
+      'println("\\n2-mer counts:")\n' +
+      'println(di)\n'
     },
     { name: 'Sequence Literals', code:
       '# BioLang has native DNA, RNA, and Protein literals\n' +
       'let dna_seq = dna"ATGAAAGCGTTCGAA"\n' +
       'let rna_seq = rna"AUGAAAGCGUUCGAA"\n' +
       'let prot = protein"MKAFEPG"\n\n' +
-      'print("DNA:", dna_seq)\n' +
-      'print(f"DNA length: {len(dna_seq)} bp")\n\n' +
-      'print("RNA:", rna_seq)\n' +
-      'print(f"RNA length: {len(rna_seq)} bases")\n\n' +
-      'print("Protein:", prot)\n' +
-      'print(f"Protein length: {len(prot)} aa")\n\n' +
+      'println(f"DNA:     {dna_seq} ({seq_len(dna_seq)} bp)")\n' +
+      'println(f"RNA:     {rna_seq} ({seq_len(rna_seq)} bases)")\n' +
+      'println(f"Protein: {prot} ({len(prot)} aa)")\n\n' +
       '# Type checking\n' +
-      'print(f"DNA type: {type(dna_seq)}")\n' +
-      'print(f"RNA type: {type(rna_seq)}")\n' +
-      'print(f"Protein type: {type(prot)}")\n'
+      'println(f"DNA type:     {type(dna_seq)}")\n' +
+      'println(f"RNA type:     {type(rna_seq)}")\n' +
+      'println(f"Protein type: {type(prot)}")\n'
     },
-    { cat: 'Data & Math' },
-    { name: 'Statistics', code:
+    { name: 'ORF Finding', code:
+      '# Find open reading frames in a sequence\n' +
+      'let seq = dna"AATGATGAAAGCTTTTGACTGAATCGATG"\n' +
+      'let orfs = find_orfs(seq)\n' +
+      'println(f"Sequence: {seq}")\n' +
+      'println(f"Found {len(orfs)} ORFs:")\n' +
+      'orfs |> each(|orf| println(f"  {orf}"))\n\n' +
+      '# Codon usage analysis\n' +
+      'let coding = dna"ATGAAAGCTTTTGACTGA"\n' +
+      'let usage = codon_usage(coding)\n' +
+      'println(f"\\nCodon usage: {usage}")\n'
+    },
+    { cat: 'Statistics' },
+    { name: 'Descriptive Stats', code:
       '# Statistical functions\n' +
       'let data = [2.5, 3.1, 4.7, 5.2, 3.8, 6.1, 4.3, 5.5]\n\n' +
-      'print(f"Mean:   {mean(data)}")\n' +
-      'print(f"Median: {median(data)}")\n' +
-      'print(f"Stdev:  {stdev(data)}")\n' +
-      'print(f"Min:    {min(data)}")\n' +
-      'print(f"Max:    {max(data)}")\n' +
-      'print(f"Sum:    {sum(data)}")\n' +
-      'print(f"Sorted: {sort(data)}")\n'
+      'println(f"Mean:   {round(mean(data), 2)}")\n' +
+      'println(f"Median: {median(data)}")\n' +
+      'println(f"Stdev:  {round(stdev(data), 2)}")\n' +
+      'println(f"Min:    {min(data)}")\n' +
+      'println(f"Max:    {max(data)}")\n' +
+      'println(f"Sum:    {sum(data)}")\n' +
+      'println(f"Sorted: {sort(data)}")\n'
     },
-    { name: 'Records & Maps', code:
+    { name: 'Hypothesis Testing', code:
+      '# T-test: are tumor and normal different?\n' +
+      'let normal = [5.2, 4.8, 5.1, 4.9, 5.3]\n' +
+      'let tumor = [8.1, 7.9, 8.5, 7.6, 8.3]\n\n' +
+      'let result = ttest(normal, tumor)\n' +
+      'println(f"t-statistic: {round(result.statistic, 3)}")\n' +
+      'println(f"p-value:     {result.p_value}")\n' +
+      'println(f"Significant: {result.p_value < 0.05}")\n\n' +
+      '# Correlation\n' +
+      'let x = [1.0, 2.0, 3.0, 4.0, 5.0]\n' +
+      'let y = [2.1, 4.0, 5.8, 8.1, 9.9]\n' +
+      'let r = cor(x, y)\n' +
+      'println(f"\\nCorrelation: {round(r, 4)}")\n'
+    },
+    { name: 'Linear Regression', code:
+      '# Simple linear regression\n' +
+      'let x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]\n' +
+      'let y = [2.1, 3.9, 6.2, 7.8, 10.1, 12.3]\n\n' +
+      'let model = lm(x, y)\n' +
+      'println(f"Slope:     {round(model.slope, 3)}")\n' +
+      'println(f"Intercept: {round(model.intercept, 3)}")\n' +
+      'println(f"R-squared: {round(model.r_squared, 3)}")\n' +
+      'println(f"p-value:   {model.p_value}")\n'
+    },
+    { cat: 'Data & Functions' },
+    { name: 'Records', code:
       '# Records (like structs/objects)\n' +
       'let gene = {\n' +
       '  name: "BRCA1",\n' +
@@ -316,33 +369,24 @@
       '  start: 43044295,\n' +
       '  end: 43125483\n' +
       '}\n\n' +
-      'print(f"Gene: {gene.name}")\n' +
-      'print(f"Location: {gene.chrom}:{gene.start}-{gene.end}")\n' +
-      'print(f"Length: {gene.end - gene.start} bp")\n\n' +
-      '# Maps\n' +
-      'let codon_table = {"ATG": "Met", "TAA": "Stop", "GCG": "Ala"}\n' +
-      'print(f"ATG codes for: {codon_table[\\"ATG\\"]}")\n'
+      'println(f"Gene: {gene.name}")\n' +
+      'println(f"Location: {gene.chrom}:{gene.start}-{gene.end}")\n' +
+      'println(f"Length: {gene.end - gene.start} bp")\n'
     },
     { name: 'Functions & Closures', code:
       '# Define custom functions\n' +
-      'fn gc_percent(s) {\n' +
-      '  let bases = split(s, "")\n' +
-      '  let gc = bases |> filter(|b| b == "G" or b == "C") |> len()\n' +
-      '  round(gc / len(bases) * 100, 1)\n' +
+      'fn classify_gc(seq) {\n' +
+      '  let gc = gc_content(seq) * 100\n' +
+      '  if gc > 60.0 { "GC-rich" } else if gc < 40.0 { "AT-rich" } else { "balanced" }\n' +
       '}\n\n' +
-      'fn classify(gc) {\n' +
-      '  if gc > 60.0 {\n' +
-      '    "GC-rich"\n' +
-      '  } else if gc < 40.0 {\n' +
-      '    "AT-rich"\n' +
-      '  } else {\n' +
-      '    "balanced"\n' +
-      '  }\n' +
-      '}\n\n' +
-      'let seqs = ["GCGCGCGCGC", "ATATATATAT", "ATCGATCGAT"]\n\n' +
+      'let seqs = [\n' +
+      '  dna"GCGCGCGCGC",\n' +
+      '  dna"ATATATATAT",\n' +
+      '  dna"ATCGATCGAT"\n' +
+      ']\n\n' +
       'seqs |> each(|s| {\n' +
-      '  let gc = gc_percent(s)\n' +
-      '  print(f"{s}: GC={gc}% -> {classify(gc)}")\n' +
+      '  let gc = round(gc_content(s) * 100, 1)\n' +
+      '  println(f"{s}: GC={gc}% -> {classify_gc(s)}")\n' +
       '})\n'
     }
   ];

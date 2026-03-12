@@ -2085,3 +2085,22 @@ fn test_if_then_else() {
 if x > 0 then "positive" else "non-positive"
 "#);
 }
+
+#[test]
+fn test_if_block_else_newline() {
+    // `} \n else` should work — parser peeks past newlines for else
+    let _prog = parse(r#"
+fn classify(gc) {
+    if gc > 60.0 { "GC-rich" }
+    else if gc < 40.0 { "AT-rich" }
+    else { "balanced" }
+}
+"#);
+}
+
+#[test]
+fn test_if_block_else_same_line() {
+    let _prog = parse(r#"
+if x > 0 { "pos" } else { "neg" }
+"#);
+}

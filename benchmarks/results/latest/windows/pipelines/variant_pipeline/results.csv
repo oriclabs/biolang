@@ -1,0 +1,5 @@
+﻿task,language,time_sec,loc
+variant_pipeline,biolang,1.017,8
+variant_pipeline,python,1.028,29
+variant_pipeline_real,biolang,1.024,16
+variant_pipeline_real,python,1.024,31

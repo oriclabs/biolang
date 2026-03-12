@@ -1719,8 +1719,10 @@ impl Parser {
         let then_body = self.parse_block_body()?;
         self.expect(TokenKind::RBrace)?;
 
-        let else_body = if self.check(&TokenKind::Else) {
-            self.advance();
+        // Peek past newlines for `else` — allows `} \n else` style
+        let else_body = if self.peek_past_newlines_is(&TokenKind::Else) {
+            self.skip_newlines();
+            self.advance(); // consume 'else'
             if self.check(&TokenKind::If) {
                 // else if — wrap in block
                 let elif = self.parse_if_expr()?;

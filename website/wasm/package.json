@@ -4,11 +4,9 @@
   "version": "0.1.0",
   "files": [
     "br_wasm_bg.wasm",
-    "br_wasm.js",
-    "br_wasm.d.ts"
+    "br_wasm.js"
   ],
   "main": "br_wasm.js",
-  "types": "br_wasm.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]

@@ -1,0 +1,190 @@
+# Day 12: Finding Variants in Genomes — Complete Analysis Pipeline
+# Requires: data/variants.vcf (run init.bl first)
+#
+# Demonstrates: read_vcf, filter, map, to_table, group_by, summarize,
+# first, len, collect, print, round, write_csv, tstv_ratio, het_hom_ratio,
+# variant_summary, ensembl_vep, try/catch, head, count
+
+# ── Step 1: Load and Explore VCF ────────────────────────────────────────
+
+print("=== Step 1: Loading VCF ===")
+
+let variants = read_vcf("data/variants.vcf")
+print(f"Total variants loaded: {len(variants)}")
+
+# Examine the first variant
+let v = first(variants)
+print(f"First variant:")
+print(f"  Chrom: {v.chrom}")
+print(f"  Position: {v.pos}")
+print(f"  ID: {v.id}")
+print(f"  Ref: {v.ref}, Alt: {v.alt}")
+print(f"  Quality: {v.qual}")
+print(f"  Filter: {v.filter}")
+print("")
+
+# ── Step 2: Variant Classification ──────────────────────────────────────
+
+print("=== Step 2: Variant Classification ===")
+
+# Use built-in variant_type property
+let snps = variants |> filter(|v| v.is_snp) |> collect()
+let indels = variants |> filter(|v| v.is_indel) |> collect()
+print(f"SNPs: {len(snps)}")
+print(f"Indels: {len(indels)}")
+
+# Show types for first 10 variants
+let first_ten = variants |> take(10) |> map(|v| {
+    chrom: v.chrom, pos: v.pos,
+    ref: v.ref, alt: v.alt,
+    type: v.variant_type
+})
+print("First 10 variants with types:")
+for item in first_ten {
+    print(f"  {item.chrom}:{item.pos} {item.ref}>{item.alt} ({item.type})")
+}
+print("")
+
+# ── Step 3: Transition/Transversion Ratio ───────────────────────────────
+
+print("=== Step 3: Ts/Tv Ratio ===")
+
+let ratio = tstv_ratio(variants)
+print(f"Ts/Tv ratio: {round(ratio, 2)}")
+print("Expected ~2.0 for whole genome sequencing")
+
+# Count transitions and transversions manually
+let ts_count = variants |> filter(|v| v.is_snp and v.is_transition) |> count()
+let tv_count = variants |> filter(|v| v.is_snp and v.is_transversion) |> count()
+print(f"Transitions: {ts_count}")
+print(f"Transversions: {tv_count}")
+print("")
+
+# ── Step 4: Quality Filtering ───────────────────────────────────────────
+
+print("=== Step 4: Quality Filtering ===")
+
+# Filter by PASS status
+let passed = variants |> filter(|v| v.filter == "PASS") |> collect()
+print(f"PASS variants: {len(passed)} / {len(variants)}")
+
+# Filter by quality score
+let high_qual = variants
+    |> filter(|v| v.filter == "PASS")
+    |> filter(|v| v.qual >= 30)
+    |> collect()
+print(f"PASS + quality >= 30: {len(high_qual)}")
+
+# Show removed variants
+let low_qual = variants |> filter(|v| v.filter != "PASS") |> collect()
+print(f"Filtered out (non-PASS): {len(low_qual)}")
+for lq in low_qual {
+    print(f"  {lq.chrom}:{lq.pos} {lq.ref}>{lq.alt} qual={lq.qual} filter={lq.filter}")
+}
+print("")
+
+# ── Step 5: Variant Summary ────────────────────────────────────────────
+
+print("=== Step 5: Variant Summary ===")
+
+let summary = variant_summary(variants)
+print(f"Total alleles: {summary.total}")
+print(f"  SNPs: {summary.snp}")
+print(f"  Indels: {summary.indel}")
+print(f"  MNPs: {summary.mnp}")
+print(f"  Transitions: {summary.transitions}")
+print(f"  Transversions: {summary.transversions}")
+print(f"  Ts/Tv ratio: {round(summary.ts_tv_ratio, 2)}")
+print(f"  Multiallelic: {summary.multiallelic}")
+print("")
+
+# ── Step 6: Chromosome Distribution ────────────────────────────────────
+
+print("=== Step 6: Chromosome Distribution ===")
+
+let by_chrom = variants
+    |> map(|v| {chrom: v.chrom, type: v.variant_type})
+    |> to_table()
+    |> group_by("chrom")
+    |> summarize(|chrom, rows| {chrom: chrom, count: len(rows)})
+print(by_chrom)
+print("")
+
+# ── Step 7: Het/Hom Ratio ──────────────────────────────────────────────
+
+print("=== Step 7: Het/Hom Ratio ===")
+
+let hh_ratio = het_hom_ratio(variants)
+print(f"Het/Hom ratio: {round(hh_ratio, 2)}")
+print("Expected ~1.5-2.0 for diploid organisms")
+
+# Count het and hom variants manually
+let het_count = variants |> filter(|v| v.is_het) |> count()
+let hom_count = variants |> filter(|v| v.is_hom_alt) |> count()
+print(f"Heterozygous: {het_count}")
+print(f"Homozygous alt: {hom_count}")
+print("")
+
+# ── Step 8: Annotation with Ensembl VEP ────────────────────────────────
+
+print("=== Step 8: VEP Annotation (requires internet) ===")
+
+# Annotate a known TP53 region variant
+let tp53_variant = "17:7577120:G:A"
+print(f"Annotating: {tp53_variant}")
+let annotation = try {
+    ensembl_vep(tp53_variant)
+} catch e {
+    print(f"  VEP unavailable (offline?): {e}")
+    nil
+}
+
+if annotation != nil {
+    let result = first(annotation)
+    print(f"  Allele string: {result.allele_string}")
+    print(f"  Most severe consequence: {result.most_severe_consequence}")
+    let tcs = result.transcript_consequences
+    if len(tcs) > 0 {
+        let tc = first(tcs)
+        print(f"  Gene: {tc.gene_id}")
+        print(f"  Impact: {tc.impact}")
+        print(f"  Consequences: {tc.consequences}")
+    }
+} else {
+    print("  Skipping VEP annotation (no internet connection)")
+}
+print("")
+
+# ── Step 9: Complete Filtering Pipeline ─────────────────────────────────
+
+print("=== Step 9: Complete Filtering Pipeline ===")
+
+let pipeline_results = variants
+    |> filter(|v| v.filter == "PASS")
+    |> filter(|v| v.qual >= 30)
+    |> map(|v| {
+        chrom: v.chrom,
+        pos: v.pos,
+        id: v.id,
+        ref: v.ref,
+        alt: v.alt,
+        qual: v.qual,
+        type: v.variant_type
+    })
+    |> collect()
+
+print(f"Variants after filtering: {len(pipeline_results)}")
+
+# Type breakdown of filtered variants
+let filtered_snps = pipeline_results |> filter(|v| v.type == "Snp") |> count()
+let filtered_indels = pipeline_results |> filter(|v| v.type == "Indel") |> count()
+print(f"  Filtered SNPs: {filtered_snps}")
+print(f"  Filtered Indels: {filtered_indels}")
+
+# Export to CSV
+let results_table = pipeline_results |> to_table()
+write_csv(results_table, "results/classified_variants.csv")
+print(f"Results saved to results/classified_variants.csv")
+print("")
+
+print("=== Analysis Complete ===")

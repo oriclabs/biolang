@@ -1,533 +1,312 @@
-// BioLang Playground — Simulated inline interpreter for docs
-// Handles ~40 core builtins, pipes, DNA/RNA/protein literals, collections, math
+// BioLang Playground — WASM-powered inline code execution for docs
+// Auto-adds Run buttons to all language-biolang code blocks
+// Lazy-loads WASM on first Run click (~4 MB), then cached for session
 
 (function () {
   'use strict';
 
-  // ── Mini Evaluator ──
+  // ── WASM module state ──
+  var wasm = null;
+  var wasmLoading = false;
+  var wasmQueue = [];
 
-  function BioLangEval() {
-    this.env = {};
+  function getWasmBasePath() {
+    // Detect path to /wasm/ from current page location
+    var path = window.location.pathname;
+    // Count depth from site root
+    var segments = path.split('/').filter(function(s) { return s.length > 0; });
+    // Remove the last segment (the HTML file itself)
+    segments.pop();
+    var prefix = segments.map(function() { return '..'; }).join('/');
+    return prefix ? prefix + '/wasm' : './wasm';
   }
 
-  // DNA/RNA/Protein helpers
-  function complementBase(b) {
-    return { A: 'T', T: 'A', C: 'G', G: 'C', a: 't', t: 'a', c: 'g', g: 'c' }[b] || b;
-  }
-  function reverseComplement(seq) {
-    return seq.split('').reverse().map(complementBase).join('');
-  }
-  function gcContent(seq) {
-    var s = seq.toUpperCase();
-    var gc = 0;
-    for (var i = 0; i < s.length; i++) { if (s[i] === 'G' || s[i] === 'C') gc++; }
-    return s.length ? gc / s.length : 0;
-  }
-  function transcribe(seq) {
-    return seq.replace(/T/g, 'U').replace(/t/g, 'u');
-  }
-  var codonTable = {
-    'AUG':'M','UUU':'F','UUC':'F','UUA':'L','UUG':'L','CUU':'L','CUC':'L','CUA':'L','CUG':'L',
-    'AUU':'I','AUC':'I','AUA':'I','GUU':'V','GUC':'V','GUA':'V','GUG':'V','UCU':'S','UCC':'S',
-    'UCA':'S','UCG':'S','CCU':'P','CCC':'P','CCA':'P','CCG':'P','ACU':'T','ACC':'T','ACA':'T',
-    'ACG':'T','GCU':'A','GCC':'A','GCA':'A','GCG':'A','UAU':'Y','UAC':'Y','CAU':'H','CAC':'H',
-    'CAA':'Q','CAG':'Q','AAU':'N','AAC':'N','AAA':'K','AAG':'K','GAU':'D','GAC':'D','GAA':'E',
-    'GAG':'E','UGU':'C','UGC':'C','UGG':'W','CGU':'R','CGC':'R','CGA':'R','CGG':'R','AGU':'S',
-    'AGC':'S','AGA':'R','AGG':'R','GGU':'G','GGC':'G','GGA':'G','GGG':'G','UAA':'*','UAG':'*','UGA':'*'
-  };
-  function translate(seq) {
-    var rna = seq.toUpperCase().replace(/T/g, 'U');
-    var protein = '';
-    for (var i = 0; i + 2 < rna.length; i += 3) {
-      var codon = rna.substring(i, i + 3);
-      var aa = codonTable[codon];
-      if (!aa || aa === '*') break;
-      protein += aa;
-    }
-    return protein;
-  }
+  function loadWasm(callback) {
+    if (wasm) { callback(null); return; }
+    if (wasmLoading) { wasmQueue.push(callback); return; }
+    wasmLoading = true;
+    wasmQueue.push(callback);
 
-  // Sparkline
-  var sparkChars = '▁▂▃▄▅▆▇█';
-  function sparkline(arr) {
-    if (!arr.length) return '';
-    var mn = Math.min.apply(null, arr), mx = Math.max.apply(null, arr);
-    var range = mx - mn || 1;
-    return arr.map(function (v) {
-      var idx = Math.round(((v - mn) / range) * 7);
-      return sparkChars[idx];
-    }).join('');
+    var basePath = getWasmBasePath();
+    var script = document.createElement('script');
+    script.type = 'module';
+    script.textContent = [
+      'try {',
+      '  var mod = await import("' + basePath + '/br_wasm.js");',
+      '  await mod.default();',
+      '  window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset };',
+      '  window.dispatchEvent(new Event("bl-wasm-ready"));',
+      '} catch(e) {',
+      '  window.__blWasmError = e;',
+      '  window.dispatchEvent(new Event("bl-wasm-error"));',
+      '}'
+    ].join('\n');
+    document.head.appendChild(script);
+
+    window.addEventListener('bl-wasm-ready', function() {
+      wasm = window.__blWasm;
+      wasmLoading = false;
+      var q = wasmQueue.slice();
+      wasmQueue = [];
+      q.forEach(function(cb) { cb(null); });
+    }, { once: true });
+
+    window.addEventListener('bl-wasm-error', function() {
+      wasmLoading = false;
+      var err = window.__blWasmError || new Error('WASM load failed');
+      var q = wasmQueue.slice();
+      wasmQueue = [];
+      q.forEach(function(cb) { cb(err); });
+    }, { once: true });
   }
 
-  // K-mer count
-  function kmerCount(seq, k) {
-    var counts = {};
-    var s = seq.toUpperCase();
-    for (var i = 0; i <= s.length - k; i++) {
-      var kmer = s.substring(i, i + k);
-      counts[kmer] = (counts[kmer] || 0) + 1;
-    }
-    return counts;
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
   }
 
-  // ── Expression Parser & Evaluator ──
+  // ── CLI detection ──
 
-  BioLangEval.prototype.eval = function (code) {
-    var lines = code.split('\n');
-    var output = [];
-    var self = this;
-    this.env = {};
+  function isCLIRequired(pre) {
+    // Check if the preceding element is a blockquote/note with "Requires CLI"
+    var prev = pre.previousElementSibling;
+    if (prev && prev.textContent && prev.textContent.indexOf('Requires CLI') !== -1) return true;
+    // Check code content for CLI-only patterns
+    var code = pre.querySelector('code');
+    var text = code ? code.textContent : '';
+    // File I/O: FASTA, FASTQ, VCF, BED, GFF, SAM, BAM, CSV, generic open/save
+    if (/\b(read_fasta|read_fastq|read_vcf|read_bed|read_gff|read_sam|read_bam|read_csv|write_csv|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
+    if (/\b(csv|tsv|vcf|fastq|fasta|bam|sam|bed|gff)\s*\(/.test(text)) return true;
+    if (/\b(open|save|write_file|read_file|read_lines)\s*\(/.test(text)) return true;
+    // Network APIs: NCBI, Ensembl, UniProt, KEGG, PDB, etc.
+    if (/\b(ncbi_gene|ncbi_search|ncbi_sequence|ensembl_gene|ensembl_vep|uniprot_search|uniprot_entry|kegg_get|kegg_find|pdb_entry|string_network|go_term|go_annotations|cosmic_gene|datasets_gene|reactome_pathways|ucsc_sequence|fetch|http_get|http_post)\b/.test(text)) return true;
+    // LLM chat
+    if (/\b(chat|chat_code|llm|ask_llm)\s*\(/.test(text)) return true;
+    // Notebooks and pipelines
+    if (/\b(notebook|pipeline|import\s+")\b/.test(text)) return true;
+    // Saving plots to files (save_svg, save_png, save_plot write to disk)
+    if (/\b(save_plot|save_svg|save_png)\s*\(/.test(text)) return true;
+    return false;
+  }
 
-    lines.forEach(function (rawLine) {
-      var line = rawLine.replace(/#.*$/, '').trim();
-      if (!line) return;
+  // ── Detect runnable code blocks ──
 
-      // let bindings
-      var letMatch = line.match(/^let\s+(\w+)\s*=\s*(.+)$/);
-      if (letMatch) {
-        self.env[letMatch[1]] = self.evalExpr(letMatch[2].trim());
-        return;
-      }
+  function shouldSkipBlock(code) {
+    var text = code.textContent || '';
+    // Skip REPL interaction (bl> prompt)
+    if (text.trimStart().indexOf('bl>') === 0) return true;
+    // Skip very short blocks (single-line comments or trivial)
+    var lines = text.trim().split('\n');
+    if (lines.length < 2 && !text.includes('let ') && !text.includes('print') && !text.includes('|>') && !text.includes('println')) return true;
+    // Skip blocks that are just output (no code keywords)
+    var hasCode = /\b(let|fn|if|for|while|print|println|dna"|rna"|protein"|import|\|>)\b/.test(text);
+    if (!hasCode) return true;
+    return false;
+  }
 
-      // print/println — find matching closing paren
-      if (line.match(/^(?:print|println)\(/)) {
-        var fnM = line.match(/^(print|println)\((.*)\)$/s);
-        if (fnM) {
-          var printArgs = self.splitTopLevel(fnM[2], ',');
-          var parts = printArgs.map(function(a) { return self.formatPrint(self.evalExpr(a.trim())); });
-          output.push(parts.join(''));
-          return;
-        }
-      }
-
-      // Bare expression
-      var result = self.evalExpr(line);
-      if (result !== undefined && result !== null) {
-        output.push(self.formatValue(result));
+  function autoMarkRunnable() {
+    var blocks = document.querySelectorAll('code.language-biolang, code.language-bio');
+    blocks.forEach(function(code) {
+      if (shouldSkipBlock(code)) return;
+      var pre = code.parentElement;
+      if (pre && pre.tagName === 'PRE') {
+        pre.setAttribute('data-runnable', '');
       }
     });
+  }
 
-    return output.join('\n');
-  };
-
-  BioLangEval.prototype.evalExpr = function (expr) {
-    expr = expr.trim();
-
-    // Handle pipe chains: split on |> and fold
-    if (expr.indexOf('|>') !== -1) {
-      return this.evalPipe(expr);
-    }
-
-    return this.evalAtom(expr);
-  };
-
-  BioLangEval.prototype.evalPipe = function (expr) {
-    // Split on |> not inside parens/quotes
-    var parts = this.splitPipe(expr);
-    var val = this.evalAtom(parts[0].trim());
-    for (var i = 1; i < parts.length; i++) {
-      val = this.applyPipeStep(val, parts[i].trim());
-    }
-    return val;
-  };
-
-  BioLangEval.prototype.splitPipe = function (expr) {
-    var parts = [];
-    var depth = 0;
-    var inStr = false;
-    var strChar = '';
-    var current = '';
-    for (var i = 0; i < expr.length; i++) {
-      var c = expr[i];
-      if (inStr) {
-        current += c;
-        if (c === strChar && expr[i - 1] !== '\\') inStr = false;
-        continue;
-      }
-      if (c === '"' || c === "'") { inStr = true; strChar = c; current += c; continue; }
-      if (c === '(' || c === '[' || c === '{') { depth++; current += c; continue; }
-      if (c === ')' || c === ']' || c === '}') { depth--; current += c; continue; }
-      if (depth === 0 && c === '|' && expr[i + 1] === '>') {
-        parts.push(current);
-        current = '';
-        i++; // skip >
-        continue;
-      }
-      current += c;
-    }
-    parts.push(current);
-    return parts;
-  };
-
-  BioLangEval.prototype.applyPipeStep = function (val, step) {
-    // step is like "gc_content()" or "filter(fn(x) x > 2)" or "len()" or "sort()" etc.
-    var fnMatch = step.match(/^(\w+)\((.*)\)$/s);
-    if (!fnMatch) {
-      // Bare function name
-      return this.callBuiltin(step, [val]);
-    }
-    var fnName = fnMatch[1];
-    var argsStr = fnMatch[2].trim();
-    var args = [val];
-    if (argsStr) {
-      // Simple arg parsing for basic cases
-      args.push(this.evalSimpleArg(argsStr));
-    }
-    return this.callBuiltin(fnName, args);
-  };
-
-  BioLangEval.prototype.evalSimpleArg = function (s) {
-    s = s.trim();
-    // Number
-    if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s);
-    // String
-    if ((s[0] === '"' && s[s.length - 1] === '"') || (s[0] === "'" && s[s.length - 1] === "'")) {
-      return s.slice(1, -1);
-    }
-    // Variable ref
-    if (this.env[s] !== undefined) return this.env[s];
-    return s;
-  };
-
-  BioLangEval.prototype.evalAtom = function (expr) {
-    expr = expr.trim();
-    if (!expr) return null;
-
-    // DNA literal
-    var dnaMatch = expr.match(/^dna"([^"]*)"$/);
-    if (dnaMatch) return { _type: 'DNA', seq: dnaMatch[1].toUpperCase() };
-
-    // RNA literal
-    var rnaMatch = expr.match(/^rna"([^"]*)"$/);
-    if (rnaMatch) return { _type: 'RNA', seq: rnaMatch[1].toUpperCase() };
-
-    // Protein literal
-    var protMatch = expr.match(/^protein"([^"]*)"$/);
-    if (protMatch) return { _type: 'Protein', seq: protMatch[1].toUpperCase() };
-
-    // Number
-    if (/^-?\d+(\.\d+)?$/.test(expr)) return parseFloat(expr);
-
-    // String
-    if ((expr[0] === '"' && expr[expr.length - 1] === '"') || (expr[0] === "'" && expr[expr.length - 1] === "'")) {
-      return expr.slice(1, -1);
-    }
-
-    // Boolean / nil
-    if (expr === 'true') return true;
-    if (expr === 'false') return false;
-    if (expr === 'nil') return null;
-
-    // List literal [a, b, c]
-    if (expr[0] === '[' && expr[expr.length - 1] === ']') {
-      var inner = expr.slice(1, -1).trim();
-      if (!inner) return [];
-      return inner.split(',').map(function (x) { return this.evalExpr(x.trim()); }.bind(this));
-    }
-
-    // Map literal {"k": v, ...}
-    if (expr[0] === '{' && expr[expr.length - 1] === '}') {
-      var mapInner = expr.slice(1, -1).trim();
-      if (!mapInner) return {};
-      var obj = {};
-      var pairs = this.splitTopLevel(mapInner, ',');
-      for (var i = 0; i < pairs.length; i++) {
-        var kv = pairs[i].split(':');
-        if (kv.length >= 2) {
-          var key = kv[0].trim().replace(/^["']|["']$/g, '');
-          obj[key] = this.evalExpr(kv.slice(1).join(':').trim());
-        }
-      }
-      return obj;
-    }
-
-    // Function call: name(args)
-    var fnMatch = expr.match(/^(\w+)\((.*)\)$/s);
-    if (fnMatch) {
-      var name = fnMatch[1];
-      var argsStr = fnMatch[2].trim();
-      var args = argsStr ? this.splitTopLevel(argsStr, ',').map(function (a) { return this.evalExpr(a.trim()); }.bind(this)) : [];
-      return this.callBuiltin(name, args);
-    }
-
-    // Variable
-    if (this.env[expr] !== undefined) return this.env[expr];
-
-    // Arithmetic
-    var arithMatch = expr.match(/^(.+?)\s*([+\-*\/%])\s*(.+)$/);
-    if (arithMatch) {
-      var left = this.evalExpr(arithMatch[1]);
-      var right = this.evalExpr(arithMatch[3]);
-      switch (arithMatch[2]) {
-        case '+': return (typeof left === 'string') ? left + right : left + right;
-        case '-': return left - right;
-        case '*': return left * right;
-        case '/': return right !== 0 ? left / right : NaN;
-        case '%': return left % right;
-      }
-    }
-
-    return expr;
-  };
-
-  BioLangEval.prototype.splitTopLevel = function (s, delim) {
-    var parts = [];
-    var depth = 0;
-    var inStr = false;
-    var strChar = '';
-    var current = '';
-    for (var i = 0; i < s.length; i++) {
-      var c = s[i];
-      if (inStr) {
-        current += c;
-        if (c === strChar && s[i - 1] !== '\\') inStr = false;
-        continue;
-      }
-      if (c === '"' || c === "'") { inStr = true; strChar = c; current += c; continue; }
-      if (c === '(' || c === '[' || c === '{') { depth++; current += c; continue; }
-      if (c === ')' || c === ']' || c === '}') { depth--; current += c; continue; }
-      if (depth === 0 && c === delim) {
-        parts.push(current);
-        current = '';
-        continue;
-      }
-      current += c;
-    }
-    parts.push(current);
-    return parts;
-  };
-
-  // ── Builtins ──
-
-  BioLangEval.prototype.callBuiltin = function (name, args) {
-    var a = args[0], b = args[1], c = args[2];
-    var seq = (a && a._type) ? a.seq : (typeof a === 'string' ? a : '');
-
-    switch (name) {
-      // Core
-      case 'len':
-        if (a && a._type) return a.seq.length;
-        if (Array.isArray(a)) return a.length;
-        if (typeof a === 'string') return a.length;
-        if (a && typeof a === 'object') return Object.keys(a).length;
-        return 0;
-      case 'type':
-      case 'typeof':
-        if (a && a._type) return a._type;
-        if (Array.isArray(a)) return 'List';
-        return typeof a === 'number' ? (Number.isInteger(a) ? 'Int' : 'Float') : typeof a === 'string' ? 'String' : typeof a === 'boolean' ? 'Bool' : a === null ? 'Nil' : 'Map';
-      case 'print': case 'println': return this.formatPrint(a);
-      case 'str': case 'to_string': return this.formatValue(a);
-      case 'int': return typeof a === 'number' ? Math.floor(a) : parseInt(a) || 0;
-      case 'float': return typeof a === 'number' ? a : parseFloat(a) || 0.0;
-      case 'bool': return !!a;
-      case 'abs': return Math.abs(a);
-      case 'range': return Array.from({length: (b||0) - (a||0)}, function(_, i) { return a + i; });
-      case 'assert': if (!a) throw new Error('Assertion failed'); return true;
-
-      // Math
-      case 'min': return Array.isArray(a) ? Math.min.apply(null, a) : Math.min(a, b);
-      case 'max': return Array.isArray(a) ? Math.max.apply(null, a) : Math.max(a, b);
-      case 'sum': return Array.isArray(a) ? a.reduce(function(s,v){return s+v;},0) : a;
-      case 'mean': return Array.isArray(a) ? a.reduce(function(s,v){return s+v;},0)/a.length : a;
-      case 'median':
-        if (!Array.isArray(a)) return a;
-        var sorted = a.slice().sort(function(x,y){return x-y;});
-        var mid = Math.floor(sorted.length / 2);
-        return sorted.length % 2 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
-      case 'stdev':
-        if (!Array.isArray(a) || a.length < 2) return 0;
-        var m = a.reduce(function(s,v){return s+v;},0)/a.length;
-        var variance = a.reduce(function(s,v){return s+(v-m)*(v-m);},0)/(a.length-1);
-        return Math.sqrt(variance);
-      case 'sqrt': return Math.sqrt(a);
-      case 'pow': return Math.pow(a, b);
-      case 'log': return Math.log(a);
-      case 'log2': return Math.log2(a);
-      case 'log10': return Math.log10(a);
-      case 'round': return typeof b === 'number' ? parseFloat(a.toFixed(b)) : Math.round(a);
-      case 'ceil': return Math.ceil(a);
-      case 'floor': return Math.floor(a);
-      case 'sin': return Math.sin(a);
-      case 'cos': return Math.cos(a);
-      case 'count': return Array.isArray(a) ? a.length : 0;
-
-      // String
-      case 'upper': return (typeof a === 'string' ? a : seq).toUpperCase();
-      case 'lower': return (typeof a === 'string' ? a : seq).toLowerCase();
-      case 'trim': return (typeof a === 'string' ? a : '').trim();
-      case 'split': return (typeof a === 'string' ? a : '').split(b || '');
-      case 'join': return Array.isArray(a) ? a.join(b || '') : '';
-      case 'replace': return typeof a === 'string' ? a.replace(new RegExp(b, 'g'), c) : '';
-      case 'starts_with': return typeof a === 'string' && a.startsWith(b);
-      case 'ends_with': return typeof a === 'string' && a.endsWith(b);
-      case 'contains': return Array.isArray(a) ? a.indexOf(b) !== -1 : typeof a === 'string' ? a.includes(b) : false;
-      case 'repeat': return typeof a === 'string' ? a.repeat(b || 1) : '';
-      case 'substring': return typeof a === 'string' ? a.substring(b || 0, c) : '';
-
-      // Collections
-      case 'first': return Array.isArray(a) ? a[0] : a;
-      case 'last': return Array.isArray(a) ? a[a.length - 1] : a;
-      case 'take': return Array.isArray(a) ? a.slice(0, b || 5) : a;
-      case 'skip': return Array.isArray(a) ? a.slice(b || 0) : a;
-      case 'reverse': if (a && a._type) return {_type: a._type, seq: a.seq.split('').reverse().join('')}; return Array.isArray(a) ? a.slice().reverse() : a;
-      case 'sort':
-        if (!Array.isArray(a)) return a;
-        var s = a.slice();
-        if (b === 'desc') s.sort(function(x,y){return y-x;});
-        else s.sort(function(x,y){return x<y?-1:x>y?1:0;});
-        return s;
-      case 'unique': return Array.isArray(a) ? a.filter(function(v,i,arr){return arr.indexOf(v)===i;}) : a;
-      case 'flatten': return Array.isArray(a) ? a.reduce(function(acc,v){return acc.concat(v);},[]) : a;
-      case 'zip':
-        if (!Array.isArray(a) || !Array.isArray(b)) return [];
-        return a.map(function(v,i){return [v, b[i]];});
-      case 'enumerate':
-        if (!Array.isArray(a)) return [];
-        return a.map(function(v,i){return [i, v];});
-      case 'push':
-        if (Array.isArray(a)) { var copy = a.slice(); copy.push(b); return copy; }
-        return a;
-      case 'keys': return (a && typeof a === 'object' && !Array.isArray(a)) ? Object.keys(a) : [];
-      case 'values': return (a && typeof a === 'object' && !Array.isArray(a)) ? Object.values(a) : [];
-      case 'chunk':
-        if (!Array.isArray(a) || !b) return [a];
-        var chunks = [];
-        for (var i = 0; i < a.length; i += b) chunks.push(a.slice(i, i + b));
-        return chunks;
-
-      // Bio
-      case 'gc_content':
-        return parseFloat(gcContent(seq).toFixed(4));
-      case 'reverse_complement':
-        return a && a._type === 'DNA' ? {_type: 'DNA', seq: reverseComplement(a.seq)} : reverseComplement(seq);
-      case 'complement':
-        return a && a._type === 'DNA' ? {_type: 'DNA', seq: a.seq.split('').map(complementBase).join('')} : seq.split('').map(complementBase).join('');
-      case 'transcribe':
-        var tseq = transcribe(a && a._type ? a.seq : seq);
-        return {_type: 'RNA', seq: tseq};
-      case 'translate':
-        var pseq = translate(a && a._type ? a.seq : seq);
-        return {_type: 'Protein', seq: pseq};
-      case 'kmer_count':
-        return kmerCount(seq, b || 3);
-      case 'validate':
-        if (a && a._type === 'DNA') return /^[ATCGN]*$/i.test(a.seq);
-        if (a && a._type === 'RNA') return /^[AUCGN]*$/i.test(a.seq);
-        return true;
-
-      // Visualization
-      case 'sparkline':
-        return sparkline(Array.isArray(a) ? a : []);
-
-      // Hash
-      case 'base64_encode': return typeof btoa !== 'undefined' ? btoa(a || '') : '';
-      case 'base64_decode': return typeof atob !== 'undefined' ? atob(a || '') : '';
-
-      default:
-        return '[' + name + ': not available in playground]';
-    }
-  };
-
-  // ── Formatting ──
-
-  BioLangEval.prototype.formatPrint = function (val) {
-    // Like formatValue but strings print without quotes
-    if (typeof val === 'string') return val;
-    return this.formatValue(val);
-  };
-
-  BioLangEval.prototype.formatValue = function (val) {
-    if (val === null || val === undefined) return 'nil';
-    if (val === true) return 'true';
-    if (val === false) return 'false';
-    if (typeof val === 'number') {
-      if (Number.isInteger(val)) return val.toString();
-      // Show up to 4 decimal places, trim trailing zeros
-      var s = val.toFixed(6).replace(/0+$/, '').replace(/\.$/, '.0');
-      return s;
-    }
-    if (typeof val === 'string') return '"' + val + '"';
-    if (val && val._type) {
-      return val._type.toLowerCase() + '"' + val.seq + '"';
-    }
-    if (Array.isArray(val)) {
-      return '[' + val.map(this.formatValue.bind(this)).join(', ') + ']';
-    }
-    if (typeof val === 'object') {
-      var entries = Object.entries(val).map(function (kv) {
-        return '"' + kv[0] + '": ' + this.formatValue(kv[1]);
-      }.bind(this));
-      return '{' + entries.join(', ') + '}';
-    }
-    return String(val);
-  };
-
-  // ── UI: Add Run buttons to code blocks ──
-
-  var evaluator = new BioLangEval();
+  // ── UI: Add Run buttons ──
 
   function addPlaygroundButtons() {
     document.querySelectorAll('pre[data-runnable]').forEach(function (pre) {
-      if (pre.parentNode.querySelector('.run-btn')) return;
+      if (pre.querySelector('.bl-run-btn')) return;
 
-      // Reuse existing wrapper from copy-code.js, or create one
+      // Ensure wrapper has relative positioning for button placement
       var wrapper = pre.parentNode;
-      if (!wrapper.style.position || wrapper.style.position !== 'relative') {
-        wrapper = document.createElement('div');
-        wrapper.style.cssText = 'position:relative';
-        pre.parentNode.insertBefore(wrapper, pre);
-        wrapper.appendChild(pre);
+      if (!wrapper.style.position || wrapper.style.position === 'static') {
+        var div = document.createElement('div');
+        div.style.cssText = 'position:relative';
+        pre.parentNode.insertBefore(div, pre);
+        div.appendChild(pre);
+        wrapper = div;
       }
 
-      // Run button — on the wrapper, not inside scrollable pre
+      var cliRequired = isCLIRequired(pre);
+
+      // Run button — positioned over the code block
       var btn = document.createElement('button');
-      btn.className = 'run-btn';
-      btn.style.cssText = 'position:absolute;top:8px;right:52px;padding:4px 10px;font-size:12px;border-radius:4px;background:rgba(124,58,237,0.8);color:#fff;border:none;cursor:pointer;opacity:0;transition:opacity 0.2s;z-index:10';
-      btn.innerHTML = '&#9654; Run';
-      wrapper.addEventListener('mouseenter', function(){btn.style.opacity='1';});
-      wrapper.addEventListener('mouseleave', function(){btn.style.opacity='0';});
+      btn.className = 'bl-run-btn';
+      if (cliRequired) {
+        btn.style.cssText = 'position:absolute;top:8px;right:52px;padding:4px 12px;font-size:12px;border-radius:4px;background:rgba(71,85,105,0.85);color:#94a3b8;border:none;cursor:not-allowed;opacity:0;transition:opacity 0.2s;z-index:10;font-family:system-ui,sans-serif;font-weight:600;';
+        btn.innerHTML = '&#9654; CLI Only';
+        btn.title = 'This example requires file I/O or network APIs — run with: bl run';
+        btn.disabled = true;
+      } else {
+        btn.style.cssText = 'position:absolute;top:8px;right:52px;padding:4px 12px;font-size:12px;border-radius:4px;background:rgba(124,58,237,0.85);color:#fff;border:none;cursor:pointer;opacity:0;transition:opacity 0.2s;z-index:10;font-family:system-ui,sans-serif;font-weight:600;';
+        btn.innerHTML = '&#9654; Run';
+        btn.title = 'Run this code (loads BioLang WASM on first click)';
+      }
+      wrapper.addEventListener('mouseenter', function(){ btn.style.opacity = '1'; });
+      wrapper.addEventListener('mouseleave', function(){ if (!btn.disabled) btn.style.opacity = '0'; });
       wrapper.appendChild(btn);
 
-      // Output panel
+      // Output panel (hidden initially)
       var outputEl = document.createElement('div');
-      outputEl.style.cssText = 'display:none;border:1px solid #334155;border-top:none;border-radius:0 0 8px 8px;overflow:hidden';
-      outputEl.innerHTML = '<div style="padding:6px 12px;background:rgba(30,41,59,0.5);border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:#64748b;font-family:monospace">Result</span><button class="playground-close" style="font-size:14px;color:#64748b;background:none;border:none;cursor:pointer">&times;</button></div><pre style="border:0;border-radius:0;margin:0;background:rgba(15,23,42,0.8)"><code class="playground-result" style="font-size:14px;color:#4ade80"></code></pre>';
+      outputEl.className = 'bl-output';
+      outputEl.style.cssText = 'display:none;border:1px solid #334155;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;';
+      outputEl.innerHTML =
+        '<div style="padding:6px 12px;background:rgba(30,41,59,0.6);border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between">' +
+          '<span style="font-size:11px;color:#64748b;font-family:system-ui,sans-serif">Output</span>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<span class="bl-timing" style="font-size:11px;color:#94a3b8;font-family:system-ui,sans-serif"></span>' +
+            '<button class="bl-close" style="font-size:14px;color:#64748b;background:none;border:none;cursor:pointer;line-height:1">&times;</button>' +
+          '</div>' +
+        '</div>' +
+        '<pre style="border:0;border-radius:0;margin:0;background:rgba(15,23,42,0.85);padding:8px 12px;max-height:300px;overflow-y:auto"><code class="bl-result" style="font-size:13px;line-height:1.5;white-space:pre-wrap"></code></pre>';
       wrapper.appendChild(outputEl);
 
-      btn.addEventListener('click', function () {
-        var code = pre.querySelector('code');
-        var src = code ? code.textContent : pre.textContent;
-        try {
-          var result = evaluator.eval(src);
-          var resultEl = outputEl.querySelector('.playground-result');
-          resultEl.textContent = result || '(no output)';
-          resultEl.style.color = '#4ade80';
-        } catch (e) {
-          var resultEl = outputEl.querySelector('.playground-result');
-          resultEl.textContent = 'Error: ' + e.message;
-          resultEl.style.color = '#f87171';
-        }
-        outputEl.style.display = 'block';
-        pre.style.borderRadius = '8px 8px 0 0';
-      });
+      if (!cliRequired) {
+        btn.addEventListener('click', function () {
+          var code = pre.querySelector('code');
+          var src = code ? code.textContent : pre.textContent;
+          runCode(src, btn, outputEl);
+        });
+      }
 
-      outputEl.querySelector('.playground-close').addEventListener('click', function () {
+      outputEl.querySelector('.bl-close').addEventListener('click', function () {
         outputEl.style.display = 'none';
         pre.style.borderRadius = '';
       });
     });
   }
 
-  // Auto-marking disabled — only pages with explicit `data-runnable` attributes
-  // on <pre> blocks will get Run buttons. This prevents false-positive mock Run
-  // buttons on example/tutorial pages that use features not available in the
-  // browser-side playground evaluator.
-  function autoMarkRunnable() {
-    // no-op: rely on explicit data-runnable attributes only
+  // ── Execute code via WASM ──
+
+  function runCode(code, btn, outputEl) {
+    btn.disabled = true;
+    btn.style.opacity = '1';
+    btn.innerHTML = '&#9203; Loading...';
+    btn.style.background = '#475569';
+
+    var timingEl = outputEl.querySelector('.bl-timing');
+    var resultEl = outputEl.querySelector('.bl-result');
+    timingEl.textContent = '';
+    resultEl.innerHTML = '';
+    outputEl.style.display = 'none';
+
+    if (wasm) {
+      executeCode(code, btn, timingEl, resultEl, outputEl);
+      return;
+    }
+
+    // Lazy-load WASM
+    timingEl.textContent = '';
+    outputEl.style.display = 'block';
+    resultEl.innerHTML = '<span style="color:#94a3b8">Downloading BioLang runtime (~4 MB)...</span>';
+    var pre = outputEl.previousElementSibling || outputEl.parentNode.querySelector('pre');
+    if (pre) pre.style.borderRadius = '8px 8px 0 0';
+
+    loadWasm(function(err) {
+      if (err) {
+        resultEl.innerHTML = '<span style="color:#f87171">Failed to load WASM: ' + escapeHtml(String(err)) + '</span>';
+        resetButton(btn);
+        return;
+      }
+      executeCode(code, btn, timingEl, resultEl, outputEl);
+    });
+  }
+
+  function executeCode(code, btn, timingEl, resultEl, outputEl) {
+    btn.innerHTML = '&#9654; Running...';
+    outputEl.style.display = 'block';
+    var pre = outputEl.previousElementSibling || outputEl.parentNode.querySelector('pre');
+    if (pre) pre.style.borderRadius = '8px 8px 0 0';
+    resultEl.innerHTML = '';
+
+    var t0 = performance.now();
+    var resultJson;
+    try {
+      resultJson = wasm.evaluate(code);
+    } catch (e) {
+      resultEl.innerHTML = '<span style="color:#f87171">Runtime error: ' + escapeHtml(String(e)) + '</span>';
+      timingEl.textContent = formatElapsed(t0);
+      resetButton(btn);
+      return;
+    }
+
+    var result;
+    try {
+      result = JSON.parse(resultJson);
+    } catch (e) {
+      resultEl.innerHTML = '<span style="color:#94a3b8">' + escapeHtml(resultJson) + '</span>';
+      timingEl.textContent = formatElapsed(t0);
+      resetButton(btn);
+      return;
+    }
+
+    var lines = [];
+
+    // Show stdout
+    if (result.output && result.output.trim()) {
+      var stdoutText = result.output.trimEnd();
+      if (stdoutText.indexOf('<svg') !== -1) {
+        var parts = stdoutText.split(/(<svg[\s\S]*?<\/svg>)/);
+        for (var pi = 0; pi < parts.length; pi++) {
+          if (parts[pi].trimStart().indexOf('<svg') === 0) {
+            lines.push('<div class="bl-svg-output" style="background:#fff;border-radius:4px;padding:8px;margin:4px 0;overflow-x:auto;max-width:100%">' + parts[pi] + '</div>');
+          } else if (parts[pi].trim()) {
+            lines.push('<span style="color:#e2e8f0">' + escapeHtml(parts[pi]) + '</span>');
+          }
+        }
+      } else {
+        lines.push('<span style="color:#e2e8f0">' + escapeHtml(stdoutText) + '</span>');
+      }
+    }
+
+    if (result.ok) {
+      // Show return value (skip nil/null/empty)
+      if (result.value && result.value !== 'null' && result.value !== 'nil' && result.value !== 'Nil' && result.value !== '()' && result.value !== 'None') {
+        // Detect SVG output — render inline instead of escaping
+        if (result.value.trimStart().indexOf('<svg') === 0) {
+          lines.push('<div class="bl-svg-output" style="background:#fff;border-radius:4px;padding:8px;margin:4px 0;overflow-x:auto;max-width:100%">' + result.value + '</div>');
+        } else {
+          var typeLabel = result.type ? '<span style="color:#94a3b8;font-size:11px"> : ' + escapeHtml(result.type) + '</span>' : '';
+          lines.push('<span style="color:#4ade80">\u2192 ' + escapeHtml(result.value) + typeLabel + '</span>');
+        }
+      }
+    } else {
+      lines.push('<span style="color:#f87171">\u2716 ' + escapeHtml(result.error || 'Unknown error') + '</span>');
+    }
+
+    if (lines.length === 0) {
+      lines.push('<span style="color:#64748b">(no output)</span>');
+    }
+
+    resultEl.innerHTML = lines.join('\n');
+    // Scale SVG to fit output container
+    var svgContainer = outputEl.querySelector('.bl-svg-output');
+    if (svgContainer) {
+      var svgEl = svgContainer.querySelector('svg');
+      if (svgEl) { svgEl.style.maxWidth = '100%'; svgEl.style.height = 'auto'; }
+    }
+    timingEl.textContent = formatElapsed(t0);
+    resetButton(btn);
+  }
+
+  function formatElapsed(t0) {
+    var ms = performance.now() - t0;
+    return ms < 1 ? '<1ms' : ms < 1000 ? Math.round(ms) + 'ms' : (ms / 1000).toFixed(3) + 's';
+  }
+
+  function resetButton(btn) {
+    btn.innerHTML = '&#9654; Run';
+    btn.disabled = false;
+    btn.style.background = 'rgba(124,58,237,0.85)';
   }
 
   // ── Init ──
+
   function initPlayground() {
     autoMarkRunnable();
     addPlaygroundButtons();
@@ -537,14 +316,14 @@
   if (document.body.classList.contains('components-loaded')) {
     setTimeout(initPlayground, 200);
   } else {
-    var observer = new MutationObserver(function (mutations) {
+    var observer = new MutationObserver(function () {
       if (document.body.classList.contains('components-loaded')) {
         observer.disconnect();
         setTimeout(initPlayground, 200);
       }
     });
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    // Fallback
+    // Fallback if components-loaded never fires
     setTimeout(initPlayground, 3000);
   }
 })();

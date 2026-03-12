@@ -1,0 +1,211 @@
+# Day 5: Data Structures for Biology
+# Complete analysis script covering lists, records, tables, sets, intervals
+# Run: bl run scripts/analysis.bl
+
+print("=" * 60)
+print("Day 5: Data Structures for Biology")
+print("=" * 60)
+
+# ============================================================
+# 1. LISTS: Ordered Collections
+# ============================================================
+print("")
+print("--- 1. Lists: Ordered Collections ---")
+
+let expression = [2.1, 5.4, 3.2, 8.7, 1.1, 6.3]
+print(f"Expression values: {expression}")
+print(f"Mean: {round(mean(expression), 2)}")
+print(f"Median: {round(median(expression), 2)}")
+print(f"Stdev: {round(stdev(expression), 2)}")
+print(f"Min: {min(expression)}, Max: {max(expression)}")
+
+let sorted_expr = sort(expression) |> reverse()
+let top3 = sorted_expr |> take(3)
+print(f"Top 3 values: {top3}")
+
+# Sample filtering
+let samples = ["control_1", "control_2", "treated_1", "treated_2", "treated_3"]
+let treated = samples |> filter(|s| contains(s, "treated"))
+print(f"Treated samples: {treated}")
+print(f"Total: {len(samples)}, Treated: {len(treated)}")
+
+# Nested lists (matrix-like)
+let data = [
+    [2.1, 3.4, 5.6],
+    [1.8, 4.2, 6.1],
+    [3.0, 2.9, 4.8],
+]
+print(f"Sample 2, Gene 3: {data[1][2]}")
+
+# ============================================================
+# 2. RECORDS: Structured Metadata
+# ============================================================
+print("")
+print("--- 2. Records: Structured Metadata ---")
+
+let gene = {
+    symbol: "BRCA1",
+    name: "BRCA1 DNA repair associated",
+    chromosome: "17",
+    start: 43044295,
+    end: 43125483,
+    strand: "+",
+    biotype: "protein_coding"
+}
+
+print(f"{gene.symbol} on chr{gene.chromosome}")
+print(f"Length: {gene.end - gene.start} bp")
+print(f"Keys: {keys(gene)}")
+print(f"Has strand: {has_key(gene, "strand")}")
+print(f"Has expression: {has_key(gene, "expression")}")
+
+# List of records — the most common pattern
+let variants = [
+    {chrom: "chr17", pos: 43091434, ref_allele: "A", alt_allele: "G", gene: "BRCA1"},
+    {chrom: "chr17", pos: 7674220,  ref_allele: "C", alt_allele: "T", gene: "TP53"},
+    {chrom: "chr7",  pos: 55249071, ref_allele: "C", alt_allele: "T", gene: "EGFR"},
+]
+
+let chr17_vars = variants |> filter(|v| v.chrom == "chr17")
+print(f"Chr17 variants: {len(chr17_vars)}")
+
+let genes = variants |> map(|v| v.gene)
+print(f"Affected genes: {genes}")
+
+# ============================================================
+# 3. TABLES: The Bioinformatician's Workhorse
+# ============================================================
+print("")
+print("--- 3. Tables: Analysis Results ---")
+
+let results = [
+    {gene: "BRCA1", log2fc: 2.4,  pval: 0.001},
+    {gene: "TP53",  log2fc: -1.1, pval: 0.23},
+    {gene: "EGFR",  log2fc: 3.8,  pval: 0.000001},
+    {gene: "MYC",   log2fc: 1.9,  pval: 0.04},
+    {gene: "KRAS",  log2fc: -0.3, pval: 0.67},
+] |> to_table()
+
+print(f"Rows: {nrow(results)}, Columns: {ncol(results)}")
+print(f"Columns: {colnames(results)}")
+
+# Filter to significant genes and sort
+let significant = results
+    |> filter(|r| r.pval < 0.05)
+    |> arrange("log2fc")
+print("Significant genes (sorted by log2fc):")
+print(significant |> head(5))
+
+# Select specific columns
+let gene_pvals = results |> select("gene", "pval")
+print("Gene-pval pairs:")
+print(gene_pvals |> head(3))
+
+# Mutate — add columns
+let annotated = results |> mutate("significant", |r| r.pval < 0.05)
+print("With significance flag:")
+print(annotated |> head(3))
+
+# Group by direction
+let direction_table = results
+    |> mutate("direction", |r| if r.log2fc > 0 { "up" } else { "down" })
+    |> group_by("direction")
+    |> summarize(|key, rows| {direction: key, count: len(rows)})
+print("Counts by direction:")
+print(direction_table)
+
+# ============================================================
+# 4. SETS: Unique Membership and Comparisons
+# ============================================================
+print("")
+print("--- 4. Sets: Venn Diagram Logic ---")
+
+let experiment_a = set(["BRCA1", "TP53", "EGFR", "MYC", "KRAS"])
+let experiment_b = set(["TP53", "EGFR", "PTEN", "RB1", "MYC"])
+
+let shared = intersection(experiment_a, experiment_b)
+let only_a = difference(experiment_a, experiment_b)
+let only_b = difference(experiment_b, experiment_a)
+let all_genes = union(experiment_a, experiment_b)
+
+print(f"Experiment A: {experiment_a}")
+print(f"Experiment B: {experiment_b}")
+print(f"Shared genes: {shared}")
+print(f"Only in A: {only_a}")
+print(f"Only in B: {only_b}")
+print(f"Total unique: {len(all_genes)}")
+
+# ============================================================
+# 5. GENOMIC INTERVALS: Coordinates and Overlaps
+# ============================================================
+print("")
+print("--- 5. Genomic Intervals ---")
+
+let promoter = interval("chr17", 43125283, 43125483)
+let exon1 = interval("chr17", 43124017, 43124115)
+let enhancer = interval("chr17", 43125000, 43125600)
+
+print(f"Promoter: {promoter}")
+print(f"Exon 1: {exon1}")
+print(f"Enhancer: {enhancer}")
+
+# Build interval tree from a table
+let regions = [
+    {chrom: "chr17", start: 43125283, end: 43125483, name: "promoter"},
+    {chrom: "chr17", start: 43124017, end: 43124115, name: "exon1"},
+    {chrom: "chr17", start: 43125000, end: 43125600, name: "enhancer"},
+] |> to_table()
+
+let tree = interval_tree(regions)
+
+# Query: what overlaps this 100bp window?
+let hits = query_overlaps(tree, "chr17", 43125300, 43125400)
+print(f"Regions overlapping chr17:43125300-43125400: {nrow(hits)}")
+print(hits)
+
+# ============================================================
+# 6. COMBINING STRUCTURES: Real Analysis Pattern
+# ============================================================
+print("")
+print("--- 6. Combining Structures ---")
+
+let samples = [
+    {id: "S1", condition: "control", genes: set(["BRCA1", "TP53", "EGFR"])},
+    {id: "S2", condition: "treated", genes: set(["TP53", "MYC", "KRAS", "EGFR"])},
+    {id: "S3", condition: "treated", genes: set(["BRCA1", "TP53", "PTEN"])},
+]
+
+# Core genes across all samples
+let all_gene_sets = samples |> map(|s| s.genes)
+let common = all_gene_sets |> reduce(|a, b| intersection(a, b))
+print(f"Core genes (in all samples): {common}")
+
+# Treatment-specific genes
+let treated_genes = samples
+    |> filter(|s| s.condition == "treated")
+    |> map(|s| s.genes)
+    |> reduce(|a, b| union(a, b))
+
+let control_genes = samples
+    |> filter(|s| s.condition == "control")
+    |> map(|s| s.genes)
+    |> reduce(|a, b| union(a, b))
+
+let treatment_specific = difference(treated_genes, control_genes)
+print(f"Treatment-specific genes: {treatment_specific}")
+
+# Summary table
+let summary = [
+    {category: "Core (all samples)", count: len(common)},
+    {category: "Treatment-specific", count: len(treatment_specific)},
+    {category: "Control genes", count: len(control_genes)},
+    {category: "Treated genes", count: len(treated_genes)},
+] |> to_table()
+
+print("Summary:")
+print(summary)
+
+print("")
+print("=" * 60)
+print("Day 5 complete! Week 1 foundations finished.")
+print("=" * 60)
