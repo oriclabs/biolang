@@ -379,23 +379,23 @@
           <textarea id="pg-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
 # BioLang Playground — try it live!
 let seq = dna"ATCGATCGATCGATCGATCG"
-print("Sequence:", seq)
-print(f"Length: {len(seq)} bp")
+println(f"Sequence:  {seq}")
+println(f"Length:    {seq_len(seq)} bp")
+println(f"GC:       {round(gc_content(seq) * 100, 1)}%")
 
-# Count GC content manually
-let s = "ATCGATCGATCGATCGATCG"
-let bases = split(s, "")
-let gc = bases |> filter(|b| b == "G" or b == "C") |> len()
-print(f"GC content: {round(gc / len(bases) * 100, 1)}%")
+# Complement and reverse complement
+println(f"Comp:     {complement(seq)}")
+println(f"Rev-comp: {reverse_complement(seq)}")
+
+# Transcribe and translate
+let coding = dna"ATGAAAGCTTTTGACTGA"
+println(f"\nCoding:   {coding}")
+println(f"RNA:      {transcribe(coding)}")
+println(f"Protein:  {translate(coding)}")
 
 # K-mer analysis
-let counts = kmer_count(seq, 3)
-print(f"3-mer counts: {counts}")
-
-# Statistics
-let values = [23.1, 45.2, 12.8, 67.3, 34.5, 89.1, 11.2, 56.7]
-print(f"Mean: {round(mean(values), 2)}")
-print(f"Stdev: {round(stdev(values), 2)}")
+let kmers = kmer_count(seq, 3)
+println(f"\n3-mer counts: {kmers}")
 </textarea>
         </div>
         <div class="pg-vars-bar" id="pg-vars"></div>

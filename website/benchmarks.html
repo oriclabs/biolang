@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>Benchmarks — BioLang</title>
+  <meta name="description" content="BioLang performance benchmarks: 30 bioinformatics tasks compared against Python and R on real-world and synthetic data.">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+  <style>
+    .bench-table th, .bench-table td { white-space: nowrap; }
+    .highlight-card { background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(34,211,238,0.06)); border: 1px solid rgba(139,92,246,0.15); }
+    .methodology-card { background: rgba(30,41,59,0.6); border: 1px solid rgba(51,65,85,0.5); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="."></div>
+
+  <!-- Hero -->
+  <section class="pt-20 pb-12">
+    <div class="max-w-5xl mx-auto px-6 text-center">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm mb-6">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        30 Benchmarks &middot; 2 Platforms
+      </div>
+      <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4">
+        BioLang <span class="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">Performance</span>
+      </h1>
+      <p class="text-lg text-slate-400 max-w-2xl mx-auto mb-4">
+        30 bioinformatics tasks benchmarked against Python (BioPython) and R (Bioconductor) on synthetic and real-world data from NCBI, UniProt, ClinVar, ENCODE, and Ensembl.
+      </p>
+      <p class="text-sm text-slate-500">Best of 3 runs &middot; Wall-clock time &middot; v0.3.0</p>
+    </div>
+  </section>
+
+  <!-- Highlight Cards -->
+  <section class="pb-12">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="highlight-card rounded-xl p-6 text-center">
+          <div class="text-3xl font-extrabold text-green-400 mb-1">7.1x</div>
+          <div class="text-sm text-white font-semibold">ENCODE Overlap</div>
+          <div class="text-xs text-slate-500 mt-1">0.363s vs 2.574s (Py)</div>
+        </div>
+        <div class="highlight-card rounded-xl p-6 text-center">
+          <div class="text-3xl font-extrabold text-green-400 mb-1">7.0x</div>
+          <div class="text-sm text-white font-semibold">Protein K-mers</div>
+          <div class="text-xs text-slate-500 mt-1">0.191s vs 1.331s (Py)</div>
+        </div>
+        <div class="highlight-card rounded-xl p-6 text-center">
+          <div class="text-3xl font-extrabold text-green-400 mb-1">6.7x</div>
+          <div class="text-sm text-white font-semibold">FASTA Parse</div>
+          <div class="text-xs text-slate-500 mt-1">0.138s vs 0.926s (Py)</div>
+        </div>
+        <div class="highlight-card rounded-xl p-6 text-center">
+          <div class="text-3xl font-extrabold text-green-400 mb-1">3.2x</div>
+          <div class="text-sm text-white font-semibold">K-mer Counting</div>
+          <div class="text-xs text-slate-500 mt-1">6.551s vs 21.01s (Py)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Full Benchmark Tables -->
+  <section class="py-12 bg-slate-900/30">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-2xl font-bold text-white text-center mb-2">Full Results</h2>
+      <p class="text-slate-400 text-center mb-8 text-sm">All 30 tasks across 6 categories. Click tabs to switch platforms.</p>
+
+      <!-- Tab buttons -->
+      <div class="flex justify-center gap-2 mb-6">
+        <button id="tab-linux" onclick="switchBenchTab('linux')" class="px-5 py-2 rounded-full text-sm font-medium bg-violet-600 text-white transition-colors">Linux (WSL2)</button>
+        <button id="tab-windows" onclick="switchBenchTab('windows')" class="px-5 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors">Windows 11</button>
+      </div>
+
+      <script>
+        function switchBenchTab(tab) {
+          document.getElementById('bench-linux').style.display = tab === 'linux' ? '' : 'none';
+          document.getElementById('bench-windows').style.display = tab === 'windows' ? '' : 'none';
+          document.getElementById('tab-linux').className = tab === 'linux'
+            ? 'px-5 py-2 rounded-full text-sm font-medium bg-violet-600 text-white transition-colors'
+            : 'px-5 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors';
+          document.getElementById('tab-windows').className = tab === 'windows'
+            ? 'px-5 py-2 rounded-full text-sm font-medium bg-violet-600 text-white transition-colors'
+            : 'px-5 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors';
+        }
+      </script>
+
+      <!-- ==================== LINUX TAB ==================== -->
+      <div id="bench-linux">
+        <p class="text-slate-500 text-xs text-center mb-6">Linux (WSL2) &mdash; Intel i9-12900K, 16 GB RAM &mdash; BioLang 0.3.0, Python 3.12.3, R 4.3.3</p>
+
+        <div class="overflow-x-auto">
+          <table class="bench-table w-full text-sm text-left">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400">
+                <th class="py-3 px-4 font-medium">Task</th>
+                <th class="py-3 px-4 font-medium text-violet-400">BioLang</th>
+                <th class="py-3 px-4 font-medium">Python</th>
+                <th class="py-3 px-4 font-medium">R</th>
+                <th class="py-3 px-4 font-medium">Speedup vs Py</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-300">
+              <!-- Sequence I/O -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Sequence I/O</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Small (30 KB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.138s</td><td class="py-2.5 px-4 font-mono">0.926s</td><td class="py-2.5 px-4 font-mono">1.243s</td><td class="py-2.5 px-4 text-green-400 font-semibold">6.7x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Medium (4.6 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.170s</td><td class="py-2.5 px-4 font-mono">0.991s</td><td class="py-2.5 px-4 font-mono">1.371s</td><td class="py-2.5 px-4 text-green-400 font-semibold">5.8x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Statistics</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.995s</td><td class="py-2.5 px-4 font-mono">1.590s</td><td class="py-2.5 px-4 font-mono">1.764s</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.6x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Large (51 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.821s</td><td class="py-2.5 px-4 font-mono">1.649s</td><td class="py-2.5 px-4 font-mono">2.103s</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA gzipped (1.3 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.141s</td><td class="py-2.5 px-4 font-mono">0.930s</td><td class="py-2.5 px-4 font-mono">1.327s</td><td class="py-2.5 px-4 text-green-400 font-semibold">6.6x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ QC</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.960s</td><td class="py-2.5 px-4 font-mono">3.551s</td><td class="py-2.5 px-4 font-mono">4.404s</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.8x</td></tr>
+
+              <!-- Real-world Genomes -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Real-world Genomes</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">E. coli Genome</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.176s</td><td class="py-2.5 px-4 font-mono">1.081s</td><td class="py-2.5 px-4 font-mono">1.354s</td><td class="py-2.5 px-4 text-green-400 font-semibold">6.1x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Human Chr22</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.126s</td><td class="py-2.5 px-4 font-mono">1.673s</td><td class="py-2.5 px-4 font-mono">2.092s</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.5x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GC Content (51 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.830s</td><td class="py-2.5 px-4 font-mono">2.771s</td><td class="py-2.5 px-4 font-mono">2.358s</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.3x</td></tr>
+
+              <!-- K-mer Analysis -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">K-mer Analysis</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">K-mer Counting</td><td class="py-2.5 px-4 text-violet-400 font-mono">6.551s</td><td class="py-2.5 px-4 font-mono">21.01s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.2x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Chr22 21-mers</td><td class="py-2.5 px-4 text-violet-400 font-mono">10.72s</td><td class="py-2.5 px-4 font-mono">28.73s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.7x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Protein K-mers</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.191s</td><td class="py-2.5 px-4 font-mono">1.331s</td><td class="py-2.5 px-4 font-mono">1.298s</td><td class="py-2.5 px-4 text-green-400 font-semibold">7.0x</td></tr>
+
+              <!-- Intervals & Overlaps -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Intervals &amp; Overlaps</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ENCODE Peak Overlap</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.363s</td><td class="py-2.5 px-4 font-mono">2.574s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">7.1x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Write Filtered FASTA</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.821s</td><td class="py-2.5 px-4 font-mono">1.679s</td><td class="py-2.5 px-4 font-mono">4.924s</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.0x</td></tr>
+
+              <!-- Variant & Data -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Variant &amp; Data</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">VCF Filtering</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.349s</td><td class="py-2.5 px-4 font-mono">0.166s</td><td class="py-2.5 px-4 font-mono">6.312s</td><td class="py-2.5 px-4 text-amber-400">Py 2.1x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar Variants</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.661s</td><td class="py-2.5 px-4 font-mono">0.265s</td><td class="py-2.5 px-4 font-mono">1.208s</td><td class="py-2.5 px-4 text-amber-400">Py 2.5x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">CSV Join + Group-by</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.281s</td><td class="py-2.5 px-4 font-mono">0.156s</td><td class="py-2.5 px-4 font-mono">0.312s</td><td class="py-2.5 px-4 text-amber-400">Py 1.8x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GFF3 Ensembl chr22</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.453s</td><td class="py-2.5 px-4 font-mono">0.171s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 2.6x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">BED Overlap (synthetic)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.160s</td><td class="py-2.5 px-4 font-mono">0.067s</td><td class="py-2.5 px-4 font-mono">1.279s</td><td class="py-2.5 px-4 text-amber-400">Py 2.4x faster</td></tr>
+
+              <!-- Pipelines -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Pipelines</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ QC Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">2.349s</td><td class="py-2.5 px-4 font-mono">5.059s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.2x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Variant Analysis Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.268s</td><td class="py-2.5 px-4 font-mono">0.177s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 1.5x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar Variant Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.591s</td><td class="py-2.5 px-4 font-mono">0.261s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 2.3x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Multi-Sample Aggregation</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.245s</td><td class="py-2.5 px-4 font-mono">0.090s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 2.7x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">RNA-seq DE Analysis</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.114s</td><td class="py-2.5 px-4 font-mono">0.054s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 2.1x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Variant Annotation</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.309s</td><td class="py-2.5 px-4 font-mono">0.122s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 2.5x faster</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar + Ensembl Annotation</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.409s</td><td class="py-2.5 px-4 font-mono">0.183s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 2.2x faster</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-slate-500 text-xs mt-4"><span class="text-amber-400/70">Amber rows</span>: Python wins on VCF/CSV/GFF text parsing and pipeline orchestration where Python's regex, csv, and dict modules are highly optimized C extensions. BioLang excels at I/O-heavy and compute-heavy tasks (FASTA/FASTQ parsing, k-mer counting, interval overlaps).</p>
+      </div>
+
+      <!-- ==================== WINDOWS TAB ==================== -->
+      <div id="bench-windows" style="display: none;">
+        <p class="text-slate-500 text-xs text-center mb-6">Windows 11 &mdash; Intel i9-12900K, 32 GB RAM &mdash; BioLang 0.3.0, Python 3.12.4</p>
+
+        <div class="overflow-x-auto">
+          <table class="bench-table w-full text-sm text-left">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400">
+                <th class="py-3 px-4 font-medium">Task</th>
+                <th class="py-3 px-4 font-medium text-violet-400">BioLang</th>
+                <th class="py-3 px-4 font-medium">Python</th>
+                <th class="py-3 px-4 font-medium">R</th>
+                <th class="py-3 px-4 font-medium">Speedup vs Py</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-300">
+              <!-- Sequence I/O -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Sequence I/O</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Statistics</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ QC</td><td class="py-2.5 px-4 text-violet-400 font-mono">2.02s</td><td class="py-2.5 px-4 font-mono">3.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.5x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ (26 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">2.05s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Reverse Complement</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+
+              <!-- Real-world Genomes -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Real-world Genomes</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">E. coli Genome</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Human Chr22</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GC Content (51 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+
+              <!-- K-mer Analysis -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">K-mer Analysis</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">K-mer Counting</td><td class="py-2.5 px-4 text-violet-400 font-mono">6.04s</td><td class="py-2.5 px-4 font-mono">18.14s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Chr22 21-mers</td><td class="py-2.5 px-4 text-violet-400 font-mono">9.08s</td><td class="py-2.5 px-4 font-mono">24.24s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.7x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Protein K-mers</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+
+              <!-- Intervals & Overlaps -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Intervals &amp; Overlaps</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ENCODE Peak Overlap</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.03s</td><td class="py-2.5 px-4 font-mono">3.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.9x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">BED Overlap (synthetic)</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+
+              <!-- Variant & Data -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Variant &amp; Data</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">VCF Filtering</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar Variants</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">CSV Join + Group-by</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+
+              <!-- Pipelines -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Pipelines</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ QC Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">2.03s</td><td class="py-2.5 px-4 font-mono">5.06s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.5x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Variant Analysis Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar Variant Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.02s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Multi-Sample Aggregation</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.05s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar + Ensembl Annotation</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-slate-500 text-xs mt-4">Windows process creation adds ~1s overhead per invocation, compressing speedup ratios for fast benchmarks. Only CPU-bound tasks exceeding this floor (k-mers, overlaps, QC pipeline) show true differences. See the Linux tab for accurate algorithmic performance comparison.</p>
+      </div>
+
+      <p class="text-slate-500 text-xs mt-6 text-center">K-mer counting uses canonical (strand-agnostic) 21-mers in BioLang vs forward-only in Python &mdash; BioLang does strictly more work.</p>
+    </div>
+  </section>
+
+  <!-- Methodology -->
+  <section class="py-16">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-2xl font-bold text-white text-center mb-8">Methodology</h2>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="methodology-card rounded-xl p-6">
+          <h3 class="text-white font-semibold mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Hardware
+          </h3>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><span class="text-slate-300">CPU:</span> Intel Core i9-12900K (16C/24T)</li>
+            <li><span class="text-slate-300">Linux:</span> WSL2, 16 GB RAM</li>
+            <li><span class="text-slate-300">Windows:</span> Windows 11 Pro, 32 GB RAM</li>
+            <li><span class="text-slate-300">Storage:</span> NVMe SSD</li>
+          </ul>
+        </div>
+
+        <div class="methodology-card rounded-xl p-6">
+          <h3 class="text-white font-semibold mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Measurement
+          </h3>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><span class="text-slate-300">Runs:</span> Best of 3, wall-clock time</li>
+            <li><span class="text-slate-300">BioLang:</span> v0.3.0 (tree-walking interpreter)</li>
+            <li><span class="text-slate-300">Python:</span> 3.12.3 (Linux) / 3.12.4 (Windows)</li>
+            <li><span class="text-slate-300">R:</span> 4.3.3 (Linux only)</li>
+          </ul>
+        </div>
+
+        <div class="methodology-card rounded-xl p-6">
+          <h3 class="text-white font-semibold mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+            Data Sources
+          </h3>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><span class="text-slate-300">Synthetic:</span> Generated FASTA/FASTQ/VCF/BED/CSV</li>
+            <li><span class="text-slate-300">Real-world:</span> NCBI (E. coli, Human Chr22), UniProt, ClinVar, ENCODE, Ensembl GFF3</li>
+            <li><span class="text-slate-300">Sizes:</span> 30 KB to 51 MB per file</li>
+          </ul>
+        </div>
+
+        <div class="methodology-card rounded-xl p-6">
+          <h3 class="text-white font-semibold mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Notes
+          </h3>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><span class="text-slate-300">K-mers:</span> BioLang uses canonical (strand-agnostic) 21-mers; Python uses forward-only. BioLang does strictly more work.</li>
+            <li><span class="text-slate-300">Python wins:</span> VCF/CSV/GFF parsing and pipeline orchestration use Python's highly optimized C extensions (regex, csv, dict).</li>
+            <li><span class="text-slate-300">Windows:</span> ~1s process creation overhead compresses speedup ratios for sub-second tasks.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Correctness Validation -->
+  <section class="py-16 bg-slate-900/30">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-2xl font-bold text-white text-center mb-3">Correctness Validation</h2>
+      <p class="text-slate-400 text-center mb-8 text-sm max-w-2xl mx-auto">
+        Two validation suites &mdash; synthetic and real-world &mdash; cross-validate 9 tasks against Python (BioPython) and R (Bioconductor) to ensure BioLang produces identical or numerically equivalent results.
+      </p>
+
+      <!-- Validation tabs -->
+      <div class="flex justify-center gap-2 mb-6">
+        <button id="tab-synth" onclick="switchValTab('synth')" class="px-5 py-2 rounded-full text-sm font-medium bg-violet-600 text-white transition-colors">Synthetic Data</button>
+        <button id="tab-real" onclick="switchValTab('real')" class="px-5 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors">Real-World Data</button>
+      </div>
+
+      <script>
+        function switchValTab(tab) {
+          document.getElementById('val-synth').style.display = tab === 'synth' ? '' : 'none';
+          document.getElementById('val-real').style.display = tab === 'real' ? '' : 'none';
+          document.getElementById('tab-synth').className = tab === 'synth'
+            ? 'px-5 py-2 rounded-full text-sm font-medium bg-violet-600 text-white transition-colors'
+            : 'px-5 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors';
+          document.getElementById('tab-real').className = tab === 'real'
+            ? 'px-5 py-2 rounded-full text-sm font-medium bg-violet-600 text-white transition-colors'
+            : 'px-5 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors';
+        }
+      </script>
+
+      <!-- Synthetic validation tab -->
+      <div id="val-synth">
+        <p class="text-slate-500 text-xs text-center mb-4">Generated test data &mdash; controlled inputs for deterministic output comparison</p>
+        <div class="overflow-x-auto mb-6">
+          <table class="bench-table w-full text-sm text-left">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400">
+                <th class="py-3 px-4 font-medium">Task</th>
+                <th class="py-3 px-4 font-medium">Validated Against</th>
+                <th class="py-3 px-4 font-medium">Tolerance</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-300">
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GC Content</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-cyan-400">Float &plusmn;1e-6</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">K-mer Counting</td><td class="py-2.5 px-4">Python</td><td class="py-2.5 px-4 text-green-400">Exact integer</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">VCF Filtering</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact integer</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Reverse Complement</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact string</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Translate</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact string</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">CSV Group-by</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-cyan-400">Float &plusmn;1e-6</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GFF Features</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact integer</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Sequence Stats</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-cyan-400">Float &plusmn;1e-6</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">BED Intervals</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact integer</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Real-world validation tab -->
+      <div id="val-real" style="display: none;">
+        <p class="text-slate-500 text-xs text-center mb-4">Real biological data from NCBI, ClinVar &mdash; tests edge cases synthetic data can't cover</p>
+        <div class="overflow-x-auto mb-6">
+          <table class="bench-table w-full text-sm text-left">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400">
+                <th class="py-3 px-4 font-medium">Task</th>
+                <th class="py-3 px-4 font-medium">Data Source</th>
+                <th class="py-3 px-4 font-medium">Validated Against</th>
+                <th class="py-3 px-4 font-medium">Tolerance</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-300">
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GC Content</td><td class="py-2.5 px-4 text-slate-400">S. cerevisiae genome (16 chroms)</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-cyan-400">Float &plusmn;1e-6</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">K-mer Counting</td><td class="py-2.5 px-4 text-slate-400">E. coli K-12 genome (50 KB)</td><td class="py-2.5 px-4">Python</td><td class="py-2.5 px-4 text-green-400">Exact integer</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">VCF Filtering</td><td class="py-2.5 px-4 text-slate-400">ClinVar (5,000 variants)</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact integer</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Reverse Complement</td><td class="py-2.5 px-4 text-slate-400">S. cerevisiae (5 chroms, 200bp)</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact string</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Translate</td><td class="py-2.5 px-4 text-slate-400">S. cerevisiae (3 chroms, 99bp)</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact string</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">CSV Group-by</td><td class="py-2.5 px-4 text-slate-400">ClinVar variants CSV</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-cyan-400">Float &plusmn;1e-6</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GFF Features</td><td class="py-2.5 px-4 text-slate-400">E. coli K-12 GFF3 annotation</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact integer</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Sequence Stats</td><td class="py-2.5 px-4 text-slate-400">S. cerevisiae genome</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-cyan-400">Float &plusmn;1e-6</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">BED Intervals</td><td class="py-2.5 px-4 text-slate-400">E. coli gene coords (from GFF)</td><td class="py-2.5 px-4">Python, R</td><td class="py-2.5 px-4 text-green-400">Exact integer</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-slate-500 text-xs">Real-world data reveals edge cases that synthetic data misses: non-standard bases (N, Y, R), multi-allelic ClinVar variants, overlapping bacterial genes, and variable chromosome naming conventions.</p>
+      </div>
+
+      <div class="methodology-card rounded-xl p-6 max-w-2xl mx-auto mt-8">
+        <h3 class="text-white font-semibold mb-3">How it works</h3>
+        <p class="text-sm text-slate-400 mb-3">
+          Each validated task outputs JSON from all three languages. A recursive diff compares the outputs field-by-field, applying the specified tolerance for floating-point values and exact comparison for integers and strings.
+        </p>
+        <p class="text-sm text-slate-400">
+          Validation scripts and real-world data download tool live in the
+          <a href="https://github.com/oriclabs/biolang/tree/main/benchmarks/correctness" class="text-violet-400 hover:text-violet-300">benchmarks/correctness/</a>
+          directory of the repository.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reproduce -->
+  <section class="py-16">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-2xl font-bold text-white text-center mb-3">Reproduce the Benchmarks</h2>
+      <p class="text-slate-400 text-center mb-8 text-sm">Clone the repo and run the benchmark suite yourself.</p>
+
+      <div class="max-w-2xl mx-auto bg-slate-900/80 border border-slate-800 rounded-xl p-6 font-mono text-sm">
+        <div class="text-slate-500 mb-2"># Clone and enter the benchmarks directory</div>
+        <div class="text-slate-200 mb-1"><span class="text-violet-400">$</span> git clone https://github.com/oriclabs/biolang.git</div>
+        <div class="text-slate-200 mb-4"><span class="text-violet-400">$</span> cd biolang/benchmarks</div>
+
+        <div class="text-slate-500 mb-2"># Install BioLang (if not already)</div>
+        <div class="text-slate-200 mb-4"><span class="text-violet-400">$</span> cargo install biolang</div>
+
+        <div class="text-slate-500 mb-2"># Generate test data</div>
+        <div class="text-slate-200 mb-4"><span class="text-violet-400">$</span> python generate_data.py</div>
+
+        <div class="text-slate-500 mb-2"># Run all benchmarks (Linux)</div>
+        <div class="text-slate-200 mb-4"><span class="text-violet-400">$</span> bash run_all.sh</div>
+
+        <div class="text-slate-500 mb-2"># Run correctness validation (synthetic data)</div>
+        <div class="text-slate-200 mb-4"><span class="text-violet-400">$</span> bash correctness/validate.sh</div>
+
+        <div class="text-slate-500 mb-2"># Run real-world validation (E. coli, yeast, ClinVar)</div>
+        <div class="text-slate-200 mb-1"><span class="text-violet-400">$</span> python correctness/download_real_data.py</div>
+        <div class="text-slate-200"><span class="text-violet-400">$</span> bash correctness/validate_real.sh</div>
+      </div>
+
+      <p class="text-slate-500 text-xs mt-6 text-center">
+        Raw results, scripts, and per-task analysis available at
+        <a href="https://github.com/oriclabs/biolang/tree/main/benchmarks" class="text-violet-400 hover:text-violet-300">github.com/oriclabs/biolang/tree/main/benchmarks</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-12 bg-slate-900/30">
+    <div class="max-w-2xl mx-auto px-6 text-center">
+      <h2 class="text-xl font-bold text-white mb-3">Want even faster?</h2>
+      <p class="text-slate-400 mb-6 text-sm">These benchmarks use BioLang's tree-walking interpreter. The bytecode compiler and Cranelift JIT are under active development.</p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="docs/getting-started/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">
+          Get Started
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+        <a href="https://github.com/oriclabs/biolang" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-slate-700 hover:border-violet-500/50 text-slate-300 hover:text-white font-semibold transition-colors">
+          GitHub
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div data-component="footer" data-base-path="."></div>
+  <script src="js/main.js"></script>
+</body>
+</html>
