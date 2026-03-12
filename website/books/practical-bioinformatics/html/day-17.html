@@ -1,0 +1,900 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 17: Protein Analysis - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-17-protein-analysis"><a class="header" href="#day-17-protein-analysis">Day 17: Protein Analysis</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Intermediate (amino acids, protein structure, domains)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (records, pipes, lambda functions, maps)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1-16 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>None (all examples use API calls or inline sequences)</td></tr>
+<tr><td><strong>Requirements</strong></td><td>Internet connection for API sections (UniProt, PDB, Ensembl)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to work with protein sequences and understand amino acid properties</li>
+<li>How to query UniProt for protein information, features, domains, and GO terms</li>
+<li>How to access 3D structure data from the PDB</li>
+<li>How to analyze amino acid composition and k-mer profiles</li>
+<li>How to compare orthologs across species and assess mutation impact</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You found a missense mutation in EGFR. Does it affect the protein? Is it in a critical domain? What does the structure look like? Protein analysis connects genetic variants to functional consequences. DNA tells you <em>what changed</em>; protein analysis tells you <em>why it matters</em>.</p>
+<p>Every gene encodes a protein (or several), and the protein is what actually does the work in the cell. A single amino acid change can destroy enzyme activity, disrupt a binding interface, or destabilize the entire fold. To understand the impact of a variant, you need to know the protein: its domains, its structure, its function, and the properties of the amino acids involved.</p>
+<hr>
+<h2 id="protein-sequence-basics"><a class="header" href="#protein-sequence-basics">Protein Sequence Basics</a></h2>
+<p>Proteins are chains of amino acids. Where DNA uses a 4-letter alphabet (A, T, G, C), proteins use a 20-letter alphabet. Each amino acid has distinct chemical properties that determine how the protein folds and functions.</p>
+<pre><code>Amino Acid Properties
+=====================
+
+Hydrophobic: A, V, L, I, M, F, W, P    (pack in the protein interior)
+Polar:       S, T, N, Q, Y, C          (surface, form hydrogen bonds)
+Positive:    K, R, H                    (basic, often bind DNA/RNA)
+Negative:    D, E                       (acidic, often in catalytic sites)
+Special:     G (flexible), P (rigid)
+</code></pre>
+<p>Protein structure has four levels:</p>
+<pre><code>Levels of Protein Structure
+============================
+
+Primary    →  Amino acid sequence (MEEPQSD...)
+Secondary  →  Local folding: alpha helices, beta sheets
+Tertiary   →  Complete 3D fold of one chain
+Quaternary →  Multiple chains assembled together
+</code></pre>
+<p>Each level builds on the previous one. The primary sequence determines everything else — change one amino acid, and the entire fold can be disrupted.</p>
+<p>BioLang has a native protein literal type, just like DNA and RNA:</p>
+<pre><code class="language-bio">let p53 = protein"MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYPQGLNGTVNLPGRNSFEV"
+println(f"Length: {len(p53)} amino acids")
+println(f"Type: {type(p53)}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Length: 120 amino acids
+Type: Protein
+</code></pre>
+<p>The <code>protein"..."</code> literal validates that every character is a valid amino acid code. Just as <code>dna"ATCG"</code> ensures valid nucleotides, <code>protein"MEEP..."</code> ensures valid residues.</p>
+<hr>
+<h2 id="uniprot-the-protein-knowledge-base"><a class="header" href="#uniprot-the-protein-knowledge-base">UniProt: The Protein Knowledge Base</a></h2>
+<p>UniProt is the single most important protein database. It assigns each protein a stable accession number (like P04637 for human TP53) and aggregates information from hundreds of sources: sequence, function, domains, GO annotations, disease associations, post-translational modifications, and cross-references to every other major database.</p>
+<h3 id="looking-up-a-protein"><a class="header" href="#looking-up-a-protein">Looking Up a Protein</a></h3>
+<pre><code class="language-bio"># requires: internet connection
+
+# Look up a protein by accession
+let entry = uniprot_entry("P04637")  # TP53
+println(f"Protein: {entry.name}")
+println(f"Gene: {entry.gene_names}")
+println(f"Organism: {entry.organism}")
+println(f"Length: {entry.sequence_length} aa")
+println(f"Function: {substr(entry.function, 0, 80)}...")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Protein: Cellular tumor antigen p53
+Gene: [TP53, P53]
+Organism: Homo sapiens (Human)
+Length: 393 aa
+Function: Acts as a tumor suppressor in many tumor types; induces growth arrest or apop...
+</code></pre>
+<p>The <code>uniprot_entry()</code> function returns a record with fields: <code>accession</code>, <code>name</code>, <code>organism</code>, <code>sequence_length</code>, <code>gene_names</code> (a list), and <code>function</code>.</p>
+<h3 id="getting-the-protein-sequence"><a class="header" href="#getting-the-protein-sequence">Getting the Protein Sequence</a></h3>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get the FASTA sequence as a string
+let fasta = uniprot_fasta("P04637")
+println(f"First 60 residues: {substr(fasta, 0, 60)}")
+println(f"Full length: {len(fasta)} aa")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>First 60 residues: MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGP
+Full length: 393 aa
+</code></pre>
+<p>The <code>uniprot_fasta()</code> function returns the raw amino acid sequence as a string.</p>
+<h3 id="searching-uniprot"><a class="header" href="#searching-uniprot">Searching UniProt</a></h3>
+<pre><code class="language-bio"># requires: internet connection
+
+# Search UniProt for human kinases in the reviewed (SwissProt) database
+let results = uniprot_search("kinase AND organism_id:9606 AND reviewed:true")
+println(f"Human kinases in SwissProt: {len(results)}")
+println(f"First 3: {results |&gt; take(3)}")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Human kinases in SwissProt: 518
+First 3: [{accession: P00533, name: Epidermal growth factor receptor, ...}, ...]
+</code></pre>
+<hr>
+<h2 id="protein-features-and-domains"><a class="header" href="#protein-features-and-domains">Protein Features and Domains</a></h2>
+<p>Proteins are not uniform chains — they contain distinct regions (domains) that perform specific functions. A kinase domain phosphorylates substrates. A DNA-binding domain recognizes specific sequences. A transmembrane domain anchors the protein in the membrane.</p>
+<p>UniProt annotates these features with precise locations. The <code>uniprot_features()</code> function returns a list of records, each with <code>type</code>, <code>description</code>, and <code>location</code> fields.</p>
+<pre><code class="language-bio"># requires: internet connection
+
+let features = uniprot_features("P04637")
+println(f"Total features: {len(features)}")
+
+# Count by type
+let types = features |&gt; map(|f| f.type) |&gt; frequencies()
+println(f"Feature types: {types}")
+
+# Find domains
+let domains = features |&gt; filter(|f| f.type == "Domain")
+for d in domains {
+    println(f"  Domain: {d.description} ({d.location})")
+}
+
+# Find binding sites
+let binding = features |&gt; filter(|f| f.type == "Binding site")
+println(f"\nBinding sites: {len(binding)}")
+for b in binding {
+    println(f"  {b.description} ({b.location})")
+}
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Total features: 68
+Feature types: {Chain: 1, Domain: 3, DNA binding: 1, Region: 4, ...}
+  Domain: Transactivation domain 1 (1..43)
+  Domain: Proline-rich region (63..97)
+  Domain: Tetramerization domain (323..356)
+
+Binding sites: 4
+  Zinc (176)
+  Zinc (179)
+  Zinc (238)
+  Zinc (242)
+</code></pre>
+<h3 id="why-features-matter-for-variant-interpretation"><a class="header" href="#why-features-matter-for-variant-interpretation">Why Features Matter for Variant Interpretation</a></h3>
+<p>When you find a missense mutation, the first question is: <em>where in the protein is it?</em> A mutation in a flexible loop might be tolerated. A mutation in the DNA-binding domain that disrupts a zinc-coordinating residue is almost certainly pathogenic. Features give you this context.</p>
+<pre><code class="language-bio"># requires: internet connection
+
+# Check if a mutation position falls in a domain
+let features = uniprot_features("P04637")
+let domains = features |&gt; filter(|f| f.type == "Domain")
+
+# TP53 R248W is one of the most common cancer mutations
+let mutation_pos = 248
+println(f"Mutation at position {mutation_pos}")
+println(f"Domains in TP53:")
+for d in domains {
+    println(f"  {d.description}: {d.location}")
+}
+println("Position 248 falls in the DNA-binding domain (102-292)")
+println("This is a hotspot mutation that disrupts DNA contact")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Mutation at position 248
+Domains in TP53:
+  Transactivation domain 1: 1..43
+  Proline-rich region: 63..97
+  Tetramerization domain: 323..356
+Position 248 falls in the DNA-binding domain (102-292)
+This is a hotspot mutation that disrupts DNA contact
+</code></pre>
+<hr>
+<h2 id="go-terms-for-protein-function"><a class="header" href="#go-terms-for-protein-function">GO Terms for Protein Function</a></h2>
+<p>Gene Ontology (GO) terms classify what a protein does at three levels: Biological Process (what it participates in), Molecular Function (what biochemical activity it has), and Cellular Component (where in the cell it acts). You encountered GO briefly in Day 16. Here we focus on protein-level annotation.</p>
+<pre><code class="language-bio"># requires: internet connection
+
+let go_terms = uniprot_go("P04637")
+println(f"GO annotations: {len(go_terms)}")
+
+# Group by aspect
+let bp = go_terms |&gt; filter(|t| t.aspect == "biological_process") |&gt; len()
+let mf = go_terms |&gt; filter(|t| t.aspect == "molecular_function") |&gt; len()
+let cc = go_terms |&gt; filter(|t| t.aspect == "cellular_component") |&gt; len()
+println(f"Biological Process: {bp}")
+println(f"Molecular Function: {mf}")
+println(f"Cellular Component: {cc}")
+
+# Show some specific terms
+let functions = go_terms |&gt; filter(|t| t.aspect == "molecular_function")
+println(f"\nMolecular functions:")
+for f in functions |&gt; take(5) {
+    println(f"  {f.id}: {f.term}")
+}
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>GO annotations: 142
+Biological Process: 98
+Molecular Function: 24
+Cellular Component: 20
+
+Molecular functions:
+  GO:0003700: DNA-binding transcription factor activity
+  GO:0003677: DNA binding
+  GO:0005515: protein binding
+  GO:0046982: protein heterodimerization activity
+  GO:0042802: identical protein binding
+</code></pre>
+<p>GO terms tell you the functional context. If a protein has “kinase activity” (MF), participates in “signal transduction” (BP), and localizes to the “plasma membrane” (CC), you have a clear picture of a membrane-associated signaling kinase.</p>
+<hr>
+<h2 id="pdb-3d-protein-structures"><a class="header" href="#pdb-3d-protein-structures">PDB: 3D Protein Structures</a></h2>
+<p>The Protein Data Bank (PDB) contains experimentally determined 3D structures of proteins, solved by X-ray crystallography, cryo-EM, or NMR. Resolution matters: lower numbers mean sharper detail. A 1.5 Angstrom structure shows individual atoms; a 4.0 Angstrom structure shows overall shape but not side-chain detail.</p>
+<pre><code class="language-bio"># requires: internet connection
+
+let structure = pdb_entry("1TUP")  # TP53 DNA-binding domain
+println(f"Title: {structure.title}")
+println(f"Resolution: {structure.resolution} angstrom")
+println(f"Method: {structure.method}")
+println(f"Release date: {structure.release_date}")
+println(f"Organism: {structure.organism}")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Title: CRYSTAL STRUCTURE OF THE TETRAMERIZATION DOMAIN OF THE TUMOR SUPPRESSOR P53
+Resolution: 1.7 angstrom
+Method: X-RAY DIFFRACTION
+Release date: 1995-10-15
+Organism: Homo sapiens
+</code></pre>
+<h3 id="searching-for-structures"><a class="header" href="#searching-for-structures">Searching for Structures</a></h3>
+<pre><code class="language-bio"># requires: internet connection
+
+# Search for all structures of a protein
+let p53_structures = pdb_search("TP53")
+println(f"TP53 structures in PDB: {len(p53_structures)}")
+println(f"First 5 IDs: {p53_structures |&gt; take(5)}")
+
+# Look up a specific structure for more detail
+let best = pdb_entry(first(p53_structures))
+println(f"\nFirst hit: {best.id}")
+println(f"  Title: {best.title}")
+println(f"  Method: {best.method}")
+println(f"  Resolution: {best.resolution}")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>TP53 structures in PDB: 385
+First 5 IDs: [1TUP, 1TSR, 1UOL, 2AC0, 2AHI]
+
+First hit: 1TUP
+  Title: CRYSTAL STRUCTURE OF THE TETRAMERIZATION DOMAIN OF THE TUMOR SUPPRESSOR P53
+  Method: X-RAY DIFFRACTION
+  Resolution: 1.7
+</code></pre>
+<h3 id="getting-the-protein-sequence-from-pdb"><a class="header" href="#getting-the-protein-sequence-from-pdb">Getting the Protein Sequence from PDB</a></h3>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get the amino acid sequence from a PDB entry (entity 1)
+let seq = pdb_sequence("1TUP", 1)
+println(f"Type: {type(seq)}")
+println(f"Length: {len(seq)} residues")
+println(f"Sequence: {substr(str(seq), 0, 50)}...")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Type: Protein
+Length: 60 residues
+Sequence: PQHLRVEGNLHAEYLDDKQTKFISLHGNVQLGDSSVKFKSNEDLRNEEGF...
+</code></pre>
+<p>The <code>pdb_sequence()</code> function takes a PDB ID and an entity number (typically 1 for the main protein chain) and returns a <code>Protein</code> value.</p>
+<hr>
+<h2 id="amino-acid-composition-analysis"><a class="header" href="#amino-acid-composition-analysis">Amino Acid Composition Analysis</a></h2>
+<p>The amino acid composition of a protein tells you a lot about its character. Membrane proteins are enriched in hydrophobic residues. DNA-binding proteins are enriched in positively charged residues (K, R). Intrinsically disordered regions tend to be enriched in charged and polar residues and depleted in hydrophobic ones.</p>
+<pre><code class="language-bio">let seq = protein"MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDD"
+let counts = base_counts(seq)
+println(f"Amino acid counts: {counts}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Amino acid counts: {A: 2, D: 5, E: 4, F: 1, K: 1, L: 7, M: 2, N: 2, P: 7, Q: 3, S: 4, T: 1, V: 2, W: 1}
+</code></pre>
+<p>Despite its name, <code>base_counts()</code> works on all BioLang sequence types — DNA, RNA, and Protein. It returns a map of character frequencies.</p>
+<h3 id="classifying-by-chemical-properties"><a class="header" href="#classifying-by-chemical-properties">Classifying by Chemical Properties</a></h3>
+<pre><code class="language-bio">let seq = protein"MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDD"
+let counts = base_counts(seq)
+
+# Classify each amino acid by chemical property
+fn classify_aa(aa) {
+    match aa {
+        "A" | "V" | "L" | "I" | "M" | "F" | "W" | "P" =&gt; "hydrophobic",
+        "S" | "T" | "N" | "Q" | "Y" | "C" =&gt; "polar",
+        "K" | "R" | "H" =&gt; "positive",
+        "D" | "E" =&gt; "negative",
+        _ =&gt; "other"
+    }
+}
+
+# Count by property group
+let residues = split(str(seq), "")
+let groups = residues |&gt; map(|aa| classify_aa(aa)) |&gt; frequencies()
+println(f"Property distribution: {groups}")
+
+# Calculate percentages
+let total = len(residues)
+for group in ["hydrophobic", "polar", "negative", "positive"] {
+    let count = groups[group]
+    let pct = round(count / total * 100, 1)
+    println(f"  {group}: {count}/{total} ({pct}%)")
+}
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Property distribution: {hydrophobic: 20, polar: 10, negative: 9, positive: 1}
+  hydrophobic: 20/48 (41.7%)
+  polar: 10/48 (20.8%)
+  negative: 9/48 (18.8%)
+  positive: 1/48 (2.1%)
+</code></pre>
+<p>A high fraction of hydrophobic residues is expected in globular proteins (they form the core). The very low positive charge here reflects this fragment of TP53 being the transactivation domain, which is acidic (lots of D and E).</p>
+<hr>
+<h2 id="k-mer-analysis-of-proteins"><a class="header" href="#k-mer-analysis-of-proteins">K-mer Analysis of Proteins</a></h2>
+<p>Just as DNA k-mers reveal motifs and repeat patterns (Day 5), protein k-mers can identify sequence motifs and conserved patterns. Dipeptide and tripeptide frequencies are used in machine learning models that predict protein localization, solubility, and function.</p>
+<pre><code class="language-bio"># Protein k-mers reveal motifs and domain signatures
+let seq = protein"MEEPQSDPSVEPPLSQETFSDLWKLL"
+let trimers = kmers(seq, 3)
+println(f"Protein 3-mers: {len(trimers)}")
+println(f"First 5 trimers: {trimers |&gt; take(5)}")
+
+# Count dipeptide frequencies
+let dipeptides = kmer_count(seq, 2)
+println(f"\nDipeptide counts (top 10):")
+println(dipeptides |&gt; head(10))
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Protein 3-mers: 24
+First 5 trimers: [MEE, EEP, EPQ, PQS, QSD]
+
+Dipeptide counts (top 10):
+EP: 2
+PL: 2
+PS: 2
+SD: 2
+SQ: 1
+...
+</code></pre>
+<p>Certain dipeptides are over-represented in specific structural contexts. For example, “PP” is common in proline-rich regions that resist folding, while “LV” and “IL” clusters are typical of hydrophobic cores.</p>
+<hr>
+<h2 id="comparing-proteins-across-species"><a class="header" href="#comparing-proteins-across-species">Comparing Proteins Across Species</a></h2>
+<p>Orthologous proteins — the same gene in different species — reveal what evolution has preserved. Highly conserved positions are functionally critical. Variable positions are tolerant of change. Comparing orthologs is one of the most powerful ways to predict whether a mutation is damaging.</p>
+<pre><code class="language-bio"># requires: internet connection
+
+# Compare TP53 across species
+let accessions = ["P04637", "Q00366", "O09185"]  # Human, Chicken, Mouse
+let names = ["Human", "Chicken", "Mouse"]
+
+let proteins = []
+for i in range(0, len(accessions)) {
+    let entry = uniprot_entry(accessions[i])
+    proteins = proteins + [{
+        species: names[i],
+        accession: entry.accession,
+        name: entry.name,
+        organism: entry.organism,
+        length: entry.sequence_length
+    }]
+}
+
+let comparison = proteins |&gt; to_table()
+println("TP53 Orthologs:")
+println(comparison)
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>TP53 Orthologs:
+species   accession  name                       organism                length
+Human     P04637     Cellular tumor antigen p53  Homo sapiens (Human)    393
+Chicken   Q00366     Cellular tumor antigen p53  Gallus gallus (Chicken) 367
+Mouse     O09185     Cellular tumor antigen p53  Mus musculus (Mouse)    387
+</code></pre>
+<p>The lengths differ slightly between species, but the core structure is conserved. The DNA-binding domain (roughly residues 100-290 in human) is the most highly conserved region, reflecting its critical function.</p>
+<hr>
+<h2 id="protein-mutation-impact"><a class="header" href="#protein-mutation-impact">Protein Mutation Impact</a></h2>
+<p>When you find a missense variant, the question is: does this amino acid change matter? The answer depends on several factors:</p>
+<ol>
+<li><strong>Where</strong> in the protein is the mutation? (domain, active site, surface?)</li>
+<li><strong>What</strong> property changed? (charge, size, hydrophobicity?)</li>
+<li><strong>How conserved</strong> is this position? (conserved = important)</li>
+</ol>
+<h3 id="assessing-property-changes"><a class="header" href="#assessing-property-changes">Assessing Property Changes</a></h3>
+<pre><code class="language-bio"># Assess the impact of a point mutation
+let normal = protein"MEEPQSDPSVEPPLSQE"
+let mutant = protein"MEEPQSDPSVEPPLSRE"  # Q16R: glutamine → arginine
+
+# Compare the changed residue
+let normal_aa = substr(str(normal), 15, 1)
+let mutant_aa = substr(str(mutant), 15, 1)
+println(f"Position 16: {normal_aa} -&gt; {mutant_aa}")
+
+fn classify_aa(aa) {
+    match aa {
+        "A" | "V" | "L" | "I" | "M" | "F" | "W" | "P" =&gt; "hydrophobic",
+        "S" | "T" | "N" | "Q" | "Y" | "C" =&gt; "polar",
+        "K" | "R" | "H" =&gt; "positive",
+        "D" | "E" =&gt; "negative",
+        _ =&gt; "other"
+    }
+}
+
+let normal_class = classify_aa(normal_aa)
+let mutant_class = classify_aa(mutant_aa)
+println(f"Property: {normal_class} -&gt; {mutant_class}")
+
+if normal_class != mutant_class {
+    println("WARNING: Property change detected --- likely functional impact")
+} else {
+    println("Same property class --- may be tolerated")
+}
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Position 16: Q -&gt; R
+Property: polar -&gt; positive
+WARNING: Property change detected --- likely functional impact
+</code></pre>
+<p>A polar-to-positive change introduces a new charge. This is the kind of change most likely to disrupt protein function, especially if it occurs at a conserved position in a functional domain.</p>
+<h3 id="using-ensembl-vep-for-variant-assessment"><a class="header" href="#using-ensembl-vep-for-variant-assessment">Using Ensembl VEP for Variant Assessment</a></h3>
+<p>For real variant assessment, the Variant Effect Predictor (VEP) integrates multiple lines of evidence: conservation, structural data, and known disease associations.</p>
+<pre><code class="language-bio"># requires: internet connection
+
+# Assess a known pathogenic EGFR mutation
+let vep = ensembl_vep("7:55249071:C:T")  # EGFR variant
+println(f"Consequence: {vep.consequence}")
+println(f"Gene: {vep.gene}")
+println(f"Impact: {vep.impact}")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Consequence: missense_variant
+Gene: EGFR
+Impact: MODERATE
+</code></pre>
+<hr>
+<h2 id="complete-protein-analysis-pipeline"><a class="header" href="#complete-protein-analysis-pipeline">Complete Protein Analysis Pipeline</a></h2>
+<p>This pipeline brings together everything from this chapter: UniProt lookup, feature extraction, GO annotation, and PDB structure search. It produces a comprehensive report for any protein given its UniProt accession.</p>
+<pre><code class="language-bio"># Complete Protein Analysis Report
+# requires: internet connection
+
+fn protein_report(accession) {
+    println(f"\n{'=' * 50}")
+    println(f"Protein Report: {accession}")
+    println(f"{'=' * 50}\n")
+
+    # Basic info
+    let entry = uniprot_entry(accession)
+    println(f"Name: {entry.name}")
+    println(f"Gene: {entry.gene_names}")
+    println(f"Organism: {entry.organism}")
+    println(f"Length: {entry.sequence_length} aa")
+
+    # Get sequence and analyze composition
+    let fasta = uniprot_fasta(accession)
+    let residues = split(fasta, "")
+    let total = len(residues)
+
+    fn classify_aa(aa) {
+        match aa {
+            "A" | "V" | "L" | "I" | "M" | "F" | "W" | "P" =&gt; "hydrophobic",
+            "S" | "T" | "N" | "Q" | "Y" | "C" =&gt; "polar",
+            "K" | "R" | "H" =&gt; "positive",
+            "D" | "E" =&gt; "negative",
+            _ =&gt; "other"
+        }
+    }
+
+    let groups = residues |&gt; map(|aa| classify_aa(aa)) |&gt; frequencies()
+    println(f"\nComposition:")
+    for group in ["hydrophobic", "polar", "negative", "positive"] {
+        let count = groups[group]
+        let pct = round(count / total * 100, 1)
+        println(f"  {group}: {pct}%")
+    }
+
+    # Domains
+    let features = uniprot_features(accession)
+    let domains = features |&gt; filter(|f| f.type == "Domain")
+    println(f"\nDomains ({len(domains)}):")
+    for d in domains {
+        println(f"  {d.description}: {d.location}")
+    }
+
+    # GO terms
+    let go = uniprot_go(accession)
+    let bp = go |&gt; filter(|t| t.aspect == "biological_process") |&gt; len()
+    let mf = go |&gt; filter(|t| t.aspect == "molecular_function") |&gt; len()
+    let cc = go |&gt; filter(|t| t.aspect == "cellular_component") |&gt; len()
+    println(f"\nGO annotations: {len(go)} total")
+    println(f"  Biological Process: {bp}")
+    println(f"  Molecular Function: {mf}")
+    println(f"  Cellular Component: {cc}")
+
+    # PDB structures
+    let structures = pdb_search(first(entry.gene_names))
+    println(f"\nPDB structures: {len(structures)}")
+    if len(structures) &gt; 0 {
+        let top = pdb_entry(first(structures))
+        println(f"  Best: {top.id} - {top.method}, {top.resolution} angstrom")
+    }
+}
+
+# Generate reports for key cancer proteins
+let targets = ["P04637", "P00533", "P01116"]  # TP53, EGFR, KRAS
+for acc in targets {
+    protein_report(acc)
+}
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>==================================================
+Protein Report: P04637
+==================================================
+
+Name: Cellular tumor antigen p53
+Gene: [TP53, P53]
+Organism: Homo sapiens (Human)
+Length: 393 aa
+
+Composition:
+  hydrophobic: 35.4%
+  polar: 28.2%
+  negative: 10.7%
+  positive: 14.2%
+
+Domains (3):
+  Transactivation domain 1: 1..43
+  Proline-rich region: 63..97
+  Tetramerization domain: 323..356
+
+GO annotations: 142 total
+  Biological Process: 98
+  Molecular Function: 24
+  Cellular Component: 20
+
+PDB structures: 385
+  Best: 1TUP - X-RAY DIFFRACTION, 1.7 angstrom
+
+==================================================
+Protein Report: P00533
+==================================================
+
+Name: Epidermal growth factor receptor
+Gene: [EGFR, ERBB1, HER1]
+Organism: Homo sapiens (Human)
+Length: 1210 aa
+
+Composition:
+  hydrophobic: 38.1%
+  polar: 24.5%
+  negative: 11.3%
+  positive: 13.8%
+
+Domains (4):
+  Furin-like cysteine rich domain: 177..338
+  Furin-like cysteine rich domain: 481..621
+  Protein kinase domain: 712..979
+  Receptor L domain: 57..167
+
+GO annotations: 96 total
+  Biological Process: 62
+  Molecular Function: 18
+  Cellular Component: 16
+
+PDB structures: 290
+  Best: 1NQL - X-RAY DIFFRACTION, 2.5 angstrom
+
+==================================================
+Protein Report: P01116
+==================================================
+
+Name: GTPase KRas
+Gene: [KRAS]
+Organism: Homo sapiens (Human)
+Length: 189 aa
+
+Composition:
+  hydrophobic: 34.9%
+  polar: 25.9%
+  negative: 14.8%
+  positive: 13.2%
+
+Domains (0):
+
+GO annotations: 78 total
+  Biological Process: 52
+  Molecular Function: 14
+  Cellular Component: 12
+
+PDB structures: 620
+  Best: 4OBE - X-RAY DIFFRACTION, 1.2 angstrom
+</code></pre>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li>
+<p><strong>Insulin deep dive.</strong> Look up insulin (P01308) in UniProt and list its domains, features, and GO terms. How many PDB structures exist for it?</p>
+</li>
+<li>
+<p><strong>Composition comparison.</strong> Get the amino acid sequences for a membrane protein (e.g., EGFR, P00533) and a nuclear protein (e.g., TP53, P04637). Compare their hydrophobic/polar/charged ratios. Which has more hydrophobic residues, and why?</p>
+</li>
+<li>
+<p><strong>Structure search.</strong> Find all PDB structures for EGFR using <code>pdb_search()</code>. Pick the first result and look up its resolution and method. How does cryo-EM resolution compare to X-ray crystallography?</p>
+</li>
+<li>
+<p><strong>K-mer motifs.</strong> Use <code>kmers()</code> and <code>kmer_count()</code> to analyze protein 3-mers in the first 100 residues of TP53 (get the sequence with <code>uniprot_fasta("P04637")</code>). Are there any repeated tripeptides?</p>
+</li>
+<li>
+<p><strong>Ortholog comparison.</strong> Build a protein comparison table for BRCA1 across three species: human (P38398), mouse (P48754), and chicken (F1NLG5). Compare their lengths and domain counts.</p>
+</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>UniProt is the primary protein knowledge base</strong> — accession numbers are stable identifiers that never change, even as annotation improves.</li>
+<li><strong>Protein features map function to sequence</strong> — domains, binding sites, and active sites explain what each region of the protein does.</li>
+<li><strong>GO terms classify function at three levels</strong> — biological process, molecular function, and cellular component give complementary views.</li>
+<li><strong>PDB structures show the 3D shape</strong> — resolution matters; lower numbers mean more reliable atomic detail.</li>
+<li><strong>Amino acid properties determine protein behavior</strong> — hydrophobicity, charge, and size all affect folding, binding, and catalysis.</li>
+<li><strong>Mutations in critical domains have the highest impact</strong> — a change in an active site or binding interface is far more damaging than one in a flexible loop.</li>
+</ul>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow: <strong>Day 18 — Genomic Coordinates and Intervals.</strong> BED operations, overlap queries, coordinate systems (0-based vs 1-based), and the interval arithmetic that underlies every genome browser and variant annotation tool.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-16.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-18.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-16.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-18.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 18: Genomic Coordinates and Intervals - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-18-genomic-coordinates-and-intervals"><a class="header" href="#day-18-genomic-coordinates-and-intervals">Day 18: Genomic Coordinates and Intervals</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Intermediate (genomic coordinates, exons, variants)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (records, pipes, lambda functions, interval trees)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1-17 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated by <code>init.bl</code> (exons BED, variants VCF, annotations GFF)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>Why coordinate systems are the #1 source of bioinformatics bugs</li>
+<li>The difference between 0-based half-open (BED) and 1-based inclusive (VCF, GFF) coordinates</li>
+<li>How to create and manipulate genomic intervals</li>
+<li>How interval trees enable fast overlap queries on millions of regions</li>
+<li>How to filter variants by genomic region (exonic vs intronic)</li>
+<li>How to read and write BED files, and work with GFF annotations</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Your exome capture kit targets 200,000 regions. Your variant caller found 50,000 variants. Which variants fall inside targeted regions? Which exons overlap regulatory elements? Genomic interval operations answer these questions in milliseconds.</p>
+<p>Genomic coordinates are deceptively simple — a chromosome name, a start position, and an end position. But the way those positions are counted differs between file formats, and getting it wrong means your analysis is off by one base. That one base can be the difference between “variant in exon” and “variant in intron.” At genome scale, you cannot check these by eye. You need fast, correct interval operations.</p>
+<hr>
+<h2 id="coordinate-systems"><a class="header" href="#coordinate-systems">Coordinate Systems</a></h2>
+<p>This is the single most important concept in this chapter. If you get coordinates wrong, every downstream analysis is silently incorrect.</p>
+<pre><code>Position:   1  2  3  4  5  6  7  8  9 10
+Sequence:   A  T  C  G  A  T  C  G  A  T
+
+1-based inclusive (VCF, GFF, SAM):
+  "positions 3-7" = C G A T C  (5 bases)
+  start=3, end=7, length = end - start + 1 = 5
+
+0-based half-open (BED, BAM index, UCSC):
+  "positions 2-7" = C G A T C  (5 bases, same region!)
+  start=2, end=7, length = end - start = 5
+  start is included, end is EXCLUDED
+</code></pre>
+<p>The key rules:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Format</th><th>System</th><th>Start</th><th>End</th><th>Length formula</th></tr>
+</thead>
+<tbody>
+<tr><td>BED</td><td>0-based half-open</td><td>Included</td><td>Excluded</td><td>end - start</td></tr>
+<tr><td>VCF</td><td>1-based inclusive</td><td>Included</td><td>Included</td><td>end - start + 1</td></tr>
+<tr><td>GFF/GTF</td><td>1-based inclusive</td><td>Included</td><td>Included</td><td>end - start + 1</td></tr>
+<tr><td>SAM</td><td>1-based inclusive</td><td>Included</td><td>Included</td><td>end - start + 1</td></tr>
+<tr><td>BAM index</td><td>0-based half-open</td><td>Included</td><td>Excluded</td><td>end - start</td></tr>
+</tbody>
+</table>
+</div>
+<p>The same five bases (CGATC) are represented as:</p>
+<ul>
+<li>BED: <code>chr1  2  7</code> (start at 2, end at 7, end excluded)</li>
+<li>VCF: <code>chr1  3</code> (position 3, 1-based)</li>
+<li>GFF: <code>chr1  3  7</code> (start at 3, end at 7, both included)</li>
+</ul>
+<p><strong>Why half-open intervals?</strong> They have nice mathematical properties: the length is simply <code>end - start</code>, adjacent intervals share an endpoint without overlapping (e.g., <code>[0,5)</code> and <code>[5,10)</code> cover positions 0-9 with no gap or overlap), and the empty interval is <code>[n,n)</code>.</p>
+<hr>
+<h2 id="creating-intervals"><a class="header" href="#creating-intervals">Creating Intervals</a></h2>
+<p>BioLang has a native <code>Interval</code> type for genomic coordinates. Intervals use 0-based half-open coordinates internally, matching BED format.</p>
+<pre><code class="language-bio"># BioLang intervals
+let brca1 = interval("chr17", 43044295, 43125483)
+let tp53 = interval("chr17", 7668402, 7687550)
+
+println(f"BRCA1: {brca1}")
+println(f"  Chromosome: {brca1.chrom}")
+println(f"  Start: {brca1.start}")
+println(f"  End: {brca1.end}")
+println(f"  Length: {brca1.end - brca1.start} bp")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>BRCA1: chr17:43044295-43125483
+  Chromosome: chr17
+  Start: 43044295
+  End: 43125483
+  Length: 81188 bp
+</code></pre>
+<p>You can also attach strand information:</p>
+<pre><code class="language-bio"># With strand information
+let gene = interval("chr17", 43044295, 43125483, strand: "+")
+println(f"Strand: {gene.strand}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Strand: +
+</code></pre>
+<p>The strand indicates which DNA strand the feature is on: <code>+</code> for forward, <code>-</code> for reverse. BRCA1 is on the minus strand, but for interval arithmetic the strand does not affect overlap calculations.</p>
+<hr>
+<h2 id="reading-bed-files-as-intervals"><a class="header" href="#reading-bed-files-as-intervals">Reading BED Files as Intervals</a></h2>
+<p>BED (Browser Extensible Data) files store genomic regions. Each line has at minimum three tab-separated columns: chromosome, start, end.</p>
+<pre><code class="language-bio"># requires: data/exons.bed in working directory
+let exons = read_bed("data/exons.bed")
+println(f"Exon regions: {len(exons)}")
+
+# Convert to intervals
+let intervals = exons |&gt; map(|r| interval(r.chrom, r.start, r.end))
+
+# Calculate total exonic bases
+let total = exons |&gt; map(|r| r.end - r.start) |&gt; reduce(|a, b| a + b)
+println(f"Total exonic bases: {total}")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Exon regions: 20
+Total exonic bases: 22750
+</code></pre>
+<p>Each record from <code>read_bed</code> has <code>.chrom</code>, <code>.start</code>, and <code>.end</code> fields, plus <code>.name</code>, <code>.score</code>, and <code>.strand</code> if present in the file.</p>
+<hr>
+<h2 id="interval-trees"><a class="header" href="#interval-trees">Interval Trees</a></h2>
+<p>When you have thousands of regions and thousands of queries, checking every pair for overlap is O(n * m) — far too slow. An interval tree organizes regions into a balanced search structure that answers “what overlaps this query?” in O(log n + k) time, where k is the number of results.</p>
+<pre><code>How interval trees help:
+
+Naive approach:
+  20,000 exons x 50,000 variants = 1,000,000,000 comparisons
+
+Interval tree:
+  Build tree: O(n log n)  = ~300,000 operations
+  Per query:  O(log n + k) = ~15 operations + results
+  Total:      ~750,000 operations
+
+Speedup: ~1,300x faster
+</code></pre>
+<pre><code class="language-bio"># Build an interval tree for fast queries
+let regions = [
+    interval("chr17", 43044295, 43050000),
+    interval("chr17", 43060000, 43070000),
+    interval("chr17", 43080000, 43090000),
+    interval("chr17", 43100000, 43125483),
+]
+let tree = interval_tree(regions)
+
+# Query: what overlaps this region?
+let query = interval("chr17", 43065000, 43085000)
+let hits = query_overlaps(tree, query)
+println(f"Overlapping regions: {len(hits)}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Overlapping regions: 2
+</code></pre>
+<p>The query interval <code>[43065000, 43085000)</code> overlaps two regions: <code>[43060000, 43070000)</code> (overlaps at 43065000-43070000) and <code>[43080000, 43090000)</code> (overlaps at 43080000-43085000).</p>
+<hr>
+<h2 id="overlap-queries"><a class="header" href="#overlap-queries">Overlap Queries</a></h2>
+<p>Once you have an interval tree, BioLang provides several query operations:</p>
+<pre><code class="language-bio"># Count overlaps (without returning them)
+let regions = [
+    interval("chr17", 43044295, 43050000),
+    interval("chr17", 43060000, 43070000),
+    interval("chr17", 43080000, 43090000),
+    interval("chr17", 43100000, 43125483),
+]
+let tree = interval_tree(regions)
+
+let query = interval("chr17", 43065000, 43085000)
+let n = count_overlaps(tree, query)
+println(f"Number of overlaps: {n}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Number of overlaps: 2
+</code></pre>
+<p>You can also query many intervals at once:</p>
+<pre><code class="language-bio"># Bulk overlaps --- query many intervals at once
+let queries = [
+    interval("chr17", 43045000, 43046000),
+    interval("chr17", 43065000, 43066000),
+    interval("chr17", 43095000, 43096000),
+]
+let results = bulk_overlaps(tree, queries)
+for i in range(0, len(queries)) {
+    println(f"Query {i}: {len(results[i])} overlaps")
+}
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Query 0: 1 overlaps
+Query 1: 1 overlaps
+Query 2: 0 overlaps
+</code></pre>
+<p>Query 0 hits the first region (43044295-43050000), Query 1 hits the second (43060000-43070000), and Query 2 falls in a gap between the third and fourth regions.</p>
+<p>To find the closest region when there is no overlap:</p>
+<pre><code class="language-bio"># Find nearest non-overlapping interval
+let lonely = interval("chr17", 43055000, 43056000)
+let nearest = query_nearest(tree, lonely)
+println(f"Nearest region: {nearest}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Nearest region: chr17:43060000-43070000
+</code></pre>
+<p>The interval <code>[43055000, 43056000)</code> does not overlap any region. The closest region is <code>[43060000, 43070000)</code>, which starts 4000 bp away.</p>
+<hr>
+<h2 id="practical-example-variant-in-region-filtering"><a class="header" href="#practical-example-variant-in-region-filtering">Practical Example: Variant-in-Region Filtering</a></h2>
+<p>The most common interval operation in genomics: classifying variants as exonic or non-exonic. This requires converting between coordinate systems — VCF uses 1-based positions while BED uses 0-based half-open.</p>
+<pre><code class="language-bio"># Which variants fall inside exons?
+# requires: data/variants.vcf, data/exons.bed in working directory
+let variants = read_vcf("data/variants.vcf")
+let exons = read_bed("data/exons.bed")
+
+# Build tree from exons
+let exon_intervals = exons |&gt; map(|e| interval(e.chrom, e.start, e.end))
+let tree = interval_tree(exon_intervals)
+
+# Check each variant
+let exonic_variants = variants |&gt; filter(|v| {
+    let v_interval = interval(v.chrom, v.pos - 1, v.pos)  # VCF 1-based -&gt; 0-based
+    count_overlaps(tree, v_interval) &gt; 0
+})
+
+println(f"Total variants: {len(variants)}")
+println(f"Exonic variants: {len(exonic_variants)}")
+println(f"Intronic/intergenic: {len(variants) - len(exonic_variants)}")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Total variants: 15
+Exonic variants: 10
+Intronic/intergenic: 5
+</code></pre>
+<p>Notice the coordinate conversion: <code>v.pos - 1</code> converts VCF’s 1-based position to a 0-based start, and <code>v.pos</code> becomes the exclusive end. This creates a 1-bp interval in BED coordinates that represents the variant position.</p>
+<hr>
+<h2 id="coverage-analysis"><a class="header" href="#coverage-analysis">Coverage Analysis</a></h2>
+<p>Coverage analysis counts how many features (reads, intervals) overlap each position in a region. This is fundamental for assessing sequencing depth.</p>
+<pre><code class="language-bio"># Compute read depth across a region
+# coverage() takes a list of [start, end] pairs
+let reads = [
+    [100, 250],
+    [150, 300],
+    [200, 350],
+    [400, 550],
+    [420, 600],
+]
+coverage(reads, "chr1")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>  chr1:100-600
+  ▂▄▆▆▄▂▁▁▁▁▃▃▁
+  max_depth=3  mean_depth=1.4  intervals=5
+</code></pre>
+<p>The <code>coverage()</code> function takes a list of <code>[start, end]</code> pairs and renders a sparkline showing depth across the region. The first three reads overlap at positions 200-250, giving a depth of 3. Positions 350-400 have zero coverage (a gap). This is the same algorithm used by <code>bedtools genomecov</code>.</p>
+<hr>
+<h2 id="coordinate-conversion"><a class="header" href="#coordinate-conversion">Coordinate Conversion</a></h2>
+<p>Converting between coordinate systems is something you will do constantly. Write explicit conversion functions and use them everywhere — never do ad-hoc <code>+1</code> or <code>-1</code> adjustments scattered through your code.</p>
+<pre><code class="language-bio"># BED to VCF coordinates (and back)
+fn bed_to_vcf(chrom, start, end) {
+    # BED: 0-based, half-open -&gt; VCF: 1-based
+    {chrom: chrom, pos: start + 1}
+}
+
+fn vcf_to_bed(chrom, pos) {
+    # VCF: 1-based -&gt; BED: 0-based, half-open
+    {chrom: chrom, start: pos - 1, end: pos}
+}
+
+# Example
+let bed_region = {chrom: "chr17", start: 43044294, end: 43044295}
+let vcf_pos = bed_to_vcf(bed_region.chrom, bed_region.start, bed_region.end)
+println(f"BED {bed_region.start}-{bed_region.end} -&gt; VCF pos {vcf_pos.pos}")
+
+let vcf_variant = {chrom: "chr17", pos: 43044295}
+let bed_coords = vcf_to_bed(vcf_variant.chrom, vcf_variant.pos)
+println(f"VCF pos {vcf_variant.pos} -&gt; BED {bed_coords.start}-{bed_coords.end}")
+
+# Verify round-trip
+let roundtrip = bed_to_vcf(bed_coords.chrom, bed_coords.start, bed_coords.end)
+println(f"Round-trip VCF pos: {roundtrip.pos} (should be {vcf_variant.pos})")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>BED 43044294-43044295 -&gt; VCF pos 43044295
+VCF pos 43044295 -&gt; BED 43044294-43044295
+Round-trip VCF pos: 43044295 (should be 43044295)
+</code></pre>
+<p>The round-trip test is crucial. If you convert BED to VCF and back and do not get the original coordinates, your conversion is wrong.</p>
+<hr>
+<h2 id="working-with-gff-annotations"><a class="header" href="#working-with-gff-annotations">Working with GFF Annotations</a></h2>
+<p>GFF (General Feature Format) files describe genomic features like genes, exons, and regulatory elements. GFF uses 1-based inclusive coordinates.</p>
+<pre><code class="language-bio"># requires: data/annotations.gff in working directory
+let features = read_gff("data/annotations.gff")
+
+# Find all exons for a specific gene
+let brca1_exons = features
+    |&gt; filter(|f| f.type == "exon")
+    |&gt; filter(|f| contains(str(f), "BRCA1"))
+
+println(f"BRCA1 exons: {len(brca1_exons)}")
+
+# Build interval tree from exons (convert GFF 1-based -&gt; 0-based)
+let exon_tree = interval_tree(
+    brca1_exons |&gt; map(|e| interval(e.chrom, e.start - 1, e.end))
+)
+println(f"Interval tree built from {len(brca1_exons)} exons")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>BRCA1 exons: 5
+Interval tree built from 5 exons
+</code></pre>
+<p>Note the coordinate conversion: GFF start is 1-based, so we subtract 1 to get a 0-based start. GFF end is 1-based inclusive, which happens to equal the 0-based exclusive end (e.g., 1-based position 7 inclusive = 0-based position 7 exclusive), so we use <code>e.end</code> as-is.</p>
+<hr>
+<h2 id="writing-bed-files"><a class="header" href="#writing-bed-files">Writing BED Files</a></h2>
+<p>After filtering or computing intervals, you often need to export results as BED files for downstream tools.</p>
+<pre><code class="language-bio"># Export filtered regions
+let high_coverage = [
+    {chrom: "chr17", start: 43044295, end: 43050000},
+    {chrom: "chr17", start: 43100000, end: 43125483},
+]
+write_bed(high_coverage, "results/high_coverage.bed")
+println("Wrote high-coverage regions to BED file")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Wrote high-coverage regions to BED file
+</code></pre>
+<p>The <code>write_bed</code> function writes tab-separated BED format. Each record must have <code>.chrom</code>, <code>.start</code>, and <code>.end</code> fields at minimum. Optional fields (<code>.name</code>, <code>.score</code>, <code>.strand</code>) are included if present.</p>
+<hr>
+<h2 id="complete-example-exome-coverage-report"><a class="header" href="#complete-example-exome-coverage-report">Complete Example: Exome Coverage Report</a></h2>
+<p>This example ties together everything from the chapter: reading BED and VCF files, building interval trees, classifying variants by overlap, and summarizing results.</p>
+<pre><code class="language-bio"># Exome Coverage Analysis
+# requires: data/exons.bed, data/variants.vcf in working directory
+
+println("=== Exome Coverage Report ===\n")
+
+# Load target regions
+let targets = read_bed("data/exons.bed")
+let total_target_bp = targets |&gt; map(|r| r.end - r.start) |&gt; reduce(|a, b| a + b)
+println(f"Target regions: {len(targets)}")
+println(f"Total target bases: {total_target_bp}")
+
+# Build interval tree
+let tree = interval_tree(targets |&gt; map(|t| interval(t.chrom, t.start, t.end)))
+
+# Classify variants
+let variants = read_vcf("data/variants.vcf")
+let on_target = variants |&gt; filter(|v| {
+    count_overlaps(tree, interval(v.chrom, v.pos - 1, v.pos)) &gt; 0
+}) |&gt; collect()
+
+let off_target = len(variants) - len(on_target)
+println(f"\nVariant classification:")
+println(f"  On-target:  {len(on_target)}")
+println(f"  Off-target: {off_target}")
+println(f"  On-target rate: {round(len(on_target) / len(variants) * 100, 1)}%")
+
+# Per-chromosome summary
+let by_chrom = on_target
+    |&gt; to_table()
+    |&gt; group_by("chrom")
+    |&gt; summarize(|chrom, rows| {chrom: chrom, n: len(rows)})
+println(f"\nOn-target variants per chromosome:")
+println(by_chrom)
+
+write_csv(on_target |&gt; to_table(), "results/on_target_variants.csv")
+println("\nResults saved")
+println("\n=== Report complete ===")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>=== Exome Coverage Report ===
+
+Target regions: 20
+Total target bases: 22750
+
+Variant classification:
+  On-target:  10
+  Off-target: 5
+  On-target rate: 66.7%
+
+On-target variants per chromosome:
+chrom | n
+chr17 | 10
+
+Results saved
+
+=== Report complete ===
+</code></pre>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li>
+<p><strong>Gene overlap query.</strong> Create intervals for 5 genes on chr17 and build an interval tree. Query which genes overlap the region chr17:43050000-43090000.</p>
+</li>
+<li>
+<p><strong>Coordinate conversion.</strong> Convert these VCF positions to BED coordinates and verify each conversion round-trips correctly: chr1:100, chr2:500, chr7:1000, chrX:2500, chr17:43044295.</p>
+</li>
+<li>
+<p><strong>Per-chromosome region size.</strong> Read <code>data/exons.bed</code> and calculate the mean exon size per chromosome using <code>group_by</code> and <code>summarize</code>.</p>
+</li>
+<li>
+<p><strong>Promoter variant detection.</strong> Define a promoter as the 1000 bp region upstream of a gene start. Given 5 gene start positions, build an interval tree of promoter regions and find which variants from <code>data/variants.vcf</code> fall in promoter regions.</p>
+</li>
+<li>
+<p><strong>Coverage depth histogram.</strong> Given a list of 10 overlapping read intervals, compute coverage using <code>coverage()</code> and find the maximum depth and the total number of bases at each depth level.</p>
+</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Coordinate systems</strong> (0-based vs 1-based) are the #1 source of bioinformatics bugs — always convert explicitly</li>
+<li><strong>BED</strong> = 0-based half-open, <strong>VCF/GFF</strong> = 1-based inclusive — these describe the same biology differently</li>
+<li><strong>Interval trees</strong> enable O(log n) overlap queries on millions of regions</li>
+<li><code>interval_tree()</code> + <code>query_overlaps()</code> is the core pattern for genomic region analysis</li>
+<li><strong>Coverage analysis</strong> shows read depth across genomic regions</li>
+<li>Always <strong>validate coordinate conversions</strong> with known examples and round-trip tests</li>
+<li>Write <strong>explicit conversion functions</strong> (<code>bed_to_vcf</code>, <code>vcf_to_bed</code>) — never scatter ad-hoc <code>+1</code>/<code>-1</code> adjustments</li>
+</ul>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow we tackle biological data visualization — Manhattan plots, ideograms, genome tracks, and more. Visualization turns the numbers from today’s interval analysis into figures that tell a story.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-17.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-19.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-17.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-19.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,934 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 30: Multi-Species Gene Family Analysis - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-30-capstone--multi-species-gene-family-analysis"><a class="header" href="#day-30-capstone--multi-species-gene-family-analysis">Day 30: Capstone — Multi-Species Gene Family Analysis</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Advanced</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Advanced (molecular evolution, protein domains, phylogenetics, comparative genomics)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Advanced (all prior topics: pipes, tables, statistics, visualization, APIs)</td></tr>
+<tr><td><strong>Time</strong></td><td>~5–6 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–29 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code> (synthetic ortholog sequences for 8 species)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to gather orthologous gene sequences from multiple species</li>
+<li>How to compare sequences pairwise using dotplots and k-mer similarity</li>
+<li>How to score conservation across species at the residue level</li>
+<li>How to identify protein domains and compare domain architectures</li>
+<li>How to build distance matrices from sequence divergence</li>
+<li>How to visualize phylogenetic relationships</li>
+<li>How to detect functional divergence using evolutionary rate analysis</li>
+<li>How to integrate cross-species data from multiple biological databases</li>
+<li>How to build a complete comparative genomics pipeline</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p><em>“This gene is critical in humans — is it conserved across species, and what can evolution tell us about its function?”</em></p>
+<p>Your lab has identified a tumor suppressor gene — TP53 — that is essential for preventing cancer in humans. The principal investigator asks a deceptively simple question: how conserved is this gene across species? If a gene has been preserved across hundreds of millions of years of evolution, every part of it that remains unchanged is likely essential. Regions that have diverged may have acquired new functions or lost old ones. And species where the gene is absent may have evolved alternative mechanisms.</p>
+<p>This is the core logic of comparative genomics. Evolution is nature’s longest-running experiment, and conservation is its strongest signal of function.</p>
+<p><img src="images/day30-gene-family-pipeline.svg" alt="Multi-Species Gene Family Analysis Pipeline"></p>
+<hr>
+<h2 id="section-1-why-comparative-genomics"><a class="header" href="#section-1-why-comparative-genomics">Section 1: Why Comparative Genomics?</a></h2>
+<p>Every gene in your genome has a history. Some genes appeared billions of years ago in single-celled organisms and still perform the same function today. Others are recent innovations found only in mammals or primates. The degree to which a gene is conserved across species tells you how important it is — and how long it has been important.</p>
+<p>Consider TP53, the “guardian of the genome.” This gene encodes the p53 protein, which detects DNA damage and triggers either repair or cell death. Mutations in TP53 are found in over half of all human cancers. But p53 is not a human invention. Orthologs exist in mice, zebrafish, fruit flies, and even sea anemones. The DNA-binding domain — the part that recognizes damaged DNA — has been conserved for over 800 million years.</p>
+<h3 id="what-conservation-tells-us"><a class="header" href="#what-conservation-tells-us">What conservation tells us</a></h3>
+<pre><code>  CONSERVATION AND FUNCTION
+  =========================
+
+  High conservation (&gt;80% identity across species)
+    → Strong purifying selection
+    → Critical function
+    → Mutations here are likely deleterious
+    → Good drug targets (conserved mechanism)
+
+  Moderate conservation (40-80% identity)
+    → Functional core preserved
+    → Some adaptation to species-specific needs
+    → Interesting for studying functional divergence
+
+  Low conservation (&lt;40% identity)
+    → Rapid evolution or relaxed constraint
+    → May have diverged in function
+    → Species-specific adaptations
+
+  Absent in some lineages
+    → Gene loss or lineage-specific innovation
+    → Alternative pathways may exist
+</code></pre>
+<h3 id="the-species-in-our-analysis"><a class="header" href="#the-species-in-our-analysis">The species in our analysis</a></h3>
+<p>For this capstone, we will compare TP53 orthologs across eight species spanning approximately 800 million years of evolution:</p>
+<p><img src="images/day30-species-tree.svg" alt="Species Tree with divergence times"></p>
+<hr>
+<h2 id="section-2-gathering-ortholog-information"><a class="header" href="#section-2-gathering-ortholog-information">Section 2: Gathering Ortholog Information</a></h2>
+<p>Before retrieving sequences, we need to identify the orthologous genes in each species. In a real analysis, you would query Ensembl Compara or NCBI’s orthologs database. Here we demonstrate the API calls, then work with our pre-generated synthetic data.</p>
+<!-- requires: internet, API access -->
+<pre><code class="language-bio">let human_gene = ensembl_gene("ENSG00000141510")
+println("Human TP53:")
+println("  Symbol: " + human_gene.display_name)
+println("  Biotype: " + human_gene.biotype)
+println("  Description: " + human_gene.description)
+</code></pre>
+<!-- requires: internet, API access -->
+<pre><code class="language-bio">let uniprot_info = uniprot_entry("P04637")
+println("UniProt P04637 (human p53):")
+println("  Protein name: " + uniprot_info.protein_name)
+println("  Length: " + str(uniprot_info.length) + " aa")
+println("  Organism: " + uniprot_info.organism)
+</code></pre>
+<p>For our offline analysis, <code>init.bl</code> generates realistic synthetic sequences for all eight species. Each sequence has been modeled with appropriate divergence: closely related species share more identity, distant species share less, and the DNA-binding domain is highly conserved in all vertebrate orthologs.</p>
+<hr>
+<h2 id="section-3-sequence-retrieval-and-initial-assessment"><a class="header" href="#section-3-sequence-retrieval-and-initial-assessment">Section 3: Sequence Retrieval and Initial Assessment</a></h2>
+<p>Let us begin the analysis. First, we load all ortholog sequences and examine their basic properties.</p>
+<pre><code class="language-bio">let orthologs = read_fasta("data/orthologs.fasta")
+
+let species_info = read_tsv("data/species_info.tsv")
+
+let seq_table = orthologs |&gt; map(|seq| {
+    let name = seq.id
+    let info = species_info |&gt; filter(|s| s.seq_id == name)
+    let row_info = info[0]
+    {
+        species: row_info.common_name,
+        seq_id: name,
+        length_aa: len(seq.sequence),
+        gc: gc_content(seq.sequence)
+    }
+}) |&gt; to_table()
+
+println("=== Ortholog Sequence Summary ===")
+println(seq_table)
+</code></pre>
+<p>Notice how the sequence lengths vary across species. Vertebrate p53 orthologs are typically 350–400 amino acids long, while invertebrate homologs can be shorter (the fly p53 is ~385 aa) or structurally different. The yeast analog (RAD9) is much larger because it is not a true ortholog — it convergently evolved a similar DNA-damage checkpoint function.</p>
+<h3 id="amino-acid-composition"><a class="header" href="#amino-acid-composition">Amino acid composition</a></h3>
+<p>Different organisms can have subtly different amino acid preferences. Let us measure the composition of key residues:</p>
+<pre><code class="language-bio">fn aa_frequency(sequence, residue) {
+    let count = sequence |&gt; split("") |&gt; filter(|c| c == residue) |&gt; len()
+    round(float(count) / float(len(sequence)) * 100.0, 2)
+}
+
+let key_residues = ["L", "S", "P", "G", "R", "K"]
+
+let composition = orthologs |&gt; map(|seq| {
+    let info = species_info |&gt; filter(|s| s.seq_id == seq.id)
+    let row = { species: info[0].common_name }
+    key_residues |&gt; each(|r| {
+        row[r] = aa_frequency(seq.sequence, r)
+    })
+    row
+}) |&gt; to_table()
+
+println("=== Amino Acid Composition (%) ===")
+println(composition)
+</code></pre>
+<hr>
+<h2 id="section-4-pairwise-sequence-comparison"><a class="header" href="#section-4-pairwise-sequence-comparison">Section 4: Pairwise Sequence Comparison</a></h2>
+<p>Now we compare sequences pairwise. BioLang provides two built-in tools for this: dotplots for visual comparison and k-mer analysis for quantitative similarity.</p>
+<h3 id="dotplot-visualization"><a class="header" href="#dotplot-visualization">Dotplot visualization</a></h3>
+<p>A dotplot places one sequence along each axis and marks positions where residues match. Conserved regions appear as diagonal lines. Insertions, deletions, and rearrangements break the diagonal.</p>
+<pre><code class="language-bio">let human_seq = orthologs |&gt; filter(|s| contains(s.id, "human")) |&gt; map(|s| s.sequence)
+let mouse_seq = orthologs |&gt; filter(|s| contains(s.id, "mouse")) |&gt; map(|s| s.sequence)
+
+dotplot(human_seq[0], mouse_seq[0], "data/output/dotplot_human_mouse.svg")
+</code></pre>
+<p>For closely related species (human vs. mouse, ~90 Mya divergence), you will see a strong diagonal line — high conservation across the full length. Let us also compare human to a distant species:</p>
+<pre><code class="language-bio">let fly_seq = orthologs |&gt; filter(|s| contains(s.id, "fly")) |&gt; map(|s| s.sequence)
+
+dotplot(human_seq[0], fly_seq[0], "data/output/dotplot_human_fly.svg")
+</code></pre>
+<p>The human-fly dotplot shows a fragmented diagonal. The DNA-binding domain (approximately residues 100–290 in human p53) still shows conservation, but the N-terminal transactivation domain and C-terminal regulatory domain have diverged substantially.</p>
+<h3 id="k-mer-based-similarity"><a class="header" href="#k-mer-based-similarity">K-mer based similarity</a></h3>
+<p>For quantitative comparison, we use k-mer overlap. Two sequences that share many k-mers are similar; those that share few are divergent. This does not require alignment — it is an alignment-free similarity measure.</p>
+<pre><code class="language-bio">fn kmer_similarity(seq_a, seq_b, k) {
+    let kmers_a = kmers(seq_a, k)
+    let kmers_b = kmers(seq_b, k)
+    let set_a = kmers_a |&gt; sort() |&gt; filter(|x| true)
+    let set_b = kmers_b |&gt; sort() |&gt; filter(|x| true)
+    let shared = set_a |&gt; filter(|kmer| set_b |&gt; filter(|b| b == kmer) |&gt; len() &gt; 0) |&gt; len()
+    let total = len(set_a) + len(set_b) - shared
+    round(float(shared) / float(total), 4)
+}
+
+let human_protein = human_seq[0]
+
+let similarities = orthologs |&gt; map(|seq| {
+    let info = species_info |&gt; filter(|s| s.seq_id == seq.id)
+    {
+        species: info[0].common_name,
+        kmer3_similarity: kmer_similarity(human_protein, seq.sequence, 3),
+        kmer5_similarity: kmer_similarity(human_protein, seq.sequence, 5)
+    }
+}) |&gt; to_table() |&gt; sort_by("kmer5_similarity", "desc")
+
+println("=== K-mer Similarity to Human TP53 ===")
+println(similarities)
+</code></pre>
+<p>The k-mer similarity values should decrease with evolutionary distance: mouse &gt; chicken &gt; frog &gt; zebrafish &gt; fly &gt; worm &gt; yeast. The 5-mer similarity drops faster than 3-mer because longer k-mers are more sensitive to sequence divergence.</p>
+<hr>
+<h2 id="section-5-conservation-scoring"><a class="header" href="#section-5-conservation-scoring">Section 5: Conservation Scoring</a></h2>
+<p>We can estimate position-specific conservation without a formal multiple sequence alignment by examining which residues are shared across species at corresponding positions. This is an approximation — true conservation scoring requires alignment — but it reveals the pattern: the DNA-binding domain is the most conserved region.</p>
+<h3 id="sliding-window-conservation"><a class="header" href="#sliding-window-conservation">Sliding window conservation</a></h3>
+<pre><code class="language-bio">fn window_identity(sequences, window_size) {
+    let ref_seq = sequences[0]
+    let ref_len = len(ref_seq)
+    let n_seqs = len(sequences)
+    let n_windows = ref_len - window_size + 1
+
+    range(0, n_windows) |&gt; map(|start| {
+        let end_pos = start + window_size
+        let ref_chars = ref_seq |&gt; split("")
+        let matches = range(start, end_pos) |&gt; map(|pos| {
+            let ref_char = ref_chars[pos]
+            let match_count = range(1, n_seqs) |&gt; map(|si| {
+                let other = sequences[si] |&gt; split("")
+                let other_len = len(other)
+                let result = 0
+                if pos &lt; other_len {
+                    if other[pos] == ref_char {
+                        result = 1
+                    }
+                }
+                result
+            }) |&gt; sum()
+            float(match_count) / float(n_seqs - 1)
+        }) |&gt; mean()
+        {
+            position: start + window_size / 2,
+            conservation: round(matches, 4)
+        }
+    })
+}
+
+let vertebrate_seqs = orthologs
+    |&gt; filter(|s| !contains(s.id, "fly") &amp;&amp; !contains(s.id, "worm") &amp;&amp; !contains(s.id, "yeast"))
+    |&gt; map(|s| s.sequence)
+
+let conservation = window_identity(vertebrate_seqs, 10)
+
+let cons_table = conservation |&gt; to_table()
+
+line(cons_table, "position", "conservation", "data/output/conservation_profile.svg")
+</code></pre>
+<h3 id="identifying-conserved-domains"><a class="header" href="#identifying-conserved-domains">Identifying conserved domains</a></h3>
+<p>The conservation profile reveals peaks and valleys. Let us identify the highly conserved regions:</p>
+<pre><code class="language-bio">let high_cons = conservation |&gt; filter(|w| w.conservation &gt; 0.7)
+let low_cons = conservation |&gt; filter(|w| w.conservation &lt; 0.3)
+
+println("=== Conservation Summary (vertebrates, window=10) ===")
+println("Highly conserved positions (&gt;70%): " + str(len(high_cons)))
+println("Poorly conserved positions (&lt;30%): " + str(len(low_cons)))
+println("Overall mean conservation: " + str(round(conservation |&gt; map(|w| w.conservation) |&gt; mean(), 4)))
+
+let domain_regions = [
+    { name: "N-terminal TAD", start: 0, end_pos: 60 },
+    { name: "Proline-rich", start: 60, end_pos: 95 },
+    { name: "DNA-binding", start: 95, end_pos: 290 },
+    { name: "Tetramerization", start: 320, end_pos: 360 },
+    { name: "C-terminal reg.", start: 360, end_pos: 393 }
+]
+
+let domain_cons = domain_regions |&gt; map(|d| {
+    let region = conservation |&gt; filter(|w| w.position &gt;= d.start &amp;&amp; w.position &lt; d.end_pos)
+    let avg = region |&gt; map(|w| w.conservation) |&gt; mean()
+    {
+        domain: d.name,
+        start: d.start,
+        end_pos: d.end_pos,
+        mean_conservation: round(avg, 4),
+        n_positions: len(region)
+    }
+}) |&gt; to_table()
+
+println("=== Domain Conservation Scores ===")
+println(domain_cons)
+</code></pre>
+<p>You should see that the DNA-binding domain (residues 95–290) has the highest conservation score, followed by the tetramerization domain. The N-terminal transactivation domain and C-terminal regulatory domain are less conserved — they interact with species-specific partner proteins that have co-evolved.</p>
+<hr>
+<h2 id="section-6-domain-architecture-comparison"><a class="header" href="#section-6-domain-architecture-comparison">Section 6: Domain Architecture Comparison</a></h2>
+<p>Beyond conservation at the sequence level, we can compare the domain architecture — which functional modules are present in each species’ ortholog.</p>
+<pre><code class="language-bio">let domain_annotations = read_tsv("data/domain_annotations.tsv")
+
+let architecture = species_info |&gt; map(|sp| {
+    let domains = domain_annotations |&gt; filter(|d| d.seq_id == sp.seq_id)
+    let domain_list = domains |&gt; map(|d| d.domain_name) |&gt; join(", ")
+    let n_domains = len(domains)
+    {
+        species: sp.common_name,
+        n_domains: n_domains,
+        domains: domain_list,
+        total_length: sp.seq_length
+    }
+}) |&gt; to_table()
+
+println("=== Domain Architecture Comparison ===")
+println(architecture)
+</code></pre>
+<p><img src="images/day30-domain-architecture.svg" alt="Domain Architecture across species"></p>
+<p>The key observation: the DNA-binding domain is present in all animal orthologs. The tetramerization domain is conserved in vertebrates and partially in the fly. The proline-rich region is a mammalian/bird innovation. This pattern matches what we know about p53 evolution — the DNA-binding function is ancient, while regulatory complexity was added over time.</p>
+<hr>
+<h2 id="section-7-building-a-distance-matrix"><a class="header" href="#section-7-building-a-distance-matrix">Section 7: Building a Distance Matrix</a></h2>
+<p>To construct a phylogenetic tree, we need a distance matrix. We will use k-mer divergence as our distance metric. This is an alignment-free approach that works well for moderately divergent sequences.</p>
+<pre><code class="language-bio">fn kmer_distance(seq_a, seq_b, k) {
+    let sim = kmer_similarity(seq_a, seq_b, k)
+    round(1.0 - sim, 4)
+}
+
+let species_names = orthologs |&gt; map(|s| {
+    let info = species_info |&gt; filter(|sp| sp.seq_id == s.id)
+    info[0].common_name
+})
+let sequences = orthologs |&gt; map(|s| s.sequence)
+
+let n = len(sequences)
+let dist_rows = range(0, n) |&gt; map(|i| {
+    let row = { species: species_names[i] }
+    range(0, n) |&gt; each(|j| {
+        row[species_names[j]] = kmer_distance(sequences[i], sequences[j], 4)
+    })
+    row
+}) |&gt; to_table()
+
+println("=== Distance Matrix (4-mer divergence) ===")
+println(dist_rows)
+
+write_tsv(dist_rows, "data/output/distance_matrix.tsv")
+</code></pre>
+<p>The distance matrix should reflect the known evolutionary relationships: human-mouse distance is smallest, human-yeast is largest. If the distances do not match the known species tree, it may indicate convergent evolution, horizontal gene transfer, or (in our case) limitations of alignment-free methods on very divergent sequences.</p>
+<hr>
+<h2 id="section-8-phylogenetic-tree-construction"><a class="header" href="#section-8-phylogenetic-tree-construction">Section 8: Phylogenetic Tree Construction</a></h2>
+<p>BioLang provides <code>phylo_tree()</code> for building a simple neighbor-joining tree from a distance matrix. This is a good first approximation — for publication-quality trees, you would use external tools like RAxML, IQ-TREE, or MEGA.</p>
+<pre><code class="language-bio">let labels = species_names
+let matrix = range(0, n) |&gt; map(|i| {
+    range(0, n) |&gt; map(|j| {
+        kmer_distance(sequences[i], sequences[j], 4)
+    })
+})
+
+phylo_tree(labels, matrix, "data/output/phylo_tree.svg")
+</code></pre>
+<blockquote>
+<p><strong>Honesty note</strong>: The <code>phylo_tree()</code> builtin implements a basic neighbor-joining algorithm. For real research, you would export the distance matrix and use dedicated phylogenetics software (RAxML, IQ-TREE, BEAST, MrBayes) that supports bootstrapping, model selection, and Bayesian inference. BioLang is designed for data preparation and exploratory analysis, not as a replacement for specialized phylogenetic tools.</p>
+</blockquote>
+<h3 id="interpreting-the-tree"><a class="header" href="#interpreting-the-tree">Interpreting the tree</a></h3>
+<p>The tree should group species according to their known evolutionary relationships:</p>
+<p><img src="images/day30-expected-tree.svg" alt="Expected Tree Topology"></p>
+<p>If the tree topology matches the known species tree, the gene evolved vertically — passed from parent to offspring without lateral transfer. Deviations could indicate gene duplication, loss, or accelerated evolution in a particular lineage.</p>
+<hr>
+<h2 id="section-9-evolutionary-rate-analysis"><a class="header" href="#section-9-evolutionary-rate-analysis">Section 9: Evolutionary Rate Analysis</a></h2>
+<p>Not all parts of a protein evolve at the same rate. Functionally critical residues are under strong purifying selection (slow evolution), while less important regions accumulate mutations freely. We can measure this by comparing the rate of change across domains.</p>
+<pre><code class="language-bio">fn domain_divergence(seqs, sp_info, domain_start, domain_end) {
+    let ref_seq = seqs[0] |&gt; split("")
+    range(1, len(seqs)) |&gt; map(|i| {
+        let other = seqs[i] |&gt; split("")
+        let positions = range(domain_start, min([domain_end, len(ref_seq), len(other)]))
+        let mismatches = positions |&gt; filter(|p| ref_seq[p] != other[p]) |&gt; len()
+        let total = len(positions)
+        let info = sp_info |&gt; filter(|s| s.seq_id == (orthologs[i]).id)
+        {
+            species: info[0].common_name,
+            divergence_mya: float(info[0].divergence_mya),
+            mismatches: mismatches,
+            total_positions: total,
+            substitution_rate: round(float(mismatches) / float(total), 4)
+        }
+    })
+}
+
+let dbd_rates = domain_divergence(sequences, species_info, 95, 290)
+let tad_rates = domain_divergence(sequences, species_info, 0, 60)
+
+let rate_comparison = range(0, len(dbd_rates)) |&gt; map(|i| {
+    let dbd = dbd_rates[i]
+    let tad = tad_rates[i]
+    {
+        species: dbd.species,
+        divergence_mya: dbd.divergence_mya,
+        dbd_rate: dbd.substitution_rate,
+        tad_rate: tad.substitution_rate,
+        ratio: round(tad.substitution_rate / (dbd.substitution_rate + 0.001), 2)
+    }
+}) |&gt; to_table()
+
+println("=== Evolutionary Rate: DNA-binding vs Transactivation Domain ===")
+println(rate_comparison)
+</code></pre>
+<p>The ratio column tells the story. If the TAD evolves 2–3x faster than the DBD, the DNA-binding domain is under much stronger selective constraint. This is exactly what decades of p53 research have shown: mutations in the DNA-binding domain cause cancer, while the transactivation domain tolerates more variation.</p>
+<pre><code class="language-bio">let rate_table = rate_comparison
+scatter(rate_table, "divergence_mya", "dbd_rate", "data/output/rate_dbd.svg")
+scatter(rate_table, "divergence_mya", "tad_rate", "data/output/rate_tad.svg")
+</code></pre>
+<hr>
+<h2 id="section-10-integrating-external-data-sources"><a class="header" href="#section-10-integrating-external-data-sources">Section 10: Integrating External Data Sources</a></h2>
+<p>A complete comparative analysis draws on multiple databases. Let us demonstrate how BioLang connects to external resources for the human TP53 gene.</p>
+<!-- requires: internet, API access -->
+<pre><code class="language-bio">let gene = ncbi_gene("7157")
+println("=== NCBI Gene: TP53 ===")
+println("  Official symbol: " + gene.name)
+println("  Description: " + gene.description)
+
+let pathways = reactome_pathways("TP53")
+println("=== Reactome Pathways ===")
+pathways |&gt; each(|p| {
+    println("  " + p.stId + ": " + p.displayName)
+})
+
+let go = go_annotations("P04637")
+println("=== GO Annotations (first 10) ===")
+let first_10 = range(0, min([10, len(go)])) |&gt; map(|i| go[i])
+first_10 |&gt; each(|a| {
+    println("  " + a.goId + " " + a.goName + " [" + a.goAspect + "]")
+})
+
+let network = string_network(["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"])
+println("=== STRING Network (TP53 + partners) ===")
+println("  Interactions found: " + str(len(network)))
+
+let pdb = pdb_entry("1TSR")
+println("=== PDB Structure 1TSR ===")
+println("  Title: " + pdb.struct.title)
+</code></pre>
+<p>These external queries provide context that pure sequence analysis cannot: which pathways the gene participates in, which proteins it interacts with, what its 3D structure looks like, and what biological processes it governs. In a real study, you would integrate all of this into a comprehensive report.</p>
+<hr>
+<h2 id="section-11-complete-pipeline"><a class="header" href="#section-11-complete-pipeline">Section 11: Complete Pipeline</a></h2>
+<p>Here is the full analysis assembled into a single, clean pipeline. This is what <code>scripts/analysis.bl</code> contains — load data, compare sequences, score conservation, build a tree, measure evolutionary rates, and produce a summary report.</p>
+<pre><code class="language-bio">let orthologs = read_fasta("data/orthologs.fasta")
+let species_info = read_tsv("data/species_info.tsv")
+let domain_annotations = read_tsv("data/domain_annotations.tsv")
+
+let species_names = orthologs |&gt; map(|s| {
+    let info = species_info |&gt; filter(|sp| sp.seq_id == s.id)
+    info[0].common_name
+})
+let sequences = orthologs |&gt; map(|s| s.sequence)
+let n = len(sequences)
+
+fn kmer_similarity(seq_a, seq_b, k) {
+    let kmers_a = kmers(seq_a, k)
+    let kmers_b = kmers(seq_b, k)
+    let set_a = kmers_a |&gt; sort() |&gt; filter(|x| true)
+    let set_b = kmers_b |&gt; sort() |&gt; filter(|x| true)
+    let shared = set_a |&gt; filter(|kmer| set_b |&gt; filter(|b| b == kmer) |&gt; len() &gt; 0) |&gt; len()
+    let total = len(set_a) + len(set_b) - shared
+    round(float(shared) / float(total), 4)
+}
+
+fn kmer_distance(seq_a, seq_b, k) {
+    round(1.0 - kmer_similarity(seq_a, seq_b, k), 4)
+}
+
+let seq_summary = orthologs |&gt; map(|seq| {
+    let info = species_info |&gt; filter(|s| s.seq_id == seq.id)
+    {
+        species: info[0].common_name,
+        length_aa: len(seq.sequence),
+        divergence_mya: info[0].divergence_mya
+    }
+}) |&gt; to_table()
+
+write_tsv(seq_summary, "data/output/sequence_summary.tsv")
+
+let human_protein = sequences[0]
+let sim_table = orthologs |&gt; map(|seq| {
+    let info = species_info |&gt; filter(|s| s.seq_id == seq.id)
+    {
+        species: info[0].common_name,
+        kmer3_sim: kmer_similarity(human_protein, seq.sequence, 3),
+        kmer5_sim: kmer_similarity(human_protein, seq.sequence, 5)
+    }
+}) |&gt; to_table() |&gt; sort_by("kmer5_sim", "desc")
+
+write_tsv(sim_table, "data/output/similarity_table.tsv")
+
+dotplot(sequences[0], sequences[1], "data/output/dotplot_human_mouse.svg")
+dotplot(sequences[0], sequences[5], "data/output/dotplot_human_fly.svg")
+
+let dist_matrix = range(0, n) |&gt; map(|i| {
+    let row = { species: species_names[i] }
+    range(0, n) |&gt; each(|j| {
+        row[species_names[j]] = kmer_distance(sequences[i], sequences[j], 4)
+    })
+    row
+}) |&gt; to_table()
+
+write_tsv(dist_matrix, "data/output/distance_matrix.tsv")
+
+let labels = species_names
+let matrix = range(0, n) |&gt; map(|i| {
+    range(0, n) |&gt; map(|j| {
+        kmer_distance(sequences[i], sequences[j], 4)
+    })
+})
+
+phylo_tree(labels, matrix, "data/output/phylo_tree.svg")
+
+let domain_regions = [
+    { name: "N-terminal_TAD", start: 0, end_pos: 60 },
+    { name: "Proline-rich", start: 60, end_pos: 95 },
+    { name: "DNA-binding", start: 95, end_pos: 290 },
+    { name: "Tetramerization", start: 320, end_pos: 360 },
+    { name: "C-terminal_reg", start: 360, end_pos: 393 }
+]
+
+fn window_identity(seqs, window_size) {
+    let ref_seq = seqs[0]
+    let ref_len = len(ref_seq)
+    let n_seqs = len(seqs)
+    let n_windows = ref_len - window_size + 1
+    range(0, n_windows) |&gt; map(|start| {
+        let end_val = start + window_size
+        let ref_chars = ref_seq |&gt; split("")
+        let matches = range(start, end_val) |&gt; map(|pos| {
+            let ref_char = ref_chars[pos]
+            let match_count = range(1, n_seqs) |&gt; map(|si| {
+                let other = seqs[si] |&gt; split("")
+                let result = 0
+                if pos &lt; len(other) {
+                    if other[pos] == ref_char {
+                        result = 1
+                    }
+                }
+                result
+            }) |&gt; sum()
+            float(match_count) / float(n_seqs - 1)
+        }) |&gt; mean()
+        { position: start + window_size / 2, conservation: round(matches, 4) }
+    })
+}
+
+let vertebrate_seqs = orthologs
+    |&gt; filter(|s| !contains(s.id, "fly") &amp;&amp; !contains(s.id, "worm") &amp;&amp; !contains(s.id, "yeast"))
+    |&gt; map(|s| s.sequence)
+
+let conservation = window_identity(vertebrate_seqs, 10)
+let cons_table = conservation |&gt; to_table()
+line(cons_table, "position", "conservation", "data/output/conservation_profile.svg")
+
+let domain_cons = domain_regions |&gt; map(|d| {
+    let region = conservation |&gt; filter(|w| w.position &gt;= d.start &amp;&amp; w.position &lt; d.end_pos)
+    let avg = region |&gt; map(|w| w.conservation) |&gt; mean()
+    {
+        domain: d.name,
+        start: d.start,
+        end_pos: d.end_pos,
+        mean_conservation: round(avg, 4)
+    }
+}) |&gt; to_table()
+
+write_tsv(domain_cons, "data/output/domain_conservation.tsv")
+
+let arch_table = species_info |&gt; map(|sp| {
+    let domains = domain_annotations |&gt; filter(|d| d.seq_id == sp.seq_id)
+    {
+        species: sp.common_name,
+        n_domains: len(domains),
+        domains: domains |&gt; map(|d| d.domain_name) |&gt; join(", "),
+        seq_length: sp.seq_length
+    }
+}) |&gt; to_table()
+
+write_tsv(arch_table, "data/output/domain_architecture.tsv")
+
+fn domain_divergence(seqs, sp_info, d_start, d_end) {
+    let ref_seq = seqs[0] |&gt; split("")
+    range(1, len(seqs)) |&gt; map(|i| {
+        let other = seqs[i] |&gt; split("")
+        let positions = range(d_start, min([d_end, len(ref_seq), len(other)]))
+        let mismatches = positions |&gt; filter(|p| ref_seq[p] != other[p]) |&gt; len()
+        let total = len(positions)
+        let info = sp_info |&gt; filter(|s| s.seq_id == (orthologs[i]).id)
+        {
+            species: info[0].common_name,
+            divergence_mya: float(info[0].divergence_mya),
+            sub_rate: round(float(mismatches) / float(total), 4)
+        }
+    })
+}
+
+let dbd = domain_divergence(sequences, species_info, 95, 290)
+let tad = domain_divergence(sequences, species_info, 0, 60)
+
+let evo_rates = range(0, len(dbd)) |&gt; map(|i| {
+    {
+        species: dbd[i].species,
+        divergence_mya: dbd[i].divergence_mya,
+        dbd_rate: dbd[i].sub_rate,
+        tad_rate: tad[i].sub_rate,
+        ratio: round(tad[i].sub_rate / (dbd[i].sub_rate + 0.001), 2)
+    }
+}) |&gt; to_table()
+
+write_tsv(evo_rates, "data/output/evolutionary_rates.tsv")
+scatter(evo_rates, "divergence_mya", "dbd_rate", "data/output/rate_dbd.svg")
+scatter(evo_rates, "divergence_mya", "tad_rate", "data/output/rate_tad.svg")
+
+let summary_lines = [
+    "=== Multi-Species TP53 Gene Family Analysis ===",
+    "",
+    "Species analyzed: " + str(n),
+    "Vertebrate orthologs: " + str(len(vertebrate_seqs)),
+    "",
+    "Sequence lengths (aa):",
+    "  Min: " + str(seq_summary |&gt; select("length_aa") |&gt; map(|r| r.length_aa) |&gt; min()),
+    "  Max: " + str(seq_summary |&gt; select("length_aa") |&gt; map(|r| r.length_aa) |&gt; max()),
+    "  Mean: " + str(round(seq_summary |&gt; select("length_aa") |&gt; map(|r| float(r.length_aa)) |&gt; mean(), 1)),
+    "",
+    "Domain conservation (vertebrates):",
+    "  DNA-binding domain: " + str((domain_cons |&gt; filter(|r| r.domain == "DNA-binding"))[0].mean_conservation),
+    "  Tetramerization: " + str((domain_cons |&gt; filter(|r| r.domain == "Tetramerization"))[0].mean_conservation),
+    "  N-terminal TAD: " + str((domain_cons |&gt; filter(|r| r.domain == "N-terminal_TAD"))[0].mean_conservation),
+    "",
+    "Evolutionary rate ratio (TAD/DBD):",
+    "  Mean: " + str(round(evo_rates |&gt; map(|r| float(r.ratio)) |&gt; mean(), 2)),
+    "  (&gt;1.0 means TAD evolves faster than DBD)",
+    "",
+    "Output files:",
+    "  data/output/sequence_summary.tsv",
+    "  data/output/similarity_table.tsv",
+    "  data/output/distance_matrix.tsv",
+    "  data/output/domain_conservation.tsv",
+    "  data/output/domain_architecture.tsv",
+    "  data/output/evolutionary_rates.tsv",
+    "  data/output/dotplot_human_mouse.svg",
+    "  data/output/dotplot_human_fly.svg",
+    "  data/output/conservation_profile.svg",
+    "  data/output/phylo_tree.svg",
+    "  data/output/rate_dbd.svg",
+    "  data/output/rate_tad.svg",
+    "  data/output/summary.txt"
+]
+
+write_lines(summary_lines, "data/output/summary.txt")
+</code></pre>
+<hr>
+<h2 id="section-12-what-this-pipeline-does-not-do-and-what-you-would-add"><a class="header" href="#section-12-what-this-pipeline-does-not-do-and-what-you-would-add">Section 12: What This Pipeline Does Not Do (And What You Would Add)</a></h2>
+<p>This capstone demonstrates the structure and logic of comparative genomics. But honest science requires acknowledging limitations:</p>
+<p><strong>What we did:</strong></p>
+<ul>
+<li>Alignment-free sequence comparison (k-mer similarity)</li>
+<li>Position-based conservation scoring (approximate)</li>
+<li>Neighbor-joining tree from k-mer distances</li>
+<li>Domain architecture comparison</li>
+<li>Evolutionary rate analysis across domains</li>
+</ul>
+<p><strong>What a production analysis would add:</strong></p>
+<ul>
+<li><strong>Multiple sequence alignment</strong> (MAFFT, MUSCLE, Clustal Omega) — essential for accurate conservation scoring and phylogenetics</li>
+<li><strong>Substitution models</strong> (JTT, WAG, LG for proteins) — correct for multiple hits at the same position</li>
+<li><strong>Maximum likelihood or Bayesian trees</strong> (RAxML, IQ-TREE, MrBayes) — more accurate than neighbor-joining</li>
+<li><strong>Bootstrap support</strong> — confidence values for tree branches</li>
+<li><strong>dN/dS analysis</strong> (PAML, HyPhy) — distinguish positive selection from purifying selection</li>
+<li><strong>Synteny analysis</strong> — verify orthology by checking genomic context</li>
+<li><strong>Ancestral sequence reconstruction</strong> — infer what the ancestral protein looked like</li>
+</ul>
+<p>BioLang is designed to handle the data preparation, exploratory analysis, and visualization steps of this workflow. For the statistically rigorous steps, you would export your data and call external tools, then import the results back for interpretation and visualization.</p>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-add-a-species"><a class="header" href="#exercise-1-add-a-species">Exercise 1: Add a Species</a></h3>
+<p>Add a ninth species to the analysis — the elephant shark (<em>Callorhinchus milii</em>), which diverged from humans approximately 450 Mya. Generate a synthetic sequence with appropriate divergence (between zebrafish and frog), add it to <code>orthologs.fasta</code> and <code>species_info.tsv</code>, and re-run the pipeline. Does the tree place it correctly between zebrafish and frog?</p>
+<h3 id="exercise-2-domain-specific-trees"><a class="header" href="#exercise-2-domain-specific-trees">Exercise 2: Domain-Specific Trees</a></h3>
+<p>Instead of building one tree from the full-length protein, build separate trees for the DNA-binding domain only and the transactivation domain only. Extract the relevant subsequences, compute distance matrices for each, and generate two trees. Do the topologies agree? If not, what might explain the disagreement?</p>
+<h3 id="exercise-3-conservation-heatmap"><a class="header" href="#exercise-3-conservation-heatmap">Exercise 3: Conservation Heatmap</a></h3>
+<p>Create a heatmap where rows are species and columns are sequence positions (binned into 20-residue windows). The cell values are the fraction of residues matching the human reference in each window. Use <code>heatmap()</code> to visualize. Which domains stand out as dark bands of high conservation?</p>
+<h3 id="exercise-4-k-mer-spectrum-analysis"><a class="header" href="#exercise-4-k-mer-spectrum-analysis">Exercise 4: K-mer Spectrum Analysis</a></h3>
+<p>For each species, compute the full 3-mer frequency spectrum (all possible amino acid 3-mers). Calculate the Euclidean distance between the human spectrum and each other species’ spectrum. Does this distance correlate with known divergence times? Plot divergence time (x-axis) versus spectral distance (y-axis) and fit a trend.</p>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>Conservation signals function.</strong> Regions that remain unchanged across hundreds of millions of years of evolution are almost certainly essential.</p>
+</li>
+<li>
+<p><strong>Alignment-free methods provide rapid first estimates.</strong> K-mer similarity and k-mer distance are fast, alignment-free alternatives for exploratory analysis, but they are less accurate than alignment-based methods for divergent sequences.</p>
+</li>
+<li>
+<p><strong>Domain architecture is as important as sequence identity.</strong> Two proteins can share only 30% sequence identity but have identical domain architecture — and perform the same function.</p>
+</li>
+<li>
+<p><strong>Evolutionary rates vary within a protein.</strong> Functional cores (like the DNA-binding domain) evolve slowly; regulatory regions (like transactivation domains) evolve faster. This differential rate is a strong signal of which parts are functionally critical.</p>
+</li>
+<li>
+<p><strong>Phylogenetics requires specialized tools for rigor.</strong> BioLang builds neighbor-joining trees for exploration, but publication-quality phylogenetics requires maximum likelihood or Bayesian methods with proper substitution models and bootstrap support.</p>
+</li>
+<li>
+<p><strong>Integration across databases is essential.</strong> No single database tells the whole story. Combining sequence data (NCBI/Ensembl), protein annotations (UniProt), pathways (Reactome/KEGG), interactions (STRING), and structures (PDB) gives a complete picture.</p>
+</li>
+</ol>
+<hr>
+<h2 id="congratulations--you-have-completed-30-days-of-practical-bioinformatics"><a class="header" href="#congratulations--you-have-completed-30-days-of-practical-bioinformatics">Congratulations — You Have Completed 30 Days of Practical Bioinformatics!</a></h2>
+<p>You started thirty days ago with a question: <em>how do you make sense of biological data?</em> You have now answered it — not with a single technique, but with a toolkit.</p>
+<p>Here is what you have built over the past 30 days:</p>
+<p><img src="images/day30-toolkit.svg" alt="Your Bioinformatics Toolkit"></p>
+<h3 id="what-comes-next"><a class="header" href="#what-comes-next">What comes next</a></h3>
+<p>This book taught you the fundamentals. Real bioinformatics is broader, deeper, and messier. Here are directions to explore:</p>
+<p><strong>Expand your biological scope:</strong></p>
+<ul>
+<li>Metagenomics — analyzing microbial communities from environmental samples</li>
+<li>Single-cell RNA-seq — resolving gene expression at the level of individual cells</li>
+<li>CRISPR screen analysis — identifying gene function through systematic knockouts</li>
+<li>Epigenomics — studying DNA methylation and histone modifications</li>
+<li>Structural bioinformatics — predicting and analyzing protein 3D structures</li>
+</ul>
+<p><strong>Deepen your computational skills:</strong></p>
+<ul>
+<li>Machine learning for genomics (classification, clustering, deep learning)</li>
+<li>Cloud computing for large-scale analyses (AWS, GCP, Azure)</li>
+<li>Workflow managers (Nextflow, Snakemake, WDL) for reproducible pipelines</li>
+<li>Database design for biological data</li>
+<li>Containerization (Docker, Singularity) for reproducible environments</li>
+</ul>
+<p><strong>Contribute to the community:</strong></p>
+<ul>
+<li>Publish your analysis pipelines as BioLang plugins</li>
+<li>Share scripts and workflows on GitHub</li>
+<li>Contribute to open-source bioinformatics tools</li>
+<li>Write up your analyses as reproducible notebooks</li>
+<li>Mentor others who are starting their bioinformatics journey</li>
+</ul>
+<p>The field moves fast. New sequencing technologies, new analytical methods, and new biological questions emerge constantly. But the core skills you have learned — reading data, transforming it, testing hypotheses, visualizing results, and integrating across sources — will serve you regardless of what technology comes next.</p>
+<p>Welcome to bioinformatics. The data is waiting.</p>
+<hr>
+<p><em>This concludes “Practical Bioinformatics in 30 Days.” Thank you for reading.</em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-29.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="appendix-setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-29.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="appendix-setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

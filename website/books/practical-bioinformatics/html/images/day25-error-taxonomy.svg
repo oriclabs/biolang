@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-auto">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="340" rx="12" fill="url(#bg)"/>
+  <text x="400" y="36" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="bold" fill="#0f172a">Pipeline Error Taxonomy</text>
+
+  <!-- Top bar -->
+  <rect x="250" y="55" width="300" height="36" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="78" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#854d0e">PIPELINE ERROR TAXONOMY</text>
+
+  <!-- Five arrows -->
+  <line x1="300" y1="91" x2="90" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="350" y1="91" x2="250" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="400" y1="91" x2="400" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="450" y1="91" x2="550" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="500" y1="91" x2="710" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Data Errors -->
+  <rect x="20" y="130" width="140" height="190" rx="8" fill="#fef2f2" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="90" y="155" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#dc2626">Data Errors</text>
+  <text x="90" y="180" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7f1d1d">Corrupted FASTQ</text>
+  <text x="90" y="200" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7f1d1d">Truncated records</text>
+  <text x="90" y="220" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7f1d1d">Wrong encoding</text>
+
+  <!-- I/O Errors -->
+  <rect x="175" y="130" width="140" height="190" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="245" y="155" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#1e40af">I/O Errors</text>
+  <text x="245" y="180" text-anchor="middle" font-family="system-ui" font-size="11" fill="#1e3a8a">Missing file</text>
+  <text x="245" y="200" text-anchor="middle" font-family="system-ui" font-size="11" fill="#1e3a8a">Perm denied</text>
+  <text x="245" y="220" text-anchor="middle" font-family="system-ui" font-size="11" fill="#1e3a8a">Broken symlink</text>
+
+  <!-- Resource Errors -->
+  <rect x="330" y="130" width="140" height="190" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="155" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#854d0e">Resource Errors</text>
+  <text x="400" y="180" text-anchor="middle" font-family="system-ui" font-size="11" fill="#78350f">Disk full</text>
+  <text x="400" y="200" text-anchor="middle" font-family="system-ui" font-size="11" fill="#78350f">Out of memory</text>
+  <text x="400" y="220" text-anchor="middle" font-family="system-ui" font-size="11" fill="#78350f">Too many open FDs</text>
+
+  <!-- Logic Errors -->
+  <rect x="485" y="130" width="140" height="190" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="555" y="155" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#166534">Logic Errors</text>
+  <text x="555" y="180" text-anchor="middle" font-family="system-ui" font-size="11" fill="#14532d">Off-by-one</text>
+  <text x="555" y="200" text-anchor="middle" font-family="system-ui" font-size="11" fill="#14532d">Wrong column</text>
+  <text x="555" y="220" text-anchor="middle" font-family="system-ui" font-size="11" fill="#14532d">Type mismatch</text>
+
+  <!-- External Errors -->
+  <rect x="640" y="130" width="140" height="190" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="710" y="155" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#5b21b6">External Errors</text>
+  <text x="710" y="180" text-anchor="middle" font-family="system-ui" font-size="11" fill="#3b0764">API timeout</text>
+  <text x="710" y="200" text-anchor="middle" font-family="system-ui" font-size="11" fill="#3b0764">Rate limit</text>
+  <text x="710" y="220" text-anchor="middle" font-family="system-ui" font-size="11" fill="#3b0764">Auth fail</text>
+  <text x="710" y="240" text-anchor="middle" font-family="system-ui" font-size="11" fill="#3b0764">Server down</text>
+</svg>

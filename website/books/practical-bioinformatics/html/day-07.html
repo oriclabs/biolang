@@ -1,0 +1,914 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 7: Bioinformatics File Formats - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-7-bioinformatics-file-formats"><a class="header" href="#day-7-bioinformatics-file-formats">Day 7: Bioinformatics File Formats</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Bioinformatics has accumulated dozens of file formats over 30 years. Each stores different information in a different way. FASTA for sequences, VCF for variants, BED for regions, GFF for annotations, BAM for alignments. Knowing which format holds what — and how to read each — is essential.</p>
+<p>Every analysis you will ever do starts by reading one of these files and ends by writing another. Get the formats wrong and your pipeline silently produces garbage. Get the coordinate systems confused and every interval is off by one. Today we build the mental map that prevents those mistakes.</p>
+<hr>
+<h2 id="the-format-landscape"><a class="header" href="#the-format-landscape">The Format Landscape</a></h2>
+<p>Where does each format appear in a typical genomics workflow?</p>
+<p><img src="images/day07-format-pipeline.svg" alt="Genomics file format pipeline"></p>
+<p>The sequencer produces raw reads in FASTQ (Day 6). Those reads get aligned to a reference genome (FASTA), producing alignments (SAM/BAM). Variant callers compare the alignments to the reference and output differences (VCF). Annotators overlay gene models (GFF/GTF) and region lists (BED) onto the variants.</p>
+<p>Every arrow in that diagram is a file format conversion. Today you learn to read and write each one.</p>
+<hr>
+<h2 id="fasta--reference-sequences"><a class="header" href="#fasta--reference-sequences">FASTA — Reference Sequences</a></h2>
+<p>FASTA is the oldest and simplest bioinformatics format. It stores named sequences — DNA, RNA, or protein. Every reference genome, every transcript database, every protein collection uses FASTA.</p>
+<h3 id="anatomy"><a class="header" href="#anatomy">Anatomy</a></h3>
+<pre><code>&gt;chr1 Homo sapiens chromosome 1     &lt;- Header line (starts with &gt;)
+ATCGATCGATCGATCGATCGATCGATCG        &lt;- Sequence (can span multiple lines)
+ATCGATCGATCGATCG
+&gt;chr2 Homo sapiens chromosome 2     &lt;- Next sequence
+GCGCGCATATATATGCGCGCGCGC
+&gt;BRCA1_mRNA NM_007294.4             &lt;- Can be any named sequence
+ATGGATTTATCTGCTCTTCGCGTTGAAG
+</code></pre>
+<p>The header line starts with <code>&gt;</code> followed by an identifier and optional description. The sequence follows on one or more lines. There is no quality information — FASTA is for known sequences, not raw reads.</p>
+<h3 id="reading-fasta"><a class="header" href="#reading-fasta">Reading FASTA</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let seqs = read_fasta("data/sequences.fasta")
+println(f"Sequences: {len(seqs)}")
+
+for s in seqs {
+    println(f"  {s.id}: {len(s.seq)} bp, GC={round(gc_content(s.seq) * 100, 1)}%")
+}
+</code></pre>
+<pre><code>Sequences: 5
+  chr1_fragment: 200 bp, GC=49.0%
+  chr17_brca1: 150 bp, GC=52.0%
+  chrX_region: 180 bp, GC=41.1%
+  ecoli_16s: 120 bp, GC=54.2%
+  insulin_mrna: 100 bp, GC=47.0%
+</code></pre>
+<p>Each sequence is a record with two fields:</p>
+<ul>
+<li><code>id</code> — the identifier from the header line (text after <code>&gt;</code> up to the first space)</li>
+<li><code>seq</code> — the full sequence as a string</li>
+</ul>
+<h3 id="streaming-for-large-genomes"><a class="header" href="#streaming-for-large-genomes">Streaming for Large Genomes</a></h3>
+<p>A human reference genome is 3.1 billion bases across 24 chromosomes. Loading it all into memory uses ~3 GB. For large FASTA files, stream instead:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let total_bases = fasta("data/sequences.fasta")
+    |&gt; map(|s| len(s.seq))
+    |&gt; reduce(|a, b| a + b)
+println(f"Total bases: {total_bases}")
+</code></pre>
+<pre><code>Total bases: 750
+</code></pre>
+<h3 id="fasta-statistics"><a class="header" href="#fasta-statistics">FASTA Statistics</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let stats = fasta_stats("data/sequences.fasta")
+println(f"Sequences: {stats.count}")
+println(f"Total bases: {stats.total_bases}")
+println(f"Mean length: {round(stats.mean_length, 1)}")
+</code></pre>
+<pre><code>Sequences: 5
+Total bases: 750
+Mean length: 150.0
+</code></pre>
+<hr>
+<h2 id="vcf--variant-calls"><a class="header" href="#vcf--variant-calls">VCF — Variant Calls</a></h2>
+<p>VCF (Variant Call Format) stores genetic variants — positions where a sample’s DNA differs from the reference genome. It is the standard output of every variant caller (GATK, bcftools, DeepVariant, etc.).</p>
+<h3 id="anatomy-1"><a class="header" href="#anatomy-1">Anatomy</a></h3>
+<pre><code>##fileformat=VCFv4.3                                &lt;- Meta-information lines
+##INFO=&lt;ID=DP,Number=1,Type=Integer,Description="Read Depth"&gt;
+##FILTER=&lt;ID=LowQual,Description="Low quality"&gt;
+#CHROM  POS     ID      REF  ALT  QUAL FILTER INFO  &lt;- Column header
+chr1    100     .       A    G    30   PASS   DP=45  &lt;- SNP (A -&gt; G)
+chr1    200     rs123   CT   C    45   PASS   DP=62  &lt;- Deletion (T deleted)
+chr17   43091   .       G    A    99   PASS   DP=88  &lt;- High-quality SNP
+chr17   43200   .       C    T    12   LowQual DP=5  &lt;- Low-quality, filtered
+</code></pre>
+<p>The file has three sections:</p>
+<ol>
+<li><strong>Meta-information lines</strong> (start with <code>##</code>) — describe the file structure, INFO fields, FILTER definitions, and sample metadata.</li>
+<li><strong>Column header</strong> (starts with <code>#CHROM</code>) — names the eight mandatory columns plus any sample columns.</li>
+<li><strong>Data lines</strong> — one variant per line.</li>
+</ol>
+<p>The key columns:</p>
+<ul>
+<li><strong>CHROM</strong> and <strong>POS</strong> — where the variant is (1-based coordinate)</li>
+<li><strong>REF</strong> and <strong>ALT</strong> — what the reference has vs what the sample has</li>
+<li><strong>QUAL</strong> — confidence score (Phred-scaled)</li>
+<li><strong>FILTER</strong> — <code>PASS</code> if the variant passed all filters, otherwise a filter name</li>
+<li><strong>INFO</strong> — semicolon-delimited key=value annotations</li>
+</ul>
+<h3 id="reading-vcf"><a class="header" href="#reading-vcf">Reading VCF</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let variants = read_vcf("data/variants.vcf")
+println(f"Total variants: {len(variants)}")
+
+# Examine first variant
+let v = first(variants)
+println(f"Chrom: {v.chrom}, Pos: {v.pos}, Ref: {v.ref}, Alt: {v.alt}")
+
+# Filter to passing variants
+let passed = variants |&gt; filter(|v| v.filter == "PASS")
+println(f"PASS variants: {len(passed)}")
+
+# Count by chromosome
+let by_chrom = passed
+    |&gt; to_table()
+    |&gt; group_by("chrom")
+    |&gt; summarize(|chrom, rows| {chrom: chrom, count: len(rows)})
+println(by_chrom)
+</code></pre>
+<pre><code>Total variants: 10
+Chrom: chr1, Pos: 100, Ref: A, Alt: G
+PASS variants: 8
+
+ chrom | count
+ chr1  | 3
+ chr17 | 3
+ chrX  | 2
+</code></pre>
+<h3 id="variant-types"><a class="header" href="#variant-types">Variant Types</a></h3>
+<p>Not all variants are the same. The REF and ALT lengths tell you what kind of variant you have:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>REF length</th><th>ALT length</th><th>Variant Type</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>SNP (single nucleotide polymorphism)</td><td>A -&gt; G</td></tr>
+<tr><td>&gt; 1</td><td>1</td><td>Deletion</td><td>CT -&gt; C</td></tr>
+<tr><td>1</td><td>&gt; 1</td><td>Insertion</td><td>A -&gt; ATG</td></tr>
+<tr><td>&gt; 1</td><td>&gt; 1</td><td>Complex</td><td>CT -&gt; GA</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bio"># Classify variants by type
+let snps = variants |&gt; filter(|v| len(v.ref) == 1 and len(v.alt) == 1)
+let indels = variants |&gt; filter(|v| len(v.ref) != len(v.alt))
+println(f"SNPs: {len(snps)}")
+println(f"Indels: {len(indels)}")
+</code></pre>
+<pre><code>SNPs: 7
+Indels: 3
+</code></pre>
+<h3 id="streaming-large-vcf-files"><a class="header" href="#streaming-large-vcf-files">Streaming Large VCF Files</a></h3>
+<p>Whole-genome VCF files can contain millions of variants. Stream them:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let snp_count = vcf("data/variants.vcf")
+    |&gt; filter(|v| len(v.ref) == 1 and len(v.alt) == 1)
+    |&gt; count()
+println(f"SNPs (streaming): {snp_count}")
+</code></pre>
+<pre><code>SNPs (streaming): 7
+</code></pre>
+<hr>
+<h2 id="bed--genomic-regions"><a class="header" href="#bed--genomic-regions">BED — Genomic Regions</a></h2>
+<p>BED (Browser Extensible Data) stores genomic intervals — regions of a chromosome with a start and end position. It is used for gene coordinates, exon boundaries, peaks from ChIP-seq, target capture regions, blacklisted regions, and anything else that can be described as “chromosome X from position A to position B.”</p>
+<h3 id="anatomy-2"><a class="header" href="#anatomy-2">Anatomy</a></h3>
+<pre><code>chr1    1000    2000    gene_A    100    +      &lt;- 6-column BED
+chr1    3000    4000    gene_B    200    -
+chr17   43044295 43125483 BRCA1   0      +
+</code></pre>
+<p>The columns are tab-separated:</p>
+<ol>
+<li><strong>chrom</strong> — chromosome name</li>
+<li><strong>start</strong> — start position (0-based)</li>
+<li><strong>end</strong> — end position (exclusive, half-open)</li>
+<li><strong>name</strong> — feature name (optional, columns 4+)</li>
+<li><strong>score</strong> — numeric score (optional)</li>
+<li><strong>strand</strong> — <code>+</code> or <code>-</code> (optional)</li>
+</ol>
+<h3 id="the-critical-coordinate-convention"><a class="header" href="#the-critical-coordinate-convention">The Critical Coordinate Convention</a></h3>
+<p>BED uses <strong>0-based, half-open</strong> coordinates. This is the single most important thing to remember about BED files.</p>
+<pre><code>Position:  0  1  2  3  4  5  6  7  8  9
+Bases:     A  T  C  G  A  T  C  G  A  T
+
+BED:       chr1  2  5     &lt;- Covers bases at positions 2, 3, 4 (= C, G, A)
+                          &lt;- Start is inclusive, end is exclusive
+                          &lt;- Length = end - start = 5 - 2 = 3
+
+VCF/GFF:   chr1  3        &lt;- Position 3 refers to the base at 1-based position 3
+                          &lt;- Which is the same base C at 0-based position 2
+</code></pre>
+<p>This means:</p>
+<ul>
+<li>BED <code>chr1 100 200</code> covers 100 bases (positions 100 through 199)</li>
+<li>The length of a BED interval is always <code>end - start</code></li>
+<li>To convert VCF position (1-based) to BED: subtract 1 from the start</li>
+</ul>
+<h3 id="reading-bed"><a class="header" href="#reading-bed">Reading BED</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let regions = read_bed("data/regions.bed")
+println(f"Regions: {len(regions)}")
+
+# Calculate total covered bases
+let total = regions
+    |&gt; map(|r| r.end - r.start)
+    |&gt; reduce(|a, b| a + b)
+println(f"Total bases covered: {total}")
+
+# Filter to a specific chromosome
+let chr17 = regions |&gt; filter(|r| r.chrom == "chr17")
+println(f"Chr17 regions: {len(chr17)}")
+</code></pre>
+<pre><code>Regions: 10
+Total bases covered: 92500
+Chr17 regions: 3
+</code></pre>
+<h3 id="region-statistics"><a class="header" href="#region-statistics">Region Statistics</a></h3>
+<pre><code class="language-bio">let sizes = regions |&gt; map(|r| r.end - r.start)
+println(f"Region sizes:")
+println(f"  Min: {min(sizes)}")
+println(f"  Max: {max(sizes)}")
+println(f"  Mean: {round(mean(sizes), 1)}")
+</code></pre>
+<pre><code>Region sizes:
+  Min: 500
+  Max: 81189
+  Mean: 9250.0
+</code></pre>
+<hr>
+<h2 id="gffgtf--gene-annotations"><a class="header" href="#gffgtf--gene-annotations">GFF/GTF — Gene Annotations</a></h2>
+<p>GFF (General Feature Format) and GTF (Gene Transfer Format) store gene structure annotations — where genes are, where their exons are, where the coding regions start and stop. GFF3 is the current standard; GTF is an older Ensembl-specific variant that is still widely used.</p>
+<h3 id="anatomy-3"><a class="header" href="#anatomy-3">Anatomy</a></h3>
+<pre><code>chr1  ensembl  gene   11869  14409  .  +  .  gene_id "ENSG00000223972"; gene_name "DDX11L1"
+chr1  ensembl  exon   11869  12227  .  +  .  gene_id "ENSG00000223972"; exon_number "1"
+chr1  ensembl  exon   12613  12721  .  +  .  gene_id "ENSG00000223972"; exon_number "2"
+chr1  ensembl  exon   13221  14409  .  +  .  gene_id "ENSG00000223972"; exon_number "3"
+</code></pre>
+<p>The nine tab-separated columns:</p>
+<ol>
+<li><strong>seqid</strong> — chromosome or contig name</li>
+<li><strong>source</strong> — who produced the annotation (ensembl, refseq, etc.)</li>
+<li><strong>type</strong> — feature type (gene, exon, mRNA, CDS, etc.)</li>
+<li><strong>start</strong> — start position (1-based, inclusive)</li>
+<li><strong>end</strong> — end position (1-based, inclusive)</li>
+<li><strong>score</strong> — numeric score or <code>.</code> if not applicable</li>
+<li><strong>strand</strong> — <code>+</code>, <code>-</code>, or <code>.</code></li>
+<li><strong>phase</strong> — reading frame for CDS features (0, 1, or 2) or <code>.</code></li>
+<li><strong>attributes</strong> — semicolon-delimited key-value pairs</li>
+</ol>
+<h3 id="coordinates-1-based-inclusive"><a class="header" href="#coordinates-1-based-inclusive">Coordinates: 1-Based, Inclusive</a></h3>
+<p>GFF uses <strong>1-based, fully inclusive</strong> coordinates. A feature at <code>11869..14409</code> covers all 2541 bases from position 11869 through position 14409 inclusive.</p>
+<pre><code>To convert GFF to BED:
+  BED_start = GFF_start - 1
+  BED_end   = GFF_end          (already exclusive in the half-open sense)
+
+Example:
+  GFF:  chr1  11869  14409     (1-based inclusive, covers 14409 - 11869 + 1 = 2541 bases)
+  BED:  chr1  11868  14409     (0-based half-open, covers 14409 - 11868 = 2541 bases)
+</code></pre>
+<h3 id="reading-gff"><a class="header" href="#reading-gff">Reading GFF</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let features = read_gff("data/annotations.gff")
+println(f"Features: {len(features)}")
+
+# Count feature types
+let genes = features |&gt; filter(|f| f.type == "gene")
+let exons = features |&gt; filter(|f| f.type == "exon")
+let cds = features |&gt; filter(|f| f.type == "CDS")
+println(f"Genes: {len(genes)}")
+println(f"Exons: {len(exons)}")
+println(f"CDS:   {len(cds)}")
+</code></pre>
+<pre><code>Features: 15
+Genes: 3
+Exons: 8
+CDS:   4
+</code></pre>
+<h3 id="extracting-gene-information"><a class="header" href="#extracting-gene-information">Extracting Gene Information</a></h3>
+<pre><code class="language-bio"># List all gene names
+let gene_names = features
+    |&gt; filter(|f| f.type == "gene")
+    |&gt; map(|f| f.attributes.gene_name)
+println(f"Genes: {gene_names}")
+</code></pre>
+<pre><code>Genes: [DDX11L1, BRCA1, TP53]
+</code></pre>
+<h3 id="streaming"><a class="header" href="#streaming">Streaming</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let exon_count = gff("data/annotations.gff")
+    |&gt; filter(|f| f.type == "exon")
+    |&gt; count()
+println(f"Exons (streaming): {exon_count}")
+</code></pre>
+<pre><code>Exons (streaming): 8
+</code></pre>
+<hr>
+<h2 id="sambam--alignments"><a class="header" href="#sambam--alignments">SAM/BAM — Alignments</a></h2>
+<p>SAM (Sequence Alignment/Map) stores read alignments — which reads mapped where on the reference genome, and how. BAM is the binary compressed version of SAM. You almost always work with BAM files because they are smaller and indexed for fast random access.</p>
+<h3 id="anatomy-4"><a class="header" href="#anatomy-4">Anatomy</a></h3>
+<pre><code>@HD  VN:1.6  SO:coordinate                           &lt;- Header: format version, sort order
+@SQ  SN:chr1  LN:248956422                           &lt;- Header: reference sequence lengths
+@SQ  SN:chr17 LN:83257441
+read_001  99   chr1   100   60   150M        *  0  0  ATCG...  IIII...  &lt;- Alignment
+read_002  83   chr1   250   42   75M2I73M    *  0  0  ATCG...  IIII...  &lt;- Alignment with insertion
+read_003  4    *      0     0    *           *  0  0  ATCG...  IIII...  &lt;- Unmapped read
+</code></pre>
+<p>The key fields in each alignment record:</p>
+<ul>
+<li><strong>QNAME</strong> — read name</li>
+<li><strong>FLAG</strong> — bitwise flags encoding paired-end status, strand, mapping status</li>
+<li><strong>RNAME</strong> — reference chromosome</li>
+<li><strong>POS</strong> — leftmost mapping position (1-based)</li>
+<li><strong>MAPQ</strong> — mapping quality (0-60, higher is better)</li>
+<li><strong>CIGAR</strong> — alignment description string (e.g., <code>150M</code> = 150 matches, <code>75M2I73M</code> = 75 matches + 2 inserted bases + 73 matches)</li>
+</ul>
+<h3 id="sam-flags"><a class="header" href="#sam-flags">SAM Flags</a></h3>
+<p>The FLAG field is a bitwise integer. Common values:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Flag</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>4</td><td>Read is unmapped</td></tr>
+<tr><td>16</td><td>Read mapped to reverse strand</td></tr>
+<tr><td>99</td><td>Read paired, mapped in proper pair, mate reverse strand, first in pair</td></tr>
+<tr><td>83</td><td>Read paired, mapped in proper pair, read reverse strand, second in pair</td></tr>
+<tr><td>256</td><td>Secondary alignment</td></tr>
+<tr><td>2048</td><td>Supplementary alignment</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="reading-bam"><a class="header" href="#reading-bam">Reading BAM</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let alignments = read_bam("data/alignments.bam")
+println(f"Total alignments: {len(alignments)}")
+
+# Basic alignment statistics
+let mapped = alignments |&gt; filter(|r| r.is_mapped)
+let unmapped = alignments |&gt; filter(|r| not r.is_mapped)
+println(f"Mapped: {len(mapped)}")
+println(f"Unmapped: {len(unmapped)}")
+
+# Mapping quality distribution
+let mapqs = mapped |&gt; map(|r| r.mapq)
+println(f"Mean MAPQ: {round(mean(mapqs), 1)}")
+println(f"High quality (MAPQ &gt;= 30): {len(mapqs |&gt; filter(|q| q &gt;= 30))}")
+</code></pre>
+<pre><code>Total alignments: 20
+Mapped: 17
+Unmapped: 3
+Mean MAPQ: 48.2
+High quality (MAPQ &gt;= 30): 14
+</code></pre>
+<h3 id="streaming-bam"><a class="header" href="#streaming-bam">Streaming BAM</a></h3>
+<p>BAM files from a whole-genome sequencing run can be 50-100 GB. Always stream:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let mapped_count = bam("data/alignments.bam")
+    |&gt; filter(|r| r.is_mapped)
+    |&gt; count()
+println(f"Mapped reads (streaming): {mapped_count}")
+</code></pre>
+<pre><code>Mapped reads (streaming): 17
+</code></pre>
+<h3 id="bam-vs-sam"><a class="header" href="#bam-vs-sam">BAM vs SAM</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>SAM</th><th>BAM</th></tr>
+</thead>
+<tbody>
+<tr><td>Format</td><td>Text</td><td>Binary (compressed)</td></tr>
+<tr><td>Size</td><td>Large (~10x BAM)</td><td>Compact</td></tr>
+<tr><td>Indexable</td><td>No</td><td>Yes (with .bai index)</td></tr>
+<tr><td>Human readable</td><td>Yes</td><td>No</td></tr>
+<tr><td>Use for</td><td>Debugging, small files</td><td>Everything else</td></tr>
+</tbody>
+</table>
+</div>
+<p>Rule: <strong>always store BAM, never SAM.</strong> Convert to SAM only when you need to visually inspect a few records.</p>
+<hr>
+<h2 id="the-coordinate-system-trap"><a class="header" href="#the-coordinate-system-trap">The Coordinate System Trap</a></h2>
+<p>The single biggest source of bugs in bioinformatics is mixing up coordinate systems. Here is the definitive comparison:</p>
+<pre><code>Genome:    A  T  C  G  A  T  C  G
+0-based:   0  1  2  3  4  5  6  7      &lt;- BED, BAM (internal)
+1-based:   1  2  3  4  5  6  7  8      &lt;- VCF, GFF/GTF, SAM (POS)
+
+The region covering "CGAT" (4 bases):
+  BED:     chr1  2  6     (0-based, half-open: positions 2,3,4,5)
+  GFF:     chr1  3  6     (1-based, inclusive: positions 3,4,5,6)
+  VCF:     POS=3          (1-based: position 3 for a single variant)
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Format</th><th>Base</th><th>End Convention</th><th>“CGAT” region</th></tr>
+</thead>
+<tbody>
+<tr><td>BED</td><td>0-based</td><td>Half-open (exclusive)</td><td>2..6</td></tr>
+<tr><td>GFF/GTF</td><td>1-based</td><td>Inclusive</td><td>3..6</td></tr>
+<tr><td>VCF</td><td>1-based</td><td>N/A (single position)</td><td>POS=3</td></tr>
+<tr><td>SAM</td><td>1-based</td><td>Inclusive</td><td>POS=3, CIGAR=4M</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="conversion-rules"><a class="header" href="#conversion-rules">Conversion Rules</a></h3>
+<pre><code># VCF (1-based) to BED (0-based, half-open)
+bed_start = vcf_pos - 1
+bed_end   = vcf_pos - 1 + len(ref)
+
+# GFF (1-based, inclusive) to BED (0-based, half-open)
+bed_start = gff_start - 1
+bed_end   = gff_end              # already correct for half-open
+
+# BED (0-based) to GFF (1-based, inclusive)
+gff_start = bed_start + 1
+gff_end   = bed_end              # already correct for inclusive
+</code></pre>
+<hr>
+<h2 id="format-conversion-patterns"><a class="header" href="#format-conversion-patterns">Format Conversion Patterns</a></h2>
+<p>Converting between formats is a daily task. Here are the most common conversions:</p>
+<h3 id="vcf-to-bed--variant-positions-as-intervals"><a class="header" href="#vcf-to-bed--variant-positions-as-intervals">VCF to BED — Variant Positions as Intervals</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let variants = read_vcf("data/variants.vcf")
+let beds = variants |&gt; map(|v| {
+    chrom: v.chrom,
+    start: v.pos - 1,
+    end: v.pos - 1 + len(v.ref)
+})
+println(f"Converted {len(beds)} variants to BED intervals")
+println(f"First: {first(beds).chrom}:{first(beds).start}-{first(beds).end}")
+</code></pre>
+<pre><code>Converted 10 variants to BED intervals
+First: chr1:99-100
+</code></pre>
+<h3 id="gff-genes-to-bed"><a class="header" href="#gff-genes-to-bed">GFF Genes to BED</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let features = read_gff("data/annotations.gff")
+let gene_beds = features
+    |&gt; filter(|f| f.type == "gene")
+    |&gt; map(|f| {
+        chrom: f.seqid,
+        start: f.start - 1,
+        end: f.end,
+        name: f.attributes.gene_name
+    })
+println(f"Gene BED regions: {len(gene_beds)}")
+</code></pre>
+<pre><code>Gene BED regions: 3
+</code></pre>
+<hr>
+<h2 id="writing-files"><a class="header" href="#writing-files">Writing Files</a></h2>
+<p>BioLang can write all the formats it reads.</p>
+<h3 id="writing-fasta"><a class="header" href="#writing-fasta">Writing FASTA</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let seqs = [
+    {id: "seq1", seq: dna"ATCGATCGATCG"},
+    {id: "seq2", seq: dna"GCGCGCATATGC"},
+]
+write_fasta(seqs, "results/output.fasta")
+println("Wrote 2 sequences to FASTA")
+</code></pre>
+<pre><code>Wrote 2 sequences to FASTA
+</code></pre>
+<h3 id="writing-bed"><a class="header" href="#writing-bed">Writing BED</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let regions = [
+    {chrom: "chr1", start: 100, end: 200},
+    {chrom: "chr1", start: 300, end: 400},
+    {chrom: "chr17", start: 43044295, end: 43125483},
+]
+write_bed(regions, "results/output.bed")
+println(f"Wrote {len(regions)} regions to BED")
+</code></pre>
+<pre><code>Wrote 3 regions to BED
+</code></pre>
+<h3 id="tables-to-csv"><a class="header" href="#tables-to-csv">Tables to CSV</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let results = [
+    {gene: "BRCA1", pval: 0.001, chrom: "chr17"},
+    {gene: "TP53", pval: 0.05, chrom: "chr17"},
+    {gene: "EGFR", pval: 0.003, chrom: "chr7"},
+] |&gt; to_table()
+
+write_csv(results, "results/output.csv")
+println(f"Wrote {nrow(results)} rows to CSV")
+println(f"Columns: {colnames(results)}")
+</code></pre>
+<pre><code>Wrote 3 rows to CSV
+Columns: [gene, pval, chrom]
+</code></pre>
+<hr>
+<h2 id="putting-it-all-together"><a class="header" href="#putting-it-all-together">Putting It All Together</a></h2>
+<p>Here is a realistic mini-pipeline that reads multiple formats and produces a summary:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># Multi-format analysis pipeline
+println("=== Multi-Format Analysis ===")
+
+# 1. Read reference sequences
+let ref_seqs = read_fasta("data/sequences.fasta")
+println(f"Reference: {len(ref_seqs)} sequences, {fasta_stats('data/sequences.fasta').total_bases} bp")
+
+# 2. Read variants
+let variants = read_vcf("data/variants.vcf")
+let passed = variants |&gt; filter(|v| v.filter == "PASS")
+println(f"Variants: {len(variants)} total, {len(passed)} PASS")
+
+# 3. Read target regions
+let targets = read_bed("data/regions.bed")
+let target_bp = targets |&gt; map(|r| r.end - r.start) |&gt; reduce(|a, b| a + b)
+println(f"Target regions: {len(targets)}, covering {target_bp} bp")
+
+# 4. Read gene annotations
+let features = read_gff("data/annotations.gff")
+let genes = features |&gt; filter(|f| f.type == "gene")
+println(f"Annotations: {len(features)} features, {len(genes)} genes")
+
+# 5. Summary table
+let snps = passed |&gt; filter(|v| len(v.ref) == 1 and len(v.alt) == 1)
+let indels = passed |&gt; filter(|v| len(v.ref) != len(v.alt))
+let summary = [
+    {metric: "Reference sequences", value: len(ref_seqs)},
+    {metric: "Total variants", value: len(variants)},
+    {metric: "PASS variants", value: len(passed)},
+    {metric: "SNPs", value: len(snps)},
+    {metric: "Indels", value: len(indels)},
+    {metric: "Target regions", value: len(targets)},
+    {metric: "Target bases", value: target_bp},
+    {metric: "Genes", value: len(genes)},
+] |&gt; to_table()
+println(summary)
+</code></pre>
+<pre><code>=== Multi-Format Analysis ===
+Reference: 5 sequences, 750 bp
+Variants: 10 total, 8 PASS
+Target regions: 10, covering 92500 bp
+Annotations: 15 features, 3 genes
+
+ metric              | value
+ Reference sequences | 5
+ Total variants      | 10
+ PASS variants       | 8
+ SNPs                | 6
+ Indels              | 2
+ Target regions      | 10
+ Target bases        | 92500
+ Genes               | 3
+</code></pre>
+<hr>
+<h2 id="format-cheat-sheet"><a class="header" href="#format-cheat-sheet">Format Cheat Sheet</a></h2>
+<p>Keep this table handy. You will refer to it constantly.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Format</th><th>Extension</th><th>Content</th><th>Coordinates</th><th>Eager Reader</th><th>Stream Reader</th></tr>
+</thead>
+<tbody>
+<tr><td>FASTA</td><td>.fa, .fasta</td><td>Sequences</td><td>—</td><td><code>read_fasta()</code></td><td><code>fasta()</code></td></tr>
+<tr><td>FASTQ</td><td>.fq, .fastq</td><td>Reads + quality</td><td>—</td><td><code>read_fastq()</code></td><td><code>fastq()</code></td></tr>
+<tr><td>VCF</td><td>.vcf</td><td>Variants</td><td>1-based</td><td><code>read_vcf()</code></td><td><code>vcf()</code></td></tr>
+<tr><td>BED</td><td>.bed</td><td>Regions</td><td>0-based, half-open</td><td><code>read_bed()</code></td><td><code>bed()</code></td></tr>
+<tr><td>GFF/GTF</td><td>.gff, .gtf</td><td>Annotations</td><td>1-based, inclusive</td><td><code>read_gff()</code></td><td><code>gff()</code></td></tr>
+<tr><td>SAM/BAM</td><td>.sam, .bam</td><td>Alignments</td><td>1-based</td><td><code>read_bam()</code></td><td><code>bam()</code></td></tr>
+<tr><td>CSV/TSV</td><td>.csv, .tsv</td><td>Tables</td><td>—</td><td><code>csv()</code>, <code>tsv()</code></td><td>same (streaming)</td></tr>
+</tbody>
+</table>
+</div>
+<p>When to use eager vs stream:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Approach</th><th>Function</th><th>Memory</th><th>Use When</th></tr>
+</thead>
+<tbody>
+<tr><td>Eager</td><td><code>read_fasta()</code>, <code>read_vcf()</code>, etc.</td><td>Loads all data</td><td>Small files, need random access, multiple passes</td></tr>
+<tr><td>Stream</td><td><code>fasta()</code>, <code>vcf()</code>, etc.</td><td>Constant (one record at a time)</td><td>Large files, single-pass processing</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<p><strong>Exercise 1: FASTA GC Champion.</strong> Read <code>data/sequences.fasta</code> and find the sequence with the highest GC content. Print its ID and GC percentage.</p>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-bio">let seqs = read_fasta("data/sequences.fasta")
+let best = seqs
+    |&gt; sort(|a, b| gc_content(b.seq) - gc_content(a.seq))
+    |&gt; first()
+println(f"Highest GC: {best.id} at {round(gc_content(best.seq) * 100, 1)}%")
+</code></pre>
+</details>
+<p><strong>Exercise 2: SNP Census.</strong> Read <code>data/variants.vcf</code>, filter to SNPs only (single-base REF and ALT), and count them by chromosome.</p>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-bio">let snps = read_vcf("data/variants.vcf")
+    |&gt; filter(|v| len(v.ref) == 1 and len(v.alt) == 1)
+let by_chrom = snps
+    |&gt; to_table()
+    |&gt; group_by("chrom")
+    |&gt; summarize(|chrom, rows| {chrom: chrom, count: len(rows)})
+println(by_chrom)
+</code></pre>
+</details>
+<p><strong>Exercise 3: Mean Region Size.</strong> Read <code>data/regions.bed</code> and calculate the mean region size in base pairs.</p>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-bio">let regions = read_bed("data/regions.bed")
+let sizes = regions |&gt; map(|r| r.end - r.start)
+println(f"Mean region size: {round(mean(sizes), 1)} bp")
+</code></pre>
+</details>
+<p><strong>Exercise 4: VCF to BED.</strong> Convert all variants in <code>data/variants.vcf</code> to BED format, properly adjusting the coordinate system (1-based to 0-based).</p>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-bio">let variants = read_vcf("data/variants.vcf")
+let bed_regions = variants |&gt; map(|v| {
+    chrom: v.chrom,
+    start: v.pos - 1,
+    end: v.pos - 1 + len(v.ref)
+})
+for b in bed_regions {
+    println(f"{b.chrom}\t{b.start}\t{b.end}")
+}
+</code></pre>
+</details>
+<p><strong>Exercise 5: Feature Types.</strong> Read <code>data/annotations.gff</code> and list all unique feature types with their counts.</p>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-bio">let features = read_gff("data/annotations.gff")
+let type_counts = features
+    |&gt; to_table()
+    |&gt; group_by("type")
+    |&gt; summarize(|feat_type, rows| {type: feat_type, count: len(rows)})
+println(type_counts)
+</code></pre>
+</details>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>FASTA</strong> = sequences, <strong>FASTQ</strong> = sequences + quality, <strong>VCF</strong> = variants, <strong>BED</strong> = regions, <strong>GFF</strong> = annotations, <strong>BAM</strong> = alignments.</li>
+<li><strong>BED is 0-based half-open</strong>, <strong>VCF and GFF are 1-based</strong> — coordinate conversion is a constant source of bugs. Always check which system you are in.</li>
+<li>Use <strong>streaming readers</strong> (<code>fasta()</code>, <code>vcf()</code>, <code>bam()</code>) for large files — they process one record at a time in constant memory.</li>
+<li>Use <strong>eager readers</strong> (<code>read_fasta()</code>, <code>read_vcf()</code>) for small files you need to access multiple times or sort.</li>
+<li>Every format has a BioLang reader — you never need to parse tab-separated text manually.</li>
+<li>When converting between formats, always account for the coordinate system difference. VCF position 100 becomes BED start 99.</li>
+</ul>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow: when files are too big to fit in memory. Day 8 covers streaming, lazy evaluation, and constant-memory processing — the techniques that let you handle whole-genome data on a laptop.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-06.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-08.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-06.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-08.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

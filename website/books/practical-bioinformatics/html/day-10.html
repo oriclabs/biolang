@@ -1,0 +1,1060 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 10: Tables — The Bioinformatician&#x27;s Workbench - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-10-tables--the-bioinformaticians-workbench"><a class="header" href="#day-10-tables--the-bioinformaticians-workbench">Day 10: Tables — The Bioinformatician’s Workbench</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Basic (gene names, chromosomes, expression data)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (pipes, closures, records)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1-9 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated by <code>init.bl</code> (CSV files)</td></tr>
+<tr><td><strong>Requirements</strong></td><td>None (offline)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to create tables from CSV files, records, and column vectors</li>
+<li>How to select, drop, and rename columns</li>
+<li>How to filter rows with predicates</li>
+<li>How to add and transform columns with mutate</li>
+<li>How to sort, slice, and deduplicate rows</li>
+<li>How to group rows and compute summaries (split-apply-combine)</li>
+<li>How to join tables by key columns (inner, left, right, outer, anti, semi)</li>
+<li>How to reshape between wide and long formats (pivot)</li>
+<li>How to use window functions for running totals and ranks</li>
+<li>How to chain all of these into a complete analysis pipeline</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Every analysis produces tabular data — gene expression matrices, variant call results, sample metadata, statistical summaries. A differential expression tool gives you thousands of rows with gene names, fold changes, and p-values. A variant caller gives you chromosomes, positions, and quality scores. A clinical database gives you patient IDs, phenotypes, and treatment groups.</p>
+<p>Knowing how to slice, dice, join, reshape, and summarize tables is the single most valuable data skill in bioinformatics. It is the skill that turns raw output into biological insight.</p>
+<p>In R, this is dplyr and tidyr. In Python, this is pandas. In BioLang, tables are built in — no imports, no package managers, no configuration. You load a CSV and start working.</p>
+<hr>
+<h2 id="creating-tables"><a class="header" href="#creating-tables">Creating Tables</a></h2>
+<p>There are three ways to get data into a table.</p>
+<h3 id="from-csvtsv-files"><a class="header" href="#from-csvtsv-files">From CSV/TSV Files</a></h3>
+<p>The most common case: you have a file from another tool.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let expr = csv("data/expression.csv")
+println(f"Rows: {nrow(expr)}, Cols: {ncol(expr)}")
+println(f"Columns: {colnames(expr)}")
+println(expr |&gt; head(3))
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Rows: 20, Cols: 6
+Columns: [gene, log2fc, pval, padj, chr, biotype]
+gene   | log2fc | pval     | padj     | chr | biotype
+EGFR   | 3.8    | 0.000001 | 0.00001  | 7   | protein_coding
+BRCA1  | 2.4    | 0.001    | 0.005    | 17  | protein_coding
+VEGFA  | 2.1    | 0.002    | 0.008    | 6   | protein_coding
+</code></pre>
+<p><code>csv()</code> reads comma-separated files. For tab-separated files, use <code>tsv()</code>. Both auto-detect headers and infer column types (integers, floats, strings).</p>
+<h3 id="from-a-list-of-records"><a class="header" href="#from-a-list-of-records">From a List of Records</a></h3>
+<p>When you construct data programmatically, build a list of records and convert it.</p>
+<pre><code class="language-bio">let data = [
+    {gene: "BRCA1", log2fc: 2.4, pval: 0.001, chr: "17"},
+    {gene: "TP53", log2fc: -1.1, pval: 0.23, chr: "17"},
+    {gene: "EGFR", log2fc: 3.8, pval: 0.000001, chr: "7"},
+    {gene: "MYC", log2fc: 1.9, pval: 0.04, chr: "8"},
+    {gene: "KRAS", log2fc: -0.3, pval: 0.67, chr: "12"},
+] |&gt; to_table()
+
+println(data)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | chr
+BRCA1 | 2.4    | 0.001    | 17
+TP53  | -1.1   | 0.23     | 17
+EGFR  | 3.8    | 0.000001 | 7
+MYC   | 1.9    | 0.04     | 8
+KRAS  | -0.3   | 0.67     | 12
+</code></pre>
+<h3 id="from-column-vectors"><a class="header" href="#from-column-vectors">From Column Vectors</a></h3>
+<p>When you already have parallel arrays, pass a record of lists.</p>
+<pre><code class="language-bio">let t = table({
+    gene: ["BRCA1", "TP53", "EGFR"],
+    value: [1.0, 2.0, 3.0]
+})
+println(t)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | value
+BRCA1 | 1.0
+TP53  | 2.0
+EGFR  | 3.0
+</code></pre>
+<p>This is the Polars/R column-oriented style. Each key is a column name, each value is a list of that column’s data. All lists must have the same length.</p>
+<hr>
+<h2 id="selecting-columns"><a class="header" href="#selecting-columns">Selecting Columns</a></h2>
+<p>Tables often have more columns than you need. <code>select()</code> keeps only the ones you name. <code>drop_cols()</code> removes the ones you don’t want.</p>
+<pre><code class="language-bio">let data = [
+    {gene: "BRCA1", log2fc: 2.4, pval: 0.001, chr: "17"},
+    {gene: "TP53", log2fc: -1.1, pval: 0.23, chr: "17"},
+    {gene: "EGFR", log2fc: 3.8, pval: 0.000001, chr: "7"},
+] |&gt; to_table()
+
+# Keep specific columns
+let slim = data |&gt; select("gene", "pval")
+println(slim)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | pval
+BRCA1 | 0.001
+TP53  | 0.23
+EGFR  | 0.000001
+</code></pre>
+<pre><code class="language-bio"># Drop a column
+let no_chr = data |&gt; drop_cols("chr")
+println(no_chr)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval
+BRCA1 | 2.4    | 0.001
+TP53  | -1.1   | 0.23
+EGFR  | 3.8    | 0.000001
+</code></pre>
+<pre><code class="language-bio"># Rename a column
+let renamed = data |&gt; rename("log2fc", "fold_change")
+println(renamed)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | fold_change | pval     | chr
+BRCA1 | 2.4         | 0.001    | 17
+TP53  | -1.1        | 0.23     | 17
+EGFR  | 3.8         | 0.000001 | 7
+</code></pre>
+<p><code>select()</code> takes the table as the first argument (piped) and column names as the remaining arguments. <code>rename()</code> takes the old name and the new name.</p>
+<hr>
+<h2 id="filtering-rows"><a class="header" href="#filtering-rows">Filtering Rows</a></h2>
+<p><code>filter()</code> keeps only the rows where a predicate returns true. The predicate receives each row as a record.</p>
+<pre><code class="language-bio">let data = [
+    {gene: "BRCA1", log2fc: 2.4, pval: 0.001, chr: "17"},
+    {gene: "TP53", log2fc: -1.1, pval: 0.23, chr: "17"},
+    {gene: "EGFR", log2fc: 3.8, pval: 0.000001, chr: "7"},
+    {gene: "MYC", log2fc: 1.9, pval: 0.04, chr: "8"},
+    {gene: "KRAS", log2fc: -0.3, pval: 0.67, chr: "12"},
+] |&gt; to_table()
+
+# Single condition: significant genes
+let sig = data |&gt; filter(|r| r.pval &lt; 0.05)
+println(sig)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | chr
+BRCA1 | 2.4    | 0.001    | 17
+EGFR  | 3.8    | 0.000001 | 7
+MYC   | 1.9    | 0.04     | 8
+</code></pre>
+<pre><code class="language-bio"># Multiple conditions: significant AND upregulated
+let sig_up = data |&gt; filter(|r| r.pval &lt; 0.05 and r.log2fc &gt; 1.0)
+println(sig_up)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | chr
+BRCA1 | 2.4    | 0.001    | 17
+EGFR  | 3.8    | 0.000001 | 7
+MYC   | 1.9    | 0.04     | 8
+</code></pre>
+<pre><code class="language-bio"># Filter by category
+let chr17 = data |&gt; filter(|r| r.chr == "17")
+println(chr17)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval  | chr
+BRCA1 | 2.4    | 0.001 | 17
+TP53  | -1.1   | 0.23  | 17
+</code></pre>
+<p>You can combine conditions with <code>and</code> and <code>or</code>. Parentheses clarify precedence when mixing them:</p>
+<pre><code class="language-bio"># Chromosome 17 OR very significant
+let subset = data |&gt; filter(|r| r.chr == "17" or r.pval &lt; 0.001)
+println(subset)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | chr
+BRCA1 | 2.4    | 0.001    | 17
+TP53  | -1.1   | 0.23     | 17
+EGFR  | 3.8    | 0.000001 | 7
+</code></pre>
+<hr>
+<h2 id="mutating-adding-and-transforming-columns"><a class="header" href="#mutating-adding-and-transforming-columns">Mutating: Adding and Transforming Columns</a></h2>
+<p><code>mutate()</code> adds a new column (or replaces an existing one) by applying a function to each row. It takes three arguments: the table, the new column name, and a closure that receives each row as a record.</p>
+<pre><code class="language-bio">let data = [
+    {gene: "BRCA1", log2fc: 2.4, pval: 0.001},
+    {gene: "TP53", log2fc: -1.1, pval: 0.23},
+    {gene: "EGFR", log2fc: 3.8, pval: 0.000001},
+    {gene: "MYC", log2fc: 1.9, pval: 0.04},
+    {gene: "KRAS", log2fc: -0.3, pval: 0.67},
+] |&gt; to_table()
+
+# Add a significance flag
+let with_sig = data |&gt; mutate("significant", |r| r.pval &lt; 0.05)
+println(with_sig)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | significant
+BRCA1 | 2.4    | 0.001    | true
+TP53  | -1.1   | 0.23     | false
+EGFR  | 3.8    | 0.000001 | true
+MYC   | 1.9    | 0.04     | true
+KRAS  | -0.3   | 0.67     | false
+</code></pre>
+<pre><code class="language-bio"># Add a direction column
+let with_dir = data |&gt; mutate("direction", |r| if r.log2fc &gt; 0 { "up" } else { "down" })
+println(with_dir)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | direction
+BRCA1 | 2.4    | 0.001    | up
+TP53  | -1.1   | 0.23     | down
+EGFR  | 3.8    | 0.000001 | up
+MYC   | 1.9    | 0.04     | up
+KRAS  | -0.3   | 0.67     | down
+</code></pre>
+<pre><code class="language-bio"># Add a negative log10 p-value (common for volcano plots)
+let with_nlp = data |&gt; mutate("neg_log_p", |r| -1.0 * log10(r.pval))
+println(with_nlp)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | neg_log_p
+BRCA1 | 2.4    | 0.001    | 3.0
+TP53  | -1.1   | 0.23     | 0.638...
+EGFR  | 3.8    | 0.000001 | 6.0
+MYC   | 1.9    | 0.04     | 1.397...
+KRAS  | -0.3   | 0.67     | 0.173...
+</code></pre>
+<p>To add multiple columns, chain <code>mutate()</code> calls:</p>
+<pre><code class="language-bio">let enriched = data
+    |&gt; mutate("significant", |r| r.pval &lt; 0.05)
+    |&gt; mutate("direction", |r| if r.log2fc &gt; 0 { "up" } else { "down" })
+    |&gt; mutate("neg_log_p", |r| -1.0 * log10(r.pval))
+println(enriched)
+</code></pre>
+<p>Each <code>mutate()</code> adds one column. The pipe chains them together so the result flows naturally.</p>
+<hr>
+<h2 id="sorting"><a class="header" href="#sorting">Sorting</a></h2>
+<p><code>arrange()</code> sorts a table by a column in ascending order. For descending order, pipe through <code>reverse()</code>.</p>
+<pre><code class="language-bio">let data = [
+    {gene: "BRCA1", log2fc: 2.4, pval: 0.001},
+    {gene: "TP53", log2fc: -1.1, pval: 0.23},
+    {gene: "EGFR", log2fc: 3.8, pval: 0.000001},
+    {gene: "MYC", log2fc: 1.9, pval: 0.04},
+] |&gt; to_table()
+
+# Sort by p-value (ascending --- most significant first)
+let by_pval = data |&gt; arrange("pval")
+println(by_pval)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval
+EGFR  | 3.8    | 0.000001
+BRCA1 | 2.4    | 0.001
+MYC   | 1.9    | 0.04
+TP53  | -1.1   | 0.23
+</code></pre>
+<pre><code class="language-bio"># Sort by fold change descending (largest first)
+let by_fc_desc = data |&gt; arrange("log2fc") |&gt; reverse()
+println(by_fc_desc)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval
+EGFR  | 3.8    | 0.000001
+BRCA1 | 2.4    | 0.001
+MYC   | 1.9    | 0.04
+TP53  | -1.1   | 0.23
+</code></pre>
+<p>Combine with <code>head()</code> to get top-N results:</p>
+<pre><code class="language-bio"># Top 2 most significant genes
+let top2 = data |&gt; arrange("pval") |&gt; head(2)
+println(top2)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval
+EGFR  | 3.8    | 0.000001
+BRCA1 | 2.4    | 0.001
+</code></pre>
+<hr>
+<h2 id="grouping-and-summarizing"><a class="header" href="#grouping-and-summarizing">Grouping and Summarizing</a></h2>
+<p>The most powerful table operation is split-apply-combine: split the data into groups, apply an aggregation to each group, and combine the results into a new table.</p>
+<h3 id="the-pattern"><a class="header" href="#the-pattern">The Pattern</a></h3>
+<p><img src="images/day10-group-summarize.svg" alt="Group-by / summarize flow"></p>
+<p><code>group_by()</code> splits a table into a map of subtables, keyed by the distinct values in the grouping column. <code>summarize()</code> then takes that map and a function that receives each key and subtable, and must return a record. The records are assembled into a new table.</p>
+<pre><code class="language-bio">let data = [
+    {gene: "BRCA1", log2fc: 2.4, pval: 0.001, chr: "17"},
+    {gene: "TP53", log2fc: -1.1, pval: 0.23, chr: "17"},
+    {gene: "EGFR", log2fc: 3.8, pval: 0.000001, chr: "7"},
+    {gene: "MYC", log2fc: 1.9, pval: 0.04, chr: "8"},
+    {gene: "KRAS", log2fc: -0.3, pval: 0.67, chr: "12"},
+] |&gt; to_table()
+
+# Count genes per chromosome
+let chr_counts = data
+    |&gt; group_by("chr")
+    |&gt; summarize(|key, subtable| {
+        chr: key,
+        gene_count: nrow(subtable)
+    })
+println(chr_counts)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>chr | gene_count
+7   | 1
+8   | 1
+12  | 1
+17  | 2
+</code></pre>
+<pre><code class="language-bio"># Mean fold change per chromosome
+let chr_means = data
+    |&gt; group_by("chr")
+    |&gt; summarize(|key, subtable| {
+        chr: key,
+        mean_fc: col_mean(subtable, "log2fc"),
+        n_genes: nrow(subtable)
+    })
+println(chr_means)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>chr | mean_fc | n_genes
+7   | 3.8     | 1
+8   | 1.9     | 1
+12  | -0.3    | 1
+17  | 0.65    | 2
+</code></pre>
+<p>The summarize function can compute any aggregation you want. Use <code>col_mean()</code>, <code>col_sum()</code>, <code>col_min()</code>, <code>col_max()</code>, <code>col_stdev()</code> for numeric columns, and <code>nrow()</code> for counts.</p>
+<h3 id="quick-counts-with-count_by"><a class="header" href="#quick-counts-with-count_by">Quick Counts with count_by</a></h3>
+<p>For the common case of just counting groups, <code>count_by()</code> is a shortcut:</p>
+<pre><code class="language-bio">let chr_counts = data |&gt; count_by("chr")
+println(chr_counts)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>chr | count
+7   | 1
+8   | 1
+12  | 1
+17  | 2
+</code></pre>
+<hr>
+<h2 id="joining-tables"><a class="header" href="#joining-tables">Joining Tables</a></h2>
+<p>Joins connect two tables by matching rows on a shared key column. This is how you annotate results with metadata, link identifiers across databases, or combine measurements from different experiments.</p>
+<h3 id="setting-up-two-tables"><a class="header" href="#setting-up-two-tables">Setting Up Two Tables</a></h3>
+<pre><code class="language-bio">let results = [
+    {gene: "BRCA1", log2fc: 2.4, pval: 0.001},
+    {gene: "TP53", log2fc: -1.1, pval: 0.23},
+    {gene: "EGFR", log2fc: 3.8, pval: 0.000001},
+    {gene: "MYC", log2fc: 1.9, pval: 0.04},
+    {gene: "KRAS", log2fc: -0.3, pval: 0.67},
+] |&gt; to_table()
+
+let annotations = [
+    {gene: "BRCA1", full_name: "BRCA1 DNA repair", pathway: "DNA repair"},
+    {gene: "TP53", full_name: "Tumor protein p53", pathway: "Apoptosis"},
+    {gene: "EGFR", full_name: "EGF receptor", pathway: "Signaling"},
+    {gene: "MYC", full_name: "MYC proto-oncogene", pathway: "Cell cycle"},
+    {gene: "PTEN", full_name: "Phosphatase tensin homolog", pathway: "Signaling"},
+] |&gt; to_table()
+</code></pre>
+<p>Note that KRAS is in results but not annotations, and PTEN is in annotations but not results.</p>
+<h3 id="inner-join"><a class="header" href="#inner-join">Inner Join</a></h3>
+<p>Keeps only rows present in <strong>both</strong> tables.</p>
+<pre><code class="language-bio">let annotated = inner_join(results, annotations, "gene")
+println(annotated)
+println(f"Inner join: {nrow(annotated)} rows")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | full_name         | pathway
+BRCA1 | 2.4    | 0.001    | BRCA1 DNA repair  | DNA repair
+TP53  | -1.1   | 0.23     | Tumor protein p53 | Apoptosis
+EGFR  | 3.8    | 0.000001 | EGF receptor      | Signaling
+MYC   | 1.9    | 0.04     | MYC proto-oncogene | Cell cycle
+Inner join: 4 rows
+</code></pre>
+<p>KRAS is dropped (no annotation). PTEN is dropped (no result).</p>
+<h3 id="left-join"><a class="header" href="#left-join">Left Join</a></h3>
+<p>Keeps <strong>all</strong> rows from the left table. Where the right table has no match, those columns are nil.</p>
+<pre><code class="language-bio">let full = left_join(results, annotations, "gene")
+println(full)
+println(f"Left join: {nrow(full)} rows")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval     | full_name         | pathway
+BRCA1 | 2.4    | 0.001    | BRCA1 DNA repair  | DNA repair
+TP53  | -1.1   | 0.23     | Tumor protein p53 | Apoptosis
+EGFR  | 3.8    | 0.000001 | EGF receptor      | Signaling
+MYC   | 1.9    | 0.04     | MYC proto-oncogene | Cell cycle
+KRAS  | -0.3   | 0.67     | nil               | nil
+Left join: 5 rows
+</code></pre>
+<p>KRAS is kept with nil annotations. PTEN is dropped (not in results).</p>
+<h3 id="anti-join"><a class="header" href="#anti-join">Anti Join</a></h3>
+<p>Returns rows from the left table that have <strong>no</strong> match in the right table. This is the “what’s missing?” join.</p>
+<pre><code class="language-bio">let missing = anti_join(results, annotations, "gene")
+println(missing)
+println(f"Missing annotations: {nrow(missing)} genes")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval
+KRAS  | -0.3   | 0.67
+Missing annotations: 1 genes
+</code></pre>
+<h3 id="semi-join"><a class="header" href="#semi-join">Semi Join</a></h3>
+<p>Returns rows from the left table that <strong>do</strong> have a match in the right table, but without adding columns from the right table. It is a filter, not a column merger.</p>
+<pre><code class="language-bio">let has_annotation = semi_join(results, annotations, "gene")
+println(has_annotation)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | log2fc | pval
+BRCA1 | 2.4    | 0.001
+TP53  | -1.1   | 0.23
+EGFR  | 3.8    | 0.000001
+MYC   | 1.9    | 0.04
+</code></pre>
+<h3 id="all-join-types-at-a-glance"><a class="header" href="#all-join-types-at-a-glance">All Join Types at a Glance</a></h3>
+<pre><code>inner_join(A, B, key):  A ∩ B     — only matching rows
+left_join(A, B, key):   all A     — all of A, matching from B (nil where missing)
+right_join(A, B, key):  all B     — all of B, matching from A (nil where missing)
+outer_join(A, B, key):  A ∪ B     — all rows from both (nil where missing)
+anti_join(A, B, key):   A - B     — rows in A with no match in B
+semi_join(A, B, key):   A ∩∃ B    — rows in A that have a match in B (no extra columns)
+</code></pre>
+<p><strong>When to use which:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Situation</th><th>Join</th></tr>
+</thead>
+<tbody>
+<tr><td>Annotate results with gene info</td><td><code>left_join</code> (keep all results)</td></tr>
+<tr><td>Find shared genes between two experiments</td><td><code>inner_join</code></td></tr>
+<tr><td>Find genes unique to one experiment</td><td><code>anti_join</code></td></tr>
+<tr><td>Merge all data from both sources</td><td><code>outer_join</code></td></tr>
+<tr><td>Filter results to genes in a known set</td><td><code>semi_join</code></td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="reshaping-pivot-wider-and-longer"><a class="header" href="#reshaping-pivot-wider-and-longer">Reshaping: Pivot Wider and Longer</a></h2>
+<p>Biological data comes in two shapes. <strong>Wide</strong> format has one row per entity (e.g., one row per gene, one column per sample). <strong>Long</strong> format has one row per measurement (e.g., one row per gene-sample combination).</p>
+<h3 id="long-to-wide-pivot_wider"><a class="header" href="#long-to-wide-pivot_wider">Long to Wide: pivot_wider</a></h3>
+<p>You have expression measurements in long (tidy) format:</p>
+<pre><code class="language-bio">let long = [
+    {gene: "BRCA1", sample: "S1", expression: 5.2},
+    {gene: "BRCA1", sample: "S2", expression: 8.1},
+    {gene: "TP53", sample: "S1", expression: 3.4},
+    {gene: "TP53", sample: "S2", expression: 7.6},
+] |&gt; to_table()
+
+println("Long format:")
+println(long)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Long format:
+gene  | sample | expression
+BRCA1 | S1     | 5.2
+BRCA1 | S2     | 8.1
+TP53  | S1     | 3.4
+TP53  | S2     | 7.6
+</code></pre>
+<p><code>pivot_wider()</code> spreads the sample names into columns:</p>
+<pre><code class="language-bio">let wide = long |&gt; pivot_wider("sample", "expression")
+println("Wide format:")
+println(wide)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Wide format:
+gene  | S1  | S2
+BRCA1 | 5.2 | 8.1
+TP53  | 3.4 | 7.6
+</code></pre>
+<p>The first argument (piped) is the table. The second argument is the column whose values become new column names. The third argument is the column whose values fill those new columns. All other columns (here, <code>gene</code>) become the row identifiers.</p>
+<h3 id="wide-to-long-pivot_longer"><a class="header" href="#wide-to-long-pivot_longer">Wide to Long: pivot_longer</a></h3>
+<p>Going the other direction, <code>pivot_longer()</code> gathers columns back into rows:</p>
+<pre><code class="language-bio">let back_to_long = wide |&gt; pivot_longer(["S1", "S2"], "sample", "expression")
+println("Back to long:")
+println(back_to_long)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Back to long:
+gene  | sample | expression
+BRCA1 | S1     | 5.2
+BRCA1 | S2     | 8.1
+TP53  | S1     | 3.4
+TP53  | S2     | 7.6
+</code></pre>
+<p>The first argument (piped) is the table. The second argument is a list of column names to gather. The third argument is the name for the new “names” column. The fourth argument is the name for the new “values” column.</p>
+<h3 id="the-visual-transformation"><a class="header" href="#the-visual-transformation">The Visual Transformation</a></h3>
+<pre><code>PIVOT WIDER                         PIVOT LONGER
+
+gene  | sample | expr               gene  | S1  | S2
+------+--------+-----    ====&gt;      ------+-----+-----
+BRCA1 | S1     | 5.2                BRCA1 | 5.2 | 8.1
+BRCA1 | S2     | 8.1                TP53  | 3.4 | 7.6
+TP53  | S1     | 3.4
+TP53  | S2     | 7.6     &lt;====
+
+  3 columns, 4 rows          2+N columns, 2 rows
+  (one row per measurement)   (one row per gene)
+</code></pre>
+<p><strong>When to use which:</strong></p>
+<ul>
+<li><strong>Pivot wider</strong> when you need a matrix for computation (e.g., gene-by-sample expression matrix for heatmaps, PCA, clustering)</li>
+<li><strong>Pivot longer</strong> when you need tidy data for filtering, grouping, and plotting (e.g., faceted plots, group_by + summarize)</li>
+</ul>
+<hr>
+<h2 id="window-functions"><a class="header" href="#window-functions">Window Functions</a></h2>
+<p>Window functions compute a value for each row based on its position or neighbors, without collapsing the table.</p>
+<h3 id="row-numbers-and-ranks"><a class="header" href="#row-numbers-and-ranks">Row Numbers and Ranks</a></h3>
+<pre><code class="language-bio">let data = [
+    {gene: "BRCA1", pval: 0.001},
+    {gene: "EGFR", pval: 0.000001},
+    {gene: "MYC", pval: 0.04},
+    {gene: "TP53", pval: 0.23},
+] |&gt; to_table()
+
+# Add row numbers
+let numbered = data |&gt; row_number()
+println(numbered)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | pval     | row_number
+BRCA1 | 0.001    | 1
+EGFR  | 0.000001 | 2
+MYC   | 0.04     | 3
+TP53  | 0.23     | 4
+</code></pre>
+<pre><code class="language-bio"># Rank by p-value
+let ranked = data |&gt; rank("pval")
+println(ranked)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene  | pval     | rank
+BRCA1 | 0.001    | 2
+EGFR  | 0.000001 | 1
+MYC   | 0.04     | 3
+TP53  | 0.23     | 4
+</code></pre>
+<h3 id="cumulative-functions"><a class="header" href="#cumulative-functions">Cumulative Functions</a></h3>
+<pre><code class="language-bio">let data = [
+    {gene: "A", count: 10},
+    {gene: "B", count: 25},
+    {gene: "C", count: 15},
+    {gene: "D", count: 30},
+] |&gt; to_table()
+
+# Cumulative sum
+let with_cumsum = data |&gt; cumsum("count")
+println(with_cumsum)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>gene | count | cumsum
+A    | 10    | 10
+B    | 25    | 35
+C    | 15    | 50
+D    | 30    | 80
+</code></pre>
+<h3 id="rolling-mean"><a class="header" href="#rolling-mean">Rolling Mean</a></h3>
+<p>Smooths noisy data by averaging over a sliding window.</p>
+<pre><code class="language-bio">let timeseries = [
+    {day: 1, value: 10.0},
+    {day: 2, value: 12.0},
+    {day: 3, value: 8.0},
+    {day: 4, value: 15.0},
+    {day: 5, value: 11.0},
+    {day: 6, value: 14.0},
+] |&gt; to_table()
+
+let smoothed = timeseries |&gt; rolling_mean("value", 3)
+println(smoothed)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>day | value | rolling_mean
+1   | 10.0  | 10.0
+2   | 12.0  | 11.0
+3   | 8.0   | 10.0
+4   | 15.0  | 11.666...
+5   | 11.0  | 11.333...
+6   | 14.0  | 13.333...
+</code></pre>
+<p>The third argument is the window size. The first few rows use a smaller window (whatever data is available).</p>
+<h3 id="lag-and-lead"><a class="header" href="#lag-and-lead">Lag and Lead</a></h3>
+<p>Access values from previous or next rows — useful for computing changes between consecutive measurements.</p>
+<pre><code class="language-bio">let data = [
+    {day: 1, expression: 2.0},
+    {day: 2, expression: 4.5},
+    {day: 3, expression: 3.8},
+    {day: 4, expression: 6.1},
+] |&gt; to_table()
+
+# Previous day's value
+let with_lag = data |&gt; lag("expression")
+println(with_lag)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>day | expression | lag
+1   | 2.0        | nil
+2   | 4.5        | 2.0
+3   | 3.8        | 4.5
+4   | 6.1        | 3.8
+</code></pre>
+<hr>
+<h2 id="complete-example-expression-analysis-pipeline"><a class="header" href="#complete-example-expression-analysis-pipeline">Complete Example: Expression Analysis Pipeline</a></h2>
+<p>This is the kind of analysis you will do repeatedly in practice: load data, annotate it, filter it, summarize it, and export the results.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># Complete table analysis pipeline
+# Run init.bl first to generate CSV files in data/
+
+# Step 1: Read expression results and gene annotations
+let expr = csv("data/expression.csv")
+let gene_info = csv("data/gene_info.csv")
+
+println(f"Expression data: {nrow(expr)} genes x {ncol(expr)} columns")
+println(f"Gene info: {nrow(gene_info)} annotations")
+
+# Step 2: Add derived columns
+let analyzed = expr
+    |&gt; mutate("significant", |r| r.padj &lt; 0.05)
+    |&gt; mutate("direction", |r| if r.log2fc &gt; 0 { "up" } else { "down" })
+    |&gt; mutate("neg_log_p", |r| -1.0 * log10(r.pval))
+
+# Step 3: Count by direction among significant genes
+let direction_counts = analyzed
+    |&gt; filter(|r| r.significant)
+    |&gt; count_by("direction")
+println("Significant genes by direction:")
+println(direction_counts)
+
+# Step 4: Annotate with gene info
+let annotated = left_join(analyzed, gene_info, "gene")
+
+# Step 5: Top 10 most significant genes
+let top10 = annotated
+    |&gt; filter(|r| r.significant)
+    |&gt; arrange("padj")
+    |&gt; head(10)
+    |&gt; select("gene", "log2fc", "padj", "pathway")
+println("Top 10 significant genes:")
+println(top10)
+
+# Step 6: Summary statistics per pathway
+let pathway_summary = annotated
+    |&gt; filter(|r| r.significant)
+    |&gt; group_by("pathway")
+    |&gt; summarize(|key, subtable| {
+        pathway: key,
+        n_genes: nrow(subtable),
+        mean_fc: col_mean(subtable, "log2fc")
+    })
+println("Pathway summary:")
+println(pathway_summary)
+
+# Step 7: Export
+write_csv(annotated, "results/annotated_results.csv")
+println("Results saved to results/annotated_results.csv")
+</code></pre>
+<p>This pipeline reads data, enriches it, filters it, summarizes it, and exports it — all in a single readable chain of piped operations. Each step is self-documenting.</p>
+<hr>
+<h2 id="table-operations-cheat-sheet"><a class="header" href="#table-operations-cheat-sheet">Table Operations Cheat Sheet</a></h2>
+<h3 id="structure"><a class="header" href="#structure">Structure</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Syntax</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>nrow(t)</code></td><td><code>data |&gt; nrow()</code></td><td>Number of rows</td></tr>
+<tr><td><code>ncol(t)</code></td><td><code>data |&gt; ncol()</code></td><td>Number of columns</td></tr>
+<tr><td><code>colnames(t)</code></td><td><code>data |&gt; colnames()</code></td><td>List of column names</td></tr>
+<tr><td><code>describe(t)</code></td><td><code>data |&gt; describe()</code></td><td>Summary statistics for all columns</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="column-operations"><a class="header" href="#column-operations">Column Operations</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Syntax</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>select</code></td><td><code>data |&gt; select("a", "b")</code></td><td>Keep only named columns</td></tr>
+<tr><td><code>drop_cols</code></td><td><code>data |&gt; drop_cols("x")</code></td><td>Remove named columns</td></tr>
+<tr><td><code>rename</code></td><td><code>data |&gt; rename("old", "new")</code></td><td>Rename a column</td></tr>
+<tr><td><code>mutate</code></td><td><code>data |&gt; mutate("col", |r| expr)</code></td><td>Add or replace a column</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="row-operations"><a class="header" href="#row-operations">Row Operations</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Syntax</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>filter</code></td><td><code>data |&gt; filter(|r| cond)</code></td><td>Keep rows where condition is true</td></tr>
+<tr><td><code>arrange</code></td><td><code>data |&gt; arrange("col")</code></td><td>Sort by column (ascending)</td></tr>
+<tr><td><code>reverse</code></td><td><code>data |&gt; reverse()</code></td><td>Reverse row order</td></tr>
+<tr><td><code>head</code></td><td><code>data |&gt; head(n)</code></td><td>First n rows</td></tr>
+<tr><td><code>tail</code></td><td><code>data |&gt; tail(n)</code></td><td>Last n rows</td></tr>
+<tr><td><code>slice</code></td><td><code>data |&gt; slice(start, end)</code></td><td>Rows from start to end</td></tr>
+<tr><td><code>sample</code></td><td><code>data |&gt; sample(n)</code></td><td>Random n rows</td></tr>
+<tr><td><code>distinct</code></td><td><code>data |&gt; distinct()</code></td><td>Remove duplicate rows</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="aggregation"><a class="header" href="#aggregation">Aggregation</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Syntax</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>group_by</code></td><td><code>data |&gt; group_by("col")</code></td><td>Split into map of subtables</td></tr>
+<tr><td><code>summarize</code></td><td><code>groups |&gt; summarize(|k, t| rec)</code></td><td>Aggregate each group into a record</td></tr>
+<tr><td><code>count_by</code></td><td><code>data |&gt; count_by("col")</code></td><td>Count rows per group (shortcut)</td></tr>
+<tr><td><code>col_mean</code></td><td><code>col_mean(t, "col")</code></td><td>Mean of a numeric column</td></tr>
+<tr><td><code>col_sum</code></td><td><code>col_sum(t, "col")</code></td><td>Sum of a numeric column</td></tr>
+<tr><td><code>col_min</code></td><td><code>col_min(t, "col")</code></td><td>Minimum of a column</td></tr>
+<tr><td><code>col_max</code></td><td><code>col_max(t, "col")</code></td><td>Maximum of a column</td></tr>
+<tr><td><code>col_stdev</code></td><td><code>col_stdev(t, "col")</code></td><td>Standard deviation of a column</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="joins"><a class="header" href="#joins">Joins</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Syntax</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>inner_join</code></td><td><code>inner_join(a, b, "key")</code></td><td>Rows in both tables</td></tr>
+<tr><td><code>left_join</code></td><td><code>left_join(a, b, "key")</code></td><td>All rows from left, matching from right</td></tr>
+<tr><td><code>right_join</code></td><td><code>right_join(a, b, "key")</code></td><td>All rows from right, matching from left</td></tr>
+<tr><td><code>outer_join</code></td><td><code>outer_join(a, b, "key")</code></td><td>All rows from both tables</td></tr>
+<tr><td><code>anti_join</code></td><td><code>anti_join(a, b, "key")</code></td><td>Left rows with no right match</td></tr>
+<tr><td><code>semi_join</code></td><td><code>semi_join(a, b, "key")</code></td><td>Left rows that have a right match</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="reshaping"><a class="header" href="#reshaping">Reshaping</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Syntax</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>pivot_wider</code></td><td><code>data |&gt; pivot_wider("names_col", "values_col")</code></td><td>Long to wide</td></tr>
+<tr><td><code>pivot_longer</code></td><td><code>data |&gt; pivot_longer(["c1","c2"], "name", "value")</code></td><td>Wide to long</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="window-functions-1"><a class="header" href="#window-functions-1">Window Functions</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Syntax</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>row_number</code></td><td><code>data |&gt; row_number()</code></td><td>Add sequential row numbers</td></tr>
+<tr><td><code>rank</code></td><td><code>data |&gt; rank("col")</code></td><td>Rank by column value</td></tr>
+<tr><td><code>cumsum</code></td><td><code>data |&gt; cumsum("col")</code></td><td>Cumulative sum</td></tr>
+<tr><td><code>cummax</code></td><td><code>data |&gt; cummax("col")</code></td><td>Cumulative maximum</td></tr>
+<tr><td><code>cummin</code></td><td><code>data |&gt; cummin("col")</code></td><td>Cumulative minimum</td></tr>
+<tr><td><code>lag</code></td><td><code>data |&gt; lag("col")</code></td><td>Previous row’s value</td></tr>
+<tr><td><code>lead</code></td><td><code>data |&gt; lead("col")</code></td><td>Next row’s value</td></tr>
+<tr><td><code>rolling_mean</code></td><td><code>data |&gt; rolling_mean("col", n)</code></td><td>Rolling average over n rows</td></tr>
+<tr><td><code>rolling_sum</code></td><td><code>data |&gt; rolling_sum("col", n)</code></td><td>Rolling sum over n rows</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="io"><a class="header" href="#io">I/O</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Syntax</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>csv</code></td><td><code>csv("file.csv")</code></td><td>Read CSV file into table</td></tr>
+<tr><td><code>tsv</code></td><td><code>tsv("file.tsv")</code></td><td>Read TSV file into table</td></tr>
+<tr><td><code>write_csv</code></td><td><code>write_csv(t, "out.csv")</code></td><td>Write table to CSV</td></tr>
+<tr><td><code>write_tsv</code></td><td><code>write_tsv(t, "out.tsv")</code></td><td>Write table to TSV</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li>
+<p><strong>Fold change calculator.</strong> Create a table of 10 genes with columns: <code>gene</code>, <code>expression_control</code>, <code>expression_treated</code>. Add a <code>fold_change</code> column (<code>treated / control</code>), then filter to keep only genes where fold change is greater than 2.0.</p>
+</li>
+<li>
+<p><strong>Annotation join.</strong> Create a results table (gene, pval) and an annotations table (gene, pathway, description). Use <code>left_join</code> to annotate the results, then filter to keep only genes in the “Apoptosis” pathway.</p>
+</li>
+<li>
+<p><strong>Wide to long and back.</strong> Create a wide expression matrix with columns <code>gene</code>, <code>sample_A</code>, <code>sample_B</code>, <code>sample_C</code>. Pivot it to long format. Then compute the mean expression per gene using <code>group_by</code> and <code>summarize</code>.</p>
+</li>
+<li>
+<p><strong>Variant counting.</strong> Create a table of variants with columns <code>chr</code>, <code>pos</code>, <code>ref_allele</code>, <code>alt_allele</code>, <code>quality</code>. Use <code>count_by("chr")</code> to count variants per chromosome, then sort by count descending.</p>
+</li>
+<li>
+<p><strong>Full pipeline.</strong> Build a complete pipeline that: reads the expression CSV (from <code>init.bl</code>), adds a significance column (padj &lt; 0.05), joins with gene info, filters to significant genes only, groups by pathway, counts genes per pathway, sorts by count descending, and writes the result to a new CSV.</p>
+</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Tables are the central data structure</strong> for analysis results. Most bioinformatics output is tabular.</li>
+<li><strong>select/filter/mutate/arrange</strong> cover 80% of table operations. Master these four first.</li>
+<li><strong>group_by + summarize</strong> is the split-apply-combine pattern. It is how you compute summary statistics per category.</li>
+<li><strong>Joins connect related datasets.</strong> Learn <code>inner_join</code> and <code>left_join</code> first — they handle most annotation and linking tasks.</li>
+<li><strong>Pivot wider/longer</strong> reshapes between wide format (for computation) and long format (for grouping and plotting).</li>
+<li><strong>Chain operations with pipes</strong> for readable analysis code. Each pipe step does one thing, and the data flows top to bottom.</li>
+<li><strong>Window functions</strong> (row_number, rank, cumsum, rolling_mean, lag, lead) add context-aware columns without collapsing the table.</li>
+</ul>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow we compare sequences — GC content, k-mers, dotplots, motif searching, and multi-species lookups. Day 11 takes the sequence skills from Days 3-4 and scales them up to comparative analysis.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-09.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-11.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-09.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-11.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

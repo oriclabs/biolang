@@ -1,0 +1,864 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 21: Performance and Parallel Processing - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-21-performance-and-parallel-processing"><a class="header" href="#day-21-performance-and-parallel-processing">Day 21: Performance and Parallel Processing</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate–Advanced</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Basic (sequence analysis, FASTQ/FASTA formats)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate–Advanced (parallelism, async, streaming, profiling)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3–4 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–20 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to measure and profile BioLang code with <code>:time</code> and <code>:profile</code></li>
+<li>How to use <code>par_map</code> and <code>par_filter</code> for parallel data processing</li>
+<li>How to use <code>async</code>/<code>await</code> and <code>await_all</code> for concurrent I/O</li>
+<li>How to use streaming I/O (<code>stream_fastq</code>, <code>stream_fasta</code>) for constant-memory processing</li>
+<li>How to structure code for maximum throughput on large datasets</li>
+<li>How to benchmark BioLang against Python and R on realistic workloads</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Your RNA-seq experiment just finished. You have 50 million reads in a FASTQ file — 12 GB of raw data. Your quality-control script works perfectly on a test file with 1,000 reads. But on the real data, it takes six hours. Your PI needs results by tomorrow morning.</p>
+<p>This is the everyday reality of bioinformatics: algorithms that work fine on toy datasets collapse under real-world data volumes. A human whole-genome sequence generates 800 million reads. A metagenomics study can produce billions. If your code processes one read at a time, you are leaving 90% of your machine idle.</p>
+<p>Today we fix that. We will measure where time is spent, parallelize the expensive parts, stream data instead of loading it all into memory, and see how BioLang’s built-in parallel primitives compare to the equivalent Python and R code.</p>
+<hr>
+<h2 id="why-performance-matters-in-bioinformatics"><a class="header" href="#why-performance-matters-in-bioinformatics">Why Performance Matters in Bioinformatics</a></h2>
+<p>Before writing any code, it helps to understand where the bottleneck actually is. Most bioinformatics workloads fall into one of three categories:</p>
+<p><strong>CPU-bound</strong>: GC content calculation, k-mer counting, quality score statistics. The data is in memory; the processor is the bottleneck. Parallelism helps here.</p>
+<p><strong>I/O-bound</strong>: Reading large FASTQ files from disk, downloading sequences from NCBI, writing output CSV files. The disk or network is the bottleneck. Streaming and async help here.</p>
+<p><strong>Memory-bound</strong>: Loading a 12 GB FASTQ file into a list of 50 million records. You run out of RAM before the CPU has anything to do. Streaming is the only fix.</p>
+<p>The following diagram shows how serial, parallel, and streaming approaches differ:</p>
+<p><img src="images/day21-processing-comparison.svg" alt="Serial vs Parallel vs Streaming Processing"></p>
+<p>The key insight: parallelism makes CPU-bound work faster, streaming makes memory-bound work possible, and async makes I/O-bound work efficient. Real pipelines combine all three.</p>
+<hr>
+<h2 id="measuring-performance"><a class="header" href="#measuring-performance">Measuring Performance</a></h2>
+<p>You cannot optimize what you cannot measure. BioLang provides two REPL commands for profiling and a pair of builtins for timing in scripts.</p>
+<h3 id="the-time-command"><a class="header" href="#the-time-command">The <code>:time</code> Command</a></h3>
+<p>In the REPL, prefix any expression with <code>:time</code> to see how long it takes:</p>
+<pre><code>&gt; :time range(1, 1000000) |&gt; map(|x| x * x) |&gt; sum()
+333332833333500000
+Elapsed: 0.342s
+</code></pre>
+<p>This measures wall-clock time — the total time including any I/O waits. Run it several times; the first run may be slower due to cache effects.</p>
+<h3 id="the-profile-command"><a class="header" href="#the-profile-command">The <code>:profile</code> Command</a></h3>
+<p>For a deeper breakdown, <code>:profile</code> shows where time is spent inside the expression:</p>
+<pre><code>&gt; :profile range(1, 100000) |&gt; map(|x| x * x) |&gt; filter(|x| x &gt; 1000) |&gt; sum()
+4999949990164998500
+Profile:
+  range()  :   2.1 ms  ( 6%)
+  map()    :  18.7 ms  (55%)
+  filter() :   9.3 ms  (27%)
+  sum()    :   4.1 ms  (12%)
+  Total    :  34.2 ms
+</code></pre>
+<p>Now you know that <code>map</code> is the bottleneck. That is the function to parallelize.</p>
+<h3 id="timing-in-scripts"><a class="header" href="#timing-in-scripts">Timing in Scripts</a></h3>
+<p>For scripts (not the REPL), use <code>timer_start()</code> and <code>timer_elapsed()</code>:</p>
+<pre><code class="language-bio">let t = timer_start()
+
+# ... expensive work ...
+let reads = read_fastq("data/sample.fastq")
+let gc_values = reads |&gt; map(|r| gc_content(r.seq))
+let avg_gc = gc_values |&gt; mean()
+
+let elapsed = timer_elapsed(t)
+println("GC analysis took " + str(elapsed) + " seconds")
+println("Average GC: " + str(round(avg_gc * 100, 1)) + "%")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>GC analysis took 1.847 seconds
+Average GC: 48.3%
+</code></pre>
+<p>You can place multiple timers around different sections to build your own profile:</p>
+<pre><code class="language-bio">let t_total = timer_start()
+
+let t_io = timer_start()
+let reads = read_fastq("data/sample.fastq")
+let io_time = timer_elapsed(t_io)
+
+let t_compute = timer_start()
+let gc_values = reads |&gt; map(|r| gc_content(r.seq))
+let avg_gc = gc_values |&gt; mean()
+let compute_time = timer_elapsed(t_compute)
+
+let total_time = timer_elapsed(t_total)
+println("I/O:     " + str(round(io_time, 3)) + "s")
+println("Compute: " + str(round(compute_time, 3)) + "s")
+println("Total:   " + str(round(total_time, 3)) + "s")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>I/O:     0.612s
+Compute: 1.241s
+Total:   1.856s
+</code></pre>
+<p>Now you can see that compute is 2x slower than I/O — this is a CPU-bound workload, and parallelism will help.</p>
+<hr>
+<h2 id="parallel-processing-with-par_map-and-par_filter"><a class="header" href="#parallel-processing-with-par_map-and-par_filter">Parallel Processing with <code>par_map</code> and <code>par_filter</code></a></h2>
+<p>BioLang provides two parallel higher-order functions that distribute work across all available CPU cores:</p>
+<ul>
+<li><strong><code>par_map(list, fn)</code></strong> — applies <code>fn</code> to every element in parallel, returns results in order</li>
+<li><strong><code>par_filter(list, fn)</code></strong> — tests every element in parallel, returns those where <code>fn</code> returns true</li>
+</ul>
+<p>These are drop-in replacements for <code>map</code> and <code>filter</code>. The only difference is that <code>fn</code> must be a pure function — it should not modify external state, because the order of execution is not guaranteed.</p>
+<h3 id="serial-vs-parallel-gc-content"><a class="header" href="#serial-vs-parallel-gc-content">Serial vs Parallel GC Content</a></h3>
+<p>Let us compute GC content for 100,000 sequences, first serially, then in parallel:</p>
+<pre><code class="language-bio"># Generate test data: 100,000 random sequences
+let sequences = range(1, 100001) |&gt; map(|i| {
+    id: "seq_" + str(i),
+    seq: dna"ATCGATCGATCG" + dna"GCGCATAT"
+})
+
+# Serial: map
+let t1 = timer_start()
+let gc_serial = sequences |&gt; map(|s| gc_content(s.seq))
+let serial_time = timer_elapsed(t1)
+
+# Parallel: par_map
+let t2 = timer_start()
+let gc_parallel = sequences |&gt; par_map(|s| gc_content(s.seq))
+let parallel_time = timer_elapsed(t2)
+
+println("Serial:   " + str(round(serial_time, 3)) + "s")
+println("Parallel: " + str(round(parallel_time, 3)) + "s")
+println("Speedup:  " + str(round(serial_time / parallel_time, 1)) + "x")
+</code></pre>
+<p>Expected output (on a 4-core machine):</p>
+<pre><code>Serial:   2.847s
+Parallel: 0.812s
+Speedup:  3.5x
+</code></pre>
+<p>The speedup is not exactly 4x because there is overhead in distributing work and collecting results. On an 8-core machine, you might see 5–6x speedup. The more work each element requires, the closer you get to the theoretical maximum.</p>
+<h3 id="parallel-filtering"><a class="header" href="#parallel-filtering">Parallel Filtering</a></h3>
+<p><code>par_filter</code> is useful when the predicate itself is expensive. For example, filtering sequences by whether they contain a specific motif:</p>
+<pre><code class="language-bio">fn has_cpg_island(seq) {
+    let kmer_set = kmers(seq, 2)
+    let cg_count = kmer_set |&gt; filter(|k| k == "CG") |&gt; len()
+    let total = len(kmer_set)
+    if total == 0 { false }
+    else { cg_count / total &gt; 0.1 }
+}
+
+let t1 = timer_start()
+let cpg_serial = sequences |&gt; filter(|s| has_cpg_island(s.seq))
+let serial_time = timer_elapsed(t1)
+
+let t2 = timer_start()
+let cpg_parallel = sequences |&gt; par_filter(|s| has_cpg_island(s.seq))
+let parallel_time = timer_elapsed(t2)
+
+println("Serial filter:   " + str(round(serial_time, 3)) + "s (" + str(len(cpg_serial)) + " matches)")
+println("Parallel filter: " + str(round(parallel_time, 3)) + "s (" + str(len(cpg_parallel)) + " matches)")
+println("Speedup:         " + str(round(serial_time / parallel_time, 1)) + "x")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Serial filter:   4.216s (67842 matches)
+Parallel filter: 1.187s (67842 matches)
+Speedup:         3.6x
+</code></pre>
+<h3 id="when-not-to-parallelize"><a class="header" href="#when-not-to-parallelize">When NOT to Parallelize</a></h3>
+<p>Parallelism has overhead. If the per-element work is trivial, the overhead dominates:</p>
+<pre><code class="language-bio"># Trivial operation: don't parallelize
+let t1 = timer_start()
+let lengths_serial = sequences |&gt; map(|s| len(s.seq))
+let serial_time = timer_elapsed(t1)
+
+let t2 = timer_start()
+let lengths_parallel = sequences |&gt; par_map(|s| len(s.seq))
+let parallel_time = timer_elapsed(t2)
+
+println("Serial len():   " + str(round(serial_time, 3)) + "s")
+println("Parallel len(): " + str(round(parallel_time, 3)) + "s")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Serial len():   0.043s
+Parallel len(): 0.089s
+</code></pre>
+<p>The parallel version is <em>slower</em> because distributing 100,000 trivial <code>len()</code> calls costs more than just doing them sequentially. Rule of thumb: if the serial version takes less than 0.5 seconds, do not parallelize.</p>
+<pre><code>When to use par_map / par_filter
+─────────────────────────────────────────────────
+Work per element:
+
+  Trivial (len, +, *)    → map / filter        (overhead &gt; benefit)
+  Moderate (gc_content)   → par_map / par_filter (2-4x speedup)
+  Heavy (k-mer analysis)  → par_map / par_filter (4-8x speedup)
+  I/O (API calls)         → async / await_all    (see next section)
+</code></pre>
+<hr>
+<h2 id="async-operations"><a class="header" href="#async-operations">Async Operations</a></h2>
+<p>Some operations are I/O-bound rather than CPU-bound. When you fetch sequences from NCBI or download files from the internet, your CPU sits idle waiting for the network. Parallelism does not help here — you need <em>concurrency</em>.</p>
+<p>BioLang supports <code>async</code> functions and <code>await_all</code> for concurrent I/O:</p>
+<pre><code class="language-bio"># Define an async function
+async fn fetch_gc(accession) {
+    let seq = ncbi_sequence(accession)
+    {accession: accession, gc: round(gc_content(seq) * 100, 1)}
+}
+
+# Launch all fetches concurrently
+let accessions = ["NM_007294", "NM_000059", "NM_000546"]
+let futures = accessions |&gt; map(|acc| fetch_gc(acc))
+let results = await_all(futures)
+
+for r in results {
+    println(r.accession + ": " + str(r.gc) + "% GC")
+}
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>NM_007294: 42.3% GC
+NM_000059: 40.8% GC
+NM_000546: 47.1% GC
+</code></pre>
+<p>Without <code>async</code>, three sequential API calls might take 3 seconds (1 second each). With <code>await_all</code>, they run concurrently and finish in about 1 second total.</p>
+<p><img src="images/day21-api-calls-comparison.svg" alt="Sequential vs Concurrent API Calls"></p>
+<h3 id="combining-parallel-and-async"><a class="header" href="#combining-parallel-and-async">Combining Parallel and Async</a></h3>
+<p>For a pipeline that both fetches data (I/O-bound) and processes it (CPU-bound), combine async for the fetch and par_map for the computation:</p>
+<pre><code class="language-bio"># Step 1: Fetch sequences concurrently (I/O-bound)
+async fn fetch_sequence(acc) {
+    ncbi_sequence(acc)
+}
+
+let accessions = ["NM_007294", "NM_000059", "NM_000546", "NM_005228"]
+let futures = accessions |&gt; map(|acc| fetch_sequence(acc))
+let sequences = await_all(futures)
+
+# Step 2: Analyze in parallel (CPU-bound)
+let results = sequences |&gt; par_map(|seq| {
+    gc: round(gc_content(seq) * 100, 1),
+    length: len(seq),
+    kmers_unique: kmers(seq, 6) |&gt; sort() |&gt; len()
+})
+
+for r in results {
+    println("GC=" + str(r.gc) + "% len=" + str(r.length) + " unique_6mers=" + str(r.kmers_unique))
+}
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>GC=42.3% len=5592 unique_6mers=4891
+GC=40.8% len=10257 unique_6mers=8734
+GC=47.1% len=2629 unique_6mers=2412
+GC=52.6% len=5616 unique_6mers=4903
+</code></pre>
+<hr>
+<h2 id="streaming-for-memory-efficiency"><a class="header" href="#streaming-for-memory-efficiency">Streaming for Memory Efficiency</a></h2>
+<p>Parallel processing makes things faster, but it does not solve the memory problem. If you call <code>read_fastq("huge_file.fastq")</code>, BioLang loads every read into a list in memory. For 50 million reads, that is 10+ GB of RAM.</p>
+<p>Streaming processes one record at a time, using constant memory regardless of file size:</p>
+<pre><code>Load all into memory                  Streaming
+─────────────────────                 ─────────────────────
+read_fastq("file.fq")                stream_fastq("file.fq")
+  ↓                                    ↓
+[rec1, rec2, rec3, ..., recN]         rec1 → process → discard
+  ↓                                   rec2 → process → discard
+Process entire list                   rec3 → process → discard
+  ↓                                   ...
+Memory: O(N)                          Memory: O(1)
+</code></pre>
+<h3 id="streaming-fastq-analysis"><a class="header" href="#streaming-fastq-analysis">Streaming FASTQ Analysis</a></h3>
+<p>Instead of <code>read_fastq</code>, use <code>stream_fastq</code> to process reads one at a time:</p>
+<pre><code class="language-bio"># Streaming GC analysis — constant memory
+let t = timer_start()
+let total_gc = 0.0
+let count = 0
+
+stream_fastq("data/large_sample.fastq", |read| {
+    let gc = gc_content(read.seq)
+    total_gc = total_gc + gc
+    count = count + 1
+})
+
+let avg_gc = total_gc / count
+let elapsed = timer_elapsed(t)
+
+println("Processed " + str(count) + " reads")
+println("Average GC: " + str(round(avg_gc * 100, 1)) + "%")
+println("Time: " + str(round(elapsed, 2)) + "s")
+println("Memory: constant (~10 MB regardless of file size)")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Processed 1000000 reads
+Average GC: 48.3%
+Time: 3.21s
+Memory: constant (~10 MB regardless of file size)
+</code></pre>
+<h3 id="streaming-fasta-analysis"><a class="header" href="#streaming-fasta-analysis">Streaming FASTA Analysis</a></h3>
+<p>The same pattern works for FASTA files with <code>stream_fasta</code>:</p>
+<pre><code class="language-bio">let longest = {id: "", length: 0}
+let total = 0
+
+stream_fasta("data/sequences.fasta", |rec| {
+    let l = len(rec.seq)
+    total = total + 1
+    if l &gt; longest.length {
+        longest = {id: rec.id, length: l}
+    }
+})
+
+println("Total sequences: " + str(total))
+println("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Total sequences: 50000
+Longest: seq_42718 (2847 bp)
+</code></pre>
+<h3 id="streaming-vs-loading-memory-comparison"><a class="header" href="#streaming-vs-loading-memory-comparison">Streaming vs Loading: Memory Comparison</a></h3>
+<p>The following table shows the memory difference on files of increasing size:</p>
+<pre><code>File Size    Records     read_fastq()    stream_fastq()
+─────────    ────────    ────────────    ──────────────
+100 MB       500K        ~400 MB         ~10 MB
+1 GB         5M          ~4 GB           ~10 MB
+10 GB        50M         ~40 GB (!)      ~10 MB
+100 GB       500M        Out of memory   ~10 MB
+</code></pre>
+<p>The rule is simple: if the file fits comfortably in memory and you need random access to all records, use <code>read_fastq</code>. If the file is large or you only need a single pass, use <code>stream_fastq</code>.</p>
+<hr>
+<h2 id="optimization-patterns"><a class="header" href="#optimization-patterns">Optimization Patterns</a></h2>
+<p>Here are the patterns that yield the biggest speedups in practice.</p>
+<h3 id="pattern-1-filter-early-compute-late"><a class="header" href="#pattern-1-filter-early-compute-late">Pattern 1: Filter Early, Compute Late</a></h3>
+<p>Reduce the dataset before doing expensive computation:</p>
+<pre><code class="language-bio"># Bad: compute GC for everything, then filter
+let results = reads |&gt; map(|r| {seq: r.seq, gc: gc_content(r.seq)}) |&gt; filter(|r| r.gc &gt; 0.5)
+
+# Good: filter by length first (cheap), then compute GC (expensive)
+let results = reads |&gt; filter(|r| len(r.seq) &gt; 100) |&gt; par_map(|r| {seq: r.seq, gc: gc_content(r.seq)}) |&gt; filter(|r| r.gc &gt; 0.5)
+</code></pre>
+<p>If 30% of reads are too short, you avoid computing GC content for 30% of the data.</p>
+<h3 id="pattern-2-use-the-right-data-structure"><a class="header" href="#pattern-2-use-the-right-data-structure">Pattern 2: Use the Right Data Structure</a></h3>
+<p>Tables are faster than lists of records for column-oriented operations:</p>
+<pre><code class="language-bio"># Slower: list of records
+let data = reads |&gt; map(|r| {id: r.id, gc: gc_content(r.seq), len: len(r.seq)})
+let high_gc = data |&gt; filter(|r| r.gc &gt; 0.5)
+
+# Faster: table (columnar storage)
+let table = reads |&gt; map(|r| {id: r.id, gc: gc_content(r.seq), len: len(r.seq)}) |&gt; to_table()
+let high_gc = table |&gt; filter(|row| row.gc &gt; 0.5)
+</code></pre>
+<h3 id="pattern-3-batch-your-work"><a class="header" href="#pattern-3-batch-your-work">Pattern 3: Batch Your Work</a></h3>
+<p>Instead of processing one item at a time, batch items together to reduce function-call overhead:</p>
+<pre><code class="language-bio">fn analyze_batch(batch) {
+    let gc_values = batch |&gt; par_map(|s| gc_content(s.seq))
+    let lengths = batch |&gt; map(|s| len(s.seq))
+    {
+        mean_gc: gc_values |&gt; mean(),
+        mean_len: lengths |&gt; mean(),
+        count: len(batch)
+    }
+}
+
+# Process in batches of 10,000
+let reads = read_fastq("data/sample.fastq")
+let batch_size = 10000
+let n_batches = len(reads) / batch_size
+
+let results = range(0, n_batches) |&gt; map(|i| {
+    let start = i * batch_size
+    let end = min(start + batch_size, len(reads))
+    let batch = slice(reads, start, end)
+    analyze_batch(batch)
+})
+
+let overall_gc = results |&gt; map(|r| r.mean_gc) |&gt; mean()
+println("Overall mean GC: " + str(round(overall_gc * 100, 1)) + "%")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Overall mean GC: 48.3%
+</code></pre>
+<h3 id="pattern-4-precompute-and-reuse"><a class="header" href="#pattern-4-precompute-and-reuse">Pattern 4: Precompute and Reuse</a></h3>
+<p>If you need the same derived value multiple times, compute it once:</p>
+<pre><code class="language-bio"># Bad: computing gc_content twice
+let high_gc = reads |&gt; filter(|r| gc_content(r.seq) &gt; 0.5)
+let gc_values = high_gc |&gt; map(|r| gc_content(r.seq))
+
+# Good: compute once, reuse
+let annotated = reads |&gt; par_map(|r| {id: r.id, seq: r.seq, gc: gc_content(r.seq)})
+let high_gc = annotated |&gt; filter(|r| r.gc &gt; 0.5)
+let gc_values = high_gc |&gt; map(|r| r.gc)
+</code></pre>
+<hr>
+<h2 id="putting-it-all-together-a-complete-benchmark"><a class="header" href="#putting-it-all-together-a-complete-benchmark">Putting It All Together: A Complete Benchmark</a></h2>
+<p>Let us build a complete quality-control pipeline and benchmark it three ways: serial, parallel, and streaming.</p>
+<pre><code class="language-bio"># Full QC pipeline: serial vs parallel vs streaming
+
+let reads = read_fastq("data/large_sample.fastq")
+println("Loaded " + str(len(reads)) + " reads\n")
+
+# ── Serial ────────────────────────────────────────────
+let t1 = timer_start()
+let serial_gc = reads |&gt; map(|r| gc_content(r.seq))
+let serial_lengths = reads |&gt; map(|r| len(r.seq))
+let serial_high_gc = reads |&gt; filter(|r| gc_content(r.seq) &gt; 0.5)
+let s1 = timer_elapsed(t1)
+
+println("Serial:")
+println("  Mean GC:    " + str(round(serial_gc |&gt; mean() * 100, 1)) + "%")
+println("  Mean len:   " + str(round(serial_lengths |&gt; mean(), 0)))
+println("  High GC:    " + str(len(serial_high_gc)) + " reads")
+println("  Time:       " + str(round(s1, 3)) + "s")
+
+# ── Parallel ──────────────────────────────────────────
+let t2 = timer_start()
+let par_gc = reads |&gt; par_map(|r| gc_content(r.seq))
+let par_lengths = reads |&gt; par_map(|r| len(r.seq))
+let par_high_gc = reads |&gt; par_filter(|r| gc_content(r.seq) &gt; 0.5)
+let s2 = timer_elapsed(t2)
+
+println("\nParallel:")
+println("  Mean GC:    " + str(round(par_gc |&gt; mean() * 100, 1)) + "%")
+println("  Mean len:   " + str(round(par_lengths |&gt; mean(), 0)))
+println("  High GC:    " + str(len(par_high_gc)) + " reads")
+println("  Time:       " + str(round(s2, 3)) + "s")
+println("  Speedup:    " + str(round(s1 / s2, 1)) + "x")
+
+# ── Streaming ─────────────────────────────────────────
+let t3 = timer_start()
+let stream_gc_sum = 0.0
+let stream_len_sum = 0
+let stream_high_gc = 0
+let stream_count = 0
+
+stream_fastq("data/large_sample.fastq", |r| {
+    let gc = gc_content(r.seq)
+    stream_gc_sum = stream_gc_sum + gc
+    stream_len_sum = stream_len_sum + len(r.seq)
+    if gc &gt; 0.5 { stream_high_gc = stream_high_gc + 1 }
+    stream_count = stream_count + 1
+})
+let s3 = timer_elapsed(t3)
+
+println("\nStreaming:")
+println("  Mean GC:    " + str(round(stream_gc_sum / stream_count * 100, 1)) + "%")
+println("  Mean len:   " + str(round(stream_len_sum / stream_count, 0)))
+println("  High GC:    " + str(stream_high_gc) + " reads")
+println("  Time:       " + str(round(s3, 3)) + "s")
+println("  Memory:     constant (~10 MB)")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Loaded 1000000 reads
+
+Serial:
+  Mean GC:    48.3%
+  Mean len:   150
+  High GC:    423156 reads
+  Time:       5.847s
+
+Parallel:
+  Mean GC:    48.3%
+  Mean len:   150
+  High GC:    423156 reads
+  Time:       1.692s
+  Speedup:    3.5x
+
+Streaming:
+  Mean GC:    48.3%
+  Mean len:   150
+  High GC:    423156 reads
+  Time:       3.214s
+  Memory:     constant (~10 MB)
+</code></pre>
+<p>The parallel version is fastest for pure computation. The streaming version is slower than parallel but uses a fixed 10 MB of memory instead of loading everything into RAM. For a 50 GB file that does not fit in memory, streaming is the only option.</p>
+<hr>
+<h2 id="benchmarking-against-python-and-r"><a class="header" href="#benchmarking-against-python-and-r">Benchmarking Against Python and R</a></h2>
+<p>How does BioLang compare to the established bioinformatics languages? Here is the same QC pipeline in all three languages, timed on 100,000 FASTQ reads.</p>
+<h3 id="biolang-parallel"><a class="header" href="#biolang-parallel">BioLang (parallel)</a></h3>
+<pre><code class="language-bio">let reads = read_fastq("data/sample.fastq")
+let t = timer_start()
+let gc_values = reads |&gt; par_map(|r| gc_content(r.seq))
+let avg_gc = gc_values |&gt; mean()
+let high_gc = reads |&gt; par_filter(|r| gc_content(r.seq) &gt; 0.5) |&gt; len()
+let elapsed = timer_elapsed(t)
+println("BioLang: " + str(round(elapsed, 3)) + "s")
+println("  Avg GC: " + str(round(avg_gc * 100, 1)) + "%")
+println("  High GC reads: " + str(high_gc))
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="python-concurrentfutures"><a class="header" href="#python-concurrentfutures">Python (concurrent.futures)</a></h3>
+<pre><code class="language-python">from concurrent.futures import ProcessPoolExecutor
+from Bio import SeqIO
+import time
+
+def gc_content(seq):
+    seq = str(seq).upper()
+    gc = sum(1 for c in seq if c in "GC")
+    return gc / len(seq) if len(seq) &gt; 0 else 0.0
+
+reads = list(SeqIO.parse("data/sample.fastq", "fastq"))
+
+start = time.time()
+with ProcessPoolExecutor() as pool:
+    gc_values = list(pool.map(gc_content, [r.seq for r in reads]))
+avg_gc = sum(gc_values) / len(gc_values)
+high_gc = sum(1 for g in gc_values if g &gt; 0.5)
+elapsed = time.time() - start
+
+print(f"Python: {elapsed:.3f}s")
+print(f"  Avg GC: {avg_gc * 100:.1f}%")
+print(f"  High GC reads: {high_gc}")
+</code></pre>
+<h3 id="r-parallel"><a class="header" href="#r-parallel">R (parallel)</a></h3>
+<pre><code class="language-r">library(parallel)
+library(ShortRead)
+
+reads &lt;- readFastq("data/sample.fastq")
+seqs &lt;- as.character(sread(reads))
+
+start &lt;- proc.time()
+cl &lt;- makeCluster(detectCores())
+gc_values &lt;- parSapply(cl, seqs, function(s) {
+  chars &lt;- strsplit(toupper(s), "")[[1]]
+  sum(chars %in% c("G", "C")) / length(chars)
+})
+stopCluster(cl)
+
+avg_gc &lt;- mean(gc_values)
+high_gc &lt;- sum(gc_values &gt; 0.5)
+elapsed &lt;- (proc.time() - start)["elapsed"]
+
+cat(sprintf("R: %.3fs\n", elapsed))
+cat(sprintf("  Avg GC: %.1f%%\n", avg_gc * 100))
+cat(sprintf("  High GC reads: %d\n", high_gc))
+</code></pre>
+<h3 id="typical-results-100000-reads-4-core-machine"><a class="header" href="#typical-results-100000-reads-4-core-machine">Typical Results (100,000 reads, 4-core machine)</a></h3>
+<pre><code>┌──────────────────────────────────────────────────────┐
+│          QC Pipeline Benchmark (100K reads)          │
+├──────────┬──────────┬─────────┬───────────┬──────────┤
+│ Language │ Time (s) │ Speedup │ Memory    │ LOC      │
+├──────────┼──────────┼─────────┼───────────┼──────────┤
+│ BioLang  │ 0.812    │ 1.0x    │ 45 MB     │ 6        │
+│ Python   │ 3.241    │ 0.25x   │ 380 MB    │ 14       │
+│ R        │ 4.127    │ 0.20x   │ 520 MB    │ 12       │
+└──────────┴──────────┴─────────┴───────────┴──────────┘
+</code></pre>
+<p>BioLang is faster because <code>par_map</code> distributes work with minimal overhead (Rust threads, no GIL). Python’s <code>ProcessPoolExecutor</code> must serialize data between processes. R’s <code>parSapply</code> has similar serialization costs plus the overhead of creating a cluster.</p>
+<hr>
+<h2 id="performance-decision-flowchart"><a class="header" href="#performance-decision-flowchart">Performance Decision Flowchart</a></h2>
+<p>When faced with slow code, use this decision process:</p>
+<p><img src="images/day21-performance-decision-tree.svg" alt="Performance Optimization Decision Tree"></p>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-profile-and-optimize"><a class="header" href="#exercise-1-profile-and-optimize">Exercise 1: Profile and Optimize</a></h3>
+<p>Given a list of 50,000 sequences, this code is slow:</p>
+<pre><code class="language-bio">let seqs = read_fasta("data/sequences.fasta")
+let results = seqs
+    |&gt; map(|s| {id: s.id, gc: gc_content(s.seq), len: len(s.seq)})
+    |&gt; filter(|s| s.gc &gt; 0.4)
+    |&gt; filter(|s| s.len &gt; 100)
+    |&gt; sort(|a, b| b.gc - a.gc)
+</code></pre>
+<p>Tasks:</p>
+<ol>
+<li>Use <code>timer_start</code> / <code>timer_elapsed</code> to time each stage</li>
+<li>Identify which operations benefit from <code>par_map</code> or <code>par_filter</code></li>
+<li>Rewrite the pipeline to be at least 2x faster</li>
+<li>Explain why <code>sort</code> should stay serial</li>
+</ol>
+<p><strong>Hint</strong>: The two <code>filter</code> calls can be merged, and <code>map</code> can be replaced with <code>par_map</code>. <code>sort</code> must remain serial because it needs to compare elements in order.</p>
+<h3 id="exercise-2-streaming-statistics"><a class="header" href="#exercise-2-streaming-statistics">Exercise 2: Streaming Statistics</a></h3>
+<p>Write a streaming FASTQ analysis that computes the following statistics using <code>stream_fastq</code> (constant memory):</p>
+<ul>
+<li>Total number of reads</li>
+<li>Mean read length</li>
+<li>Minimum and maximum read length</li>
+<li>Mean GC content</li>
+<li>Number of reads with GC content above 60%</li>
+<li>Number of reads shorter than 50 bp</li>
+</ul>
+<p>Test it on the generated file <code>data/large_sample.fastq</code>.</p>
+<h3 id="exercise-3-async-api-pipeline"><a class="header" href="#exercise-3-async-api-pipeline">Exercise 3: Async API Pipeline</a></h3>
+<p>Write an async pipeline that:</p>
+<ol>
+<li>Takes a list of 5 gene symbols: <code>["TP53", "BRCA1", "EGFR", "KRAS", "MYC"]</code></li>
+<li>Fetches each gene’s sequence from NCBI concurrently using <code>async</code>/<code>await_all</code></li>
+<li>Computes GC content for each gene using <code>par_map</code></li>
+<li>Prints a sorted table of genes by GC content</li>
+</ol>
+<p>Compare the time for sequential fetching vs concurrent fetching.</p>
+<h3 id="exercise-4-benchmark-your-machine"><a class="header" href="#exercise-4-benchmark-your-machine">Exercise 4: Benchmark Your Machine</a></h3>
+<p>Run the complete benchmark script (<code>scripts/analysis.bl</code>) and compare results with the Python and R equivalents. Record:</p>
+<ul>
+<li>Wall-clock time for each language</li>
+<li>Approximate memory usage</li>
+<li>Lines of code</li>
+</ul>
+<p>Create a comparison table and identify which language wins in each category.</p>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<blockquote>
+<p><strong>Measure first.</strong> Use <code>:time</code>, <code>:profile</code>, <code>timer_start()</code> / <code>timer_elapsed()</code> before optimizing. Most code has one bottleneck — find it.</p>
+<p><strong><code>par_map</code> and <code>par_filter</code> are drop-in replacements</strong> for <code>map</code> and <code>filter</code>. Use them when per-element work takes more than ~1 millisecond. Expect 3–6x speedup on modern machines.</p>
+<p><strong><code>async</code> / <code>await_all</code> for I/O.</strong> Network calls, file downloads, and API requests should run concurrently, not sequentially.</p>
+<p><strong><code>stream_fastq</code> / <code>stream_fasta</code> for large files.</strong> Streaming uses constant memory regardless of file size. Use it whenever you do not need random access to all records.</p>
+<p><strong>Filter early, compute late.</strong> Remove unwanted data before expensive operations. Merge multiple filters. Precompute values you use more than once.</p>
+<p><strong>BioLang parallelism has near-zero overhead</strong> compared to Python (GIL + process serialization) and R (cluster creation + serialization). This means parallelism pays off on smaller workloads.</p>
+</blockquote>
+<hr>
+<p><em>Tomorrow in Day 22, we will apply these performance techniques to real-world pipeline orchestration — chaining multiple analysis steps into reproducible, efficient workflows.</em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-20.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-22.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-20.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-22.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

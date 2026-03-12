@@ -1,0 +1,886 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 26: AI-Assisted Analysis - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-26-ai-assisted-analysis"><a class="header" href="#day-26-ai-assisted-analysis">Day 26: AI-Assisted Analysis</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Intermediate (gene expression, variants, pathway analysis)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (functions, records, pipes, tables, string operations)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–25 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code> (simulated gene lists, variant data)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to use BioLang’s built-in LLM functions (<code>chat</code>, <code>chat_code</code>, <code>llm_models</code>)</li>
+<li>How to configure LLM providers (Anthropic, OpenAI, Ollama, OpenAI-compatible)</li>
+<li>How to engineer effective prompts for biological questions</li>
+<li>How to pass structured data as context for AI-assisted interpretation</li>
+<li>How to build human-in-the-loop analysis pipelines</li>
+<li>Why AI outputs must always be verified before use in research or clinical settings</li>
+<li>How to combine LLM interpretation with programmatic validation</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p><em>“Can AI help me interpret these results or write analysis code?”</em></p>
+<p>You have just completed a differential expression analysis. In front of you is a table of 500 genes — each with a fold change, a p-value, and a gene symbol. Some of these genes are well-characterized cancer drivers. Others are poorly annotated lncRNAs. A few are housekeeping genes that probably represent technical noise. You need to sort signal from noise, identify biologically meaningful patterns, connect your findings to known pathways, and write a paragraph for your manuscript’s results section.</p>
+<p>This is the kind of task where large language models can accelerate your work. An LLM can summarize what is known about a gene, suggest pathway connections, draft interpretive text, and even generate analysis code. But it can also hallucinate citations, fabricate gene functions, and confidently present incorrect biological claims. The challenge is using AI as a genuine accelerator while maintaining scientific rigor.</p>
+<p>This chapter teaches you to integrate LLMs into your BioLang workflows — not as a replacement for domain expertise, but as a tool that amplifies it.</p>
+<p><img src="images/day26-ai-architecture.svg" alt="AI-Assisted Analysis Architecture: chat(), chat_code(), and llm_models() functions connecting to auto-detected LLM providers"></p>
+<blockquote>
+<p><strong>Critical safety note.</strong> Every AI-generated interpretation in this chapter must be treated as a hypothesis, not a fact. LLMs can hallucinate gene functions, fabricate citations, invent protein interactions, and produce plausible-sounding but incorrect biological claims. Never use LLM output directly in a clinical report, grant application, or publication without independent verification against primary sources (NCBI Gene, UniProt, PubMed, OMIM).</p>
+</blockquote>
+<hr>
+<h2 id="section-1-setting-up-llm-access"><a class="header" href="#section-1-setting-up-llm-access">Section 1: Setting Up LLM Access</a></h2>
+<p>Before using <code>chat()</code> or <code>chat_code()</code>, you need to configure an LLM provider. BioLang auto-detects your provider from environment variables in this priority order:</p>
+<ol>
+<li><code>ANTHROPIC_API_KEY</code> — uses Claude (default model: <code>claude-sonnet-4-20250514</code>)</li>
+<li><code>OPENAI_API_KEY</code> — uses GPT (default model: <code>gpt-4o</code>)</li>
+<li><code>OLLAMA_MODEL</code> — uses a local Ollama instance (no API key needed)</li>
+<li><code>LLM_BASE_URL</code> + <code>LLM_API_KEY</code> — any OpenAI-compatible endpoint</li>
+</ol>
+<h3 id="checking-your-configuration"><a class="header" href="#checking-your-configuration">Checking Your Configuration</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let config = llm_models()
+println(f"Provider: {config.provider}")
+println(f"Model: {config.model}")
+println(f"Configured: {config.configured}")
+</code></pre>
+<p>If <code>configured</code> is <code>false</code>, no provider environment variable is set. The <code>env_vars</code> field lists all options:</p>
+<pre><code class="language-bio">let config = llm_models()
+if config.configured == false {
+    println("No LLM provider configured. Set one of:")
+    config.env_vars |&gt; each(|v| println(f"  {v}"))
+}
+</code></pre>
+<h3 id="provider-setup-examples"><a class="header" href="#provider-setup-examples">Provider Setup Examples</a></h3>
+<p><strong>Anthropic (Claude):</strong></p>
+<pre><code class="language-bash">export ANTHROPIC_API_KEY="sk-ant-..."
+# Optional: override model
+export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+</code></pre>
+<p><strong>OpenAI (GPT):</strong></p>
+<pre><code class="language-bash">export OPENAI_API_KEY="sk-..."
+# Optional: override model
+export OPENAI_MODEL="gpt-4o"
+</code></pre>
+<p><strong>Ollama (local, free):</strong></p>
+<pre><code class="language-bash"># First install and run Ollama, then pull a model
+ollama pull llama3.1
+export OLLAMA_MODEL="llama3.1"
+</code></pre>
+<p><strong>OpenAI-compatible (Together, Groq, LM Studio):</strong></p>
+<pre><code class="language-bash">export LLM_BASE_URL="https://api.together.xyz"
+export LLM_API_KEY="..."
+export LLM_MODEL="meta-llama/Llama-3-70b-chat-hf"
+</code></pre>
+<p>For this chapter, any provider will work. Ollama is a good choice if you want to avoid API costs — just note that smaller local models produce less accurate biological interpretations than large cloud models.</p>
+<hr>
+<h2 id="section-2-basic-chat-interaction"><a class="header" href="#section-2-basic-chat-interaction">Section 2: Basic Chat Interaction</a></h2>
+<p>The <code>chat()</code> function sends a prompt to your configured LLM and returns the response as a string. It accepts one or two arguments:</p>
+<ul>
+<li><code>chat(prompt)</code> — simple question</li>
+<li><code>chat(prompt, context)</code> — question with additional context (string, record, list, or table)</li>
+</ul>
+<h3 id="simple-questions"><a class="header" href="#simple-questions">Simple Questions</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let answer = chat("What is the function of the TP53 gene in cancer biology? Two sentences.")
+println(answer)
+</code></pre>
+<p>The LLM behind <code>chat()</code> is configured with a bioinformatics system prompt, so it understands BioLang syntax and biological terminology.</p>
+<h3 id="providing-context"><a class="header" href="#providing-context">Providing Context</a></h3>
+<p>The second argument to <code>chat()</code> passes structured data as context. BioLang automatically formats records, lists, and tables into a readable text representation:</p>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let gene_info = {
+    symbol: "BRCA1",
+    fold_change: -2.3,
+    pvalue: 0.0001,
+    sample_type: "triple-negative breast cancer"
+}
+
+let interpretation = chat(
+    "Interpret the significance of this differentially expressed gene in the given cancer type.",
+    gene_info
+)
+println(interpretation)
+</code></pre>
+<p>When you pass a record, BioLang formats it as <code>key: value</code> lines. When you pass a table, it formats as tab-separated values. When you pass a list, each element appears on its own line. This means you can pipe analysis results directly into LLM interpretation.</p>
+<h3 id="code-generation-with-chat_code"><a class="header" href="#code-generation-with-chat_code">Code Generation with chat_code()</a></h3>
+<p>The <code>chat_code()</code> function is specialized for generating BioLang code. It returns only valid BioLang syntax — no explanations, no markdown fences:</p>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let code = chat_code("Write a function that calculates the ratio of transition to transversion mutations from a list of variant records with ref and alt fields.")
+println(code)
+</code></pre>
+<blockquote>
+<p><strong>Caution.</strong> Always review generated code before executing it. <code>chat_code()</code> output may contain syntax errors, call nonexistent functions, or implement incorrect logic. Treat it as a first draft.</p>
+</blockquote>
+<hr>
+<h2 id="section-3-prompt-engineering-for-biology"><a class="header" href="#section-3-prompt-engineering-for-biology">Section 3: Prompt Engineering for Biology</a></h2>
+<p>The quality of LLM responses depends heavily on how you construct your prompts. Biological prompts require particular precision because ambiguous terminology is common (e.g., “expression” means different things in molecular biology vs. clinical medicine vs. software engineering).</p>
+<p><img src="images/day26-prompt-decision-tree.svg" alt="LLM prompting decision tree: raw question through context, data, and format constraints to verified output"></p>
+<h3 id="principle-1-be-specific-about-biological-context"><a class="header" href="#principle-1-be-specific-about-biological-context">Principle 1: Be Specific About Biological Context</a></h3>
+<p>Bad prompt:</p>
+<pre><code class="language-bio">let vague = chat("What does EGFR do?")
+</code></pre>
+<p>Better prompt:</p>
+<pre><code class="language-bio">let specific = chat("What is the role of EGFR in non-small cell lung cancer, specifically regarding tyrosine kinase inhibitor resistance mechanisms? Limit to 3 key points.")
+</code></pre>
+<h3 id="principle-2-specify-the-output-format"><a class="header" href="#principle-2-specify-the-output-format">Principle 2: Specify the Output Format</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let prompt = "Given these differentially expressed genes, categorize them into: (1) known oncogenes, (2) tumor suppressors, (3) metabolic genes, (4) unknown/uncharacterized. Return as a simple list with the category before each gene name."
+
+let genes = ["TP53", "BRCA1", "MYC", "GAPDH", "LINC01234", "KRAS", "RB1", "PKM", "ALDOA", "MALAT1"]
+
+let categorized = chat(prompt, genes)
+println(categorized)
+</code></pre>
+<h3 id="principle-3-chain-prompts-for-complex-analysis"><a class="header" href="#principle-3-chain-prompts-for-complex-analysis">Principle 3: Chain Prompts for Complex Analysis</a></h3>
+<p>Rather than asking one massive question, break complex analysis into steps:</p>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let genes = ["BRCA1", "TP53", "CDH1", "PTEN", "PIK3CA"]
+
+let step1 = chat(
+    "List the primary biological pathway for each of these genes. One line per gene, format: GENE - pathway name.",
+    genes
+)
+
+let step2 = chat(
+    "Based on these gene-pathway associations, what biological process is most likely disrupted? One paragraph.",
+    step1
+)
+
+println("Pathway associations:")
+println(step1)
+println("")
+println("Biological interpretation:")
+println(step2)
+</code></pre>
+<h3 id="principle-4-request-uncertainty-acknowledgment"><a class="header" href="#principle-4-request-uncertainty-acknowledgment">Principle 4: Request Uncertainty Acknowledgment</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let honest_prompt = "For each gene, state its known function and your confidence level (high/medium/low) based on how well-characterized it is. If a gene is poorly studied, say so explicitly rather than speculating."
+
+let genes = ["TP53", "LINC01234", "LOC105377243"]
+let result = chat(honest_prompt, genes)
+println(result)
+</code></pre>
+<p>This prompt structure encourages the LLM to flag when it is uncertain rather than inventing plausible-sounding functions.</p>
+<hr>
+<h2 id="section-4-variant-interpretation-with-ai"><a class="header" href="#section-4-variant-interpretation-with-ai">Section 4: Variant Interpretation with AI</a></h2>
+<p>One of the most practical applications of LLM assistance is interpreting genetic variants. Clinicians and researchers routinely need to assess whether a variant is pathogenic, benign, or of uncertain significance. An LLM can summarize known information about a variant, but the final classification must always come from curated databases and expert review.</p>
+<h3 id="building-a-variant-interpretation-pipeline"><a class="header" href="#building-a-variant-interpretation-pipeline">Building a Variant Interpretation Pipeline</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let variants = read_tsv("data/variants.tsv")
+
+let interpret_variant = |variant| {
+    let prompt = f"Interpret this genetic variant for clinical significance. Include: (1) gene function, (2) known disease associations, (3) predicted functional impact, (4) whether this position is conserved. State clearly if you are uncertain about any point."
+
+    let context = {
+        gene: variant.gene,
+        chromosome: variant.chrom,
+        position: variant.pos,
+        ref_allele: variant.ref,
+        alt_allele: variant.alt,
+        consequence: variant.consequence
+    }
+
+    try {
+        chat(prompt, context)
+    } catch err {
+        f"Error interpreting {variant.gene}: {err}"
+    }
+}
+
+let top_variants = variants
+    |&gt; filter(|v| v.consequence != "synonymous_variant")
+    |&gt; sort(|a, b| a.gene &lt; b.gene)
+
+top_variants |&gt; each(|v| {
+    println(f"=== {v.gene} {v.chrom}:{v.pos} {v.ref}&gt;{v.alt} ===")
+    let interp = interpret_variant(v)
+    println(interp)
+    println("")
+})
+</code></pre>
+<blockquote>
+<p><strong>Clinical warning.</strong> This is an educational exercise. Real clinical variant interpretation requires validated pipelines, accredited laboratories, ACMG/AMP guideline compliance, and review by board-certified clinical geneticists. Never use raw LLM output for patient care decisions.</p>
+</blockquote>
+<h3 id="adding-programmatic-checks"><a class="header" href="#adding-programmatic-checks">Adding Programmatic Checks</a></h3>
+<p>LLM interpretation is more useful when combined with programmatic data. Here is a pattern that cross-references AI interpretation with structured variant annotations:</p>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let annotate_variant = |v| {
+    let known_oncogenes = ["TP53", "BRCA1", "BRCA2", "KRAS", "EGFR", "PIK3CA", "BRAF", "MYC", "RB1", "PTEN"]
+    let is_cancer_gene = known_oncogenes |&gt; filter(|g| g == v.gene) |&gt; len() &gt; 0
+
+    let is_missense = v.consequence == "missense_variant"
+    let is_nonsense = v.consequence == "stop_gained"
+    let is_frameshift = contains(v.consequence, "frameshift")
+
+    let severity = if is_nonsense { "high" }
+        else if is_frameshift { "high" }
+        else if is_missense { "moderate" }
+        else { "low" }
+
+    let context = {
+        gene: v.gene,
+        position: f"{v.chrom}:{v.pos}",
+        change: f"{v.ref}&gt;{v.alt}",
+        consequence: v.consequence,
+        cancer_gene: is_cancer_gene,
+        computed_severity: severity
+    }
+
+    let ai_interp = try {
+        chat("Briefly interpret this variant's clinical significance in 2-3 sentences. Note if the gene is a known cancer driver.", context)
+    } catch err {
+        "AI interpretation unavailable"
+    }
+
+    {
+        gene: v.gene,
+        variant: f"{v.chrom}:{v.pos}{v.ref}&gt;{v.alt}",
+        consequence: v.consequence,
+        severity: severity,
+        cancer_gene: is_cancer_gene,
+        ai_interpretation: ai_interp
+    }
+}
+
+let variants = read_tsv("data/variants.tsv")
+let annotated = variants |&gt; map(annotate_variant)
+
+annotated |&gt; each(|a| {
+    println(f"Gene: {a.gene}")
+    println(f"  Variant: {a.variant}")
+    println(f"  Consequence: {a.consequence}")
+    println(f"  Severity: {a.severity}")
+    println(f"  Cancer gene: {a.cancer_gene}")
+    println(f"  AI: {a.ai_interpretation}")
+    println("")
+})
+</code></pre>
+<hr>
+<h2 id="section-5-gene-list-analysis"><a class="header" href="#section-5-gene-list-analysis">Section 5: Gene List Analysis</a></h2>
+<p>Differential expression experiments produce gene lists that need biological interpretation. LLMs can help identify functional themes, but they work best when you provide structured summary data rather than raw lists of hundreds of genes.</p>
+<h3 id="summarizing-a-gene-list"><a class="header" href="#summarizing-a-gene-list">Summarizing a Gene List</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let de_genes = read_tsv("data/de_genes.tsv")
+
+let upregulated = de_genes |&gt; filter(|g| g.log2fc &gt; 1.0 and g.padj &lt; 0.05)
+let downregulated = de_genes |&gt; filter(|g| g.log2fc &lt; -1.0 and g.padj &lt; 0.05)
+
+let up_names = upregulated |&gt; map(|g| g.gene) |&gt; sort(|a, b| a &lt; b)
+let down_names = downregulated |&gt; map(|g| g.gene) |&gt; sort(|a, b| a &lt; b)
+
+let summary = {
+    total_tested: len(de_genes),
+    significant_up: len(up_names),
+    significant_down: len(down_names),
+    top_up_genes: up_names |&gt; map(|g| str(g)) |&gt; join(", "),
+    top_down_genes: down_names |&gt; map(|g| str(g)) |&gt; join(", "),
+    experiment: "RNA-seq, tumor vs normal, breast tissue"
+}
+
+let interpretation = chat(
+    "Analyze this differential expression result. Identify: (1) key biological themes among upregulated genes, (2) key themes among downregulated genes, (3) potential pathway disruptions, (4) any genes that warrant follow-up experiments. Be specific about which genes drive each conclusion.",
+    summary
+)
+
+println(interpretation)
+</code></pre>
+<h3 id="batch-gene-annotation"><a class="header" href="#batch-gene-annotation">Batch Gene Annotation</a></h3>
+<p>For larger gene lists, process in batches to avoid overwhelming the LLM context window:</p>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let batch_annotate = |genes, batch_size| {
+    let results = []
+    let n = len(genes)
+    let i = 0
+    let batches = []
+
+    let current = []
+    genes |&gt; each(|g| {
+        current = current + [g]
+        if len(current) &gt;= batch_size {
+            batches = batches + [current]
+            current = []
+        }
+    })
+    if len(current) &gt; 0 {
+        batches = batches + [current]
+    }
+
+    batches |&gt; map(|batch| {
+        let gene_list = batch |&gt; join(", ")
+        let prompt = "For each gene, provide: gene symbol, primary function (one phrase), associated disease if any. Format as one line per gene."
+        try {
+            chat(prompt, gene_list)
+        } catch err {
+            f"Batch failed: {err}"
+        }
+    })
+}
+
+let genes = read_tsv("data/de_genes.tsv")
+    |&gt; filter(|g| g.padj &lt; 0.01)
+    |&gt; map(|g| g.gene)
+
+let annotations = batch_annotate(genes, 10)
+annotations |&gt; each(|batch_result| {
+    println(batch_result)
+    println("---")
+})
+</code></pre>
+<hr>
+<h2 id="section-6-building-ai-augmented-pipelines"><a class="header" href="#section-6-building-ai-augmented-pipelines">Section 6: Building AI-Augmented Pipelines</a></h2>
+<p>The real power of LLM integration appears when you combine it with BioLang’s data processing capabilities in end-to-end pipelines.</p>
+<h3 id="the-human-in-the-loop-pattern"><a class="header" href="#the-human-in-the-loop-pattern">The Human-in-the-Loop Pattern</a></h3>
+<p><img src="images/day26-human-in-loop.svg" alt="Human-in-the-Loop Analysis Cycle: Load, Compute, AI Interprets, Human Reviews, Accept or Reject with re-prompt loop"></p>
+<p>The key principle: computation is programmatic, interpretation is AI-assisted, decisions are human. Never automate the human review step.</p>
+<h3 id="full-pipeline-de-gene-report"><a class="header" href="#full-pipeline-de-gene-report">Full Pipeline: DE Gene Report</a></h3>
+<p>This pipeline loads differential expression data, computes summary statistics, asks an LLM to interpret the biology, and writes both the raw data and interpretation to a report file:</p>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let de_genes = read_tsv("data/de_genes.tsv")
+
+let sig = de_genes |&gt; filter(|g| g.padj &lt; 0.05)
+let up = sig |&gt; filter(|g| g.log2fc &gt; 1.0)
+let down = sig |&gt; filter(|g| g.log2fc &lt; -1.0)
+
+let stats = {
+    total_genes: len(de_genes),
+    significant: len(sig),
+    upregulated: len(up),
+    downregulated: len(down),
+    mean_abs_fc: sig |&gt; map(|g| if g.log2fc &gt; 0 { g.log2fc } else { -1.0 * g.log2fc }) |&gt; mean(),
+    top_up: up |&gt; sort(|a, b| a.padj &lt; b.padj) |&gt; map(|g| g.gene) |&gt; join(", "),
+    top_down: down |&gt; sort(|a, b| a.padj &lt; b.padj) |&gt; map(|g| g.gene) |&gt; join(", ")
+}
+
+let interpretation = try {
+    chat(
+        "Write a results paragraph for a manuscript describing this differential expression analysis of breast cancer tumor vs normal tissue. Include: (1) overall summary, (2) notable upregulated pathways, (3) notable downregulated pathways, (4) suggested follow-up experiments. Be specific about gene names.",
+        stats
+    )
+} catch err {
+    f"[AI interpretation unavailable: {err}]"
+}
+
+let report_lines = [
+    "# Differential Expression Report",
+    "",
+    "## Summary Statistics",
+    f"Total genes tested: {stats.total_genes}",
+    f"Significant (padj &lt; 0.05): {stats.significant}",
+    f"Upregulated (log2FC &gt; 1): {stats.upregulated}",
+    f"Downregulated (log2FC &lt; -1): {stats.downregulated}",
+    f"Mean absolute fold change: {stats.mean_abs_fc}",
+    "",
+    "## Top Upregulated Genes",
+    stats.top_up,
+    "",
+    "## Top Downregulated Genes",
+    stats.top_down,
+    "",
+    "## AI-Assisted Interpretation",
+    "NOTE: The following was generated by an LLM and requires expert review.",
+    "",
+    interpretation
+]
+
+write_lines(report_lines, "data/output/de_report.txt")
+println("Report written to data/output/de_report.txt")
+</code></pre>
+<h3 id="pipeline-sequence-feature-interpretation"><a class="header" href="#pipeline-sequence-feature-interpretation">Pipeline: Sequence Feature Interpretation</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let sequences = read_fasta("data/sequences.fasta")
+
+let features = sequences |&gt; map(|seq| {
+    let gc = gc_content(seq.sequence)
+    let length = len(seq.sequence)
+    let at_rich = gc &lt; 0.4
+    let gc_rich = gc &gt; 0.6
+
+    {
+        id: seq.id,
+        length: length,
+        gc_content: gc,
+        at_rich: at_rich,
+        gc_rich: gc_rich
+    }
+})
+
+let feature_table = features |&gt; to_table()
+
+let summary = {
+    num_sequences: len(features),
+    mean_gc: features |&gt; map(|f| f.gc_content) |&gt; mean(),
+    mean_length: features |&gt; map(|f| f.length) |&gt; mean(),
+    at_rich_count: features |&gt; filter(|f| f.at_rich) |&gt; len(),
+    gc_rich_count: features |&gt; filter(|f| f.gc_rich) |&gt; len()
+}
+
+let interp = try {
+    chat(
+        "These are sequence composition statistics from a set of genomic regions. What biological significance might the GC content distribution suggest? Consider: promoter regions, coding vs non-coding, isochores, CpG islands. Be brief (3-4 sentences).",
+        summary
+    )
+} catch err {
+    "[Interpretation unavailable]"
+}
+
+println("Sequence features:")
+println(feature_table)
+println("")
+println("AI interpretation:")
+println(interp)
+</code></pre>
+<hr>
+<h2 id="section-7-limitations-and-best-practices"><a class="header" href="#section-7-limitations-and-best-practices">Section 7: Limitations and Best Practices</a></h2>
+<h3 id="what-llms-are-good-at-in-bioinformatics"><a class="header" href="#what-llms-are-good-at-in-bioinformatics">What LLMs Are Good At in Bioinformatics</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Task</th><th>Reliability</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>Summarizing known gene functions</td><td>High</td><td>For well-studied genes (TP53, BRCA1, etc.)</td></tr>
+<tr><td>Suggesting pathway connections</td><td>Medium</td><td>Cross-reference with KEGG, Reactome</td></tr>
+<tr><td>Drafting results text</td><td>Medium</td><td>Always edit for accuracy</td></tr>
+<tr><td>Generating analysis code</td><td>Medium</td><td>Always review and test</td></tr>
+<tr><td>Interpreting novel gene functions</td><td>Low</td><td>Tends to hallucinate</td></tr>
+<tr><td>Clinical variant classification</td><td><strong>Very Low</strong></td><td>Never rely on LLM alone</td></tr>
+<tr><td>Citing literature</td><td><strong>Very Low</strong></td><td>Frequently fabricates citations</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="what-llms-cannot-do"><a class="header" href="#what-llms-cannot-do">What LLMs Cannot Do</a></h3>
+<ol>
+<li>
+<p><strong>Access real-time data.</strong> LLMs have a training cutoff date. They cannot check the current ClinVar entry for a variant or find papers published last month.</p>
+</li>
+<li>
+<p><strong>Perform calculations.</strong> If you ask an LLM to compute a p-value, it will guess. Use BioLang’s <code>mean()</code>, <code>sum()</code>, and statistical functions for computation.</p>
+</li>
+<li>
+<p><strong>Guarantee biological accuracy.</strong> An LLM might state that “GENE_X is a known tumor suppressor involved in DNA repair” even when GENE_X is a fictional gene or has no such function.</p>
+</li>
+<li>
+<p><strong>Replace peer review.</strong> LLM-generated text sounds authoritative but may contain subtle errors that only a domain expert would catch.</p>
+</li>
+</ol>
+<h3 id="best-practice-the-verification-pattern"><a class="header" href="#best-practice-the-verification-pattern">Best Practice: The Verification Pattern</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let verify_gene_claim = |gene, claim| {
+    let check_prompt = f"Regarding the gene {gene}: Is the following claim accurate? Answer ONLY 'verified', 'uncertain', or 'likely incorrect', followed by a one-sentence justification.\n\nClaim: {claim}"
+
+    let verification = try {
+        chat(check_prompt)
+    } catch err {
+        "verification_failed"
+    }
+
+    {
+        gene: gene,
+        claim: claim,
+        verification: verification,
+        needs_manual_review: contains(verification, "uncertain") or contains(verification, "incorrect") or contains(verification, "failed")
+    }
+}
+
+let result = verify_gene_claim("BRCA1", "BRCA1 is involved in homologous recombination DNA repair")
+println(f"Verification: {result.verification}")
+println(f"Needs manual review: {result.needs_manual_review}")
+</code></pre>
+<blockquote>
+<p><strong>Important.</strong> Using an LLM to verify another LLM’s output is better than nothing, but it is not equivalent to checking a primary database. The verification pattern above is a triage step — it flags claims that the LLM itself is uncertain about, but it can still miss confident-sounding errors.</p>
+</blockquote>
+<h3 id="best-practice-always-wrap-in-trycatch"><a class="header" href="#best-practice-always-wrap-in-trycatch">Best Practice: Always Wrap in try/catch</a></h3>
+<p>LLM API calls can fail for many reasons: network issues, rate limits, expired API keys, provider outages. Every <code>chat()</code> call in a pipeline should be wrapped in <code>try/catch</code>:</p>
+<pre><code class="language-bio">let safe_interpret = |data| {
+    try {
+        chat("Interpret this data briefly.", data)
+    } catch err {
+        f"[AI unavailable: {err}]"
+    }
+}
+</code></pre>
+<p>This ensures your pipeline continues even when the LLM is unreachable.</p>
+<h3 id="best-practice-separate-computation-from-interpretation"><a class="header" href="#best-practice-separate-computation-from-interpretation">Best Practice: Separate Computation from Interpretation</a></h3>
+<pre><code class="language-bio"># GOOD: compute programmatically, interpret with AI
+let gc = gc_content(seq)
+let interp = chat(f"What might a GC content of {gc} suggest about this genomic region?")
+
+# BAD: ask the AI to compute
+let result = chat("What is the GC content of ATCGATCGATCG?")
+# The LLM might give the wrong number!
+</code></pre>
+<p>Never ask an LLM to perform calculations that BioLang can do directly.</p>
+<hr>
+<h2 id="section-8-cost-and-rate-limiting"><a class="header" href="#section-8-cost-and-rate-limiting">Section 8: Cost and Rate Limiting</a></h2>
+<p>LLM API calls cost money (except Ollama) and are rate-limited. When processing large datasets, consider:</p>
+<h3 id="caching-responses"><a class="header" href="#caching-responses">Caching Responses</a></h3>
+<pre><code class="language-bio">let cached_interpret = |gene, cache_path| {
+    if file_exists(cache_path) {
+        let lines = read_lines(cache_path)
+        lines |&gt; join("\n")
+    } else {
+        let result = chat(f"Summarize the function of {gene} in one paragraph.")
+        write_lines([result], cache_path)
+        result
+    }
+}
+
+mkdir("data/cache")
+let brca1_info = cached_interpret("BRCA1", "data/cache/BRCA1.txt")
+println(brca1_info)
+</code></pre>
+<h3 id="batching-genes"><a class="header" href="#batching-genes">Batching Genes</a></h3>
+<p>Rather than one API call per gene, batch multiple genes into a single prompt:</p>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let genes = ["TP53", "BRCA1", "KRAS", "EGFR", "PIK3CA"]
+
+# One call instead of five
+let batch_result = chat(
+    "For each gene, provide a one-line summary of its role in cancer. Format: GENE: summary",
+    genes
+)
+println(batch_result)
+</code></pre>
+<hr>
+<h2 id="section-9-generating-analysis-code"><a class="header" href="#section-9-generating-analysis-code">Section 9: Generating Analysis Code</a></h2>
+<p>The <code>chat_code()</code> function generates BioLang code from natural language descriptions. This is useful for scaffolding new analyses, but the output should always be reviewed and tested before use.</p>
+<h3 id="example-generating-a-filter-pipeline"><a class="header" href="#example-generating-a-filter-pipeline">Example: Generating a Filter Pipeline</a></h3>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let task = "Read a TSV file called 'results.tsv', filter rows where the column 'padj' is less than 0.05 and 'log2fc' is greater than 2, sort by padj ascending, and write the result to 'significant.tsv'"
+
+let code = chat_code(task)
+println("Generated code:")
+println(code)
+println("")
+println("Review this code before running it!")
+</code></pre>
+<h3 id="providing-context-to-chat_code"><a class="header" href="#providing-context-to-chat_code">Providing Context to chat_code()</a></h3>
+<p>You can pass existing code or data structures as context to help the LLM generate compatible code:</p>
+<!-- requires: LLM API key (ANTHROPIC_API_KEY or OPENAI_API_KEY) -->
+<pre><code class="language-bio">let existing_code = "let data = read_tsv(\"samples.tsv\")\nlet filtered = data |&gt; filter(|r| r.quality &gt; 30)"
+
+let code = chat_code(
+    "Add a step that groups the filtered data by the 'tissue' column and computes the mean quality per group.",
+    existing_code
+)
+println(code)
+</code></pre>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-gene-function-summarizer"><a class="header" href="#exercise-1-gene-function-summarizer">Exercise 1: Gene Function Summarizer</a></h3>
+<p>Write a BioLang script that:</p>
+<ol>
+<li>Reads the gene list from <code>data/de_genes.tsv</code></li>
+<li>Selects the top 5 most significantly upregulated genes (highest log2fc with padj &lt; 0.05)</li>
+<li>For each gene, uses <code>chat()</code> to get a one-sentence function summary</li>
+<li>Writes the results (gene, fold change, p-value, AI summary) to <code>data/output/gene_summaries.txt</code></li>
+<li>Wraps every <code>chat()</code> call in <code>try/catch</code></li>
+</ol>
+<h3 id="exercise-2-prompt-comparison"><a class="header" href="#exercise-2-prompt-comparison">Exercise 2: Prompt Comparison</a></h3>
+<p>Write a script that sends the same gene list to <code>chat()</code> with three different prompts:</p>
+<ol>
+<li>A vague prompt (“Tell me about these genes”)</li>
+<li>A specific prompt with biological context</li>
+<li>A prompt requesting structured output with confidence levels</li>
+</ol>
+<p>Compare the responses. Which prompt produces the most useful output for a research context?</p>
+<h3 id="exercise-3-ai-verified-variant-report"><a class="header" href="#exercise-3-ai-verified-variant-report">Exercise 3: AI-Verified Variant Report</a></h3>
+<p>Extend the variant interpretation pipeline from Section 4:</p>
+<ol>
+<li>For each variant, generate an AI interpretation</li>
+<li>Then run a second <code>chat()</code> call asking the LLM to identify any claims in its own interpretation that it is less than 90% confident about</li>
+<li>Flag variants where the AI self-reports uncertainty</li>
+<li>Write a report with a “confidence” column</li>
+</ol>
+<h3 id="exercise-4-code-generation-validator"><a class="header" href="#exercise-4-code-generation-validator">Exercise 4: Code Generation Validator</a></h3>
+<p>Write a script that:</p>
+<ol>
+<li>Uses <code>chat_code()</code> to generate a BioLang function</li>
+<li>Uses <code>chat()</code> to review the generated code for potential bugs</li>
+<li>Writes both the generated code and the review to a file</li>
+<li>Adds a header warning that the code needs human review</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>Three LLM builtins.</strong> <code>chat(prompt, context?)</code> for general questions, <code>chat_code(prompt, context?)</code> for code generation, <code>llm_models()</code> to check configuration.</p>
+</li>
+<li>
+<p><strong>Auto-detection.</strong> BioLang detects your LLM provider from environment variables: <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>, <code>OLLAMA_MODEL</code>, or <code>LLM_BASE_URL</code>.</p>
+</li>
+<li>
+<p><strong>Context is powerful.</strong> Pass structured data (records, tables, lists) as the second argument to <code>chat()</code>. BioLang formats them automatically.</p>
+</li>
+<li>
+<p><strong>Prompt engineering matters.</strong> Specify organism, tissue, assay type, and desired output format. Chain multiple focused prompts rather than one massive question.</p>
+</li>
+<li>
+<p><strong>Computation is programmatic.</strong> Use BioLang functions for calculations (GC content, statistics, filtering). Use LLMs only for interpretation and text generation.</p>
+</li>
+<li>
+<p><strong>Always verify.</strong> LLMs hallucinate gene functions, fabricate citations, and invent protein interactions. Cross-reference every biological claim against NCBI, UniProt, OMIM, or PubMed.</p>
+</li>
+<li>
+<p><strong>Always use try/catch.</strong> LLM API calls can fail. Wrap every <code>chat()</code> call so your pipeline degrades gracefully.</p>
+</li>
+<li>
+<p><strong>Never trust LLMs for clinical decisions.</strong> AI-assisted interpretation is a research accelerator, not a substitute for clinical expertise, accredited laboratories, or ACMG/AMP guidelines.</p>
+</li>
+<li>
+<p><strong>Cache and batch.</strong> Save API costs by caching responses and batching multiple genes into single prompts.</p>
+</li>
+<li>
+<p><strong>Human-in-the-loop.</strong> The correct pattern is: compute programmatically, interpret with AI, review with human expertise. Never automate the review step.</p>
+</li>
+</ol>
+<hr>
+<h2 id="next"><a class="header" href="#next">Next</a></h2>
+<p>In <strong>Day 27</strong>, we tackle <strong>Pipeline Orchestration</strong> — chaining multi-step analyses into reproducible, resumable workflows that can handle sample sheets with hundreds of entries.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-25.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-27.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-25.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-27.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

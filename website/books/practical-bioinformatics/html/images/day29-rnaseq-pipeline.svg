@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 920">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="920" rx="12" fill="url(#bg)"/>
+  <text x="400" y="40" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">RNA-seq Differential Expression Pipeline</text>
+  <text x="400" y="62" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Nine-stage analysis from raw counts to biological interpretation</text>
+
+  <!-- Input boxes -->
+  <rect x="40" y="90" width="200" height="60" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="140" y="115" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#1e40af">INPUT</text>
+  <text x="140" y="135" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#1e40af">counts.tsv (genes x samples)</text>
+
+  <rect x="300" y="90" width="200" height="60" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="400" y="115" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#5b21b6">SAMPLE METADATA</text>
+  <text x="400" y="135" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#5b21b6">samples.tsv (condition, replicate)</text>
+
+  <rect x="560" y="90" width="200" height="60" rx="8" fill="#fed7aa" stroke="#f97316" stroke-width="1.5"/>
+  <text x="660" y="115" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#9a3412">GENE METADATA</text>
+  <text x="660" y="135" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#9a3412">gene_info.tsv (symbol, length, GO)</text>
+
+  <line x1="140" y1="150" x2="140" y2="185" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 1 -->
+  <rect x="60" y="190" width="300" height="45" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="80" y="218" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#1e40af">1. LOAD &amp; VALIDATE</text>
+  <line x1="210" y1="235" x2="210" y2="260" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 2 -->
+  <rect x="60" y="265" width="300" height="45" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="80" y="293" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#1e40af">2. QUALITY ASSESS</text>
+  <text x="280" y="293" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#1e40af">Lib sizes, zero genes</text>
+  <line x1="210" y1="310" x2="210" y2="335" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 3 -->
+  <rect x="60" y="340" width="680" height="45" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="80" y="368" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#166534">3. FILTER LOW-COUNT GENES</text>
+  <text x="340" y="368" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534">Remove genes with &lt; 10 total reads</text>
+  <line x1="400" y1="385" x2="400" y2="410" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 4 -->
+  <rect x="60" y="415" width="680" height="45" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="80" y="443" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#5b21b6">4. NORMALIZE</text>
+  <text x="210" y="443" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#5b21b6">CPM (library size) + TPM (gene length)</text>
+  <line x1="400" y1="460" x2="400" y2="485" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 5 -->
+  <rect x="60" y="490" width="680" height="45" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="80" y="518" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#854d0e">5. DIFFERENTIAL EXPRESSION</text>
+  <text x="340" y="518" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e">log2 fold change + t-test</text>
+  <line x1="400" y1="535" x2="400" y2="560" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 6 -->
+  <rect x="60" y="565" width="680" height="45" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="80" y="593" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#854d0e">6. MULTIPLE TESTING CORRECTION</text>
+  <text x="380" y="593" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e">Benjamini-Hochberg FDR</text>
+  <line x1="400" y1="610" x2="400" y2="635" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Gene metadata arrow -->
+  <line x1="660" y1="150" x2="660" y2="650" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <line x1="660" y1="650" x2="630" y2="650" stroke="#94a3b8" stroke-width="1.5"/>
+
+  <!-- Stage 7 -->
+  <rect x="60" y="640" width="680" height="45" rx="8" fill="#fed7aa" stroke="#f97316" stroke-width="1.5"/>
+  <text x="80" y="668" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#9a3412">7. VISUALIZATION</text>
+  <text x="240" y="668" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#9a3412">Volcano plot, heatmap of top genes</text>
+  <line x1="400" y1="685" x2="400" y2="710" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 8 -->
+  <rect x="60" y="715" width="680" height="45" rx="8" fill="#fed7aa" stroke="#f97316" stroke-width="1.5"/>
+  <text x="80" y="743" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#9a3412">8. FUNCTIONAL INTERPRETATION</text>
+  <text x="340" y="743" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#9a3412">GO enrichment, pathway analysis</text>
+  <line x1="400" y1="760" x2="400" y2="785" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 9 -->
+  <rect x="60" y="790" width="680" height="45" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="80" y="818" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#166534">9. REPORT</text>
+  <text x="170" y="818" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534">Summary statistics, DE gene list, figures</text>
+
+  <!-- Output -->
+  <line x1="400" y1="835" x2="400" y2="860" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="200" y="865" width="400" height="35" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="400" y="888" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">de_genes.tsv, volcano.svg, heatmap.svg, summary.txt</text>
+</svg>

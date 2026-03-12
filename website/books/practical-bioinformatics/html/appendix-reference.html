@@ -1,0 +1,722 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Appendix D: Quick Reference Card - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="appendix-d-quick-reference-card"><a class="header" href="#appendix-d-quick-reference-card">Appendix D: Quick Reference Card</a></h1>
+<p>A concise reference for BioLang syntax, builtins, REPL commands, and CLI usage.</p>
+<h2 id="language-syntax"><a class="header" href="#language-syntax">Language Syntax</a></h2>
+<h3 id="variables"><a class="header" href="#variables">Variables</a></h3>
+<pre><code class="language-bio">let x = 42
+let name = "BRCA1"
+let seq = dna"ATGCGATCG"
+let rna_seq = rna"AUGCGAUCG"
+let protein = protein"MARS"
+</code></pre>
+<p>Reassignment (updates an existing binding):</p>
+<pre><code class="language-bio">x = 100
+</code></pre>
+<h3 id="types"><a class="header" href="#types">Types</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>Example</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Int</code></td><td><code>42</code></td><td>Integer</td></tr>
+<tr><td><code>Float</code></td><td><code>3.14</code></td><td>Floating-point</td></tr>
+<tr><td><code>Str</code></td><td><code>"hello"</code></td><td>String</td></tr>
+<tr><td><code>Bool</code></td><td><code>true</code>, <code>false</code></td><td>Boolean</td></tr>
+<tr><td><code>Nil</code></td><td><code>nil</code></td><td>Null value</td></tr>
+<tr><td><code>DNA</code></td><td><code>dna"ATGC"</code></td><td>DNA sequence</td></tr>
+<tr><td><code>RNA</code></td><td><code>rna"AUGC"</code></td><td>RNA sequence</td></tr>
+<tr><td><code>Protein</code></td><td><code>protein"MARS"</code></td><td>Amino acid sequence</td></tr>
+<tr><td><code>List</code></td><td><code>[1, 2, 3]</code></td><td>Ordered collection</td></tr>
+<tr><td><code>Record</code></td><td><code>{name: "A", val: 1}</code></td><td>Named fields</td></tr>
+<tr><td><code>Table</code></td><td><code>to_table(rows, cols)</code></td><td>2D data structure</td></tr>
+<tr><td><code>Interval</code></td><td><code>interval("chr1", 100, 200)</code></td><td>Genomic region</td></tr>
+<tr><td><code>Function</code></td><td><code>fn(x) { x + 1 }</code></td><td>Named function</td></tr>
+<tr><td><code>Closure</code></td><td><code>|x| x + 1</code></td><td>Anonymous function</td></tr>
+<tr><td><code>Stream</code></td><td><code>stream_fastq(path)</code></td><td>Lazy iterator</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="operators"><a class="header" href="#operators">Operators</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operator</th><th>Meaning</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>+</code> <code>-</code> <code>*</code> <code>/</code></td><td>Arithmetic</td><td><code>3 + 4</code></td></tr>
+<tr><td><code>%</code></td><td>Modulo</td><td><code>17 % 5</code></td></tr>
+<tr><td><code>**</code></td><td>Power</td><td><code>2 ** 10</code></td></tr>
+<tr><td><code>==</code> <code>!=</code></td><td>Equality</td><td><code>x == 5</code></td></tr>
+<tr><td><code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code></td><td>Comparison</td><td><code>x &gt; 0</code></td></tr>
+<tr><td><code>and</code> <code>or</code> <code>not</code></td><td>Logical</td><td><code>x &gt; 0 and x &lt; 10</code></td></tr>
+<tr><td><code>|&gt;</code></td><td>Pipe</td><td><code>x |&gt; f()</code></td></tr>
+<tr><td><code>~</code></td><td>Approximate</td><td>Pattern matching</td></tr>
+<tr><td><code>..</code></td><td>Range</td><td><code>1..10</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="pipe-syntax"><a class="header" href="#pipe-syntax">Pipe Syntax</a></h3>
+<p>The pipe operator passes the left-hand value as the first argument to the right-hand function:</p>
+<pre><code class="language-bio"># These are equivalent:
+x |&gt; f(y)
+f(x, y)
+
+# Chaining multiple operations:
+data
+  |&gt; filter(|r| r.quality &gt; 30)
+  |&gt; map(|r| gc_content(r.sequence))
+  |&gt; mean()
+</code></pre>
+<h3 id="functions"><a class="header" href="#functions">Functions</a></h3>
+<p>Named functions:</p>
+<pre><code class="language-bio">let square = fn(x) {
+  x * x
+}
+</code></pre>
+<p>Closures (anonymous functions / lambdas):</p>
+<pre><code class="language-bio">|x| x * 2
+|a, b| a + b
+|r| r.quality &gt;= 30
+</code></pre>
+<h3 id="records"><a class="header" href="#records">Records</a></h3>
+<pre><code class="language-bio">let gene = {name: "TP53", chrom: "chr17", start: 7571720}
+gene.name        # Access field: "TP53"
+keys(gene)       # ["name", "chrom", "start"]
+values(gene)     # ["TP53", "chr17", 7571720]
+</code></pre>
+<h3 id="lists"><a class="header" href="#lists">Lists</a></h3>
+<pre><code class="language-bio">let nums = [1, 2, 3, 4, 5]
+nums[0]          # First element: 1
+len(nums)        # Length: 5
+nums |&gt; map(|x| x * 2)    # [2, 4, 6, 8, 10]
+nums |&gt; filter(|x| x &gt; 3) # [4, 5]
+</code></pre>
+<h3 id="tables"><a class="header" href="#tables">Tables</a></h3>
+<pre><code class="language-bio">let t = to_table(rows, ["name", "value", "score"])
+t |&gt; select(["name", "score"])
+t |&gt; where(|row| row.score &gt; 0.5)
+t |&gt; mutate("log_score", |row| log2(row.score))
+t |&gt; summarize(|key, rows| {category: key, mean_score: mean(rows |&gt; col("score"))})
+t |&gt; group_by("category")
+t |&gt; sort_by("score", "desc")
+</code></pre>
+<h3 id="control-flow"><a class="header" href="#control-flow">Control Flow</a></h3>
+<pre><code class="language-bio"># If/else
+if x &gt; 0 then
+  println("positive")
+else
+  println("non-positive")
+end
+
+# For loop
+for item in items do
+  println(item)
+end
+
+# While loop
+while x &gt; 0 do
+  x = x - 1
+end
+</code></pre>
+<h3 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h3>
+<pre><code class="language-bio">try
+  let data = read_fasta("missing.fa")
+catch e
+  println(f"Error: {e}")
+end
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="imports"><a class="header" href="#imports">Imports</a></h3>
+<pre><code class="language-bio">import "utils.bl"
+import "helpers.bl" as h
+h.my_function()
+</code></pre>
+<h2 id="builtins-by-category"><a class="header" href="#builtins-by-category">Builtins by Category</a></h2>
+<h3 id="sequence-operations"><a class="header" href="#sequence-operations">Sequence Operations</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>gc_content(seq)</code></td><td>GC fraction (0.0-1.0)</td></tr>
+<tr><td><code>complement(seq)</code></td><td>Complementary strand</td></tr>
+<tr><td><code>reverse_complement(seq)</code></td><td>Reverse complement</td></tr>
+<tr><td><code>translate(seq)</code></td><td>DNA/RNA to protein</td></tr>
+<tr><td><code>kmers(seq, k)</code></td><td>List of k-mers</td></tr>
+<tr><td><code>find_motif(seq, pattern)</code></td><td>Find motif positions</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="file-io"><a class="header" href="#file-io">File I/O</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>read_fasta(path)</code></td><td>Read FASTA file, returns list of records</td></tr>
+<tr><td><code>read_fastq(path)</code></td><td>Read FASTQ file, returns list of records</td></tr>
+<tr><td><code>read_csv(path)</code></td><td>Read CSV file, returns table</td></tr>
+<tr><td><code>read_vcf(path)</code></td><td>Read VCF file, returns list of variant records</td></tr>
+<tr><td><code>read_bed(path)</code></td><td>Read BED file, returns list of interval records</td></tr>
+<tr><td><code>read_gff(path)</code></td><td>Read GFF/GTF file, returns list of feature records</td></tr>
+<tr><td><code>write_csv(table, path)</code></td><td>Write table to CSV</td></tr>
+<tr><td><code>write_fasta(records, path)</code></td><td>Write records to FASTA</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="streaming"><a class="header" href="#streaming">Streaming</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>stream_fastq(path)</code></td><td>Lazy FASTQ iterator (memory-efficient)</td></tr>
+<tr><td><code>stream_fasta(path)</code></td><td>Lazy FASTA iterator (memory-efficient)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="table-operations"><a class="header" href="#table-operations">Table Operations</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>to_table(rows, columns)</code></td><td>Create table from row data and column names</td></tr>
+<tr><td><code>select(table, columns)</code></td><td>Select columns by name</td></tr>
+<tr><td><code>where(table, predicate)</code></td><td>Filter rows by condition</td></tr>
+<tr><td><code>mutate(table, name, func)</code></td><td>Add or transform a column</td></tr>
+<tr><td><code>summarize(table, name, func, col)</code></td><td>Aggregate a column</td></tr>
+<tr><td><code>join_tables(t1, t2, key)</code></td><td>Join two tables on a key column</td></tr>
+<tr><td><code>group_by(table, column)</code></td><td>Group rows by column value</td></tr>
+<tr><td><code>sort_by(table, column, order)</code></td><td>Sort rows (<code>"asc"</code> or <code>"desc"</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="statistics"><a class="header" href="#statistics">Statistics</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>mean(list)</code></td><td>Arithmetic mean</td></tr>
+<tr><td><code>median(list)</code></td><td>Median value</td></tr>
+<tr><td><code>stdev(list)</code></td><td>Standard deviation</td></tr>
+<tr><td><code>var(list)</code></td><td>Variance</td></tr>
+<tr><td><code>t_test(list1, list2)</code></td><td>Two-sample t-test</td></tr>
+<tr><td><code>cor(list1, list2)</code></td><td>Pearson correlation</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="math"><a class="header" href="#math">Math</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>log(x)</code></td><td>Natural logarithm</td></tr>
+<tr><td><code>log2(x)</code></td><td>Base-2 logarithm</td></tr>
+<tr><td><code>log10(x)</code></td><td>Base-10 logarithm</td></tr>
+<tr><td><code>abs(x)</code></td><td>Absolute value</td></tr>
+<tr><td><code>sqrt(x)</code></td><td>Square root</td></tr>
+<tr><td><code>pow(base, exp)</code></td><td>Exponentiation</td></tr>
+<tr><td><code>round(x)</code></td><td>Round to nearest integer</td></tr>
+<tr><td><code>ceil(x)</code></td><td>Round up</td></tr>
+<tr><td><code>floor(x)</code></td><td>Round down</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="visualization"><a class="header" href="#visualization">Visualization</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>scatter(x, y, opts)</code></td><td>Scatter plot</td></tr>
+<tr><td><code>bar(labels, values, opts)</code></td><td>Bar chart</td></tr>
+<tr><td><code>hist(values, opts)</code></td><td>Histogram</td></tr>
+<tr><td><code>heatmap(matrix, opts)</code></td><td>Heatmap</td></tr>
+<tr><td><code>box(groups, opts)</code></td><td>Box plot</td></tr>
+<tr><td><code>line(x, y, opts)</code></td><td>Line chart</td></tr>
+<tr><td><code>volcano(log2fc, pvals, opts)</code></td><td>Volcano plot</td></tr>
+<tr><td><code>dotplot(data, opts)</code></td><td>Dot plot</td></tr>
+<tr><td><code>phylo_tree(tree, opts)</code></td><td>Phylogenetic tree</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="string-operations"><a class="header" href="#string-operations">String Operations</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>split(str, delimiter)</code></td><td>Split string into list</td></tr>
+<tr><td><code>join(list, delimiter)</code></td><td>Join list into string</td></tr>
+<tr><td><code>trim(str)</code></td><td>Remove leading/trailing whitespace</td></tr>
+<tr><td><code>upper(str)</code></td><td>Convert to uppercase</td></tr>
+<tr><td><code>lower(str)</code></td><td>Convert to lowercase</td></tr>
+<tr><td><code>contains(str, substring)</code></td><td>Check if substring exists</td></tr>
+<tr><td><code>starts_with(str, prefix)</code></td><td>Check prefix</td></tr>
+<tr><td><code>ends_with(str, suffix)</code></td><td>Check suffix</td></tr>
+<tr><td><code>replace(str, old, new)</code></td><td>Replace occurrences</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="higher-order-functions"><a class="header" href="#higher-order-functions">Higher-Order Functions</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>map(collection, func)</code></td><td>Transform each element</td></tr>
+<tr><td><code>filter(collection, func)</code></td><td>Keep elements matching predicate</td></tr>
+<tr><td><code>reduce(collection, func, init)</code></td><td>Fold into single value</td></tr>
+<tr><td><code>sort(collection, func)</code></td><td>Sort by comparison function</td></tr>
+<tr><td><code>each(collection, func)</code></td><td>Execute function for each element (no return)</td></tr>
+<tr><td><code>flatten(nested_list)</code></td><td>Flatten one level of nesting</td></tr>
+<tr><td><code>group_by(list, func)</code></td><td>Group elements by key function</td></tr>
+<tr><td><code>par_map(collection, func)</code></td><td>Parallel map (multi-threaded)</td></tr>
+<tr><td><code>par_filter(collection, func)</code></td><td>Parallel filter (multi-threaded)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="api-access"><a class="header" href="#api-access">API Access</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ncbi_search(db, query)</code></td><td>Search NCBI database</td></tr>
+<tr><td><code>ncbi_gene(symbol, species)</code></td><td>Get gene info from NCBI</td></tr>
+<tr><td><code>ncbi_sequence(id)</code></td><td>Fetch sequence by accession</td></tr>
+<tr><td><code>ensembl_gene(id_or_symbol)</code></td><td>Get gene info from Ensembl</td></tr>
+<tr><td><code>ensembl_vep(hgvs)</code></td><td>Variant Effect Predictor</td></tr>
+<tr><td><code>uniprot_search(query)</code></td><td>Search UniProt</td></tr>
+<tr><td><code>uniprot_entry(accession)</code></td><td>Get UniProt entry</td></tr>
+<tr><td><code>ucsc_sequence(genome, chrom, start, end)</code></td><td>Get UCSC sequence</td></tr>
+<tr><td><code>kegg_get(id)</code></td><td>Get KEGG entry</td></tr>
+<tr><td><code>kegg_find(db, query)</code></td><td>Search KEGG</td></tr>
+<tr><td><code>go_term(id)</code></td><td>Get Gene Ontology term</td></tr>
+<tr><td><code>go_annotations(gene)</code></td><td>Get GO annotations</td></tr>
+<tr><td><code>string_network(genes, species)</code></td><td>STRING protein network</td></tr>
+<tr><td><code>pdb_entry(id)</code></td><td>Get PDB structure entry</td></tr>
+<tr><td><code>reactome_pathways(gene)</code></td><td>Get Reactome pathways</td></tr>
+<tr><td><code>cosmic_gene(symbol)</code></td><td>COSMIC cancer mutations</td></tr>
+<tr><td><code>datasets_gene(symbol)</code></td><td>NCBI Datasets gene info</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>println(value)</code></td><td>Print to stdout with newline</td></tr>
+<tr><td><code>len(collection)</code></td><td>Length of list, string, or table</td></tr>
+<tr><td><code>typeof(value)</code></td><td>Type name as string</td></tr>
+<tr><td><code>keys(record)</code></td><td>Record field names</td></tr>
+<tr><td><code>values(record)</code></td><td>Record field values</td></tr>
+<tr><td><code>range(start, end)</code></td><td>Integer range</td></tr>
+<tr><td><code>zip(list1, list2)</code></td><td>Pair elements from two lists</td></tr>
+<tr><td><code>json_encode(value)</code></td><td>Convert to JSON string</td></tr>
+<tr><td><code>json_decode(str)</code></td><td>Parse JSON string to value</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="file-system"><a class="header" href="#file-system">File System</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>file_exists(path)</code></td><td>Check if file exists</td></tr>
+<tr><td><code>read_lines(path)</code></td><td>Read file as list of lines</td></tr>
+<tr><td><code>write_lines(lines, path)</code></td><td>Write list of lines to file</td></tr>
+<tr><td><code>mkdir(path)</code></td><td>Create directory</td></tr>
+<tr><td><code>list_dir(path)</code></td><td>List directory contents</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="llm-integration"><a class="header" href="#llm-integration">LLM Integration</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>chat(prompt)</code></td><td>Send prompt to configured LLM, returns response</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="repl-commands"><a class="header" href="#repl-commands">REPL Commands</a></h2>
+<p>Type these at the <code>bl&gt;</code> prompt (they start with <code>:</code>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>:help</code></td><td>Show all available REPL commands</td></tr>
+<tr><td><code>:env</code></td><td>Display all variables in the current environment</td></tr>
+<tr><td><code>:reset</code></td><td>Clear the environment and start fresh</td></tr>
+<tr><td><code>:load file.bl</code></td><td>Load and execute a BioLang script</td></tr>
+<tr><td><code>:save file.bl</code></td><td>Save the current session history to a file</td></tr>
+<tr><td><code>:time expression</code></td><td>Execute an expression and print elapsed time</td></tr>
+<tr><td><code>:type expression</code></td><td>Show the type of an expression without executing it</td></tr>
+<tr><td><code>:profile expression</code></td><td>Profile execution with detailed timing</td></tr>
+<tr><td><code>:plugins</code></td><td>List available plugins</td></tr>
+<tr><td><code>:history</code></td><td>Show command history for the session</td></tr>
+<tr><td><code>:plot</code></td><td>Display the most recently generated plot</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h2>
+<p>The <code>bl</code> command-line tool:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>bl run script.bl</code></td><td>Execute a BioLang script</td></tr>
+<tr><td><code>bl repl</code></td><td>Start interactive REPL (also: <code>bl</code> with no args)</td></tr>
+<tr><td><code>bl lsp</code></td><td>Start the Language Server Protocol server</td></tr>
+<tr><td><code>bl init project-name</code></td><td>Scaffold a new project directory</td></tr>
+<tr><td><code>bl plugins</code></td><td>List installed plugins</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="common-usage-patterns"><a class="header" href="#common-usage-patterns">Common Usage Patterns</a></h3>
+<p>Run a script:</p>
+<pre><code class="language-bash">bl run analysis.bl
+</code></pre>
+<p>Run a one-liner:</p>
+<pre><code class="language-bash">bl -e 'gc_content(dna"ATGCGATCG") |&gt; println()'
+</code></pre>
+<p>Start the REPL and load a file:</p>
+<pre><code class="language-bash">bl repl
+bl&gt; :load helpers.bl
+bl&gt; my_function("input.fasta")
+</code></pre>
+<p>Run with environment variables:</p>
+<pre><code class="language-bash">NCBI_API_KEY=your-key bl run fetch_genes.bl
+</code></pre>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="read-filter-analyze"><a class="header" href="#read-filter-analyze">Read, Filter, Analyze</a></h3>
+<pre><code class="language-bio">read_fastq("data.fastq")
+  |&gt; filter(|r| r.quality &gt;= 30)
+  |&gt; map(|r| gc_content(r.sequence))
+  |&gt; mean()
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="stream-large-files"><a class="header" href="#stream-large-files">Stream Large Files</a></h3>
+<pre><code class="language-bio">stream_fastq("huge.fastq")
+  |&gt; filter(|r| len(r.sequence) &gt;= 100)
+  |&gt; each(|r| println(r.name))
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="build-a-summary-table"><a class="header" href="#build-a-summary-table">Build a Summary Table</a></h3>
+<pre><code class="language-bio">let reads = read_fastq("sample.fastq")
+let rows = reads |&gt; map(|r| {
+  name: r.name,
+  length: len(r.sequence),
+  gc: gc_content(r.sequence),
+  quality: r.quality
+})
+let t = to_table(rows, ["name", "length", "gc", "quality"])
+t |&gt; sort_by("gc", "desc") |&gt; write_csv("summary.csv")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="fetch-and-analyze-from-database"><a class="header" href="#fetch-and-analyze-from-database">Fetch and Analyze from Database</a></h3>
+<pre><code class="language-bio">let gene = ncbi_gene("TP53", "human")
+let seq = ncbi_sequence(gene.id)
+let motifs = find_motif(seq, "TATA")
+println(f"Found {len(motifs)} TATA boxes in TP53")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="multi-step-pipeline-with-error-handling"><a class="header" href="#multi-step-pipeline-with-error-handling">Multi-Step Pipeline with Error Handling</a></h3>
+<pre><code class="language-bio">try
+  let variants = read_vcf("sample.vcf")
+  let filtered = variants
+    |&gt; filter(|v| v.quality &gt;= 30)
+    |&gt; filter(|v| v.alt != ".")
+  println(f"Kept {len(filtered)} of {len(variants)} variants")
+  write_csv(to_table(filtered, keys(filtered[0])), "filtered.csv")
+catch e
+  println(f"Pipeline failed: {e}")
+end
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="parallel-processing"><a class="header" href="#parallel-processing">Parallel Processing</a></h3>
+<pre><code class="language-bio">let files = list_dir("fastq/") |&gt; filter(|f| ends_with(f, ".fastq"))
+let results = files |&gt; par_map(|f| {
+  let reads = read_fastq(f)
+  {
+    file: f,
+    count: len(reads),
+    mean_gc: reads |&gt; map(|r| gc_content(r.sequence)) |&gt; mean()
+  }
+})
+to_table(results, ["file", "count", "mean_gc"]) |&gt; write_csv("batch_results.csv")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="appendix-careers.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="appendix-careers.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

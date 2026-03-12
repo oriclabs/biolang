@@ -1,0 +1,343 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Appendix B: Glossary - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="appendix-b-glossary"><a class="header" href="#appendix-b-glossary">Appendix B: Glossary</a></h1>
+<p>This glossary covers the biology, programming, and bioinformatics terms used throughout this book. Each entry references the day(s) where the concept is introduced or used most heavily.</p>
+<hr>
+<p><strong>Alignment</strong> — The process of arranging two or more sequences to identify regions of similarity. Alignment reveals evolutionary relationships, functional regions, and mutations. <em>Days 11, 12, 20</em></p>
+<p><strong>Allele</strong> — One of two or more versions of a gene or genetic variant at a particular position in the genome. For example, a SNP might have a reference allele “A” and an alternate allele “G”. <em>Days 12, 28</em></p>
+<p><strong>Amino acid</strong> — The building blocks of proteins. There are 20 standard amino acids, each encoded by one or more three-letter codons in the genetic code. Represented by single-letter codes (e.g., M for methionine, A for alanine). <em>Days 1, 3, 17</em></p>
+<p><strong>Annotation</strong> — Metadata attached to a genomic feature — what a region of DNA does, what gene it belongs to, what protein it encodes. Stored in GFF/GTF files. <em>Days 7, 18</em></p>
+<p><strong>API (Application Programming Interface)</strong> — A structured way for programs to request data from a service. In bioinformatics, APIs provide programmatic access to databases like NCBI, Ensembl, and UniProt. <em>Days 9, 24</em></p>
+<p><strong>BAM (Binary Alignment Map)</strong> — A compressed binary format for storing sequence alignment data. The binary counterpart of SAM. Requires an index (.bai) for random access. <em>Days 7, 12</em></p>
+<p><strong>Base pair (bp)</strong> — A single unit of DNA consisting of two complementary nucleotides bonded together (A-T or C-G). Genome sizes are measured in base pairs: the human genome is approximately 3.2 billion bp. <em>Days 1, 3</em></p>
+<p><strong>BED (Browser Extensible Data)</strong> — A tab-delimited file format for defining genomic regions. Each line specifies a chromosome, start position, and end position. Uses zero-based, half-open coordinates. <em>Days 7, 18</em></p>
+<p><strong>Bioinformatics</strong> — The interdisciplinary field that develops methods and software for understanding biological data, particularly molecular biology data like DNA, RNA, and protein sequences. <em>Day 1</em></p>
+<p><strong>BLAST (Basic Local Alignment Search Tool)</strong> — An algorithm for comparing sequences against a database to find similar sequences. One of the most widely used tools in bioinformatics. <em>Day 11</em></p>
+<p><strong>Builtin</strong> — A function that is available in BioLang without importing anything. Examples include <code>gc_content</code>, <code>read_fasta</code>, and <code>println</code>. <em>Day 2</em></p>
+<p><strong>Categorical variable</strong> — A variable that takes on a limited number of discrete values, such as tissue type or experimental condition. Contrast with continuous variables like expression levels or quality scores. <em>Days 10, 14</em></p>
+<p><strong>Chromosome</strong> — A long, continuous piece of DNA containing many genes. Humans have 23 pairs of chromosomes (22 autosomes plus X/Y sex chromosomes). <em>Days 1, 3, 18</em></p>
+<p><strong>Closure</strong> — A function that captures variables from its surrounding scope. In BioLang, closures are written as <code>|params| expression</code>. Also called a lambda. <em>Days 4, 6</em></p>
+<p><strong>Codon</strong> — A sequence of three nucleotides that encodes a single amino acid (or a stop signal) during translation. For example, ATG encodes methionine and also serves as the start codon. <em>Days 1, 3, 17</em></p>
+<p><strong>Complement</strong> — The matching strand of a DNA sequence, determined by base pairing rules: A pairs with T, C pairs with G. The complement of ATGC is TACG. <em>Days 3, 5</em></p>
+<p><strong>Contig</strong> — A contiguous sequence of DNA assembled from overlapping reads. Genome assemblies consist of many contigs ordered into scaffolds and chromosomes. <em>Days 11, 20</em></p>
+<p><strong>Control flow</strong> — Programming constructs that determine the order of execution: <code>if</code>/<code>else</code>, <code>for</code> loops, <code>while</code> loops. <em>Day 4</em></p>
+<p><strong>Coverage (Depth)</strong> — The average number of times each base in the genome is read by sequencing. Higher coverage means higher confidence. Whole-genome sequencing typically targets 30x coverage. <em>Days 6, 12</em></p>
+<p><strong>CRAM</strong> — A highly compressed file format for sequence alignments, more space-efficient than BAM. Uses reference-based compression. <em>Day 7</em></p>
+<p><strong>CSV (Comma-Separated Values)</strong> — A plain-text tabular file format where columns are separated by commas. Widely used for sharing data between tools and languages. Read in BioLang with <code>read_csv</code>. <em>Days 10, 22</em></p>
+<p><strong>DE (Differential Expression)</strong> — The statistical identification of genes that are expressed at significantly different levels between two or more conditions (e.g., tumor vs. normal tissue). <em>Days 13, 29</em></p>
+<p><strong>DNA (Deoxyribonucleic Acid)</strong> — The molecule that carries genetic information in all living organisms. Composed of four nucleotide bases: adenine (A), thymine (T), cytosine (C), and guanine (G). <em>Days 1, 3</em></p>
+<p><strong>Enrichment analysis</strong> — A statistical method for determining whether a predefined set of genes (e.g., a Gene Ontology category or KEGG pathway) is overrepresented in a list of genes of interest. <em>Day 16</em></p>
+<p><strong>Exome</strong> — The portion of the genome that codes for proteins, comprising roughly 1-2% of the total genome. Whole-exome sequencing (WES) targets only these regions. <em>Days 12, 28</em></p>
+<p><strong>Exon</strong> — A segment of a gene that is represented in the mature RNA after splicing. Exons contain the coding sequence that is translated into protein. <em>Days 3, 7, 18</em></p>
+<p><strong>False discovery rate (FDR)</strong> — A method of correcting for multiple hypothesis testing. When thousands of genes are tested simultaneously, some will appear significant by chance. FDR controls the expected proportion of false positives among the rejected hypotheses. The Benjamini-Hochberg method is the most common FDR correction. <em>Days 14, 16</em></p>
+<p><strong>FASTA</strong> — A text-based file format for representing nucleotide or protein sequences. Each entry has a header line starting with <code>&gt;</code> followed by sequence lines. <em>Days 5, 6, 7</em></p>
+<p><strong>FASTQ</strong> — An extension of FASTA that includes quality scores for each base. The standard output format of most sequencing instruments. Each record has four lines: header, sequence, separator, and quality string. <em>Days 6, 7, 8</em></p>
+<p><strong>Feature</strong> — A defined region of a biological sequence with a specific function or annotation. Features include genes, exons, introns, promoters, and regulatory elements. Stored in GFF/GTF format. <em>Days 7, 18</em></p>
+<p><strong>Fold change</strong> — The ratio of expression levels between two conditions. A fold change of 2 means a gene is expressed twice as much in one condition vs. the other. Often reported as log2 fold change. <em>Days 13, 14, 29</em></p>
+<p><strong>Frameshift</strong> — A mutation caused by an insertion or deletion of nucleotides that is not a multiple of three, disrupting the reading frame. Frameshifts typically produce a truncated or nonfunctional protein. <em>Days 12, 28</em></p>
+<p><strong>Function</strong> — A named, reusable block of code that takes inputs (parameters) and returns an output. In BioLang, defined with <code>let name = fn(params) { body }</code>. <em>Day 4</em></p>
+<p><strong>GC content</strong> — The proportion of bases in a DNA sequence that are guanine (G) or cytosine (C). GC content affects DNA stability, gene density, and sequencing bias. <em>Days 1, 2, 5, 6</em></p>
+<p><strong>Gene</strong> — A segment of DNA that encodes a functional product, typically a protein or RNA molecule. The human genome contains approximately 20,000 protein-coding genes. <em>Days 1, 3</em></p>
+<p><strong>Gene Ontology (GO)</strong> — A standardized vocabulary for describing gene functions across three categories: molecular function, biological process, and cellular component. Used in enrichment analysis. <em>Days 16, 24</em></p>
+<p><strong>Genome</strong> — The complete set of DNA in an organism. The human genome is approximately 3.2 billion base pairs. Reference genomes (like GRCh38) serve as the coordinate system for genomic analyses. <em>Days 1, 3</em></p>
+<p><strong>GFF/GTF (General Feature Format / Gene Transfer Format)</strong> — File formats for describing genomic features (genes, exons, transcripts) with their coordinates and attributes. GFF3 is the current standard; GTF is a specialized variant used for gene annotations. <em>Days 7, 18</em></p>
+<p><strong>GWAS (Genome-Wide Association Study)</strong> — A study that scans the entire genome for statistical associations between genetic variants and traits or diseases. Typically involves thousands to millions of participants. <em>Day 12</em></p>
+<p><strong>Haplotype</strong> — A set of genetic variants that are inherited together on the same chromosome. Important for understanding genetic linkage and population structure. <em>Day 12</em></p>
+<p><strong>Higher-Order Function (HOF)</strong> — A function that takes another function as an argument or returns a function. <code>map</code>, <code>filter</code>, and <code>reduce</code> are the most common HOFs in BioLang. <em>Days 4, 5, 8</em></p>
+<p><strong>Homolog</strong> — A gene related to another gene by shared ancestry. Homologs can be orthologs (separated by speciation) or paralogs (separated by duplication). <em>Day 20</em></p>
+<p><strong>Illumina</strong> — The dominant next-generation sequencing technology, producing short reads (typically 100-300 bp) with high accuracy (&gt;99.9%). Most FASTQ files encountered in bioinformatics come from Illumina instruments. <em>Days 1, 6</em></p>
+<p><strong>Indel</strong> — An insertion or deletion of one or more bases in a DNA sequence relative to a reference. Indels can cause frameshifts if they are not multiples of three bases. <em>Days 12, 28</em></p>
+<p><strong>Index</strong> — A pre-computed data structure that enables fast random access to records within a large file. BAM files use .bai indexes; tabix creates .tbi indexes for VCF and BED files. Without an index, accessing a specific region requires reading the entire file. <em>Days 7, 8</em></p>
+<p><strong>Interval</strong> — A genomic region defined by a chromosome, start position, and end position. In BioLang, intervals are a native type created with <code>interval("chr1", 100, 200)</code>. Interval arithmetic (intersection, union, subtraction) is fundamental to genomic analysis. <em>Day 18</em></p>
+<p><strong>Intron</strong> — A segment of a gene that is removed (spliced out) from the RNA transcript before translation. Introns do not code for protein. <em>Days 3, 7</em></p>
+<p><strong>Isoform</strong> — One of several variant forms of a protein, produced by alternative splicing of the same gene. Different isoforms can have distinct functions, tissue distributions, and disease associations. <em>Days 3, 13</em></p>
+<p><strong>k-mer</strong> — A subsequence of length k from a larger sequence. k-mer analysis is used for genome assembly, error correction, and sequence comparison without alignment. <em>Days 5, 11</em></p>
+<p><strong>Lambda</strong> — See <em>Closure</em>. A shorthand term for an anonymous function. In BioLang: <code>|x| x * 2</code>. <em>Days 4, 5</em></p>
+<p><strong>List</strong> — An ordered collection of values. In BioLang, written as <code>[1, 2, 3]</code> or <code>["A", "B", "C"]</code>. Lists support indexing, slicing, and higher-order functions. <em>Days 4, 5</em></p>
+<p><strong>Locus (plural: Loci)</strong> — A specific position or region on a chromosome. Can refer to a single base position (a SNP locus) or a larger region (a gene locus). <em>Days 12, 18</em></p>
+<p><strong>MAF (Minor Allele Frequency)</strong> — The frequency of the second most common allele at a given locus in a population. Used to distinguish common variants (MAF &gt; 1%) from rare variants. <em>Days 12, 28</em></p>
+<p><strong>Mapping quality</strong> — A score indicating the confidence that a read has been aligned to the correct position in the reference genome. Higher scores indicate more unique mappings. Often on a Phred scale. <em>Days 7, 12</em></p>
+<p><strong>Motif</strong> — A short, conserved sequence pattern that has biological significance. Examples include transcription factor binding sites, splice sites, and the Kozak consensus sequence. <em>Days 5, 11, 17</em></p>
+<p><strong>Mutation</strong> — A change in the DNA sequence. Mutations include single-base substitutions (SNPs), insertions, deletions, and larger structural changes. <em>Days 1, 12</em></p>
+<p><strong>Normalization</strong> — The process of adjusting raw data to account for systematic biases. In RNA-seq, normalization corrects for differences in sequencing depth and gene length. Common methods include TPM, FPKM, and DESeq2’s median-of-ratios. <em>Days 13, 14</em></p>
+<p><strong>Nucleotide</strong> — The basic building block of DNA and RNA. DNA nucleotides contain one of four bases (A, T, C, G) plus a sugar and phosphate group. RNA uses uracil (U) instead of thymine (T). <em>Days 1, 3</em></p>
+<p><strong>Null hypothesis</strong> — The default assumption in a statistical test — typically that there is no difference between groups or no association between variables. Statistical tests compute the probability (p-value) of the data under this assumption. <em>Day 14</em></p>
+<p><strong>Open Reading Frame (ORF)</strong> — A stretch of DNA that begins with a start codon (ATG) and ends with a stop codon (TAA, TAG, or TGA), potentially encoding a protein. <em>Days 5, 17</em></p>
+<p><strong>Ortholog</strong> — Genes in different species that evolved from a common ancestral gene through speciation. Orthologs typically retain the same function. <em>Day 20</em></p>
+<p><strong>p-value</strong> — The probability of observing a result at least as extreme as the one obtained, assuming the null hypothesis is true. In bioinformatics, p-values are typically adjusted for multiple testing (see FDR). <em>Days 14, 16</em></p>
+<p><strong>Paralog</strong> — Genes within the same species that arose from gene duplication. Paralogs may diverge in function over time. <em>Day 20</em></p>
+<p><strong>Pathway</strong> — A series of molecular interactions and reactions that lead to a biological outcome. Pathways connect genes, proteins, and metabolites into functional networks. <em>Day 16</em></p>
+<p><strong>PCR (Polymerase Chain Reaction)</strong> — A laboratory technique for amplifying specific DNA sequences. Important for bioinformatics because PCR duplicates can bias sequencing results and must be identified and removed. <em>Days 1, 6</em></p>
+<p><strong>Phred score</strong> — A logarithmic quality score indicating the probability of a base call being wrong. Phred 20 = 1% error; Phred 30 = 0.1% error; Phred 40 = 0.01% error. Encoded as ASCII characters in FASTQ files. <em>Days 6, 7</em></p>
+<p><strong>Phylogeny</strong> — The evolutionary history and relationships among organisms or genes, typically represented as a tree. Phylogenetic analysis uses sequence similarity to infer these relationships. <em>Day 20</em></p>
+<p><strong>Pipe</strong> — The <code>|&gt;</code> operator in BioLang that passes the result of one expression as the first argument to the next function. <code>a |&gt; f(b)</code> is equivalent to <code>f(a, b)</code>. <em>Days 2, 4</em></p>
+<p><strong>Polymorphism</strong> — A variation in the DNA sequence that occurs at a frequency of 1% or greater in a population. Polymorphisms that change a single base are called SNPs. <em>Day 12</em></p>
+<p><strong>Promoter</strong> — A region of DNA upstream of a gene where transcription factors bind to initiate gene expression. Promoter analysis can reveal gene regulation patterns. <em>Days 3, 11</em></p>
+<p><strong>Protein</strong> — A large molecule made of amino acids, folded into a specific three-dimensional structure. Proteins perform most of the work in cells: catalysis, signaling, transport, and structure. <em>Days 1, 3, 17</em></p>
+<p><strong>Protein domain</strong> — A conserved, independently folding structural unit within a protein. Domains often correspond to specific functions (e.g., kinase domains, DNA-binding domains). Databases like Pfam and InterPro catalog known protein domains. <em>Day 17</em></p>
+<p><strong>Quality control (QC)</strong> — The process of evaluating raw data for errors, biases, and artifacts before analysis. In sequencing, QC includes checking read quality, adapter contamination, GC bias, and duplication rates. <em>Days 6, 8</em></p>
+<p><strong>Quality score</strong> — A numerical value indicating confidence in a measurement. In sequencing, quality scores are Phred-scaled probabilities of error. In variant calling, quality scores indicate confidence in the variant call. <em>Days 6, 12</em></p>
+<p><strong>Read</strong> — A single DNA sequence produced by a sequencing instrument. Modern sequencers produce millions to billions of short reads (100-300 bp for Illumina) or longer reads (10,000+ bp for PacBio/Nanopore). <em>Days 6, 7</em></p>
+<p><strong>Record</strong> — A data structure with named fields. In BioLang, written as <code>{name: "BRCA1", length: 7088}</code>. Records are used to represent structured data like gene annotations and variant calls. <em>Days 4, 5</em></p>
+<p><strong>Reproducibility</strong> — The ability for independent researchers to obtain the same results from the same data using the same analysis methods. Reproducible pipelines record software versions, parameters, and random seeds. <em>Day 22</em></p>
+<p><strong>Reverse complement</strong> — The complement of a DNA sequence read in the reverse direction. The reverse complement of 5’-ATGC-3’ is 5’-GCAT-3’. Essential because DNA is double-stranded and sequencing reads can come from either strand. <em>Days 3, 5</em></p>
+<p><strong>Reference genome</strong> — A standard representative genome sequence for a species, used as a coordinate system for mapping reads and identifying variants. GRCh38 (hg38) is the current human reference. <em>Days 11, 12</em></p>
+<p><strong>RNA (Ribonucleic Acid)</strong> — A single-stranded molecule transcribed from DNA. Messenger RNA (mRNA) carries genetic information from DNA to the ribosome for protein synthesis. Uses uracil (U) instead of thymine (T). <em>Days 1, 3, 13</em></p>
+<p><strong>RNA-seq</strong> — A sequencing technology that measures gene expression by sequencing all RNA molecules in a sample. Produces millions of reads that are mapped to a reference genome and counted per gene. <em>Days 13, 29</em></p>
+<p><strong>SAM (Sequence Alignment Map)</strong> — A text-based file format for storing sequence alignments. Each line represents a read and its alignment to a reference genome. BAM is the compressed binary equivalent. <em>Days 7, 12</em></p>
+<p><strong>Sequence</strong> — An ordered series of nucleotides (DNA/RNA) or amino acids (protein). Sequences are the fundamental data type in bioinformatics. <em>Days 1, 2, 3</em></p>
+<p><strong>SNP (Single Nucleotide Polymorphism)</strong> — A variation at a single position in the DNA sequence. SNPs are the most common type of genetic variation, with roughly 4-5 million per human genome. <em>Days 12, 28</em></p>
+<p><strong>Splice site</strong> — The boundary between an exon and an intron. Splice sites are recognized by the spliceosome, which removes introns from the pre-mRNA. Mutations at splice sites can disrupt gene expression. <em>Days 3, 7</em></p>
+<p><strong>Strand</strong> — The directionality of a DNA or RNA molecule. Double-stranded DNA has a forward (plus/sense) strand and a reverse (minus/antisense) strand. Genes can be located on either strand. Represented as <code>+</code>, <code>-</code>, or <code>.</code> (unknown) in genomic file formats. <em>Days 3, 18</em></p>
+<p><strong>Streaming</strong> — Processing data record by record without loading the entire file into memory. Essential for files that exceed available RAM. In BioLang, <code>stream_fastq</code> and <code>stream_fasta</code> return lazy iterators. <em>Days 8, 21</em></p>
+<p><strong>Structural variant (SV)</strong> — A genomic variant involving 50 or more base pairs. Includes large insertions, deletions, inversions, duplications, and translocations. Detected by specialized tools that analyze split reads, discordant read pairs, or long reads. <em>Day 12</em></p>
+<p><strong>Table</strong> — A two-dimensional data structure with named columns and rows. In BioLang, tables are created with <code>to_table</code> and manipulated with <code>select</code>, <code>where</code>, <code>mutate</code>, <code>summarize</code>, and <code>group_by</code>. <em>Days 5, 10</em></p>
+<p><strong>Transcript</strong> — The RNA molecule produced from a gene. A single gene can produce multiple transcripts through alternative splicing, each encoding a different protein isoform. <em>Days 3, 13</em></p>
+<p><strong>Transcriptome</strong> — The complete set of RNA transcripts produced by an organism or cell type at a given time. RNA-seq measures the transcriptome to determine which genes are active and at what levels. <em>Day 13</em></p>
+<p><strong>Translation</strong> — The process of converting an mRNA sequence into a protein sequence, reading three nucleotides (one codon) at a time. In BioLang, the <code>translate</code> function performs this conversion computationally. <em>Days 1, 3, 17</em></p>
+<p><strong>UTR (Untranslated Region)</strong> — Portions of an mRNA molecule that are not translated into protein. The 5’ UTR precedes the start codon; the 3’ UTR follows the stop codon. UTRs regulate mRNA stability, localization, and translation efficiency. <em>Days 3, 18</em></p>
+<p><strong>Variant</strong> — A difference between an individual’s genome and the reference genome. Variants include SNPs, indels, structural variants, and copy number variants. <em>Days 12, 28</em></p>
+<p><strong>Variable</strong> — A named storage location for a value. In BioLang, variables are declared with <code>let x = value</code> and reassigned with <code>x = new_value</code>. <em>Day 2</em></p>
+<p><strong>VCF (Variant Call Format)</strong> — A text-based file format for storing genetic variants. Each line represents a variant with its position, reference allele, alternate allele, quality, and sample-specific genotype information. <em>Days 7, 12, 28</em></p>
+<p><strong>Volcano plot</strong> — A scatter plot used to visualize differential expression results, plotting statistical significance (-log10 p-value) against magnitude of change (log2 fold change). Points in the upper-left and upper-right corners represent significantly differentially expressed genes. <em>Days 15, 19, 29</em></p>
+<p><strong>WES (Whole-Exome Sequencing)</strong> — Sequencing of only the protein-coding regions (exons) of the genome, representing roughly 1-2% of the total genome. More cost-effective than WGS for finding coding mutations. <em>Days 12, 28</em></p>
+<p><strong>WGS (Whole-Genome Sequencing)</strong> — Sequencing of the entire genome, including both coding and non-coding regions. Provides a complete picture but generates much more data than WES. <em>Days 12, 28</em></p>
+<p><strong>Zero-based coordinates</strong> — A coordinate system where the first position is numbered 0. BED files use zero-based, half-open coordinates: a region from position 100 to 200 includes base 100 but not base 200. Contrast with one-based coordinates used in GFF and VCF. <em>Days 7, 18</em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="appendix-setup.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="appendix-careers.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="appendix-setup.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="appendix-careers.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

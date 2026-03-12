@@ -1,0 +1,39 @@
+<svg viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="220" rx="12" fill="url(#bg)"/>
+  <text x="400" y="35" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">Group-By / Summarize Flow</text>
+  <text x="400" y="55" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Split-apply-combine: the most powerful table pattern</text>
+
+  <!-- Table (all rows) -->
+  <rect x="30" y="95" width="150" height="60" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="105" y="121" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#1e40af">Table</text>
+  <text x="105" y="140" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#3b82f6">(all rows)</text>
+
+  <!-- Arrow -->
+  <line x1="180" y1="125" x2="230" y2="125" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="205" y="118" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">group_by()</text>
+
+  <!-- Map of subtables -->
+  <rect x="235" y="80" width="220" height="90" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="345" y="106" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#854d0e">Map</text>
+  <text x="345" y="126" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#854d0e">{chr7: subtable,</text>
+  <text x="345" y="142" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#854d0e">chr17: subtable, ...}</text>
+  <text x="345" y="160" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#854d0e">one subtable per group</text>
+
+  <!-- Arrow -->
+  <line x1="455" y1="125" x2="505" y2="125" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="480" y="118" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">summarize()</text>
+
+  <!-- Summarized Table -->
+  <rect x="510" y="95" width="260" height="60" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="640" y="121" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#166534">Summarized Table</text>
+  <text x="640" y="140" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#166534">(one row per group)</text>
+</svg>

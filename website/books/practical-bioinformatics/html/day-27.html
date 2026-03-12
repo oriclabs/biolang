@@ -1,0 +1,982 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 27: Building Tools and Plugins - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-27-building-tools-and-plugins"><a class="header" href="#day-27-building-tools-and-plugins">Day 27: Building Tools and Plugins</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate–Advanced</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Intermediate (sequence analysis, QC metrics, file formats)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate–Advanced (functions, modules, records, pipes, error handling)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3–4 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–26 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code> (simulated sequences, QC data)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to extract reusable functions into BioLang modules</li>
+<li>How to use <code>import</code> and <code>import ... as</code> to organize code across files</li>
+<li>How to build a sequence utilities library with validation and error handling</li>
+<li>How to build a QC module for quality control workflows</li>
+<li>How to test your modules with <code>assert()</code></li>
+<li>How the BioLang plugin system works (subprocess JSON protocol)</li>
+<li>How to build a Python plugin that extends BioLang</li>
+<li>How to package and share your tools</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p><em>“I keep copy-pasting the same analysis functions — can I package them for reuse?”</em></p>
+<p>You have written the same GC content classifier three times this week. Your FASTA validation function lives in four different scripts, each with slightly different edge-case handling. Last Tuesday you found a bug in your quality score parser and had to fix it in six places. Yesterday your colleague asked for your variant filtering logic and you sent them a script with instructions to “just copy lines 47 through 112.”</p>
+<p>This is the copy-paste trap, and every bioinformatician falls into it. The solution is packaging your analysis functions into reusable modules and plugins that can be imported, tested, versioned, and shared.</p>
+<p><img src="images/day27-reuse-pyramid.svg" alt="The Reuse Pyramid: Functions (within a file), Modules (within a project), Plugins (across projects)"></p>
+<hr>
+<h2 id="section-1-the-module-system"><a class="header" href="#section-1-the-module-system">Section 1: The Module System</a></h2>
+<p>BioLang’s module system lets you split code across files and bring it back together with <code>import</code>. Every <code>.bl</code> file is a module. Any function or variable defined at the top level of a file is available when that file is imported.</p>
+<h3 id="basic-import"><a class="header" href="#basic-import">Basic Import</a></h3>
+<pre><code class="language-biolang"># Import a file — all top-level names become available
+import "lib/seq_utils.bl"
+
+# Now you can call functions from that file
+let gc = classify_gc("GCGCGCATAT")
+</code></pre>
+<h3 id="namespaced-import"><a class="header" href="#namespaced-import">Namespaced Import</a></h3>
+<pre><code class="language-biolang"># Import with a namespace — avoids name collisions
+import "lib/seq_utils.bl" as seq
+import "lib/qc.bl" as qc
+
+let gc = seq.classify_gc("GCGCGCATAT")
+let report = qc.summarize(reads)
+</code></pre>
+<h3 id="module-resolution-order"><a class="header" href="#module-resolution-order">Module Resolution Order</a></h3>
+<p>When you write <code>import "something"</code>, BioLang searches in this order:</p>
+<ol>
+<li><strong>Relative path</strong> — relative to the importing file’s directory</li>
+<li><strong><code>BIOLANG_PATH</code> directories</strong> — colon-separated paths in the environment variable</li>
+<li><strong><code>~/.biolang/stdlib/</code></strong> — fallback for unqualified imports</li>
+</ol>
+<p>If the path ends with <code>.bl</code>, BioLang uses it directly. Otherwise, it tries <code>&lt;path&gt;.bl</code> first, then <code>&lt;path&gt;/main.bl</code> (for directory-based modules).</p>
+<p><img src="images/day27-module-resolution.svg" alt="Module Resolution Order: relative path, BIOLANG_PATH, stdlib, plugin lookup, then error"></p>
+<h3 id="module-caching"><a class="header" href="#module-caching">Module Caching</a></h3>
+<p>Each module is loaded only once, even if imported from multiple files. BioLang caches modules by their canonical path. Circular imports (A imports B, B imports A) are detected and rejected with a clear error message.</p>
+<p><img src="images/day27-module-caching.svg" alt="Module import and caching: main.bl imports seq_utils.bl and qc.bl; qc.bl also imports seq_utils.bl, hitting cache"></p>
+<hr>
+<h2 id="section-2-creating-a-sequence-utilities-library"><a class="header" href="#section-2-creating-a-sequence-utilities-library">Section 2: Creating a Sequence Utilities Library</a></h2>
+<p>Let us build a real library. We will create <code>lib/seq_utils.bl</code>, a module that provides sequence analysis functions your whole lab can reuse.</p>
+<h3 id="project-layout"><a class="header" href="#project-layout">Project Layout</a></h3>
+<pre><code>my_project/
+├── lib/
+│   ├── seq_utils.bl     ← sequence utilities module
+│   ├── qc.bl            ← quality control module
+│   └── test_utils.bl    ← testing helpers
+├── scripts/
+│   └── analysis.bl      ← main analysis script
+└── tests/
+    ├── test_seq.bl      ← tests for seq_utils
+    └── test_qc.bl       ← tests for qc
+</code></pre>
+<h3 id="the-sequence-utilities-module"><a class="header" href="#the-sequence-utilities-module">The Sequence Utilities Module</a></h3>
+<p>Here is what <code>lib/seq_utils.bl</code> looks like. Each function is a self-contained, tested unit:</p>
+<pre><code class="language-biolang">fn validate_dna(seq) {
+    let upper_seq = upper(seq)
+    let valid = "ACGTN"
+    let chars = split(upper_seq, "")
+    let invalid = chars |&gt; filter(|c| contains(valid, c) == false)
+    if len(invalid) &gt; 0 {
+        error(f"Invalid DNA characters: {join(invalid, \", \")}")
+    }
+    return upper_seq
+}
+
+fn classify_gc(seq) {
+    let clean = validate_dna(seq)
+    let gc = gc_content(clean)
+    if gc &gt; 0.6 {
+        return { class: "high", gc: gc, label: "GC-rich" }
+    } else if gc &lt; 0.4 {
+        return { class: "low", gc: gc, label: "AT-rich" }
+    } else {
+        return { class: "moderate", gc: gc, label: "balanced" }
+    }
+}
+
+fn find_all_motifs(seq, motif) {
+    let clean = validate_dna(seq)
+    let positions = find_motif(clean, upper(motif))
+    return {
+        motif: upper(motif),
+        count: len(positions),
+        positions: positions
+    }
+}
+
+fn batch_gc(sequences) {
+    sequences |&gt; map(|seq| {
+        let result = classify_gc(seq.sequence)
+        {
+            id: seq.id,
+            length: len(seq.sequence),
+            gc: result.gc,
+            class: result.class,
+            label: result.label
+        }
+    })
+}
+
+fn sequence_summary(sequences) {
+    let classified = batch_gc(sequences)
+    let high = classified |&gt; filter(|s| s.class == "high") |&gt; len()
+    let low = classified |&gt; filter(|s| s.class == "low") |&gt; len()
+    let moderate = classified |&gt; filter(|s| s.class == "moderate") |&gt; len()
+    let gc_values = classified |&gt; map(|s| s.gc)
+    return {
+        total: len(sequences),
+        high_gc: high,
+        low_gc: low,
+        moderate_gc: moderate,
+        mean_gc: mean(gc_values),
+        stdev_gc: stdev(gc_values)
+    }
+}
+</code></pre>
+<h3 id="using-the-module"><a class="header" href="#using-the-module">Using the Module</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-biolang">import "lib/seq_utils.bl" as seq
+
+let sequences = read_fasta("data/sequences.fasta")
+
+# Classify all sequences by GC content
+let classified = seq.batch_gc(sequences)
+let gc_table = classified |&gt; to_table()
+
+# Find a motif across all sequences
+let tata_hits = sequences |&gt; map(|s| seq.find_all_motifs(s.sequence, "TATAAA"))
+let total_hits = tata_hits |&gt; map(|h| h.count) |&gt; sum()
+</code></pre>
+<hr>
+<h2 id="section-3-creating-a-qc-module"><a class="header" href="#section-3-creating-a-qc-module">Section 3: Creating a QC Module</a></h2>
+<p>Quality control is another domain where reusable functions save enormous time. Here is a <code>lib/qc.bl</code> module:</p>
+<pre><code class="language-biolang">fn length_stats(sequences) {
+    let lengths = sequences |&gt; map(|s| len(s.sequence))
+    return {
+        count: len(lengths),
+        min_len: min(lengths),
+        max_len: max(lengths),
+        mean_len: mean(lengths),
+        median_len: median(lengths)
+    }
+}
+
+fn gc_distribution(sequences) {
+    let gc_values = sequences |&gt; map(|s| gc_content(s.sequence))
+    return {
+        mean_gc: mean(gc_values),
+        min_gc: min(gc_values),
+        max_gc: max(gc_values),
+        stdev_gc: stdev(gc_values)
+    }
+}
+
+fn flag_outliers(sequences, min_len, max_len, min_gc, max_gc) {
+    sequences |&gt; map(|s| {
+        let gc = gc_content(s.sequence)
+        let slen = len(s.sequence)
+        let flags = []
+        if slen &lt; min_len { flags = flags + ["too_short"] }
+        if slen &gt; max_len { flags = flags + ["too_long"] }
+        if gc &lt; min_gc { flags = flags + ["low_gc"] }
+        if gc &gt; max_gc { flags = flags + ["high_gc"] }
+        {
+            id: s.id,
+            length: slen,
+            gc: gc,
+            flags: flags,
+            pass: len(flags) == 0
+        }
+    })
+}
+
+fn qc_summary(sequences) {
+    let lstats = length_stats(sequences)
+    let gc_dist = gc_distribution(sequences)
+    let flagged = flag_outliers(sequences, 50, 10000, 0.2, 0.8)
+    let passing = flagged |&gt; filter(|f| f.pass) |&gt; len()
+    let failing = flagged |&gt; filter(|f| f.pass == false) |&gt; len()
+
+    return {
+        total: lstats.count,
+        passing: passing,
+        failing: failing,
+        pass_rate: passing / lstats.count,
+        length: lstats,
+        gc: gc_dist
+    }
+}
+
+fn format_qc_report(summary) {
+    return [
+        f"Sequences: {summary.total}",
+        f"Passing QC: {summary.passing}",
+        f"Failing QC: {summary.failing}",
+        f"Length range: {summary.length.min_len}-{summary.length.max_len}",
+        f"Mean length: {summary.length.mean_len}",
+        f"Mean GC: {summary.gc.mean_gc}",
+        f"GC stdev: {summary.gc.stdev_gc}"
+    ]
+}
+</code></pre>
+<hr>
+<h2 id="section-4-testing-your-modules"><a class="header" href="#section-4-testing-your-modules">Section 4: Testing Your Modules</a></h2>
+<p>Testing is what separates a personal script from a reliable tool. BioLang’s <code>assert()</code> function is your primary testing mechanism.</p>
+<h3 id="writing-tests"><a class="header" href="#writing-tests">Writing Tests</a></h3>
+<p>Create <code>tests/test_seq.bl</code>:</p>
+<pre><code class="language-biolang">import "lib/seq_utils.bl" as seq
+
+# --- validate_dna ---
+let valid = seq.validate_dna("atcg")
+assert(valid == "ATCG", "validate_dna should uppercase")
+
+let caught = try { seq.validate_dna("ATXCG") } catch err { str(err) }
+assert(contains(caught, "Invalid"), "validate_dna should reject X")
+
+# --- classify_gc ---
+let high = seq.classify_gc("GCGCGCGCGC")
+assert(high.class == "high", "pure GC should be high")
+assert(high.gc == 1.0, "pure GC should have gc=1.0")
+
+let low = seq.classify_gc("AAAAAATTTT")
+assert(low.class == "low", "pure AT should be low")
+
+let balanced = seq.classify_gc("ATCGATCGAT")
+assert(balanced.class == "moderate", "ATCGATCGAT should be moderate")
+
+# --- find_all_motifs ---
+let hits = seq.find_all_motifs("ATCGATCGATCG", "ATCG")
+assert(hits.count &gt; 0, "should find ATCG motif")
+assert(hits.motif == "ATCG", "motif should be uppercased")
+
+# --- batch_gc ---
+let test_seqs = [
+    { id: "high", sequence: "GCGCGCGCGC" },
+    { id: "low", sequence: "AAAAAATTTT" }
+]
+let results = seq.batch_gc(test_seqs)
+assert(len(results) == 2, "batch_gc should return 2 results")
+assert(results |&gt; filter(|r| r.class == "high") |&gt; len() == 1, "one high GC")
+assert(results |&gt; filter(|r| r.class == "low") |&gt; len() == 1, "one low GC")
+</code></pre>
+<p>Create <code>tests/test_qc.bl</code>:</p>
+<pre><code class="language-biolang">import "lib/qc.bl" as qc
+
+let test_seqs = [
+    { id: "normal", sequence: "ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG" },
+    { id: "short", sequence: "ATCG" },
+    { id: "gc_rich", sequence: "GCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGC" }
+]
+
+# --- length_stats ---
+let lstats = qc.length_stats(test_seqs)
+assert(lstats.count == 3, "should count 3 sequences")
+assert(lstats.min_len == 4, "min length should be 4")
+
+# --- gc_distribution ---
+let gc_dist = qc.gc_distribution(test_seqs)
+assert(gc_dist.mean_gc &gt; 0.0, "mean GC should be positive")
+assert(gc_dist.stdev_gc &gt; 0.0, "GC stdev should be positive")
+
+# --- flag_outliers ---
+let flagged = qc.flag_outliers(test_seqs, 10, 100, 0.3, 0.7)
+let short_flags = flagged |&gt; filter(|f| f.id == "short")
+assert(len(short_flags) == 1, "should find short sequence")
+assert(contains(str(short_flags), "too_short"), "short seq should be flagged")
+
+# --- qc_summary ---
+let summary = qc.qc_summary(test_seqs)
+assert(summary.total == 3, "total should be 3")
+assert(summary.pass_rate &gt;= 0.0, "pass rate should be non-negative")
+assert(summary.pass_rate &lt;= 1.0, "pass rate should be at most 1.0")
+
+# --- format_qc_report ---
+let report = qc.format_qc_report(summary)
+assert(len(report) &gt; 0, "report should have lines")
+assert(contains(report |&gt; join("\n"), "Sequences:"), "report should show count")
+</code></pre>
+<h3 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h3>
+<pre><code class="language-bash">bl tests/test_seq.bl
+bl tests/test_qc.bl
+</code></pre>
+<p>If all assertions pass, the scripts exit silently with code 0. If any assertion fails, BioLang prints the assertion message and exits with a nonzero code.</p>
+<h3 id="testing-best-practices"><a class="header" href="#testing-best-practices">Testing Best Practices</a></h3>
+<pre><code>     ┌──────────────────────────────────────────────────────────────┐
+     │                    TESTING CHECKLIST                         │
+     └──────────────────────────────────────────────────────────────┘
+
+     * Test normal inputs          "ATCGATCG" -&gt; expected GC
+     * Test edge cases             empty string, single character
+     * Test error conditions       invalid characters -&gt; error()
+     * Test boundary values        GC exactly 0.4, exactly 0.6
+     * Test with real data         actual FASTA from your project
+     * Name tests descriptively    "validate_dna should reject X"
+</code></pre>
+<hr>
+<h2 id="section-5-plugin-architecture"><a class="header" href="#section-5-plugin-architecture">Section 5: Plugin Architecture</a></h2>
+<p>Modules are great for sharing BioLang code. But what if you need functionality that is better implemented in another language — a Python machine learning model, an R statistical package, or an existing command-line tool? That is where plugins come in.</p>
+<p>BioLang plugins use a <strong>subprocess JSON protocol</strong>. The plugin runs as a separate process. BioLang sends it a JSON request on stdin, and the plugin responds with a JSON result on stdout.</p>
+<p><img src="images/day27-plugin-flow.svg" alt="Plugin Execution Flow: BioLang spawns plugin process, sends JSON request on stdin, receives JSON response on stdout"></p>
+<h3 id="plugin-manifest-pluginjson"><a class="header" href="#plugin-manifest-pluginjson">Plugin Manifest: <code>plugin.json</code></a></h3>
+<p>Every plugin has a <code>plugin.json</code> manifest that tells BioLang how to run it:</p>
+<pre><code class="language-json">{
+    "spec_version": "1",
+    "name": "seq-analyzer",
+    "version": "1.0.0",
+    "description": "Sequence analysis plugin with ML classification",
+    "kind": "python",
+    "entrypoint": "main.py",
+    "operations": ["classify", "predict_function", "cluster"]
+}
+</code></pre>
+<p>The fields:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>spec_version</code></td><td>Always <code>"1"</code> (current protocol version)</td></tr>
+<tr><td><code>name</code></td><td>Plugin name, used as the import path</td></tr>
+<tr><td><code>version</code></td><td>Semantic version string</td></tr>
+<tr><td><code>description</code></td><td>Human-readable description</td></tr>
+<tr><td><code>kind</code></td><td>Runtime: <code>python</code>, <code>r</code>, <code>deno</code>, <code>typescript</code>, or <code>native</code></td></tr>
+<tr><td><code>entrypoint</code></td><td>Script file that handles JSON requests</td></tr>
+<tr><td><code>operations</code></td><td>List of operations the plugin provides</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="plugin-installation-directory"><a class="header" href="#plugin-installation-directory">Plugin Installation Directory</a></h3>
+<p>Plugins are installed to <code>~/.biolang/plugins/&lt;name&gt;/</code>:</p>
+<pre><code>~/.biolang/plugins/
+├── seq-analyzer/
+│   ├── plugin.json        ← manifest
+│   ├── main.py            ← entrypoint
+│   └── models/            ← any supporting files
+├── vcf-annotator/
+│   ├── plugin.json
+│   └── main.py
+└── r-deseq/
+    ├── plugin.json
+    └── main.R
+</code></pre>
+<h3 id="supported-plugin-kinds"><a class="header" href="#supported-plugin-kinds">Supported Plugin Kinds</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Kind</th><th>Command</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>python</code></td><td><code>python3 main.py</code> (or <code>python</code>)</td><td>Most common for bioinformatics</td></tr>
+<tr><td><code>r</code></td><td><code>Rscript main.R</code></td><td>For R/Bioconductor packages</td></tr>
+<tr><td><code>deno</code></td><td><code>deno run --allow-all main.ts</code></td><td>Secure TypeScript runtime</td></tr>
+<tr><td><code>typescript</code></td><td><code>npx tsx main.ts</code></td><td>Node.js TypeScript</td></tr>
+<tr><td><code>native</code></td><td>Direct execution</td><td>Compiled binary</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="section-6-building-a-python-plugin"><a class="header" href="#section-6-building-a-python-plugin">Section 6: Building a Python Plugin</a></h2>
+<p>Let us build a real plugin that performs sequence analysis using Python’s capabilities. This plugin will provide k-mer frequency analysis and basic sequence statistics that complement BioLang’s built-in functions.</p>
+<h3 id="directory-structure"><a class="header" href="#directory-structure">Directory Structure</a></h3>
+<pre><code>~/.biolang/plugins/kmer-tools/
+├── plugin.json
+└── main.py
+</code></pre>
+<h3 id="the-manifest-pluginjson"><a class="header" href="#the-manifest-pluginjson">The Manifest (<code>plugin.json</code>)</a></h3>
+<pre><code class="language-json">{
+    "spec_version": "1",
+    "name": "kmer-tools",
+    "version": "1.0.0",
+    "description": "K-mer frequency analysis and sequence statistics",
+    "kind": "python",
+    "entrypoint": "main.py",
+    "operations": ["kmer_freq", "compare_kmers", "complexity"]
+}
+</code></pre>
+<h3 id="the-entrypoint-mainpy"><a class="header" href="#the-entrypoint-mainpy">The Entrypoint (<code>main.py</code>)</a></h3>
+<p>A plugin entrypoint reads JSON from stdin, dispatches to the requested operation, and writes JSON to stdout:</p>
+<pre><code class="language-python">import json
+import sys
+from collections import Counter
+
+
+def kmer_freq(params):
+    """Compute k-mer frequencies for a sequence."""
+    seq = params.get("sequence", "").upper()
+    k = int(params.get("k", 3))
+    if len(seq) &lt; k:
+        return {"error": "Sequence shorter than k", "exit_code": 1}
+    kmers = [seq[i:i+k] for i in range(len(seq) - k + 1)]
+    counts = dict(Counter(kmers))
+    total = len(kmers)
+    freqs = {kmer: count / total for kmer, count in counts.items()}
+    top_10 = dict(sorted(freqs.items(), key=lambda x: -x[1])[:10])
+    return {
+        "total_kmers": total,
+        "unique_kmers": len(counts),
+        "top_kmers": top_10,
+    }
+
+
+def compare_kmers(params):
+    """Compare k-mer profiles of two sequences."""
+    seq1 = params.get("seq1", "").upper()
+    seq2 = params.get("seq2", "").upper()
+    k = int(params.get("k", 3))
+    kmers1 = Counter(seq1[i:i+k] for i in range(len(seq1) - k + 1))
+    kmers2 = Counter(seq2[i:i+k] for i in range(len(seq2) - k + 1))
+    all_kmers = set(kmers1.keys()) | set(kmers2.keys())
+    shared = set(kmers1.keys()) &amp; set(kmers2.keys())
+    jaccard = len(shared) / len(all_kmers) if all_kmers else 0.0
+    return {
+        "unique_to_seq1": len(set(kmers1.keys()) - set(kmers2.keys())),
+        "unique_to_seq2": len(set(kmers2.keys()) - set(kmers1.keys())),
+        "shared": len(shared),
+        "jaccard_similarity": jaccard,
+    }
+
+
+def complexity(params):
+    """Compute linguistic complexity of a sequence."""
+    seq = params.get("sequence", "").upper()
+    k = int(params.get("k", 3))
+    if len(seq) &lt; k:
+        return {"error": "Sequence shorter than k", "exit_code": 1}
+    observed = len(set(seq[i:i+k] for i in range(len(seq) - k + 1)))
+    possible = min(4 ** k, len(seq) - k + 1)
+    lc = observed / possible if possible &gt; 0 else 0.0
+    return {
+        "observed_kmers": observed,
+        "possible_kmers": possible,
+        "linguistic_complexity": lc,
+    }
+
+
+OPERATIONS = {
+    "kmer_freq": kmer_freq,
+    "compare_kmers": compare_kmers,
+    "complexity": complexity,
+}
+
+
+def main():
+    request = json.loads(sys.stdin.read())
+    op = request.get("op", "")
+    params = request.get("params", {})
+    if op not in OPERATIONS:
+        result = {"exit_code": 1, "error": f"Unknown operation: {op}"}
+    else:
+        try:
+            outputs = OPERATIONS[op](params)
+            if "exit_code" in outputs:
+                result = outputs
+            else:
+                result = {"exit_code": 0, "outputs": outputs}
+        except Exception as e:
+            result = {"exit_code": 1, "error": str(e)}
+    print(json.dumps(result))
+
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+<h3 id="using-the-plugin-from-biolang"><a class="header" href="#using-the-plugin-from-biolang">Using the Plugin from BioLang</a></h3>
+<p>Once installed, the plugin’s operations become callable functions:</p>
+<pre><code class="language-biolang">import "kmer-tools" as kmer
+
+let seq = "ATCGATCGATCGATCGATCG"
+
+# Get k-mer frequencies
+let freq = kmer.kmer_freq({ sequence: seq, k: 3 })
+
+# Compare two sequences
+let similarity = kmer.compare_kmers({
+    seq1: "ATCGATCGATCG",
+    seq2: "GCTAGCTAGCTA",
+    k: 3
+})
+
+# Compute sequence complexity
+let lc = kmer.complexity({ sequence: seq, k: 4 })
+</code></pre>
+<h3 id="installing-a-plugin"><a class="header" href="#installing-a-plugin">Installing a Plugin</a></h3>
+<p>Use the <code>bl add</code> command to install a plugin from a local directory:</p>
+<pre><code class="language-bash"># Install from local path
+bl add kmer-tools --path ./my-plugins/kmer-tools
+
+# Remove a plugin
+bl remove kmer-tools
+
+# List installed plugins
+bl plugins
+</code></pre>
+<hr>
+<h2 id="section-7-the-json-protocol-in-detail"><a class="header" href="#section-7-the-json-protocol-in-detail">Section 7: The JSON Protocol in Detail</a></h2>
+<p>Understanding the JSON protocol helps you debug plugins and build robust ones.</p>
+<h3 id="request-format"><a class="header" href="#request-format">Request Format</a></h3>
+<p>BioLang sends this JSON object on the plugin’s stdin:</p>
+<pre><code class="language-json">{
+    "protocol_version": "1",
+    "op": "kmer_freq",
+    "params": {
+        "sequence": "ATCGATCG",
+        "k": 3
+    },
+    "work_dir": "/home/user/project",
+    "plugin_dir": "/home/user/.biolang/plugins/kmer-tools"
+}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>protocol_version</code></td><td>string</td><td>Always <code>"1"</code></td></tr>
+<tr><td><code>op</code></td><td>string</td><td>Operation name (must match <code>operations</code> in manifest)</td></tr>
+<tr><td><code>params</code></td><td>object</td><td>Parameters passed from BioLang</td></tr>
+<tr><td><code>work_dir</code></td><td>string</td><td>Current working directory of the calling script</td></tr>
+<tr><td><code>plugin_dir</code></td><td>string</td><td>Absolute path to the plugin directory</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="response-format"><a class="header" href="#response-format">Response Format</a></h3>
+<p>The plugin must write a JSON object to stdout:</p>
+<p><strong>Success:</strong></p>
+<pre><code class="language-json">{
+    "exit_code": 0,
+    "outputs": {
+        "total_kmers": 18,
+        "unique_kmers": 3,
+        "top_kmers": { "ATC": 0.33, "TCG": 0.33, "CGA": 0.33 }
+    }
+}
+</code></pre>
+<p><strong>Error:</strong></p>
+<pre><code class="language-json">{
+    "exit_code": 1,
+    "error": "Sequence shorter than k"
+}
+</code></pre>
+<p>The <code>outputs</code> object is converted to a BioLang record. Nested objects become nested records. Arrays become lists. Numbers, strings, booleans, and null map to their BioLang equivalents.</p>
+<h3 id="parameter-passing"><a class="header" href="#parameter-passing">Parameter Passing</a></h3>
+<p>When you call a plugin function with a record argument, the record’s fields become the <code>params</code> object. If you pass a non-record argument, it is wrapped as <code>{ "arg0": value }</code>:</p>
+<pre><code class="language-biolang"># Record argument — fields become params directly
+kmer.kmer_freq({ sequence: "ATCG", k: 3 })
+# params = {"sequence": "ATCG", "k": 3}
+
+# Non-record argument — wrapped as arg0
+kmer.complexity("ATCG")
+# params = {"arg0": "ATCG"}
+</code></pre>
+<hr>
+<h2 id="section-8-publishing-and-sharing"><a class="header" href="#section-8-publishing-and-sharing">Section 8: Publishing and Sharing</a></h2>
+<h3 id="sharing-modules"><a class="header" href="#sharing-modules">Sharing Modules</a></h3>
+<p>For BioLang modules (<code>.bl</code> files), sharing is straightforward:</p>
+<ol>
+<li>Put your modules in a git repository</li>
+<li>Collaborators clone and set <code>BIOLANG_PATH</code>:</li>
+</ol>
+<pre><code class="language-bash">git clone https://github.com/yourlab/bio-utils.git
+export BIOLANG_PATH="/path/to/bio-utils/lib"
+</code></pre>
+<ol start="3">
+<li>Now anyone can import:</li>
+</ol>
+<pre><code class="language-biolang">import "seq_utils.bl" as seq
+import "qc.bl" as qc
+</code></pre>
+<h3 id="sharing-plugins"><a class="header" href="#sharing-plugins">Sharing Plugins</a></h3>
+<p>For plugins, package the entire plugin directory:</p>
+<pre><code class="language-bash"># Create a shareable archive
+cd ~/.biolang/plugins
+tar czf kmer-tools.tar.gz kmer-tools/
+
+# Recipient installs it
+cd ~/.biolang/plugins
+tar xzf kmer-tools.tar.gz
+</code></pre>
+<p>Or use <code>bl add</code> with a local path after cloning:</p>
+<pre><code class="language-bash">git clone https://github.com/yourlab/kmer-tools.git
+bl add kmer-tools --path ./kmer-tools
+</code></pre>
+<h3 id="package-initialization"><a class="header" href="#package-initialization">Package Initialization</a></h3>
+<p>Use <code>bl init</code> to create a <code>biolang.toml</code> for your project. This establishes a package that others can install:</p>
+<pre><code class="language-bash">bl init --name my-bio-utils
+</code></pre>
+<p>This creates a <code>biolang.toml</code> with your package metadata. Other users can install your package:</p>
+<pre><code class="language-bash">bl install --git https://github.com/yourlab/my-bio-utils.git
+</code></pre>
+<hr>
+<h2 id="section-9-best-practices"><a class="header" href="#section-9-best-practices">Section 9: Best Practices</a></h2>
+<h3 id="module-design-principles"><a class="header" href="#module-design-principles">Module Design Principles</a></h3>
+<pre><code>     ┌──────────────────────────────────────────────────────────────┐
+     │              MODULE DESIGN PRINCIPLES                        │
+     ├──────────────────────────────────────────────────────────────┤
+     │                                                              │
+     │  1. SINGLE RESPONSIBILITY                                   │
+     │     One module = one domain                                  │
+     │     seq_utils.bl handles sequences                           │
+     │     qc.bl handles quality control                            │
+     │     Do not mix unrelated functions                            │
+     │                                                              │
+     │  2. VALIDATE INPUTS                                          │
+     │     Use error() for invalid data                             │
+     │     Check types with typeof()                                │
+     │     Fail fast with clear messages                             │
+     │                                                              │
+     │  3. RETURN STRUCTURED DATA                                   │
+     │     Return records, not formatted strings                    │
+     │     Let the caller decide how to display                     │
+     │     { class: "high", gc: 0.72 } not "High GC (72%)"        │
+     │                                                              │
+     │  4. TEST EVERYTHING                                          │
+     │     One test file per module                                 │
+     │     Test normal, edge, and error cases                       │
+     │     Run tests before sharing                                 │
+     │                                                              │
+     │  5. DOCUMENT WITH EXAMPLES                                   │
+     │     Show usage in a README or test file                      │
+     │     Include expected inputs and outputs                      │
+     │     Note any dependencies                                    │
+     │                                                              │
+     └──────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="plugin-design-principles"><a class="header" href="#plugin-design-principles">Plugin Design Principles</a></h3>
+<ol>
+<li>
+<p><strong>Handle all errors.</strong> Never let your plugin crash with an unhandled exception. Catch all errors and return <code>{"exit_code": 1, "error": "descriptive message"}</code>.</p>
+</li>
+<li>
+<p><strong>Validate parameters.</strong> Check that required parameters exist and have correct types before processing.</p>
+</li>
+<li>
+<p><strong>Keep plugins focused.</strong> Each operation should do one thing. Use multiple operations rather than one operation with mode flags.</p>
+</li>
+<li>
+<p><strong>Use <code>work_dir</code>.</strong> When the plugin needs to read or write files, use the <code>work_dir</code> from the request to resolve relative paths.</p>
+</li>
+<li>
+<p><strong>Print nothing to stdout except the JSON response.</strong> Any debug output should go to stderr. BioLang parses stdout as JSON.</p>
+</li>
+<li>
+<p><strong>Test your plugin standalone.</strong> You can test a plugin by piping JSON to its stdin:</p>
+</li>
+</ol>
+<pre><code class="language-bash">echo '{"protocol_version":"1","op":"kmer_freq","params":{"sequence":"ATCGATCG","k":3},"work_dir":".","plugin_dir":"."}' | python3 main.py
+</code></pre>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-build-a-restriction-enzyme-module"><a class="header" href="#exercise-1-build-a-restriction-enzyme-module">Exercise 1: Build a Restriction Enzyme Module</a></h3>
+<p>Create <code>lib/restriction.bl</code> with the following functions:</p>
+<ul>
+<li><code>find_sites(seq, enzyme_name)</code> — returns a record with the enzyme name, recognition sequence, and list of cut positions. Support at least EcoRI (<code>GAATTC</code>), BamHI (<code>GGATCC</code>), and HindIII (<code>AAGCTT</code>).</li>
+<li><code>digest(seq, enzyme_name)</code> — returns a list of fragment records with <code>start</code>, <code>end</code>, and <code>length</code> fields.</li>
+<li><code>multi_digest(seq, enzyme_list)</code> — combines cut sites from multiple enzymes.</li>
+</ul>
+<p>Write tests in <code>tests/test_restriction.bl</code>.</p>
+<h3 id="exercise-2-build-an-r-plugin"><a class="header" href="#exercise-2-build-an-r-plugin">Exercise 2: Build an R Plugin</a></h3>
+<p>Create a plugin that wraps R’s statistical functions:</p>
+<ul>
+<li>Operation <code>wilcox_test</code>: takes two lists of numbers, returns the p-value and test statistic from a Wilcoxon rank-sum test.</li>
+<li>Operation <code>cor_test</code>: takes two lists of numbers, returns the correlation coefficient, p-value, and method.</li>
+</ul>
+<p>The <code>plugin.json</code> should use <code>"kind": "r"</code> and the entrypoint should be <code>main.R</code>. The R script reads JSON from stdin (using <code>jsonlite::fromJSON</code>) and writes JSON to stdout (using <code>jsonlite::toJSON</code>).</p>
+<h3 id="exercise-3-multi-module-pipeline"><a class="header" href="#exercise-3-multi-module-pipeline">Exercise 3: Multi-Module Pipeline</a></h3>
+<p>Create a pipeline that uses both your sequence utilities module and your QC module together:</p>
+<ol>
+<li>Load a FASTA file</li>
+<li>Run QC with your <code>qc.bl</code> module</li>
+<li>Filter to only passing sequences</li>
+<li>Classify the passing sequences with your <code>seq_utils.bl</code> module</li>
+<li>Find TATA box motifs in all sequences</li>
+<li>Write a combined report</li>
+</ol>
+<p>This exercise tests that your modules compose well and that namespaced imports prevent collisions.</p>
+<h3 id="exercise-4-plugin-testing-harness"><a class="header" href="#exercise-4-plugin-testing-harness">Exercise 4: Plugin Testing Harness</a></h3>
+<p>Write a BioLang script that tests a plugin by:</p>
+<ol>
+<li>Calling each operation with valid inputs and asserting the output structure</li>
+<li>Calling each operation with invalid inputs and verifying error handling via <code>try/catch</code></li>
+<li>Measuring execution time for each operation</li>
+<li>Writing a test report</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>Every <code>.bl</code> file is a module.</strong> Extract reusable functions into separate files and use <code>import</code> to bring them into your scripts.</p>
+</li>
+<li>
+<p><strong>Namespaced imports prevent collisions.</strong> Use <code>import "path" as name</code> when combining modules that might define functions with the same name.</p>
+</li>
+<li>
+<p><strong>Modules are cached.</strong> Each module loads once per program, regardless of how many files import it.</p>
+</li>
+<li>
+<p><strong>The plugin system bridges languages.</strong> Plugins use a subprocess JSON protocol: BioLang sends a request on stdin, the plugin returns a response on stdout. Any language that can read and write JSON can be a BioLang plugin.</p>
+</li>
+<li>
+<p><strong>The <code>plugin.json</code> manifest is the contract.</strong> It declares the plugin’s name, version, runtime, entrypoint, and operations. BioLang uses it to discover and invoke the plugin.</p>
+</li>
+<li>
+<p><strong>Test your modules with <code>assert()</code>.</strong> One test file per module, covering normal inputs, edge cases, and error conditions.</p>
+</li>
+<li>
+<p><strong>Return structured data from functions.</strong> Records are composable; formatted strings are not. Let the caller decide presentation.</p>
+</li>
+</ol>
+<hr>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>You started this chapter copying the same GC classifier into every script. You end it with a modular, tested toolkit that your entire lab can import, extend, and trust. The module system handles BioLang-to-BioLang code sharing. The plugin system handles everything else — wrapping Python ML models, R statistical tests, or any command-line tool into a callable BioLang function.</p>
+<p>Tomorrow you begin the capstone projects, where you will combine everything you have learned — modules, plugins, pipelines, error handling, databases, and visualization — into production-grade analyses.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-26.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-28.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-26.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-28.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

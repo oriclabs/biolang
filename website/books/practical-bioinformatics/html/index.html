@@ -1,0 +1,491 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Introduction - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="practical-bioinformatics-in-30-days"><a class="header" href="#practical-bioinformatics-in-30-days">Practical Bioinformatics in 30 Days</a></h1>
+<blockquote>
+<p><em>From zero to bioinformatician — a structured journey through modern bioinformatics.</em></p>
+</blockquote>
+<h2 id="who-this-book-is-for"><a class="header" href="#who-this-book-is-for">Who This Book Is For</a></h2>
+<p>This book is for anyone who wants to analyze biological data but does not know where to start. You might be:</p>
+<ul>
+<li>
+<p><strong>A biologist learning to code.</strong> You have lab experience, you understand PCR and gel electrophoresis, but when someone hands you a FASTQ file with 40 million reads, you freeze. You have tried Python tutorials, but they teach you web development when you need sequence analysis. This book teaches you programming through biology, not the other way around.</p>
+</li>
+<li>
+<p><strong>A developer learning biology.</strong> You can write code in Python, R, or JavaScript, but you do not know a codon from a contig. You have heard that bioinformatics pays well and that genomics is the future, but the terminology is impenetrable. This book teaches you the biology alongside the code, so you understand <em>why</em> you are computing GC content, not just <em>how</em>.</p>
+</li>
+<li>
+<p><strong>A student starting a bioinformatics program.</strong> Your coursework assumes you already know both biology and programming. You need a structured on-ramp that builds both skills simultaneously. This book gives you that foundation in 30 days.</p>
+</li>
+<li>
+<p><strong>A researcher who needs to analyze their own data.</strong> You have been sending your sequencing data to a core facility and waiting weeks for results. You want to run your own analyses — quality control, variant calling, differential expression — without becoming a full-time software engineer. This book gets you there.</p>
+</li>
+</ul>
+<p>No matter which category you fall into, you share one thing: you want practical skills, not theory for its own sake. Every day in this book produces something you can use.</p>
+<h3 id="your-path-through-week-1"><a class="header" href="#your-path-through-week-1">Your Path Through Week 1</a></h3>
+<p>Week 1 is designed so every reader gets the foundation they need, regardless of background. Here is which days to prioritize:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Your background</th><th>Focus on</th><th>Skim or skip</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Biologist, new to coding</strong></td><td>Days 2 and 4 (language basics and coding crash course)</td><td>Day 3 (you already know the biology)</td></tr>
+<tr><td><strong>Developer, new to biology</strong></td><td>Days 1 and 3 (bioinformatics intro and biology crash course)</td><td>Day 4 (you already know how to code)</td></tr>
+<tr><td><strong>New to both</strong></td><td>Every day — they are written for you</td><td>Nothing — read it all</td></tr>
+<tr><td><strong>Know both already</strong></td><td>Skim Days 1-4 for BioLang-specific syntax</td><td>Start coding seriously on Day 5</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Complete beginner?</strong> That is completely fine. Day 3 teaches all the biology you need (no science background assumed), and Day 4 teaches all the coding you need (no programming experience assumed). By the end of Week 1, you will be on equal footing with everyone else.</p>
+</blockquote>
+<h2 id="what-you-will-learn"><a class="header" href="#what-you-will-learn">What You Will Learn</a></h2>
+<p>Over 30 days, you will go from knowing nothing about bioinformatics to being able to:</p>
+<ul>
+<li>Read and write every major bioinformatics file format (FASTA, FASTQ, VCF, BED, GFF, SAM/BAM)</li>
+<li>Perform quality control on sequencing data</li>
+<li>Search biological databases programmatically (NCBI, Ensembl, UniProt, KEGG)</li>
+<li>Analyze gene expression data from RNA-seq experiments</li>
+<li>Call and interpret genetic variants</li>
+<li>Build publication-quality visualizations</li>
+<li>Write reproducible analysis pipelines</li>
+<li>Process datasets too large to fit in memory using streaming</li>
+<li>Use AI to assist your analysis</li>
+<li>Complete three capstone projects that mirror real research scenarios</li>
+</ul>
+<p>You will learn all of this in BioLang, a language designed specifically for bioinformatics. But you will not be locked in. Every day includes comparison examples in Python and R, so you can see how the same task looks in all three languages and choose the right tool for your own work.</p>
+<h2 id="how-this-book-is-structured"><a class="header" href="#how-this-book-is-structured">How This Book Is Structured</a></h2>
+<p>The book is organized into four weeks plus capstone projects:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Week</th><th>Days</th><th>Theme</th><th>What You Build</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Week 1</strong></td><td>1-5</td><td>Foundations</td><td>Understand biology and code basics; write your first analyses</td></tr>
+<tr><td><strong>Week 2</strong></td><td>6-12</td><td>Core Skills</td><td>Master file formats, databases, tables, and variant analysis</td></tr>
+<tr><td><strong>Week 3</strong></td><td>13-20</td><td>Applied Analysis</td><td>RNA-seq, statistics, visualization, proteins, genomic intervals</td></tr>
+<tr><td><strong>Week 4</strong></td><td>21-27</td><td>Professional Skills</td><td>Performance, pipelines, batch processing, error handling, AI</td></tr>
+<tr><td><strong>Capstone</strong></td><td>28-30</td><td>Projects</td><td>Clinical variant report, RNA-seq study, multi-species analysis</td></tr>
+</tbody>
+</table>
+</div>
+<p>Each day follows the same structure:</p>
+<ol>
+<li><strong>The Problem</strong> — a motivating scenario that shows <em>why</em> you need today’s skill</li>
+<li><strong>Core concepts</strong> — the biology and programming ideas, explained together</li>
+<li><strong>Hands-on examples</strong> — working code you type and run</li>
+<li><strong>Multi-language comparison</strong> — the same task in BioLang, Python, and R</li>
+<li><strong>Exercises</strong> — practice problems to cement understanding</li>
+<li><strong>Key Takeaways</strong> — the essential points to remember</li>
+</ol>
+<p>Days are designed to take 1-3 hours each. Some days are shorter (Day 1 is mostly reading), while project days are longer. You do not have to finish a day in one sitting. Work at your own pace.</p>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<p>You need:</p>
+<ul>
+<li><strong>A computer</strong> running Windows, macOS, or Linux</li>
+<li><strong>Basic computer literacy</strong> — you can open a terminal, navigate directories, and edit text files</li>
+<li><strong>Curiosity</strong> — that is genuinely it</li>
+</ul>
+<p>You do <em>not</em> need:</p>
+<ul>
+<li>Prior programming experience (Day 2 and Day 4 teach you from scratch)</li>
+<li>A biology degree (Day 1 and Day 3 cover the essential biology)</li>
+<li>Expensive software (everything in this book is free and open-source)</li>
+<li>A powerful machine (a laptop with 4 GB of RAM is sufficient for all exercises)</li>
+</ul>
+<p>If you can open a terminal and type a command, you are ready.</p>
+<h2 id="the-companion-files"><a class="header" href="#the-companion-files">The Companion Files</a></h2>
+<p>Every day in this book has a companion directory with runnable code. The structure looks like this:</p>
+<pre><code>practical-bioinformatics/
+  days/
+    day-01/
+      init.bl           # Setup script — run this first
+      scripts/
+        exercise1.bl    # BioLang solutions
+        exercise2.bl
+        compare.py      # Python equivalent
+        compare.R       # R equivalent
+      expected/
+        output1.txt     # Expected output for verification
+        output2.txt
+      compare.md        # Side-by-side language comparison
+    day-02/
+      ...
+</code></pre>
+<p>To use the companion files:</p>
+<ol>
+<li>
+<p><strong>Run <code>init.bl</code> first.</strong> Each day’s init script downloads sample data, creates test files, or sets up whatever that day’s exercises need. Run it with <code>bl run init.bl</code>.</p>
+</li>
+<li>
+<p><strong>Work through the exercises.</strong> Try to solve them yourself before looking at the solutions in <code>scripts/</code>.</p>
+</li>
+<li>
+<p><strong>Check your output.</strong> Compare your results against the files in <code>expected/</code> to verify correctness.</p>
+</li>
+<li>
+<p><strong>Read <code>compare.md</code>.</strong> After completing a day in BioLang, read the comparison document to see how the same tasks look in Python and R. This is especially valuable if you already know one of those languages.</p>
+</li>
+</ol>
+<p>To get the companion files:</p>
+<pre><code class="language-bash">git clone https://github.com/bioras/practical-bioinformatics.git
+cd practical-bioinformatics
+</code></pre>
+<p>Or download the ZIP from the book’s website and extract it.</p>
+<h2 id="setting-up-your-environment"><a class="header" href="#setting-up-your-environment">Setting Up Your Environment</a></h2>
+<p>Full installation instructions are in <a href="appendix-setup.html">Appendix A</a>, but here is the short version:</p>
+<pre><code class="language-bash"># Install BioLang
+curl -sSf https://biolang.org/install.sh | sh
+
+# Verify it works
+bl --version
+
+# Launch the REPL
+bl repl
+</code></pre>
+<p>On Windows, use the PowerShell installer:</p>
+<pre><code class="language-powershell">irm https://biolang.org/install.ps1 | iex
+</code></pre>
+<p>If you want to run the Python and R comparison scripts (optional but recommended), you will also need Python 3.8+ and R 4.0+. See Appendix A for details.</p>
+<h2 id="the-biolang-philosophy"><a class="header" href="#the-biolang-philosophy">The BioLang Philosophy</a></h2>
+<p>BioLang was designed around three principles that make it different from general-purpose languages:</p>
+<p><strong>1. Biology is first-class.</strong> DNA, RNA, and protein sequences are native types, not strings you have to wrap in objects. When you write <code>dna"ATGCGATCG"</code>, BioLang knows it is DNA and gives you biological operations — complement, reverse complement, translation, GC content — without importing anything.</p>
+<p><strong>2. Pipes make data flow visible.</strong> In BioLang, you chain operations with the pipe operator <code>|&gt;</code>. Data flows left to right, just like reading English. No nested function calls, no temporary variables, no losing track of what feeds into what.</p>
+<p><strong>3. Conciseness without crypticness.</strong> BioLang aims for the shortest correct code, but never at the expense of readability. Function names say what they do: <code>gc_content</code>, <code>reverse_complement</code>, <code>find_motif</code>. You should be able to read BioLang code aloud and have it make sense.</p>
+<h2 id="a-quick-taste"><a class="header" href="#a-quick-taste">A Quick Taste</a></h2>
+<p>Here is what BioLang looks like in practice. This script reads a FASTQ file, filters for high-quality reads, and reports basic statistics:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let reads = read_fastq("sample.fastq")
+
+reads
+  |&gt; filter(|r| r.quality &gt;= 30)
+  |&gt; map(|r| gc_content(r.sequence))
+  |&gt; mean()
+  |&gt; println("Mean GC content of high-quality reads: {}")
+</code></pre>
+<p>Five lines. No imports. No boilerplate. The pipe operator makes it clear what happens at each step: read the file, filter by quality, extract GC content, compute the mean, print the result.</p>
+<p>Here is another example — searching NCBI for a gene and analyzing its sequence:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let gene = ncbi_gene("BRCA1", "human")
+let seq = ncbi_sequence(gene.id)
+
+seq
+  |&gt; kmers(21)
+  |&gt; filter(|k| gc_content(k) &gt; 0.6)
+  |&gt; len()
+  |&gt; println("High-GC 21-mers in BRCA1: {}")
+</code></pre>
+<p>You will understand every line of this by Day 9. For now, just notice how naturally the code reads: get the gene, get its sequence, break it into 21-mers, keep the GC-rich ones, count them, print.</p>
+<h2 id="week-by-week-overview"><a class="header" href="#week-by-week-overview">Week-by-Week Overview</a></h2>
+<h3 id="week-1-foundations-days-1-5"><a class="header" href="#week-1-foundations-days-1-5">Week 1: Foundations (Days 1-5)</a></h3>
+<p>You start with the big picture. What is bioinformatics? Why does it matter? Then you learn BioLang itself — variables, types, pipes, functions. Day 3 is a biology crash course for developers. Day 4 is a coding crash course for biologists. Day 5 covers data structures: lists, records, and tables. By Friday, everyone is on the same page regardless of background.</p>
+<h3 id="week-2-core-skills-days-6-12"><a class="header" href="#week-2-core-skills-days-6-12">Week 2: Core Skills (Days 6-12)</a></h3>
+<p>Now the real work begins. You learn to read FASTA and FASTQ files, understand quality scores, and process data too large for memory. You explore biological databases, master tables (the workhorse of bioinformatics), compare sequences, and find variants in genomes. These are the skills you will use every day as a bioinformatician.</p>
+<h3 id="week-3-applied-analysis-days-13-20"><a class="header" href="#week-3-applied-analysis-days-13-20">Week 3: Applied Analysis (Days 13-20)</a></h3>
+<p>You apply your skills to real research problems. Gene expression analysis with RNA-seq. Statistical testing. Publication-quality plots. Pathway enrichment. Protein structure. Genomic intervals and coordinate systems. Biological visualization. Multi-species comparative analysis. Each day tackles a different domain of bioinformatics.</p>
+<h3 id="week-4-professional-skills-days-21-27"><a class="header" href="#week-4-professional-skills-days-21-27">Week 4: Professional Skills (Days 21-27)</a></h3>
+<p>You learn to work like a professional. Parallel processing for speed. Reproducible pipelines. Batch processing at scale. Programmatic database queries. Robust error handling. AI-assisted analysis. Building your own tools and plugins. These are the skills that separate a script-writer from a bioinformatician.</p>
+<h3 id="capstone-projects-days-28-30"><a class="header" href="#capstone-projects-days-28-30">Capstone Projects (Days 28-30)</a></h3>
+<p>Three full projects that integrate everything you have learned. Day 28: build a clinical variant interpretation report from whole-exome sequencing data. Day 29: conduct a complete RNA-seq differential expression study. Day 30: perform a multi-species gene family analysis with phylogenetics. Each project mirrors real research workflows.</p>
+<h2 id="learning-path"><a class="header" href="#learning-path">Learning Path</a></h2>
+<p>The following diagram shows how the days build on each other. Each week’s skills feed into the next, culminating in the capstone projects.</p>
+<p><img src="images/learning-path.svg" alt="30-Day Learning Path"></p>
+<h2 id="conventions-used-in-this-book"><a class="header" href="#conventions-used-in-this-book">Conventions Used in This Book</a></h2>
+<p>Throughout this book, you will see several recurring elements:</p>
+<h3 id="code-blocks"><a class="header" href="#code-blocks">Code Blocks</a></h3>
+<p>BioLang code appears in fenced code blocks:</p>
+<pre><code class="language-bio">let seq = dna"ATGCGATCG"
+gc_content(seq)
+</code></pre>
+<p>When a code block shows REPL interaction, lines starting with <code>bl&gt;</code> are what you type, and the lines below are the output:</p>
+<pre><code>bl&gt; gc_content(dna"ATGCGATCG")
+0.5556
+</code></pre>
+<p>Shell commands use <code>bash</code> syntax:</p>
+<pre><code class="language-bash">bl run my_script.bl
+</code></pre>
+<h3 id="python-and-r-comparisons"><a class="header" href="#python-and-r-comparisons">Python and R Comparisons</a></h3>
+<p>Multi-language comparisons appear with labeled blocks:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p><strong>BioLang:</strong></p>
+<pre><code class="language-bio">read_fasta("genes.fa") |&gt; filter(|s| len(s.sequence) &gt; 1000)
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">from Bio import SeqIO
+[r for r in SeqIO.parse("genes.fa", "fasta") if len(r.seq) &gt; 1000]
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r">library(Biostrings)
+seqs &lt;- readDNAStringSet("genes.fa")
+seqs[width(seqs) &gt; 1000]
+</code></pre>
+<h3 id="exercises"><a class="header" href="#exercises">Exercises</a></h3>
+<p>Each day ends with exercises labeled by difficulty:</p>
+<p><strong>Exercise 1: Sequence Length</strong> — Write a script that reads a FASTA file and prints the length of each sequence.</p>
+<h3 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h3>
+<p>Each day concludes with a bulleted list of the most important points:</p>
+<ul>
+<li><strong>Takeaway in bold.</strong> Explanation follows in regular text.</li>
+</ul>
+<h3 id="callout-boxes"><a class="header" href="#callout-boxes">Callout Boxes</a></h3>
+<p>Important notes, warnings, and tips appear as blockquotes:</p>
+<blockquote>
+<p><strong>Note:</strong> NCBI rate-limits unauthenticated requests to 3 per second. Set <code>NCBI_API_KEY</code> to increase this to 10 per second.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Streaming operations consume the stream. Once you iterate through a stream, it is exhausted and cannot be reused.</p>
+</blockquote>
+<h2 id="a-note-on-the-multi-language-approach"><a class="header" href="#a-note-on-the-multi-language-approach">A Note on the Multi-Language Approach</a></h2>
+<p>This book uses BioLang as its primary language, but it is not a BioLang advocacy book. It is a bioinformatics book. The concepts — GC content, quality filtering, differential expression, variant calling — are universal. They do not change because you switch languages.</p>
+<p>We include Python and R comparisons for two reasons:</p>
+<ol>
+<li>
+<p><strong>Translation.</strong> If you already know Python or R, seeing the BioLang equivalent helps you learn faster. If you learn BioLang first, seeing the Python and R equivalents prepares you for the real world where those languages dominate.</p>
+</li>
+<li>
+<p><strong>Perspective.</strong> Different languages make different tradeoffs. BioLang is concise for biology but young. Python has the largest ecosystem. R has the best statistics libraries. Seeing all three helps you appreciate what each brings to the table.</p>
+</li>
+</ol>
+<p>The <code>compare.md</code> file in each day’s companion directory provides a detailed side-by-side comparison. The <code>compare.py</code> and <code>compare.R</code> scripts are runnable equivalents you can execute and compare output.</p>
+<h2 id="lets-begin"><a class="header" href="#lets-begin">Let’s Begin</a></h2>
+<p>You have everything you need. The next 30 days will transform how you think about biological data. Day 1 starts with the fundamental question: what is bioinformatics, and why does it matter?</p>
+<p>Turn the page. Your journey starts now.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+                            <a rel="next prefetch" href="day-01.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+                    <a rel="next prefetch" href="day-01.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

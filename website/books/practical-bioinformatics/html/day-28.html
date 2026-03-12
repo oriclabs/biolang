@@ -1,0 +1,838 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 28: Clinical Variant Report - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-28-capstone--clinical-variant-report"><a class="header" href="#day-28-capstone--clinical-variant-report">Day 28: Capstone — Clinical Variant Report</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Advanced</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Advanced (genomic variants, clinical genetics, gene-disease associations)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Advanced (all prior topics: pipes, tables, APIs, error handling, modules)</td></tr>
+<tr><td><strong>Time</strong></td><td>~4–5 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–27 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code> (simulated VCF, gene panels, reference files)</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>CLINICAL DISCLAIMER</strong>: This chapter is <strong>strictly educational</strong>. The pipeline
+demonstrated here is a simplified illustration of clinical genomics concepts. It
+must <strong>never</strong> be used for actual patient care, diagnosis, or clinical
+decision-making. Real clinical variant interpretation requires validated,
+accredited pipelines (CAP/CLIA), board-certified review, and adherence to
+professional guidelines (ACMG/AMP). The classification logic shown here is
+intentionally simplified and does not reflect the full complexity of clinical
+variant interpretation.</p>
+</blockquote>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to load and parse VCF files for variant analysis</li>
+<li>How to apply multi-stage quality and frequency filters</li>
+<li>How to annotate variants with gene information via APIs</li>
+<li>How to implement ACMG-inspired variant classification logic</li>
+<li>How to generate structured clinical-style reports</li>
+<li>How to build clinical-grade error handling into every pipeline stage</li>
+<li>How to integrate skills from all 27 prior days into a single capstone project</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p><em>“A patient’s whole-exome sequencing results are in — can we build an automated clinical report?”</em></p>
+<p>A 42-year-old patient with a family history of hereditary breast and ovarian cancer has undergone whole-exome sequencing. The sequencing facility has delivered a VCF file containing thousands of variants. Your task: filter the noise, identify clinically relevant variants, classify them according to established guidelines, cross-reference with gene-disease databases, and produce a structured report suitable for clinical review.</p>
+<p>This is not a single-tool problem. It requires everything you have learned: file I/O (Day 6–7), variant fundamentals (Day 12), table operations (Day 10), API access (Day 9, 24), statistics (Day 14), error handling (Day 25), modules (Day 27), and pipeline thinking (Day 22). This capstone ties it all together.</p>
+<p><img src="images/day28-clinical-pipeline.svg" alt="Clinical Variant Report Pipeline"></p>
+<hr>
+<h2 id="section-1-clinical-context"><a class="header" href="#section-1-clinical-context">Section 1: Clinical Context</a></h2>
+<p>Before we write code, let us understand the clinical workflow this pipeline supports.</p>
+<h3 id="variant-classification-the-acmgamp-framework"><a class="header" href="#variant-classification-the-acmgamp-framework">Variant Classification: The ACMG/AMP Framework</a></h3>
+<p>The American College of Medical Genetics and Genomics (ACMG) and the Association for Molecular Pathology (AMP) published guidelines in 2015 for classifying sequence variants into five tiers:</p>
+<p><img src="images/day28-acmg-classification.svg" alt="ACMG/AMP Variant Classification"></p>
+<p>Our pipeline implements a simplified version of this logic. Real clinical labs use dozens of evidence criteria (PS1–PS4, PM1–PM6, PP1–PP5, BA1, BS1–BS4, BP1–BP7). We focus on a subset that can be evaluated computationally: population frequency, predicted impact, ClinVar concordance, and gene-disease association.</p>
+<h3 id="what-a-clinical-report-contains"><a class="header" href="#what-a-clinical-report-contains">What a Clinical Report Contains</a></h3>
+<p>A clinical-grade variant report typically includes:</p>
+<ol>
+<li><strong>Patient metadata</strong> — demographics, ordering physician, indication for testing</li>
+<li><strong>Methodology</strong> — sequencing platform, coverage metrics, analysis pipeline version</li>
+<li><strong>Reportable findings</strong> — pathogenic and likely pathogenic variants with gene, transcript, protein change, zygosity, and classification rationale</li>
+<li><strong>Variants of uncertain significance</strong> — listed separately for transparency</li>
+<li><strong>Quality metrics</strong> — coverage, call rate, Ti/Tv ratio</li>
+<li><strong>Limitations</strong> — regions of low coverage, known blind spots</li>
+<li><strong>Disclaimer</strong> — signed interpretation by board-certified geneticist</li>
+</ol>
+<hr>
+<h2 id="section-2-setting-up-the-data"><a class="header" href="#section-2-setting-up-the-data">Section 2: Setting Up the Data</a></h2>
+<p>Run the initialization script to generate synthetic clinical data:</p>
+<pre><code class="language-bash">cd days/day-28
+bl init.bl
+</code></pre>
+<p>This creates:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>File</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>data/patient.vcf</code></td><td>Simulated patient VCF with 20 variants</td></tr>
+<tr><td><code>data/gene_db.tsv</code></td><td>Gene annotation database (gene name, function, OMIM)</td></tr>
+<tr><td><code>data/clinvar_db.tsv</code></td><td>ClinVar-like classification reference</td></tr>
+<tr><td><code>data/cancer_panel.tsv</code></td><td>Hereditary cancer gene panel (25 genes)</td></tr>
+<tr><td><code>data/acmg_genes.tsv</code></td><td>ACMG secondary findings gene list</td></tr>
+<tr><td><code>data/patient_info.tsv</code></td><td>Patient metadata</td></tr>
+</tbody>
+</table>
+</div>
+<p>All data is synthetic — no real patient information is used.</p>
+<hr>
+<h2 id="section-3-loading-and-validating-vcf-data"><a class="header" href="#section-3-loading-and-validating-vcf-data">Section 3: Loading and Validating VCF Data</a></h2>
+<p>The first step is loading the VCF file and validating its structure. We use <code>read_vcf()</code> from Day 12:</p>
+<pre><code class="language-biolang">let variants = read_vcf("data/patient.vcf")
+</code></pre>
+<p>The <code>read_vcf()</code> function returns a table with columns: <code>chrom</code>, <code>pos</code>, <code>id</code>, <code>ref</code>, <code>alt</code>, <code>qual</code>, <code>filter</code>, <code>info</code>. Let us inspect its shape:</p>
+<pre><code class="language-biolang">let variant_count = variants |&gt; len()
+let columns = variants |&gt; keys()
+</code></pre>
+<h3 id="validation-checks"><a class="header" href="#validation-checks">Validation Checks</a></h3>
+<p>Clinical pipelines fail loudly. We validate before proceeding:</p>
+<pre><code class="language-biolang">fn validate_vcf(variants) {
+    let n = variants |&gt; len()
+    if n == 0 {
+        error("VCF file contains no variants")
+    }
+
+    let required_cols = ["chrom", "pos", "ref", "alt", "qual"]
+    required_cols |&gt; each(|col| {
+        let col_names = variants |&gt; keys()
+        if contains(col_names, col) == false {
+            error(f"Missing required VCF column: {col}")
+        }
+    })
+
+    return { variant_count: n, status: "valid" }
+}
+</code></pre>
+<p>This pattern — validate inputs, fail with clear messages — should feel familiar from Day 25.</p>
+<hr>
+<h2 id="section-4-quality-filtering"><a class="header" href="#section-4-quality-filtering">Section 4: Quality Filtering</a></h2>
+<p>Raw variant calls include many low-confidence calls. We filter on two standard quality metrics:</p>
+<ul>
+<li><strong>QUAL</strong> — Phred-scaled quality score. QUAL &gt;= 30 means the variant call has a 1-in-1000 chance of being wrong.</li>
+<li><strong>DP</strong> — Read depth. DP &gt;= 10 ensures sufficient evidence supports the call.</li>
+</ul>
+<pre><code class="language-biolang">fn quality_filter(variants, min_qual, min_dp) {
+    variants |&gt; where(|row| {
+        let q = float(row.qual)
+        let d = try {
+            let info_str = row.info
+            let parts = split(info_str, ";")
+            let dp_part = parts |&gt; filter(|p| starts_with(p, "DP="))
+            if len(dp_part) &gt; 0 {
+                int(replace(dp_part[0], "DP=", ""))
+            } else {
+                0
+            }
+        } catch err {
+            0
+        }
+        q &gt;= min_qual and d &gt;= min_dp
+    })
+}
+</code></pre>
+<p>We extract DP from the INFO field, which is semicolon-delimited. The <code>try/catch</code> ensures malformed INFO fields do not crash the pipeline — they simply get depth zero and are filtered out.</p>
+<pre><code class="language-biolang">let qc_passed = quality_filter(variants, 30.0, 10)
+</code></pre>
+<hr>
+<h2 id="section-5-variant-annotation"><a class="header" href="#section-5-variant-annotation">Section 5: Variant Annotation</a></h2>
+<p>Next we annotate variants with gene information and ClinVar classifications. We load our reference databases as tables and join:</p>
+<pre><code class="language-biolang">let gene_db = read_tsv("data/gene_db.tsv")
+let clinvar_db = read_tsv("data/clinvar_db.tsv")
+</code></pre>
+<h3 id="building-an-annotation-key"><a class="header" href="#building-an-annotation-key">Building an Annotation Key</a></h3>
+<p>To join variants with our databases, we need a common key. We construct a variant key from chromosome, position, reference allele, and alternate allele:</p>
+<pre><code class="language-biolang">fn make_variant_key(row) {
+    return f"{row.chrom}:{row.pos}:{row.ref}:{row.alt}"
+}
+
+let annotated = qc_passed |&gt; mutate("variant_key", |row| make_variant_key(row))
+</code></pre>
+<h3 id="joining-with-gene-and-clinvar-data"><a class="header" href="#joining-with-gene-and-clinvar-data">Joining with Gene and ClinVar Data</a></h3>
+<pre><code class="language-biolang">let with_genes = join_tables(annotated, gene_db, "gene")
+let with_clinvar = join_tables(with_genes, clinvar_db, "variant_key")
+</code></pre>
+<p>The <code>join_tables()</code> function (Day 10) performs an inner join on the shared column. Variants without a match in the reference database are retained with empty annotation fields.</p>
+<h3 id="api-based-annotation-optional"><a class="header" href="#api-based-annotation-optional">API-Based Annotation (Optional)</a></h3>
+<!-- requires: internet, API access -->
+<p>For real-world analysis, you would query live databases. Here is how you might enrich a variant with Ensembl VEP:</p>
+<pre><code class="language-biolang"># Annotate a single variant with Ensembl VEP
+# WARNING: rate-limited, use sparingly
+fn annotate_with_vep(chrom, pos, ref_allele, alt_allele) {
+    let hgvs = f"{chrom}:g.{pos}{ref_allele}&gt;{alt_allele}"
+    try {
+        let vep = ensembl_vep(hgvs)
+        return vep
+    } catch err {
+        return { error: str(err), consequence: "unknown" }
+    }
+}
+</code></pre>
+<p>And for gene-disease associations via NCBI:</p>
+<pre><code class="language-biolang"># Look up gene-disease associations
+fn lookup_gene_disease(gene_name) {
+    try {
+        let gene_info = ncbi_gene(gene_name, "human")
+        return {
+            gene: gene_name,
+            description: gene_info.description,
+            source: "NCBI"
+        }
+    } catch err {
+        return { gene: gene_name, description: "lookup failed", source: "none" }
+    }
+}
+</code></pre>
+<p>In our capstone pipeline, we use the pre-built local databases from <code>init.bl</code> to keep the pipeline deterministic and offline-capable. The API calls above show how you would extend it for production use.</p>
+<hr>
+<h2 id="section-6-frequency-filtering"><a class="header" href="#section-6-frequency-filtering">Section 6: Frequency Filtering</a></h2>
+<p>Common variants are unlikely to cause rare disease. We filter out variants with an allele frequency (AF) above 1% in population databases:</p>
+<pre><code class="language-biolang">fn frequency_filter(variants, max_af) {
+    variants |&gt; where(|row| {
+        let af = try {
+            let info_str = row.info
+            let parts = split(info_str, ";")
+            let af_part = parts |&gt; filter(|p| starts_with(p, "AF="))
+            if len(af_part) &gt; 0 {
+                float(replace(af_part[0], "AF=", ""))
+            } else {
+                0.0
+            }
+        } catch err {
+            0.0
+        }
+        af &lt;= max_af
+    })
+}
+
+let rare_variants = frequency_filter(with_clinvar, 0.01)
+</code></pre>
+<p>The logic mirrors real clinical pipelines: absent AF is treated as zero (novel variant, possibly significant), and we keep only variants with AF &lt;= 0.01 (1%).</p>
+<hr>
+<h2 id="section-7-gene-panel-filtering"><a class="header" href="#section-7-gene-panel-filtering">Section 7: Gene Panel Filtering</a></h2>
+<p>Clinical exome analysis does not report all variants — it focuses on genes relevant to the clinical indication. For hereditary cancer, we apply the cancer gene panel:</p>
+<pre><code class="language-biolang">let cancer_panel = read_tsv("data/cancer_panel.tsv")
+let acmg_genes = read_tsv("data/acmg_genes.tsv")
+</code></pre>
+<h3 id="panel-matching"><a class="header" href="#panel-matching">Panel Matching</a></h3>
+<pre><code class="language-biolang">fn panel_filter(variants, panel) {
+    let panel_genes = panel |&gt; select("gene") |&gt; map(|row| row.gene)
+    variants |&gt; where(|row| {
+        let gene = try { row.gene } catch err { "" }
+        panel_genes |&gt; filter(|g| g == gene) |&gt; len() &gt; 0
+    })
+}
+
+let panel_variants = panel_filter(rare_variants, cancer_panel)
+let acmg_variants = panel_filter(rare_variants, acmg_genes)
+</code></pre>
+<p>We apply both the disease-specific panel and the ACMG secondary findings list. The ACMG recommends reporting pathogenic/likely pathogenic variants in 81 genes regardless of the clinical indication — an important safety net.</p>
+<hr>
+<h2 id="section-8-acmg-inspired-classification"><a class="header" href="#section-8-acmg-inspired-classification">Section 8: ACMG-Inspired Classification</a></h2>
+<p>Now we classify each variant. Our simplified scoring system uses four evidence dimensions:</p>
+<p><img src="images/day28-classification-tree.svg" alt="Classification Decision Tree"></p>
+<p>Here is the BioLang implementation:</p>
+<pre><code class="language-biolang">fn clinvar_score(clinvar_class) {
+    if clinvar_class == "pathogenic" { return 3 }
+    if clinvar_class == "likely_pathogenic" { return 2 }
+    if clinvar_class == "uncertain" { return 0 }
+    if clinvar_class == "likely_benign" { return -1 }
+    if clinvar_class == "benign" { return -2 }
+    return 0
+}
+
+fn frequency_score(af) {
+    if af == 0.0 { return 1 }
+    if af &lt; 0.001 { return 0 }
+    return -1
+}
+
+fn impact_score(impact) {
+    if impact == "frameshift" { return 2 }
+    if impact == "nonsense" { return 2 }
+    if impact == "splice" { return 2 }
+    if impact == "missense" { return 1 }
+    if impact == "synonymous" { return -1 }
+    return 0
+}
+
+fn gene_disease_score(strength) {
+    if strength == "definitive" { return 1 }
+    return 0
+}
+
+fn classify_variant(score) {
+    if score &gt;= 4 { return "Pathogenic" }
+    if score == 3 { return "Likely Pathogenic" }
+    if score &gt;= 1 { return "VUS" }
+    if score == 0 { return "Likely Benign" }
+    return "Benign"
+}
+
+fn score_variant(row) {
+    let cv = try { row.clinvar_class } catch err { "unknown" }
+    let af = try {
+        let parts = split(row.info, ";")
+        let af_part = parts |&gt; filter(|p| starts_with(p, "AF="))
+        if len(af_part) &gt; 0 { float(replace(af_part[0], "AF=", "")) } else { 0.0 }
+    } catch err {
+        0.0
+    }
+    let imp = try { row.impact } catch err { "unknown" }
+    let gd = try { row.gene_disease } catch err { "unknown" }
+
+    let s1 = clinvar_score(cv)
+    let s2 = frequency_score(af)
+    let s3 = impact_score(imp)
+    let s4 = gene_disease_score(gd)
+    let total = s1 + s2 + s3 + s4
+
+    return {
+        variant_key: try { row.variant_key } catch err { "" },
+        gene: try { row.gene } catch err { "" },
+        chrom: row.chrom,
+        pos: row.pos,
+        ref_allele: row.ref,
+        alt_allele: row.alt,
+        impact: imp,
+        clinvar: cv,
+        af: af,
+        score: total,
+        classification: classify_variant(total)
+    }
+}
+</code></pre>
+<p>Apply classification to all panel variants:</p>
+<pre><code class="language-biolang">let classified = panel_variants |&gt; map(|row| score_variant(row))
+</code></pre>
+<h3 id="grouping-by-classification"><a class="header" href="#grouping-by-classification">Grouping by Classification</a></h3>
+<pre><code class="language-biolang">let pathogenic = classified |&gt; filter(|v| v.classification == "Pathogenic")
+let likely_path = classified |&gt; filter(|v| v.classification == "Likely Pathogenic")
+let vus = classified |&gt; filter(|v| v.classification == "VUS")
+let likely_benign = classified |&gt; filter(|v| v.classification == "Likely Benign")
+let benign = classified |&gt; filter(|v| v.classification == "Benign")
+</code></pre>
+<hr>
+<h2 id="section-9-report-generation"><a class="header" href="#section-9-report-generation">Section 9: Report Generation</a></h2>
+<p>The final step is generating a structured clinical report. We build it as a list of lines and write to both text and TSV formats:</p>
+<pre><code class="language-biolang">fn format_variant_line(v) {
+    return f"  {v.gene} | {v.chrom}:{v.pos} | {v.ref_allele}&gt;{v.alt_allele} | {v.impact} | {v.clinvar} | Score:{v.score}"
+}
+
+fn build_report(patient_info, classified, qc_stats) {
+    let report = [
+        "================================================================",
+        "       CLINICAL VARIANT ANALYSIS REPORT (EDUCATIONAL ONLY)",
+        "================================================================",
+        "",
+        "DISCLAIMER: This report is generated by an educational pipeline.",
+        "It must NOT be used for clinical decision-making.",
+        "",
+        "--- PATIENT INFORMATION ---",
+        f"Patient ID: {patient_info.patient_id}",
+        f"Sample ID: {patient_info.sample_id}",
+        f"Indication: {patient_info.indication}",
+        f"Report Date: {patient_info.report_date}",
+        ""
+    ]
+
+    let path_variants = classified |&gt; filter(|v| v.classification == "Pathogenic")
+    let lp_variants = classified |&gt; filter(|v| v.classification == "Likely Pathogenic")
+    let vus_variants = classified |&gt; filter(|v| v.classification == "VUS")
+    let lb_variants = classified |&gt; filter(|v| v.classification == "Likely Benign")
+    let b_variants = classified |&gt; filter(|v| v.classification == "Benign")
+
+    report = report + [
+        "--- SUMMARY ---",
+        f"Total variants analyzed: {qc_stats.total_input}",
+        f"Passed quality filter: {qc_stats.passed_qc}",
+        f"Rare variants (AF &lt;= 1%): {qc_stats.rare_count}",
+        f"In gene panel: {qc_stats.panel_count}",
+        f"Classified: {len(classified)}",
+        "",
+        f"  Pathogenic:        {len(path_variants)}",
+        f"  Likely Pathogenic: {len(lp_variants)}",
+        f"  VUS:               {len(vus_variants)}",
+        f"  Likely Benign:     {len(lb_variants)}",
+        f"  Benign:            {len(b_variants)}",
+        ""
+    ]
+
+    if len(path_variants) &gt; 0 {
+        report = report + ["--- PATHOGENIC VARIANTS (Reportable) ---"]
+        path_variants |&gt; each(|v| {
+            report = report + [format_variant_line(v)]
+        })
+        report = report + [""]
+    }
+
+    if len(lp_variants) &gt; 0 {
+        report = report + ["--- LIKELY PATHOGENIC VARIANTS (Reportable) ---"]
+        lp_variants |&gt; each(|v| {
+            report = report + [format_variant_line(v)]
+        })
+        report = report + [""]
+    }
+
+    if len(vus_variants) &gt; 0 {
+        report = report + ["--- VARIANTS OF UNCERTAIN SIGNIFICANCE ---"]
+        vus_variants |&gt; each(|v| {
+            report = report + [format_variant_line(v)]
+        })
+        report = report + [""]
+    }
+
+    report = report + [
+        "--- QUALITY METRICS ---",
+        f"Mean QUAL score: {qc_stats.mean_qual}",
+        f"Mean depth: {qc_stats.mean_dp}",
+        f"Variants filtered (low quality): {qc_stats.total_input - qc_stats.passed_qc}",
+        "",
+        "--- LIMITATIONS ---",
+        "- This analysis covers exonic regions only",
+        "- Structural variants and CNVs are not assessed",
+        "- Intronic and regulatory variants may be missed",
+        "- Classification is based on a simplified scoring model",
+        "",
+        "--- END OF REPORT ---"
+    ]
+
+    return report
+}
+</code></pre>
+<hr>
+<h2 id="section-10-quality-assurance"><a class="header" href="#section-10-quality-assurance">Section 10: Quality Assurance</a></h2>
+<p>Clinical pipelines must track their own quality. We compute QA metrics at each stage:</p>
+<pre><code class="language-biolang">fn compute_qc_stats(all_variants, qc_passed, rare, panel_matched) {
+    let quals = all_variants |&gt; select("qual") |&gt; map(|row| float(row.qual))
+    let depths = all_variants |&gt; map(|row| {
+        try {
+            let parts = split(row.info, ";")
+            let dp_part = parts |&gt; filter(|p| starts_with(p, "DP="))
+            if len(dp_part) &gt; 0 { int(replace(dp_part[0], "DP=", "")) } else { 0 }
+        } catch err {
+            0
+        }
+    })
+
+    return {
+        total_input: len(all_variants),
+        passed_qc: len(qc_passed),
+        rare_count: len(rare),
+        panel_count: len(panel_matched),
+        mean_qual: mean(quals),
+        mean_dp: mean(depths)
+    }
+}
+</code></pre>
+<hr>
+<h2 id="section-11-the-complete-pipeline"><a class="header" href="#section-11-the-complete-pipeline">Section 11: The Complete Pipeline</a></h2>
+<p>Here is the entire pipeline, end to end. Each stage flows into the next via pipes and function calls:</p>
+<pre><code class="language-biolang"># --- Load data ---
+let variants = read_vcf("data/patient.vcf")
+let gene_db = read_tsv("data/gene_db.tsv")
+let clinvar_db = read_tsv("data/clinvar_db.tsv")
+let cancer_panel = read_tsv("data/cancer_panel.tsv")
+let patient_meta = read_tsv("data/patient_info.tsv")
+let patient_info = patient_meta[0]
+
+# --- Validate ---
+let validation = validate_vcf(variants)
+
+# --- Quality filter ---
+let qc_passed = quality_filter(variants, 30.0, 10)
+
+# --- Annotate ---
+let annotated = qc_passed |&gt; mutate("variant_key", |row| make_variant_key(row))
+let with_genes = join_tables(annotated, gene_db, "gene")
+let with_clinvar = join_tables(with_genes, clinvar_db, "variant_key")
+
+# --- Frequency filter ---
+let rare_variants = frequency_filter(with_clinvar, 0.01)
+
+# --- Panel filter ---
+let panel_variants = panel_filter(rare_variants, cancer_panel)
+
+# --- Classify ---
+let classified = panel_variants |&gt; map(|row| score_variant(row))
+
+# --- QC stats ---
+let qc_stats = compute_qc_stats(variants, qc_passed, rare_variants, panel_variants)
+
+# --- Generate report ---
+let report_lines = build_report(patient_info, classified, qc_stats)
+write_lines(report_lines, "data/output/clinical_report.txt")
+
+# --- Export classified variants ---
+let classified_table = classified |&gt; to_table()
+write_tsv(classified_table, "data/output/classified_variants.tsv")
+</code></pre>
+<p>Run it:</p>
+<pre><code class="language-bash">cd days/day-28
+bl init.bl
+bl scripts/analysis.bl
+</code></pre>
+<p>Expected output files:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>File</th><th>Contents</th></tr>
+</thead>
+<tbody>
+<tr><td><code>data/output/clinical_report.txt</code></td><td>Full clinical report with all sections</td></tr>
+<tr><td><code>data/output/classified_variants.tsv</code></td><td>Classified variants in tabular format</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="section-12-extending-with-live-api-data"><a class="header" href="#section-12-extending-with-live-api-data">Section 12: Extending with Live API Data</a></h2>
+<!-- requires: internet, API access -->
+<p>In a production pipeline, you would replace the local databases with live API queries. Here is a sketch of how the annotation stage would change:</p>
+<pre><code class="language-biolang"># Production annotation: query NCBI and Ensembl for each gene
+fn annotate_live(variants) {
+    variants |&gt; map(|row| {
+        let gene_info = try {
+            ncbi_gene(row.gene, "human")
+        } catch err {
+            { description: "unknown", summary: "" }
+        }
+
+        let vep_result = try {
+            let hgvs = f"{row.chrom}:g.{row.pos}{row.ref}&gt;{row.alt}"
+            ensembl_vep(hgvs)
+        } catch err {
+            { consequence: "unknown" }
+        }
+
+        {
+            gene: row.gene,
+            chrom: row.chrom,
+            pos: row.pos,
+            ref_allele: row.ref,
+            alt_allele: row.alt,
+            gene_description: gene_info.description,
+            vep_consequence: vep_result.consequence
+        }
+    })
+}
+</code></pre>
+<p>The <code>try/catch</code> around every API call is essential — network failures must not crash a clinical pipeline.</p>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-add-a-secondary-findings-module"><a class="header" href="#exercise-1-add-a-secondary-findings-module">Exercise 1: Add a Secondary Findings Module</a></h3>
+<p>The ACMG recommends reporting pathogenic variants in 81 genes regardless of the primary indication. Extend the pipeline to:</p>
+<ol>
+<li>Load the <code>acmg_genes.tsv</code> panel</li>
+<li>Filter <code>rare_variants</code> against the ACMG gene list (separately from the cancer panel)</li>
+<li>Classify the ACMG variants using the same scoring function</li>
+<li>Add a “Secondary Findings” section to the report</li>
+</ol>
+<h3 id="exercise-2-variant-prioritization"><a class="header" href="#exercise-2-variant-prioritization">Exercise 2: Variant Prioritization</a></h3>
+<p>Add a prioritization function that sorts classified variants by clinical urgency:</p>
+<ol>
+<li>Pathogenic variants sorted by score (highest first)</li>
+<li>Within the same score, sort by gene-disease association strength</li>
+<li>Output a ranked list with rank numbers</li>
+</ol>
+<p>Hint: use <code>sort_by()</code> with a custom key function that combines classification tier and score.</p>
+<h3 id="exercise-3-coverage-gap-report"><a class="header" href="#exercise-3-coverage-gap-report">Exercise 3: Coverage Gap Report</a></h3>
+<p>Add a quality section that identifies genomic regions with insufficient coverage:</p>
+<ol>
+<li>Parse the DP values from each variant’s INFO field</li>
+<li>Flag any variant with DP &lt; 20 as “low coverage”</li>
+<li>Group low-coverage variants by chromosome</li>
+<li>Add a “Coverage Gaps” section to the report listing affected genes</li>
+</ol>
+<h3 id="exercise-4-multi-sample-comparison"><a class="header" href="#exercise-4-multi-sample-comparison">Exercise 4: Multi-Sample Comparison</a></h3>
+<p>Extend the pipeline to accept two VCF files (e.g., tumor and normal) and:</p>
+<ol>
+<li>Identify variants present only in the tumor (somatic)</li>
+<li>Identify variants shared between tumor and normal (germline)</li>
+<li>Flag somatic variants with high impact for follow-up</li>
+<li>Generate a comparative report</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>Clinical pipelines are layered</strong> — each filter stage reduces the variant set, and the order matters (quality before frequency before panel).</p>
+</li>
+<li>
+<p><strong>Error handling is non-negotiable</strong> — every I/O operation, every API call, every field access should be wrapped in <code>try/catch</code> in clinical code. A crash is unacceptable when patient data is at stake.</p>
+</li>
+<li>
+<p><strong>Classification is evidence-based</strong> — even our simplified scoring system combines multiple independent lines of evidence. Real ACMG classification uses 28 criteria across 5 evidence categories.</p>
+</li>
+<li>
+<p><strong>Reports must be transparent</strong> — every report includes methodology, limitations, and disclaimers. The pipeline documents what it did and what it could not do.</p>
+</li>
+<li>
+<p><strong>Modularity pays off</strong> — by Day 28, you can build a multi-stage pipeline by composing functions. Each scoring function, each filter, each formatter is independently testable.</p>
+</li>
+<li>
+<p><strong>Local-first, API-enriched</strong> — the pipeline works entirely offline with local databases, but can be extended with live API queries for production use. This mirrors how clinical labs operate: validated local databases with optional external enrichment.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Remember</strong>: Real clinical variant interpretation is a collaborative process between
+computational pipelines and board-certified clinical geneticists. Software identifies
+candidates; humans make diagnoses.</p>
+</blockquote>
+<hr>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>In this capstone, you built a complete clinical variant analysis pipeline that:</p>
+<ul>
+<li>Loaded and validated VCF data</li>
+<li>Applied multi-stage quality, frequency, and panel filters</li>
+<li>Annotated variants with gene and ClinVar information</li>
+<li>Implemented ACMG-inspired classification logic</li>
+<li>Generated a structured clinical report</li>
+<li>Tracked quality metrics throughout the pipeline</li>
+</ul>
+<p>This project integrated skills from nearly every prior day: file I/O (Days 6–7), VCF parsing (Day 12), tables and joins (Day 10), API access (Days 9, 24), statistics (Day 14), error handling (Day 25), modules (Day 27), and pipeline design (Day 22).</p>
+<p>Tomorrow in Day 29, we tackle another capstone: a complete RNA-seq differential expression study.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-27.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-29.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-27.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-29.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

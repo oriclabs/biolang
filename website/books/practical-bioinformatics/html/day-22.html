@@ -1,0 +1,910 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 22: Reproducible Pipelines - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-22-reproducible-pipelines"><a class="header" href="#day-22-reproducible-pipelines">Day 22: Reproducible Pipelines</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Basic (FASTQ quality, GC content, sequence filtering)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (functions, records, file I/O, checksums, JSON)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–21 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>Why reproducibility is the foundation of credible bioinformatics</li>
+<li>How to design pipelines as modular, auditable processing graphs</li>
+<li>How to manage parameters in external configuration files</li>
+<li>How to use checksums to verify data integrity across time and machines</li>
+<li>How to build provenance logs that record every step of an analysis</li>
+<li>How to package and share a complete, self-contained analysis</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You submit a paper in January. The reviewers come back in April with a question: “Can you re-run the variant filtering with a minimum quality of 30 instead of 20?” You open the script you used four months ago. It references a file called <code>filtered_reads.fastq</code> that no longer exists. The script has no comments explaining which parameters you used. You vaguely recall changing a threshold by hand before the final run, but you cannot remember what it was. The conda environment you used has been updated twice since then. You spend three days reconstructing your own analysis.</p>
+<p>This is not a hypothetical. A 2019 survey in <em>PLOS Computational Biology</em> found that fewer than 40% of published bioinformatics analyses could be reproduced by their own authors six months later. The causes are predictable: hardcoded parameters, missing intermediate files, undocumented manual steps, and environment drift.</p>
+<p>Today we solve this. We will build a complete QC pipeline where every parameter is in a config file, every input and output is checksummed, every step is logged with timestamps, and the entire analysis can be re-run with a single command. By the end of this chapter, your future self — and your collaborators — will be able to reproduce your results exactly.</p>
+<hr>
+<h2 id="why-reproducibility-matters"><a class="header" href="#why-reproducibility-matters">Why Reproducibility Matters</a></h2>
+<p>Reproducibility is not an academic nicety. It is a practical requirement at every stage of a bioinformatics career:</p>
+<p><strong>For publication</strong>: Journals increasingly require that analyses be reproducible. Nature Methods, Genome Biology, and Bioinformatics all have reproducibility guidelines. Some require depositing code and parameters alongside the manuscript.</p>
+<p><strong>For collaboration</strong>: When you hand off an analysis to a colleague, they need to understand what you did, with what parameters, and on which data. A script alone is not enough — they need to know the exact inputs and settings.</p>
+<p><strong>For debugging</strong>: When results look wrong, the first question is “what changed?” If you have no record of previous runs, you cannot answer that question.</p>
+<p><strong>For regulation</strong>: Clinical bioinformatics pipelines (variant calling for diagnosis, pharmacogenomics) must be fully auditable. Every result must trace back to specific inputs, parameters, and software versions.</p>
+<p>The following diagram shows the four layers of reproducibility. Each layer builds on the one below it:</p>
+<p><img src="images/day22-reproducibility-layers.svg" alt="Reproducibility Layers"></p>
+<p>Most bioinformatics workflows get layers 1 and 2 right (they keep the raw data and the script). But layers 3 and 4 — the parameters and the provenance — are where reproducibility breaks down. Hardcoded thresholds, undocumented manual steps, and missing logs make it impossible to know exactly what produced a given result.</p>
+<hr>
+<h2 id="pipeline-design-patterns"><a class="header" href="#pipeline-design-patterns">Pipeline Design Patterns</a></h2>
+<p>A bioinformatics pipeline is a sequence of processing steps where each step’s output becomes the next step’s input. The simplest representation is a directed acyclic graph (DAG):</p>
+<p><img src="images/day22-pipeline-dag.svg" alt="Reproducible Pipeline DAG"></p>
+<p>This DAG shows a typical QC pipeline. Notice two important features:</p>
+<ol>
+<li>
+<p><strong>Branching</strong>: After computing stats, GC analysis and length analysis can proceed independently. In a parallel system, these would run simultaneously.</p>
+</li>
+<li>
+<p><strong>Provenance sidecars</strong>: Checksums and logs run alongside the main analysis. They do not affect the results, but they make the results reproducible.</p>
+</li>
+</ol>
+<h3 id="the-three-file-pattern"><a class="header" href="#the-three-file-pattern">The Three-File Pattern</a></h3>
+<p>A well-structured reproducible analysis uses three files:</p>
+<pre><code>my_analysis/
+├── config.json      # Parameters (what thresholds, which files)
+├── pipeline.bl      # Code (what to do)
+└── provenance.json  # Log (what happened)
+</code></pre>
+<p>The <strong>config file</strong> contains every parameter that could affect results. The <strong>pipeline script</strong> reads the config and executes the analysis. The <strong>provenance log</strong> is written by the pipeline as it runs, capturing timestamps, checksums, and step outcomes.</p>
+<p>This separation means you can re-run the exact same analysis by keeping the config file, or run a variation by changing one parameter in the config. The provenance log lets you compare two runs and see exactly what differed.</p>
+<hr>
+<h2 id="setting-up-the-project"><a class="header" href="#setting-up-the-project">Setting Up the Project</a></h2>
+<p>Our pipeline will perform quality control on a set of FASTQ files: filter reads by quality, compute summary statistics, and produce a report. We will build it step by step, adding reproducibility features at each stage.</p>
+<p>First, generate the test data:</p>
+<pre><code class="language-bash">bl run init.bl
+</code></pre>
+<p>The <code>init.bl</code> script creates the project structure and generates synthetic FASTQ data:</p>
+<pre><code># init.bl creates:
+# data/sample_A.fastq  — 500 reads, mixed quality
+# data/sample_B.fastq  — 500 reads, mixed quality
+# config.json          — default parameters
+# results/             — output directory
+# logs/                — provenance logs
+</code></pre>
+<hr>
+<h2 id="parameter-files"><a class="header" href="#parameter-files">Parameter Files</a></h2>
+<p>The first rule of reproducible pipelines: <strong>never hardcode parameters</strong>. Every threshold, every file path, every setting that could affect results belongs in a configuration file.</p>
+<p>Here is our pipeline’s config file:</p>
+<pre><code class="language-json">{
+    "pipeline_name": "fastq_qc",
+    "version": "1.0.0",
+    "input_files": [
+        "data/sample_A.fastq",
+        "data/sample_B.fastq"
+    ],
+    "output_dir": "results",
+    "log_dir": "logs",
+    "min_quality": 20,
+    "min_length": 50,
+    "gc_low": 0.3,
+    "gc_high": 0.7,
+    "kmer_size": 5
+}
+</code></pre>
+<p>In BioLang, we load this config at the start of every pipeline run:</p>
+<pre><code class="language-bio"># Load and parse the configuration file
+let config_text = read_lines("config.json") |&gt; reduce(|a, b| a + b)
+let config = json_decode(config_text)
+
+# Now every parameter is accessible:
+# config.min_quality  → 20
+# config.min_length   → 50
+# config.input_files  → ["data/sample_A.fastq", "data/sample_B.fastq"]
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>This is already better than hardcoding, but we can go further. Let us add a function that validates the config before the pipeline runs:</p>
+<pre><code class="language-bio">fn validate_config(config) {
+    let errors = []
+
+    # Check required fields exist
+    let required = ["pipeline_name", "version", "input_files",
+                    "output_dir", "min_quality", "min_length"]
+    let config_keys = keys(config)
+    let missing = required |&gt; filter(|k| !(config_keys |&gt; filter(|ck| ck == k) |&gt; len() &gt; 0))
+
+    if len(missing) &gt; 0 then {
+        errors = errors + ["Missing required fields: " + str(missing)]
+    }
+
+    # Validate parameter ranges
+    if config.min_quality &lt; 0 then {
+        errors = errors + ["min_quality must be &gt;= 0, got " + str(config.min_quality)]
+    }
+    if config.min_quality &gt; 40 then {
+        errors = errors + ["min_quality must be &lt;= 40, got " + str(config.min_quality)]
+    }
+    if config.min_length &lt; 1 then {
+        errors = errors + ["min_length must be &gt;= 1, got " + str(config.min_length)]
+    }
+
+    # Check input files exist
+    let missing_files = config.input_files |&gt; filter(|f| !file_exists(f))
+    if len(missing_files) &gt; 0 then {
+        errors = errors + ["Missing input files: " + str(missing_files)]
+    }
+
+    errors
+}
+
+let errors = validate_config(config)
+if len(errors) &gt; 0 then {
+    println("Configuration errors:")
+    errors |&gt; map(|e| println("  - " + e))
+    error("Invalid configuration. Fix errors above and re-run.")
+}
+println("Configuration validated successfully.")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>This validation step catches mistakes <em>before</em> the pipeline spends hours processing data. It is a small investment that saves enormous debugging time.</p>
+<h3 id="why-json"><a class="header" href="#why-json">Why JSON?</a></h3>
+<p>We use JSON for config files because BioLang has built-in <code>json_encode()</code> and <code>json_decode()</code> functions. JSON is also readable by Python, R, and every other language, which matters when collaborators use different tools.</p>
+<p>Some teams prefer YAML for its readability. Others use TOML for its simplicity. The format matters less than the principle: <strong>parameters live outside the code</strong>.</p>
+<hr>
+<h2 id="checksums-and-data-versioning"><a class="header" href="#checksums-and-data-versioning">Checksums and Data Versioning</a></h2>
+<p>A checksum is a fingerprint for a file. If even a single byte changes, the checksum changes. This gives us a reliable way to detect whether inputs or outputs have been modified.</p>
+<p>BioLang provides <code>sha256()</code> for computing checksums:</p>
+<pre><code class="language-bio"># Compute SHA-256 checksum of a file
+let checksum = sha256("data/sample_A.fastq")
+println("SHA-256: " + checksum)
+# → SHA-256: a3f2b8c91d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>We use checksums at two points in our pipeline:</p>
+<ol>
+<li><strong>Before processing</strong>: Checksum all inputs. This creates a record of exactly which data was analyzed.</li>
+<li><strong>After processing</strong>: Checksum all outputs. This lets us verify that outputs have not been tampered with or corrupted.</li>
+</ol>
+<p>Here is a function that checksums a list of files and returns a record:</p>
+<pre><code class="language-bio">fn checksum_files(file_paths) {
+    file_paths |&gt; map(|path| {
+        file: path,
+        sha256: sha256(path)
+    })
+}
+
+# Checksum all inputs
+let input_checksums = checksum_files(config.input_files)
+println("Input checksums:")
+input_checksums |&gt; map(|c| println("  " + c.file + ": " + c.sha256))
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Input checksums:
+  data/sample_A.fastq: e3b0c44298fc1c149afbf4c8996fb924
+  data/sample_B.fastq: 7d865e959b2466918c9863afca942d0f
+</code></pre>
+<h3 id="detecting-data-changes"><a class="header" href="#detecting-data-changes">Detecting Data Changes</a></h3>
+<p>The power of checksums becomes clear when you run the pipeline again later. Compare the current checksums against the stored ones:</p>
+<pre><code class="language-bio">fn verify_checksums(expected, current) {
+    let mismatches = []
+    let i = 0
+    let result = expected |&gt; map(|exp| {
+        let cur = current |&gt; filter(|c| c.file == exp.file)
+        if len(cur) &gt; 0 then {
+            if cur |&gt; map(|c| c.sha256) |&gt; reduce(|a, b| a) != exp.sha256 then {
+                {file: exp.file, status: "CHANGED", old: exp.sha256, new: cur |&gt; map(|c| c.sha256) |&gt; reduce(|a, b| a)}
+            } else {
+                {file: exp.file, status: "OK"}
+            }
+        } else {
+            {file: exp.file, status: "MISSING"}
+        }
+    })
+    result
+}
+</code></pre>
+<p>If any input file has changed since the last run, the pipeline can warn you — or halt entirely. This prevents the silent corruption of results that plagues so many analyses.</p>
+<hr>
+<h2 id="logging-and-provenance"><a class="header" href="#logging-and-provenance">Logging and Provenance</a></h2>
+<p>A provenance log answers four questions about every pipeline run:</p>
+<ol>
+<li><strong>When</strong> did the analysis run?</li>
+<li><strong>What</strong> parameters were used?</li>
+<li><strong>Which</strong> data was processed (checksums)?</li>
+<li><strong>What</strong> happened at each step (timing, counts, outcomes)?</li>
+</ol>
+<p>Here is our provenance tracking system:</p>
+<pre><code class="language-bio">fn create_provenance(config) {
+    {
+        pipeline: config.pipeline_name,
+        version: config.version,
+        started_at: now() |&gt; format_date("%Y-%m-%d %H:%M:%S"),
+        parameters: config,
+        input_checksums: [],
+        steps: [],
+        output_checksums: [],
+        finished_at: nil,
+        status: "running"
+    }
+}
+
+fn log_step(prov, step_name, details) {
+    let step = {
+        name: step_name,
+        timestamp: now() |&gt; format_date("%Y-%m-%d %H:%M:%S"),
+        details: details
+    }
+    let new_steps = prov.steps + [step]
+    {
+        pipeline: prov.pipeline,
+        version: prov.version,
+        started_at: prov.started_at,
+        parameters: prov.parameters,
+        input_checksums: prov.input_checksums,
+        steps: new_steps,
+        output_checksums: prov.output_checksums,
+        finished_at: prov.finished_at,
+        status: prov.status
+    }
+}
+
+fn finish_provenance(prov, status) {
+    {
+        pipeline: prov.pipeline,
+        version: prov.version,
+        started_at: prov.started_at,
+        parameters: prov.parameters,
+        input_checksums: prov.input_checksums,
+        steps: prov.steps,
+        output_checksums: prov.output_checksums,
+        finished_at: now() |&gt; format_date("%Y-%m-%d %H:%M:%S"),
+        status: status
+    }
+}
+</code></pre>
+<p>Each <code>log_step</code> call adds a timestamped entry with a step name and a details record. At the end, we serialize the entire provenance to JSON and save it:</p>
+<pre><code class="language-bio">fn save_provenance(prov, log_dir) {
+    let filename = log_dir + "/provenance_" + str(now()) + ".json"
+    let json_text = json_encode(prov)
+    write_lines(filename, [json_text])
+    filename
+}
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>This gives us a complete, machine-readable record of every pipeline run. We can compare two provenance files to find exactly what differed between two analyses.</p>
+<hr>
+<h2 id="building-the-pipeline-step-by-step"><a class="header" href="#building-the-pipeline-step-by-step">Building the Pipeline Step by Step</a></h2>
+<p>Now we combine everything into a complete, reproducible QC pipeline. We will build it incrementally, explaining each section.</p>
+<h3 id="step-1-initialize"><a class="header" href="#step-1-initialize">Step 1: Initialize</a></h3>
+<pre><code class="language-bio"># Load configuration
+let config_text = read_lines("config.json") |&gt; reduce(|a, b| a + b)
+let config = json_decode(config_text)
+
+# Validate
+let errors = validate_config(config)
+if len(errors) &gt; 0 then {
+    errors |&gt; map(|e| println("ERROR: " + e))
+    error("Configuration invalid")
+}
+
+# Create output directories
+mkdir(config.output_dir)
+mkdir(config.log_dir)
+
+# Start provenance tracking
+let prov = create_provenance(config)
+println("Pipeline " + config.pipeline_name + " v" + config.version + " started")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="step-2-checksum-inputs"><a class="header" href="#step-2-checksum-inputs">Step 2: Checksum Inputs</a></h3>
+<pre><code class="language-bio"># Record input data fingerprints
+let input_checksums = checksum_files(config.input_files)
+let prov = {
+    pipeline: prov.pipeline,
+    version: prov.version,
+    started_at: prov.started_at,
+    parameters: prov.parameters,
+    input_checksums: input_checksums,
+    steps: prov.steps,
+    output_checksums: prov.output_checksums,
+    finished_at: prov.finished_at,
+    status: prov.status
+}
+let prov = log_step(prov, "checksum_inputs", {
+    file_count: len(input_checksums)
+})
+println("Checksummed " + str(len(input_checksums)) + " input files")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="step-3-process-each-sample"><a class="header" href="#step-3-process-each-sample">Step 3: Process Each Sample</a></h3>
+<p>This is the core of the pipeline. For each input file, we filter reads, compute statistics, and record everything:</p>
+<pre><code class="language-bio">fn process_sample(file_path, config) {
+    let t = timer_start()
+
+    # Read and filter
+    let reads = read_fastq(file_path)
+    let total_count = len(reads)
+
+    let filtered = reads |&gt; quality_filter(config.min_quality)
+    let length_filtered = filtered |&gt; filter(|r| len(r.seq) &gt;= config.min_length)
+    let pass_count = len(length_filtered)
+
+    # Compute statistics on passing reads
+    let gc_values = length_filtered |&gt; map(|r| gc_content(r.seq))
+    let lengths = length_filtered |&gt; map(|r| len(r.seq))
+    let qualities = length_filtered |&gt; map(|r| mean(r.qual))
+
+    let elapsed = timer_elapsed(t)
+
+    # Return results as a record
+    {
+        file: file_path,
+        total_reads: total_count,
+        passed_reads: pass_count,
+        pass_rate: pass_count / total_count,
+        gc_mean: mean(gc_values),
+        gc_stdev: stdev(gc_values),
+        length_mean: mean(lengths),
+        length_min: min(lengths),
+        length_max: max(lengths),
+        quality_mean: mean(qualities),
+        elapsed_seconds: elapsed
+    }
+}
+
+# Process all samples
+let results = config.input_files |&gt; map(|f| {
+    println("Processing: " + f)
+    let result = process_sample(f, config)
+    println("  " + str(result.passed_reads) + "/" + str(result.total_reads) +
+          " reads passed (" + str(int(result.pass_rate * 100)) + "%)")
+    result
+})
+
+let prov = log_step(prov, "process_samples", {
+    sample_count: len(results),
+    total_reads: results |&gt; map(|r| r.total_reads) |&gt; sum(),
+    total_passed: results |&gt; map(|r| r.passed_reads) |&gt; sum()
+})
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Expected output:</p>
+<pre><code>Processing: data/sample_A.fastq
+  387/500 reads passed (77%)
+Processing: data/sample_B.fastq
+  392/500 reads passed (78%)
+</code></pre>
+<h3 id="step-4-write-results"><a class="header" href="#step-4-write-results">Step 4: Write Results</a></h3>
+<pre><code class="language-bio"># Build summary table
+let summary = results |&gt; map(|r| {
+    file: r.file,
+    total_reads: r.total_reads,
+    passed_reads: r.passed_reads,
+    pass_rate: r.pass_rate,
+    gc_mean: r.gc_mean,
+    length_mean: r.length_mean,
+    quality_mean: r.quality_mean
+}) |&gt; to_table()
+
+# Write CSV output
+let output_path = config.output_dir + "/qc_summary.csv"
+summary |&gt; write_csv(output_path)
+println("Summary written to: " + output_path)
+
+let prov = log_step(prov, "write_results", {
+    output_file: output_path
+})
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="step-5-k-mer-analysis"><a class="header" href="#step-5-k-mer-analysis">Step 5: K-mer Analysis</a></h3>
+<p>For a deeper quality check, we compute k-mer profiles. Unusual k-mer distributions can indicate contamination or adapter sequences:</p>
+<pre><code class="language-bio">fn kmer_profile(reads, k) {
+    let all_kmers = reads |&gt; map(|r| kmers(r.seq, k)) |&gt; flatten()
+    let kmer_counts = all_kmers |&gt; group_by(|k| k)
+        |&gt; map(|group| {kmer: group.key, count: len(group.values)})
+        |&gt; sort(|a, b| b.count - a.count)
+    kmer_counts
+}
+
+let kmer_results = config.input_files |&gt; map(|f| {
+    let reads = read_fastq(f) |&gt; quality_filter(config.min_quality)
+    let profile = kmer_profile(reads, config.kmer_size)
+    let top_10 = profile |&gt; filter(|_k, i| i &lt; 10)
+    {file: f, top_kmers: top_10, unique_kmers: len(profile)}
+})
+
+let prov = log_step(prov, "kmer_analysis", {
+    kmer_size: config.kmer_size,
+    samples_analyzed: len(kmer_results)
+})
+
+println("K-mer analysis complete (" + str(config.kmer_size) + "-mers)")
+kmer_results |&gt; map(|r| println("  " + r.file + ": " + str(r.unique_kmers) + " unique " +
+    str(config.kmer_size) + "-mers"))
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="step-6-gc-distribution-check"><a class="header" href="#step-6-gc-distribution-check">Step 6: GC Distribution Check</a></h3>
+<p>We flag samples where GC content falls outside the expected range. This catches contamination, library prep issues, or species misidentification:</p>
+<pre><code class="language-bio">fn gc_distribution(reads, gc_low, gc_high) {
+    let gc_values = reads |&gt; map(|r| gc_content(r.seq))
+    let in_range = gc_values |&gt; filter(|gc| gc &gt;= gc_low) |&gt; filter(|gc| gc &lt;= gc_high)
+    let out_of_range = len(gc_values) - len(in_range)
+
+    {
+        mean: mean(gc_values),
+        median: median(gc_values),
+        stdev: stdev(gc_values),
+        in_range_pct: len(in_range) / len(gc_values),
+        outliers: out_of_range
+    }
+}
+
+let gc_results = config.input_files |&gt; map(|f| {
+    let reads = read_fastq(f) |&gt; quality_filter(config.min_quality)
+    let gc = gc_distribution(reads, config.gc_low, config.gc_high)
+    println("  " + f + ": GC mean=" + str(int(gc.mean * 1000) / 10) +
+          "%, " + str(gc.outliers) + " outlier reads")
+    {file: f, gc: gc}
+})
+
+let prov = log_step(prov, "gc_distribution", {
+    gc_range: [config.gc_low, config.gc_high],
+    samples_analyzed: len(gc_results)
+})
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<h3 id="step-7-checksum-outputs-and-finalize"><a class="header" href="#step-7-checksum-outputs-and-finalize">Step 7: Checksum Outputs and Finalize</a></h3>
+<pre><code class="language-bio"># Checksum all output files
+let output_files = [config.output_dir + "/qc_summary.csv"]
+let output_checksums = checksum_files(output_files)
+
+let prov = {
+    pipeline: prov.pipeline,
+    version: prov.version,
+    started_at: prov.started_at,
+    parameters: prov.parameters,
+    input_checksums: prov.input_checksums,
+    steps: prov.steps,
+    output_checksums: output_checksums,
+    finished_at: prov.finished_at,
+    status: prov.status
+}
+
+# Finalize provenance
+let prov = finish_provenance(prov, "success")
+let prov_file = save_provenance(prov, config.log_dir)
+println("Provenance saved to: " + prov_file)
+println("Pipeline completed successfully.")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>The complete pipeline, combining all seven steps above, is in the companion file <code>days/day-22/scripts/analysis.bl</code>. It is a clean script (no comments, no print statements) that you can run directly with <code>bl run scripts/analysis.bl</code>. The Python and R equivalents are in <code>scripts/analysis.py</code> and <code>scripts/analysis.R</code> respectively.</p>
+<hr>
+<h2 id="modular-pipeline-construction"><a class="header" href="#modular-pipeline-construction">Modular Pipeline Construction</a></h2>
+<p>As pipelines grow, keeping everything in one file becomes unwieldy. BioLang’s <code>import</code> system lets you split a pipeline into modules:</p>
+<pre><code>project/
+├── config.json
+├── pipeline.bl          # Main entry point
+├── lib/
+│   ├── provenance.bl    # Provenance tracking functions
+│   ├── qc.bl            # QC processing functions
+│   └── checksums.bl     # Checksum utilities
+└── results/
+</code></pre>
+<p>The main pipeline becomes clean and readable:</p>
+<pre><code class="language-bio"># pipeline.bl
+import "lib/provenance" as prov
+import "lib/qc" as qc
+import "lib/checksums" as check
+
+let config_text = read_lines("config.json") |&gt; reduce(|a, b| a + b)
+let config = json_decode(config_text)
+
+let tracker = prov.create(config)
+let input_sums = check.checksum_files(config.input_files)
+let results = config.input_files |&gt; map(|f| qc.process_sample(f, config))
+let summary = results |&gt; to_table()
+summary |&gt; write_csv(config.output_dir + "/qc_summary.csv")
+let tracker = prov.finish(tracker, "success")
+prov.save(tracker, config.log_dir)
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Each module exports its functions and can be tested independently. This is the same principle that makes large software projects manageable: separation of concerns.</p>
+<hr>
+<h2 id="sharing-your-analysis"><a class="header" href="#sharing-your-analysis">Sharing Your Analysis</a></h2>
+<p>A reproducible analysis is only useful if others can run it. Here is a checklist for sharing:</p>
+<pre><code>Sharing Checklist
+─────────────────────────────────────────────────────────
+✓ config.json        Parameters (committed to version control)
+✓ pipeline.bl        Pipeline code (committed to version control)
+✓ init.bl            Data setup / generation script
+✓ provenance.json    Log from your run (for comparison)
+✓ README.md          How to install and run
+✓ data/              Raw input files (or download script)
+✓ results/           Expected outputs (for validation)
+─────────────────────────────────────────────────────────
+</code></pre>
+<p>The key insight: <strong>your collaborator should be able to run your analysis with a single command</strong> after installing BioLang. If they need to edit the script, rename files, or guess at parameters, the analysis is not truly reproducible.</p>
+<h3 id="version-pinning"><a class="header" href="#version-pinning">Version Pinning</a></h3>
+<p>For long-term reproducibility, record the BioLang version in your config:</p>
+<pre><code class="language-json">{
+    "pipeline_name": "fastq_qc",
+    "version": "1.0.0",
+    "biolang_version": "0.1.0",
+    "min_quality": 20,
+    ...
+}
+</code></pre>
+<p>And check it at the start of your pipeline:</p>
+<pre><code class="language-bio">let expected_version = config.biolang_version
+let current_version = env("BIOLANG_VERSION")
+if current_version != nil then {
+    if current_version != expected_version then {
+        println("WARNING: Pipeline was developed with BioLang " +
+              expected_version + " but running on " + current_version)
+    }
+}
+</code></pre>
+<h3 id="comparing-provenance-logs"><a class="header" href="#comparing-provenance-logs">Comparing Provenance Logs</a></h3>
+<p>When debugging a failed reproduction, load two provenance files and compare them:</p>
+<pre><code class="language-bio">fn compare_provenance(file_a, file_b) {
+    let a = json_decode(read_lines(file_a) |&gt; reduce(|acc, l| acc + l))
+    let b = json_decode(read_lines(file_b) |&gt; reduce(|acc, l| acc + l))
+
+    # Compare parameters
+    let a_keys = keys(a.parameters)
+    let diffs = a_keys |&gt; filter(|k| str(a.parameters) != str(b.parameters))
+
+    # Compare input checksums
+    let a_sums = a.input_checksums |&gt; map(|c| c.sha256)
+    let b_sums = b.input_checksums |&gt; map(|c| c.sha256)
+
+    {
+        same_version: a.version == b.version,
+        same_inputs: str(a_sums) == str(b_sums),
+        param_diffs: len(diffs),
+        a_status: a.status,
+        b_status: b.status
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<hr>
+<h2 id="putting-it-all-together-the-reproducibility-flow"><a class="header" href="#putting-it-all-together-the-reproducibility-flow">Putting It All Together: The Reproducibility Flow</a></h2>
+<p>Here is the complete lifecycle of a reproducible analysis:</p>
+<p><img src="images/day22-reproducibility-lifecycle.svg" alt="Reproducibility Lifecycle"></p>
+<p>The cycle is: <strong>configure, run, log, share, verify</strong>. Every run produces a provenance file. Every provenance file can be compared against any other. If results differ, the provenance tells you exactly why.</p>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-add-a-new-qc-metric"><a class="header" href="#exercise-1-add-a-new-qc-metric">Exercise 1: Add a New QC Metric</a></h3>
+<p>Add a read complexity metric to the pipeline. Compute the number of unique k-mers divided by the total number of k-mers for each read. A low ratio indicates low-complexity (repetitive) sequence. Add this as a new column in the summary CSV and a new step in the provenance log.</p>
+<p><em>Hint</em>: For a single read, complexity can be computed as:</p>
+<pre><code class="language-bio">fn read_complexity(seq, k) {
+    let all_k = kmers(seq, k)
+    let unique_k = all_k |&gt; group_by(|k| k) |&gt; len()
+    unique_k / len(all_k)
+}
+</code></pre>
+<h3 id="exercise-2-parameter-sweep"><a class="header" href="#exercise-2-parameter-sweep">Exercise 2: Parameter Sweep</a></h3>
+<p>Write a script that runs the pipeline with three different <code>min_quality</code> settings (10, 20, 30) and compares the results. Use a separate config file for each run. Produce a comparison table showing how the pass rate changes with quality threshold.</p>
+<p><em>Hint</em>: You can modify the config programmatically:</p>
+<pre><code class="language-bio">let base_config = json_decode(read_lines("config.json") |&gt; reduce(|a, b| a + b))
+let thresholds = [10, 20, 30]
+let sweep_results = thresholds |&gt; map(|q| {
+    # Create modified config with new threshold
+    # Run pipeline, collect results
+    ...
+})
+</code></pre>
+<h3 id="exercise-3-integrity-checker"><a class="header" href="#exercise-3-integrity-checker">Exercise 3: Integrity Checker</a></h3>
+<p>Write a standalone script called <code>verify.bl</code> that takes a provenance JSON file, re-checksums the input and output files, and reports whether the data is still intact. It should print “PASS” or “FAIL” for each file.</p>
+<p><em>Hint</em>: Load the provenance file, extract the checksums, and compare against fresh <code>sha256()</code> calls.</p>
+<h3 id="exercise-4-multi-run-comparison"><a class="header" href="#exercise-4-multi-run-comparison">Exercise 4: Multi-Run Comparison</a></h3>
+<p>After running the pipeline at least twice (perhaps with different parameters), write a script that loads all provenance files from the <code>logs/</code> directory, extracts the key metrics (total reads, pass rate, timing), and produces a comparison table. This is useful for tracking how an analysis evolves over time.</p>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    Day 22 Key Takeaways                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. Never hardcode parameters. Use config files (JSON)      │
+│     that live alongside your code.                          │
+│                                                             │
+│  2. Checksum everything. sha256() on inputs before          │
+│     processing and outputs after. If data changes,          │
+│     you will know immediately.                              │
+│                                                             │
+│  3. Log provenance automatically. Every pipeline run        │
+│     should produce a timestamped record of parameters,      │
+│     checksums, and step outcomes.                           │
+│                                                             │
+│  4. Validate before processing. Catch config errors         │
+│     and missing files before wasting compute time.          │
+│                                                             │
+│  5. Separate concerns. Config, code, and logs are three     │
+│     distinct files. Modules split large pipelines into      │
+│     testable components.                                    │
+│                                                             │
+│  6. Make it one-command reproducible. A collaborator         │
+│     should be able to run your analysis with:               │
+│     bl run init.bl &amp;&amp; bl run scripts/analysis.bl            │
+│                                                             │
+│  7. Compare provenance to debug differences. When           │
+│     results diverge, the provenance log tells you           │
+│     exactly what changed.                                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow in <strong>Day 23</strong>, we move from ensuring reproducibility to scaling up: <strong>cloud and cluster deployment</strong>. You will learn how to take the pipeline you built today and run it on larger datasets using distributed compute resources. The provenance system we built today will be essential — when your analysis runs on a remote cluster, good logging is the only way to know what happened.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-21.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-23.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-21.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-23.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

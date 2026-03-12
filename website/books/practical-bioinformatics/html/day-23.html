@@ -1,0 +1,781 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 23: Batch Processing at Scale - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-23-batch-processing-and-automation"><a class="header" href="#day-23-batch-processing-and-automation">Day 23: Batch Processing and Automation</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Basic (FASTQ quality, sample sheets, sequencing runs)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (functions, records, file I/O, parallel execution, error handling)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–22 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>Why batch processing is essential for modern sequencing throughput</li>
+<li>How to parse sample sheets and discover files by directory traversal</li>
+<li>How to design per-sample processing functions that compose into batch workflows</li>
+<li>How to use parallel execution to process hundreds of samples efficiently</li>
+<li>How to track progress and log results across large batches</li>
+<li>How to handle errors gracefully so one failed sample does not halt 199 others</li>
+<li>How to aggregate per-sample results into cohort-level summaries</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p><em>“I have 200 samples — do I really have to run each one manually?”</em></p>
+<p>Your sequencing core facility just delivered the latest run: 200 paired-end samples from a population genetics study. Each sample has a forward and reverse FASTQ file, totaling 400 files. The sample sheet maps sample IDs to file paths, tissue types, and expected coverage depths.</p>
+<p>Yesterday, you built a reproducible pipeline for a single sample. You validated parameters, checksummed inputs, ran quality filtering, and logged provenance. That pipeline works perfectly — for one sample. Now you need to run it 200 times, collect all the results, and produce a cohort-level summary.</p>
+<p>You could copy-paste your single-sample script 200 times, changing the filename each time. You could write a shell loop. You could open 200 terminal tabs. All of these approaches share the same problems: they are error-prone, they do not track which samples succeeded or failed, and they do not aggregate results.</p>
+<p>What you need is a <strong>batch processing framework</strong>: a pattern for taking a single-sample pipeline and running it across an entire cohort, with progress tracking, error recovery, and automatic aggregation. That is what we build today.</p>
+<hr>
+<h2 id="the-scale-of-modern-sequencing"><a class="header" href="#the-scale-of-modern-sequencing">The Scale of Modern Sequencing</a></h2>
+<p>Before we write code, let us understand why batch processing is not optional. A modern Illumina NovaSeq 6000 produces up to 6 terabytes of data per run. A typical run might contain:</p>
+<ul>
+<li><strong>96–384 samples</strong> on a single flow cell</li>
+<li><strong>2 files per sample</strong> (paired-end: R1 and R2)</li>
+<li><strong>10–50 million reads per sample</strong></li>
+<li><strong>A sample sheet</strong> mapping barcodes to sample IDs</li>
+</ul>
+<p>At this scale, manual processing is not merely tedious — it is impossible. Even if each sample takes only 30 seconds to process, 200 samples at 30 seconds each is nearly two hours of wall-clock time. But if your single-sample pipeline takes 5 minutes (common for real QC), you are looking at 16 hours of sequential processing. With parallelism, you can bring that down to the time it takes to process one sample.</p>
+<p>The following diagram shows the batch processing flow:</p>
+<p><img src="images/day23-batch-architecture.svg" alt="Batch Processing Architecture: fan-out from sample sheet to per-sample QC, then fan-in to aggregate results and batch report"></p>
+<p>The key insight is the <strong>fan-out / fan-in</strong> pattern. You start with a list of samples, fan out to process each one independently, then fan back in to aggregate the results. Each sample is independent — if sample 47 fails, samples 1–46 and 48–200 are unaffected.</p>
+<hr>
+<h2 id="setting-up-the-project"><a class="header" href="#setting-up-the-project">Setting Up the Project</a></h2>
+<p>Generate the test data for today’s exercises:</p>
+<pre><code class="language-bash">bl run init.bl
+</code></pre>
+<p>The <code>init.bl</code> script creates a realistic batch processing scenario:</p>
+<pre><code># init.bl creates:
+# data/sample_sheet.csv    — sample sheet with 24 samples
+# data/fastq/              — 24 FASTQ files (one per sample)
+# results/                 — output directory
+# logs/                    — batch log directory
+</code></pre>
+<p>We use 24 samples instead of 200 to keep runtimes short during learning, but the patterns we develop work identically at any scale.</p>
+<hr>
+<h2 id="sample-sheet-parsing"><a class="header" href="#sample-sheet-parsing">Sample Sheet Parsing</a></h2>
+<p>A sample sheet is the bridge between the sequencing instrument and your analysis. It maps each sample to its files, metadata, and processing instructions. In production, sample sheets come from the core facility in CSV or TSV format. Here is what ours looks like:</p>
+<pre><code class="language-csv">sample_id,fastq_file,tissue,expected_reads,group
+SAMP_001,data/fastq/SAMP_001.fastq,blood,500,control
+SAMP_002,data/fastq/SAMP_002.fastq,liver,500,treatment
+SAMP_003,data/fastq/SAMP_003.fastq,brain,500,control
+...
+</code></pre>
+<p>Parsing a sample sheet in BioLang is a single function call:</p>
+<pre><code class="language-bio">let sheet = read_csv("data/sample_sheet.csv")
+</code></pre>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>This returns a table with named columns. You can inspect it, filter it, and iterate over it. But before you process anything, you should validate that every file in the sample sheet actually exists:</p>
+<pre><code class="language-bio">fn validate_sample_sheet(sheet) {
+    let files = sheet |&gt; select("fastq_file") |&gt; flatten()
+    let missing = files |&gt; filter(|f| !file_exists(f))
+    missing
+}
+
+let missing = validate_sample_sheet(sheet)
+if len(missing) &gt; 0 then {
+    println("ERROR: Missing files: " + str(missing))
+    error("Cannot proceed with missing input files")
+}
+</code></pre>
+<p>This is a critical safety check. If the core facility misspelled a filename or your data transfer was incomplete, you want to know immediately — not after processing 150 samples and encountering a crash on sample 151.</p>
+<h3 id="extracting-samples-as-records"><a class="header" href="#extracting-samples-as-records">Extracting Samples as Records</a></h3>
+<p>Tables are convenient for viewing data, but for per-sample processing, you want a list of records where each record contains all the information about one sample:</p>
+<pre><code class="language-bio">fn sheet_to_samples(sheet) {
+    let ids = sheet |&gt; select("sample_id") |&gt; flatten()
+    let files = sheet |&gt; select("fastq_file") |&gt; flatten()
+    let tissues = sheet |&gt; select("tissue") |&gt; flatten()
+    let groups = sheet |&gt; select("group") |&gt; flatten()
+    range(0, len(ids)) |&gt; map(|i| {
+        id: ids[i],
+        fastq: files[i],
+        tissue: tissues[i],
+        group: groups[i]
+    })
+}
+
+let samples = sheet_to_samples(sheet)
+</code></pre>
+<p>Now <code>samples</code> is a list of records like <code>{id: "SAMP_001", fastq: "data/fastq/SAMP_001.fastq", tissue: "blood", group: "control"}</code>. Each record is a self-contained description of what to process and where to find it.</p>
+<hr>
+<h2 id="directory-based-discovery"><a class="header" href="#directory-based-discovery">Directory-Based Discovery</a></h2>
+<p>Not every sequencing run comes with a sample sheet. Sometimes you receive a directory full of FASTQ files and need to discover samples programmatically. This is common when downloading public datasets from SRA or ENA, or when working with legacy data.</p>
+<p>BioLang’s <code>list_dir()</code> function returns the contents of a directory. Combined with <code>filter()</code> and string operations, you can build a sample list from file paths alone:</p>
+<pre><code class="language-bio">fn discover_samples(data_dir) {
+    let all_files = list_dir(data_dir)
+    let fastq_files = all_files |&gt; filter(|f| ends_with(f, ".fastq"))
+    fastq_files |&gt; map(|f| {
+        let basename = f |&gt; split("/") |&gt; sort() |&gt; reduce(|a, b| b)
+        let sample_id = basename |&gt; replace(".fastq", "")
+        {
+            id: sample_id,
+            fastq: f,
+            tissue: "unknown",
+            group: "unknown"
+        }
+    })
+}
+</code></pre>
+<p>This approach is useful for ad-hoc analyses, but sample-sheet-driven processing is preferred whenever metadata is available. A sample sheet carries tissue type, expected read count, experimental group, and other annotations that directory traversal cannot infer.</p>
+<h3 id="when-to-use-each-approach"><a class="header" href="#when-to-use-each-approach">When to Use Each Approach</a></h3>
+<pre><code>Decision: How to find samples
+==============================
+
+  Have a sample sheet?
+     │
+     ├── YES → Parse CSV/TSV
+     │         ✓ Metadata included
+     │         ✓ Explicit file mapping
+     │         ✓ Validates against manifest
+     │
+     └── NO  → Discover from directory
+              ✓ Works with any file structure
+              ✗ No metadata (tissue, group)
+              ✗ Naming conventions must be consistent
+</code></pre>
+<hr>
+<h2 id="per-sample-processing-functions"><a class="header" href="#per-sample-processing-functions">Per-Sample Processing Functions</a></h2>
+<p>The core of any batch pipeline is a function that processes a single sample and returns a structured result. This function should be <strong>pure</strong> — it takes a sample record as input, processes it, and returns a result record. It should not modify global state or depend on information outside its arguments.</p>
+<p>Here is a complete per-sample QC function:</p>
+<pre><code class="language-bio">fn process_sample(sample, config) {
+    let t = timer_start()
+    let reads = read_fastq(sample.fastq)
+    let total = len(reads)
+
+    let filtered = reads |&gt; quality_filter(config.min_quality)
+    let passed = filtered |&gt; filter(|r| len(r.seq) &gt;= config.min_length)
+    let pass_count = len(passed)
+
+    let gc_values = passed |&gt; map(|r| gc_content(r.seq))
+    let lengths = passed |&gt; map(|r| len(r.seq))
+
+    {
+        sample_id: sample.id,
+        tissue: sample.tissue,
+        group: sample.group,
+        total_reads: total,
+        passed_reads: pass_count,
+        pass_rate: pass_count / total,
+        gc_mean: mean(gc_values),
+        gc_stdev: stdev(gc_values),
+        length_mean: mean(lengths),
+        length_min: min(lengths),
+        length_max: max(lengths),
+        elapsed: timer_elapsed(t)
+    }
+}
+</code></pre>
+<p>Notice what this function does <em>not</em> do:</p>
+<ul>
+<li>It does not print progress messages (that is the caller’s job)</li>
+<li>It does not write files (results are returned, not saved)</li>
+<li>It does not handle errors (the caller wraps it in <code>try/catch</code>)</li>
+<li>It does not know about other samples (it processes exactly one)</li>
+</ul>
+<p>This separation of concerns is what makes the function composable. You can call it once for testing, map it over 24 samples for a pilot study, or par_map it over 200 samples for a full cohort.</p>
+<hr>
+<h2 id="parallel-batch-execution"><a class="header" href="#parallel-batch-execution">Parallel Batch Execution</a></h2>
+<p>Sequential processing — <code>map(|s| process_sample(s, config))</code> — works correctly but wastes time. If your machine has 8 cores and each sample takes 5 seconds, processing 200 samples sequentially takes 1,000 seconds. With 8-way parallelism, it takes 125 seconds.</p>
+<p>BioLang’s <code>par_map()</code> distributes work across available cores:</p>
+<pre><code class="language-bio">let results = samples |&gt; par_map(|s| process_sample(s, config))
+</code></pre>
+<p>That is the entire change. Replace <code>map</code> with <code>par_map</code>, and your pipeline runs in parallel. The results are collected in the same order as the input, so <code>results[0]</code> always corresponds to <code>samples[0]</code>.</p>
+<p><img src="images/day23-sequential-vs-parallel.svg" alt="Sequential vs parallel processing: N samples take N*T seconds sequentially but approximately T seconds with par_map"></p>
+<h3 id="when-to-parallelize"><a class="header" href="#when-to-parallelize">When to Parallelize</a></h3>
+<p>Not every workload benefits from parallelism. The overhead of distributing work and collecting results means that very fast operations (under 10 milliseconds per item) may actually run slower with <code>par_map</code> than with <code>map</code>. Use this rule of thumb:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Per-item time</th><th>Recommendation</th></tr>
+</thead>
+<tbody>
+<tr><td>&lt; 10 ms</td><td>Use <code>map</code> (overhead dominates)</td></tr>
+<tr><td>10 ms – 1 s</td><td><code>par_map</code> if batch &gt; 50 items</td></tr>
+<tr><td>&gt; 1 s</td><td>Always use <code>par_map</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>For bioinformatics workloads, individual samples almost always take more than a second, so <code>par_map</code> is the default choice.</p>
+<hr>
+<h2 id="progress-and-logging"><a class="header" href="#progress-and-logging">Progress and Logging</a></h2>
+<p>When processing 200 samples, silence is unacceptable. You need to know which sample is being processed, how many have completed, and how long the batch is taking. But you also do not want to flood the console with 200 lines of output.</p>
+<p>A good batch progress system reports:</p>
+<ol>
+<li><strong>Start</strong>: total count and configuration</li>
+<li><strong>Periodic updates</strong>: every N samples or every M seconds</li>
+<li><strong>Completion</strong>: total time, success/failure counts</li>
+</ol>
+<p>Here is a pattern that processes samples one at a time with progress reporting:</p>
+<pre><code class="language-bio">fn run_batch_with_progress(samples, config) {
+    let total = len(samples)
+    let t_batch = timer_start()
+    let results = []
+    let errors = []
+
+    samples |&gt; each(|s| {
+        let idx = len(results) + len(errors) + 1
+        try {
+            let result = process_sample(s, config)
+            results = results + [result]
+            if idx % 5 == 0 then {
+                let elapsed = timer_elapsed(t_batch)
+                let rate = idx / elapsed
+                let remaining = (total - idx) / rate
+                println("[" + str(idx) + "/" + str(total) + "] " + str(int(remaining)) + "s remaining")
+            }
+        } catch err {
+            errors = errors + [{sample_id: s.id, error: str(err)}]
+            println("WARN: " + s.id + " failed: " + str(err))
+        }
+    })
+
+    {
+        results: results,
+        errors: errors,
+        total_time: timer_elapsed(t_batch)
+    }
+}
+</code></pre>
+<p>This function processes each sample, catches errors individually, and prints a progress update every 5 samples. The rate calculation (<code>idx / elapsed</code>) gives a simple estimate of remaining time.</p>
+<h3 id="logging-to-file"><a class="header" href="#logging-to-file">Logging to File</a></h3>
+<p>Console output disappears when the terminal closes. For batch processing, you should also write a log file:</p>
+<pre><code class="language-bio">fn write_batch_log(log_file, batch_result) {
+    let lines = []
+    let lines = lines + ["Batch completed at: " + (now() |&gt; format_date("%Y-%m-%d %H:%M:%S"))]
+    let lines = lines + ["Total time: " + str(batch_result.total_time) + " seconds"]
+    let lines = lines + ["Succeeded: " + str(len(batch_result.results))]
+    let lines = lines + ["Failed: " + str(len(batch_result.errors))]
+    let lines = lines + [""]
+
+    if len(batch_result.errors) &gt; 0 then {
+        let lines = lines + ["Failed samples:"]
+        batch_result.errors |&gt; each(|e| {
+            lines = lines + ["  " + e.sample_id + ": " + e.error]
+        })
+    }
+
+    write_lines(log_file, lines)
+}
+</code></pre>
+<hr>
+<h2 id="error-recovery"><a class="header" href="#error-recovery">Error Recovery</a></h2>
+<p>In batch processing, errors are inevitable. A corrupted FASTQ file, a sample with zero reads, a disk that fills up mid-run — these things happen. The question is not whether errors will occur but how your pipeline handles them.</p>
+<p>The worst possible behavior is to crash on the first error, losing all progress. The 150 samples that already succeeded produce no output because the pipeline exited before writing results. This is catastrophic when each sample takes minutes to process.</p>
+<p>The correct approach is <strong>error isolation</strong>: each sample is processed independently, errors are caught and recorded, and the batch continues. At the end, you have results for all successful samples and a clear list of failures to investigate.</p>
+<pre><code>Error Recovery Pattern
+======================
+
+  Sample 1  ──► OK    ──► result
+  Sample 2  ──► OK    ──► result
+  Sample 3  ──► FAIL  ──► log error, continue
+  Sample 4  ──► OK    ──► result
+  Sample 5  ──► OK    ──► result
+  ...
+  Sample N  ──► OK    ──► result
+
+  Final: 198 results + 2 errors
+  (not: crash after sample 3, lose everything)
+</code></pre>
+<p>The <code>try/catch</code> pattern we used in <code>run_batch_with_progress</code> above implements this. Each sample is wrapped in its own error boundary. A failure in one sample does not affect any other.</p>
+<h3 id="retry-logic"><a class="header" href="#retry-logic">Retry Logic</a></h3>
+<p>Some errors are transient — a temporary network issue when downloading a reference, a brief I/O contention on shared storage. For these, retrying the operation often succeeds:</p>
+<pre><code class="language-bio">fn process_with_retry(sample, config, max_retries) {
+    let attempts = 0
+    let last_error = ""
+    let result = nil
+
+    range(0, max_retries) |&gt; each(|attempt| {
+        if result == nil then {
+            try {
+                result = process_sample(sample, config)
+            } catch err {
+                last_error = str(err)
+                attempts = attempt + 1
+            }
+        }
+    })
+
+    if result == nil then {
+        error("Failed after " + str(max_retries) + " attempts: " + last_error)
+    }
+
+    result
+}
+</code></pre>
+<p>In production pipelines, retries are most useful for I/O-bound operations (network, disk). CPU-bound operations (quality filtering, statistics) either succeed or fail deterministically — retrying them wastes time without changing the outcome.</p>
+<hr>
+<h2 id="aggregating-results"><a class="header" href="#aggregating-results">Aggregating Results</a></h2>
+<p>After processing all samples, you have a list of per-sample result records. The next step is to aggregate these into a cohort-level summary. This serves two purposes: it provides a quick overview of the entire batch, and it identifies outlier samples that may need manual review.</p>
+<h3 id="per-sample-summary-table"><a class="header" href="#per-sample-summary-table">Per-Sample Summary Table</a></h3>
+<p>The simplest aggregation is a table with one row per sample:</p>
+<pre><code class="language-bio">fn build_summary_table(results) {
+    results |&gt; map(|r| {
+        sample_id: r.sample_id,
+        tissue: r.tissue,
+        group: r.group,
+        total_reads: r.total_reads,
+        passed_reads: r.passed_reads,
+        pass_rate: r.pass_rate,
+        gc_mean: r.gc_mean,
+        length_mean: r.length_mean
+    }) |&gt; to_table()
+}
+</code></pre>
+<h3 id="group-level-statistics"><a class="header" href="#group-level-statistics">Group-Level Statistics</a></h3>
+<p>For experiments with treatment and control groups, you often want summary statistics <em>per group</em>. BioLang’s <code>group_by</code> and <code>summarize</code> make this straightforward:</p>
+<pre><code class="language-bio">fn summarize_by_group(results) {
+    results |&gt; group_by(|r| r.group) |&gt; map(|entry| {
+        let group_results = entry.values
+        {
+            group: entry.key,
+            n_samples: len(group_results),
+            mean_pass_rate: group_results |&gt; map(|r| r.pass_rate) |&gt; mean(),
+            mean_gc: group_results |&gt; map(|r| r.gc_mean) |&gt; mean(),
+            mean_reads: group_results |&gt; map(|r| r.total_reads) |&gt; mean()
+        }
+    })
+}
+</code></pre>
+<h3 id="outlier-detection"><a class="header" href="#outlier-detection">Outlier Detection</a></h3>
+<p>Samples with unusual metrics may indicate technical problems (failed library prep, contamination, index hopping) or genuine biological differences. A simple approach flags samples whose metrics fall outside 2 standard deviations of the cohort mean:</p>
+<pre><code class="language-bio">fn flag_outliers(results, field) {
+    let values = results |&gt; map(|r| {
+        if field == "pass_rate" then r.pass_rate
+        else if field == "gc_mean" then r.gc_mean
+        else r.length_mean
+    })
+    let m = mean(values)
+    let s = stdev(values)
+    let lower = m - 2.0 * s
+    let upper = m + 2.0 * s
+
+    results |&gt; filter(|r| {
+        let v = if field == "pass_rate" then r.pass_rate
+                else if field == "gc_mean" then r.gc_mean
+                else r.length_mean
+        v &lt; lower or v &gt; upper
+    }) |&gt; map(|r| r.sample_id)
+}
+</code></pre>
+<p>This is a coarse screen, not a definitive classification. Outlier samples should be reviewed manually before being excluded from downstream analysis.</p>
+<hr>
+<h2 id="putting-it-all-together"><a class="header" href="#putting-it-all-together">Putting It All Together</a></h2>
+<p>Here is the complete batch processing pipeline, assembled from the components we developed above:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let config_text = read_lines("config.json") |&gt; reduce(|a, b| a + b)
+let config = json_decode(config_text)
+
+let sheet = read_csv("data/sample_sheet.csv")
+let missing = validate_sample_sheet(sheet)
+if len(missing) &gt; 0 then {
+    error("Missing input files: " + str(missing))
+}
+
+let samples = sheet_to_samples(sheet)
+let batch = run_batch_with_progress(samples, config)
+
+let summary = build_summary_table(batch.results)
+summary |&gt; write_csv(config.output_dir + "/batch_summary.csv")
+
+let group_stats = summarize_by_group(batch.results)
+let group_table = group_stats |&gt; to_table()
+group_table |&gt; write_csv(config.output_dir + "/group_summary.csv")
+
+let gc_outliers = flag_outliers(batch.results, "gc_mean")
+let rate_outliers = flag_outliers(batch.results, "pass_rate")
+
+let report = {
+    timestamp: now() |&gt; format_date("%Y-%m-%d %H:%M:%S"),
+    total_samples: len(samples),
+    succeeded: len(batch.results),
+    failed: len(batch.errors),
+    total_time: batch.total_time,
+    gc_outliers: gc_outliers,
+    rate_outliers: rate_outliers,
+    errors: batch.errors
+}
+write_lines(config.log_dir + "/batch_report.json", [json_encode(report)])
+</code></pre>
+<p>This pipeline:</p>
+<ol>
+<li>Loads configuration from a JSON file</li>
+<li>Parses the sample sheet and validates that all files exist</li>
+<li>Processes all samples with progress tracking and error isolation</li>
+<li>Builds per-sample and per-group summary tables</li>
+<li>Flags statistical outliers for manual review</li>
+<li>Writes a batch report with timing, error counts, and outlier lists</li>
+</ol>
+<hr>
+<h2 id="automation"><a class="header" href="#automation">Automation</a></h2>
+<p>The final step in a batch processing workflow is making it fully automated. An automated pipeline can be triggered by a cron job, a file watcher, or a sequencing instrument completion signal. It should require zero human intervention for the common case and produce clear alerts when something goes wrong.</p>
+<h3 id="the-automation-script-pattern"><a class="header" href="#the-automation-script-pattern">The Automation Script Pattern</a></h3>
+<p>An automation wrapper handles the lifecycle around your pipeline:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">fn run_automated_batch(sheet_path, config_path) {
+    let t = timer_start()
+
+    let config_text = read_lines(config_path) |&gt; reduce(|a, b| a + b)
+    let config = json_decode(config_text)
+
+    mkdir(config.output_dir)
+    mkdir(config.log_dir)
+
+    let sheet = read_csv(sheet_path)
+    let missing = validate_sample_sheet(sheet)
+    if len(missing) &gt; 0 then {
+        let alert = {
+            status: "FAILED",
+            reason: "missing_files",
+            files: missing,
+            timestamp: now() |&gt; format_date("%Y-%m-%d %H:%M:%S")
+        }
+        write_lines(config.log_dir + "/alert.json", [json_encode(alert)])
+        error("Batch aborted: missing files")
+    }
+
+    let samples = sheet_to_samples(sheet)
+    let batch = run_batch_with_progress(samples, config)
+
+    let summary = build_summary_table(batch.results)
+    summary |&gt; write_csv(config.output_dir + "/batch_summary.csv")
+
+    let report = {
+        status: if len(batch.errors) == 0 then "SUCCESS" else "PARTIAL",
+        total_samples: len(samples),
+        succeeded: len(batch.results),
+        failed: len(batch.errors),
+        total_time: timer_elapsed(t),
+        errors: batch.errors
+    }
+    write_lines(config.log_dir + "/batch_report.json", [json_encode(report)])
+
+    report
+}
+</code></pre>
+<h3 id="integrating-with-shell"><a class="header" href="#integrating-with-shell">Integrating with Shell</a></h3>
+<p>To trigger a BioLang batch pipeline from a shell script or cron job:</p>
+<pre><code class="language-bash">#!/bin/bash
+# nightly_batch.sh — run QC on any new sample sheets
+
+SHEET_DIR="/data/sequencing/incoming"
+CONFIG="/opt/pipelines/qc_config.json"
+
+for sheet in "$SHEET_DIR"/*.csv; do
+    echo "Processing: $sheet"
+    bl run automation.bl -- "$sheet" "$CONFIG"
+done
+</code></pre>
+<p>The <code>--</code> separator passes arguments to the BioLang script. This pattern integrates BioLang pipelines into existing infrastructure without requiring changes to the surrounding automation.</p>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-tissue-specific-qc-thresholds"><a class="header" href="#exercise-1-tissue-specific-qc-thresholds">Exercise 1: Tissue-Specific QC Thresholds</a></h3>
+<p>Modify the batch pipeline to support different quality thresholds per tissue type. Create a configuration that specifies <code>min_quality: 25</code> for blood samples and <code>min_quality: 20</code> for all other tissues. Process the sample sheet with tissue-aware filtering and compare the pass rates.</p>
+<p><em>Hint</em>: Add a <code>tissue_thresholds</code> record to your config, then look up the threshold for each sample’s tissue type inside <code>process_sample</code>.</p>
+<h3 id="exercise-2-checkpoint-and-resume"><a class="header" href="#exercise-2-checkpoint-and-resume">Exercise 2: Checkpoint and Resume</a></h3>
+<p>Real batch jobs can be interrupted (power failure, killed process, disk full). Write a batch pipeline that saves a checkpoint file after each sample. If the pipeline is restarted, it reads the checkpoint, skips already-completed samples, and resumes from where it left off.</p>
+<p><em>Hint</em>: Write completed sample IDs to a file. On startup, read that file and filter out already-processed samples from the sample list.</p>
+<h3 id="exercise-3-cross-sample-contamination-check"><a class="header" href="#exercise-3-cross-sample-contamination-check">Exercise 3: Cross-Sample Contamination Check</a></h3>
+<p>After processing all samples, compare the k-mer profiles between samples in different groups. If two samples from different groups have highly similar k-mer distributions, flag them as potential cross-contamination. Use <code>kmers(seq, 5)</code> to build k-mer frequency profiles and compare them.</p>
+<p><em>Hint</em>: For each sample, build a k-mer frequency record from the first 50 passed reads. Compare all pairs of samples across groups using a similarity metric (e.g., shared k-mer fraction).</p>
+<h3 id="exercise-4-batch-report-generator"><a class="header" href="#exercise-4-batch-report-generator">Exercise 4: Batch Report Generator</a></h3>
+<p>Write a script that reads a <code>batch_report.json</code> file and a <code>batch_summary.csv</code> file, then produces a human-readable text report with:</p>
+<ul>
+<li>Run timestamp and total time</li>
+<li>Success/failure counts</li>
+<li>Top 5 and bottom 5 samples by pass rate</li>
+<li>Per-group averages</li>
+<li>List of any flagged outliers</li>
+</ul>
+<p><em>Hint</em>: Use <code>read_csv()</code> for the summary, <code>json_decode()</code> for the report, and <code>sort()</code> to rank samples.</p>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    Day 23 Key Takeaways                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. Parse sample sheets, don't hardcode file lists.         │
+│     read_csv() turns a sample sheet into a structured       │
+│     table you can validate and iterate.                     │
+│                                                             │
+│  2. Write single-sample functions first. A function         │
+│     that processes one sample correctly can be mapped       │
+│     over any number of samples via map or par_map.          │
+│                                                             │
+│  3. Use par_map for parallelism. Replacing map with         │
+│     par_map is a one-word change that can cut batch         │
+│     time by 4-8x on modern hardware.                       │
+│                                                             │
+│  4. Isolate errors with try/catch per sample. One           │
+│     failed sample should never crash an entire batch        │
+│     of 200.                                                 │
+│                                                             │
+│  5. Track progress. Print periodic updates with             │
+│     estimated time remaining. Write logs to files           │
+│     that survive terminal disconnections.                   │
+│                                                             │
+│  6. Aggregate and flag. Per-sample results become           │
+│     group summaries and outlier lists. Automation           │
+│     means detecting problems, not just producing            │
+│     numbers.                                                │
+│                                                             │
+│  7. Automate the lifecycle. A production pipeline           │
+│     validates inputs, processes samples, writes             │
+│     results, logs errors, and can be triggered by           │
+│     a cron job or file watcher.                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow in <strong>Day 24</strong>, we move from processing data locally to working with <strong>cloud and cluster resources</strong>. You will learn how to submit batch jobs to remote compute, monitor their progress, and collect results across distributed systems. The batch processing patterns from today — fan-out, error isolation, aggregation — are the foundation of every distributed pipeline.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-22.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-24.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-22.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-24.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

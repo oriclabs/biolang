@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <defs>
+    <linearGradient id="bg14" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+    <marker id="arr14" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="400" rx="12" fill="url(#bg14)"/>
+  <text x="400" y="35" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="bold" fill="#0f172a">Statistical Test Selection Guide</text>
+
+  <!-- Compare groups -->
+  <rect x="310" y="55" width="180" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="80" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#1e40af">Compare groups</text>
+
+  <!-- Arrow down -->
+  <line x1="400" y1="95" x2="400" y2="115" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr14)"/>
+
+  <!-- How many groups? -->
+  <rect x="290" y="118" width="220" height="40" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="143" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#854d0e">How many groups?</text>
+
+  <!-- Left branch: 2 groups -->
+  <line x1="335" y1="158" x2="200" y2="190" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr14)"/>
+  <text x="250" y="175" font-family="system-ui,sans-serif" font-size="12" fill="#64748b">2 groups</text>
+
+  <!-- Right branch: 3+ groups -->
+  <line x1="465" y1="158" x2="600" y2="190" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr14)"/>
+  <text x="540" y="175" font-family="system-ui,sans-serif" font-size="12" fill="#64748b">3+ groups</text>
+
+  <!-- Data normal? (left) -->
+  <rect x="110" y="193" width="180" height="40" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="200" y="218" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#854d0e">Data normal?</text>
+
+  <!-- Data normal? (right) -->
+  <rect x="510" y="193" width="180" height="40" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="600" y="218" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#854d0e">Data normal?</text>
+
+  <!-- Left-left: Yes -> t-test -->
+  <line x1="155" y1="233" x2="110" y2="265" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr14)"/>
+  <text x="120" y="252" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">Yes</text>
+
+  <!-- t-test box -->
+  <rect x="30" y="268" width="160" height="40" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="110" y="293" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#166534">t-test</text>
+
+  <!-- Left-right: No -> Wilcoxon -->
+  <line x1="245" y1="233" x2="290" y2="265" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr14)"/>
+  <text x="280" y="252" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">No</text>
+
+  <rect x="220" y="268" width="160" height="40" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="300" y="293" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#166534">Wilcoxon</text>
+
+  <!-- Right-left: Yes -> ANOVA -->
+  <line x1="555" y1="233" x2="510" y2="265" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr14)"/>
+  <text x="520" y="252" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">Yes</text>
+
+  <rect x="440" y="268" width="160" height="40" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="520" y="293" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#166534">ANOVA</text>
+
+  <!-- Right-right: No -> Kruskal-Wallis -->
+  <line x1="645" y1="233" x2="690" y2="265" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr14)"/>
+  <text x="680" y="252" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">No</text>
+
+  <rect x="620" y="268" width="160" height="40" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="700" y="293" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#166534">Kruskal-Wallis</text>
+
+  <!-- t-test sub-branch: paired? -->
+  <line x1="110" y1="308" x2="110" y2="330" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr14)"/>
+
+  <rect x="30" y="333" width="160" height="35" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="110" y="355" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#854d0e">Paired samples?</text>
+
+  <!-- Yes -> Paired t-test -->
+  <text x="30" y="390" font-family="system-ui,sans-serif" font-size="12" fill="#64748b">Yes:</text>
+  <text x="55" y="390" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">Paired t-test</text>
+
+  <!-- No -> Independent t-test -->
+  <text x="145" y="390" font-family="system-ui,sans-serif" font-size="12" fill="#64748b">No:</text>
+  <text x="163" y="390" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">Independent t-test</text>
+</svg>

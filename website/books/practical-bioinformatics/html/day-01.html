@@ -1,0 +1,580 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 1: What Is Bioinformatics? - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-1-what-is-bioinformatics"><a class="header" href="#day-1-what-is-bioinformatics">Day 1: What Is Bioinformatics?</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>A patient walks into a clinic. Their tumor is sequenced. Three billion base pairs of data arrive on a hard drive. Somewhere in there is the mutation driving their cancer. How do you find it?</p>
+<p>You cannot read three billion letters by hand. You cannot compare them against a reference genome by eye. You cannot search for patterns across thousands of patients using a spreadsheet. Biology has become a data science, and the data is enormous.</p>
+<p>This is why bioinformatics exists.</p>
+<h2 id="what-is-bioinformatics"><a class="header" href="#what-is-bioinformatics">What Is Bioinformatics?</a></h2>
+<p>Bioinformatics sits at the intersection of three fields: biology, computer science, and statistics. But it is more than just “biology plus computers.” It is the discipline of asking biological questions and answering them with data. When a researcher wants to know which genes are active in a tumor, when a clinician needs to identify a drug-resistant mutation, when an ecologist traces the evolutionary history of a species — that is bioinformatics.</p>
+<p>The field was born out of necessity. In 1977, Frederick Sanger published the first complete DNA genome sequence — a bacteriophage with 5,386 base pairs. That was manageable by hand. By 2003, the Human Genome Project had sequenced 3.2 billion base pairs at a cost of $2.7 billion. Today, a single Illumina NovaSeq run produces over 6 terabytes of raw data in less than two days. The cost of sequencing a human genome has dropped below $200. The bottleneck is no longer generating data — it is making sense of it.</p>
+<p>Every year, the gap between data generation and data analysis widens. Modern sequencing machines produce data faster than biologists can analyze it. This is where you come in. Whether you are a developer learning biology or a biologist learning to code, bioinformatics needs both perspectives. The biology tells you what questions to ask. The code tells you how to answer them.</p>
+<h2 id="the-central-dogma-of-molecular-biology"><a class="header" href="#the-central-dogma-of-molecular-biology">The Central Dogma of Molecular Biology</a></h2>
+<p>Before you can analyze biological data, you need to understand what that data represents. The central dogma describes how genetic information flows in living cells:</p>
+<p><img src="images/central-dogma.svg" alt="The Central Dogma"></p>
+<p>Let’s break this down:</p>
+<h3 id="dna--the-double-helix"><a class="header" href="#dna--the-double-helix">DNA — The Double Helix</a></h3>
+<p><strong>DNA</strong> is the blueprint. It is a long molecule made of four chemical bases: <strong>A</strong>denine, <strong>T</strong>hymine, <strong>C</strong>ytosine, and <strong>G</strong>uanine. Your entire genome — all the instructions to build and run your body — is written in these four letters. The human genome is about 3.2 billion base pairs long, organized into 23 pairs of chromosomes.</p>
+<p>DNA has a unique structure: two strands wound around each other in a <strong>double helix</strong>, connected by base pairs. A always pairs with T (2 hydrogen bonds), and C always pairs with G (3 hydrogen bonds — making CG pairs stronger):</p>
+<p><img src="images/dna-double-helix.svg" alt="The DNA Double Helix"></p>
+<p>When we write a DNA sequence like <code>ATGCGATCG</code>, we mean the <strong>coding strand read 5’ to 3’</strong>. The other strand is implied — you can always reconstruct it using the base pairing rules.</p>
+<h3 id="rna--the-single-stranded-messenger"><a class="header" href="#rna--the-single-stranded-messenger">RNA — The Single-Stranded Messenger</a></h3>
+<p><strong>RNA</strong> is the working copy. When a cell needs to use a gene, it copies that region of DNA into RNA through a process called <em>transcription</em>. RNA uses almost the same alphabet, except it swaps T for <strong>U</strong>racil. So an <code>A</code> in DNA becomes a <code>U</code> in RNA’s complement, while the sequence being copied replaces every <code>T</code> with <code>U</code>: <code>ATGCG</code> in DNA becomes <code>AUGCG</code> in RNA.</p>
+<p>Unlike DNA’s stable double helix, RNA is <strong>single-stranded</strong> — it is a temporary copy meant to be read and then degraded:</p>
+<p><img src="images/rna-single-strand.svg" alt="DNA vs RNA"></p>
+<p>There are several types of RNA, but the one most relevant to the central dogma is <strong>mRNA</strong> (messenger RNA) — the copy that carries gene instructions to the ribosome for protein synthesis.</p>
+<h3 id="protein--the-folded-machine"><a class="header" href="#protein--the-folded-machine">Protein — The Folded Machine</a></h3>
+<p><strong>Protein</strong> is the machine. Proteins do most of the work in cells — they catalyze reactions, transport molecules, provide structure, and signal between cells. The RNA sequence is read three letters at a time (called <em>codons</em>), and each codon maps to one of 20 amino acids. This process is called <em>translation</em>. For example, the codon <code>AUG</code> always codes for Methionine (abbreviated <code>M</code>) and also serves as the “start” signal.</p>
+<p>A protein starts as a linear chain of amino acids, but it immediately <strong>folds</strong> into a specific 3D shape. This shape determines its function — and is why mutations can be so devastating:</p>
+<p><img src="images/protein-folding.svg" alt="How a Protein Takes Shape"></p>
+<p>The key insight: <strong>sequence determines structure determines function</strong>. Change one amino acid (via a DNA mutation) and the entire fold can collapse. This is why the TP53 R175H mutation causes cancer — swapping Arginine for Histidine at position 175 disrupts the DNA-binding domain, and p53 can no longer activate tumor suppression genes.</p>
+<h3 id="why-proteins-are-essential"><a class="header" href="#why-proteins-are-essential">Why Proteins Are Essential</a></h3>
+<p>Proteins are not optional extras — they are what makes life work. Every function your body performs depends on specific proteins doing their jobs correctly:</p>
+<p><strong>With working proteins — your body functions:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Protein</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Hemoglobin</strong></td><td>Carries oxygen from your lungs to every cell in your body</td></tr>
+<tr><td><strong>Insulin</strong></td><td>Regulates blood sugar — signals cells to absorb glucose for energy</td></tr>
+<tr><td><strong>Collagen</strong></td><td>Provides structure to skin, bones, tendons, and connective tissue</td></tr>
+<tr><td><strong>Antibodies</strong></td><td>Recognize and neutralize viruses, bacteria, and foreign invaders</td></tr>
+<tr><td><strong>p53</strong></td><td>The “guardian of the genome” — detects DNA damage, triggers repair or cell death</td></tr>
+<tr><td><strong>DNA polymerase</strong></td><td>Copies your entire 3.2 billion base genome every time a cell divides</td></tr>
+<tr><td><strong>Myosin</strong></td><td>Powers muscle contraction — every heartbeat, every breath, every step</td></tr>
+<tr><td><strong>Keratin</strong></td><td>Builds your hair, nails, and outer layer of skin</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Without working proteins — disease happens:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Missing/defective protein</th><th>Consequence</th></tr>
+</thead>
+<tbody>
+<tr><td>Hemoglobin</td><td>Cells starve for oxygen → <strong>sickle cell anemia</strong></td></tr>
+<tr><td>Insulin</td><td>Blood sugar spirals out of control → <strong>type 1 diabetes</strong></td></tr>
+<tr><td>p53</td><td>Damaged cells keep dividing unchecked → <strong>cancer</strong> (mutated in &gt;50% of all cancers)</td></tr>
+<tr><td>Dystrophin</td><td>Muscles progressively weaken and waste → <strong>muscular dystrophy</strong></td></tr>
+<tr><td>CFTR</td><td>Thick mucus builds up in lungs and digestive tract → <strong>cystic fibrosis</strong></td></tr>
+<tr><td>BRCA1</td><td>DNA repair fails → dramatically increased <strong>breast and ovarian cancer</strong> risk</td></tr>
+<tr><td>Phenylalanine hydroxylase</td><td>Cannot break down phenylalanine → <strong>PKU</strong> (brain damage if untreated)</td></tr>
+</tbody>
+</table>
+</div>
+<p>This is why a single mutation in a gene can cause devastating disease. The mutation changes the DNA, which changes the RNA, which changes the protein’s amino acid sequence, which can alter its 3D shape, which can destroy its function. One wrong letter out of billions — and the protein misfolds, or never gets made, or loses its ability to do its job.</p>
+<h3 id="but-i-eat-protein-every-day--why-cant-i-just-use-that"><a class="header" href="#but-i-eat-protein-every-day--why-cant-i-just-use-that">“But I Eat Protein Every Day — Why Can’t I Just Use That?”</a></h3>
+<p>You have heard it your whole life: <em>“Eat protein — eggs, chicken, lentils, fish.”</em> So a natural question is: if proteins are so essential, why does the body need to manufacture them from DNA instructions? Why not just use the protein from food directly?</p>
+<p>The answer is that <strong>dietary protein and your body’s proteins are completely different things.</strong> When you eat a chicken breast, you are eating chicken muscle proteins — myosin, actin, troponin — proteins designed to make a chicken’s wing move. Your body cannot use chicken myosin as-is. It is the wrong shape, the wrong size, the wrong function.</p>
+<p>Here is what actually happens:</p>
+<p><img src="images/food-protein-pathway.svg" alt="Why You Can’t Use Food Protein Directly"></p>
+<p>Think of it like this: eating a wooden chair does not give you furniture. But if you break that chair down into individual planks and nails, you can use those raw materials to build something completely different — a bookshelf, a table, whatever <em>your</em> blueprint calls for.</p>
+<p><strong>Food protein = raw materials (amino acids).</strong> Your DNA = the blueprints. Your ribosomes = the factory. The 20 amino acids are like 20 types of LEGO bricks — the same bricks can build completely different structures depending on the instructions. (You will find the complete table of all 20 amino acids with their single-letter codes and properties in <a href="day-03.html#the-20-amino-acids">Day 3</a>.)</p>
+<p>This is why the central dogma matters so profoundly:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>What you eat</th><th>What your body builds</th><th>Why it is different</th></tr>
+</thead>
+<tbody>
+<tr><td>Egg albumin (egg white protein)</td><td>Hemoglobin (carries oxygen in blood)</td><td>Completely different amino acid sequence and 3D fold</td></tr>
+<tr><td>Casein (milk protein)</td><td>Keratin (hair, nails, skin)</td><td>Different gene, different structure, different function</td></tr>
+<tr><td>Soy glycinin (plant protein)</td><td>Insulin (regulates blood sugar)</td><td>Only 51 amino acids long — assembled from your DNA template</td></tr>
+<tr><td>Collagen (bone broth)</td><td>Antibodies (fight infection)</td><td>Your immune system designs these based on threats encountered</td></tr>
+</tbody>
+</table>
+</div>
+<p>Your body contains roughly <strong>20,000 different proteins</strong>, each encoded by its own gene, each with a unique amino acid sequence and 3D structure. You cannot get these from food. You can only get the raw building blocks (amino acids) from food, and then your cells assemble them according to the instructions in your DNA.</p>
+<p>This is also why <strong>protein deficiency</strong> is so dangerous — without enough amino acids from food, your cells cannot build the proteins your DNA encodes. And it is why <strong>genetic mutations</strong> are so consequential — even with perfect nutrition, a mutated gene produces a misfolded or missing protein that no amount of food can fix.</p>
+<p>The central dogma is not an abstract concept — it is the reason your body works, and the reason disease happens when it goes wrong. Understanding this chain (DNA encodes RNA, RNA builds protein, protein does the work) is essential for everything in bioinformatics. When we analyze variants, we are asking: <em>“Does this DNA change affect the protein?”</em> When we measure gene expression, we are asking: <em>“How much of this protein is the cell making?”</em> Every analysis connects back to this fundamental flow.</p>
+<h2 id="genes-genomes-and-chromosomes"><a class="header" href="#genes-genomes-and-chromosomes">Genes, Genomes, and Chromosomes</a></h2>
+<p>Now that you understand the molecules (DNA, RNA, Protein), let’s define the structures that organize them.</p>
+<h3 id="genome--the-complete-instruction-manual"><a class="header" href="#genome--the-complete-instruction-manual">Genome — The Complete Instruction Manual</a></h3>
+<p>A <strong>genome</strong> is the complete set of DNA in an organism — every instruction needed to build and run that organism. Think of it as the entire hard drive, not a single file.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Organism</th><th>Genome size</th><th>Genes</th><th>Chromosomes</th></tr>
+</thead>
+<tbody>
+<tr><td>E. coli (bacterium)</td><td>4.6 million bp</td><td>~4,300</td><td>1 (circular)</td></tr>
+<tr><td>Yeast (S. cerevisiae)</td><td>12 million bp</td><td>~6,000</td><td>16</td></tr>
+<tr><td>Fruit fly (Drosophila)</td><td>180 million bp</td><td>~14,000</td><td>4 pairs</td></tr>
+<tr><td>Human (Homo sapiens)</td><td>3.2 billion bp</td><td>~20,000</td><td>23 pairs</td></tr>
+<tr><td>Wheat (Triticum aestivum)</td><td>17 billion bp</td><td>~107,000</td><td>21 pairs</td></tr>
+</tbody>
+</table>
+</div>
+<p>Notice something surprising: genome size does not correlate well with organism complexity. Wheat has 5x more DNA than humans. The difference lies not in how much DNA you have, but in how it is organized and regulated.</p>
+<h3 id="chromosomes--the-volumes"><a class="header" href="#chromosomes--the-volumes">Chromosomes — The Volumes</a></h3>
+<p><strong>Chromosomes</strong> are the physical units that DNA is packaged into. If the genome is an encyclopedia, chromosomes are the individual volumes. Humans have 23 pairs (46 total) — one set from each parent. Each chromosome is a single, very long DNA molecule wrapped tightly around proteins called histones.</p>
+<pre><code>Human Genome (3.2 billion base pairs)
+├── Chromosome 1   (249 million bp)   ← largest
+├── Chromosome 2   (242 million bp)
+├── ...
+├── Chromosome 17  (83 million bp)    ← home of TP53 and BRCA1
+├── ...
+├── Chromosome 22  (51 million bp)    ← smallest autosome
+├── Chromosome X   (156 million bp)
+└── Chromosome Y   (57 million bp)
+</code></pre>
+<p>When we say a gene is “on chromosome 17”, we mean its DNA sequence is part of that specific chromosome’s molecule.</p>
+<h3 id="genes--the-individual-instructions"><a class="header" href="#genes--the-individual-instructions">Genes — The Individual Instructions</a></h3>
+<p>A <strong>gene</strong> is a specific region of DNA that contains the instructions for building one protein (or sometimes a functional RNA molecule). If the genome is the encyclopedia and chromosomes are volumes, genes are individual articles.</p>
+<p>Key facts about genes:</p>
+<ul>
+<li>The human genome has roughly <strong>20,000 protein-coding genes</strong></li>
+<li>Genes make up only about <strong>1.5%</strong> of total human DNA</li>
+<li>The rest includes regulatory sequences (promoters, enhancers), structural elements, and regions still being characterized</li>
+<li>A gene is not just one continuous stretch — it contains <strong>exons</strong> (coding parts) interrupted by <strong>introns</strong> (non-coding parts that get spliced out)</li>
+<li>The same gene can produce <strong>multiple different proteins</strong> through alternative splicing</li>
+</ul>
+<pre><code>A gene is like a recipe in a cookbook:
+- The cookbook = genome
+- The chapter = chromosome
+- The recipe = gene
+- The ingredients list = exons (the parts that matter)
+- The chef's notes = introns (removed before cooking)
+- The finished dish = protein
+</code></pre>
+<p>Some landmark genes you will encounter throughout this book:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Gene</th><th>Chromosome</th><th>What it does</th><th>Why it matters</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>TP53</strong></td><td>chr17</td><td>Encodes p53 tumor suppressor</td><td>Mutated in &gt;50% of all cancers</td></tr>
+<tr><td><strong>BRCA1</strong></td><td>chr17</td><td>DNA double-strand break repair</td><td>Mutations increase breast/ovarian cancer risk</td></tr>
+<tr><td><strong>EGFR</strong></td><td>chr7</td><td>Cell growth signaling receptor</td><td>Drug target in lung cancer</td></tr>
+<tr><td><strong>KRAS</strong></td><td>chr12</td><td>Cell proliferation signal relay</td><td>Mutated in pancreatic, lung, colorectal cancer</td></tr>
+<tr><td><strong>HBB</strong></td><td>chr11</td><td>Hemoglobin beta chain</td><td>Sickle cell disease when mutated</td></tr>
+<tr><td><strong>CFTR</strong></td><td>chr7</td><td>Chloride ion channel</td><td>Cystic fibrosis when mutated</td></tr>
+<tr><td><strong>INS</strong></td><td>chr11</td><td>Insulin hormone</td><td>Critical for blood sugar regulation</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="why-data"><a class="header" href="#why-data">Why Data?</a></h2>
+<p>Here is the scale problem that makes bioinformatics necessary:</p>
+<ul>
+<li>A single human genome: <strong>~3 GB</strong> of text (just the bases, no metadata)</li>
+<li>A typical whole-genome sequencing run: <strong>100-500 GB</strong> of raw data (because each position is read multiple times for accuracy)</li>
+<li>NCBI GenBank (the world’s public sequence archive): <strong>over 10 trillion nucleotide bases</strong></li>
+<li>The Sequence Read Archive: <strong>over 80 petabytes</strong> of raw sequencing data</li>
+</ul>
+<p>You cannot do this by hand. You need code.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Task</th><th>By Hand</th><th>By Code</th></tr>
+</thead>
+<tbody>
+<tr><td>Find a gene in a genome</td><td>Hours searching databases</td><td>1 second</td></tr>
+<tr><td>Count mutations vs. reference</td><td>Essentially impossible</td><td>0.5 seconds</td></tr>
+<tr><td>Compare 1,000 genomes</td><td>Multiple lifetimes</td><td>Minutes</td></tr>
+<tr><td>Quality-check a sequencing run</td><td>Days of manual review</td><td>30 seconds</td></tr>
+<tr><td>Search for a drug target</td><td>Years of literature review</td><td>Hours with database queries</td></tr>
+</tbody>
+</table>
+</div>
+<p>This is not an exaggeration. Before computational tools existed, identifying a single disease gene could take a decade of work by large teams. Today, clinical sequencing pipelines identify candidate variants in hours. The biology has not changed. The tools have.</p>
+<h2 id="your-first-bioinformatics"><a class="header" href="#your-first-bioinformatics">Your First Bioinformatics</a></h2>
+<blockquote>
+<p><strong>Try it right now — no installation needed!</strong> You can run all the code examples in this chapter directly in your browser at <strong><a href="https://lang.bio/playground">lang.bio/playground</a></strong>. The online playground is perfect for the exercises in Days 1 through 5. For later chapters that work with files (FASTQ, VCF, CSV), you will need the local <code>bl</code> installation — see <a href="appendix-setup.html">Appendix A</a> for setup instructions.</p>
+</blockquote>
+<p>Let’s write some code. BioLang treats DNA, RNA, and protein sequences as first-class types — not strings, but biological objects that understand what they are.</p>
+<h3 id="creating-a-dna-sequence"><a class="header" href="#creating-a-dna-sequence">Creating a DNA sequence</a></h3>
+<pre><code class="language-bio"># Your first DNA sequence
+let seq = dna"ATGCGATCGATCGATCG"
+println(f"Sequence: {seq}")
+println(f"Length: {len(seq)} bases")
+println(f"Type: {type(seq)}")
+
+# Output:
+# Sequence: DNA(ATGCGATCGATCGATCG)
+# Length: 17
+# Type: DNA
+</code></pre>
+<p>That <code>dna"..."</code> is a sequence literal. BioLang knows this is DNA, not a random string. It will enforce that only valid bases appear. Try putting a <code>Z</code> in there — you will get an error, because <code>Z</code> is not a nucleotide.</p>
+<h3 id="the-central-dogma-in-code"><a class="header" href="#the-central-dogma-in-code">The central dogma in code</a></h3>
+<pre><code class="language-bio"># Walk through the central dogma
+let gene = dna"ATGAAACCCGGGTTTTAA"
+println(f"DNA:     {gene}")
+
+let mrna = transcribe(gene)
+println(f"RNA:     {mrna}")
+
+let protein = translate(gene)
+println(f"Protein: {protein}")
+
+# Output:
+# DNA:     DNA(ATGAAACCCGGGTTTTAA)
+# RNA:     RNA(AUGAAACCCGGGUUUUAA)
+# Protein: Protein(MKPGF)
+</code></pre>
+<p>Six codons in that DNA sequence: <code>ATG</code> (Met/M), <code>AAA</code> (Lys/K), <code>CCC</code> (Pro/P), <code>GGG</code> (Gly/G), <code>TTT</code> (Phe/F), and <code>TAA</code> (Stop). The <code>translate</code> function reads until the stop codon and returns the protein sequence <code>MKPGF</code>. That is the central dogma — DNA to RNA to Protein — in three lines of code.</p>
+<h3 id="analyzing-sequence-composition"><a class="header" href="#analyzing-sequence-composition">Analyzing sequence composition</a></h3>
+<pre><code class="language-bio"># What's in this sequence?
+let genome_fragment = dna"ATGCGATCGATCGAATTCGATCG"
+let counts = base_counts(genome_fragment)
+println(f"Base composition: {counts}")
+println(f"GC content: {gc_content(genome_fragment)}")
+
+# Output:
+# Base composition: {A: 6, T: 6, G: 6, C: 5, N: 0, GC: 0.4782608695652174}
+# GC content: 0.4782608695652174
+</code></pre>
+<p>GC content matters because G-C base pairs form three hydrogen bonds (versus two for A-T), making GC-rich regions more thermally stable. Organisms have characteristic GC content — <em>Plasmodium falciparum</em> (malaria parasite) has about 19% GC, while <em>Streptomyces</em> bacteria can exceed 70%. If you sequence a sample and see unusual GC content, it might indicate contamination or a novel organism.</p>
+<h3 id="finding-patterns-in-dna"><a class="header" href="#finding-patterns-in-dna">Finding patterns in DNA</a></h3>
+<pre><code class="language-bio"># Finding a restriction enzyme site
+let seq = dna"ATCGATCGAATTCGATCGATCG"
+let sites = find_motif(seq, "GAATTC")
+println(f"EcoRI cuts at positions: {sites}")
+
+# Output:
+# EcoRI cuts at positions: [7]
+</code></pre>
+<p>EcoRI is a restriction enzyme — a molecular scissor that cuts DNA at a specific recognition sequence (<code>GAATTC</code>). These enzymes are fundamental tools in molecular biology. Before sequencing was cheap, scientists used restriction enzymes to cut genomes into fragments for analysis. Even today, they are essential for cloning, genotyping, and quality control.</p>
+<h3 id="using-the-pipe-operator"><a class="header" href="#using-the-pipe-operator">Using the pipe operator</a></h3>
+<p>BioLang’s pipe operator <code>|&gt;</code> lets you chain operations naturally — data flows left to right, just like a bench protocol:</p>
+<pre><code class="language-bio"># Chain operations with pipes
+let result = dna"ATGCGATCGATCG"
+    |&gt; complement()
+    |&gt; reverse_complement()
+    |&gt; transcribe()
+println(f"Result: {result}")
+
+# Output:
+# Result: RNA(AUGCGAUCGAUCG)
+</code></pre>
+<p>If you are coming from biology, think of pipes as steps in a lab protocol. If you are coming from programming, think of them as method chaining or Unix pipes. Either way, they make multi-step analyses readable.</p>
+<h2 id="the-bioinformatics-workflow"><a class="header" href="#the-bioinformatics-workflow">The Bioinformatics Workflow</a></h2>
+<p>Every bioinformatics project — from a student homework to a clinical sequencing pipeline — follows the same general pattern:</p>
+<p><img src="images/bioinformatics-workflow.svg" alt="The Bioinformatics Workflow"></p>
+<h3 id="the-eight-steps"><a class="header" href="#the-eight-steps">The Eight Steps</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Step</th><th>Name</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td><strong>Biological Question</strong></td><td>What do you want to know? <em>“Which genes are differentially expressed in tumor vs. normal tissue?”</em></td></tr>
+<tr><td>2</td><td><strong>Experimental Design</strong></td><td>How will you answer it? Sample selection, sequencing strategy, controls.</td></tr>
+<tr><td>3</td><td><strong>Generate Data</strong></td><td>Sequencing, mass spectrometry, microarrays, or other assays.</td></tr>
+<tr><td>4</td><td><strong>Quality Control</strong></td><td>Is the data trustworthy? Check for contamination, low-quality reads, batch effects.</td></tr>
+<tr><td>5</td><td><strong>Analysis</strong></td><td>Alignment, variant calling, differential expression, statistical testing.</td></tr>
+<tr><td>6</td><td><strong>Visualization</strong></td><td>Plots, genome browsers, heatmaps that reveal patterns in the results.</td></tr>
+<tr><td>7</td><td><strong>Interpretation</strong></td><td>What do the results mean biologically? Do they support your hypothesis?</td></tr>
+<tr><td>8</td><td><strong>Biological Insight</strong></td><td>New knowledge, which inevitably leads to new questions.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Steps 4 through 7 are where bioinformatics lives. That is what you will learn in this book.</p>
+<h2 id="what-youll-build-in-30-days"><a class="header" href="#what-youll-build-in-30-days">What You’ll Build in 30 Days</a></h2>
+<p>This book is structured as four weeks, each building on the last:</p>
+<p><strong>Week 1: Foundations (Days 1-5)</strong> — You are here. By the end of this week, you will understand the biology behind the data, be comfortable with BioLang’s syntax, and know the core data structures used in bioinformatics.</p>
+<p><strong>Week 2: Core Skills (Days 6-12)</strong> — Reading real sequencing data (FASTQ, BAM, VCF), working with biological databases, processing large files efficiently, and finding variants in genomes. This is the bread and butter of bioinformatics.</p>
+<p><strong>Week 3: Applied Analysis (Days 13-20)</strong> — Gene expression analysis, statistics, publication-quality visualization, pathway analysis, protein structure, and multi-species comparison. This is where you start doing real science.</p>
+<p><strong>Week 4: Professional Skills (Days 21-30)</strong> — Performance optimization, reproducible pipelines, batch processing, error handling, and three capstone projects that tie everything together: a clinical variant report, an RNA-seq study, and a multi-species gene family analysis.</p>
+<p>By Day 30, you will be able to take raw sequencing data from a public database, process it through a quality control pipeline, identify biologically meaningful results, and produce publication-quality figures. That is not a promise about what you might achieve — it is the actual content of the capstone projects.</p>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<p><strong>Exercise 1: Sequence Composition</strong></p>
+<p>Create a DNA sequence of at least 20 bases and analyze its composition:</p>
+<pre><code class="language-bio">let my_seq = dna"ATGCCCAAAGGGTTTATGCCC"
+let counts = base_counts(my_seq)
+println(f"Counts: {counts}")
+println(f"GC content: {gc_content(my_seq)}")
+</code></pre>
+<p>Is your sequence GC-rich (&gt;50% GC) or AT-rich (&lt;50% GC)?</p>
+<p><strong>Exercise 2: Central Dogma</strong></p>
+<p>Translate this DNA sequence and determine what protein it encodes:</p>
+<pre><code class="language-bio">let gene = dna"ATGGATCCCTAA"
+println(f"DNA:     {gene}")
+println(f"RNA:     {transcribe(gene)}")
+println(f"Protein: {translate(gene)}")
+
+# What amino acids are M, D, and P?
+# Hint: M = Methionine, D = Aspartic acid, P = Proline
+</code></pre>
+<p><strong>Exercise 3: Base Counting</strong></p>
+<p>Count the bases in this perfectly balanced sequence:</p>
+<pre><code class="language-bio">let balanced = dna"AAAAATTTTTCCCCCGGGGG"
+println(f"Counts: {base_counts(balanced)}")
+println(f"GC content: {gc_content(balanced)}")
+
+# Is it GC-rich, AT-rich, or perfectly balanced?
+</code></pre>
+<p><strong>Exercise 4: Motif Search</strong></p>
+<p>Find all start codons (ATG) in this sequence:</p>
+<pre><code class="language-bio">let seq = dna"ATGATGATGATG"
+let starts = find_motif(seq, "ATG")
+println(f"Start codons at positions: {starts}")
+
+# How many start codons are there?
+# What positions are they at?
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Bioinformatics exists because biology generates data at computational scale.</strong> Modern sequencing produces terabytes daily — no human can process that by hand.</li>
+<li><strong>DNA to RNA to Protein is the central dogma</strong> — the foundation of molecular biology. DNA stores the information, RNA carries it, and proteins do the work.</li>
+<li><strong>BioLang treats sequences as first-class types, not just strings.</strong> <code>dna"ATGC"</code> is a DNA value with biological semantics, not four arbitrary characters.</li>
+<li><strong>Every bioinformatics project follows the same workflow:</strong> Question, Data, QC, Analysis, Insight. The tools change, but the pattern does not.</li>
+<li><strong>Scale is the defining challenge.</strong> A single genome is 3 GB. A research project can involve thousands of genomes. Code is the only way to work at this scale.</li>
+</ul>
+<h2 id="setting-up-for-the-comparison-scripts"><a class="header" href="#setting-up-for-the-comparison-scripts">Setting Up for the Comparison Scripts</a></h2>
+<p>Each day in this book includes equivalent scripts in Python and R alongside the BioLang version, so you can compare approaches. Before starting the exercises, install the required packages once:</p>
+<p><strong>Python</strong> (run in a terminal):</p>
+<pre><code class="language-bash">pip install biopython scipy pandas matplotlib requests openai
+</code></pre>
+<p><strong>R</strong> (run in an R console):</p>
+<pre><code class="language-r">install.packages(c("dplyr", "jsonlite", "httr2", "digest", "logging", "ggplot2"))
+# For Bioconductor packages (optional, used in later chapters):
+# if (!require("BiocManager")) install.packages("BiocManager")
+# BiocManager::install(c("Biostrings", "GenomicRanges"))
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> You do not need Python or R to follow this book — all examples work in BioLang alone. The comparison scripts are provided so you can see how the same analysis looks across languages. See <a href="appendix-setup.html">Appendix A</a> for detailed setup instructions.</p>
+</blockquote>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow, we go hands-on with BioLang itself — variables, types, pipes, functions, and the interactive REPL. You will learn the language that powers every example in this book. If today was about <em>why</em> bioinformatics exists, tomorrow is about <em>how</em> you do it.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-02.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-02.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

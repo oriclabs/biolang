@@ -1,0 +1,685 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 24: Programmatic Database Access - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-24-programmatic-database-access"><a class="header" href="#day-24-programmatic-database-access">Day 24: Programmatic Database Access</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Intermediate (gene names, protein accessions, pathway concepts, variant notation)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (functions, records, error handling, pipes, tables)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3–4 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–23 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code> (gene list)</td></tr>
+<tr><td><strong>Requirements</strong></td><td>Internet access for all API examples</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>Why programmatic database access replaces manual copy-paste from web browsers</li>
+<li>How to query NCBI for gene information and nucleotide sequences</li>
+<li>How to retrieve gene annotations from Ensembl and predict variant effects</li>
+<li>How to search UniProt for protein information and functional annotations</li>
+<li>How to explore metabolic pathways via KEGG and Reactome</li>
+<li>How to build protein interaction networks with STRING</li>
+<li>How to look up Gene Ontology terms and annotations</li>
+<li>How to compose multi-database annotation pipelines with error handling</li>
+<li>How to implement rate limiting and result caching strategies</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p><em>“The gene list from my experiment — what’s already known about these genes?”</em></p>
+<p>You have just finished a differential expression analysis. The statistics are clean: 50 genes pass your significance threshold (adjusted p-value &lt; 0.05, absolute log2 fold change &gt; 1.5). You have gene symbols, fold changes, and p-values. But gene symbols alone tell you nothing about <em>biology</em>.</p>
+<p>What do these genes do? What pathways are they in? Do any have known disease associations? Are the upregulated genes in the same protein complex? Does the literature already link any of them to your phenotype?</p>
+<p>The answers live in public databases. NCBI has gene summaries and literature links. Ensembl has genomic coordinates and cross-references. UniProt has protein function and domain annotations. KEGG and Reactome have pathway maps. STRING has protein-protein interaction networks. Gene Ontology has standardized functional terms.</p>
+<p>You could visit each database’s website, type each gene name into a search box, and copy results into a spreadsheet. For 50 genes across 8 databases, that is 400 manual searches. At two minutes each, you are looking at 13 hours of clicking and copying — and you will make mistakes.</p>
+<p>Or you could write a script that does all 400 queries in under five minutes.</p>
+<hr>
+<h2 id="the-bioinformatics-database-landscape"><a class="header" href="#the-bioinformatics-database-landscape">The Bioinformatics Database Landscape</a></h2>
+<p>Before writing code, you need to know which database answers which question. The following map shows the major public databases and their primary use cases:</p>
+<p><img src="images/day24-database-landscape.svg" alt="Bioinformatics Database Landscape: Gene Info (NCBI, Ensembl), Protein Info (UniProt, PDB, STRING), and Pathways (KEGG, Reactome, GO)"></p>
+<p>Each database has a REST API. BioLang wraps these APIs as built-in functions, so you do not need to construct URLs, parse JSON responses, or handle HTTP status codes yourself.</p>
+<hr>
+<h2 id="section-1-ncbi--the-central-hub"><a class="header" href="#section-1-ncbi--the-central-hub">Section 1: NCBI — The Central Hub</a></h2>
+<p>NCBI (National Center for Biotechnology Information) is the largest biomedical database in the world. Its Entrez system connects dozens of databases: Gene, Nucleotide, Protein, PubMed, and more.</p>
+<h3 id="searching-for-genes"><a class="header" href="#searching-for-genes">Searching for Genes</a></h3>
+<!-- requires: internet, API access -->
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>The <code>ncbi_gene()</code> function searches NCBI Gene by name or symbol:</p>
+<pre><code class="language-bio">let brca1 = ncbi_gene("BRCA1")
+</code></pre>
+<p>This returns a record with gene ID, description, chromosome location, and summary. The summary field is particularly valuable — it is a curated, human-written paragraph describing what the gene does.</p>
+<p>To search across any NCBI database, use <code>ncbi_search()</code>:</p>
+<pre><code class="language-bio">let results = ncbi_search("gene", "BRCA1 AND Homo sapiens[ORGN]")
+</code></pre>
+<p>The first argument is the database name (gene, nuccore, protein, pubmed, etc.), and the second is an Entrez query string. NCBI’s query syntax supports Boolean operators, field tags like <code>[ORGN]</code> for organism, and range queries.</p>
+<h3 id="fetching-sequences"><a class="header" href="#fetching-sequences">Fetching Sequences</a></h3>
+<!-- requires: internet, API access -->
+<p>Once you have an accession or ID, you can fetch the actual sequence:</p>
+<pre><code class="language-bio">let seq = ncbi_sequence("nuccore", "NM_007294.4")
+</code></pre>
+<p>This retrieves the nucleotide sequence for the BRCA1 mRNA transcript. The <code>ncbi_sequence()</code> function takes a database name and an accession number.</p>
+<h3 id="ncbi-datasets"><a class="header" href="#ncbi-datasets">NCBI Datasets</a></h3>
+<!-- requires: internet, API access -->
+<p>For richer, more structured gene data, NCBI Datasets provides a modern API:</p>
+<pre><code class="language-bio">let gene_data = datasets_gene("TP53")
+</code></pre>
+<p>This returns detailed gene information including genomic ranges, transcript variants, and cross-references — often more structured than the classic Entrez output.</p>
+<hr>
+<h2 id="section-2-ensembl--genomic-annotations"><a class="header" href="#section-2-ensembl--genomic-annotations">Section 2: Ensembl — Genomic Annotations</a></h2>
+<p>Ensembl is the European counterpart to NCBI, maintained by EMBL-EBI. It excels at genomic coordinate mapping, cross-species comparisons, and variant annotation.</p>
+<h3 id="gene-information"><a class="header" href="#gene-information">Gene Information</a></h3>
+<!-- requires: internet, API access -->
+<p>You can look up genes by their Ensembl ID or by symbol:</p>
+<pre><code class="language-bio">let gene_by_id = ensembl_gene("ENSG00000141510")
+
+let gene_by_symbol = ensembl_symbol("homo_sapiens", "TP53")
+</code></pre>
+<p>The <code>ensembl_gene()</code> function takes an Ensembl stable ID (e.g., ENSG for genes, ENST for transcripts). The <code>ensembl_symbol()</code> function takes a species name and gene symbol.</p>
+<h3 id="fetching-sequences-1"><a class="header" href="#fetching-sequences-1">Fetching Sequences</a></h3>
+<!-- requires: internet, API access -->
+<pre><code class="language-bio">let sequence = ensembl_sequence("ENSG00000141510")
+</code></pre>
+<p>This returns the genomic sequence for the gene. Ensembl sequences include the full genomic region, not just the coding sequence.</p>
+<h3 id="variant-effect-prediction"><a class="header" href="#variant-effect-prediction">Variant Effect Prediction</a></h3>
+<!-- requires: internet, API access -->
+<p>One of Ensembl’s most powerful features is VEP (Variant Effect Predictor). Given a variant in HGVS notation, VEP tells you its predicted functional consequence:</p>
+<pre><code class="language-bio">let effects = ensembl_vep("9:g.22125504G&gt;C")
+</code></pre>
+<p>VEP returns consequence types (missense, synonymous, splice site, etc.), affected transcripts, protein changes, and pathogenicity predictions. This is essential for variant interpretation in clinical genomics.</p>
+<hr>
+<h2 id="section-3-uniprot--protein-knowledge"><a class="header" href="#section-3-uniprot--protein-knowledge">Section 3: UniProt — Protein Knowledge</a></h2>
+<p>UniProt is the most comprehensive protein database. It contains manually curated protein function, domain annotations, post-translational modifications, and subcellular localization.</p>
+<h3 id="searching-proteins"><a class="header" href="#searching-proteins">Searching Proteins</a></h3>
+<!-- requires: internet, API access -->
+<pre><code class="language-bio">let results = uniprot_search("gene:BRCA1 AND organism_id:9606")
+</code></pre>
+<p>UniProt’s query syntax supports field-specific searches. The organism ID 9606 is <em>Homo sapiens</em>. Results include accession numbers, protein names, and review status (Swiss-Prot entries are manually curated; TrEMBL entries are automated).</p>
+<h3 id="getting-protein-details"><a class="header" href="#getting-protein-details">Getting Protein Details</a></h3>
+<!-- requires: internet, API access -->
+<p>With an accession number, you can retrieve the full entry:</p>
+<pre><code class="language-bio">let entry = uniprot_entry("P38398")
+</code></pre>
+<p>The entry record contains protein name, function description, subcellular location, tissue specificity, disease associations, and cross-references to other databases. This single call often provides more biological context than any other database.</p>
+<hr>
+<h2 id="section-4-pathways-and-ontologies"><a class="header" href="#section-4-pathways-and-ontologies">Section 4: Pathways and Ontologies</a></h2>
+<p>Genes do not act in isolation. Understanding which pathways and biological processes your genes participate in is often more informative than studying individual genes.</p>
+<h3 id="kegg-pathways"><a class="header" href="#kegg-pathways">KEGG Pathways</a></h3>
+<!-- requires: internet, API access -->
+<p>KEGG (Kyoto Encyclopedia of Genes and Genomes) maps genes to metabolic and signaling pathways:</p>
+<pre><code class="language-bio">let pathway = kegg_get("hsa:7157")
+
+let search = kegg_find("pathway", "apoptosis")
+</code></pre>
+<p>The <code>kegg_get()</code> function retrieves a specific entry by KEGG identifier. KEGG uses its own ID scheme: <code>hsa:7157</code> is human gene 7157 (TP53). The <code>kegg_find()</code> function searches within a KEGG database.</p>
+<h3 id="reactome-pathways"><a class="header" href="#reactome-pathways">Reactome Pathways</a></h3>
+<!-- requires: internet, API access -->
+<p>Reactome is another major pathway database, with more detailed reaction-level annotations:</p>
+<pre><code class="language-bio">let pathways = reactome_pathways("TP53")
+</code></pre>
+<p>This returns all Reactome pathways that include TP53. Reactome pathways are hierarchically organized, from broad categories (“Signal Transduction”) down to specific reactions (“TP53 Regulates Transcription of Cell Death Genes”).</p>
+<h3 id="gene-ontology"><a class="header" href="#gene-ontology">Gene Ontology</a></h3>
+<!-- requires: internet, API access -->
+<p>Gene Ontology (GO) provides a standardized vocabulary for gene function, organized into three domains:</p>
+<ul>
+<li><strong>Biological Process</strong> (BP) — what the gene does (e.g., “apoptotic process”)</li>
+<li><strong>Molecular Function</strong> (MF) — how it does it (e.g., “DNA binding”)</li>
+<li><strong>Cellular Component</strong> (CC) — where it does it (e.g., “nucleus”)</li>
+</ul>
+<pre><code class="language-bio">let term = go_term("GO:0006915")
+
+let annotations = go_annotations("TP53")
+</code></pre>
+<p>The <code>go_term()</code> function retrieves details about a specific GO term. The <code>go_annotations()</code> function retrieves all GO annotations for a gene, across all three domains.</p>
+<hr>
+<h2 id="section-5-protein-networks--string"><a class="header" href="#section-5-protein-networks--string">Section 5: Protein Networks — STRING</a></h2>
+<!-- requires: internet, API access -->
+<p>STRING (Search Tool for the Retrieval of Interacting Genes/Proteins) maps known and predicted protein-protein interactions:</p>
+<pre><code class="language-bio">let network = string_network(["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"])
+</code></pre>
+<p>Note that <code>string_network()</code> takes a <strong>list</strong> of identifiers, not a single string. This is because protein interactions are inherently about relationships between multiple proteins. The result includes interaction scores (from 0 to 1) based on experimental evidence, text mining, co-expression, and genomic context.</p>
+<p>STRING is particularly useful for understanding whether your differentially expressed genes form a connected network or are scattered across unrelated pathways.</p>
+<h3 id="pdb-structures"><a class="header" href="#pdb-structures">PDB Structures</a></h3>
+<!-- requires: internet, API access -->
+<p>For genes with known 3D structures, the Protein Data Bank provides structural information:</p>
+<pre><code class="language-bio">let structure = pdb_entry("1TUP")
+</code></pre>
+<p>This retrieves metadata about PDB entry 1TUP (the TP53 DNA-binding domain), including resolution, experimental method, authors, and ligands.</p>
+<hr>
+<h2 id="section-6-building-an-annotation-pipeline"><a class="header" href="#section-6-building-an-annotation-pipeline">Section 6: Building an Annotation Pipeline</a></h2>
+<p>Now that you know the individual databases, let us combine them into a pipeline that annotates an entire gene list. This is where BioLang’s pipe-first design shines — each annotation step flows naturally into the next.</p>
+<h3 id="the-pipeline-architecture"><a class="header" href="#the-pipeline-architecture">The Pipeline Architecture</a></h3>
+<p><img src="images/day24-annotation-pipeline.svg" alt="Multi-database annotation pipeline: Gene List queries NCBI, Ensembl, UniProt in parallel, merges results, then queries KEGG/Reactome, STRING, and GO for final annotation table"></p>
+<h3 id="single-gene-annotation-function"><a class="header" href="#single-gene-annotation-function">Single-Gene Annotation Function</a></h3>
+<!-- requires: internet, API access -->
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Start by writing a function that annotates one gene. Wrap each API call in <code>try/catch</code> because any individual query might fail (the gene might not exist in that database, or the API might be temporarily unavailable):</p>
+<pre><code class="language-bio">let annotate_gene = |symbol| {
+    let result = {symbol: symbol}
+
+    let gene_info = try {
+        ncbi_gene(symbol)
+    } catch err {
+        nil
+    }
+
+    let protein_info = try {
+        uniprot_search(f"gene:{symbol} AND organism_id:9606")
+    } catch err {
+        nil
+    }
+
+    let pathways = try {
+        reactome_pathways(symbol)
+    } catch err {
+        nil
+    }
+
+    let go = try {
+        go_annotations(symbol)
+    } catch err {
+        nil
+    }
+
+    {
+        symbol: symbol,
+        ncbi: gene_info,
+        uniprot: protein_info,
+        pathways: pathways,
+        go_terms: go
+    }
+}
+</code></pre>
+<p>This function returns a record with all available annotations for one gene. If any database is unreachable or the gene is not found, that field is <code>nil</code> rather than crashing the entire pipeline.</p>
+<h3 id="annotating-a-gene-list"><a class="header" href="#annotating-a-gene-list">Annotating a Gene List</a></h3>
+<!-- requires: internet, API access -->
+<p>With the single-gene function defined, annotating an entire list is a single pipe:</p>
+<pre><code class="language-bio">let genes = ["TP53", "BRCA1", "EGFR", "KRAS", "MYC"]
+
+let annotations = genes |&gt; map(|g| annotate_gene(g))
+</code></pre>
+<p>This produces a list of annotation records. Each record contains everything we know about that gene from four different databases.</p>
+<h3 id="rate-limiting"><a class="header" href="#rate-limiting">Rate Limiting</a></h3>
+<p>Public APIs have rate limits. NCBI allows 3 requests per second without an API key (10 with one). Ensembl allows 15 requests per second. UniProt allows roughly 25 requests per second.</p>
+<p>When you annotate 50 genes with 4 API calls each, you are making 200 requests. Without rate limiting, you will hit rate limits and get errors or temporary bans.</p>
+<p>The simplest rate-limiting strategy is to add a delay between requests:</p>
+<pre><code class="language-bio">let annotate_with_delay = |symbol| {
+    let result = annotate_gene(symbol)
+    sleep(500)
+    result
+}
+
+let annotations = genes |&gt; map(|g| annotate_with_delay(g))
+</code></pre>
+<p>The <code>sleep(500)</code> call pauses for 500 milliseconds (half a second) between genes. This keeps you well under all rate limits.</p>
+<h3 id="rate-limiting-strategy"><a class="header" href="#rate-limiting-strategy">Rate Limiting Strategy</a></h3>
+<p><img src="images/day24-rate-limiting.svg" alt="Rate Limiting Strategy: rapid burst without limiting causes HTTP 429 errors, spaced requests with limiting complete all 50 genes successfully"></p>
+<p>For 50 genes at 500ms each, the total runtime is about 25 seconds. That is far better than 13 hours of manual browsing.</p>
+<hr>
+<h2 id="section-7-error-handling-for-api-calls"><a class="header" href="#section-7-error-handling-for-api-calls">Section 7: Error Handling for API Calls</a></h2>
+<p>Network requests fail. Servers go down. Genes have different names in different databases. A robust annotation pipeline handles all of these cases.</p>
+<h3 id="retry-logic"><a class="header" href="#retry-logic">Retry Logic</a></h3>
+<!-- requires: internet, API access -->
+<p>Some failures are transient — a server timeout, a momentary network glitch. For these, retrying often works:</p>
+<pre><code class="language-bio">let retry = |f, max_attempts| {
+    let attempt = 1
+    let result = nil
+    let success = false
+
+    while attempt &lt;= max_attempts and !success {
+        let outcome = try {
+            f()
+        } catch err {
+            nil
+        }
+
+        if outcome != nil {
+            result = outcome
+            success = true
+        } else {
+            attempt = attempt + 1
+            sleep(1000 * attempt)
+        }
+    }
+    result
+}
+</code></pre>
+<p>This function takes a zero-argument closure and retries it up to <code>max_attempts</code> times, with exponential backoff (1 second after the first failure, 2 seconds after the second, etc.).</p>
+<p>Use it in your annotation pipeline:</p>
+<pre><code class="language-bio">let safe_ncbi = |symbol| retry(|| ncbi_gene(symbol), 3)
+</code></pre>
+<h3 id="collecting-errors"><a class="header" href="#collecting-errors">Collecting Errors</a></h3>
+<p>Rather than silently swallowing errors, track them so you can report which genes failed and why:</p>
+<pre><code class="language-bio">let annotate_with_tracking = |symbol| {
+    let errors = []
+
+    let gene_info = try {
+        ncbi_gene(symbol)
+    } catch err {
+        errors = errors + [f"NCBI: {err}"]
+        nil
+    }
+
+    let protein = try {
+        uniprot_search(f"gene:{symbol} AND organism_id:9606")
+    } catch err {
+        errors = errors + [f"UniProt: {err}"]
+        nil
+    }
+
+    {
+        symbol: symbol,
+        ncbi: gene_info,
+        uniprot: protein,
+        errors: errors,
+        error_count: len(errors)
+    }
+}
+</code></pre>
+<p>After annotating all genes, you can filter for problematic ones:</p>
+<pre><code class="language-bio">let failed = annotations |&gt; filter(|a| a.error_count &gt; 0)
+</code></pre>
+<hr>
+<h2 id="section-8-caching-results"><a class="header" href="#section-8-caching-results">Section 8: Caching Results</a></h2>
+<p>If you run your annotation pipeline multiple times during development, you are making the same API calls repeatedly. This wastes time and strains public servers. A simple file-based cache avoids redundant queries.</p>
+<h3 id="write-through-cache-pattern"><a class="header" href="#write-through-cache-pattern">Write-Through Cache Pattern</a></h3>
+<!-- requires: internet, API access -->
+<pre><code class="language-bio">let cached_query = |name, query_fn| {
+    let cache_file = f"data/cache/{name}.json"
+
+    let cached = try {
+        read(cache_file) |&gt; json_decode()
+    } catch err {
+        nil
+    }
+
+    if cached != nil {
+        cached
+    } else {
+        let result = query_fn()
+        let json = result |&gt; json_encode()
+        write(cache_file, json)
+        result
+    }
+}
+</code></pre>
+<p>Use it to wrap any API call:</p>
+<pre><code class="language-bio">let tp53_ncbi = cached_query("tp53_ncbi", || ncbi_gene("TP53"))
+</code></pre>
+<p>The first call hits the API and saves the result to disk. Subsequent calls read from disk, completing instantly. This pattern is especially valuable during pipeline development, when you re-run the script dozens of times while tweaking downstream analysis steps.</p>
+<hr>
+<h2 id="section-9-cross-database-integration"><a class="header" href="#section-9-cross-database-integration">Section 9: Cross-Database Integration</a></h2>
+<p>The real power of programmatic access emerges when you combine data from multiple databases into a unified view. Each database contributes a different facet of biological knowledge.</p>
+<h3 id="multi-database-annotation-table"><a class="header" href="#multi-database-annotation-table">Multi-Database Annotation Table</a></h3>
+<!-- requires: internet, API access -->
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<p>Here is a complete pipeline that builds an annotation table from multiple sources:</p>
+<pre><code class="language-bio">let build_annotation = |symbol| {
+    let ncbi = try { ncbi_gene(symbol) } catch err { nil }
+    sleep(200)
+
+    let ensembl = try { ensembl_symbol("homo_sapiens", symbol) } catch err { nil }
+    sleep(200)
+
+    let uniprot = try { uniprot_search(f"gene:{symbol} AND organism_id:9606") } catch err { nil }
+    sleep(200)
+
+    let pathways = try { reactome_pathways(symbol) } catch err { nil }
+    sleep(200)
+
+    {
+        symbol: symbol,
+        ncbi_summary: if ncbi != nil { str(ncbi) } else { "N/A" },
+        ensembl_id: if ensembl != nil { str(ensembl) } else { "N/A" },
+        uniprot_hit: if uniprot != nil { str(uniprot) } else { "N/A" },
+        pathway_count: if pathways != nil { len(pathways) } else { 0 }
+    }
+}
+
+let genes = read_csv("data/gene_list.csv")
+    |&gt; select("symbol")
+
+let symbols = genes |&gt; map(|row| row.symbol)
+
+let results = symbols |&gt; map(|s| build_annotation(s))
+
+let annotation_table = results |&gt; to_table()
+
+write_csv(annotation_table, "data/annotations.csv")
+</code></pre>
+<p>This pipeline reads a gene list, queries four databases per gene with rate limiting, builds a structured record per gene, converts to a table, and writes the result. The entire workflow is 25 lines of BioLang.</p>
+<h3 id="the-annotation-pipeline-flow"><a class="header" href="#the-annotation-pipeline-flow">The Annotation Pipeline Flow</a></h3>
+<pre><code>  Input: gene_list.csv                   Output: annotations.csv
+  ┌────────────────┐                     ┌─────────────────────────────┐
+  │ symbol         │                     │ symbol | ncbi_summary | ... │
+  │ ──────         │                     │ ────── | ──────────── | ... │
+  │ TP53           │──┐                  │ TP53   | Tumor prot...| ... │
+  │ BRCA1          │  │  Per gene:       │ BRCA1  | BRCA1 DNA ..| ... │
+  │ EGFR           │  ├─► NCBI          │ EGFR   | Epidermal ..| ... │
+  │ KRAS           │  ├─► Ensembl       │ KRAS   | GTPase KRa..| ... │
+  │ MYC            │  ├─► UniProt       │ MYC    | Transcripti..| ... │
+  │ ...            │  ├─► Reactome      │ ...    | ...          | ... │
+  └────────────────┘  │  (200ms delay)   └─────────────────────────────┘
+                      │
+                      └─► to_table() ──► write_csv()
+</code></pre>
+<hr>
+<h2 id="section-10-practical-patterns"><a class="header" href="#section-10-practical-patterns">Section 10: Practical Patterns</a></h2>
+<h3 id="pattern-1-gene-symbol-to-protein-structure"><a class="header" href="#pattern-1-gene-symbol-to-protein-structure">Pattern 1: Gene Symbol to Protein Structure</a></h3>
+<!-- requires: internet, API access -->
+<p>Find whether a gene’s protein has a solved 3D structure:</p>
+<pre><code class="language-bio">let has_structure = |symbol| {
+    let uniprot = try { uniprot_entry(symbol) } catch err { nil }
+    let pdb_ids = if uniprot != nil {
+        try { uniprot_search(f"gene:{symbol} AND database:pdb AND organism_id:9606") } catch err { nil }
+    } else {
+        nil
+    }
+    {symbol: symbol, has_pdb: pdb_ids != nil}
+}
+</code></pre>
+<h3 id="pattern-2-variant-annotation"><a class="header" href="#pattern-2-variant-annotation">Pattern 2: Variant Annotation</a></h3>
+<!-- requires: internet, API access -->
+<p>Given a list of variants in HGVS notation, predict their functional effects:</p>
+<pre><code class="language-bio">let annotate_variant = |hgvs| {
+    let vep = try { ensembl_vep(hgvs) } catch err { nil }
+    sleep(200)
+    {variant: hgvs, effects: vep}
+}
+
+let variants = ["9:g.22125504G&gt;C", "17:g.43093449G&gt;A"]
+let effects = variants |&gt; map(|v| annotate_variant(v))
+</code></pre>
+<h3 id="pattern-3-interaction-subnetwork"><a class="header" href="#pattern-3-interaction-subnetwork">Pattern 3: Interaction Subnetwork</a></h3>
+<!-- requires: internet, API access -->
+<p>Given your differentially expressed genes, find which ones interact:</p>
+<pre><code class="language-bio">let de_genes = ["TP53", "MDM2", "CDKN1A", "BRCA1", "EGFR"]
+let network = try {
+    string_network(de_genes)
+} catch err {
+    nil
+}
+</code></pre>
+<p>This reveals whether your gene list forms a connected network (suggesting a shared pathway) or consists of isolated nodes (suggesting independent effects).</p>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-five-gene-annotation-report"><a class="header" href="#exercise-1-five-gene-annotation-report">Exercise 1: Five-Gene Annotation Report</a></h3>
+<p>Write a script that takes five gene symbols and produces a TSV file with columns: symbol, ncbi_found (true/false), ensembl_id (or “N/A”), uniprot_accession (or “N/A”), pathway_count, go_term_count. Use <code>try/catch</code> for every API call and include 300ms delays between genes.</p>
+<p><strong>Genes to annotate</strong>: TP53, BRCA1, EGFR, KRAS, MYC</p>
+<h3 id="exercise-2-variant-effect-batch-processor"><a class="header" href="#exercise-2-variant-effect-batch-processor">Exercise 2: Variant Effect Batch Processor</a></h3>
+<p>Write a function that takes a list of HGVS variant strings, runs <code>ensembl_vep()</code> on each with rate limiting, and returns a table of results. Handle failures gracefully — a failed VEP lookup should produce a row with “error” in the consequence column rather than crashing.</p>
+<h3 id="exercise-3-pathway-overlap-finder"><a class="header" href="#exercise-3-pathway-overlap-finder">Exercise 3: Pathway Overlap Finder</a></h3>
+<p>Given two gene lists (e.g., upregulated and downregulated), use <code>reactome_pathways()</code> to find pathways that contain genes from both lists. These shared pathways suggest biological processes that are being actively remodeled.</p>
+<h3 id="exercise-4-build-a-cache-layer"><a class="header" href="#exercise-4-build-a-cache-layer">Exercise 4: Build a Cache Layer</a></h3>
+<p>Wrap the annotation pipeline from Section 6 with file-based caching (Section 8). The first run should query all APIs and save results to <code>data/cache/</code>. The second run should complete in under one second by reading from cache. Verify by timing both runs.</p>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>Public databases are APIs, not websites.</strong> Every major bioinformatics database has a programmatic interface. BioLang wraps these as built-in functions, so you write <code>ncbi_gene("TP53")</code> instead of constructing HTTP requests.</p>
+</li>
+<li>
+<p><strong>Different databases answer different questions.</strong> NCBI for gene summaries, Ensembl for genomic coordinates and variant effects, UniProt for protein function, KEGG and Reactome for pathways, STRING for interaction networks, GO for standardized functional terms.</p>
+</li>
+<li>
+<p><strong>Always handle errors.</strong> API calls fail for many reasons: gene not found, server down, rate limit exceeded, network timeout. Wrap every call in <code>try/catch</code> and design your pipeline to tolerate partial failures.</p>
+</li>
+<li>
+<p><strong>Rate limiting is not optional.</strong> Public APIs serve millions of researchers. Adding a <code>sleep(200)</code> between calls is a small cost that prevents you from being blocked and keeps the service available for everyone.</p>
+</li>
+<li>
+<p><strong>Cache aggressively during development.</strong> Gene annotations change slowly (monthly at most). Save API results to files so you can iterate on downstream analysis without repeating queries.</p>
+</li>
+<li>
+<p><strong>Cross-database integration multiplies value.</strong> A gene name from NCBI, a protein accession from UniProt, pathway membership from Reactome, and interaction data from STRING — combined, these tell a story that no single database can tell alone.</p>
+</li>
+</ol>
+<hr>
+<p><em>Next: Day 25 — Workflow Orchestration, where we chain analysis steps into reproducible, automated pipelines.</em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-23.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-25.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-23.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-25.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

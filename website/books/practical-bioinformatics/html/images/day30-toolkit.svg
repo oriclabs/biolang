@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 680">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="680" rx="12" fill="url(#bg)"/>
+  <text x="400" y="40" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">Your Bioinformatics Toolkit</text>
+  <text x="400" y="62" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Skills built across 30 days, organized by week</text>
+
+  <!-- Week 1: Foundations -->
+  <rect x="40" y="85" width="720" height="110" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="60" y="110" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="bold" fill="#1e40af">FOUNDATIONS (Days 1-7)</text>
+  <text x="60" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af">DNA/RNA/protein sequence representation</text>
+  <text x="60" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af">FASTA/FASTQ file parsing and quality assessment</text>
+  <text x="60" y="168" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af">GC content, nucleotide statistics, k-mer analysis</text>
+  <text x="400" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af">Sequence translation and reading frames</text>
+  <text x="400" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af">Motif finding and restriction site analysis</text>
+  <text x="400" y="168" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af">Data validation and error handling</text>
+
+  <!-- Week 2: Data Wrangling -->
+  <rect x="40" y="205" width="720" height="110" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="60" y="230" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="bold" fill="#166534">DATA WRANGLING (Days 8-14)</text>
+  <text x="60" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534">Table operations: select, filter, mutate, summarize</text>
+  <text x="60" y="270" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534">Multi-format I/O: TSV, CSV, FASTA, FASTQ, BED, GFF, VCF</text>
+  <text x="60" y="288" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534">Pipe-based data transformation workflows</text>
+  <text x="450" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534">Functional programming: map, filter, reduce</text>
+  <text x="450" y="270" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534">Streaming for large datasets</text>
+  <text x="450" y="288" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534">Parallel processing with par_map, par_filter</text>
+
+  <!-- Week 3: Analysis -->
+  <rect x="40" y="325" width="720" height="110" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="60" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="bold" fill="#854d0e">ANALYSIS (Days 15-21)</text>
+  <text x="60" y="372" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e">Statistical testing and multiple testing correction</text>
+  <text x="60" y="390" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e">Variant calling and annotation concepts</text>
+  <text x="60" y="408" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e">Genomic interval arithmetic (BED/GFF)</text>
+  <text x="420" y="372" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e">Gene expression quantification, normalization</text>
+  <text x="420" y="390" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e">Population genetics (allele freq, Hardy-Weinberg)</text>
+  <text x="420" y="408" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e">Phylogenetics fundamentals</text>
+
+  <!-- Week 4: Integration -->
+  <rect x="40" y="445" width="720" height="110" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="60" y="470" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="bold" fill="#5b21b6">INTEGRATION (Days 22-28)</text>
+  <text x="60" y="492" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#5b21b6">NCBI, Ensembl, UniProt, KEGG API access</text>
+  <text x="60" y="510" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#5b21b6">GO enrichment and pathway analysis</text>
+  <text x="60" y="528" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#5b21b6">Protein-protein interaction networks (STRING)</text>
+  <text x="420" y="492" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#5b21b6">Structural biology (PDB)</text>
+  <text x="420" y="510" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#5b21b6">Visualization: scatter, bar, heatmap, line plots</text>
+  <text x="420" y="528" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#5b21b6">Publication-ready figure generation</text>
+
+  <!-- Week 5: Capstones -->
+  <rect x="40" y="565" width="720" height="80" rx="8" fill="#fed7aa" stroke="#f97316" stroke-width="1.5"/>
+  <text x="60" y="590" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="bold" fill="#9a3412">CAPSTONE PROJECTS (Days 28-30)</text>
+  <text x="60" y="615" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#9a3412">Clinical variant report (end-to-end)</text>
+  <text x="350" y="615" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#9a3412">RNA-seq differential expression (end-to-end)</text>
+  <text x="60" y="633" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#9a3412">Multi-species gene family analysis (end-to-end)</text>
+</svg>

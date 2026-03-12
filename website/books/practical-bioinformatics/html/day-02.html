@@ -1,0 +1,668 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 2: Your First Language — BioLang - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-2-your-first-language--biolang"><a class="header" href="#day-2-your-first-language--biolang">Day 2: Your First Language — BioLang</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You have seen what bioinformatics can do. You know that DNA becomes RNA becomes protein, that genomes are billions of letters long, and that computation is the only way to make sense of this data. Now you need a tool to do it.</p>
+<p>Every programming language makes tradeoffs. Python is general-purpose but verbose for biology — you need imports, object wrappers, and ten lines to do what should take two. R is excellent for statistics but awkward for building pipelines. Perl was the original bioinformatics language but has fallen out of favor for good reason. Each of these languages was designed for something else and then adapted for biology.</p>
+<p>BioLang was designed for one thing: making biological data analysis as natural as describing it in English. DNA sequences are not strings you have to convert. Pipes are not a library you have to import. The language thinks about biology the way you do.</p>
+<p>Today you will learn BioLang from scratch. By the end, you will be writing real analysis code — filtering sequences, computing statistics, and chaining operations together with a fluency that would take weeks in other languages.</p>
+<h2 id="getting-started-the-repl"><a class="header" href="#getting-started-the-repl">Getting Started: The REPL</a></h2>
+<p>A REPL (Read-Eval-Print Loop) is an interactive environment where you type code, it runs immediately, and you see the result. It is the best way to learn a language because you get instant feedback.</p>
+<blockquote>
+<p><strong>No installation yet?</strong> You can try all the examples in this chapter at <strong><a href="https://lang.bio/playground">lang.bio/playground</a></strong> — it runs BioLang directly in your browser. Perfect for learning the basics before committing to a local install.</p>
+</blockquote>
+<p>Launch it:</p>
+<pre><code class="language-bash">bl repl
+</code></pre>
+<p>Or simply:</p>
+<pre><code class="language-bash">bl
+</code></pre>
+<p>You will see a prompt:</p>
+<pre><code>bl&gt;
+</code></pre>
+<p>Try some arithmetic:</p>
+<pre><code>bl&gt; 2 + 3
+5
+bl&gt; 10 * 7
+70
+bl&gt; 2 ** 10
+1024
+bl&gt; 17 % 5
+2
+</code></pre>
+<p>Try strings:</p>
+<pre><code>bl&gt; "Hello, bioinformatics!"
+Hello, bioinformatics!
+bl&gt; len("ATCGATCG")
+8
+bl&gt; upper("atcgatcg")
+ATCGATCG
+</code></pre>
+<p>To exit the REPL, type <code>Ctrl+D</code> or <code>Ctrl+C</code>.</p>
+<p>The REPL is your laboratory bench. Throughout this book, any time you see a new concept, try it there first. Get a feel for it. Break it. Fix it. That is how you learn.</p>
+<h2 id="variables-and-types"><a class="header" href="#variables-and-types">Variables and Types</a></h2>
+<p>BioLang has a clean type system designed for biology. Here is how it is organized:</p>
+<p><img src="images/day02-type-system.svg" alt="BioLang Type System"></p>
+<h3 id="declaring-variables"><a class="header" href="#declaring-variables">Declaring Variables</a></h3>
+<p>Use <code>let</code> to create a variable. BioLang infers the type automatically — you never need type annotations.</p>
+<pre><code class="language-bio">let name = "BRCA1"           # Str
+let length = 81189            # Int
+let gc = 0.423                # Float
+let is_oncogene = false       # Bool
+let seq = dna"ATGCGATCG"     # DNA
+</code></pre>
+<p>Use <code>type()</code> to check what type a value is:</p>
+<pre><code class="language-bio">println(type(name))     # Str
+println(type(length))   # Int
+println(type(gc))       # Float
+println(type(seq))      # DNA
+</code></pre>
+<h3 id="reassignment"><a class="header" href="#reassignment">Reassignment</a></h3>
+<p>Once a variable exists, you can update it without <code>let</code>:</p>
+<pre><code class="language-bio">let count = 0
+count = count + 1
+println(count)          # 1
+</code></pre>
+<h3 id="why-bio-types-matter"><a class="header" href="#why-bio-types-matter">Why Bio Types Matter</a></h3>
+<p>In Python, DNA is just a string: <code>"ATCG"</code>. You can accidentally concatenate it with a name, reverse it incorrectly, or pass it to a function that expects a protein. Nothing stops you.</p>
+<p>In BioLang, <code>dna"ATCG"</code> is a DNA value. The language knows it is DNA. Functions like <code>transcribe()</code> accept DNA and return RNA. Functions like <code>gc_content()</code> accept DNA or RNA and return a float. If you try to transcribe a protein, you get an error — immediately, not three hours into a pipeline run.</p>
+<pre><code class="language-bio">let d = dna"ATGCGATCG"
+let r = transcribe(d)         # Works: DNA -&gt; RNA
+let p = translate(r)          # Works: RNA -&gt; Protein
+
+# This would fail:
+# let bad = transcribe(p)     # Error: transcribe requires DNA
+</code></pre>
+<h2 id="the-pipe-operator"><a class="header" href="#the-pipe-operator">The Pipe Operator</a></h2>
+<p>This is the most important concept in BioLang. If you learn one thing today, learn this.</p>
+<p>The pipe operator <code>|&gt;</code> takes the result of one expression and feeds it as the first argument to the next function. It turns nested, inside-out code into left-to-right, top-to-bottom code that reads like English.</p>
+<pre><code>  data  ──|&gt;──  transform1()  ──|&gt;──  transform2()  ──|&gt;──  result
+</code></pre>
+<h3 id="without-pipes-vs-with-pipes"><a class="header" href="#without-pipes-vs-with-pipes">Without Pipes vs. With Pipes</a></h3>
+<pre><code class="language-bio"># Without pipes (nested calls — read inside-out)
+println(round(gc_content(dna"ATCGATCGATCG"), 3))
+
+# With pipes (left to right — natural reading order)
+dna"ATCGATCGATCG"
+    |&gt; gc_content()
+    |&gt; round(3)
+    |&gt; println()
+</code></pre>
+<p>Both lines produce the same result: <code>0.5</code>. But the pipe version reads like a recipe: take this sequence, compute its GC content, round it, print it.</p>
+<h3 id="how-pipes-work"><a class="header" href="#how-pipes-work">How Pipes Work</a></h3>
+<p>The rule is simple: <code>a |&gt; f(b)</code> becomes <code>f(a, b)</code>. The pipe inserts the left side as the <strong>first argument</strong> to the function on the right.</p>
+<pre><code class="language-bio"># These two are identical:
+round(gc_content(dna"ATCG"), 3)
+
+dna"ATCG" |&gt; gc_content() |&gt; round(3)
+</code></pre>
+<h3 id="pipes-with-biology"><a class="header" href="#pipes-with-biology">Pipes with Biology</a></h3>
+<p>Pipes follow the fundamental bioinformatics pattern: <strong>read, transform, summarize</strong>.</p>
+<pre><code class="language-bio"># Transcribe and translate in one pipeline
+dna"ATGAAACCCGGG"
+    |&gt; transcribe()
+    |&gt; translate()
+    |&gt; println()
+# Output: Protein(MKPG)
+
+# Find start codons in a sequence
+let positions = find_motif(dna"ATGATGCCGATG", "ATG")
+println(f"Start codon positions: {positions}")
+# Output: Start codon positions: [0, 3, 9]
+
+println(f"Found {len(positions)} start codons")
+# Output: Found 3 start codons
+</code></pre>
+<p>You will use pipes constantly. Every chapter in this book builds pipe chains. They are the backbone of BioLang.</p>
+<h2 id="lists-and-records"><a class="header" href="#lists-and-records">Lists and Records</a></h2>
+<h3 id="lists--ordered-collections"><a class="header" href="#lists--ordered-collections">Lists — Ordered Collections</a></h3>
+<p>A list holds values in order. Create one with square brackets:</p>
+<pre><code class="language-bio"># Lists — ordered collections
+let genes = ["BRCA1", "TP53", "EGFR", "KRAS"]
+println(len(genes))           # 4
+println(genes[0])             # BRCA1
+println(genes[3])             # KRAS
+println(genes[-1])            # KRAS (negative indices count from the end)
+println(genes[-2])            # EGFR
+
+# Lists can hold any type
+let lengths = [81189, 19149, 188307, 45806]
+let mixed = ["BRCA1", 81189, true, dna"ATCG"]
+</code></pre>
+<p>Useful list operations:</p>
+<pre><code class="language-bio">let nums = [3, 1, 4, 1, 5, 9]
+println(first(nums))          # 3
+println(last(nums))           # 9
+println(sort(nums))           # [1, 1, 3, 4, 5, 9]
+println(reverse(nums))        # [9, 5, 1, 4, 1, 3]
+println(contains(nums, 5))    # true
+</code></pre>
+<h3 id="records--key-value-pairs"><a class="header" href="#records--key-value-pairs">Records — Key-Value Pairs</a></h3>
+<p>Records are collections of named fields, like a dictionary or a struct:</p>
+<pre><code class="language-bio"># Records — key-value pairs
+let gene = {
+    name: "TP53",
+    chromosome: "17",
+    length: 19149,
+    is_tumor_suppressor: true
+}
+println(gene.name)            # TP53
+println(gene.chromosome)      # 17
+println(gene.length)          # 19149
+</code></pre>
+<p>Records are everywhere in bioinformatics. Every gene has a name, a location, a function. Every experiment has samples, conditions, results. Records let you group related data together naturally.</p>
+<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<h3 id="defining-functions"><a class="header" href="#defining-functions">Defining Functions</a></h3>
+<p>Use <code>fn</code> to define a function:</p>
+<pre><code class="language-bio">fn gc_rich(seq) {
+    gc_content(seq) &gt; 0.6
+}
+
+let s = dna"GCGCGCGCATGC"
+println(gc_rich(s))            # true
+
+let t = dna"AAAATTTT"
+println(gc_rich(t))            # false
+</code></pre>
+<p>Functions can take multiple parameters and use any logic:</p>
+<pre><code class="language-bio">fn classify_gc(seq) {
+    let gc = gc_content(seq)
+    if gc &gt; 0.6 {
+        "GC-rich"
+    } else if gc &lt; 0.4 {
+        "AT-rich"
+    } else {
+        "balanced"
+    }
+}
+
+println(classify_gc(dna"GCGCGCGC"))    # GC-rich
+println(classify_gc(dna"ATATATATAT"))  # AT-rich
+println(classify_gc(dna"ATCGATCG"))    # balanced
+</code></pre>
+<h3 id="lambdas-anonymous-functions"><a class="header" href="#lambdas-anonymous-functions">Lambdas (Anonymous Functions)</a></h3>
+<p>A lambda is a small function without a name. The syntax is <code>|params| expression</code>:</p>
+<pre><code class="language-bio">let double = |x| x * 2
+println(double(5))             # 10
+
+let add = |a, b| a + b
+println(add(3, 7))             # 10
+</code></pre>
+<p>Lambdas are used constantly with higher-order functions (coming up next). They let you define behavior inline, right where you need it.</p>
+<h2 id="control-flow"><a class="header" href="#control-flow">Control Flow</a></h2>
+<h3 id="if--else"><a class="header" href="#if--else">If / Else</a></h3>
+<pre><code class="language-bio">let gc = 0.65
+if gc &gt; 0.6 {
+    println("GC-rich region")
+} else if gc &lt; 0.4 {
+    println("AT-rich region")
+} else {
+    println("Balanced composition")
+}
+# Output: GC-rich region
+</code></pre>
+<p><code>if</code> in BioLang is also an expression — it returns a value:</p>
+<pre><code class="language-bio">let label = if gc &gt; 0.6 { "high" } else { "normal" }
+println(label)                 # high
+</code></pre>
+<h3 id="for-loops"><a class="header" href="#for-loops">For Loops</a></h3>
+<pre><code class="language-bio">let codons = ["ATG", "GCT", "TAA"]
+for codon in codons {
+    println(f"Codon: {codon}")
+}
+# Output:
+# Codon: ATG
+# Codon: GCT
+# Codon: TAA
+</code></pre>
+<h3 id="pattern-matching"><a class="header" href="#pattern-matching">Pattern Matching</a></h3>
+<p><code>match</code> is like a more powerful <code>if/else</code> chain:</p>
+<pre><code class="language-bio">let base = "A"
+match base {
+    "A" | "G" =&gt; println("Purine"),
+    "C" | "T" =&gt; println("Pyrimidine"),
+    _ =&gt; println("Unknown"),
+}
+# Output: Purine
+</code></pre>
+<p>The <code>_</code> is a wildcard — it matches anything. Pattern matching is especially useful for handling different cases cleanly.</p>
+<h2 id="higher-order-functions"><a class="header" href="#higher-order-functions">Higher-Order Functions</a></h2>
+<p>Higher-order functions (HOFs) take a function as an argument. They are the power tools of BioLang. Once you learn <code>map</code>, <code>filter</code>, and <code>reduce</code>, you will rarely need explicit loops.</p>
+<h3 id="map--transform-each-element"><a class="header" href="#map--transform-each-element">map — Transform Each Element</a></h3>
+<p><code>map</code> applies a function to every element and returns a new list:</p>
+<pre><code class="language-bio">let sequences = [dna"ATCG", dna"GCGCGC", dna"ATATAT"]
+let gc_values = sequences |&gt; map(|s| gc_content(s))
+println(gc_values)
+# Output: [0.5, 1.0, 0.0]
+</code></pre>
+<h3 id="filter--keep-elements-matching-a-condition"><a class="header" href="#filter--keep-elements-matching-a-condition">filter — Keep Elements Matching a Condition</a></h3>
+<p><code>filter</code> keeps only elements where the function returns <code>true</code>:</p>
+<pre><code class="language-bio">let sequences = [dna"ATCG", dna"GCGCGC", dna"ATATAT"]
+let gc_rich = sequences
+    |&gt; filter(|s| gc_content(s) &gt; 0.4)
+println(gc_rich)
+# Output: [DNA(ATCG), DNA(GCGCGC)]
+println(len(gc_rich))
+# Output: 2
+</code></pre>
+<h3 id="each--do-something-with-each-element"><a class="header" href="#each--do-something-with-each-element">each — Do Something with Each Element</a></h3>
+<p><code>each</code> runs a function on every element for its side effects (like printing). It does not collect results:</p>
+<pre><code class="language-bio">["BRCA1", "TP53", "EGFR"]
+    |&gt; each(|g| println(f"Gene: {g}"))
+# Output:
+# Gene: BRCA1
+# Gene: TP53
+# Gene: EGFR
+</code></pre>
+<h3 id="reduce--combine-into-a-single-value"><a class="header" href="#reduce--combine-into-a-single-value">reduce — Combine into a Single Value</a></h3>
+<p><code>reduce</code> combines all elements into one value by applying a function pairwise:</p>
+<pre><code class="language-bio">let sequences = [dna"ATCG", dna"GCGCGC", dna"ATATAT"]
+let total_length = sequences
+    |&gt; map(|s| len(s))
+    |&gt; reduce(|a, b| a + b)
+println(f"Total bases: {total_length}")
+# Output: Total bases: 16
+</code></pre>
+<h3 id="combining-hofs-with-pipes"><a class="header" href="#combining-hofs-with-pipes">Combining HOFs with Pipes</a></h3>
+<p>The real power comes from chaining these together:</p>
+<pre><code class="language-bio"># Find names of all GC-rich sequences
+[dna"ATCG", dna"GCGCGCGC", dna"AAAA", dna"CCGG"]
+    |&gt; filter(|s| gc_content(s) &gt; 0.5)
+    |&gt; map(|s| f"GC={round(gc_content(s), 2)}: {s}")
+    |&gt; each(|line| println(line))
+# Output:
+# GC=1.0: DNA(GCGCGCGC)
+# GC=0.75: DNA(CCGG)
+</code></pre>
+<h2 id="putting-it-all-together"><a class="header" href="#putting-it-all-together">Putting It All Together</a></h2>
+<p>Here is a mini-analysis that uses everything you have learned today — variables, records, pipes, functions, and HOFs:</p>
+<pre><code class="language-bio"># Analyze a set of gene fragments
+let fragments = [
+    {name: "exon1", seq: dna"ATGCGATCGATCG"},
+    {name: "exon2", seq: dna"GCGCGCATATAT"},
+    {name: "exon3", seq: dna"TTTTAAAACCCC"},
+]
+
+# Find GC-rich exons using pipes + HOFs
+let gc_rich_exons = fragments
+    |&gt; filter(|f| gc_content(f.seq) &gt; 0.5)
+    |&gt; map(|f| f.name)
+
+println(f"GC-rich exons: {gc_rich_exons}")
+# Output: GC-rich exons: [exon1]
+
+# Summary statistics
+let gc_values = fragments |&gt; map(|f| round(gc_content(f.seq), 3))
+println(f"GC contents: {gc_values}")
+# Output: GC contents: [0.538, 0.5, 0.333]
+
+println(f"Mean GC: {round(mean(gc_values), 3)}")
+# Output: Mean GC: 0.457
+
+# Classify each fragment
+fn classify_gc(gc) {
+    if gc &gt; 0.6 { "GC-rich" }
+    else if gc &lt; 0.4 { "AT-rich" }
+    else { "balanced" }
+}
+
+fragments |&gt; each(|f| {
+    let gc = round(gc_content(f.seq), 3)
+    println(f"{f.name}: GC={gc} ({classify_gc(gc)})")
+})
+# Output:
+# exon1: GC=0.538 (balanced)
+# exon2: GC=0.5 (balanced)
+# exon3: GC=0.333 (AT-rich)
+</code></pre>
+<p>This is the pattern you will use for the rest of this book: load data, transform it with pipes and HOFs, summarize the results. The data gets more complex — FASTQ files, VCF variants, gene expression tables — but the pattern stays the same.</p>
+<h2 id="biolang-vs-python-vs-r"><a class="header" href="#biolang-vs-python-vs-r">BioLang vs Python vs R</a></h2>
+<p>Let’s see the same task in all three languages: given a list of DNA sequences, find the GC-rich ones and display them with their GC content.</p>
+<h3 id="biolang-6-lines-0-imports"><a class="header" href="#biolang-6-lines-0-imports">BioLang (6 lines, 0 imports)</a></h3>
+<pre><code class="language-bio">let seqs = [dna"ATCGATCG", dna"GCGCGCGC", dna"ATATATAT"]
+seqs
+    |&gt; filter(|s| gc_content(s) &gt; 0.5)
+    |&gt; map(|s| {seq: s, gc: round(gc_content(s), 3)})
+    |&gt; each(|r| println(f"{r.seq}: {r.gc}"))
+</code></pre>
+<h3 id="python-15-lines"><a class="header" href="#python-15-lines">Python (15 lines)</a></h3>
+<pre><code class="language-python">from Bio.Seq import Seq
+from Bio.SeqUtils import gc_fraction
+
+sequences = [Seq("ATCGATCG"), Seq("GCGCGCGC"), Seq("ATATATAT")]
+
+gc_rich = []
+for seq in sequences:
+    gc = gc_fraction(seq)
+    if gc &gt; 0.5:
+        gc_rich.append({"seq": str(seq), "gc": round(gc, 3)})
+
+for item in gc_rich:
+    print(f"{item['seq']}: {item['gc']}")
+
+# Or with list comprehension (more compact but harder to read):
+# [print(f"{s}: {round(gc_fraction(s),3)}") for s in sequences if gc_fraction(s)&gt;0.5]
+</code></pre>
+<h3 id="r-12-lines"><a class="header" href="#r-12-lines">R (12 lines)</a></h3>
+<pre><code class="language-r">library(Biostrings)
+
+sequences &lt;- DNAStringSet(c("ATCGATCG", "GCGCGCGC", "ATATATAT"))
+
+gc_values &lt;- letterFrequency(sequences, letters="GC", as.prob=TRUE)
+gc_rich_idx &lt;- which(gc_values &gt; 0.5)
+
+gc_rich_seqs &lt;- sequences[gc_rich_idx]
+gc_rich_vals &lt;- round(gc_values[gc_rich_idx], 3)
+
+for (i in seq_along(gc_rich_seqs)) {
+  cat(sprintf("%s: %s\n", as.character(gc_rich_seqs[i]), gc_rich_vals[i]))
+}
+</code></pre>
+<h3 id="why-the-difference-matters"><a class="header" href="#why-the-difference-matters">Why the Difference Matters</a></h3>
+<p>BioLang is not shorter because it is a toy. It is shorter because:</p>
+<ul>
+<li><strong>No imports</strong>: DNA, GC content, and pipes are built in</li>
+<li><strong>Bio types</strong>: <code>dna"..."</code> is a type, not a string you convert</li>
+<li><strong>Pipes</strong>: chaining reads top-to-bottom, not inside-out</li>
+<li><strong>HOFs</strong>: <code>filter</code>, <code>map</code>, <code>each</code> replace loops</li>
+</ul>
+<p>When your script is 6 lines instead of 15, you spend less time writing boilerplate and more time thinking about biology. That advantage compounds — a 200-line pipeline in BioLang would be 500 lines in Python.</p>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<p>Try these in the REPL or in a <code>.bl</code> script file.</p>
+<p><strong>Exercise 1: Longest Sequence</strong></p>
+<p>Create a list of 5 DNA sequences of different lengths. Find the longest one using <code>sort_by</code> and <code>last</code>:</p>
+<pre><code class="language-bio">let seqs = [dna"ATG", dna"ATCGATCG", dna"ATCG", dna"AT", dna"ATCGATCGATCG"]
+# Hint: sort_by takes a lambda that returns the sort key
+# seqs |&gt; sort_by(|s| len(s)) |&gt; last() |&gt; print()
+</code></pre>
+<p><strong>Exercise 2: Classify Bases</strong></p>
+<p>Write a function <code>classify_base(base)</code> that uses <code>match</code> to return <code>"purine"</code> for A or G, <code>"pyrimidine"</code> for C or T, and <code>"unknown"</code> for anything else:</p>
+<pre><code class="language-bio"># fn classify_base(base) { ... }
+# Test: classify_base("A") should return "purine"
+</code></pre>
+<p><strong>Exercise 3: Central Dogma Pipeline</strong></p>
+<p>Use pipes to: create a DNA sequence, transcribe it to RNA, translate it to protein, and get its length — all in one pipeline:</p>
+<pre><code class="language-bio"># dna"ATGAAACCCGGGTTTTAA" |&gt; transcribe() |&gt; translate() |&gt; len() |&gt; print()
+</code></pre>
+<p><strong>Exercise 4: Filter Records</strong></p>
+<p>Given a list of gene expression records, keep only those with expression above 3.0:</p>
+<pre><code class="language-bio">let genes = [
+    {gene: "BRCA1", expr: 5.2},
+    {gene: "TP53", expr: 1.8},
+    {gene: "EGFR", expr: 7.1},
+    {gene: "KRAS", expr: 2.3},
+    {gene: "MYC", expr: 4.0},
+]
+# Hint: genes |&gt; filter(|g| g.expr &gt; 3.0) |&gt; each(|g| print(f"{g.gene}: {g.expr}"))
+</code></pre>
+<p><strong>Exercise 5: Join vs Reduce</strong></p>
+<p>Use <code>reduce</code> to concatenate a list of strings with <code>" | "</code> as separator. Then discover that <code>join</code> does it more simply:</p>
+<pre><code class="language-bio">let items = ["DNA", "RNA", "Protein"]
+# Hard way: items |&gt; reduce(|a, b| a + " | " + b) |&gt; print()
+# Easy way: join(items, " | ") |&gt; print()
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<p>Here is what you learned today, distilled:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Concept</th><th>Syntax</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>Variable</td><td><code>let x = value</code></td><td><code>let seq = dna"ATCG"</code></td></tr>
+<tr><td>Function</td><td><code>fn name(params) { body }</code></td><td><code>fn gc_rich(s) { gc_content(s) &gt; 0.6 }</code></td></tr>
+<tr><td>Lambda</td><td><code>|params| expr</code></td><td><code>|x| x * 2</code></td></tr>
+<tr><td>Pipe</td><td><code>a |&gt; f(b)</code></td><td><code>seq |&gt; gc_content() |&gt; print()</code></td></tr>
+<tr><td>map</td><td>Transform each</td><td><code>list |&gt; map(|x| x * 2)</code></td></tr>
+<tr><td>filter</td><td>Keep matching</td><td><code>list |&gt; filter(|x| x &gt; 0)</code></td></tr>
+<tr><td>reduce</td><td>Combine all</td><td><code>list |&gt; reduce(|a, b| a + b)</code></td></tr>
+<tr><td>each</td><td>Side effects</td><td><code>list |&gt; each(|x| print(x))</code></td></tr>
+<tr><td>Comment</td><td><code>#</code></td><td><code># this is a comment</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The pipe <code>|&gt;</code> is the core of BioLang. It makes data flow visible. When you read <code>data |&gt; transform() |&gt; summarize() |&gt; print()</code>, you know exactly what happens at each step. No nesting, no temporary variables, no ambiguity.</p>
+<p>Bio types (<code>DNA</code>, <code>RNA</code>, <code>Protein</code>) are not strings. They carry meaning, and the language enforces it. You cannot accidentally transcribe a protein or translate a string.</p>
+<p><code>map</code>, <code>filter</code>, and <code>reduce</code> replace most loops. They are cleaner, less error-prone, and they compose with pipes beautifully.</p>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>You now have a working language. You can write variables, functions, pipes, and HOFs. But so far, all our sequences have been short strings we typed by hand.</p>
+<p>Tomorrow, we step back from code and into biology: genomes, genes, mutations, and why they matter. You need this foundation before you can analyze real data. Understanding <em>what</em> a VCF file represents matters as much as knowing <em>how</em> to parse it.</p>
+<p><strong>Day 3: The Biology You Need</strong> — genomes, chromosomes, variants, and the questions bioinformatics answers.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-01.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-03.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-01.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-03.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

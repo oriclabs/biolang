@@ -1,0 +1,599 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 3: Biology Crash Course for Developers - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-3-biology-crash-course-for-developers"><a class="header" href="#day-3-biology-crash-course-for-developers">Day 3: Biology Crash Course for Developers</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You can write code, but you do not know what a gene actually is, why mutations matter, or what “expression” means. Without this foundation, bioinformatics code is just meaningless data shuffling. Every variable name, every file format, every analysis pipeline assumes you understand the biology underneath. Today we build the biological intuition you need.</p>
+<p>If you already have a biology background, skim this chapter or use it as a refresher. For everyone else: this is the day that makes everything else click.</p>
+<h2 id="the-cell-biologys-computer"><a class="header" href="#the-cell-biologys-computer">The Cell: Biology’s Computer</a></h2>
+<p>If you understand computers, you already have the mental framework for molecular biology. A living cell is an information-processing system, and the analogy is surprisingly precise.</p>
+<p><img src="images/cell-as-computer.svg" alt="The Cell as a Computer"></p>
+<p>Your DNA is the master copy of every instruction your body needs. It never leaves the nucleus, just like critical data stays in a server room. When the cell needs to build something, it copies the relevant section of DNA into RNA — a temporary, disposable working copy. That RNA travels to a ribosome, which reads it and assembles a protein, amino acid by amino acid.</p>
+<p>This flow — DNA to RNA to Protein — is called the <strong>central dogma</strong> of molecular biology. Nearly everything in bioinformatics relates to measuring, comparing, or interpreting data at one of these three levels.</p>
+<p>The analogy breaks down at scale, of course. Your cells are not running one program at a time. A single human cell has about 20,000 genes, thousands of which are active simultaneously, producing millions of protein molecules. It is less like a laptop and more like a data center running 20,000 microservices.</p>
+<h2 id="dna-the-source-code"><a class="header" href="#dna-the-source-code">DNA: The Source Code</a></h2>
+<p>DNA is built from four chemical bases, each represented by a single letter:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Base</th><th>Letter</th><th>Pairs with</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>A</strong>denine</td><td>A</td><td>T</td></tr>
+<tr><td><strong>T</strong>hymine</td><td>T</td><td>A</td></tr>
+<tr><td><strong>C</strong>ytosine</td><td>C</td><td>G</td></tr>
+<tr><td><strong>G</strong>uanine</td><td>G</td><td>C</td></tr>
+</tbody>
+</table>
+</div>
+<p>These bases pair up in a strict pattern called <strong>Watson-Crick base pairing</strong>: A always pairs with T, and C always pairs with G. This gives DNA its famous double-helix structure — two complementary strands wound around each other.</p>
+<pre><code>    5'─A─T─G─C─G─A─T─C─G─3'    (coding strand)
+        |  |  |  |  |  |  |  |  |
+    3'─T─A─C─G─C─T─A─G─C─5'    (template strand)
+</code></pre>
+<p><strong>Direction matters.</strong> DNA strands have a chemical directionality called 5’ (five-prime) to 3’ (three-prime). By convention, sequences are always written 5’ to 3’, just like we read text left to right. When bioinformatics tools say “the sequence is ATGCGATCG,” they mean reading the coding strand from 5’ to 3’.</p>
+<p>The <strong>complement</strong> of a sequence flips each base according to the pairing rules: A becomes T, T becomes A, C becomes G, G becomes C. The <strong>reverse complement</strong> also reverses the order, giving you the other strand read in its own 5’-to-3’ direction.</p>
+<pre><code class="language-bio">let coding = dna"ATGCGATCG"
+let comp = complement(coding)
+let rc = reverse_complement(coding)
+println(f"Coding:     5'-{coding}-3'")
+println(f"Complement: 3'-{comp}-5'")
+println(f"RevComp:    5'-{rc}-3'")
+# Output:
+# Coding:     5'-ATGCGATCG-3'
+# Complement: 3'-TACGCTAGC-5'
+# RevComp:    5'-CGATCGCAT-3'
+</code></pre>
+<p>Why does the reverse complement matter? Because sequencing machines can read either strand. If a read comes from the opposite strand, you need the reverse complement to map it back to the reference. This is one of the most common operations in bioinformatics.</p>
+<h2 id="genes-functions-in-the-genome"><a class="header" href="#genes-functions-in-the-genome">Genes: Functions in the Genome</a></h2>
+<p>If DNA is the source code, a <strong>gene</strong> is a function — a defined region with a specific purpose. A gene contains the instructions for building one protein (a simplification, but a useful one; some genes produce functional RNA instead).</p>
+<p>The numbers are humbling:</p>
+<ul>
+<li>The human genome has about <strong>3.2 billion</strong> base pairs</li>
+<li>Only about <strong>1.5%</strong> of that codes for proteins</li>
+<li>We have roughly <strong>20,000 protein-coding genes</strong></li>
+<li>The rest used to be called “junk DNA,” but much of it has regulatory roles</li>
+</ul>
+<p>A gene is not a simple, contiguous stretch of code. It has structure:</p>
+<p><img src="images/gene-structure-splicing.svg" alt="Gene Structure and Splicing"></p>
+<ul>
+<li><strong>Exons</strong> are the coding sections — the parts that actually encode protein</li>
+<li><strong>Introns</strong> are non-coding sections between exons — they get removed</li>
+<li><strong>Splicing</strong> is the process of cutting out introns and joining exons together</li>
+<li>The result is <strong>mRNA</strong> (messenger RNA), the template used to build the protein</li>
+</ul>
+<p>Think of it this way: a gene in DNA is like a source file full of commented-out blocks. Splicing is the preprocessor that strips the comments and produces clean, executable code.</p>
+<pre><code class="language-bio"># Simulating exon splicing
+let exon1 = dna"ATGCGA"
+let exon2 = dna"TCGATC"
+let exon3 = dna"GCGTAA"
+
+# In reality, splicing is done by the cell's machinery
+# In BioLang, we can transcribe individual exons
+let mrna = transcribe(exon1)
+println(f"Exon 1 transcribed: {mrna}")
+# Output:
+# Exon 1 transcribed: AUGCGA
+</code></pre>
+<p>One of the most surprising facts in biology: the same gene can produce different proteins depending on which exons are included. This is called <strong>alternative splicing</strong>, and it is one reason humans can get by with only 20,000 genes — each one can produce multiple protein variants.</p>
+<h2 id="proteins-the-machines"><a class="header" href="#proteins-the-machines">Proteins: The Machines</a></h2>
+<p>Proteins are the workhorses of the cell. They are built from <strong>20 amino acids</strong>, and the sequence of amino acids determines what the protein does. The mapping from DNA to amino acid uses a three-letter code: every group of three bases (a <strong>codon</strong>) specifies one amino acid.</p>
+<p>The math works out neatly: 4 bases taken 3 at a time gives 4^3 = 64 possible codons. Those 64 codons map to just 20 amino acids plus 3 stop signals. This redundancy is important — it means some mutations are harmless because different codons can encode the same amino acid.</p>
+<p>Key codons to remember:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Codon (DNA)</th><th>Codon (RNA)</th><th>Amino acid</th><th>Role</th></tr>
+</thead>
+<tbody>
+<tr><td>ATG</td><td>AUG</td><td>Methionine (M)</td><td><strong>Start codon</strong> — every protein begins here</td></tr>
+<tr><td>TAA</td><td>UAA</td><td>—</td><td><strong>Stop codon</strong></td></tr>
+<tr><td>TAG</td><td>UAG</td><td>—</td><td><strong>Stop codon</strong></td></tr>
+<tr><td>TGA</td><td>UGA</td><td>—</td><td><strong>Stop codon</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>Let’s trace through the central dogma in code:</p>
+<pre><code class="language-bio"># Exploring the genetic code
+let seq = dna"ATGGCTAACTGA"
+let rna = transcribe(seq)
+let protein = translate(seq)
+println(f"DNA:     {seq}")
+println(f"RNA:     {rna}")
+println(f"Protein: {protein}")
+# Output:
+# DNA:     ATGGCTAACTGA
+# RNA:     AUGGCUAACUGA
+# Protein: MAN
+# M = Methionine (start), A = Alanine, N = Asparagine
+# (TGA = stop codon, translation halts before it)
+</code></pre>
+<p>Notice that <code>translate()</code> accepts DNA directly — BioLang handles the T-to-U conversion internally. The function stops at the first stop codon, which is the biologically correct behavior.</p>
+<pre><code class="language-bio"># Codon usage in a sequence
+let gene = dna"ATGGCTGCTTCTGATTGA"
+let usage = codon_usage(gene)
+println(usage)
+# Output:
+# {ATG: 1, GCT: 2, TCT: 1, GAT: 1, TGA: 1}
+# Notice GCT appears twice — both encode Alanine
+</code></pre>
+<p>Protein function depends on how the amino acid chain folds into a 3D structure. A single change in the sequence can alter the fold and destroy the protein’s function. This is why mutations matter.</p>
+<h2 id="mutations-bugs-in-the-code"><a class="header" href="#mutations-bugs-in-the-code">Mutations: Bugs in the Code</a></h2>
+<p>A <strong>mutation</strong> is any change in the DNA sequence. Like a bug in software, the consequences depend entirely on where it happens and what changes. Some mutations are invisible; others are catastrophic.</p>
+<h3 id="types-of-mutations"><a class="header" href="#types-of-mutations">Types of mutations</a></h3>
+<pre><code>Normal:      ATG GCT AAC TGA  --&gt;  M-A-N  (stop)
+                                    |||
+Missense:    ATG GCT GAC TGA  --&gt;  M-A-D  (stop)   one amino acid changed (N-&gt;D)
+                                    ||
+Nonsense:    ATG TAA AAC TGA  --&gt;  M  (premature stop!)   protein truncated
+                                    |
+Frameshift:  ATG -CT AAC TGA  --&gt;  reading frame destroyed — total chaos
+</code></pre>
+<ul>
+<li><strong>SNP</strong> (Single Nucleotide Polymorphism): one base swapped for another. The most common type of variation.</li>
+<li><strong>Synonymous</strong> (silent): the codon changes but still encodes the same amino acid, thanks to redundancy in the genetic code. No effect on the protein.</li>
+<li><strong>Missense</strong>: the codon changes to encode a different amino acid. May or may not affect protein function, depending on how different the new amino acid is.</li>
+<li><strong>Nonsense</strong>: the codon changes to a stop codon, truncating the protein. Almost always damaging.</li>
+<li><strong>Frameshift</strong>: an insertion or deletion that is not a multiple of 3 shifts the entire reading frame. Every codon downstream is wrong. This is the biological equivalent of an off-by-one error that corrupts everything after it.</li>
+</ul>
+<pre><code class="language-bio"># Comparing normal vs mutant
+let normal = dna"ATGGCTAACTGA"
+let mutant = dna"ATGGCTGACTGA"  # A-&gt;G at position 7 (0-indexed)
+
+let normal_protein = normal |&gt; translate()
+let mutant_protein = mutant |&gt; translate()
+
+println(f"Normal:  {normal_protein}")
+println(f"Mutant:  {mutant_protein}")
+println(f"Changed: {normal_protein != mutant_protein}")
+# Output:
+# Normal:  MAN
+# Mutant:  MAD
+# Changed: true
+# One base change (A-&gt;G) changed Asparagine (N) to Aspartate (D)
+</code></pre>
+<p>The position within a codon matters enormously. The third position (called the “wobble position”) is the most tolerant of mutations because of codon redundancy. Mutations at the first or second position almost always change the amino acid.</p>
+<h2 id="the-20-amino-acids"><a class="header" href="#the-20-amino-acids">The 20 Amino Acids</a></h2>
+<p>Every protein in every living organism is built from the same 20 amino acids. Each has a three-letter abbreviation and a single-letter code — the one-letter codes are what you will see constantly in bioinformatics data:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Amino Acid</th><th>3-Letter</th><th>1-Letter</th><th>Property</th><th>Found abundantly in</th></tr>
+</thead>
+<tbody>
+<tr><td>Alanine</td><td>Ala</td><td><strong>A</strong></td><td>Hydrophobic</td><td>Silk fibroin</td></tr>
+<tr><td>Arginine</td><td>Arg</td><td><strong>R</strong></td><td>Positive charge</td><td>Histones (DNA packaging)</td></tr>
+<tr><td>Asparagine</td><td>Asn</td><td><strong>N</strong></td><td>Polar</td><td>Cell surface glycoproteins</td></tr>
+<tr><td>Aspartate</td><td>Asp</td><td><strong>D</strong></td><td>Negative charge</td><td>Neurotransmitter receptors</td></tr>
+<tr><td>Cysteine</td><td>Cys</td><td><strong>C</strong></td><td>Disulfide bonds</td><td>Keratin (hair), antibodies</td></tr>
+<tr><td>Glutamate</td><td>Glu</td><td><strong>E</strong></td><td>Negative charge</td><td>Taste receptors (umami)</td></tr>
+<tr><td>Glutamine</td><td>Gln</td><td><strong>Q</strong></td><td>Polar</td><td>Blood proteins, muscle fuel</td></tr>
+<tr><td>Glycine</td><td>Gly</td><td><strong>G</strong></td><td>Smallest, flexible</td><td>Collagen (every 3rd position!)</td></tr>
+<tr><td>Histidine</td><td>His</td><td><strong>H</strong></td><td>pH-sensitive charge</td><td>Hemoglobin (oxygen binding site)</td></tr>
+<tr><td>Isoleucine</td><td>Ile</td><td><strong>I</strong></td><td>Hydrophobic</td><td>Muscle proteins</td></tr>
+<tr><td>Leucine</td><td>Leu</td><td><strong>L</strong></td><td>Hydrophobic</td><td>Most abundant amino acid in proteins</td></tr>
+<tr><td>Lysine</td><td>Lys</td><td><strong>K</strong></td><td>Positive charge</td><td>Collagen cross-linking</td></tr>
+<tr><td>Methionine</td><td>Met</td><td><strong>M</strong></td><td>Start signal</td><td><strong>Every protein begins with M</strong></td></tr>
+<tr><td>Phenylalanine</td><td>Phe</td><td><strong>F</strong></td><td>Hydrophobic, aromatic</td><td>Neurotransmitter precursor</td></tr>
+<tr><td>Proline</td><td>Pro</td><td><strong>P</strong></td><td>Rigid, helix-breaker</td><td>Collagen (structural kinks)</td></tr>
+<tr><td>Serine</td><td>Ser</td><td><strong>S</strong></td><td>Polar, phosphorylation</td><td>Signaling proteins (on/off switches)</td></tr>
+<tr><td>Threonine</td><td>Thr</td><td><strong>T</strong></td><td>Polar, phosphorylation</td><td>Mucin (gut lining protection)</td></tr>
+<tr><td>Tryptophan</td><td>Trp</td><td><strong>W</strong></td><td>Largest, aromatic</td><td>Serotonin precursor (mood)</td></tr>
+<tr><td>Tyrosine</td><td>Tyr</td><td><strong>Y</strong></td><td>Aromatic, phosphorylation</td><td>Insulin receptor signaling</td></tr>
+<tr><td>Valine</td><td>Val</td><td><strong>V</strong></td><td>Hydrophobic</td><td>Hemoglobin (sickle cell: E6V mutation)</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Why this table matters:</strong> When you see a protein sequence like <code>MEEPQSDP</code> in bioinformatics, each letter is one of these 20 amino acids. When a mutation report says “R175H”, it means Arginine (R) at position 175 was changed to Histidine (H). The single-letter codes are the language of protein bioinformatics.</p>
+</blockquote>
+<p>Notice the <strong>properties</strong> column. Amino acids are not interchangeable:</p>
+<ul>
+<li><strong>Hydrophobic</strong> amino acids (A, V, I, L, F, W, M) cluster in the protein’s interior, away from water</li>
+<li><strong>Charged</strong> amino acids (R, K, D, E) sit on the surface and interact with other molecules</li>
+<li><strong>Polar</strong> amino acids (S, T, N, Q) form hydrogen bonds and participate in catalysis</li>
+</ul>
+<p>This is why a mutation that swaps a hydrophobic amino acid for a charged one (like V600E in BRAF — Valine to Glutamate) can be catastrophic: it puts a charged residue where a hydrophobic one should be, disrupting the protein’s entire 3D fold.</p>
+<h2 id="gene-expression-which-programs-are-running"><a class="header" href="#gene-expression-which-programs-are-running">Gene Expression: Which Programs Are Running?</a></h2>
+<p>Every cell in your body contains the same DNA — the same complete set of ~20,000 genes. But a liver cell looks and behaves nothing like a neuron. The difference is <strong>gene expression</strong>: which genes are turned on and how strongly.</p>
+<p>Gene expression is measured by how much RNA is being produced from a gene. A highly expressed gene produces thousands of RNA copies; a silenced gene produces none. Different cell types have dramatically different expression profiles:</p>
+<ul>
+<li><strong>Housekeeping genes</strong> are always on — they handle basic cell maintenance (like system services that always run)</li>
+<li><strong>Tissue-specific genes</strong> are only active in certain cell types (like applications that only launch on specific servers)</li>
+<li><strong>Stress-response genes</strong> activate only under certain conditions — heat, DNA damage, infection (like error handlers)</li>
+</ul>
+<p>The developer analogy is precise: gene expression is like running <code>ps aux</code> on a server. You see which processes are active, how much CPU they are using, and which ones just started or stopped. In biology, the equivalent tool is <strong>RNA-seq</strong> — a sequencing technology that counts RNA molecules, telling you exactly which genes are active and at what level.</p>
+<p><strong>Differential expression analysis</strong> compares expression between conditions. Which genes are more active in tumor tissue versus normal tissue? Which genes turn on when a cell is infected by a virus? These comparisons are one of the most common tasks in bioinformatics.</p>
+<h2 id="reference-genomes-and-coordinates"><a class="header" href="#reference-genomes-and-coordinates">Reference Genomes and Coordinates</a></h2>
+<p>Just as every address system needs a map, genomics needs a <strong>reference genome</strong> — a canonical, consensus sequence for a species. The current human reference genome is called <strong>GRCh38</strong> (Genome Reference Consortium Human Build 38), released in 2013 and continually patched.</p>
+<p>Genomic coordinates use a simple system: <strong>chromosome + position</strong>. The location <code>chr17:7,687,490</code> means chromosome 17, position 7,687,490. This is the universal addressing system in genomics — every variant, every gene, every regulatory element has coordinates on the reference.</p>
+<p>Two coordinate conventions matter:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Format</th><th>Coordinates</th><th>Example</th><th>Note</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>BED</strong></td><td>0-based, half-open</td><td>chr17  7687489  7687490</td><td>Like Python slicing: <code>seq[start:end]</code></td></tr>
+<tr><td><strong>VCF</strong></td><td>1-based, inclusive</td><td>chr17  7687490  .  A  G</td><td>Like what humans say: “position 7,687,490”</td></tr>
+</tbody>
+</table>
+</div>
+<p>If you have ever been bitten by off-by-one errors in code, genomic coordinates will give you sympathy pain. The BED-vs-VCF coordinate difference is responsible for more bioinformatics bugs than any other single issue.</p>
+<pre><code class="language-bio"># Genomic intervals
+let brca1_location = interval("chr17", 43044295, 43125483)
+let tp53_location = interval("chr17", 7668402, 7687550)
+
+println(f"BRCA1: {brca1_location}")
+println(f"TP53:  {tp53_location}")
+println(f"Same chromosome: {brca1_location.chrom == tp53_location.chrom}")
+# Output:
+# BRCA1: chr17:43044295-43125483
+# TP53:  chr17:7668402-7687550
+# Same chromosome: true
+</code></pre>
+<p>Both BRCA1 and TP53 are on chromosome 17, but they are millions of base pairs apart. BRCA1 is a breast/ovarian cancer gene; TP53 is the most commonly mutated gene across all cancers. We will meet both again throughout this book.</p>
+<h2 id="the--omics-landscape"><a class="header" href="#the--omics-landscape">The “-omics” Landscape</a></h2>
+<p>Modern biology is organized into layers, each with its own data types and analysis methods:</p>
+<p><img src="images/day03-omics-landscape.svg" alt="The -omics Landscape"></p>
+<ul>
+<li><strong>Genomics</strong>: the study of complete DNA sequences — finding genes, identifying variants, comparing species</li>
+<li><strong>Transcriptomics</strong>: measuring which genes are expressed and at what level, usually via RNA-seq</li>
+<li><strong>Proteomics</strong>: identifying and quantifying proteins in a sample using mass spectrometry</li>
+<li><strong>Metabolomics</strong>: profiling small molecules (metabolites) that result from cellular processes</li>
+<li><strong>Epigenomics</strong>: studying chemical modifications to DNA that affect gene expression without changing the sequence</li>
+<li><strong>Variant analysis</strong>: cataloging mutations and polymorphisms, assessing their clinical significance</li>
+<li><strong>Single-cell -omics</strong>: any of the above, but measured in individual cells rather than bulk tissue</li>
+</ul>
+<p>Each -omics field has its own file formats, databases, and analytical pipelines. This book will focus on genomics, transcriptomics, and variant analysis — the areas where most bioinformatics work happens.</p>
+<h2 id="putting-it-all-together-a-gene-story"><a class="header" href="#putting-it-all-together-a-gene-story">Putting It All Together: A Gene Story</a></h2>
+<p>Let’s make this concrete with <strong>TP53</strong>, the most studied gene in cancer biology. TP53 encodes the protein p53, sometimes called the “guardian of the genome.” When DNA gets damaged, p53 activates to either repair the damage or trigger cell death. When TP53 is mutated, this safety mechanism fails — damaged cells keep dividing, leading to cancer.</p>
+<p>TP53 is mutated in more than 50% of all human cancers. It is the single most commonly mutated gene across cancer types. Understanding why requires everything we have covered today.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># The story of TP53 — the most mutated gene in cancer
+# Requires internet connection for NCBI lookup
+# Optional: set NCBI_API_KEY for higher rate limits
+
+let tp53 = ncbi_gene("TP53")
+println(f"Gene:        {tp53.symbol}")
+println(f"Description: {tp53.description}")
+println(f"Chromosome:  {tp53.chromosome}")
+println(f"Location:    {tp53.location}")
+# Output (approximate — NCBI data updates):
+# Gene:        TP53
+# Description: tumor protein p53
+# Chromosome:  17
+# Location:    17p13.1
+</code></pre>
+<pre><code class="language-bio"># A normal TP53 fragment — the start of the coding sequence
+let normal = dna"ATGGAGGAGCCGCAGTCAGATCCTAGC"
+let protein = normal |&gt; translate()
+println(f"Normal protein starts: {protein}")
+# Output:
+# Normal protein starts: MEEPQSDPS
+# M=Met, E=Glu, E=Glu, P=Pro, Q=Gln, S=Ser, D=Asp, P=Pro, S=Ser
+
+# GC content of this region
+let gc = gc_content(normal)
+println(f"GC content: {gc}")
+# Output:
+# GC content: 0.5555555555555556
+</code></pre>
+<p>The most common TP53 mutation in cancer is <strong>R248W</strong>: a single base change that swaps Arginine (R, coded by CGG) for Tryptophan (W, coded by TGG) at position 248 of the protein. One letter changes. The protein misfolds. The guardian is disabled. Cells lose their brake pedal.</p>
+<p>This is why we study mutations with such care. A single base out of 3.2 billion can be the difference between a cell that functions normally and one that becomes cancerous.</p>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-hand-translate-a-sequence"><a class="header" href="#exercise-1-hand-translate-a-sequence">Exercise 1: Hand-translate a sequence</a></h3>
+<p>Given <code>dna"ATGAAAGCTTGA"</code>, what protein does it encode? Work it out by hand first:</p>
+<ul>
+<li>Split into codons: ATG | AAA | GCT | TGA</li>
+<li>Look up each codon: ATG=M, AAA=K, GCT=A, TGA=Stop</li>
+<li>Expected protein: MKA</li>
+</ul>
+<p>Then verify with BioLang:</p>
+<pre><code class="language-bio">let seq = dna"ATGAAAGCTTGA"
+let protein = translate(seq)
+println(f"Protein: {protein}")
+# Output:
+# Protein: MKA
+</code></pre>
+<h3 id="exercise-2-wobble-position-experiment"><a class="header" href="#exercise-2-wobble-position-experiment">Exercise 2: Wobble position experiment</a></h3>
+<p>Create two DNA sequences that differ by one base. Translate both. Does the amino acid change? Try mutating position 1, 2, and 3 of the second codon to see which position tolerates mutations best:</p>
+<pre><code class="language-bio"># Original: GCT = Alanine (A)
+let original = dna"ATGGCTTGA"
+let mut_pos1 = dna"ATGTCTTGA"   # G-&gt;T at codon position 1
+let mut_pos2 = dna"ATGGATTGA"   # C-&gt;A at codon position 2
+let mut_pos3 = dna"ATGGCATGA"   # T-&gt;A at codon position 3
+
+println(f"Original (GCT): {translate(original)}")
+println(f"Pos1 mut (TCT): {translate(mut_pos1)}")
+println(f"Pos2 mut (GAT): {translate(mut_pos2)}")
+println(f"Pos3 mut (GCA): {translate(mut_pos3)}")
+# Output:
+# Original (GCT): MA
+# Pos1 mut (TCT): MS   (Alanine -&gt; Serine — changed!)
+# Pos2 mut (GAT): MD   (Alanine -&gt; Aspartate — changed!)
+# Pos3 mut (GCA): MA   (Alanine -&gt; Alanine — silent! same amino acid)
+# The third position is most tolerant of mutations (wobble position)
+</code></pre>
+<h3 id="exercise-3-look-up-a-gene"><a class="header" href="#exercise-3-look-up-a-gene">Exercise 3: Look up a gene</a></h3>
+<p>Look up what chromosome EGFR is on using <code>ncbi_gene("EGFR")</code>. EGFR (Epidermal Growth Factor Receptor) is a major drug target in lung cancer.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># Requires internet connection
+let egfr = ncbi_gene("EGFR")
+println(f"EGFR chromosome: {egfr.chromosome}")
+println(f"EGFR description: {egfr.description}")
+# Expected: chromosome 7
+</code></pre>
+<h3 id="exercise-4-interval-overlap-check"><a class="header" href="#exercise-4-interval-overlap-check">Exercise 4: Interval overlap check</a></h3>
+<p>Create intervals for two genes on chromosome 7 and check whether they overlap:</p>
+<pre><code class="language-bio">let egfr = interval("chr7", 55019017, 55211628)
+let braf = interval("chr7", 140719327, 140924929)
+
+# Manual overlap check: two intervals overlap if
+# they are on the same chrom AND start &lt; other.end AND other.start &lt; end
+let same_chrom = egfr.chrom == braf.chrom
+let overlaps = same_chrom and egfr.start &lt; braf.end and braf.start &lt; egfr.end
+
+println(f"EGFR: {egfr}")
+println(f"BRAF: {braf}")
+println(f"Same chromosome: {same_chrom}")
+println(f"Overlap: {overlaps}")
+# Output:
+# EGFR: chr7:55019017-55211628
+# BRAF: chr7:140719327-140924929
+# Same chromosome: true
+# Overlap: false
+# (They're ~85 million bases apart — same chromosome, but far away)
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>DNA -&gt; RNA -&gt; Protein</strong>: the central dogma governs how genetic information becomes function. DNA is transcribed into RNA; RNA is translated into protein.</li>
+<li><strong>Genes</strong> are regions of DNA that encode proteins. Humans have approximately 20,000 protein-coding genes in a 3.2-billion-base genome.</li>
+<li><strong>Mutations</strong> are changes in DNA. They can be silent (synonymous), damaging (missense/nonsense), or catastrophic (frameshift). The wobble position (third base of a codon) is the most tolerant.</li>
+<li><strong>Gene expression</strong> tells us which genes are active. It varies by cell type, condition, and time. RNA-seq measures it by counting RNA molecules.</li>
+<li><strong>Genomic coordinates</strong> (chromosome + position) are the universal addressing system. Watch out for 0-based (BED) vs 1-based (VCF) conventions.</li>
+<li><strong>The reference genome</strong> (GRCh38) is the baseline. Variants are always described relative to it.</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow: <strong>Day 4 — Coding Crash Course for Biologists</strong>. The complementary perspective — thinking in data structures, debugging strategies, and building confidence with code. Biologists learn the computational thinking they need; developers can skip or skim.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-02.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-04.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-02.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-04.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

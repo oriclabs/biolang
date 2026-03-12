@@ -1,0 +1,709 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 12: Finding Variants in Genomes - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-12-finding-variants-in-genomes"><a class="header" href="#day-12-finding-variants-in-genomes">Day 12: Finding Variants in Genomes</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Intermediate (variant types, Ts/Tv, ACMG classification)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (filtering, pipes, records, functions)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1-11 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated by <code>init.bl</code> (48-variant VCF file)</td></tr>
+<tr><td><strong>Requirements</strong></td><td>None (offline); internet optional for Section 8 VEP annotation</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to read and explore VCF files with <code>read_vcf()</code></li>
+<li>How to classify variants by type: SNP, insertion, deletion, MNV</li>
+<li>What the transition/transversion ratio means and why it matters</li>
+<li>How to filter variants by quality metrics</li>
+<li>How to annotate variants using Ensembl VEP</li>
+<li>The basics of clinical variant interpretation (ACMG/AMP framework)</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>A clinical sequencing lab returns a VCF file with 4 million variants. Your patient’s diagnosis depends on finding the 1–3 variants that actually cause disease. Filtering 4 million down to a handful requires understanding variant types, quality metrics, population frequencies, and clinical databases.</p>
+<p>Today you will build the tools and intuition for this process — from loading raw VCF files to classifying, filtering, and annotating variants. The dataset is small (48 variants) so you can see every step clearly, but the techniques scale to millions of variants.</p>
+<hr>
+<h2 id="what-are-variants"><a class="header" href="#what-are-variants">What Are Variants?</a></h2>
+<p>A <strong>variant</strong> is any position where a genome differs from the reference sequence. Variants come in several types:</p>
+<pre><code>Reference:  ...A T C G A T C G A T C G...
+                        *
+SNP:        ...A T C G A T T G A T C G...    (C -&gt; T at one position)
+
+Reference:  ...A T C G A - - T C G A T C G...
+Insertion:  ...A T C G A A A T C G A T C G...  (AA inserted)
+
+Reference:  ...A T C G A T C G A T C G...
+Deletion:   ...A T C G - - - G A T C G...    (ATC deleted)
+
+Reference:  ...A T C G A T C G A T C G...
+MNV:        ...A T C G T T C G A T C G...    (AT -&gt; TT, multi-nucleotide)
+</code></pre>
+<ul>
+<li><strong>SNP</strong> (Single Nucleotide Polymorphism): one base changed. The most common variant type.</li>
+<li><strong>Insertion</strong>: bases added that are not in the reference.</li>
+<li><strong>Deletion</strong>: bases present in the reference are missing.</li>
+<li><strong>MNV</strong> (Multi-Nucleotide Variant): multiple adjacent bases changed simultaneously.</li>
+</ul>
+<p>Insertions and deletions are collectively called <strong>indels</strong>. They are harder to detect accurately than SNPs because they shift the reading frame of the sequencer’s alignment.</p>
+<hr>
+<h2 id="reading-and-exploring-vcf-files"><a class="header" href="#reading-and-exploring-vcf-files">Reading and Exploring VCF Files</a></h2>
+<p>VCF (Variant Call Format) is the standard file format for storing variant data. Each row describes one variant: its chromosome, position, reference allele, alternate allele, quality score, and filter status.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: data/variants.vcf in working directory (run init.bl first)
+let variants = read_vcf("data/variants.vcf")
+println(f"Total variants: {len(variants)}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Total variants: 48
+</code></pre>
+<p><code>read_vcf()</code> returns a list of <strong>Variant</strong> values. Each variant has properties you can access with dot notation:</p>
+<pre><code class="language-bio">let v = first(variants)
+println(f"Chrom: {v.chrom}")
+println(f"Position: {v.pos}")
+println(f"ID: {v.id}")
+println(f"Ref: {v.ref}, Alt: {v.alt}")
+println(f"Quality: {v.qual}")
+println(f"Filter: {v.filter}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Chrom: chr1
+Position: 14907
+ID: rs6682375
+Ref: A, Alt: G
+Quality: 45.3
+Filter: PASS
+</code></pre>
+<p>The key fields are:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>chrom</code></td><td>Chromosome name</td></tr>
+<tr><td><code>pos</code></td><td>1-based position on the chromosome</td></tr>
+<tr><td><code>id</code></td><td>Variant identifier (e.g. rs number from dbSNP), or <code>.</code> if unknown</td></tr>
+<tr><td><code>ref</code></td><td>Reference allele (what the reference genome has)</td></tr>
+<tr><td><code>alt</code></td><td>Alternate allele (what this sample has instead)</td></tr>
+<tr><td><code>qual</code></td><td>Phred-scaled quality score (higher = more confident)</td></tr>
+<tr><td><code>filter</code></td><td><code>PASS</code> if the variant passed all quality filters, otherwise the filter name</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="variant-classification"><a class="header" href="#variant-classification">Variant Classification</a></h2>
+<p>BioLang’s Variant values have built-in properties for classification. You do not need to write your own classification function — the runtime does it for you:</p>
+<pre><code class="language-bio">let v = first(variants)
+println(f"Type: {v.variant_type}")    # "Snp", "Indel", "Mnp", or "Other"
+println(f"Is SNP? {v.is_snp}")        # true or false
+println(f"Is indel? {v.is_indel}")    # true or false
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Type: Snp
+Is SNP? true
+Is indel? false
+</code></pre>
+<p>Use these properties with <code>filter()</code> to separate variants by type:</p>
+<pre><code class="language-bio">let snps = variants |&gt; filter(|v| v.is_snp) |&gt; collect()
+let indels = variants |&gt; filter(|v| v.is_indel) |&gt; collect()
+println(f"SNPs: {len(snps)}")
+println(f"Indels: {len(indels)}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>SNPs: 38
+Indels: 10
+</code></pre>
+<p>You can also inspect individual variants with their type:</p>
+<pre><code class="language-bio">let first_ten = variants |&gt; take(10) |&gt; map(|v| {
+    chrom: v.chrom, pos: v.pos,
+    ref: v.ref, alt: v.alt,
+    type: v.variant_type
+})
+for item in first_ten {
+    println(f"  {item.chrom}:{item.pos} {item.ref}&gt;{item.alt} ({item.type})")
+}
+</code></pre>
+<p>Expected output:</p>
+<pre><code>  chr1:14907 A&gt;G (Snp)
+  chr1:69511 A&gt;G (Snp)
+  chr1:817186 G&gt;A (Snp)
+  chr1:949654 C&gt;T (Snp)
+  chr1:984971 G&gt;A (Snp)
+  chr1:1018704 T&gt;C (Snp)
+  chr1:1110294 G&gt;A (Snp)
+  chr1:1234567 ATG&gt;A (Indel)
+  chr1:1567890 C&gt;CTAG (Indel)
+  chr1:2045678 A&gt;T (Snp)
+</code></pre>
+<hr>
+<h2 id="transitiontransversion-ratio"><a class="header" href="#transitiontransversion-ratio">Transition/Transversion Ratio</a></h2>
+<p>Not all SNPs are equally likely. There are two categories:</p>
+<ul>
+<li><strong>Transitions (Ts)</strong>: purine-to-purine or pyrimidine-to-pyrimidine changes. A↔G and C↔T. These are chemically more likely because the molecular shape is similar.</li>
+<li><strong>Transversions (Tv)</strong>: purine-to-pyrimidine or vice versa. A↔C, A↔T, G↔C, G↔T. These require a bigger structural change.</li>
+</ul>
+<pre><code>         Transitions (Ts)
+     A  &lt;===============&gt;  G       (purines)
+
+     C  &lt;===============&gt;  T       (pyrimidines)
+
+         Transversions (Tv)
+     A  &lt;------&gt;  C     A  &lt;------&gt;  T
+     G  &lt;------&gt;  C     G  &lt;------&gt;  T
+</code></pre>
+<p>Because transitions are chemically favored, the expected Ts/Tv ratio for real biological variants is approximately <strong>2.0–2.1</strong> for whole-genome sequencing. A significantly lower ratio (say, 1.0) suggests many false-positive variant calls — the errors are random and equally likely to be transitions or transversions.</p>
+<p>BioLang computes this in one call:</p>
+<pre><code class="language-bio">let ratio = tstv_ratio(variants)
+println(f"Ts/Tv ratio: {round(ratio, 2)}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Ts/Tv ratio: 1.92
+</code></pre>
+<p>You can also use the per-variant properties to count manually:</p>
+<pre><code class="language-bio">let ts_count = variants |&gt; filter(|v| v.is_snp and v.is_transition) |&gt; count()
+let tv_count = variants |&gt; filter(|v| v.is_snp and v.is_transversion) |&gt; count()
+println(f"Transitions: {ts_count}")
+println(f"Transversions: {tv_count}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Transitions: 25
+Transversions: 13
+</code></pre>
+<p>The <code>.is_transition</code> and <code>.is_transversion</code> properties are only meaningful for SNPs. For indels and MNVs, both return <code>false</code>.</p>
+<hr>
+<h2 id="quality-filtering"><a class="header" href="#quality-filtering">Quality Filtering</a></h2>
+<p>Raw variant calls contain many false positives. The first step in any analysis is filtering. A typical filtering cascade:</p>
+<p><img src="images/day12-vcf-filtering-funnel.svg" alt="VCF variant filtering funnel"></p>
+<p>In BioLang:</p>
+<pre><code class="language-bio"># Filter by PASS status
+let passed = variants |&gt; filter(|v| v.filter == "PASS") |&gt; collect()
+println(f"PASS variants: {len(passed)} / {len(variants)}")
+
+# Add quality threshold
+let high_quality = variants
+    |&gt; filter(|v| v.filter == "PASS")
+    |&gt; filter(|v| v.qual &gt;= 30)
+    |&gt; collect()
+println(f"PASS + quality &gt;= 30: {len(high_quality)}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>PASS variants: 41 / 48
+PASS + quality &gt;= 30: 41
+</code></pre>
+<p>It is informative to examine what was filtered out:</p>
+<pre><code class="language-bio">let low_qual = variants |&gt; filter(|v| v.filter != "PASS") |&gt; collect()
+println(f"Filtered out (non-PASS): {len(low_qual)}")
+for lq in low_qual {
+    println(f"  {lq.chrom}:{lq.pos} {lq.ref}&gt;{lq.alt} qual={lq.qual} filter={lq.filter}")
+}
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Filtered out (non-PASS): 7
+  chr1:984971 G&gt;A qual=12.5 filter=LowQual
+  chr1:2045678 A&gt;T qual=8.1 filter=LowQual
+  chr2:6123456 T&gt;C qual=15.2 filter=LowDP
+  chr3:4567890 T&gt;A qual=10.4 filter=LowQual
+  chr7:5678901 A&gt;C qual=9.7 filter=LowQual
+  chr11:5678901 G&gt;T qual=14.3 filter=LowDP
+  chrX:5678901 C&gt;A qual=11.8 filter=LowQual
+</code></pre>
+<p>Notice that the filtered variants have low quality scores (all under 16) and were flagged as either <code>LowQual</code> (low confidence) or <code>LowDP</code> (low read depth). These are exactly the variants you want to remove — they are likely sequencing errors, not real biological variation.</p>
+<hr>
+<h2 id="variant-summary-and-statistics"><a class="header" href="#variant-summary-and-statistics">Variant Summary and Statistics</a></h2>
+<p>For a quick overview, <code>variant_summary()</code> computes all key statistics in one call:</p>
+<pre><code class="language-bio">let summary = variant_summary(variants)
+println(f"Total alleles: {summary.total}")
+println(f"  SNPs: {summary.snp}")
+println(f"  Indels: {summary.indel}")
+println(f"  MNPs: {summary.mnp}")
+println(f"  Transitions: {summary.transitions}")
+println(f"  Transversions: {summary.transversions}")
+println(f"  Ts/Tv ratio: {round(summary.ts_tv_ratio, 2)}")
+println(f"  Multiallelic: {summary.multiallelic}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Total alleles: 48
+  SNPs: 38
+  Indels: 10
+  MNPs: 0
+  Transitions: 25
+  Transversions: 13
+  Ts/Tv ratio: 1.92
+  Multiallelic: 0
+</code></pre>
+<p>The <strong>het/hom ratio</strong> measures the balance between heterozygous calls (one copy of the variant) and homozygous-alternate calls (both copies). For a diploid organism like humans, the expected ratio is roughly 1.5–2.0.</p>
+<pre><code class="language-bio">let hh_ratio = het_hom_ratio(variants)
+println(f"Het/Hom ratio: {round(hh_ratio, 2)}")
+
+let het_count = variants |&gt; filter(|v| v.is_het) |&gt; count()
+let hom_count = variants |&gt; filter(|v| v.is_hom_alt) |&gt; count()
+println(f"Heterozygous: {het_count}")
+println(f"Homozygous alt: {hom_count}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Het/Hom ratio: 4.33
+Heterozygous: 39
+Homozygous alt: 9
+</code></pre>
+<p>Our small test dataset has a higher-than-expected het/hom ratio because we deliberately included more heterozygous variants. In a real whole-genome dataset, this ratio is a useful quality indicator — an abnormally high or low ratio may indicate contamination or incorrect variant calling.</p>
+<hr>
+<h2 id="chromosome-distribution"><a class="header" href="#chromosome-distribution">Chromosome Distribution</a></h2>
+<p>Knowing how variants are distributed across chromosomes helps spot problems. An unexpected spike on one chromosome might indicate a copy number variant or a systematic alignment issue.</p>
+<pre><code class="language-bio">let by_chrom = variants
+    |&gt; map(|v| {chrom: v.chrom, type: v.variant_type})
+    |&gt; to_table()
+    |&gt; group_by("chrom")
+    |&gt; summarize(|chrom, rows| {chrom: chrom, count: len(rows)})
+println(by_chrom)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>chrom | count
+chr1  | 10
+chr11 | 5
+chr17 | 5
+chr2  | 7
+chr3  | 6
+chr5  | 5
+chr7  | 5
+chrX  | 5
+</code></pre>
+<p>In a real dataset, the variant count would be roughly proportional to chromosome length. Chromosome 1 (the longest) would have the most variants, and chromosome 21 (the shortest autosome) would have the fewest.</p>
+<hr>
+<h2 id="variant-annotation-with-ensembl-vep"><a class="header" href="#variant-annotation-with-ensembl-vep">Variant Annotation with Ensembl VEP</a></h2>
+<p>Knowing that a variant exists is only the first step. To understand its biological significance, you need to <strong>annotate</strong> it: determine which gene it falls in, what effect it has on the protein, and whether it has been seen before in clinical databases.</p>
+<p>The Ensembl Variant Effect Predictor (VEP) does this. BioLang wraps the Ensembl REST API in a single function call:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+let annotation = ensembl_vep("17:7577120:G:A")
+let result = first(annotation)
+println(f"Allele string: {result.allele_string}")
+println(f"Most severe consequence: {result.most_severe_consequence}")
+
+let tcs = result.transcript_consequences
+if len(tcs) &gt; 0 {
+    let tc = first(tcs)
+    println(f"Gene: {tc.gene_id}")
+    println(f"Impact: {tc.impact}")
+    println(f"Consequences: {tc.consequences}")
+}
+</code></pre>
+<p>The <code>ensembl_vep()</code> function takes a string in the format <code>"chrom:pos:ref:alt"</code> and returns a list of annotation results. Each result contains:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>allele_string</code></td><td>The ref/alt alleles</td></tr>
+<tr><td><code>most_severe_consequence</code></td><td>The worst predicted effect (e.g., <code>missense_variant</code>)</td></tr>
+<tr><td><code>transcript_consequences</code></td><td>Per-transcript details with gene ID, impact, and consequence terms</td></tr>
+</tbody>
+</table>
+</div>
+<p>VEP classifies consequences by severity. From most to least severe:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Impact</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td>HIGH</td><td>frameshift, stop_gained, splice_donor</td></tr>
+<tr><td>MODERATE</td><td>missense_variant, inframe_deletion</td></tr>
+<tr><td>LOW</td><td>synonymous_variant, splice_region</td></tr>
+<tr><td>MODIFIER</td><td>intron_variant, upstream_gene_variant</td></tr>
+</tbody>
+</table>
+</div>
+<p>For batch annotation, wrap the call in <code>try/catch</code> to handle network errors gracefully:</p>
+<pre><code class="language-bio">let annotated = variants |&gt; take(5) |&gt; map(|v| {
+    chrom: v.chrom, pos: v.pos, ref: v.ref, alt: v.alt,
+    annotation: try { ensembl_vep(f"{v.chrom}:{v.pos}:{v.ref}:{v.alt}") } catch e { nil }
+})
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: The Ensembl REST API has rate limits (15 requests per second without an API key). For large-scale annotation, use the standalone VEP command-line tool instead.</p>
+</blockquote>
+<hr>
+<h2 id="clinical-variant-interpretation"><a class="header" href="#clinical-variant-interpretation">Clinical Variant Interpretation</a></h2>
+<p>Finding and annotating variants is a technical problem. Interpreting their clinical significance is a medical one. The standard framework is the <strong>ACMG/AMP guidelines</strong> (American College of Medical Genetics / Association for Molecular Pathology), which classify variants into five tiers:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Classification</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Pathogenic</strong></td><td>Causes disease. Strong evidence from multiple sources.</td></tr>
+<tr><td><strong>Likely pathogenic</strong></td><td>Probably causes disease. High confidence but not conclusive.</td></tr>
+<tr><td><strong>Variant of uncertain significance (VUS)</strong></td><td>Not enough evidence to classify. The most frustrating category.</td></tr>
+<tr><td><strong>Likely benign</strong></td><td>Probably does not cause disease.</td></tr>
+<tr><td><strong>Benign</strong></td><td>Does not cause disease. Common in the population.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The classification uses several types of evidence:</p>
+<ul>
+<li><strong>Population frequency</strong>: If a variant is common in healthy populations (e.g., &gt;1% in gnomAD), it is unlikely to cause rare disease.</li>
+<li><strong>Computational predictions</strong>: Tools like SIFT, PolyPhen-2, and CADD predict whether a protein change is damaging.</li>
+<li><strong>Functional data</strong>: Laboratory experiments showing the variant disrupts protein function.</li>
+<li><strong>Segregation</strong>: Whether the variant co-occurs with disease in families.</li>
+<li><strong>Clinical databases</strong>: ClinVar aggregates clinical interpretations from laboratories worldwide.</li>
+</ul>
+<blockquote>
+<p><strong>Important</strong>: Clinical variant interpretation requires specialized training. The code in this chapter teaches the computational steps — reading VCF files, filtering, and annotating — but the medical interpretation of results should always involve a trained clinical geneticist or genetic counselor.</p>
+</blockquote>
+<hr>
+<h2 id="complete-variant-analysis-pipeline"><a class="header" href="#complete-variant-analysis-pipeline">Complete Variant Analysis Pipeline</a></h2>
+<p>Here is the full pipeline, from raw VCF to classified, filtered results:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># Complete Variant Analysis Pipeline
+# requires: data/variants.vcf in working directory
+
+println("=== Variant Analysis Pipeline ===\n")
+
+# Step 1: Load
+let variants = read_vcf("data/variants.vcf")
+println(f"1. Total variants: {len(variants)}")
+
+# Step 2: Quality filtering
+let passed = variants
+    |&gt; filter(|v| v.filter == "PASS")
+    |&gt; filter(|v| v.qual &gt;= 30)
+    |&gt; collect()
+println(f"2. After filtering: {len(passed)} variants")
+
+# Step 3: Classify
+let snps = passed |&gt; filter(|v| v.is_snp) |&gt; count()
+let indels = passed |&gt; filter(|v| v.is_indel) |&gt; count()
+println(f"3. SNPs: {snps}, Indels: {indels}")
+
+# Step 4: Ts/Tv ratio
+let ratio = tstv_ratio(passed)
+println(f"4. Ts/Tv ratio: {round(ratio, 2)}")
+
+# Step 5: Chromosome distribution
+let by_chrom = passed
+    |&gt; map(|v| {chrom: v.chrom, type: v.variant_type})
+    |&gt; to_table()
+    |&gt; group_by("chrom")
+    |&gt; summarize(|chrom, rows| {chrom: chrom, count: len(rows)})
+println(f"\n5. Variants per chromosome:")
+println(by_chrom)
+
+# Step 6: Export
+let results = passed |&gt; map(|v| {
+    chrom: v.chrom, pos: v.pos, id: v.id,
+    ref: v.ref, alt: v.alt,
+    qual: v.qual, type: v.variant_type
+}) |&gt; to_table()
+write_csv(results, "results/classified_variants.csv")
+println(f"\n6. Results saved to results/classified_variants.csv")
+println("\n=== Pipeline complete ===")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>=== Variant Analysis Pipeline ===
+
+1. Total variants: 48
+2. After filtering: 41 variants
+3. SNPs: 31, Indels: 10
+4. Ts/Tv ratio: 1.92
+
+5. Variants per chromosome:
+chrom | count
+chr1  | 8
+chr11 | 4
+chr17 | 5
+chr2  | 6
+chr3  | 5
+chr5  | 5
+chr7  | 4
+chrX  | 4
+
+6. Results saved to results/classified_variants.csv
+
+=== Pipeline complete ===
+</code></pre>
+<p>This pipeline reduces 48 raw variants to 41 high-confidence calls, classifies them, checks the quality metric (Ts/Tv near 2.0 — good), and exports the results. In a clinical setting, the next steps would be frequency filtering (against gnomAD), functional annotation (VEP), and manual review of candidates.</p>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li>
+<p><strong>SNP-to-indel ratio</strong>: Load the VCF file and calculate the ratio of SNPs to indels. A typical whole-genome ratio is about 10:1. How does our test data compare?</p>
+</li>
+<li>
+<p><strong>Classify transitions and transversions</strong>: Write a function that takes a variant and returns <code>"transition"</code> or <code>"transversion"</code> (or <code>"not_snp"</code> for indels). Apply it to all variants and print the counts.</p>
+</li>
+<li>
+<p><strong>Region filter</strong>: Filter variants to chromosome <code>chr17</code> between positions 7,500,000 and 42,000,000. This spans the TP53 and BRCA1 genes. How many variants fall in this region?</p>
+</li>
+<li>
+<p><strong>VEP annotation</strong>: Annotate 5 variants from your VCF using <code>ensembl_vep()</code> and print the predicted consequence for each. Which has the highest impact?</p>
+</li>
+<li>
+<p><strong>Summary report</strong>: Build a report that shows: total variants, variants per chromosome, SNP/indel counts, Ts/Tv ratio, and het/hom ratio. Export it as a CSV table.</p>
+</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Variants</strong> are differences from the reference genome: SNPs, insertions, deletions, and multi-nucleotide variants.</li>
+<li><strong>Quality filtering</strong> is the first step in any variant analysis — remove low-confidence calls before doing anything else.</li>
+<li>The <strong>Ts/Tv ratio</strong> (~2.0 for whole genome) is a quick quality check for your variant calls.</li>
+<li><strong>VEP annotation</strong> predicts the biological effect of each variant, from benign intronic changes to damaging frameshift mutations.</li>
+<li><strong>Clinical interpretation</strong> follows the ACMG/AMP framework and requires domain expertise — code can filter and annotate, but a human expert interprets.</li>
+<li>The goal of variant analysis: start with millions of raw calls, filter down to the few that matter for your biological question.</li>
+</ul>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Week 3 starts tomorrow with <strong>Day 13: Gene Expression and RNA-seq</strong>. You will move from DNA variants to measuring which genes are active — how much RNA each gene produces, and how expression changes between conditions. This is the foundation of transcriptomics and differential expression analysis.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-11.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-13.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-11.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-13.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,973 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 9: Biological Databases and APIs - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-9-biological-databases-and-apis"><a class="header" href="#day-9-biological-databases-and-apis">Day 9: Biological Databases and APIs</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You found a mutation in gene BRCA1. What does this gene do? Is this mutation known? What pathway is it in? What protein does it encode? What other proteins does it interact with? What 3D structures are available?</p>
+<p>This information exists — scattered across a dozen databases maintained by organizations around the world. NCBI in Bethesda, EBI in Cambridge, KEGG in Kyoto, RCSB in New Jersey. Manually searching each one, copying identifiers between browser tabs, cross-referencing results — it takes hours for a single gene. For a list of 50 candidate genes from a screen, it takes days.</p>
+<p>With API calls, it takes seconds.</p>
+<p>BioLang has built-in clients for 12+ biological databases. No packages to install. No authentication boilerplate. No JSON parsing. You call a function, you get structured data back.</p>
+<hr>
+<h2 id="the-database-landscape"><a class="header" href="#the-database-landscape">The Database Landscape</a></h2>
+<p>Biological knowledge is distributed across specialized databases. Each one is the authoritative source for a particular kind of information:</p>
+<p><img src="images/day09-database-landscape.svg" alt="Biological database landscape"></p>
+<p>No single database has the complete picture. NCBI has the sequences but not the pathways. KEGG has the pathways but not the 3D structures. PDB has the structures but not the interaction networks. The real power comes from querying multiple databases and combining the results.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Database</th><th>Maintained By</th><th>Speciality</th><th>BioLang Functions</th></tr>
+</thead>
+<tbody>
+<tr><td>NCBI</td><td>NIH (USA)</td><td>Sequences, genes, literature</td><td><code>ncbi_gene</code>, <code>ncbi_search</code>, <code>ncbi_sequence</code></td></tr>
+<tr><td>Ensembl</td><td>EBI/EMBL</td><td>Gene models, variants, orthology</td><td><code>ensembl_symbol</code>, <code>ensembl_sequence</code>, <code>ensembl_vep</code></td></tr>
+<tr><td>UniProt</td><td>EBI/SIB/PIR</td><td>Protein function, features</td><td><code>uniprot_entry</code>, <code>uniprot_search</code>, <code>uniprot_features</code></td></tr>
+<tr><td>KEGG</td><td>Kyoto Univ</td><td>Pathways, metabolism</td><td><code>kegg_get</code>, <code>kegg_find</code>, <code>kegg_link</code></td></tr>
+<tr><td>PDB</td><td>RCSB (USA)</td><td>3D protein structures</td><td><code>pdb_entry</code>, <code>pdb_search</code></td></tr>
+<tr><td>STRING</td><td>EMBL</td><td>Protein-protein interactions</td><td><code>string_network</code>, <code>string_enrichment</code></td></tr>
+<tr><td>Gene Ontology</td><td>GO Consortium</td><td>Functional annotations</td><td><code>go_term</code>, <code>go_annotations</code></td></tr>
+<tr><td>Reactome</td><td>EBI/OICR</td><td>Biological pathways</td><td><code>reactome_pathways</code>, <code>reactome_search</code></td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="ncbi--the-central-repository"><a class="header" href="#ncbi--the-central-repository">NCBI — The Central Repository</a></h2>
+<p>The National Center for Biotechnology Information (NCBI) is the largest repository of biological data. It hosts GenBank (sequences), PubMed (literature), Gene (gene records), and dozens of other databases. Nearly every bioinformatician interacts with NCBI daily.</p>
+<p>BioLang’s NCBI functions wrap the E-utilities API, handling the XML parsing, rate limiting, and error recovery for you.</p>
+<h3 id="looking-up-a-gene"><a class="header" href="#looking-up-a-gene">Looking Up a Gene</a></h3>
+<p>The simplest operation: look up a gene by symbol.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+# optional: NCBI_API_KEY for higher rate limits
+
+let gene = ncbi_gene("BRCA1")
+println(f"Symbol: {gene.symbol}")
+println(f"Name: {gene.name}")
+println(f"Description: {gene.description}")
+println(f"Chromosome: {gene.chromosome}")
+println(f"Location: {gene.location}")
+println(f"Organism: {gene.organism}")
+</code></pre>
+<p>Expected output (approximate — NCBI data is updated regularly):</p>
+<pre><code>Symbol: BRCA1
+Name: BRCA1 DNA repair associated
+Description: BRCA1 DNA repair associated
+Chromosome: 17
+Location: 17q21.31
+Organism: Homo sapiens
+</code></pre>
+<p><code>ncbi_gene()</code> returns a record with fields: <code>id</code>, <code>symbol</code>, <code>name</code>, <code>description</code>, <code>organism</code>, <code>chromosome</code>, <code>location</code>, <code>summary</code>. When the search matches a single gene, you get the full record directly. When it matches multiple genes, you get a list of NCBI Gene IDs.</p>
+<h3 id="searching-ncbi-databases"><a class="header" href="#searching-ncbi-databases">Searching NCBI Databases</a></h3>
+<p>NCBI hosts over 40 databases. You can search any of them with <code>ncbi_search()</code>:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+# optional: NCBI_API_KEY for higher rate limits
+
+# Search PubMed for articles about BRCA1 and breast cancer
+let pubmed_ids = ncbi_search("pubmed", "BRCA1 breast cancer", 5)
+println(f"PubMed hits: {len(pubmed_ids)}")
+for id in pubmed_ids {
+    println(f"  PMID: {id}")
+}
+
+# Search the Gene database
+let gene_ids = ncbi_search("gene", "TP53 homo sapiens", 5)
+println(f"Gene IDs: {len(gene_ids)}")
+</code></pre>
+<p>Note the argument order: <code>ncbi_search(database, query, max_results)</code>. The <code>max_results</code> parameter is optional (defaults to 20).</p>
+<h3 id="fetching-sequences"><a class="header" href="#fetching-sequences">Fetching Sequences</a></h3>
+<p>Retrieve a sequence by its accession number:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+# optional: NCBI_API_KEY for higher rate limits
+
+# Fetch BRCA1 mRNA sequence (RefSeq accession)
+let fasta = ncbi_sequence("NM_007294")
+println(f"Sequence (first 100 chars):")
+println(fasta |&gt; take(200))
+</code></pre>
+<p><code>ncbi_sequence()</code> returns the raw FASTA text. You can parse it further or write it to a file.</p>
+<hr>
+<h2 id="ensembl--gene-models-and-variants"><a class="header" href="#ensembl--gene-models-and-variants">Ensembl — Gene Models and Variants</a></h2>
+<p>Ensembl, maintained by the European Bioinformatics Institute (EBI), provides gene annotations, comparative genomics, and variant effect prediction. Its REST API is particularly well-designed and fast.</p>
+<h3 id="looking-up-a-gene-by-symbol"><a class="header" href="#looking-up-a-gene-by-symbol">Looking Up a Gene by Symbol</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+let gene = ensembl_symbol("homo_sapiens", "BRCA1")
+println(f"Ensembl ID: {gene.id}")
+println(f"Symbol: {gene.symbol}")
+println(f"Biotype: {gene.biotype}")
+println(f"Chromosome: {gene.chromosome}")
+println(f"Start: {gene.start}")
+println(f"End: {gene.end}")
+println(f"Strand: {gene.strand}")
+</code></pre>
+<p>Expected output (approximate):</p>
+<pre><code>Ensembl ID: ENSG00000012048
+Symbol: BRCA1
+Biotype: protein_coding
+Chromosome: 17
+Start: 43044295
+End: 43170245
+Strand: -1
+</code></pre>
+<p>Note the argument order: <code>ensembl_symbol(species, symbol)</code>. Species uses Ensembl’s underscore-separated format: <code>"homo_sapiens"</code>, <code>"mus_musculus"</code>, <code>"danio_rerio"</code>.</p>
+<h3 id="getting-protein-sequences"><a class="header" href="#getting-protein-sequences">Getting Protein Sequences</a></h3>
+<p>Once you have an Ensembl gene ID, you can retrieve its sequence in different forms:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+let gene = ensembl_symbol("homo_sapiens", "BRCA1")
+
+# Get the protein sequence
+let protein = ensembl_sequence(gene.id, "protein")
+println(f"Protein length: {len(protein.seq)} amino acids")
+println(f"First 50 aa: {protein.seq |&gt; take(50)}")
+
+# Get the coding sequence (CDS)
+let cds = ensembl_sequence(gene.id, "cds")
+println(f"CDS length: {len(cds.seq)} bases")
+</code></pre>
+<p><code>ensembl_sequence()</code> takes an Ensembl ID and an optional sequence type: <code>"genomic"</code> (default), <code>"cds"</code>, <code>"cdna"</code>, or <code>"protein"</code>. It returns a record with <code>id</code>, <code>seq</code>, and <code>molecule</code> fields.</p>
+<h3 id="variant-effect-prediction-vep"><a class="header" href="#variant-effect-prediction-vep">Variant Effect Prediction (VEP)</a></h3>
+<p>One of Ensembl’s most powerful features is VEP — the Variant Effect Predictor. Given a variant, it tells you the predicted biological consequence:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Predict the effect of a BRCA1 variant (HGVS notation)
+let results = ensembl_vep("17:g.43091434G&gt;A")
+for r in results {
+    println(f"Alleles: {r.allele_string}")
+    println(f"Most severe: {r.most_severe_consequence}")
+    for tc in r.transcript_consequences {
+        println(f"  Transcript: {tc.transcript_id}")
+        println(f"  Impact: {tc.impact}")
+        println(f"  Consequences: {tc.consequences}")
+    }
+}
+</code></pre>
+<p>VEP accepts HGVS notation (e.g., <code>"17:g.43091434G&gt;A"</code>) and returns a list of result records, each containing transcript-level consequence predictions with impact severity (HIGH, MODERATE, LOW, MODIFIER).</p>
+<hr>
+<h2 id="uniprot--protein-knowledge"><a class="header" href="#uniprot--protein-knowledge">UniProt — Protein Knowledge</a></h2>
+<p>UniProt is the definitive resource for protein function, domains, post-translational modifications, and literature. Every well-characterized protein has a UniProt entry curated by expert biologists.</p>
+<h3 id="looking-up-a-protein"><a class="header" href="#looking-up-a-protein">Looking Up a Protein</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Look up BRCA1 by its UniProt accession
+let entry = uniprot_entry("P38398")
+println(f"Name: {entry.name}")
+println(f"Organism: {entry.organism}")
+println(f"Length: {entry.sequence_length} aa")
+println(f"Gene names: {entry.gene_names}")
+println(f"Function: {entry.function}")
+</code></pre>
+<p>Expected output (approximate):</p>
+<pre><code>Name: BRCA1_HUMAN
+Organism: Homo sapiens (Human)
+Length: 1863 aa
+Gene names: ["BRCA1", "RNF53"]
+Function: E3 ubiquitin-protein ligase that...
+</code></pre>
+<p><code>uniprot_entry()</code> returns a record with <code>accession</code>, <code>name</code>, <code>organism</code>, <code>sequence_length</code>, <code>gene_names</code> (a list), and <code>function</code>.</p>
+<h3 id="searching-uniprot"><a class="header" href="#searching-uniprot">Searching UniProt</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Search for human BRCA1 proteins
+let results = uniprot_search("BRCA1 AND organism_name:human", 5)
+println(f"Results: {len(results)}")
+for entry in results {
+    println(f"  {entry.accession}: {entry.name} ({entry.sequence_length} aa)")
+}
+</code></pre>
+<p><code>uniprot_search()</code> takes a query string (using UniProt’s query syntax) and an optional limit (defaults to 10). It returns a list of protein entry records.</p>
+<h3 id="protein-features-and-domains"><a class="header" href="#protein-features-and-domains">Protein Features and Domains</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get structural and functional features of BRCA1
+let features = uniprot_features("P38398")
+println(f"Total features: {len(features)}")
+
+# Find just the domains
+let domains = features |&gt; filter(|f| f.type == "Domain")
+println(f"Domains: {len(domains)}")
+for d in domains {
+    println(f"  {d.description} ({d.location})")
+}
+
+# Find binding sites
+let sites = features |&gt; filter(|f| f.type == "Binding site")
+println(f"Binding sites: {len(sites)}")
+</code></pre>
+<p>Each feature record has <code>type</code>, <code>location</code>, and <code>description</code> fields. Common types include <code>"Domain"</code>, <code>"Region"</code>, <code>"Binding site"</code>, <code>"Modified residue"</code>, <code>"Disulfide bond"</code>, and <code>"Chain"</code>.</p>
+<h3 id="gene-ontology-terms-from-uniprot"><a class="header" href="#gene-ontology-terms-from-uniprot">Gene Ontology Terms from UniProt</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get GO terms associated with BRCA1
+let go_terms = uniprot_go("P38398")
+println(f"GO terms: {len(go_terms)}")
+for t in go_terms |&gt; take(5) {
+    println(f"  {t.id}: {t.term} ({t.aspect})")
+}
+</code></pre>
+<hr>
+<h2 id="kegg--pathways-and-metabolism"><a class="header" href="#kegg--pathways-and-metabolism">KEGG — Pathways and Metabolism</a></h2>
+<p>The Kyoto Encyclopedia of Genes and Genomes links genes to metabolic and signaling pathways. It is especially valuable for understanding how individual genes fit into larger biological systems.</p>
+<h3 id="finding-genes-in-kegg"><a class="header" href="#finding-genes-in-kegg">Finding Genes in KEGG</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Find BRCA1 in the KEGG database
+let results = kegg_find("genes", "BRCA1")
+println(f"KEGG hits: {len(results)}")
+for r in results |&gt; take(5) {
+    println(f"  {r.id}: {r.description}")
+}
+</code></pre>
+<p><code>kegg_find()</code> takes a database name and a query string. The database can be <code>"genes"</code>, <code>"pathway"</code>, <code>"compound"</code>, <code>"disease"</code>, <code>"drug"</code>, and more. It returns a list of records with <code>id</code> and <code>description</code>.</p>
+<h3 id="getting-detailed-entries"><a class="header" href="#getting-detailed-entries">Getting Detailed Entries</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get detailed entry for human BRCA1
+let entry = kegg_get("hsa:672")
+println(f"KEGG entry (first 500 chars):")
+println(entry |&gt; take(500))
+</code></pre>
+<p><code>kegg_get()</code> returns the raw KEGG flat-file text for any KEGG identifier. KEGG IDs use an organism prefix: <code>hsa</code> for Homo sapiens, <code>mmu</code> for Mus musculus, etc.</p>
+<h3 id="linking-to-pathways"><a class="header" href="#linking-to-pathways">Linking to Pathways</a></h3>
+<p>The real power of KEGG is connecting genes to pathways:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Find pathways that BRCA1 participates in
+let links = kegg_link("pathway", "hsa:672")
+println(f"Pathways involving BRCA1: {len(links)}")
+for link in links {
+    println(f"  {link.source} -&gt; {link.target}")
+}
+</code></pre>
+<p><code>kegg_link()</code> takes two arguments: target database and source identifier. It returns a list of records with <code>source</code> and <code>target</code> fields.</p>
+<hr>
+<h2 id="pdb--3d-protein-structures"><a class="header" href="#pdb--3d-protein-structures">PDB — 3D Protein Structures</a></h2>
+<p>The Protein Data Bank (PDB) contains experimentally determined 3D structures of proteins, nucleic acids, and their complexes. If you want to see what a protein actually looks like, this is where you go.</p>
+<h3 id="looking-up-a-structure"><a class="header" href="#looking-up-a-structure">Looking Up a Structure</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get information about BRCA1 BRCT domain structure
+let structure = pdb_entry("1JM7")
+println(f"Title: {structure.title}")
+println(f"Method: {structure.method}")
+println(f"Resolution: {structure.resolution}")
+println(f"Release date: {structure.release_date}")
+println(f"Organism: {structure.organism}")
+</code></pre>
+<p>Expected output (approximate):</p>
+<pre><code>Title: Crystal structure of the BRCT repeat region from...
+Method: X-RAY DIFFRACTION
+Resolution: 2.5
+Release date: 2001-07-06
+Organism: Homo sapiens
+</code></pre>
+<p><code>pdb_entry()</code> returns a record with <code>id</code>, <code>title</code>, <code>method</code>, <code>resolution</code> (may be nil for NMR structures), <code>release_date</code>, and <code>organism</code>.</p>
+<h3 id="searching-for-structures"><a class="header" href="#searching-for-structures">Searching for Structures</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Find all PDB structures related to BRCA1
+let pdb_ids = pdb_search("BRCA1")
+println(f"PDB structures for BRCA1: {len(pdb_ids)}")
+for id in pdb_ids |&gt; take(10) {
+    println(f"  {id}")
+}
+</code></pre>
+<p><code>pdb_search()</code> returns a list of PDB ID strings.</p>
+<h3 id="getting-entity-and-sequence-information"><a class="header" href="#getting-entity-and-sequence-information">Getting Entity and Sequence Information</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get entity details for a specific chain
+let entity = pdb_entity("1JM7", 1)
+println(f"Entity type: {entity.entity_type}")
+println(f"Description: {entity.description}")
+
+# Get the protein sequence from the structure
+let seq = pdb_sequence("1JM7", 1)
+println(f"Sequence: {seq}")
+println(f"Length: {len(seq)} aa")
+</code></pre>
+<hr>
+<h2 id="string--protein-interactions"><a class="header" href="#string--protein-interactions">STRING — Protein Interactions</a></h2>
+<p>STRING (Search Tool for Recurring Instances of Neighbouring Genes) maps known and predicted protein-protein interactions. Understanding which proteins interact is crucial for interpreting experimental results.</p>
+<h3 id="getting-an-interaction-network"><a class="header" href="#getting-an-interaction-network">Getting an Interaction Network</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get interaction partners for BRCA1
+# string_network takes a list of protein identifiers and a species taxonomy ID
+let network = string_network(["BRCA1"], 9606)
+println(f"Interaction partners: {len(network)}")
+
+# Show top interactors by score
+let top = network
+    |&gt; sort_by(|n| n.score)
+    |&gt; reverse()
+    |&gt; take(5)
+
+for partner in top {
+    println(f"  {partner.protein_a} &lt;-&gt; {partner.protein_b}: score={partner.score}")
+}
+</code></pre>
+<p>Note that <code>string_network()</code> takes a <strong>list</strong> of protein identifiers (not a single string) and a species taxonomy ID. Common taxonomy IDs: 9606 (human), 10090 (mouse), 7955 (zebrafish), 6239 (C. elegans), 7227 (D. melanogaster).</p>
+<p>Each interaction record has <code>protein_a</code>, <code>protein_b</code>, and <code>score</code> fields. The score ranges from 0 to 1, where higher scores indicate more confident interactions.</p>
+<h3 id="functional-enrichment"><a class="header" href="#functional-enrichment">Functional Enrichment</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Check if a set of genes is enriched for specific functions
+let enrichment = string_enrichment(["BRCA1", "BRCA2", "RAD51", "TP53", "ATM"], 9606)
+println(f"Enriched terms: {len(enrichment)}")
+for e in enrichment |&gt; take(5) {
+    println(f"  [{e.category}] {e.description}: p={e.p_value}, FDR={e.fdr}")
+}
+</code></pre>
+<p><code>string_enrichment()</code> takes a list of gene symbols and a species taxonomy ID. It returns a list of enrichment records with <code>category</code>, <code>term</code>, <code>description</code>, <code>gene_count</code>, <code>p_value</code>, and <code>fdr</code>.</p>
+<hr>
+<h2 id="gene-ontology-and-reactome"><a class="header" href="#gene-ontology-and-reactome">Gene Ontology and Reactome</a></h2>
+<h3 id="gene-ontology-go"><a class="header" href="#gene-ontology-go">Gene Ontology (GO)</a></h3>
+<p>The Gene Ontology provides a standardized vocabulary for describing gene function across all organisms. Every GO term belongs to one of three namespaces:</p>
+<ul>
+<li><strong>Molecular Function</strong> — what the protein does (e.g., “kinase activity”)</li>
+<li><strong>Biological Process</strong> — what pathway it participates in (e.g., “DNA repair”)</li>
+<li><strong>Cellular Component</strong> — where in the cell it acts (e.g., “nucleus”)</li>
+</ul>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Look up a specific GO term
+let term = go_term("GO:0006281")
+println(f"ID: {term.id}")
+println(f"Name: {term.name}")
+println(f"Aspect: {term.aspect}")
+println(f"Definition: {term.definition}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>ID: GO:0006281
+Name: DNA repair
+Aspect: biological_process
+Definition: The process of restoring DNA after damage...
+</code></pre>
+<h3 id="go-annotations-for-a-gene"><a class="header" href="#go-annotations-for-a-gene">GO Annotations for a Gene</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Get GO annotations for BRCA1 (by UniProt accession)
+let annotations = go_annotations("P38398")
+println(f"GO annotations: {len(annotations)}")
+for a in annotations |&gt; take(5) {
+    println(f"  {a.go_id}: {a.go_name} ({a.aspect})")
+    println(f"    Evidence: {a.evidence}")
+}
+</code></pre>
+<p><code>go_annotations()</code> takes a gene/protein identifier and an optional limit (defaults to 25). Each annotation has <code>go_id</code>, <code>go_name</code>, <code>aspect</code>, <code>evidence</code>, and <code>gene_product_id</code> fields.</p>
+<h3 id="navigating-the-go-hierarchy"><a class="header" href="#navigating-the-go-hierarchy">Navigating the GO Hierarchy</a></h3>
+<p>GO terms form a directed acyclic graph (DAG). You can traverse it:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Find child terms of "DNA repair"
+let children = go_children("GO:0006281")
+println(f"Child terms of DNA repair: {len(children)}")
+for c in children |&gt; take(5) {
+    println(f"  {c.id}: {c.name}")
+}
+
+# Find parent terms
+let parents = go_parents("GO:0006281")
+println(f"Parent terms: {len(parents)}")
+for p in parents {
+    println(f"  {p.id}: {p.name}")
+}
+</code></pre>
+<h3 id="reactome--biological-pathways"><a class="header" href="#reactome--biological-pathways">Reactome — Biological Pathways</a></h3>
+<p>Reactome is a curated database of biological pathways and reactions, maintained by EBI and the Ontario Institute for Cancer Research.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+# Find pathways involving BRCA1
+let pathways = reactome_pathways("BRCA1")
+println(f"Reactome pathways: {len(pathways)}")
+for p in pathways |&gt; take(5) {
+    println(f"  {p.id}: {p.name} ({p.species})")
+}
+</code></pre>
+<p><code>reactome_pathways()</code> takes a gene symbol and an optional species (defaults to <code>"Homo sapiens"</code>). It returns a list of pathway records with <code>id</code>, <code>name</code>, and <code>species</code>.</p>
+<p>You can also search Reactome by keyword:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+let results = reactome_search("DNA damage response")
+println(f"Search results: {len(results)}")
+</code></pre>
+<hr>
+<h2 id="combining-multiple-databases"><a class="header" href="#combining-multiple-databases">Combining Multiple Databases</a></h2>
+<p>The real power of programmatic database access is <strong>cross-referencing</strong>. A single gene symbol unlocks information across every database simultaneously. What would take 30 minutes of browser-tab switching takes 10 lines of code.</p>
+<h3 id="a-complete-gene-profile"><a class="header" href="#a-complete-gene-profile">A Complete Gene Profile</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+# optional: NCBI_API_KEY for higher rate limits
+
+fn gene_profile(symbol) {
+    println(f"\n{'=' * 50}")
+    println(f"  Gene Profile: {symbol}")
+    println(f"{'=' * 50}")
+
+    # NCBI: basic gene info
+    let gene = ncbi_gene(symbol)
+    println(f"\n[NCBI Gene]")
+    println(f"  Description: {gene.description}")
+    println(f"  Chromosome: {gene.chromosome}")
+    println(f"  Location: {gene.location}")
+
+    # Ensembl: genomic coordinates
+    let ens = ensembl_symbol("homo_sapiens", symbol)
+    println(f"\n[Ensembl]")
+    println(f"  ID: {ens.id}")
+    println(f"  Biotype: {ens.biotype}")
+    println(f"  Position: chr{ens.chromosome}:{ens.start}-{ens.end}")
+
+    # Ensembl: protein sequence
+    let protein = ensembl_sequence(ens.id, "protein")
+    println(f"  Protein: {len(protein.seq)} amino acids")
+
+    # UniProt: function
+    let results = uniprot_search(f"{symbol} AND organism_name:human", 1)
+    if len(results) &gt; 0 {
+        let entry = results |&gt; first()
+        println(f"\n[UniProt]")
+        println(f"  Accession: {entry.accession}")
+        println(f"  Name: {entry.name}")
+        println(f"  Function: {entry.function}")
+    }
+
+    # STRING: interactions
+    let network = string_network([symbol], 9606)
+    println(f"\n[STRING]")
+    println(f"  Interaction partners: {len(network)}")
+    let top3 = network
+        |&gt; sort_by(|n| n.score)
+        |&gt; reverse()
+        |&gt; take(3)
+    for partner in top3 {
+        println(f"    {partner.protein_b}: {partner.score}")
+    }
+
+    # PDB: structures
+    let structures = pdb_search(symbol)
+    println(f"\n[PDB]")
+    println(f"  Available structures: {len(structures)}")
+
+    # Reactome: pathways
+    let pathways = reactome_pathways(symbol)
+    println(f"\n[Reactome]")
+    println(f"  Pathways: {len(pathways)}")
+    for p in pathways |&gt; take(3) {
+        println(f"    {p.name}")
+    }
+
+    sleep(1)  # respect rate limits between genes
+}
+</code></pre>
+<h3 id="profiling-multiple-genes"><a class="header" href="#profiling-multiple-genes">Profiling Multiple Genes</a></h3>
+<pre><code class="language-bio"># requires: internet connection
+# optional: NCBI_API_KEY for higher rate limits
+
+# Profile a set of cancer-related genes
+let cancer_genes = ["BRCA1", "TP53", "EGFR"]
+for gene in cancer_genes {
+    gene_profile(gene)
+}
+</code></pre>
+<p>This is the kind of analysis that is impractical to do manually but trivial with API calls. Three genes, six databases each, complete profiles in under a minute.</p>
+<h3 id="building-a-comparison-table"><a class="header" href="#building-a-comparison-table">Building a Comparison Table</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+# optional: NCBI_API_KEY for higher rate limits
+
+# Collect structured data for comparison
+let genes = ["BRCA1", "TP53", "EGFR", "KRAS", "MYC"]
+let rows = []
+for symbol in genes {
+    let gene = ncbi_gene(symbol)
+    let ens = ensembl_symbol("homo_sapiens", symbol)
+    let protein = ensembl_sequence(ens.id, "protein")
+    let network = string_network([symbol], 9606)
+    let pathways = reactome_pathways(symbol)
+
+    rows = push(rows, {
+        gene: symbol,
+        chromosome: gene.chromosome,
+        protein_length: len(protein.seq),
+        interactions: len(network),
+        pathways: len(pathways)
+    })
+
+    sleep(0.5)  # be respectful
+}
+
+let results = rows |&gt; to_table()
+println(results)
+</code></pre>
+<p>Expected output (approximate):</p>
+<pre><code>gene   | chromosome | protein_length | interactions | pathways
+-------|------------|----------------|--------------|--------
+BRCA1  | 17         | 1863           | 10           | 25
+TP53   | 17         | 393            | 10           | 18
+EGFR   | 7          | 1210           | 10           | 30
+KRAS   | 12         | 189            | 10           | 22
+MYC    | 8          | 439            | 10           | 15
+</code></pre>
+<hr>
+<h2 id="rate-limiting-and-best-practices"><a class="header" href="#rate-limiting-and-best-practices">Rate Limiting and Best Practices</a></h2>
+<p>Biological databases are shared public resources. Hammering them with thousands of requests per second will get your IP temporarily blocked — and slow down the service for everyone.</p>
+<h3 id="rate-limits-by-database"><a class="header" href="#rate-limits-by-database">Rate Limits by Database</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Database</th><th>Rate Limit</th><th>With API Key</th></tr>
+</thead>
+<tbody>
+<tr><td>NCBI</td><td>3 requests/second</td><td>10/second with <code>NCBI_API_KEY</code></td></tr>
+<tr><td>Ensembl</td><td>15 requests/second</td><td>—</td></tr>
+<tr><td>UniProt</td><td>Reasonable use (no hard limit)</td><td>—</td></tr>
+<tr><td>KEGG</td><td>10 requests/second</td><td>—</td></tr>
+<tr><td>PDB</td><td>No published limit</td><td>—</td></tr>
+<tr><td>STRING</td><td>1 request/second</td><td>—</td></tr>
+<tr><td>QuickGO</td><td>10 requests/second</td><td>—</td></tr>
+<tr><td>Reactome</td><td>No published limit</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="setting-up-api-keys"><a class="header" href="#setting-up-api-keys">Setting Up API Keys</a></h3>
+<p>NCBI strongly recommends registering for an API key. It is free and takes 30 seconds:</p>
+<ol>
+<li>Go to <a href="https://www.ncbi.nlm.nih.gov/account/settings/">ncbi.nlm.nih.gov/account/settings</a></li>
+<li>Click “Create an API Key”</li>
+<li>Set the environment variable:</li>
+</ol>
+<pre><code class="language-bash">export NCBI_API_KEY="your_key_here"
+</code></pre>
+<p>BioLang automatically detects and uses the <code>NCBI_API_KEY</code> environment variable for all NCBI calls.</p>
+<h3 id="batch-queries-with-rate-limiting"><a class="header" href="#batch-queries-with-rate-limiting">Batch Queries with Rate Limiting</a></h3>
+<p>When querying multiple genes, add delays between requests:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+# optional: NCBI_API_KEY for higher rate limits
+
+let genes = ["BRCA1", "TP53", "EGFR", "KRAS", "MYC",
+             "PIK3CA", "BRAF", "APC", "RB1", "PTEN"]
+
+let results = []
+for gene in genes {
+    let info = ncbi_gene(gene)
+    results = push(results, {gene: gene, chrom: info.chromosome, desc: info.description})
+    sleep(0.5)  # be respectful
+}
+
+let results_table = results |&gt; to_table()
+println(results_table)
+</code></pre>
+<h3 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h3>
+<ol>
+<li>
+<p><strong>Cache results</strong> — if you are going to query the same gene repeatedly during development, save the result to a variable or file instead of calling the API each time.</p>
+</li>
+<li>
+<p><strong>Use <code>sleep()</code> in loops</strong> — add at least 0.3–0.5 seconds between requests when iterating over a list of genes.</p>
+</li>
+<li>
+<p><strong>Handle errors gracefully</strong> — API calls can fail due to network issues, maintenance windows, or invalid identifiers. Use <code>try/catch</code> for production scripts.</p>
+</li>
+<li>
+<p><strong>Start small</strong> — test your query with 2–3 genes before running it on 500.</p>
+</li>
+<li>
+<p><strong>Set <code>NCBI_API_KEY</code></strong> — it is free and triples your rate limit.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+# optional: NCBI_API_KEY for higher rate limits
+
+# Robust batch query with error handling
+let genes = ["BRCA1", "TP53", "INVALID_GENE", "EGFR"]
+let results = []
+let errors = []
+
+for gene in genes {
+    let result = try {
+        let info = ncbi_gene(gene)
+        push(results, {gene: gene, chrom: info.chromosome})
+    } catch e {
+        push(errors, {gene: gene, error: e})
+    }
+    sleep(0.5)
+}
+
+println(f"Successful: {len(results)}")
+println(f"Failed: {len(errors)}")
+for err in errors {
+    println(f"  {err.gene}: {err.error}")
+}
+</code></pre>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li>
+<p><strong>Gene Lookup</strong>: Look up your favorite gene in NCBI using <code>ncbi_gene()</code> and print its chromosome location, description, and summary. Try at least two different genes.</p>
+</li>
+<li>
+<p><strong>Protein Size Estimation</strong>: Use <code>ensembl_symbol()</code> and <code>ensembl_sequence()</code> to get the protein sequence of TP53. Calculate its length and estimate its molecular weight (average amino acid weight is approximately 110 daltons).</p>
+</li>
+<li>
+<p><strong>UniProt Search</strong>: Search UniProt for <code>"insulin AND organism_name:human"</code> and list the accession numbers and names of the results.</p>
+</li>
+<li>
+<p><strong>Interaction Network</strong>: Use <code>string_network()</code> to find interaction partners for MYC (species 9606). Sort by score and print the top 5.</p>
+</li>
+<li>
+<p><strong>Multi-Database Report</strong>: Write a <code>gene_report(symbol)</code> function that queries at least 3 databases (NCBI, Ensembl, and one other) and returns a summary record with fields like <code>chromosome</code>, <code>protein_length</code>, <code>num_interactions</code>, and <code>num_pathways</code>. Test it on EGFR and KRAS.</p>
+</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>
+<p>BioLang has built-in clients for 12+ biological databases — no packages to install, no JSON to parse.</p>
+</li>
+<li>
+<p><strong>NCBI</strong> is the central repository for sequences, genes, and literature. <code>ncbi_gene()</code> is often your starting point.</p>
+</li>
+<li>
+<p><strong>Ensembl</strong> provides gene models, coordinates, and the invaluable Variant Effect Predictor (<code>ensembl_vep()</code>).</p>
+</li>
+<li>
+<p><strong>UniProt</strong> is the authoritative source for protein function, domains, and curated annotations.</p>
+</li>
+<li>
+<p><strong>KEGG</strong> connects genes to metabolic and signaling pathways. Use <code>kegg_link()</code> to find pathway memberships.</p>
+</li>
+<li>
+<p><strong>PDB</strong> gives you 3D protein structures. <strong>STRING</strong> maps protein-protein interaction networks.</p>
+</li>
+<li>
+<p><strong>GO</strong> and <strong>Reactome</strong> provide functional annotations and biological pathway context.</p>
+</li>
+<li>
+<p>Combining databases gives a complete picture no single source provides. A 10-line function can profile a gene across six databases.</p>
+</li>
+<li>
+<p>Respect rate limits: use <code>sleep()</code> in batch queries, set <code>NCBI_API_KEY</code> for NCBI, and cache results when possible.</p>
+</li>
+<li>
+<p>All API functions require internet access. Some need API keys: NCBI (optional, recommended), COSMIC (required).</p>
+</li>
+</ul>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow we move from fetching data to organizing it. <strong>Day 10: Tables — The Bioinformatician’s Workbench</strong> covers selecting, filtering, joining, and reshaping tabular data — the format that most bioinformatics analysis ultimately lives in.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-08.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-10.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-08.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-10.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,1010 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 29: RNA-seq Comparative Study - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-29-capstone--rna-seq-differential-expression-study"><a class="header" href="#day-29-capstone--rna-seq-differential-expression-study">Day 29: Capstone — RNA-seq Differential Expression Study</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Advanced</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Advanced (gene expression, RNA-seq, statistical testing, functional genomics)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Advanced (all prior topics: pipes, tables, statistics, visualization, APIs)</td></tr>
+<tr><td><strong>Time</strong></td><td>~4–5 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–28 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code> (simulated count matrix, sample metadata)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to load and validate an RNA-seq count matrix</li>
+<li>How to assess library quality with summary statistics</li>
+<li>How to normalize raw counts (CPM and TPM)</li>
+<li>How to perform differential expression analysis with fold change and statistical testing</li>
+<li>How to apply multiple testing correction (Benjamini-Hochberg)</li>
+<li>How to visualize results with volcano plots and heatmaps</li>
+<li>How to interpret results via GO enrichment and pathway analysis</li>
+<li>How to generate publication-ready summary tables and figures</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p><em>“We treated cells with a new drug — which genes responded?”</em></p>
+<p>A research team has exposed a human cell line to a candidate anti-cancer compound for 24 hours. They collected RNA from three treated replicates and three untreated controls, sequenced each on an Illumina platform, aligned the reads to the human reference genome, and quantified gene-level counts using a standard pipeline. The output is a count matrix: rows are genes, columns are samples. Your task is to identify which genes are significantly up- or down-regulated by the drug, correct for multiple testing, visualize the results, and connect the hits to biological function.</p>
+<p>This is the workhorse analysis of functional genomics. Every drug study, every perturbation experiment, every disease-versus-healthy comparison begins here.</p>
+<p><img src="images/day29-rnaseq-pipeline.svg" alt="RNA-seq Differential Expression Pipeline"></p>
+<hr>
+<h2 id="section-1-experimental-design-recap"><a class="header" href="#section-1-experimental-design-recap">Section 1: Experimental Design Recap</a></h2>
+<p>Before touching data, let us review the experimental design that makes differential expression possible.</p>
+<h3 id="replication-and-conditions"><a class="header" href="#replication-and-conditions">Replication and Conditions</a></h3>
+<p>In this experiment we have two conditions — <strong>treated</strong> and <strong>control</strong> — with three biological replicates each. Why three? Because a single replicate tells you nothing about variability. Two replicates give you a difference but no standard error. Three is the practical minimum for a t-test. Better-funded studies use five or more.</p>
+<p><img src="images/day29-experimental-design.svg" alt="Experimental Design"></p>
+<h3 id="what-a-count-matrix-contains"><a class="header" href="#what-a-count-matrix-contains">What a Count Matrix Contains</a></h3>
+<p>Each cell holds the number of sequencing reads that mapped to a given gene in a given sample. These are raw counts — not normalized, not transformed. A gene with 5000 counts in one sample and 500 in another might be differentially expressed, or it might just reflect different sequencing depths. That is why normalization is critical.</p>
+<hr>
+<h2 id="section-2-loading-the-data"><a class="header" href="#section-2-loading-the-data">Section 2: Loading the Data</a></h2>
+<p>First, generate the simulated data:</p>
+<pre><code class="language-bash">cd days/day-29
+bl init.bl
+</code></pre>
+<p>This creates a count matrix with 200 genes across 6 samples (3 control, 3 treated), along with sample metadata and gene annotations.</p>
+<p>Now load everything:</p>
+<pre><code class="language-bio">let counts = read_tsv("data/counts.tsv")
+let samples = read_tsv("data/samples.tsv")
+let gene_info = read_tsv("data/gene_info.tsv")
+
+println(f"Genes: {len(counts)}")
+println(f"Samples: {len(samples)}")
+</code></pre>
+<pre><code>Genes: 200
+Samples: 6
+</code></pre>
+<p>The count matrix has columns: <code>gene</code>, <code>ctrl_1</code>, <code>ctrl_2</code>, <code>ctrl_3</code>, <code>treat_1</code>, <code>treat_2</code>, <code>treat_3</code>. Each row is a gene; each value is a non-negative integer count.</p>
+<p>Let us validate the structure:</p>
+<pre><code class="language-bio">fn validate_counts(counts, samples) {
+    if len(counts) == 0 {
+        error("Count matrix is empty")
+    }
+    let sample_ids = samples |&gt; map(|s| s.sample_id)
+    sample_ids |&gt; each(|sid| {
+        let col_names = counts |&gt; keys()
+        if contains(col_names, sid) == false {
+            error(f"Sample {sid} not found in count matrix")
+        }
+    })
+    return { genes: len(counts), samples: len(sample_ids), status: "valid" }
+}
+
+let validation = validate_counts(counts, samples)
+println(f"Validation: {validation.status} ({validation.genes} genes, {validation.samples} samples)")
+</code></pre>
+<pre><code>Validation: valid (200 genes, 6 samples)
+</code></pre>
+<hr>
+<h2 id="section-3-quality-assessment"><a class="header" href="#section-3-quality-assessment">Section 3: Quality Assessment</a></h2>
+<p>Before analysis, we check library sizes and identify problematic genes.</p>
+<h3 id="library-sizes"><a class="header" href="#library-sizes">Library Sizes</a></h3>
+<p>Library size is the total count across all genes for a given sample. Large differences between libraries suggest a technical problem or the need for careful normalization.</p>
+<pre><code class="language-bio">let sample_ids = samples |&gt; map(|s| s.sample_id)
+
+let lib_sizes = sample_ids |&gt; map(|sid| {
+    let total = counts |&gt; map(|row| int(row[sid])) |&gt; sum()
+    { sample: sid, total_counts: total }
+})
+
+lib_sizes |&gt; each(|ls| {
+    println(f"  {ls.sample}: {ls.total_counts} reads")
+})
+</code></pre>
+<pre><code>  ctrl_1: 1245832 reads
+  ctrl_2: 1189456 reads
+  ctrl_3: 1312078 reads
+  treat_1: 1156234 reads
+  treat_2: 1278901 reads
+  treat_3: 1201567 reads
+</code></pre>
+<p>Good — library sizes are within a factor of 1.15 of each other. If one sample had 10x fewer reads, we would investigate or exclude it.</p>
+<h3 id="zero-count-genes"><a class="header" href="#zero-count-genes">Zero-Count Genes</a></h3>
+<p>Genes with zero counts across all samples carry no information. Let us count them:</p>
+<pre><code class="language-bio">let zero_genes = counts |&gt; filter(|row| {
+    let total = sample_ids |&gt; map(|sid| int(row[sid])) |&gt; sum()
+    total == 0
+})
+println(f"Genes with zero counts across all samples: {len(zero_genes)}")
+</code></pre>
+<pre><code>Genes with zero counts across all samples: 5
+</code></pre>
+<h3 id="filtering-low-count-genes"><a class="header" href="#filtering-low-count-genes">Filtering Low-Count Genes</a></h3>
+<p>Standard practice is to remove genes where the total count across all samples is below a threshold. This reduces the multiple testing burden and removes noisy genes.</p>
+<pre><code class="language-bio">let min_total = 10
+
+let filtered = counts |&gt; where(|row| {
+    let total = sample_ids |&gt; map(|sid| int(row[sid])) |&gt; sum()
+    total &gt;= min_total
+})
+
+println(f"Genes before filter: {len(counts)}")
+println(f"Genes after filter (total &gt;= {min_total}): {len(filtered)}")
+</code></pre>
+<pre><code>Genes before filter: 200
+Genes after filter (total &gt;= 10): 180
+</code></pre>
+<hr>
+<h2 id="section-4-normalization"><a class="header" href="#section-4-normalization">Section 4: Normalization</a></h2>
+<p>Raw counts are not directly comparable between samples (different library sizes) or between genes (different gene lengths). Two normalization methods address these issues.</p>
+<h3 id="cpm-counts-per-million"><a class="header" href="#cpm-counts-per-million">CPM: Counts Per Million</a></h3>
+<p>CPM normalizes for library size. Divide each count by the sample’s total count, then multiply by one million. This makes counts comparable <em>across samples</em> for the same gene.</p>
+<pre><code>  CPM NORMALIZATION
+  =================
+
+  Raw:  Gene A has 500 counts in Sample 1 (total 1,000,000 reads)
+        Gene A has 500 counts in Sample 2 (total 2,000,000 reads)
+
+  CPM:  Sample 1: 500 / 1,000,000 × 1,000,000 = 500.0 CPM
+        Sample 2: 500 / 2,000,000 × 1,000,000 = 250.0 CPM
+
+  → Sample 2 actually has HALF the relative expression of Sample 1
+</code></pre>
+<pre><code class="language-bio">fn compute_cpm(counts, sample_ids) {
+    let lib_sizes = sample_ids |&gt; map(|sid| {
+        counts |&gt; map(|row| int(row[sid])) |&gt; sum()
+    })
+
+    counts |&gt; map(|row| {
+        let result = { gene: row.gene }
+        range(0, len(sample_ids)) |&gt; each(|i| {
+            let sid = sample_ids[i]
+            let raw = int(row[sid])
+            let cpm = float(raw) / float(lib_sizes[i]) * 1000000.0
+            result[sid] = round(cpm, 2)
+        })
+        result
+    })
+}
+
+let cpm = compute_cpm(filtered, sample_ids)
+
+let first_gene = cpm[0]
+println(f"CPM for {first_gene.gene}: ctrl_1={first_gene.ctrl_1}, treat_1={first_gene.treat_1}")
+</code></pre>
+<h3 id="tpm-transcripts-per-million"><a class="header" href="#tpm-transcripts-per-million">TPM: Transcripts Per Million</a></h3>
+<p>TPM normalizes for both gene length and library size. First divide by gene length (in kilobases), then scale so each sample sums to one million. This makes counts comparable <em>across genes</em> within a sample.</p>
+<pre><code>  TPM NORMALIZATION (two-step)
+  ============================
+
+  Step 1: Rate = count / gene_length_kb
+          Gene A (2 kb): 1000 / 2 = 500
+          Gene B (4 kb): 1000 / 4 = 250
+
+  Step 2: TPM = rate / sum(all rates) × 1,000,000
+          Sum of rates = 500 + 250 = 750
+          Gene A TPM = 500 / 750 × 1,000,000 = 666,667
+          Gene B TPM = 250 / 750 × 1,000,000 = 333,333
+
+  → Gene B is LESS expressed per unit length, despite equal raw counts
+</code></pre>
+<pre><code class="language-bio">fn compute_tpm(counts, sample_ids, gene_info) {
+    let length_map = {}
+    gene_info |&gt; each(|g| {
+        length_map[g.gene] = float(g.length)
+    })
+
+    let rates = counts |&gt; map(|row| {
+        let gene_len_kb = try { length_map[row.gene] / 1000.0 } catch err { 1.0 }
+        let result = { gene: row.gene }
+        sample_ids |&gt; each(|sid| {
+            result[sid] = float(int(row[sid])) / gene_len_kb
+        })
+        result
+    })
+
+    let rate_sums = sample_ids |&gt; map(|sid| {
+        rates |&gt; map(|row| row[sid]) |&gt; sum()
+    })
+
+    rates |&gt; map(|row| {
+        let result = { gene: row.gene }
+        range(0, len(sample_ids)) |&gt; each(|i| {
+            let sid = sample_ids[i]
+            result[sid] = round(row[sid] / rate_sums[i] * 1000000.0, 2)
+        })
+        result
+    })
+}
+
+let tpm = compute_tpm(filtered, sample_ids, gene_info)
+</code></pre>
+<h3 id="which-normalization-when"><a class="header" href="#which-normalization-when">Which Normalization When?</a></h3>
+<ul>
+<li><strong>CPM</strong>: Use for differential expression between conditions (same gene, different samples). This is what we will use for DE testing.</li>
+<li><strong>TPM</strong>: Use when comparing expression levels between genes within a sample (e.g., “is gene A more highly expressed than gene B?”).</li>
+</ul>
+<p>For our differential expression analysis, we use CPM-normalized values to compare treated versus control for each gene.</p>
+<hr>
+<h2 id="section-5-differential-expression-analysis"><a class="header" href="#section-5-differential-expression-analysis">Section 5: Differential Expression Analysis</a></h2>
+<p>The core question: for each gene, is the expression level different between treated and control? We need two things: an <em>effect size</em> (how much did expression change?) and a <em>p-value</em> (is the change larger than expected by chance?).</p>
+<h3 id="log2-fold-change"><a class="header" href="#log2-fold-change">Log2 Fold Change</a></h3>
+<p>Fold change is the ratio of treated mean to control mean. We use the log2 transform because it makes up- and down-regulation symmetric: a gene with 2x higher expression has log2FC = 1; a gene with 2x lower expression has log2FC = -1.</p>
+<pre><code>  LOG2 FOLD CHANGE
+  =================
+
+  Gene A: control mean = 100, treated mean = 400
+          FC = 400 / 100 = 4.0
+          log2FC = log2(4.0) = 2.0  (4x up-regulated)
+
+  Gene B: control mean = 800, treated mean = 200
+          FC = 200 / 800 = 0.25
+          log2FC = log2(0.25) = -2.0  (4x down-regulated)
+
+  Gene C: control mean = 300, treated mean = 310
+          FC = 310 / 300 = 1.033
+          log2FC = log2(1.033) = 0.047  (no meaningful change)
+</code></pre>
+<h3 id="statistical-testing"><a class="header" href="#statistical-testing">Statistical Testing</a></h3>
+<p>A large fold change alone is not enough. If the replicates are noisy, even a 4x change might not be significant. We use a t-test to evaluate whether the difference between conditions is statistically significant given the observed variability.</p>
+<pre><code class="language-bio">let ctrl_ids = samples |&gt; filter(|s| s.condition == "control") |&gt; map(|s| s.sample_id)
+let treat_ids = samples |&gt; filter(|s| s.condition == "treated") |&gt; map(|s| s.sample_id)
+
+fn differential_expression(cpm, ctrl_ids, treat_ids) {
+    cpm |&gt; map(|row| {
+        let ctrl_vals = ctrl_ids |&gt; map(|sid| row[sid])
+        let treat_vals = treat_ids |&gt; map(|sid| row[sid])
+
+        let ctrl_mean = mean(ctrl_vals)
+        let treat_mean = mean(treat_vals)
+
+        let pseudocount = 0.01
+        let log2fc = log2((treat_mean + pseudocount) / (ctrl_mean + pseudocount))
+
+        let pval = try { t_test(ctrl_vals, treat_vals) } catch err { 1.0 }
+
+        {
+            gene: row.gene,
+            ctrl_mean: round(ctrl_mean, 2),
+            treat_mean: round(treat_mean, 2),
+            log2fc: round(log2fc, 4),
+            pvalue: pval,
+            direction: if log2fc &gt; 0 { "up" } else { "down" }
+        }
+    })
+}
+
+let de_results = differential_expression(cpm, ctrl_ids, treat_ids)
+</code></pre>
+<p>We add a small pseudocount (0.01) to avoid division by zero when a gene has zero expression in one condition.</p>
+<hr>
+<h2 id="section-6-multiple-testing-correction"><a class="header" href="#section-6-multiple-testing-correction">Section 6: Multiple Testing Correction</a></h2>
+<h3 id="the-multiple-testing-problem"><a class="header" href="#the-multiple-testing-problem">The Multiple Testing Problem</a></h3>
+<p>If you test 20,000 genes at p &lt; 0.05, you expect 1,000 false positives by chance alone — 5% of 20,000. This is unacceptable. We need to correct for the number of tests performed.</p>
+<pre><code>  THE MULTIPLE TESTING PROBLEM
+  ============================
+
+  Test 1 gene at p &lt; 0.05:    5% chance of false positive       OK
+  Test 100 genes at p &lt; 0.05: expect ~5 false positives         Risky
+  Test 10,000 at p &lt; 0.05:    expect ~500 false positives       Useless
+
+  Solution: control the FALSE DISCOVERY RATE (FDR)
+  Instead of p &lt; 0.05, require adjusted p (q-value) &lt; 0.05
+  This means: among ALL genes you call significant,
+  at most 5% are expected to be false positives.
+</code></pre>
+<h3 id="benjamini-hochberg-procedure"><a class="header" href="#benjamini-hochberg-procedure">Benjamini-Hochberg Procedure</a></h3>
+<p>The Benjamini-Hochberg (BH) procedure is the standard method for FDR control in genomics. It works by ranking p-values and adjusting each one based on its rank:</p>
+<ol>
+<li>Sort all p-values from smallest to largest</li>
+<li>For rank <em>i</em> out of <em>m</em> total tests: adjusted p = p-value * m / i</li>
+<li>Enforce monotonicity (each adjusted p &gt;= the one before it)</li>
+</ol>
+<pre><code class="language-bio">fn benjamini_hochberg(de_results) {
+    let sorted = de_results |&gt; sort_by(|a, b| {
+        if a.pvalue &lt; b.pvalue { -1 }
+        else if a.pvalue &gt; b.pvalue { 1 }
+        else { 0 }
+    })
+
+    let m = len(sorted)
+
+    let padj_values = range(0, m) |&gt; map(|i| {
+        let rank = i + 1
+        let raw_adj = sorted[i].pvalue * float(m) / float(rank)
+        if raw_adj &gt; 1.0 { 1.0 } else { raw_adj }
+    })
+
+    let monotonic = range(0, m) |&gt; map(|_| 1.0)
+    let running_min = 1.0
+
+    range(0, m) |&gt; each(|j| {
+        let i = m - 1 - j
+        if padj_values[i] &lt; running_min {
+            running_min = padj_values[i]
+        }
+        monotonic[i] = running_min
+    })
+
+    range(0, m) |&gt; map(|i| {
+        let row = sorted[i]
+        {
+            gene: row.gene,
+            ctrl_mean: row.ctrl_mean,
+            treat_mean: row.treat_mean,
+            log2fc: row.log2fc,
+            pvalue: row.pvalue,
+            padj: round(monotonic[i], 6),
+            direction: row.direction
+        }
+    })
+}
+
+let corrected = benjamini_hochberg(de_results)
+</code></pre>
+<h3 id="identifying-significant-genes"><a class="header" href="#identifying-significant-genes">Identifying Significant Genes</a></h3>
+<p>A gene is called “differentially expressed” if it passes two thresholds:</p>
+<ul>
+<li><strong>Statistical significance</strong>: adjusted p-value (FDR) &lt; 0.05</li>
+<li><strong>Biological significance</strong>: absolute log2 fold change &gt; 1 (at least 2-fold change)</li>
+</ul>
+<pre><code class="language-bio">let fc_threshold = 1.0
+let fdr_threshold = 0.05
+
+let significant = corrected |&gt; filter(|row| {
+    abs(row.log2fc) &gt; fc_threshold and row.padj &lt; fdr_threshold
+})
+
+let up_genes = significant |&gt; filter(|row| row.direction == "up")
+let down_genes = significant |&gt; filter(|row| row.direction == "down")
+
+println(f"Total genes tested: {len(corrected)}")
+println(f"Significant DE genes (|log2FC| &gt; {fc_threshold}, FDR &lt; {fdr_threshold}): {len(significant)}")
+println(f"  Up-regulated: {len(up_genes)}")
+println(f"  Down-regulated: {len(down_genes)}")
+</code></pre>
+<pre><code>Total genes tested: 180
+Significant DE genes (|log2FC| &gt; 1.0, FDR &lt; 0.05): 45
+  Up-regulated: 25
+  Down-regulated: 20
+</code></pre>
+<hr>
+<h2 id="section-7-volcano-plot"><a class="header" href="#section-7-volcano-plot">Section 7: Volcano Plot</a></h2>
+<p>The volcano plot is the signature visualization of differential expression. It plots statistical significance (-log10 p-value) on the y-axis against effect size (log2 fold change) on the x-axis. Significant genes appear in the upper corners.</p>
+<p><img src="images/day29-volcano-anatomy.svg" alt="Anatomy of a Volcano Plot"></p>
+<pre><code class="language-bio">let volcano_data = corrected |&gt; map(|row| {
+    let neg_log10_p = if row.padj &gt; 0.0 { -1.0 * log10(row.padj) } else { 10.0 }
+    {
+        gene: row.gene,
+        log2fc: row.log2fc,
+        neg_log10_padj: round(neg_log10_p, 4),
+        significant: abs(row.log2fc) &gt; fc_threshold and row.padj &lt; fdr_threshold
+    }
+})
+
+let volcano_svg = volcano(
+    volcano_data |&gt; map(|r| r.log2fc),
+    volcano_data |&gt; map(|r| r.neg_log10_padj),
+    "Drug Treatment: Volcano Plot",
+    "log2 Fold Change",
+    "-log10(adjusted p-value)"
+)
+
+write_lines([volcano_svg], "data/output/volcano.svg")
+println("Wrote volcano plot to data/output/volcano.svg")
+</code></pre>
+<hr>
+<h2 id="section-8-heatmap-of-top-genes"><a class="header" href="#section-8-heatmap-of-top-genes">Section 8: Heatmap of Top Genes</a></h2>
+<p>A heatmap of the top differentially expressed genes shows expression patterns across all samples. We select the most significant genes and display their CPM values.</p>
+<pre><code class="language-bio">let top_n = 20
+
+let top_genes = significant |&gt; sort_by(|a, b| {
+    if a.padj &lt; b.padj { -1 }
+    else if a.padj &gt; b.padj { 1 }
+    else { 0 }
+})
+let top_genes = if len(top_genes) &gt; top_n {
+    range(0, top_n) |&gt; map(|i| top_genes[i])
+} else {
+    top_genes
+}
+
+let top_gene_names = top_genes |&gt; map(|g| g.gene)
+
+let heatmap_data = cpm |&gt; filter(|row| {
+    top_gene_names |&gt; filter(|g| g == row.gene) |&gt; len() &gt; 0
+})
+
+let heatmap_matrix = heatmap_data |&gt; map(|row| {
+    sample_ids |&gt; map(|sid| row[sid])
+})
+
+let heatmap_labels = heatmap_data |&gt; map(|row| row.gene)
+
+let hm_svg = heatmap(
+    heatmap_matrix,
+    "Top DE Genes: Expression Heatmap",
+    heatmap_labels,
+    sample_ids
+)
+
+write_lines([hm_svg], "data/output/heatmap.svg")
+println("Wrote heatmap to data/output/heatmap.svg")
+</code></pre>
+<hr>
+<h2 id="section-9-go-enrichment"><a class="header" href="#section-9-go-enrichment">Section 9: GO Enrichment</a></h2>
+<!-- requires: internet, API access -->
+<p>Gene Ontology (GO) enrichment asks: among our significant genes, are certain biological processes, molecular functions, or cellular components over-represented compared to what you would expect by chance?</p>
+<p>The idea is simple: if 10% of all genes are involved in “apoptosis” but 40% of your DE genes are, then apoptosis is enriched — the drug likely affects cell death pathways.</p>
+<h3 id="simple-enrichment-calculation"><a class="header" href="#simple-enrichment-calculation">Simple Enrichment Calculation</a></h3>
+<p>We compute enrichment using a straightforward approach: for each GO term, compare the fraction of DE genes annotated with that term to the fraction in the background (all tested genes).</p>
+<pre><code class="language-bio">fn compute_enrichment(significant_genes, all_genes, gene_info) {
+    let sig_names = significant_genes |&gt; map(|g| g.gene)
+    let all_names = all_genes |&gt; map(|g| g.gene)
+    let n_sig = len(sig_names)
+    let n_all = len(all_names)
+
+    let go_map = {}
+    gene_info |&gt; each(|g| {
+        if g.go_terms != "" {
+            let terms = split(g.go_terms, "|")
+            terms |&gt; each(|term| {
+                let trimmed = trim(term)
+                if go_map[trimmed] == nil {
+                    go_map[trimmed] = { sig: 0, total: 0, term: trimmed }
+                }
+                if sig_names |&gt; filter(|s| s == g.gene) |&gt; len() &gt; 0 {
+                    go_map[trimmed].sig = go_map[trimmed].sig + 1
+                }
+                if all_names |&gt; filter(|s| s == g.gene) |&gt; len() &gt; 0 {
+                    go_map[trimmed].total = go_map[trimmed].total + 1
+                }
+            })
+        }
+    })
+
+    let terms = values(go_map)
+    terms |&gt; filter(|t| t.sig &gt; 0 and t.total &gt;= 3) |&gt; map(|t| {
+        let expected = float(t.total) / float(n_all) * float(n_sig)
+        let enrichment = if expected &gt; 0.0 { float(t.sig) / expected } else { 0.0 }
+        {
+            go_term: t.term,
+            de_genes: t.sig,
+            background: t.total,
+            expected: round(expected, 2),
+            fold_enrichment: round(enrichment, 2)
+        }
+    }) |&gt; sort_by(|a, b| {
+        if a.fold_enrichment &gt; b.fold_enrichment { -1 }
+        else if a.fold_enrichment &lt; b.fold_enrichment { 1 }
+        else { 0 }
+    })
+}
+
+let enrichment = compute_enrichment(significant, corrected, gene_info)
+
+println("Top enriched GO terms:")
+let top_terms = if len(enrichment) &gt; 10 {
+    range(0, 10) |&gt; map(|i| enrichment[i])
+} else {
+    enrichment
+}
+top_terms |&gt; each(|t| {
+    println(f"  {t.go_term}: {t.de_genes}/{t.background} genes, {t.fold_enrichment}x enriched")
+})
+</code></pre>
+<h3 id="api-based-go-lookup"><a class="header" href="#api-based-go-lookup">API-Based GO Lookup</a></h3>
+<!-- requires: internet, API access -->
+<p>For real analyses, you can fetch official GO term descriptions:</p>
+<pre><code class="language-bio">let top_go_ids = top_terms |&gt; map(|t| t.go_term)
+let go_details = top_go_ids |&gt; map(|term_id| {
+    try {
+        let info = go_term(term_id)
+        { id: term_id, name: info.name, aspect: info.aspect }
+    } catch err {
+        { id: term_id, name: "unknown", aspect: "unknown" }
+    }
+})
+</code></pre>
+<hr>
+<h2 id="section-10-pathway-analysis"><a class="header" href="#section-10-pathway-analysis">Section 10: Pathway Analysis</a></h2>
+<!-- requires: internet, API access -->
+<p>While GO enrichment looks at individual functional terms, pathway analysis asks which coordinated biological pathways are affected. We use the Reactome database.</p>
+<pre><code class="language-bio">fn pathway_enrichment(significant_genes) {
+    let gene_names = significant_genes |&gt; map(|g| g.gene)
+    let pathway_counts = {}
+
+    gene_names |&gt; each(|gene| {
+        try {
+            let pathways = reactome_pathways(gene)
+            pathways |&gt; each(|p| {
+                let pid = p.id
+                if pathway_counts[pid] == nil {
+                    pathway_counts[pid] = { id: pid, name: p.name, count: 0, genes: [] }
+                }
+                pathway_counts[pid].count = pathway_counts[pid].count + 1
+                pathway_counts[pid].genes = pathway_counts[pid].genes + [gene]
+            })
+        } catch err {
+        }
+    })
+
+    values(pathway_counts) |&gt; filter(|p| p.count &gt;= 2) |&gt; sort_by(|a, b| {
+        if a.count &gt; b.count { -1 }
+        else if a.count &lt; b.count { 1 }
+        else { 0 }
+    })
+}
+
+let pathways = pathway_enrichment(significant)
+
+println("Top enriched pathways:")
+let top_pathways = if len(pathways) &gt; 5 {
+    range(0, 5) |&gt; map(|i| pathways[i])
+} else {
+    pathways
+}
+top_pathways |&gt; each(|p| {
+    let gene_list = join(p.genes, ", ")
+    println(f"  {p.name}: {p.count} genes ({gene_list})")
+})
+</code></pre>
+<hr>
+<h2 id="section-11-publication-ready-summary"><a class="header" href="#section-11-publication-ready-summary">Section 11: Publication-Ready Summary</a></h2>
+<p>Now we assemble the final outputs: a sorted DE gene table, summary statistics, and all figures.</p>
+<pre><code class="language-bio">let de_table = significant |&gt; sort_by(|a, b| {
+    if a.padj &lt; b.padj { -1 }
+    else if a.padj &gt; b.padj { 1 }
+    else { 0 }
+}) |&gt; to_table()
+
+write_tsv(de_table, "data/output/de_genes.tsv")
+
+let fc_values = significant |&gt; map(|g| abs(g.log2fc))
+let summary_lines = [
+    "=== RNA-seq Differential Expression Summary ===",
+    "",
+    f"Total genes in count matrix: {len(counts)}",
+    f"Genes after low-count filter: {len(filtered)}",
+    f"Significant DE genes (|log2FC| &gt; {fc_threshold}, FDR &lt; {fdr_threshold}): {len(significant)}",
+    f"  Up-regulated: {len(up_genes)}",
+    f"  Down-regulated: {len(down_genes)}",
+    "",
+    f"Mean |log2FC| of DE genes: {round(mean(fc_values), 2)}",
+    f"Median |log2FC| of DE genes: {round(median(fc_values), 2)}",
+    f"Max |log2FC|: {round(max(fc_values), 2)}",
+    "",
+    "Output files:",
+    "  data/output/de_genes.tsv       - Significant DE gene table",
+    "  data/output/volcano.svg        - Volcano plot",
+    "  data/output/heatmap.svg        - Top gene heatmap",
+    "  data/output/summary.txt        - This summary",
+    "",
+    "=== End of Summary ==="
+]
+
+write_lines(summary_lines, "data/output/summary.txt")
+
+summary_lines |&gt; each(|line| println(line))
+</code></pre>
+<hr>
+<h2 id="section-12-complete-pipeline"><a class="header" href="#section-12-complete-pipeline">Section 12: Complete Pipeline</a></h2>
+<p>Here is the entire analysis as a single clean script. This is the version in <code>days/day-29/scripts/analysis.bl</code>:</p>
+<pre><code class="language-bio">let counts = read_tsv("data/counts.tsv")
+let samples = read_tsv("data/samples.tsv")
+let gene_info = read_tsv("data/gene_info.tsv")
+
+let sample_ids = samples |&gt; map(|s| s.sample_id)
+let ctrl_ids = samples |&gt; filter(|s| s.condition == "control") |&gt; map(|s| s.sample_id)
+let treat_ids = samples |&gt; filter(|s| s.condition == "treated") |&gt; map(|s| s.sample_id)
+
+let min_total = 10
+let filtered = counts |&gt; where(|row| {
+    let total = sample_ids |&gt; map(|sid| int(row[sid])) |&gt; sum()
+    total &gt;= min_total
+})
+
+let lib_sizes = sample_ids |&gt; map(|sid| {
+    counts |&gt; map(|row| int(row[sid])) |&gt; sum()
+})
+
+let cpm = filtered |&gt; map(|row| {
+    let result = { gene: row.gene }
+    range(0, len(sample_ids)) |&gt; each(|i| {
+        let sid = sample_ids[i]
+        result[sid] = round(float(int(row[sid])) / float(lib_sizes[i]) * 1000000.0, 2)
+    })
+    result
+})
+
+let de_results = cpm |&gt; map(|row| {
+    let ctrl_vals = ctrl_ids |&gt; map(|sid| row[sid])
+    let treat_vals = treat_ids |&gt; map(|sid| row[sid])
+    let ctrl_mean = mean(ctrl_vals)
+    let treat_mean = mean(treat_vals)
+    let pseudocount = 0.01
+    let log2fc = log2((treat_mean + pseudocount) / (ctrl_mean + pseudocount))
+    let pval = try { t_test(ctrl_vals, treat_vals) } catch err { 1.0 }
+    {
+        gene: row.gene,
+        ctrl_mean: round(ctrl_mean, 2),
+        treat_mean: round(treat_mean, 2),
+        log2fc: round(log2fc, 4),
+        pvalue: pval,
+        direction: if log2fc &gt; 0 { "up" } else { "down" }
+    }
+})
+
+let sorted_de = de_results |&gt; sort_by(|a, b| {
+    if a.pvalue &lt; b.pvalue { -1 }
+    else if a.pvalue &gt; b.pvalue { 1 }
+    else { 0 }
+})
+
+let m = len(sorted_de)
+let padj_raw = range(0, m) |&gt; map(|i| {
+    let adj = sorted_de[i].pvalue * float(m) / float(i + 1)
+    if adj &gt; 1.0 { 1.0 } else { adj }
+})
+
+let padj = range(0, m) |&gt; map(|_| 1.0)
+let running_min = 1.0
+range(0, m) |&gt; each(|j| {
+    let i = m - 1 - j
+    if padj_raw[i] &lt; running_min {
+        running_min = padj_raw[i]
+    }
+    padj[i] = running_min
+})
+
+let corrected = range(0, m) |&gt; map(|i| {
+    let row = sorted_de[i]
+    {
+        gene: row.gene,
+        ctrl_mean: row.ctrl_mean,
+        treat_mean: row.treat_mean,
+        log2fc: row.log2fc,
+        pvalue: row.pvalue,
+        padj: round(padj[i], 6),
+        direction: row.direction
+    }
+})
+
+let fc_threshold = 1.0
+let fdr_threshold = 0.05
+
+let significant = corrected |&gt; filter(|row| {
+    abs(row.log2fc) &gt; fc_threshold and row.padj &lt; fdr_threshold
+})
+
+let up_genes = significant |&gt; filter(|row| row.direction == "up")
+let down_genes = significant |&gt; filter(|row| row.direction == "down")
+
+let volcano_data = corrected |&gt; map(|row| {
+    let neg_log10_p = if row.padj &gt; 0.0 { -1.0 * log10(row.padj) } else { 10.0 }
+    { log2fc: row.log2fc, neg_log10_padj: round(neg_log10_p, 4) }
+})
+
+let volcano_svg = volcano(
+    volcano_data |&gt; map(|r| r.log2fc),
+    volcano_data |&gt; map(|r| r.neg_log10_padj),
+    "Drug Treatment: Volcano Plot",
+    "log2 Fold Change",
+    "-log10(adjusted p-value)"
+)
+write_lines([volcano_svg], "data/output/volcano.svg")
+
+let top_n = 20
+let top_genes = significant |&gt; sort_by(|a, b| {
+    if a.padj &lt; b.padj { -1 } else if a.padj &gt; b.padj { 1 } else { 0 }
+})
+let top_genes = if len(top_genes) &gt; top_n {
+    range(0, top_n) |&gt; map(|i| top_genes[i])
+} else {
+    top_genes
+}
+let top_gene_names = top_genes |&gt; map(|g| g.gene)
+
+let heatmap_data = cpm |&gt; filter(|row| {
+    top_gene_names |&gt; filter(|g| g == row.gene) |&gt; len() &gt; 0
+})
+let heatmap_matrix = heatmap_data |&gt; map(|row| {
+    sample_ids |&gt; map(|sid| row[sid])
+})
+let hm_svg = heatmap(
+    heatmap_matrix,
+    "Top DE Genes: Expression Heatmap",
+    heatmap_data |&gt; map(|row| row.gene),
+    sample_ids
+)
+write_lines([hm_svg], "data/output/heatmap.svg")
+
+let de_table = significant |&gt; to_table()
+write_tsv(de_table, "data/output/de_genes.tsv")
+
+let fc_values = significant |&gt; map(|g| abs(g.log2fc))
+let summary_lines = [
+    "=== RNA-seq Differential Expression Summary ===",
+    "",
+    f"Total genes in count matrix: {len(counts)}",
+    f"Genes after low-count filter: {len(filtered)}",
+    f"Significant DE genes (|log2FC| &gt; {fc_threshold}, FDR &lt; {fdr_threshold}): {len(significant)}",
+    f"  Up-regulated: {len(up_genes)}",
+    f"  Down-regulated: {len(down_genes)}",
+    "",
+    f"Mean |log2FC| of DE genes: {round(mean(fc_values), 2)}",
+    f"Median |log2FC| of DE genes: {round(median(fc_values), 2)}",
+    f"Max |log2FC|: {round(max(fc_values), 2)}",
+    "",
+    "Output files:",
+    "  data/output/de_genes.tsv       - Significant DE gene table",
+    "  data/output/volcano.svg        - Volcano plot",
+    "  data/output/heatmap.svg        - Top gene heatmap",
+    "  data/output/summary.txt        - This summary"
+]
+write_lines(summary_lines, "data/output/summary.txt")
+</code></pre>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-ma-plot"><a class="header" href="#exercise-1-ma-plot">Exercise 1: MA Plot</a></h3>
+<p>An MA plot shows average expression (A = mean of log2 CPM across conditions) on the x-axis and log2 fold change (M) on the y-axis. Significant genes are highlighted. Write a function that computes A and M for each gene and generates a scatter plot. Hint: A = (log2(ctrl_mean + 1) + log2(treat_mean + 1)) / 2.</p>
+<h3 id="exercise-2-stricter-thresholds"><a class="header" href="#exercise-2-stricter-thresholds">Exercise 2: Stricter Thresholds</a></h3>
+<p>Re-run the analysis with stricter cutoffs: FDR &lt; 0.01 and |log2FC| &gt; 2. How many genes survive? Does the biological interpretation change? Write code that compares the gene lists at different thresholds and reports the overlap.</p>
+<h3 id="exercise-3-sample-correlation"><a class="header" href="#exercise-3-sample-correlation">Exercise 3: Sample Correlation</a></h3>
+<p>Compute the Pearson correlation between every pair of samples using CPM values. Samples within the same condition should correlate more highly than samples across conditions. Use <code>cor()</code> and display the 6x6 correlation matrix as a heatmap.</p>
+<h3 id="exercise-4-batch-effect-simulation"><a class="header" href="#exercise-4-batch-effect-simulation">Exercise 4: Batch Effect Simulation</a></h3>
+<p>Modify <code>init.bl</code> to add a batch effect: samples 1 and 4 are from batch A, samples 2 and 5 from batch B, and samples 3 and 6 from batch C. Add a systematic shift of 20% to all genes in batch B. Then compare your DE results with and without the batch effect. How many false positives appear?</p>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>Normalization is mandatory.</strong> Raw counts are not comparable across samples or genes. CPM corrects for library size; TPM corrects for both library size and gene length.</p>
+</li>
+<li>
+<p><strong>Multiple testing correction is non-negotiable.</strong> Without it, a standard p &lt; 0.05 threshold produces hundreds of false positives. The Benjamini-Hochberg procedure controls the false discovery rate.</p>
+</li>
+<li>
+<p><strong>Effect size and significance together.</strong> A gene with a tiny fold change can be statistically significant if replicates are very consistent. A gene with a huge fold change might not be significant if replicates are noisy. The volcano plot shows both dimensions.</p>
+</li>
+<li>
+<p><strong>Replicates determine power.</strong> Three replicates per condition is the minimum. More replicates detect subtler expression changes. No statistical method can compensate for unreplicated experiments.</p>
+</li>
+<li>
+<p><strong>Biological interpretation completes the analysis.</strong> A list of DE genes is just the starting point. GO enrichment and pathway analysis connect individual genes to biological processes, revealing the <em>mechanism</em> behind the drug’s effect.</p>
+</li>
+</ol>
+<hr>
+<p><em>Next: <a href="day-30.html">Day 30 — Capstone: Multi-Omics Integration</a></em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-28.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-30.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-28.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-30.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

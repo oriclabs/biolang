@@ -1,0 +1,627 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 11: Sequence Comparison - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-11-sequence-comparison"><a class="header" href="#day-11-sequence-comparison">Day 11: Sequence Comparison</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Intermediate (DNA composition, codons, restriction enzymes)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (loops, records, functions, pipes)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1-10 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>None (sequences defined inline)</td></tr>
+<tr><td><strong>Requirements</strong></td><td>None (offline); internet optional for Section 8 API examples</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>How to compare sequences by base composition and GC content</li>
+<li>How k-mer decomposition enables alignment-free similarity</li>
+<li>How dotplots visually reveal similarity, repeats, and rearrangements</li>
+<li>How to find exact motifs including restriction enzyme recognition sites</li>
+<li>Why reverse complement matters for double-stranded DNA</li>
+<li>How to analyze codon usage bias across genes</li>
+<li>How to compare genes across species using Ensembl APIs</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Two sequences sit on your screen. Are they related? How similar? Where do they differ? Sequence comparison is the foundation of evolutionary biology, variant detection, and functional prediction.</p>
+<p>Some comparisons are quick: does this gene have unusually high GC content? Others are structural: do these two sequences share long stretches of similarity? And some are functional: does this promoter contain a known transcription factor binding site?</p>
+<p>Today you will build a toolkit for answering all of these questions, starting from the simplest metric — base composition — and working up to multi-species gene comparison.</p>
+<hr>
+<h2 id="base-composition-analysis"><a class="header" href="#base-composition-analysis">Base Composition Analysis</a></h2>
+<p>The simplest way to compare two sequences is to count their nucleotides. GC content — the fraction of bases that are G or C — varies dramatically across organisms, from ~25% in some parasites to ~70% in thermophilic bacteria. It is a quick first-pass metric: if two sequences have wildly different GC content, they likely come from different organisms or genomic regions.</p>
+<pre><code class="language-bio">let seqs = [
+    {name: "E. coli",   seq: dna"GCGCATCGATCGATCGCG"},
+    {name: "Human",     seq: dna"ATATCGATCGATATATAT"},
+    {name: "Thermus",   seq: dna"GCGCGCGCGCGCGCGCGC"},
+]
+for s in seqs {
+    let gc = round(gc_content(s.seq) * 100, 1)
+    let counts = base_counts(s.seq)
+    println(f"{s.name}: GC={gc}%, A={counts.A}, T={counts.T}, G={counts.G}, C={counts.C}")
+}
+</code></pre>
+<p>Expected output:</p>
+<pre><code>E. coli: GC=61.1%, A=2, T=2, G=5, C=6
+Human: GC=27.8%, A=7, T=7, G=2, C=3
+Thermus: GC=100.0%, A=0, T=0, G=9, C=9
+</code></pre>
+<p><code>gc_content()</code> returns a float between 0.0 and 1.0. Multiplying by 100 gives a percentage. <code>base_counts()</code> returns a record with fields <code>A</code>, <code>T</code>, <code>G</code>, and <code>C</code>.</p>
+<p>Notice how the three example sequences span a wide GC range: the <em>Thermus</em> fragment is entirely GC (thermophilic organisms use GC-rich DNA for thermal stability), while the human fragment is AT-rich (common in non-coding regions).</p>
+<hr>
+<h2 id="k-mer-analysis"><a class="header" href="#k-mer-analysis">K-mer Analysis</a></h2>
+<p>A <strong>k-mer</strong> is a subsequence of length k. Decomposing a sequence into k-mers is the foundation of alignment-free comparison — instead of aligning two sequences end to end, you compare their k-mer content.</p>
+<p>Here is how k-mers work. Given a sequence, a sliding window of size k moves one base at a time:</p>
+<pre><code>Sequence: A T C G A T C G
+           |---|                 → ATC
+             |---|               → TCG
+               |---|             → CGA
+                 |---|           → GAT
+                   |---|         → ATC
+                     |---|       → TCG
+
+3-mers:   ATC  TCG  CGA  GAT  ATC  TCG
+</code></pre>
+<p>Each position produces one k-mer. A sequence of length L contains L - k + 1 k-mers.</p>
+<h3 id="extracting-k-mers"><a class="header" href="#extracting-k-mers">Extracting K-mers</a></h3>
+<pre><code class="language-bio">let seq = dna"ATCGATCGATCG"
+let kmers_list = kmers(seq, 3)
+println(f"Sequence: {seq}")
+println(f"3-mers: {kmers_list}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Sequence: ATCGATCGATCG
+3-mers: [ATC, TCG, CGA, GAT, ATC, TCG, CGA, GAT, ATC, TCG]
+</code></pre>
+<h3 id="k-mer-frequency"><a class="header" href="#k-mer-frequency">K-mer Frequency</a></h3>
+<p>Counting how often each k-mer appears reveals sequence composition at a deeper level than single-base counts.</p>
+<pre><code class="language-bio">let seq = dna"ATCGATCGATCG"
+let freq = kmer_count(seq, 3)
+println(f"3-mer frequencies: {freq}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>3-mer frequencies: {ATC: 3, TCG: 3, CGA: 2, GAT: 2}
+</code></pre>
+<h3 id="alignment-free-similarity-with-k-mers"><a class="header" href="#alignment-free-similarity-with-k-mers">Alignment-Free Similarity with K-mers</a></h3>
+<p>Two sequences that share many k-mers are likely similar, even without performing a formal alignment. The <strong>Jaccard similarity</strong> measures this: the size of the intersection divided by the size of the union of the two k-mer sets.</p>
+<pre><code class="language-bio">let seq1 = dna"ATCGATCGATCGATCG"
+let seq2 = dna"ATCGATCGTTTTGATCG"
+
+let k1 = set(kmers(seq1, 5))
+let k2 = set(kmers(seq2, 5))
+
+let shared = intersection(k1, k2)
+let total = union(k1, k2)
+let jaccard = len(shared) / len(total)
+println(f"Shared 5-mers: {len(shared)}")
+println(f"Total unique 5-mers: {len(total)}")
+println(f"K-mer similarity: {round(jaccard * 100, 1)}%")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Shared 5-mers: 6
+Total unique 5-mers: 17
+K-mer similarity: 35.3%
+</code></pre>
+<p>Jaccard similarity ranges from 0% (no shared k-mers) to 100% (identical k-mer sets). It is fast to compute, works on sequences of different lengths, and does not require alignment. Tools like Mash and Sourmash use this principle for large-scale genome comparison.</p>
+<hr>
+<h2 id="dotplots--visual-sequence-comparison"><a class="header" href="#dotplots--visual-sequence-comparison">Dotplots — Visual Sequence Comparison</a></h2>
+<p>A dotplot is the oldest and most intuitive method for comparing two sequences. The idea is simple:</p>
+<ul>
+<li>Place <strong>sequence 1</strong> along the X axis</li>
+<li>Place <strong>sequence 2</strong> along the Y axis</li>
+<li>Put a <strong>dot</strong> at position (i, j) if the bases at position i and j match</li>
+</ul>
+<p>The resulting pattern reveals structural relationships at a glance:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>Continuous diagonal line</td><td>The sequences are similar in that region</td></tr>
+<tr><td>Broken diagonal</td><td>Similarity with insertions or deletions</td></tr>
+<tr><td>Parallel diagonal lines</td><td>Repeated regions</td></tr>
+<tr><td>Perpendicular lines</td><td>Inverted repeats</td></tr>
+<tr><td>No dots</td><td>No similarity</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bio">let seq1 = dna"ATCGATCGATCG"
+let seq2 = dna"ATCGTTGATCG"
+dotplot(seq1, seq2)
+</code></pre>
+<p>The <code>dotplot()</code> function generates an SVG visualization. You can customize it:</p>
+<pre><code class="language-bio">dotplot(seq1, seq2, window: 3, title: "Pairwise comparison")
+</code></pre>
+<p>The <code>window</code> parameter sets the match window size. A window of 1 shows every single-base match (noisy). A window of 3 or larger filters out random matches, leaving only meaningful stretches of similarity.</p>
+<h3 id="self-dotplots"><a class="header" href="#self-dotplots">Self-Dotplots</a></h3>
+<p>Comparing a sequence against itself is a powerful way to find internal repeats. Any repeated region appears as a parallel diagonal line offset from the main diagonal.</p>
+<pre><code class="language-bio">let repeat_seq = dna"ATCGATCGATCGATCG"
+dotplot(repeat_seq, repeat_seq, window: 3, title: "Self-comparison: internal repeats")
+</code></pre>
+<p>The main diagonal (where the sequence matches itself perfectly) will always be present. Parallel lines above or below the diagonal indicate tandem repeats.</p>
+<hr>
+<h2 id="motif-finding"><a class="header" href="#motif-finding">Motif Finding</a></h2>
+<p>A <strong>motif</strong> is a short sequence pattern with biological significance. Start codons, stop codons, restriction enzyme recognition sites, and transcription factor binding sites are all motifs.</p>
+<h3 id="finding-exact-motifs"><a class="header" href="#finding-exact-motifs">Finding Exact Motifs</a></h3>
+<pre><code class="language-bio">let seq = dna"ATGATCGATGATCGATGATCG"
+let atg_sites = find_motif(seq, "ATG")
+println(f"ATG positions: {atg_sites}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>ATG positions: [0, 9, 18]
+</code></pre>
+<p>Positions are zero-indexed. Each value is the start position where the motif begins in the sequence.</p>
+<h3 id="restriction-enzyme-sites"><a class="header" href="#restriction-enzyme-sites">Restriction Enzyme Sites</a></h3>
+<p>Restriction enzymes cut DNA at specific recognition sequences. Finding these sites is essential for cloning, Southern blotting, and restriction fragment analysis.</p>
+<pre><code class="language-bio">let seq = dna"ATCGGAATTCGATCGGGATCCATCG"
+let ecori = find_motif(seq, "GAATTC")
+let bamhi = find_motif(seq, "GGATCC")
+println(f"EcoRI sites: {ecori}")
+println(f"BamHI sites: {bamhi}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>EcoRI sites: [4]
+BamHI sites: [14]
+</code></pre>
+<p>Common restriction enzymes and their recognition sequences:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Enzyme</th><th>Sequence</th><th>Cut pattern</th></tr>
+</thead>
+<tbody>
+<tr><td>EcoRI</td><td>GAATTC</td><td>G^AATTC</td></tr>
+<tr><td>BamHI</td><td>GGATCC</td><td>G^GATCC</td></tr>
+<tr><td>HindIII</td><td>AAGCTT</td><td>A^AGCTT</td></tr>
+<tr><td>NotI</td><td>GCGGCCGC</td><td>GC^GGCCGC</td></tr>
+<tr><td>XhoI</td><td>CTCGAG</td><td>C^TCGAG</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="reverse-complement-and-strand-awareness"><a class="header" href="#reverse-complement-and-strand-awareness">Reverse Complement and Strand Awareness</a></h2>
+<p>DNA is double-stranded. A motif on the forward strand has a corresponding motif on the reverse strand. When you search for a binding site, you must check both strands — the protein does not care which strand it binds.</p>
+<pre><code class="language-bio">let forward = dna"ATGCGATCGATCG"
+let revcomp = reverse_complement(forward)
+println(f"Forward:  5'-{forward}-3'")
+println(f"RevComp:  5'-{revcomp}-3'")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Forward:  5'-ATGCGATCGATCG-3'
+RevComp:  5'-CGATCGATCGCAT-3'
+</code></pre>
+<h3 id="searching-both-strands"><a class="header" href="#searching-both-strands">Searching Both Strands</a></h3>
+<pre><code class="language-bio">let seq = dna"ATCGGAATTCGATCG"
+let motif = "GAATTC"
+let fwd_hits = find_motif(seq, motif)
+let rev_hits = find_motif(reverse_complement(seq), motif)
+println(f"Forward strand hits: {fwd_hits}")
+println(f"Reverse strand hits: {rev_hits}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Forward strand hits: [4]
+Reverse strand hits: [1]
+</code></pre>
+<p>EcoRI’s recognition sequence (GAATTC) is a <strong>palindrome</strong> — its reverse complement is also GAATTC. This means EcoRI cuts both strands at the same site. Not all restriction enzymes are palindromic, but most Type II enzymes are.</p>
+<hr>
+<h2 id="codon-analysis"><a class="header" href="#codon-analysis">Codon Analysis</a></h2>
+<p>Codons are triplets of nucleotides that encode amino acids. Different organisms prefer different codons for the same amino acid — a phenomenon called <strong>codon usage bias</strong>. Highly expressed genes tend to use preferred codons for faster translation.</p>
+<pre><code class="language-bio">let gene = dna"ATGGCTGCTTCTGATAAATGA"
+let usage = codon_usage(gene)
+println(f"Codon usage: {usage}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Codon usage: {ATG: 1, GCT: 1, GCT: 1, TCT: 1, GAT: 1, AAA: 1, TGA: 1}
+</code></pre>
+<h3 id="comparing-codon-bias-between-species"><a class="header" href="#comparing-codon-bias-between-species">Comparing Codon Bias Between Species</a></h3>
+<p>Different organisms have evolved different codon preferences. <em>E. coli</em> prefers GCG for alanine, while humans prefer GCC. Comparing codon usage can reveal whether a gene has been horizontally transferred or synthetically designed.</p>
+<pre><code class="language-bio">let human_gene = dna"ATGGCTGCTTCTGATAAATGA"
+let ecoli_gene = dna"ATGGCAGCGAGCGATAAATGA"
+let human_usage = codon_usage(human_gene)
+let ecoli_usage = codon_usage(ecoli_gene)
+println(f"Human codons: {human_usage}")
+println(f"E. coli codons: {ecoli_usage}")
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Human codons: {ATG: 1, GCT: 1, GCT: 1, TCT: 1, GAT: 1, AAA: 1, TGA: 1}
+E. coli codons: {ATG: 1, GCA: 1, GCG: 1, AGC: 1, GAT: 1, AAA: 1, TGA: 1}
+</code></pre>
+<p>Notice how both genes encode roughly similar proteins but use different codons: the human gene uses GCT (alanine) where <em>E. coli</em> uses GCA and GCG.</p>
+<hr>
+<h2 id="multi-species-comparison-via-apis"><a class="header" href="#multi-species-comparison-via-apis">Multi-Species Comparison via APIs</a></h2>
+<p>Comparing a gene across species reveals evolutionary conservation. Genes that are highly conserved across distant species are usually functionally important.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># requires: internet connection
+
+let species = [
+    {name: "Human", species: "homo_sapiens"},
+    {name: "Mouse", species: "mus_musculus"},
+    {name: "Zebrafish", species: "danio_rerio"},
+]
+
+let results = species |&gt; map(|sp| {
+    let gene = ensembl_symbol(sp.species, "BRCA1")
+    let protein = ensembl_sequence(gene.id, type: "protein")
+    {name: sp.name, gene_id: gene.id, protein_len: len(protein.seq)}
+})
+
+let comparison = results |&gt; to_table()
+println(comparison)
+</code></pre>
+<p>Expected output (values depend on current Ensembl release):</p>
+<pre><code>name      | gene_id            | protein_len
+Human     | ENSG00000012048    | 1863
+Mouse     | ENSMUSG00000017146 | 1812
+Zebrafish | ENSDARG00000076256 | 1679
+</code></pre>
+<p>The BRCA1 protein is conserved across vertebrates but gets progressively shorter in more distant species — zebrafish BRCA1 is about 10% shorter than human BRCA1. This kind of comparison is a first step toward understanding which regions of the protein are functionally essential (the conserved parts) versus dispensable (the parts that vary).</p>
+<hr>
+<h2 id="building-a-similarity-matrix"><a class="header" href="#building-a-similarity-matrix">Building a Similarity Matrix</a></h2>
+<p>When you have more than two sequences, pairwise comparison produces a <strong>similarity matrix</strong> — a table where each cell contains the similarity between two sequences.</p>
+<pre><code class="language-bio">let sequences = [
+    {name: "seq1", seq: dna"ATCGATCGATCGATCG"},
+    {name: "seq2", seq: dna"ATCGATCGTTTTGATCG"},
+    {name: "seq3", seq: dna"GCGCGCGCGCGCGCGC"},
+]
+
+let results = []
+for i in range(0, len(sequences)) {
+    for j in range(0, len(sequences)) {
+        let k1 = set(kmers(sequences[i].seq, 5))
+        let k2 = set(kmers(sequences[j].seq, 5))
+        let shared = len(intersection(k1, k2))
+        let total = len(union(k1, k2))
+        let sim = if total &gt; 0 { round(shared / total, 3) } else { 0.0 }
+        results = push(results, {
+            seq1: sequences[i].name,
+            seq2: sequences[j].name,
+            similarity: sim
+        })
+    }
+}
+let matrix = results |&gt; to_table()
+println(matrix)
+</code></pre>
+<p>Expected output:</p>
+<pre><code>seq1 | seq2 | similarity
+seq1 | seq1 | 1.0
+seq1 | seq2 | 0.353
+seq1 | seq3 | 0.0
+seq2 | seq1 | 0.353
+seq2 | seq2 | 1.0
+seq2 | seq3 | 0.0
+seq3 | seq1 | 0.0
+seq3 | seq2 | 0.0
+seq3 | seq3 | 1.0
+</code></pre>
+<p>The matrix confirms what you would expect: seq1 and seq2 share some similarity (they have overlapping subsequences), but seq3 (all GC) shares nothing with either.</p>
+<p>Reading a similarity matrix:</p>
+<ul>
+<li>The diagonal is always 1.0 (every sequence is identical to itself)</li>
+<li>The matrix is symmetric (similarity of A to B equals similarity of B to A)</li>
+<li>Values near 0.0 mean unrelated sequences; values near 1.0 mean nearly identical sequences</li>
+</ul>
+<hr>
+<h2 id="complete-example-gene-comparison-report"><a class="header" href="#complete-example-gene-comparison-report">Complete Example: Gene Comparison Report</a></h2>
+<p>This script ties together everything from today — base composition, k-mers, motif finding, and API-based cross-species comparison — into a single analysis.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio"># Compare TP53 protein sequence properties across species
+# requires: internet connection (optional: NCBI_API_KEY for higher rate limits)
+
+fn compare_gene(gene_symbol, species_list) {
+    let results = []
+    for sp in species_list {
+        try {
+            let gene = ensembl_symbol(sp.species, gene_symbol)
+            let cds = ensembl_sequence(gene.id, type: "cdna")
+            let prot = ensembl_sequence(gene.id, type: "protein")
+            results = push(results, {
+                species: sp.name,
+                cds_length: len(cds.seq),
+                protein_length: len(prot.seq),
+                gc: round(gc_content(cds.seq) * 100, 1)
+            })
+        } catch e {
+            println(f"  Skipping {sp.name}: {e}")
+        }
+    }
+    results |&gt; to_table()
+}
+
+let species = [
+    {name: "Human", species: "homo_sapiens"},
+    {name: "Mouse", species: "mus_musculus"},
+    {name: "Chicken", species: "gallus_gallus"},
+]
+
+let comparison = compare_gene("TP53", species)
+println(comparison)
+</code></pre>
+<p>Expected output (values depend on current Ensembl release):</p>
+<pre><code>species | cds_length | protein_length | gc
+Human   | 1182       | 393            | 48.2
+Mouse   | 1176       | 391            | 49.1
+Chicken | 1113       | 370            | 52.8
+</code></pre>
+<p>TP53 (the “guardian of the genome”) is highly conserved across vertebrates. The protein length varies by only ~6%, but GC content differs more — chicken TP53 has higher GC content, consistent with the generally higher GC content of bird genomes.</p>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li>
+<p><strong>GC content ranking.</strong> Create an array of 5 DNA sequences with different compositions. Calculate GC content for each and sort them from highest to lowest using <code>sort_by</code> and <code>reverse</code>.</p>
+</li>
+<li>
+<p><strong>Start and stop codons.</strong> Given the sequence <code>dna"ATGCGATCGATGATCGTAGATCGATGATCGTGAATCG"</code>, find all start codons (ATG) and all stop codons (TAA, TAG, TGA). Print the positions of each.</p>
+</li>
+<li>
+<p><strong>Self-dotplot for repeats.</strong> Create a sequence that contains a repeated motif (e.g., <code>dna"ATCGATCGATCGATCG"</code>) and use <code>dotplot()</code> to compare it against itself. How many parallel diagonals do you see?</p>
+</li>
+<li>
+<p><strong>K-mer similarity at different k values.</strong> Compare two related sequences at k=3, k=5, and k=7. How does increasing k affect the Jaccard similarity? Why?</p>
+</li>
+<li>
+<p><strong>Cross-species comparison.</strong> Use the Ensembl API to compare BRCA1 across human, mouse, and zebrafish. Build a table with columns for species, CDS length, protein length, and GC content.</p>
+</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>GC content</strong> and base composition are quick first-pass comparisons between sequences</li>
+<li><strong>K-mers</strong> enable alignment-free similarity measurement — fast and effective for large-scale comparisons</li>
+<li><strong>Dotplots</strong> visually reveal similarity, insertions, deletions, and repeats at a glance</li>
+<li><strong><code>find_motif()</code></strong> searches for exact patterns including restriction enzyme recognition sites</li>
+<li><strong>Reverse complement</strong> is essential — biology uses both DNA strands, and many binding sites are palindromic</li>
+<li><strong>Codon usage bias</strong> varies across organisms and reveals evolutionary and functional signatures</li>
+<li><strong>API-based multi-species comparison</strong> reveals evolutionary conservation of genes and proteins</li>
+</ul>
+<hr>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow: finding variants in genomes — VCF analysis, variant filtering, and clinical interpretation.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-10.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-12.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-10.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-12.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

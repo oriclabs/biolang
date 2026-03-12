@@ -1,0 +1,923 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 25: Error Handling in Production - Practical Bioinformatics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-74d25212.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-cf8b2d25.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Bioinformatics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-25-error-handling-in-production"><a class="header" href="#day-25-error-handling-in-production">Day 25: Error Handling in Production</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Difficulty</strong></td><td>Intermediate–Advanced</td></tr>
+<tr><td><strong>Biology knowledge</strong></td><td>Intermediate (FASTQ quality scores, FASTA format, sequence data)</td></tr>
+<tr><td><strong>Coding knowledge</strong></td><td>Intermediate (functions, records, pipes, tables, file I/O)</td></tr>
+<tr><td><strong>Time</strong></td><td>~3 hours</td></tr>
+<tr><td><strong>Prerequisites</strong></td><td>Days 1–24 completed, BioLang installed (see Appendix A)</td></tr>
+<tr><td><strong>Data needed</strong></td><td>Generated locally via <code>init.bl</code> (includes intentionally corrupted files)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You’ll Learn</a></h2>
+<ul>
+<li>Why production pipelines need deliberate error handling strategies</li>
+<li>How to use <code>try/catch</code> to recover from failures without crashing</li>
+<li>How to validate inputs before processing begins</li>
+<li>How to implement retry logic for transient failures</li>
+<li>How to handle partial failures in batch processing</li>
+<li>How to log errors for post-mortem debugging</li>
+<li>How to build resilient pipelines that degrade gracefully</li>
+<li>How to test error paths systematically</li>
+</ul>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p><em>“My pipeline crashed at 3 AM on sample 187 of 200 — now what?”</em></p>
+<p>You have built an overnight pipeline that processes 200 FASTQ files, filters them for quality, extracts sequence statistics, and writes a summary report. It ran perfectly on your test set of 10 files. You submitted it at midnight and went to sleep. At 7 AM, you check the results and find: the pipeline crashed on sample 187. Samples 1–186 were processed, but samples 188–200 were never touched. The error message says “unexpected character at line 4” — a corrupted FASTQ record.</p>
+<p>Now you face a cascade of bad options. You could restart the entire pipeline from scratch, wasting 6 hours of compute on samples you already processed. You could manually edit sample 187 out of the input list and run only 188–200, but that requires you to understand exactly where the pipeline state was left. You could fix the corrupted file, but you need to find which of 200 files is sample 187, and you do not know if there are more corrupted files downstream.</p>
+<p>All of these problems share a root cause: the pipeline assumed every input would be well-formed. It had no plan for failure.</p>
+<p>Production bioinformatics pipelines encounter every category of error:</p>
+<p><img src="images/day25-error-taxonomy.svg" alt="Pipeline Error Taxonomy: Data Errors, I/O Errors, Resource Errors, Logic Errors, and External Errors"></p>
+<p>This chapter teaches you to handle all of them. By the end, you will have a pipeline that processes every valid sample, skips corrupted ones, retries transient failures, logs everything, and produces a report telling you exactly what happened.</p>
+<hr>
+<h2 id="section-1-trycatch-basics"><a class="header" href="#section-1-trycatch-basics">Section 1: try/catch Basics</a></h2>
+<p>The <code>try/catch</code> construct is BioLang’s mechanism for recovering from errors. When code inside <code>try</code> throws an error, execution jumps to the <code>catch</code> block instead of crashing the entire program.</p>
+<h3 id="your-first-trycatch"><a class="header" href="#your-first-trycatch">Your First try/catch</a></h3>
+<p>The simplest pattern catches an error and substitutes a default value:</p>
+<pre><code class="language-bio">let result = try { int("not_a_number") } catch err { -1 }
+</code></pre>
+<p>The variable <code>err</code> in the <code>catch</code> block contains the error message as a string. You can inspect it, log it, or ignore it:</p>
+<pre><code class="language-bio">let value = try {
+    read_csv("missing_file.csv")
+} catch err {
+    println(f"Warning: {err}")
+    []
+}
+</code></pre>
+<p>This is fundamentally different from letting the error crash your program. Without <code>try/catch</code>, a missing file terminates everything. With it, you decide what happens next.</p>
+<h3 id="trycatch-is-an-expression"><a class="header" href="#trycatch-is-an-expression">try/catch Is an Expression</a></h3>
+<p>In BioLang, <code>try/catch</code> returns a value. This means you can use it anywhere you would use an expression — in variable assignments, function arguments, or pipe chains:</p>
+<pre><code class="language-bio">let samples = try { read_csv("samples.csv") } catch err { [] }
+
+let count = len(try { read_lines("data.txt") } catch err { [] })
+
+let safe_mean = try { mean(values) } catch err { 0.0 }
+</code></pre>
+<p>This is more concise than languages where <code>try/catch</code> is a statement that cannot return a value.</p>
+<h3 id="nested-trycatch"><a class="header" href="#nested-trycatch">Nested try/catch</a></h3>
+<p>You can nest <code>try/catch</code> blocks when different operations need different fallback strategies:</p>
+<pre><code class="language-bio">let result = try {
+    let data = try { read_csv("primary.csv") } catch err { read_csv("backup.csv") }
+    data |&gt; filter(|row| row.quality &gt; 20)
+} catch err {
+    println(f"Both data sources failed: {err}")
+    []
+}
+</code></pre>
+<p>The inner <code>try/catch</code> tries a primary file and falls back to a backup. The outer <code>try/catch</code> handles the case where both files are missing or the filter operation fails.</p>
+<h3 id="throwing-errors"><a class="header" href="#throwing-errors">Throwing Errors</a></h3>
+<p>Use <code>error()</code> to throw your own errors. This is how you enforce preconditions and signal problems to callers:</p>
+<pre><code class="language-bio">let validate_quality = |threshold| {
+    if threshold &lt; 0 {
+        error("Quality threshold cannot be negative")
+    }
+    if threshold &gt; 41 {
+        error("Quality threshold exceeds Phred+33 maximum")
+    }
+    threshold
+}
+
+let q = try { validate_quality(-5) } catch err { println(err) }
+</code></pre>
+<p>Custom errors make debugging vastly easier than cryptic runtime errors. When your pipeline fails at 3 AM, <code>"Quality threshold cannot be negative"</code> tells you exactly what went wrong and where.</p>
+<hr>
+<h2 id="section-2-error-types-and-messages"><a class="header" href="#section-2-error-types-and-messages">Section 2: Error Types and Messages</a></h2>
+<p>Not all errors deserve the same response. A corrupted file is permanent — retrying will not fix it. A network timeout is transient — retrying might succeed. Your error handling strategy should distinguish between these.</p>
+<h3 id="classifying-errors"><a class="header" href="#classifying-errors">Classifying Errors</a></h3>
+<p>A practical approach is to examine the error message string:</p>
+<pre><code class="language-bio">let classify_error = |err_msg| {
+    if contains(err_msg, "not found") { "missing" }
+    else if contains(err_msg, "permission") { "access" }
+    else if contains(err_msg, "timeout") { "transient" }
+    else if contains(err_msg, "parse") { "data_corrupt" }
+    else if contains(err_msg, "disk") { "resource" }
+    else { "unknown" }
+}
+</code></pre>
+<p>This classification drives different recovery strategies:</p>
+<pre><code class="language-bio">let handle_error = |err_msg, context| {
+    let category = classify_error(err_msg)
+    if category == "transient" {
+        { action: "retry", message: err_msg, context: context }
+    } else if category == "missing" {
+        { action: "skip", message: err_msg, context: context }
+    } else if category == "data_corrupt" {
+        { action: "skip", message: err_msg, context: context }
+    } else if category == "resource" {
+        { action: "abort", message: err_msg, context: context }
+    } else {
+        { action: "log_and_skip", message: err_msg, context: context }
+    }
+}
+</code></pre>
+<h3 id="structured-error-records"><a class="header" href="#structured-error-records">Structured Error Records</a></h3>
+<p>Instead of returning bare values or <code>nil</code> on failure, return structured records that carry context:</p>
+<pre><code class="language-bio">let safe_read_fastq = |path| {
+    try {
+        let records = read_fastq(path)
+        { ok: true, data: records, path: path, error: nil }
+    } catch err {
+        { ok: false, data: [], path: path, error: err }
+    }
+}
+</code></pre>
+<p>The caller can then inspect the <code>ok</code> field:</p>
+<pre><code class="language-bio">let result = safe_read_fastq("sample_01.fastq")
+if result.ok {
+    let stats = process(result.data)
+} else {
+    println(f"Skipping {result.path}: {result.error}")
+}
+</code></pre>
+<p>This pattern — often called a “result record” — keeps errors in the data flow rather than in the control flow. You never lose track of which file failed or why.</p>
+<hr>
+<h2 id="section-3-retry-logic"><a class="header" href="#section-3-retry-logic">Section 3: Retry Logic</a></h2>
+<p>Transient errors — network timeouts, rate limits, temporary server unavailability — often resolve on their own. Retry logic gives your pipeline resilience against these hiccups.</p>
+<h3 id="simple-retry"><a class="header" href="#simple-retry">Simple Retry</a></h3>
+<p>The simplest retry pattern loops a fixed number of times:</p>
+<pre><code class="language-bio">let retry = |f, max_attempts| {
+    let attempt = 1
+    let last_error = ""
+    let result = nil
+    let succeeded = false
+
+    range(0, max_attempts) |&gt; each(|i| {
+        if succeeded == false {
+            try {
+                result = f()
+                succeeded = true
+            } catch err {
+                last_error = err
+                attempt = attempt + 1
+                sleep(1000)
+            }
+        }
+    })
+
+    if succeeded { result }
+    else { error(f"Failed after {max_attempts} attempts: {last_error}") }
+}
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-bio">let data = retry(|| { read_csv("network_share/data.csv") }, 3)
+</code></pre>
+<h3 id="retry-with-exponential-backoff"><a class="header" href="#retry-with-exponential-backoff">Retry with Exponential Backoff</a></h3>
+<p>Fixed-interval retries can overwhelm a struggling server. Exponential backoff increases the wait time between attempts, giving the server time to recover:</p>
+<p><img src="images/day25-exponential-backoff.svg" alt="Exponential Backoff: each retry doubles the wait time from 1s to 2s, 4s, 8s, 16s"></p>
+<pre><code class="language-bio">let retry_backoff = |f, max_attempts, base_delay_ms| {
+    let last_error = ""
+    let result = nil
+    let succeeded = false
+
+    range(0, max_attempts) |&gt; each(|i| {
+        if succeeded == false {
+            try {
+                result = f()
+                succeeded = true
+            } catch err {
+                last_error = err
+                let delay = base_delay_ms
+                range(0, i) |&gt; each(|_| { delay = delay * 2 })
+                if delay &gt; 30000 { delay = 30000 }
+                sleep(delay)
+            }
+        }
+    })
+
+    if succeeded { result }
+    else { error(f"Failed after {max_attempts} attempts: {last_error}") }
+}
+</code></pre>
+<p>The cap at 30 seconds prevents absurdly long waits. In practice, if a service is not responding after 30 seconds of backoff, it is probably down for maintenance — not experiencing a brief hiccup.</p>
+<h3 id="retry-only-transient-errors"><a class="header" href="#retry-only-transient-errors">Retry Only Transient Errors</a></h3>
+<p>Not every error deserves a retry. Retrying a “file not found” error is pointless. Combine error classification with retry logic:</p>
+<pre><code class="language-bio">let retry_if_transient = |f, max_attempts| {
+    let last_error = ""
+    let result = nil
+    let succeeded = false
+
+    range(0, max_attempts) |&gt; each(|i| {
+        if succeeded == false {
+            try {
+                result = f()
+                succeeded = true
+            } catch err {
+                last_error = err
+                let category = classify_error(err)
+                if category != "transient" {
+                    error(err)
+                }
+                sleep(1000)
+            }
+        }
+    })
+
+    if succeeded { result }
+    else { error(f"Failed after {max_attempts} attempts: {last_error}") }
+}
+</code></pre>
+<hr>
+<h2 id="section-4-input-validation"><a class="header" href="#section-4-input-validation">Section 4: Input Validation</a></h2>
+<p>The cheapest error to handle is the one you prevent. Validating inputs before processing begins catches problems early, when the error message can be specific and actionable.</p>
+<h3 id="file-existence-and-format"><a class="header" href="#file-existence-and-format">File Existence and Format</a></h3>
+<pre><code class="language-bio">let validate_input_file = |path, expected_ext| {
+    if file_exists(path) == false {
+        error(f"Input file not found: {path}")
+    }
+
+    if ends_with(path, expected_ext) == false {
+        error(f"Expected {expected_ext} file, got: {path}")
+    }
+
+    let lines = read_lines(path)
+    if len(lines) == 0 {
+        error(f"Input file is empty: {path}")
+    }
+
+    true
+}
+</code></pre>
+<h3 id="fastq-record-validation"><a class="header" href="#fastq-record-validation">FASTQ Record Validation</a></h3>
+<p>FASTQ files have a strict four-line structure. A corrupted file might have truncated records, missing quality lines, or mismatched sequence/quality lengths:</p>
+<pre><code class="language-bio">let validate_fastq_record = |record| {
+    if typeof(record) != "Record" {
+        error("Invalid record type")
+    }
+
+    let seq = record.sequence
+    let qual = record.quality
+
+    if len(seq) == 0 {
+        error(f"Empty sequence in record: {record.id}")
+    }
+
+    if len(seq) != len(qual) {
+        error(f"Sequence/quality length mismatch in {record.id}: seq={len(seq)} qual={len(qual)}")
+    }
+
+    true
+}
+</code></pre>
+<h3 id="batch-input-validation"><a class="header" href="#batch-input-validation">Batch Input Validation</a></h3>
+<p>Before processing 200 files, check them all first. This takes seconds and saves hours:</p>
+<pre><code class="language-bio">let validate_batch = |file_paths| {
+    let errors = []
+
+    file_paths |&gt; each(|path| {
+        try {
+            validate_input_file(path, ".fastq")
+        } catch err {
+            errors = errors + [{ path: path, error: err }]
+        }
+    })
+
+    if len(errors) &gt; 0 {
+        errors |&gt; each(|e| {
+            println(f"INVALID: {e.path} --- {e.error}")
+        })
+        error(f"Validation failed: {len(errors)} of {len(file_paths)} files have problems")
+    }
+
+    true
+}
+</code></pre>
+<p>The decision flow for whether to abort or continue depends on how many files fail validation:</p>
+<p><img src="images/day25-validation-strategy.svg" alt="Input validation failure-rate strategy: 0% failures proceed, less than 5% skip bad files, 5-50% or more than 50% abort"></p>
+<hr>
+<h2 id="section-5-defensive-file-io"><a class="header" href="#section-5-defensive-file-io">Section 5: Defensive File I/O</a></h2>
+<p>File operations are a leading source of pipeline failures. Files can be missing, empty, corrupted, in the wrong format, or on a filesystem that runs out of space mid-write.</p>
+<h3 id="safe-reading"><a class="header" href="#safe-reading">Safe Reading</a></h3>
+<p>Wrap every file read in a function that validates the result:</p>
+<pre><code class="language-bio">let safe_read_csv = |path| {
+    if file_exists(path) == false {
+        error(f"File not found: {path}")
+    }
+
+    let data = try {
+        read_csv(path)
+    } catch err {
+        error(f"Failed to parse CSV {path}: {err}")
+    }
+
+    if len(data) == 0 {
+        error(f"CSV file is empty: {path}")
+    }
+
+    data
+}
+</code></pre>
+<h3 id="safe-writing-with-verification"><a class="header" href="#safe-writing-with-verification">Safe Writing with Verification</a></h3>
+<p>Writing is trickier than reading. A write can appear to succeed but produce a truncated file if the disk fills up mid-write. Write to a temporary file first, then verify:</p>
+<pre><code class="language-bio">let safe_write_csv = |data, path| {
+    let tmp_path = path + ".tmp"
+
+    try {
+        write_csv(data, tmp_path)
+    } catch err {
+        error(f"Failed to write {path}: {err}")
+    }
+
+    if file_exists(tmp_path) == false {
+        error(f"Write appeared to succeed but temp file not found: {tmp_path}")
+    }
+
+    let verify = try { read_csv(tmp_path) } catch err {
+        error(f"Written file is not valid CSV: {err}")
+    }
+
+    if len(verify) != len(data) {
+        error(f"Row count mismatch: wrote {len(data)} but read back {len(verify)}")
+    }
+
+    try {
+        write_csv(data, path)
+    } catch err {
+        error(f"Failed to write final output to {path}: {err}")
+    }
+
+    true
+}
+</code></pre>
+<h3 id="directory-safety"><a class="header" href="#directory-safety">Directory Safety</a></h3>
+<pre><code class="language-bio">let ensure_dir = |path| {
+    try {
+        mkdir(path)
+    } catch err {
+        if contains(str(err), "exists") == false {
+            error(f"Cannot create directory {path}: {err}")
+        }
+    }
+}
+</code></pre>
+<hr>
+<h2 id="section-6-partial-failure-and-recovery"><a class="header" href="#section-6-partial-failure-and-recovery">Section 6: Partial Failure and Recovery</a></h2>
+<p>In batch processing, the question is not <em>if</em> a sample will fail but <em>when</em>. The key design decision is: should a single failure stop everything, or should the pipeline continue with the remaining samples?</p>
+<h3 id="the-accumulator-pattern"><a class="header" href="#the-accumulator-pattern">The Accumulator Pattern</a></h3>
+<p>Process each item independently and collect successes and failures separately:</p>
+<pre><code class="language-bio">let process_batch = |items, process_fn| {
+    let successes = []
+    let failures = []
+
+    items |&gt; each(|item| {
+        try {
+            let result = process_fn(item)
+            successes = successes + [result]
+        } catch err {
+            failures = failures + [{ item: item, error: err }]
+        }
+    })
+
+    { successes: successes, failures: failures }
+}
+</code></pre>
+<p>This pattern guarantees that one bad sample never prevents the other 199 from being processed.</p>
+<h3 id="checkpointing"><a class="header" href="#checkpointing">Checkpointing</a></h3>
+<p>For long-running pipelines, save progress periodically so you can resume after a crash:</p>
+<pre><code class="language-bio">let process_with_checkpoint = |items, process_fn, checkpoint_path| {
+    let completed = if file_exists(checkpoint_path) {
+        try { json_decode(read_lines(checkpoint_path) |&gt; join("\n")) } catch err { [] }
+    } else {
+        []
+    }
+
+    let remaining = items |&gt; filter(|item| {
+        let done = completed |&gt; filter(|c| c == item)
+        len(done) == 0
+    })
+
+    remaining |&gt; each(|item| {
+        try {
+            process_fn(item)
+            completed = completed + [item]
+            write_lines([json_encode(completed)], checkpoint_path)
+        } catch err {
+            println(f"Failed: {item} --- {err}")
+        }
+    })
+
+    completed
+}
+</code></pre>
+<p>If the pipeline crashes at sample 187, you restart it and it picks up at sample 188 — no wasted work.</p>
+<h3 id="error-propagation-flow"><a class="header" href="#error-propagation-flow">Error Propagation Flow</a></h3>
+<p>Understanding how errors flow through a pipeline helps you place <code>try/catch</code> blocks at the right level:</p>
+<p><img src="images/day25-error-propagation.svg" alt="Error Propagation Flow: Read, Validate, Process stages catch and skip with logging; Write stage aborts on disk full"></p>
+<p>The rule of thumb: catch data errors at the per-sample level (skip and continue), but let resource errors (disk full, out of memory) propagate up and abort the pipeline. There is no point processing 200 samples if you cannot write the results.</p>
+<hr>
+<h2 id="section-7-logging-errors"><a class="header" href="#section-7-logging-errors">Section 7: Logging Errors</a></h2>
+<p>When a pipeline runs overnight, <code>print()</code> output disappears into a terminal that nobody is watching. Write errors to a structured log file that you can analyze after the fact.</p>
+<h3 id="error-log-as-a-table"><a class="header" href="#error-log-as-a-table">Error Log as a Table</a></h3>
+<pre><code class="language-bio">let create_error_log = || {
+    []
+}
+
+let log_error = |log, timestamp, source, severity, message| {
+    log + [{
+        timestamp: timestamp,
+        source: source,
+        severity: severity,
+        message: message
+    }]
+}
+
+let save_error_log = |log, path| {
+    if len(log) &gt; 0 {
+        let table = log |&gt; to_table()
+        write_csv(table, path)
+    } else {
+        write_lines(["timestamp,source,severity,message"], path)
+    }
+}
+</code></pre>
+<p>Usage in a pipeline:</p>
+<pre><code class="language-bio">let errors = create_error_log()
+let timestamp = format_date(now(), "%Y-%m-%d %H:%M:%S")
+
+errors = log_error(errors, timestamp, "sample_187.fastq", "ERROR",
+    "Truncated record at line 4")
+errors = log_error(errors, timestamp, "sample_192.fastq", "WARN",
+    "Low quality, 80% filtered")
+
+save_error_log(errors, "output/error_log.csv")
+</code></pre>
+<p>After the pipeline finishes (or crashes), the error log tells you exactly what happened:</p>
+<pre><code>timestamp,source,severity,message
+2025-01-15 03:14:22,sample_187.fastq,ERROR,Truncated record at line 4
+2025-01-15 03:28:45,sample_192.fastq,WARN,Low quality 80% filtered
+</code></pre>
+<h3 id="summary-statistics"><a class="header" href="#summary-statistics">Summary Statistics</a></h3>
+<p>At the end of a pipeline run, produce a summary that answers the key question: <em>Did it work?</em></p>
+<pre><code class="language-bio">let summarize_run = |total, successes, failures, errors| {
+    let success_rate = if total &gt; 0 { (successes * 100) / total } else { 0 }
+    {
+        total_samples: total,
+        succeeded: successes,
+        failed: failures,
+        success_rate_pct: success_rate,
+        error_count: len(errors),
+        status: if failures == 0 { "COMPLETE" }
+                else if success_rate &gt; 90 { "PARTIAL_SUCCESS" }
+                else { "FAILED" }
+    }
+}
+</code></pre>
+<hr>
+<h2 id="section-8-building-a-resilient-pipeline"><a class="header" href="#section-8-building-a-resilient-pipeline">Section 8: Building a Resilient Pipeline</a></h2>
+<p>Let us put all the pieces together. This section builds a production-grade FASTQ processing pipeline that handles every error category from the taxonomy at the start of this chapter.</p>
+<h3 id="pipeline-architecture"><a class="header" href="#pipeline-architecture">Pipeline Architecture</a></h3>
+<pre><code>  INPUT FILES                    VALIDATION           PROCESSING          OUTPUT
+  ──────────                     ──────────           ──────────          ──────
+  sample_001.fastq  ──┐
+  sample_002.fastq  ──┤     ┌────────────────┐   ┌──────────────┐   ┌──────────┐
+  sample_003.fastq  ──┼────▶│  Check exists   │──▶│  Read FASTQ   │──▶│  Stats   │
+  ...               ──┤     │  Check format   │   │  Filter qual  │   │  Table   │
+  sample_200.fastq  ──┘     │  Check non-empty│   │  Compute GC   │   │          │
+                            └───────┬────────┘   └──────┬───────┘   └────┬─────┘
+                                    │                    │                │
+                              skip invalid          skip corrupt    write results
+                              log reason            log reason      + error log
+                                    │                    │                │
+                                    ▼                    ▼                ▼
+                              error_log.csv        error_log.csv    summary.json
+</code></pre>
+<h3 id="the-complete-pipeline"><a class="header" href="#the-complete-pipeline">The Complete Pipeline</a></h3>
+<pre><code class="language-bio">let run_pipeline = |input_dir, output_dir| {
+    ensure_dir(output_dir)
+
+    let errors = create_error_log()
+    let results = []
+    let timestamp = format_date(now(), "%Y-%m-%d %H:%M:%S")
+
+    let files = try {
+        list_dir(input_dir) |&gt; filter(|f| ends_with(f, ".fastq"))
+    } catch err {
+        errors = log_error(errors, timestamp, input_dir, "FATAL",
+            f"Cannot list directory: {err}")
+        save_error_log(errors, output_dir + "/error_log.csv")
+        error(f"Cannot access input directory: {err}")
+    }
+
+    if len(files) == 0 {
+        error(f"No FASTQ files found in {input_dir}")
+    }
+
+    files |&gt; each(|file| {
+        let path = input_dir + "/" + file
+        let ts = format_date(now(), "%Y-%m-%d %H:%M:%S")
+
+        try {
+            let records = read_fastq(path)
+
+            if len(records) == 0 {
+                errors = log_error(errors, ts, file, "WARN",
+                    "Empty file, skipping")
+            } else {
+                let valid = records |&gt; filter(|r| {
+                    let ok = try {
+                        len(r.sequence) == len(r.quality)
+                    } catch err { false }
+                    ok
+                })
+
+                let filtered = valid |&gt; quality_filter(20)
+
+                let stats = {
+                    file: file,
+                    total_records: len(records),
+                    valid_records: len(valid),
+                    passed_qc: len(filtered),
+                    pct_passed: if len(valid) &gt; 0 {
+                        (len(filtered) * 100) / len(valid)
+                    } else { 0 },
+                    mean_gc: if len(filtered) &gt; 0 {
+                        filtered
+                            |&gt; map(|r| gc_content(r.sequence))
+                            |&gt; mean()
+                    } else { 0.0 }
+                }
+
+                results = results + [stats]
+
+                if len(valid) &lt; len(records) {
+                    let dropped = len(records) - len(valid)
+                    errors = log_error(errors, ts, file, "WARN",
+                        f"{dropped} records had seq/qual length mismatch")
+                }
+            }
+        } catch err {
+            errors = log_error(errors, ts, file, "ERROR",
+                f"Processing failed: {err}")
+        }
+    })
+
+    let summary = summarize_run(len(files), len(results),
+        len(files) - len(results), errors)
+
+    if len(results) &gt; 0 {
+        let table = results |&gt; to_table()
+        write_csv(table, output_dir + "/qc_results.csv")
+    }
+
+    save_error_log(errors, output_dir + "/error_log.csv")
+    write_lines([json_encode(summary)], output_dir + "/summary.json")
+
+    summary
+}
+</code></pre>
+<p>Call it:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let result = run_pipeline("data/fastq", "data/output")
+println(f"Pipeline {result.status}: {result.succeeded}/{result.total_samples} samples processed")
+</code></pre>
+<hr>
+<h2 id="section-9-testing-error-paths"><a class="header" href="#section-9-testing-error-paths">Section 9: Testing Error Paths</a></h2>
+<p>Most pipelines are tested only with good inputs. Production bugs hide in the error paths — the code that runs when things go wrong. Test your error handling as deliberately as you test your analysis.</p>
+<h3 id="testing-with-intentionally-bad-data"><a class="header" href="#testing-with-intentionally-bad-data">Testing with Intentionally Bad Data</a></h3>
+<p>The <code>init.bl</code> script for this chapter generates files specifically designed to trigger errors:</p>
+<ul>
+<li><code>good_001.fastq</code> through <code>good_005.fastq</code> — well-formed, passes all checks</li>
+<li><code>truncated.fastq</code> — FASTQ file cut off mid-record</li>
+<li><code>empty.fastq</code> — zero bytes</li>
+<li><code>bad_quality.fastq</code> — valid format but all low-quality bases</li>
+<li><code>mismatched.fastq</code> — sequence and quality lines have different lengths</li>
+</ul>
+<p>A robust pipeline should handle all five error cases without crashing, processing the good samples and logging the bad ones.</p>
+<h3 id="testing-error-classification"><a class="header" href="#testing-error-classification">Testing Error Classification</a></h3>
+<pre><code class="language-bio">let test_classify = || {
+    let cases = [
+        { input: "file not found: x.fastq", expected: "missing" },
+        { input: "permission denied", expected: "access" },
+        { input: "connection timeout after 30s", expected: "transient" },
+        { input: "parse error at line 4", expected: "data_corrupt" },
+        { input: "disk quota exceeded", expected: "resource" },
+        { input: "something unexpected", expected: "unknown" }
+    ]
+
+    cases |&gt; each(|c| {
+        let result = classify_error(c.input)
+        if result != c.expected {
+            error(f"classify_error failed: got {result}, expected {c.expected}")
+        }
+    })
+
+    true
+}
+</code></pre>
+<h3 id="testing-retry-logic"><a class="header" href="#testing-retry-logic">Testing Retry Logic</a></h3>
+<pre><code class="language-bio">let test_retry = || {
+    let call_count = 0
+
+    let flaky_fn = || {
+        call_count = call_count + 1
+        if call_count &lt; 3 { error("transient failure") }
+        "success"
+    }
+
+    let result = retry(flaky_fn, 5)
+
+    if result != "success" { error("Retry did not return success") }
+    if call_count != 3 { error(f"Expected 3 calls, got {call_count}") }
+
+    true
+}
+</code></pre>
+<hr>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-validate-a-sample-sheet"><a class="header" href="#exercise-1-validate-a-sample-sheet">Exercise 1: Validate a Sample Sheet</a></h3>
+<p>Write a function <code>validate_sample_sheet(path)</code> that reads a CSV sample sheet and checks:</p>
+<ul>
+<li>File exists and is non-empty</li>
+<li>Required columns <code>sample_id</code>, <code>fastq_r1</code>, and <code>fastq_r2</code> are present</li>
+<li>No duplicate <code>sample_id</code> values</li>
+<li>All referenced FASTQ files exist</li>
+</ul>
+<p>Return a record with <code>{ valid: bool, errors: [...] }</code>.</p>
+<h3 id="exercise-2-retry-with-jitter"><a class="header" href="#exercise-2-retry-with-jitter">Exercise 2: Retry with Jitter</a></h3>
+<p>Modify the <code>retry_backoff</code> function to add random jitter to the delay. When multiple pipelines retry against the same server simultaneously, they can synchronize their retries and create “thundering herd” problems. Adding a random component (e.g., 0–50% of the delay) desynchronizes them.</p>
+<p><em>Hint</em>: BioLang does not have a random number builtin, but you can derive jitter from <code>now()</code> — the millisecond component changes rapidly enough to serve as a simple source of variation.</p>
+<h3 id="exercise-3-circuit-breaker"><a class="header" href="#exercise-3-circuit-breaker">Exercise 3: Circuit Breaker</a></h3>
+<p>Implement a “circuit breaker” pattern: after N consecutive failures to the same service, stop trying for a cooldown period. This prevents a dead service from slowing down your entire pipeline with timeouts.</p>
+<p>Write a function that returns a record with <code>{ call: fn, reset: fn, state: fn }</code> fields. The <code>call</code> field wraps a function with circuit breaker logic: if the breaker is “open” (too many failures), it returns an error immediately without calling the wrapped function.</p>
+<h3 id="exercise-4-full-recovery-pipeline"><a class="header" href="#exercise-4-full-recovery-pipeline">Exercise 4: Full Recovery Pipeline</a></h3>
+<p>Using the corrupted test data from <code>init.bl</code>, build a pipeline that:</p>
+<ol>
+<li>Validates all input files before processing</li>
+<li>Processes valid files with per-file error handling</li>
+<li>Writes a checkpoint after each successful file</li>
+<li>Produces both a results table and an error log</li>
+<li>Can be run twice — on the second run, it skips already-processed files</li>
+</ol>
+<hr>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>try/catch is an expression</strong> — use it inline to provide default values, not just for control flow.</p>
+</li>
+<li>
+<p><strong>Classify errors before handling them.</strong> Transient errors deserve retries. Data errors deserve skipping. Resource errors deserve aborting.</p>
+</li>
+<li>
+<p><strong>Validate inputs early.</strong> Checking 200 files takes seconds. Processing 186 files before discovering a problem takes hours.</p>
+</li>
+<li>
+<p><strong>Accumulate, do not abort.</strong> The accumulator pattern (collect successes and failures separately) ensures one bad sample never blocks the other 199.</p>
+</li>
+<li>
+<p><strong>Checkpoint long pipelines.</strong> Saving progress to disk means you never redo work after a crash.</p>
+</li>
+<li>
+<p><strong>Log structured errors.</strong> A CSV error log is searchable, sortable, and scriptable. <code>print()</code> output is none of these.</p>
+</li>
+<li>
+<p><strong>Test error paths.</strong> Generate intentionally bad data and verify your pipeline handles it. The code that runs when things go wrong is the code that matters most at 3 AM.</p>
+</li>
+</ol>
+<hr>
+<p><em>Next: <a href="day-26.html">Day 26 — AI-Assisted Analysis</a>, where you will use large language models to interpret results, generate hypotheses, and accelerate your biological discoveries.</em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-24.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-26.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-24.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-26.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="book-runner-23bba21e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

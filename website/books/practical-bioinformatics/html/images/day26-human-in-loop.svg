@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 540">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-auto">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="540" rx="12" fill="url(#bg)"/>
+  <text x="400" y="36" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="bold" fill="#0f172a">Human-in-the-Loop Analysis Cycle</text>
+
+  <!-- Step 1: Load & Clean -->
+  <rect x="280" y="60" width="240" height="55" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="84" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#1e40af">1. Load &amp; Clean Raw Data</text>
+  <text x="400" y="102" text-anchor="middle" font-family="system-ui" font-size="11" fill="#3b82f6">Programmatic (BioLang code)</text>
+
+  <line x1="400" y1="115" x2="400" y2="140" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Compute -->
+  <rect x="280" y="145" width="240" height="55" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="169" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#1e40af">2. Compute Statistics</text>
+  <text x="400" y="187" text-anchor="middle" font-family="system-ui" font-size="11" fill="#3b82f6">Programmatic (BioLang code)</text>
+
+  <line x1="400" y1="200" x2="400" y2="225" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: AI Interprets -->
+  <rect x="280" y="230" width="240" height="55" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="400" y="254" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#166534">3. AI Interprets Results</text>
+  <text x="400" y="272" text-anchor="middle" font-family="system-ui" font-size="11" fill="#22c55e">chat() with structured context</text>
+
+  <line x1="400" y1="285" x2="400" y2="310" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 4: Human Reviews -->
+  <rect x="280" y="315" width="240" height="55" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="339" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#854d0e">4. Human Reviews Output</text>
+  <text x="400" y="357" text-anchor="middle" font-family="system-ui" font-size="11" fill="#92400e">Researcher reads, validates, corrects</text>
+
+  <!-- Fork: Accept vs Reject -->
+  <line x1="340" y1="370" x2="220" y2="420" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="460" y1="370" x2="580" y2="420" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Accept -->
+  <rect x="130" y="425" width="180" height="45" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="220" y="453" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#166534">Accept &amp; Save</text>
+
+  <!-- Reject -->
+  <rect x="490" y="425" width="180" height="45" rx="8" fill="#fef2f2" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="580" y="448" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#dc2626">Reject or Re-prompt</text>
+
+  <!-- Loop back arrow from Reject to AI -->
+  <line x1="670" y1="447" x2="720" y2="447" stroke="#ef4444" stroke-width="1.5"/>
+  <line x1="720" y1="447" x2="720" y2="257" stroke="#ef4444" stroke-width="1.5"/>
+  <line x1="720" y1="257" x2="525" y2="257" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="735" y="355" font-family="system-ui" font-size="10" fill="#dc2626" transform="rotate(90,735,355)">Refine prompt, add context</text>
+
+  <!-- Key principle -->
+  <rect x="150" y="495" width="500" height="30" rx="6" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="515" text-anchor="middle" font-family="system-ui" font-size="12" fill="#475569">Computation: programmatic | Interpretation: AI-assisted | Decisions: human</text>
+</svg>
