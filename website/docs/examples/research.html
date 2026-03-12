@@ -774,7 +774,7 @@ patients = patients |> mutate("predicted_dose_mg", |row| {
   round(base * cyp_adj * vk_adj, 1)
 })
 
-patients |> select(["id","cyp2c9","vkorc1","metabolizer","predicted_dose_mg"]) |> print()
+patients |> select("id","cyp2c9","vkorc1","metabolizer","predicted_dose_mg") |> print()
 
 # ── 5. Drug interaction lookups ──────────────────────────────────
 print("=== Drug Interaction Lookups ===")
@@ -1040,7 +1040,7 @@ let sensitizer_hits = gene_results
   |> filter(|r| r.median_lfc < -1.0 && r.p_adj < 0.05)
 
 print("Resistance genes:")
-resistance_hits |> select(["gene", "median_lfc", "p_adj"]) |> print()
+resistance_hits |> select("gene", "median_lfc", "p_adj") |> print()
 
 # ── 9-11. Database annotation, visualizations, report ──
 let braf_info = ncbi_gene("BRAF")
@@ -1056,7 +1056,7 @@ let report_text = [
   "# CRISPR Screen Report: Vemurafenib Resistance in A375 Melanoma",
   "",
   "## Resistance Hits (LFC > 1, padj < 0.05):",
-  resistance_hits |> select(["gene", "median_lfc", "p_adj"]) |> to_markdown(),
+  resistance_hits |> select("gene", "median_lfc", "p_adj") |> to_markdown(),
   "",
   "## Top Annotation: BRAF — " + braf_info.description
 ] |> join("\n")

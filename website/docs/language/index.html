@@ -77,13 +77,13 @@ print(f"Kept {len(reads)} high-quality reads")</code></pre>
           to the right-hand function. This creates readable, linear data flows:
         </p>
         <pre><code class="language-biolang"># Without pipes — nested, hard to read
-let result = summarize(group_by(filter(data, |r| r.score > 0.5), "gene"), mean(score))
+let result = summarize(group_by(filter(data, |r| r.score > 0.5), "gene"), |key, rows| { gene: key, mean_score: mean(col(rows, "score")) })
 
 # With pipes — linear, clear
 let result = data
   |> filter(|r| r.score > 0.5)
   |> group_by("gene")
-  |> summarize(mean(score))</code></pre>
+  |> summarize(|key, rows| { gene: key, mean_score: mean(col(rows, "score")) })</code></pre>
 
         <h3>Bio Literals</h3>
         <p>
@@ -121,11 +121,12 @@ let translated = seq |> transcribe() |> translate()</code></pre>
   |> filter(|v| v.qual >= 30.0)
   |> arrange("-qual")
   |> group_by("chrom")
-  |> summarize(
-    count = n(),
-    avg_qual = mean(qual),
-    max_qual = max(qual)
-  )</code></pre>
+  |> summarize(|key, rows| {
+    chrom: key,
+    count: len(rows),
+    avg_qual: mean(col(rows, "qual")),
+    max_qual: max(col(rows, "qual"))
+  })</code></pre>
 
         <h3>Lazy Streams</h3>
         <p>

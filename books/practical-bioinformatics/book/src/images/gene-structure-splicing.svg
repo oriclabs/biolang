@@ -1,0 +1,107 @@
+<svg viewBox="0 0 800 360" xmlns="http://www.w3.org/2000/svg" style="background: #fff;">
+  <defs>
+    <linearGradient id="gsBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="gsArr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="360" fill="url(#gsBg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="400" y="32" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">Gene Structure and Splicing</text>
+  <text x="400" y="52" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#64748b">Introns are removed, exons are joined to form mature mRNA</text>
+
+  <!-- === DNA GENE STRUCTURE === -->
+  <text x="30" y="90" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#1e40af">DNA (gene on chromosome):</text>
+
+  <!-- Backbone line -->
+  <line x1="30" y1="125" x2="770" y2="125" stroke="#94a3b8" stroke-width="2"/>
+
+  <!-- Promoter -->
+  <rect x="30" y="108" width="80" height="34" rx="6" fill="#e0e7ff" stroke="#818cf8" stroke-width="1.5"/>
+  <text x="70" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#4338ca">Promoter</text>
+
+  <!-- Exon 1 -->
+  <rect x="130" y="105" width="100" height="40" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="180" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#1e40af">Exon 1</text>
+
+  <!-- Intron 1 (dashed) -->
+  <rect x="230" y="112" width="90" height="26" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="275" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8" font-style="italic">Intron 1</text>
+
+  <!-- Exon 2 -->
+  <rect x="320" y="105" width="120" height="40" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="380" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#1e40af">Exon 2</text>
+
+  <!-- Intron 2 (dashed) -->
+  <rect x="440" y="112" width="90" height="26" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="485" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8" font-style="italic">Intron 2</text>
+
+  <!-- Exon 3 -->
+  <rect x="530" y="105" width="100" height="40" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="580" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#1e40af">Exon 3</text>
+
+  <!-- Terminator -->
+  <rect x="650" y="108" width="100" height="34" rx="6" fill="#e0e7ff" stroke="#818cf8" stroke-width="1.5"/>
+  <text x="700" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#4338ca">Terminator</text>
+
+  <!-- === SPLICING ARROWS === -->
+  <text x="400" y="175" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#dc2626">Splicing: introns removed, exons joined</text>
+
+  <!-- Scissors on introns -->
+  <text x="275" y="165" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" fill="#dc2626">&#x2702;</text>
+  <text x="485" y="165" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" fill="#dc2626">&#x2702;</text>
+
+  <!-- Curved arrows showing removal -->
+  <path d="M275,140 Q275,155 260,158" stroke="#dc2626" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/>
+  <path d="M485,140 Q485,155 470,158" stroke="#dc2626" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/>
+
+  <!-- Big down arrow -->
+  <line x1="400" y1="182" x2="400" y2="210" stroke="#6b7280" stroke-width="2.5" marker-end="url(#gsArr)"/>
+
+  <!-- === MATURE mRNA === -->
+  <text x="30" y="235" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#059669">Mature mRNA (ready for translation):</text>
+
+  <!-- mRNA backbone -->
+  <line x1="140" y1="270" x2="600" y2="270" stroke="#10b981" stroke-width="2"/>
+
+  <!-- 5' cap -->
+  <circle cx="140" cy="270" r="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="140" y="274" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#92400e">5'cap</text>
+
+  <!-- Exon 1 on mRNA -->
+  <rect x="160" y="253" width="120" height="34" rx="6" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+  <text x="220" y="275" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#065f46">Exon 1</text>
+
+  <!-- Junction marker -->
+  <line x1="280" y1="253" x2="280" y2="287" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2"/>
+
+  <!-- Exon 2 on mRNA -->
+  <rect x="280" y="253" width="140" height="34" rx="6" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+  <text x="350" y="275" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#065f46">Exon 2</text>
+
+  <!-- Junction marker -->
+  <line x1="420" y1="253" x2="420" y2="287" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2"/>
+
+  <!-- Exon 3 on mRNA -->
+  <rect x="420" y="253" width="120" height="34" rx="6" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+  <text x="480" y="275" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#065f46">Exon 3</text>
+
+  <!-- Poly-A tail -->
+  <text x="555" y="275" font-family="monospace" font-size="11" fill="#f59e0b" font-weight="bold">AAAAAA</text>
+  <text x="585" y="260" font-family="system-ui, sans-serif" font-size="9" fill="#92400e">poly-A tail</text>
+
+  <!-- No introns label -->
+  <text x="350" y="305" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">(no introns — only coding sequence remains)</text>
+
+  <!-- === KEY INSIGHT BOX === -->
+  <rect x="30" y="320" width="740" height="30" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="400" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#1e40af">
+    <tspan font-weight="bold">Alternative splicing:</tspan> Different combinations of exons → different proteins from the same gene!
+  </text>
+</svg>

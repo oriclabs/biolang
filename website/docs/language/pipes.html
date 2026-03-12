@@ -176,10 +176,11 @@ let result = dna"ATCGATCG"
   |> filter(|r| r.impact == "HIGH")
   |> arrange("-frequency")
   |> group_by("gene")
-  |> summarize(
-    variant_count = n(),
-    max_freq = max(frequency)
-  )
+  |> summarize(|key, rows| {
+    gene: key,
+    variant_count: len(rows),
+    max_freq: max(col(rows, "frequency"))
+  })
   |> filter(|r| r.variant_count >= 3)
   |> arrange("-variant_count")</code></pre>
 
@@ -258,8 +259,8 @@ print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")</code></pre>
         <h2>Common Patterns</h2>
         <pre><code class="language-biolang"># ETL: Extract, Transform, Load
 let cleaned = csv("raw_data.csv")
-  |> select(new_col = "old_col")
-  |> mutate(score = |r| r.raw_score / 100.0)
+  |> select("old_col")
+  |> mutate("score", |r| r.raw_score / 100.0)
   |> filter(|r| r.score != nil)
   |> write_csv("cleaned.csv")
 

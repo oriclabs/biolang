@@ -290,9 +290,9 @@ let holm_adjusted  = p_adjust(raw_pvals, "holm")
 
 # Add adjusted columns using mutate
 let corrected = results
-  |> mutate("bh_fdr", bh_adjusted)
-  |> mutate("bonferroni", bonf_adjusted)
-  |> mutate("holm", holm_adjusted)
+  |> mutate("bh_fdr", |row| bh_adjusted[row._index])
+  |> mutate("bonferroni", |row| bonf_adjusted[row._index])
+  |> mutate("holm", |row| holm_adjusted[row._index])
 
 # Compare methods
 for method in ["bh_fdr", "bonferroni", "holm"] {

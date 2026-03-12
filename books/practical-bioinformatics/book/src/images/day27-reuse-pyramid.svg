@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="320" rx="12" fill="url(#bg)"/>
+  <text x="400" y="36" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="bold" fill="#0f172a">The Reuse Pyramid</text>
+
+  <!-- Three columns -->
+  <rect x="50" y="70" width="220" height="200" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="160" y="98" text-anchor="middle" font-family="system-ui" font-size="16" font-weight="700" fill="#1e40af">Functions</text>
+  <line x1="70" y1="108" x2="250" y2="108" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="160" y="132" text-anchor="middle" font-family="system-ui" font-size="12" fill="#1e40af">fn in the same file</text>
+  <text x="160" y="160" text-anchor="middle" font-family="system-ui" font-size="12" fill="#3b82f6">Simplest,</text>
+  <text x="160" y="178" text-anchor="middle" font-family="system-ui" font-size="12" fill="#3b82f6">no sharing</text>
+  <text x="160" y="230" text-anchor="middle" font-family="system-ui" font-size="11" fill="#64748b" font-style="italic">Within a file</text>
+
+  <rect x="290" y="70" width="220" height="200" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="400" y="98" text-anchor="middle" font-family="system-ui" font-size="16" font-weight="700" fill="#166534">Modules</text>
+  <line x1="310" y1="108" x2="490" y2="108" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="400" y="132" text-anchor="middle" font-family="system-ui" font-size="12" fill="#166534">.bl files imported</text>
+  <text x="400" y="150" text-anchor="middle" font-family="system-ui" font-size="12" fill="#166534">across scripts</text>
+  <text x="400" y="178" text-anchor="middle" font-family="system-ui" font-size="12" fill="#22c55e">Share with import</text>
+  <text x="400" y="230" text-anchor="middle" font-family="system-ui" font-size="11" fill="#64748b" font-style="italic">Within a project</text>
+
+  <rect x="530" y="70" width="220" height="200" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="640" y="98" text-anchor="middle" font-family="system-ui" font-size="16" font-weight="700" fill="#5b21b6">Plugins</text>
+  <line x1="550" y1="108" x2="730" y2="108" stroke="#ddd6fe" stroke-width="1"/>
+  <text x="640" y="132" text-anchor="middle" font-family="system-ui" font-size="12" fill="#5b21b6">External programs</text>
+  <text x="640" y="150" text-anchor="middle" font-family="system-ui" font-size="12" fill="#5b21b6">via JSON protocol</text>
+  <text x="640" y="178" text-anchor="middle" font-family="system-ui" font-size="12" fill="#7c3aed">Any lang: Python,</text>
+  <text x="640" y="196" text-anchor="middle" font-family="system-ui" font-size="12" fill="#7c3aed">R, Deno, etc.</text>
+  <text x="640" y="230" text-anchor="middle" font-family="system-ui" font-size="11" fill="#64748b" font-style="italic">Across projects</text>
+
+  <!-- Scope arrow -->
+  <line x1="50" y1="295" x2="750" y2="295" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-right)"/>
+  <text x="400" y="313" text-anchor="middle" font-family="system-ui" font-size="12" fill="#64748b">Increasing scope of reuse</text>
+
+  <defs>
+    <marker id="arrow-right" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+</svg>

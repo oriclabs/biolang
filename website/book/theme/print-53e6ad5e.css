@@ -1,0 +1,76 @@
+/* Print / PDF styles for The BioLang Book
+   mdbook-pdf renders print.html using the Light theme.
+   Code blocks need strong contrast for readability on paper/PDF. */
+@media print {
+    /* Code blocks: solid light gray background, dark text, visible border */
+    pre {
+        background: #f3f4f6 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 4px !important;
+        padding: 0.8em 1em !important;
+        page-break-inside: avoid;
+    }
+
+    pre code,
+    pre .hljs {
+        color: #1f2937 !important;
+        background: transparent !important;
+        font-size: 9pt !important;
+    }
+
+    /* Inline code: distinct background */
+    :not(pre) > code,
+    :not(pre) > .hljs {
+        background: #e5e7eb !important;
+        color: #111827 !important;
+        padding: 0.1em 0.3em !important;
+        border-radius: 3px !important;
+        font-size: 0.9em !important;
+    }
+
+    /* Headings: solid black */
+    h1, h2, h3, h4, h5, h6 {
+        color: #000 !important;
+        page-break-after: avoid;
+    }
+
+    /* Body text: solid dark */
+    body, p, li, td, th, dd, dt, blockquote {
+        color: #1f2937 !important;
+    }
+
+    /* Links: dark text for print */
+    a {
+        color: #1f2937 !important;
+        text-decoration: none !important;
+    }
+
+    /* Tables: clear borders */
+    table {
+        border-collapse: collapse !important;
+    }
+    th, td {
+        border: 1px solid #d1d5db !important;
+        padding: 0.4em 0.6em !important;
+    }
+    th {
+        background: #e5e7eb !important;
+        font-weight: 600 !important;
+    }
+
+    /* Blockquotes: visible border */
+    blockquote {
+        border-left: 3px solid #9ca3af !important;
+        padding-left: 1em !important;
+        color: #374151 !important;
+        background: #f9fafb !important;
+    }
+
+    /* Page breaks: each chapter starts on a new page */
+    h1 {
+        page-break-before: always;
+    }
+    .content > h1:first-child {
+        page-break-before: avoid;
+    }
+}

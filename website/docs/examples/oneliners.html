@@ -77,7 +77,7 @@
         <h2>VCF Operations</h2>
 
         <h3>Count variants per chromosome</h3>
-        <pre><code class="language-biolang">read_vcf("variants.vcf") |> group_by(|v| v.chrom) |> map(|g| {chrom: g.key, count: len(g.values)}) |> print</code></pre>
+        <pre><code class="language-biolang">read_vcf("variants.vcf") |> group_by("chrom") |> summarize(|chrom, rows| {chrom: chrom, count: len(rows)}) |> print</code></pre>
 
         <h3>Filter to PASS variants only</h3>
         <pre><code class="language-biolang">read_vcf("in.vcf") |> filter(|v| v.filter == "PASS") |> write_vcf("pass.vcf")</code></pre>

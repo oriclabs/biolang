@@ -1,0 +1,58 @@
+<svg viewBox="0 0 800 340" xmlns="http://www.w3.org/2000/svg" style="background: #fff;">
+  <defs>
+    <linearGradient id="slBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="slArr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="800" height="340" fill="url(#slBg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="400" y="32" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">Sample Processing Loop</text>
+  <text x="400" y="52" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">How a for loop processes every sample the same way</text>
+
+  <!-- Start node (blue, rounded) -->
+  <rect x="60" y="130" width="170" height="44" rx="22" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="145" y="157" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="bold" fill="#1e40af">Start: list of samples</text>
+
+  <!-- Arrow to decision -->
+  <line x1="230" y1="152" x2="280" y2="152" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#slArr)"/>
+
+  <!-- Decision diamond (amber) -->
+  <polygon points="370,110 460,152 370,194 280,152" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="370" y="148" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#854d0e">More</text>
+  <text x="370" y="163" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#854d0e">samples?</text>
+
+  <!-- Yes arrow down to Process -->
+  <line x1="370" y1="194" x2="370" y2="230" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#slArr)"/>
+  <text x="385" y="218" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#166534" font-weight="bold">Yes</text>
+
+  <!-- Process next sample (green) -->
+  <rect x="280" y="240" width="180" height="44" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="370" y="267" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="bold" fill="#166534">Process next sample</text>
+
+  <!-- Arrow right to Save result -->
+  <line x1="460" y1="262" x2="490" y2="262" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#slArr)"/>
+
+  <!-- Save result (green) -->
+  <rect x="500" y="240" width="140" height="44" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="570" y="267" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="bold" fill="#166534">Save result</text>
+
+  <!-- Loop back arrow: Save -> up -> left -> back to decision -->
+  <line x1="570" y1="240" x2="570" y2="105" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="570" y1="105" x2="410" y2="105" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="410" y1="105" x2="398" y2="117" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#slArr)"/>
+
+  <!-- No arrow right to Done -->
+  <line x1="460" y1="152" x2="560" y2="152" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#slArr)"/>
+  <text x="500" y="142" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#991b1b" font-weight="bold">No</text>
+
+  <!-- Done node (blue, rounded) -->
+  <rect x="570" y="130" width="190" height="44" rx="22" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="665" y="150" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">Done: all results</text>
+  <text x="665" y="165" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">collected</text>
+</svg>

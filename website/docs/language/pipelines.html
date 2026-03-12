@@ -100,16 +100,17 @@ let lengths = reads |> map(|r| len(r.seq))
 
 # mutate: add or modify columns in a table
 let annotated = data
-  |> mutate(rate: |r| r.passing / r.total * 100)
-  |> mutate(status: |r| if r.rate > 90 then "PASS" else "FAIL")
+  |> mutate("rate", |r| r.passing / r.total * 100)
+  |> mutate("status", |r| if r.rate > 90 then "PASS" else "FAIL")
 
 # group_by + summarize: aggregate by key
 let summary = data
   |> group_by("cohort")
-  |> summarize(
-    mean_depth: |g| mean(g.depth),
-    sample_count: |g| len(g)
-  )
+  |> summarize(|key, rows| {
+    cohort: key,
+    mean_depth: mean(col(rows, "depth")),
+    sample_count: len(rows)
+  })
 
 # select + arrange: pick columns and sort
 let report = summary
@@ -120,13 +121,14 @@ let report = summary
         </p>
         <pre><code class="language-biolang">let cohort_report = read_csv("samples.csv")
   |> filter(|r| r.depth > 30)
-  |> mutate(rate: |r| r.passing / r.total * 100)
+  |> mutate("rate", |r| r.passing / r.total * 100)
   |> group_by("cohort")
-  |> summarize(
-    mean_depth: |g| mean(g.depth),
-    mean_rate: |g| mean(g.rate),
-    n: |g| len(g)
-  )
+  |> summarize(|key, rows| {
+    cohort: key,
+    mean_depth: mean(col(rows, "depth")),
+    mean_rate: mean(col(rows, "rate")),
+    n: len(rows)
+  })
   |> arrange("-mean_depth")
 
 println(cohort_report)</code></pre>
@@ -203,9 +205,9 @@ println(f"SNPs: {len(snps)}, Indels: {len(indels)}")</code></pre>
 let result = try {
   let data = read_csv("samples.csv")
   data |> filter(|r| r.depth > 30)
-      |> mutate(rate: |r| r.passing / r.total * 100)
+      |> mutate("rate", |r| r.passing / r.total * 100)
       |> group_by("cohort")
-      |> summarize(mean_depth: |g| mean(g.depth))
+      |> summarize(|key, rows| { cohort: key, mean_depth: mean(col(rows, "depth")) })
 } catch e {
   println("Pipeline error: " + e)
   nil
@@ -422,7 +424,7 @@ println(f"Called {len(variants)} variants")</code></pre>
               <tr><td>Filter</td><td><code>data |&gt; filter(|r| predicate)</code></td><td>Keep elements matching a condition</td></tr>
               <tr><td>Map</td><td><code>data |&gt; map(|r| transform)</code></td><td>Transform each element</td></tr>
               <tr><td>Group + Summarize</td><td><code>data |&gt; group_by(col) |&gt; summarize(...)</code></td><td>Aggregate data by key</td></tr>
-              <tr><td>Mutate</td><td><code>data |&gt; mutate(col: |r| expr)</code></td><td>Add or modify columns</td></tr>
+              <tr><td>Mutate</td><td><code>data |&gt; mutate("col", |r| expr)</code></td><td>Add or modify columns</td></tr>
               <tr><td>Parallel</td><td><code>items |&gt; par_map(|x| { ... })</code></td><td>Process items across cores</td></tr>
               <tr><td>Shell</td><td><code>shell("command")</code></td><td>Run external tools (BWA, samtools, GATK, etc.)</td></tr>
               <tr><td>Error handling</td><td><code>try { ... } catch e { ... }</code></td><td>Recover from errors in a pipeline</td></tr>

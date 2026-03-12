@@ -126,12 +126,13 @@ data |> sort_by(|a, b| [a.chromosome, a.position]) |> write_csv("sorted.csv")</c
 
 # Count genes per chromosome
 counts
-  |> group_by(|r| r.chrom)
-  |> summarize(
-    n_genes: |rows| len(rows),
-    avg_length: |rows| rows |> map(|r| r.length) |> mean,
-    max_expr: |rows| rows |> map(|r| r.expression) |> max
-  )
+  |> group_by("chrom")
+  |> summarize(|chrom, rows| {
+    chrom: chrom,
+    n_genes: len(rows),
+    avg_length: rows |> map(|r| r.length) |> mean,
+    max_expr: rows |> map(|r| r.expression) |> max
+  })
   |> sort_by(|a, b| b.n_genes - a.n_genes)
   |> print</code></pre>
 

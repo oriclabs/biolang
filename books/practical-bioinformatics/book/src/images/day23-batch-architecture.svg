@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 620">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-auto">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="620" rx="12" fill="url(#bg)"/>
+  <text x="400" y="40" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="bold" fill="#0f172a">Batch Processing Architecture</text>
+  <text x="400" y="62" text-anchor="middle" font-family="system-ui" font-size="13" fill="#64748b">Fan-out / Fan-in Pattern</text>
+
+  <!-- Sample Sheet -->
+  <rect x="300" y="85" width="200" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="115" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#1e40af">Sample Sheet (CSV)</text>
+
+  <!-- Arrow down -->
+  <line x1="400" y1="135" x2="400" y2="165" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="420" y="155" font-family="system-ui" font-size="11" fill="#64748b">parse</text>
+
+  <!-- Sample List -->
+  <rect x="300" y="170" width="200" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="195" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#1e40af">Sample List</text>
+  <text x="400" y="212" text-anchor="middle" font-family="system-ui" font-size="11" fill="#64748b">[{id, r1, r2, ...}]</text>
+
+  <!-- Data Directory -->
+  <rect x="560" y="85" width="200" height="80" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="660" y="108" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="#475569">Data Directory</text>
+  <text x="660" y="126" text-anchor="middle" font-family="system-ui" font-size="10" fill="#64748b">sample_001_R1.fastq</text>
+  <text x="660" y="140" text-anchor="middle" font-family="system-ui" font-size="10" fill="#64748b">sample_001_R2.fastq</text>
+  <text x="660" y="154" text-anchor="middle" font-family="system-ui" font-size="10" fill="#64748b">sample_002_R1.fastq ...</text>
+
+  <!-- Arrow to validate -->
+  <line x1="400" y1="220" x2="400" y2="255" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="420" y="242" font-family="system-ui" font-size="11" fill="#64748b">validate</text>
+
+  <!-- Fan Out -->
+  <rect x="300" y="260" width="200" height="45" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="287" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#854d0e">Fan Out</text>
+
+  <!-- Fan out arrows -->
+  <line x1="320" y1="305" x2="120" y2="355" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="360" y1="305" x2="280" y2="355" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="400" y1="305" x2="400" y2="355" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="440" y1="305" x2="520" y2="355" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="480" y1="305" x2="680" y2="355" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- QC boxes -->
+  <rect x="70" y="360" width="100" height="45" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="120" y="387" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#166534">QC 1</text>
+
+  <rect x="230" y="360" width="100" height="45" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="280" y="387" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#166534">QC 2</text>
+
+  <rect x="350" y="360" width="100" height="45" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="400" y="387" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#166534">QC 3</text>
+
+  <rect x="470" y="360" width="100" height="45" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="520" y="387" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#166534">QC 4</text>
+
+  <text x="620" y="387" text-anchor="middle" font-family="system-ui" font-size="16" fill="#94a3b8">...</text>
+
+  <rect x="630" y="360" width="100" height="45" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="680" y="387" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#166534">QC 200</text>
+
+  <!-- Fan in arrows -->
+  <line x1="120" y1="405" x2="320" y2="455" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="280" y1="405" x2="360" y2="455" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="400" y1="405" x2="400" y2="455" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="520" y1="405" x2="440" y2="455" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="680" y1="405" x2="480" y2="455" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Aggregate -->
+  <rect x="300" y="460" width="200" height="50" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="400" y="483" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#5b21b6">Aggregate Results</text>
+  <text x="490" y="448" font-family="system-ui" font-size="11" fill="#64748b">collect</text>
+
+  <!-- Arrow down -->
+  <line x1="400" y1="510" x2="400" y2="545" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Report -->
+  <rect x="300" y="550" width="200" height="50" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="400" y="580" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#166534">Batch Report (CSV/JSON)</text>
+</svg>

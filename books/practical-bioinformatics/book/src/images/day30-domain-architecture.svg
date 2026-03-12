@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="480" rx="12" fill="url(#bg)"/>
+  <text x="400" y="35" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">Domain Architecture</text>
+  <text x="400" y="55" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Protein domain layout across eight species</text>
+
+  <!-- Legend -->
+  <rect x="140" y="70" width="520" height="30" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="155" y="77" width="30" height="16" rx="3" fill="#3b82f6"/>
+  <text x="192" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155">TAD</text>
+  <rect x="225" y="77" width="30" height="16" rx="3" fill="#22c55e"/>
+  <text x="262" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155">PRR</text>
+  <rect x="295" y="77" width="30" height="16" rx="3" fill="#ef4444"/>
+  <text x="332" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155">DNA-binding</text>
+  <rect x="415" y="77" width="30" height="16" rx="3" fill="#eab308"/>
+  <text x="452" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155">TET</text>
+  <rect x="485" y="77" width="30" height="16" rx="3" fill="#8b5cf6"/>
+  <text x="522" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155">CTD</text>
+  <rect x="555" y="77" width="30" height="16" rx="3" fill="#94a3b8"/>
+  <text x="592" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155">Checkpoint/BRCT</text>
+
+  <!-- Scale factor: 1 aa = ~1.2px, starting at x=180 -->
+  <!-- Each species row: y offset 40px -->
+
+  <!-- Human 393 aa -->
+  <text x="85" y="135" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Human</text>
+  <text x="720" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">393 aa</text>
+  <rect x="180" y="120" width="470" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="180" y="120" width="72" height="22" rx="4" fill="#3b82f6" opacity="0.8"/>
+  <rect x="252" y="120" width="42" height="22" rx="4" fill="#22c55e" opacity="0.8"/>
+  <rect x="294" y="120" width="234" height="22" rx="4" fill="#ef4444" opacity="0.8"/>
+  <rect x="528" y="120" width="48" height="22" rx="4" fill="#eab308" opacity="0.8"/>
+  <rect x="576" y="120" width="40" height="22" rx="4" fill="#8b5cf6" opacity="0.8"/>
+
+  <!-- Mouse 390 aa -->
+  <text x="85" y="175" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Mouse</text>
+  <text x="720" y="175" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">390 aa</text>
+  <rect x="180" y="160" width="466" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="180" y="160" width="72" height="22" rx="4" fill="#3b82f6" opacity="0.8"/>
+  <rect x="252" y="160" width="42" height="22" rx="4" fill="#22c55e" opacity="0.8"/>
+  <rect x="294" y="160" width="230" height="22" rx="4" fill="#ef4444" opacity="0.8"/>
+  <rect x="524" y="160" width="48" height="22" rx="4" fill="#eab308" opacity="0.8"/>
+  <rect x="572" y="160" width="40" height="22" rx="4" fill="#8b5cf6" opacity="0.8"/>
+
+  <!-- Chicken 367 aa -->
+  <text x="85" y="215" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Chicken</text>
+  <text x="720" y="215" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">367 aa</text>
+  <rect x="180" y="200" width="438" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="180" y="200" width="72" height="22" rx="4" fill="#3b82f6" opacity="0.8"/>
+  <rect x="252" y="200" width="42" height="22" rx="4" fill="#22c55e" opacity="0.8"/>
+  <rect x="294" y="200" width="210" height="22" rx="4" fill="#ef4444" opacity="0.8"/>
+  <rect x="504" y="200" width="48" height="22" rx="4" fill="#eab308" opacity="0.8"/>
+  <rect x="552" y="200" width="36" height="22" rx="4" fill="#8b5cf6" opacity="0.8"/>
+
+  <!-- Frog 363 aa -->
+  <text x="85" y="255" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Frog</text>
+  <text x="720" y="255" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">363 aa</text>
+  <rect x="180" y="240" width="434" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="180" y="240" width="72" height="22" rx="4" fill="#3b82f6" opacity="0.8"/>
+  <rect x="294" y="240" width="210" height="22" rx="4" fill="#ef4444" opacity="0.8"/>
+  <rect x="504" y="240" width="48" height="22" rx="4" fill="#eab308" opacity="0.8"/>
+  <rect x="552" y="240" width="36" height="22" rx="4" fill="#8b5cf6" opacity="0.8"/>
+
+  <!-- Zebrafish 373 aa -->
+  <text x="85" y="295" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Zebrafish</text>
+  <text x="720" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">373 aa</text>
+  <rect x="180" y="280" width="446" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="180" y="280" width="72" height="22" rx="4" fill="#3b82f6" opacity="0.8"/>
+  <rect x="294" y="280" width="210" height="22" rx="4" fill="#ef4444" opacity="0.8"/>
+  <rect x="504" y="280" width="48" height="22" rx="4" fill="#eab308" opacity="0.8"/>
+  <rect x="552" y="280" width="36" height="22" rx="4" fill="#8b5cf6" opacity="0.8"/>
+
+  <!-- Fly 385 aa -->
+  <text x="85" y="335" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Fly</text>
+  <text x="720" y="335" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">385 aa</text>
+  <rect x="180" y="320" width="460" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="180" y="320" width="72" height="22" rx="4" fill="#3b82f6" opacity="0.8"/>
+  <rect x="294" y="320" width="210" height="22" rx="4" fill="#ef4444" opacity="0.8"/>
+  <rect x="504" y="320" width="40" height="22" rx="4" fill="#eab308" opacity="0.6"/>
+
+  <!-- Worm 340 aa -->
+  <text x="85" y="375" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Worm</text>
+  <text x="720" y="375" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">340 aa</text>
+  <rect x="180" y="360" width="406" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="294" y="360" width="210" height="22" rx="4" fill="#ef4444" opacity="0.8"/>
+
+  <!-- Yeast* 426 aa -->
+  <text x="85" y="415" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Yeast*</text>
+  <text x="720" y="415" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">426 aa</text>
+  <rect x="180" y="400" width="510" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="180" y="400" width="510" height="22" rx="4" fill="#94a3b8" opacity="0.5"/>
+
+  <!-- Note -->
+  <text x="400" y="455" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">* Yeast RAD9 is not a true ortholog -- checkpoint/BRCT domain shown</text>
+</svg>

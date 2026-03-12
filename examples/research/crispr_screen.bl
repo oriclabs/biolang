@@ -85,7 +85,7 @@ let gene_stats = table(gene_names |> map(|g| {
 let gene_stats = gene_stats |> sort(|a, b| b.median_lfc - a.median_lfc)
 
 println("Gene-level results (ranked by median LFC):")
-gene_stats |> select(["gene", "n_guides", "median_lfc", "fitness_lfc"]) |> println()
+gene_stats |> select("gene", "n_guides", "median_lfc", "fitness_lfc") |> println()
 
 # ── 7. Statistical Testing ──
 println("=== Statistical Testing ===")
@@ -118,10 +118,10 @@ let sensitizer_hits = gene_results
   |> sort("median_lfc")
 
 println("Resistance genes (enriched under drug): ")
-resistance_hits |> select(["gene", "median_lfc", "p_adj"]) |> println()
+resistance_hits |> select("gene", "median_lfc", "p_adj") |> println()
 
 println("Sensitizer genes (depleted under drug): ")
-sensitizer_hits |> select(["gene", "median_lfc", "p_adj"]) |> println()
+sensitizer_hits |> select("gene", "median_lfc", "p_adj") |> println()
 
 # ── 9. Database Annotation of Top Hits ──
 println("=== Database Annotation of Top Hits ===")
@@ -160,7 +160,7 @@ plot({
 
 let guide_matrix = lfc
   |> filter(|r| r.gene != "NT_ctrl")
-  |> select(["sgRNA", "lfc_treat_vs_plasmid", "lfc_untreat_vs_plasmid"])
+  |> select("sgRNA", "lfc_treat_vs_plasmid", "lfc_untreat_vs_plasmid")
 
 heatmap({
   data:   guide_matrix,
@@ -178,10 +178,10 @@ let report_text = [
   "## Plasmid CV: " + cv_plasmid,
   "",
   "## Resistance Hits (LFC > 1, padj < 0.05):",
-  resistance_hits |> select(["gene", "median_lfc", "p_adj"]) |> to_markdown(),
+  resistance_hits |> select("gene", "median_lfc", "p_adj") |> to_markdown(),
   "",
   "## Sensitizer Hits (LFC < -1, padj < 0.05):",
-  sensitizer_hits |> select(["gene", "median_lfc", "p_adj"]) |> to_markdown(),
+  sensitizer_hits |> select("gene", "median_lfc", "p_adj") |> to_markdown(),
   "",
   "## Top Annotation: BRAF — " + braf_info.description,
   "## Reactome pathways involving BRAF: " + len(braf_paths)

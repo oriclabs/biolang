@@ -384,7 +384,7 @@ print(df.describe())</code></pre>
           <div class="p-4">
 <pre class="!m-0 text-sm"><code class="language-biolang">read_fastq("reads.fq")
   |> filter(|r| mean_phred(r.quality) >= 30)
-  |> mutate(gc: |r| gc_content(r.seq))
+  |> mutate("gc", |r| gc_content(r.seq))
   |> select("id", "gc")
   |> describe</code></pre>
           </div>

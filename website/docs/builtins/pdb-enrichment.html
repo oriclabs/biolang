@@ -349,8 +349,8 @@ ora
             <pre><code class="language-biolang"># Prepare ranked gene list (e.g., from differential expression)
 let de_results = tsv("de_results.tsv")
 let ranked = de_results
-  |> mutate(score = |r| r.log2fc * -log10(r.pvalue))
-  |> select(["gene", "score"])
+  |> mutate("score", |r| r.log2fc * -log10(r.pvalue))
+  |> select("gene", "score")
   |> sort_by(|r| -r.score)
 
 let gene_sets = read_gmt("h.all.v2024.1.symbols.gmt")
@@ -425,8 +425,8 @@ sig_ora |> head(10) |> print()
 
 # Rank all genes by signed significance
 let ranked = de
-  |> mutate(score = |r| sign(r.log2fc) * -log10(max(r.pvalue, 1e-300)))
-  |> select(["gene", "score"])
+  |> mutate("score", |r| sign(r.log2fc) * -log10(max(r.pvalue, 1e-300)))
+  |> select("gene", "score")
   |> sort_by(|r| -r.score)
 
 # Load Hallmark gene sets

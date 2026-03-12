@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-74d25212.js";
+            window.path_to_searchindex_js = "searchindex-a55d6aed.js";
         </script>
 
         <!-- Custom JS scripts for mdbook-pdf PDF generation -->
@@ -11351,8 +11351,8 @@ let prov = log_step(prov, "write_results", {
 <p>For a deeper quality check, we compute k-mer profiles. Unusual k-mer distributions can indicate contamination or adapter sequences:</p>
 <pre><code class="language-bio">fn kmer_profile(reads, k) {
     let all_kmers = reads |&gt; map(|r| kmers(r.seq, k)) |&gt; flatten()
-    let kmer_counts = all_kmers |&gt; group_by(|k| k)
-        |&gt; map(|group| {kmer: group.key, count: len(group.values)})
+    let freq = frequencies(all_kmers)
+    let kmer_counts = keys(freq) |&gt; map(|k| {kmer: k, count: freq[k]})
         |&gt; sort(|a, b| b.count - a.count)
     kmer_counts
 }
@@ -11541,7 +11541,7 @@ if current_version != nil then {
 <p><em>Hint</em>: For a single read, complexity can be computed as:</p>
 <pre><code class="language-bio">fn read_complexity(seq, k) {
     let all_k = kmers(seq, k)
-    let unique_k = all_k |&gt; group_by(|k| k) |&gt; len()
+    let unique_k = unique(all_k) |&gt; len()
     unique_k / len(all_k)
 }
 </code></pre>
@@ -11932,15 +11932,12 @@ let samples = sheet_to_samples(sheet)
 <h3 id="group-level-statistics"><a class="header" href="#group-level-statistics">Group-Level Statistics</a></h3>
 <p>For experiments with treatment and control groups, you often want summary statistics <em>per group</em>. BioLang’s <code>group_by</code> and <code>summarize</code> make this straightforward:</p>
 <pre><code class="language-bio">fn summarize_by_group(results) {
-    results |&gt; group_by(|r| r.group) |&gt; map(|entry| {
-        let group_results = entry.values
-        {
-            group: entry.key,
-            n_samples: len(group_results),
-            mean_pass_rate: group_results |&gt; map(|r| r.pass_rate) |&gt; mean(),
-            mean_gc: group_results |&gt; map(|r| r.gc_mean) |&gt; mean(),
-            mean_reads: group_results |&gt; map(|r| r.total_reads) |&gt; mean()
-        }
+    results |&gt; group_by("group") |&gt; summarize(|grp, rows| {
+        group: grp,
+        n_samples: nrow(rows),
+        mean_pass_rate: col_mean(rows, "pass_rate"),
+        mean_gc: col_mean(rows, "gc_mean"),
+        mean_reads: col_mean(rows, "total_reads")
     })
 }
 </code></pre>
@@ -17394,7 +17391,7 @@ nums |&gt; filter(|x| x &gt; 3) # [4, 5]
 </code></pre>
 <h3 id="tables"><a class="header" href="#tables">Tables</a></h3>
 <pre><code class="language-bio">let t = to_table(rows, ["name", "value", "score"])
-t |&gt; select(["name", "score"])
+t |&gt; select("name", "score")
 t |&gt; where(|row| row.score &gt; 0.5)
 t |&gt; mutate("log_score", |row| log2(row.score))
 t |&gt; summarize(|key, rows| {category: key, mean_score: mean(rows |&gt; col("score"))})
@@ -17489,10 +17486,10 @@ h.my_function()
 </thead>
 <tbody>
 <tr><td><code>to_table(rows, columns)</code></td><td>Create table from row data and column names</td></tr>
-<tr><td><code>select(table, columns)</code></td><td>Select columns by name</td></tr>
+<tr><td><code>select(table, "col1", "col2", ...)</code></td><td>Select columns by name</td></tr>
 <tr><td><code>where(table, predicate)</code></td><td>Filter rows by condition</td></tr>
 <tr><td><code>mutate(table, name, func)</code></td><td>Add or transform a column</td></tr>
-<tr><td><code>summarize(table, name, func, col)</code></td><td>Aggregate a column</td></tr>
+<tr><td><code>summarize(grouped, |key, rows| {...})</code></td><td>Aggregate grouped data</td></tr>
 <tr><td><code>join_tables(t1, t2, key)</code></td><td>Join two tables on a key column</td></tr>
 <tr><td><code>group_by(table, column)</code></td><td>Group rows by column value</td></tr>
 <tr><td><code>sort_by(table, column, order)</code></td><td>Sort rows (<code>"asc"</code> or <code>"desc"</code>)</td></tr>

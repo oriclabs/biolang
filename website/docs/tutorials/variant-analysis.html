@@ -161,8 +161,7 @@ let chrom_lengths = {
 
 let counts_list = col(chrom_counts, "count")
 let chroms_list = col(chrom_counts, "chromosome")
-let per_mb = map(counts_list, |c| round(c / 248.0, 2))
-let density = mutate(chrom_counts, "per_mb", per_mb)
+let density = mutate(chrom_counts, "per_mb", |row| round(row.count / 248.0, 2))
 print(density)</code></pre>
 
         <!-- Step 5 -->

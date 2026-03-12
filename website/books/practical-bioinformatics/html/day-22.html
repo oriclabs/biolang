@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-74d25212.js";
+            window.path_to_searchindex_js = "searchindex-a55d6aed.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -600,8 +600,8 @@ let prov = log_step(prov, "write_results", {
 <p>For a deeper quality check, we compute k-mer profiles. Unusual k-mer distributions can indicate contamination or adapter sequences:</p>
 <pre><code class="language-bio">fn kmer_profile(reads, k) {
     let all_kmers = reads |&gt; map(|r| kmers(r.seq, k)) |&gt; flatten()
-    let kmer_counts = all_kmers |&gt; group_by(|k| k)
-        |&gt; map(|group| {kmer: group.key, count: len(group.values)})
+    let freq = frequencies(all_kmers)
+    let kmer_counts = keys(freq) |&gt; map(|k| {kmer: k, count: freq[k]})
         |&gt; sort(|a, b| b.count - a.count)
     kmer_counts
 }
@@ -790,7 +790,7 @@ if current_version != nil then {
 <p><em>Hint</em>: For a single read, complexity can be computed as:</p>
 <pre><code class="language-bio">fn read_complexity(seq, k) {
     let all_k = kmers(seq, k)
-    let unique_k = all_k |&gt; group_by(|k| k) |&gt; len()
+    let unique_k = unique(all_k) |&gt; len()
     unique_k / len(all_k)
 }
 </code></pre>

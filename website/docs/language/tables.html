@@ -127,19 +127,17 @@ let by_name_len = variants |> arrange(|r| len(r.gene))</code></pre>
         </p>
         <pre><code class="language-biolang"># Add a new column
 let enriched = variants
-  |> mutate(log_freq = |r| log10(r.frequency))
+  |> mutate("log_freq", |r| log10(r.frequency))
 
 # Multiple new columns
 let annotated = variants
-  |> mutate(
-    is_rare = |r| r.frequency < 0.01,
-    label = |r| f"{r.gene}:{r.chrom}:{r.position}",
-    severity = |r| if r.impact == "HIGH" { 3 } else { 1 }
-  )
+  |> mutate("is_rare", |r| r.frequency < 0.01)
+  |> mutate("label", |r| f"{r.gene}:{r.chrom}:{r.position}")
+  |> mutate("severity", |r| if r.impact == "HIGH" { 3 } else { 1 })
 
 # Overwrite an existing column
 let updated = variants
-  |> mutate(frequency = |r| round(r.frequency, 4))</code></pre>
+  |> mutate("frequency", |r| round(r.frequency, 4))</code></pre>
 
         <h2>Group By and Summarize</h2>
         <p>
@@ -148,20 +146,22 @@ let updated = variants
         <pre><code class="language-biolang"># Group and summarize
 let by_impact = variants
   |> group_by("impact")
-  |> summarize(
-    count = n(),
-    avg_freq = mean(frequency),
-    max_freq = max(frequency),
-    genes = collect(gene)
-  )
+  |> summarize(|key, rows| {
+    impact: key,
+    count: len(rows),
+    avg_freq: mean(col(rows, "frequency")),
+    max_freq: max(col(rows, "frequency")),
+    genes: col(rows, "gene")
+  })
 
 # Multiple grouping columns
 let by_chrom_impact = variants
-  |> group_by("chrom", "impact")
-  |> summarize(
-    count = n(),
-    total_freq = sum(frequency)
-  )
+  |> group_by("chrom")
+  |> summarize(|chrom, rows| {
+    chrom: chrom,
+    count: len(rows),
+    total_freq: sum(col(rows, "frequency"))
+  })
 
 # Available aggregation functions:
 # n(), sum(), mean(), median(), min(), max(), stdev(), variance(),
@@ -222,27 +222,21 @@ let long = wide |> pivot_longer(
         <pre><code class="language-biolang"># Running average
 let smoothed = signal_data
   |> arrange("position")
-  |> mutate(
-    rm = |r| rolling_mean(r.value, 5),
-    rs = |r| rolling_sum(r.value, 5)
-  )
+  |> mutate("rm", |r| rolling_mean(r.value, 5))
+  |> mutate("rs", |r| rolling_sum(r.value, 5))
 
 # Rank within groups
 let ranked = variants
   |> group_by("chrom")
-  |> mutate(
-    rk = |r| row_number(),
-    cs = |r| cumsum(r.frequency)
-  )
+  |> mutate("rk", |r| row_number())
+  |> mutate("cs", |r| cumsum(r.frequency))
 
 # Lead and lag
 let time_series = data
   |> arrange("timepoint")
-  |> mutate(
-    prev_value = lag(value, 1),
-    next_value = lead(value, 1),
-    delta = value - lag(value, 1)
-  )</code></pre>
+  |> mutate("prev_value", |r| lag(r.value, 1))
+  |> mutate("next_value", |r| lead(r.value, 1))
+  |> mutate("delta", |r| r.value - lag(r.value, 1))</code></pre>
 
         <h2>Distinct and Count</h2>
         <pre><code class="language-biolang"># Unique rows
@@ -282,19 +276,17 @@ let sampled = variants |> sample(100)</code></pre>
         <pre><code class="language-biolang"># Complete analysis pipeline
 let report = read_vcf("cohort.vcf")
   |> filter(|v| v.qual >= 30.0 && v.depth >= 10)
-  |> mutate(
-    af = |v| v.alt_count / v.total_count,
-    is_rare = |v| v.af < 0.01
-  )
+  |> mutate("af", |v| v.alt_count / v.total_count)
+  |> mutate("is_rare", |v| v.af < 0.01)
   |> left_join(gene_annotations, by = "gene")
   |> filter(|v| v.impact == "HIGH" || v.impact == "MODERATE")
-  |> group_by("gene", "impact")
-  |> summarize(
-    variant_count = n(),
-    avg_af = mean(af),
-    rare_count = sum(is_rare),
-    samples = count(distinct(sample_id))
-  )
+  |> group_by("gene")
+  |> summarize(|key, rows| {
+    gene: key,
+    variant_count: len(rows),
+    avg_af: mean(col(rows, "af")),
+    rare_count: rows |> filter(|r| r.is_rare) |> len
+  })
   |> arrange("-variant_count")
   |> head(50)</code></pre>
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-74d25212.js";
+            window.path_to_searchindex_js = "searchindex-a55d6aed.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -272,7 +272,7 @@ nums |&gt; filter(|x| x &gt; 3) # [4, 5]
 </code></pre>
 <h3 id="tables"><a class="header" href="#tables">Tables</a></h3>
 <pre><code class="language-bio">let t = to_table(rows, ["name", "value", "score"])
-t |&gt; select(["name", "score"])
+t |&gt; select("name", "score")
 t |&gt; where(|row| row.score &gt; 0.5)
 t |&gt; mutate("log_score", |row| log2(row.score))
 t |&gt; summarize(|key, rows| {category: key, mean_score: mean(rows |&gt; col("score"))})
@@ -367,10 +367,10 @@ h.my_function()
 </thead>
 <tbody>
 <tr><td><code>to_table(rows, columns)</code></td><td>Create table from row data and column names</td></tr>
-<tr><td><code>select(table, columns)</code></td><td>Select columns by name</td></tr>
+<tr><td><code>select(table, "col1", "col2", ...)</code></td><td>Select columns by name</td></tr>
 <tr><td><code>where(table, predicate)</code></td><td>Filter rows by condition</td></tr>
 <tr><td><code>mutate(table, name, func)</code></td><td>Add or transform a column</td></tr>
-<tr><td><code>summarize(table, name, func, col)</code></td><td>Aggregate a column</td></tr>
+<tr><td><code>summarize(grouped, |key, rows| {...})</code></td><td>Aggregate grouped data</td></tr>
 <tr><td><code>join_tables(t1, t2, key)</code></td><td>Join two tables on a key column</td></tr>
 <tr><td><code>group_by(table, column)</code></td><td>Group rows by column value</td></tr>
 <tr><td><code>sort_by(table, column, order)</code></td><td>Sort rows (<code>"asc"</code> or <code>"desc"</code>)</td></tr>

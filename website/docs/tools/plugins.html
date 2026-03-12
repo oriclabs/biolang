@@ -155,10 +155,11 @@ print(result.significant)
 
 # In a pipeline
 expr_data
-  |> group_by(.gene)
-  |> summarize(
-    let ttest = welch_ttest(.tumor_expr, .normal_expr),
-  )
+  |> group_by("gene")
+  |> summarize(|key, rows| {
+    gene: key,
+    ttest: welch_ttest(col(rows, "tumor_expr"), col(rows, "normal_expr"))
+  })
   |> filter(|r| r.ttest.significant)
   |> print()</code></pre>
 

@@ -1,0 +1,80 @@
+<svg viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+    </marker>
+  </defs>
+  <rect width="800" height="520" rx="12" fill="url(#bg)"/>
+  <text x="400" y="38" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">FASTQ Read Filtering Decision Tree</text>
+  <text x="400" y="58" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Three quality gates: length, quality score, and GC content</text>
+
+  <!-- Raw FASTQ node -->
+  <rect x="310" y="80" width="180" height="44" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="107" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#1e40af">Raw FASTQ</text>
+
+  <!-- Arrow down -->
+  <line x1="400" y1="124" x2="400" y2="158" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Length check diamond -->
+  <polygon points="400,160 510,200 400,240 290,200" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="196" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#854d0e">Length >= 50?</text>
+
+  <!-- No arrow to Discard (left) -->
+  <line x1="290" y1="200" x2="160" y2="200" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)"/>
+  <text x="225" y="192" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#ef4444">No</text>
+
+  <!-- Discard node (left, shared) -->
+  <rect x="60" y="178" width="100" height="44" rx="8" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="110" y="205" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#991b1b">Discard</text>
+
+  <!-- Yes arrow down -->
+  <line x1="400" y1="240" x2="400" y2="274" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <text x="412" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#22c55e">Yes</text>
+
+  <!-- Quality check diamond -->
+  <polygon points="400,276 530,316 400,356 270,316" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="312" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#854d0e">Mean quality >= Q20?</text>
+
+  <!-- No arrow to Discard (left) -->
+  <line x1="270" y1="316" x2="160" y2="316" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)"/>
+  <text x="215" y="308" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#ef4444">No</text>
+
+  <!-- Second Discard node -->
+  <rect x="60" y="294" width="100" height="44" rx="8" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="110" y="321" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#991b1b">Discard</text>
+
+  <!-- Yes arrow down -->
+  <line x1="400" y1="356" x2="400" y2="390" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <text x="412" y="376" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#22c55e">Yes</text>
+
+  <!-- GC check diamond -->
+  <polygon points="400,392 530,432 400,472 270,432" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="428" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#854d0e">GC content 20-80%?</text>
+
+  <!-- No arrow to Discard (left) -->
+  <line x1="270" y1="432" x2="160" y2="432" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)"/>
+  <text x="215" y="424" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#ef4444">No</text>
+
+  <!-- Third Discard node -->
+  <rect x="60" y="410" width="100" height="44" rx="8" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="110" y="437" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#991b1b">Discard</text>
+
+  <!-- Yes arrow right to Keep -->
+  <line x1="530" y1="432" x2="620" y2="432" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <text x="575" y="424" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#22c55e">Yes</text>
+
+  <!-- Keep node -->
+  <rect x="620" y="410" width="150" height="44" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="695" y="430" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#166534">Keep</text>
+  <text x="695" y="446" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#166534">Clean FASTQ</text>
+</svg>

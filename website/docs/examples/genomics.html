@@ -125,19 +125,12 @@ let vcf = read_vcf("variants.vcf.gz")
 
 let density = vcf
   |> filter(|v| { v.filter == "PASS" })
-  |> map(|v| { { chrom: v.chrom, window: (v.pos / 100000) * 100000, pos: v.pos } })
-  |> group_by(|v| f"{v.chrom}:{v.window}")
-  |> map(|key, variants| {
-    let parts = key |> split(":")
-    let chrom = parts |> first
-    let start = parts |> last |> int
-    {
-      chrom: chrom,
-      start: start,
-      end: start + 100000,
-      n_variants: variants |> len,
-      density: variants |> len |> float / 100000.0
-    }
+  |> mutate("window_start", |v| (v.pos / 100000) * 100000)
+  |> group_by("chrom")
+  |> summarize(|chrom, rows| {
+    chrom: chrom,
+    n_variants: len(rows),
+    density: len(rows) |> float / 100000.0
   })
 
 density |> write_tsv("variant_density.tsv")</code></pre>

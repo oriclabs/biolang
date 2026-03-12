@@ -59,7 +59,7 @@ let all_kmers = seqs
     |> flatten()
 
 let kmer_freq = all_kmers
-    |> group_by(|x| x)
+    |> group_by("value")
     |> map(|group| { "kmer": group.key, "count": group.values |> count() })
     |> table()
     |> arrange(desc("count"))

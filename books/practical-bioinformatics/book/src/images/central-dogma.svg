@@ -1,0 +1,103 @@
+<svg viewBox="0 0 800 340" xmlns="http://www.w3.org/2000/svg" style="background: #fff;">
+  <defs>
+    <linearGradient id="cdBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="cdArr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#6b7280"/>
+    </marker>
+    <marker id="cdArrBlue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="cdArrGreen" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#10b981"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="url(#cdBg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="400" y="32" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">The Central Dogma of Molecular Biology</text>
+  <text x="400" y="52" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#64748b">Information flows from DNA to RNA to Protein</text>
+
+  <!-- === DNA Box === -->
+  <rect x="40" y="80" width="200" height="140" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <!-- DNA icon: double helix hint -->
+  <ellipse cx="140" cy="120" rx="50" ry="18" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="140" y="126" text-anchor="middle" font-family="monospace" font-size="16" font-weight="bold" fill="#1e40af">A T C G</text>
+  <text x="140" y="155" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="bold" fill="#1e40af">DNA</text>
+  <text x="140" y="175" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#3b82f6">The Archive</text>
+  <text x="140" y="192" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">Double-stranded</text>
+  <text x="140" y="207" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">Stable, permanent</text>
+
+  <!-- Arrow 1: Transcription -->
+  <line x1="240" y1="150" x2="290" y2="150" stroke="#3b82f6" stroke-width="3" marker-end="url(#cdArrBlue)"/>
+  <text x="265" y="138" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#3b82f6">transcription</text>
+
+  <!-- === RNA Box === -->
+  <rect x="300" y="80" width="200" height="140" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <!-- RNA icon: single strand hint -->
+  <path d="M365,110 Q380,100 395,110 Q410,120 425,110" stroke="#f59e0b" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <text x="400" y="126" text-anchor="middle" font-family="monospace" font-size="16" font-weight="bold" fill="#92400e">A U C G</text>
+  <text x="400" y="155" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="bold" fill="#92400e">RNA</text>
+  <text x="400" y="175" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#d97706">The Messenger</text>
+  <text x="400" y="192" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">Single-stranded</text>
+  <text x="400" y="207" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">Temporary copy</text>
+
+  <!-- Arrow 2: Translation -->
+  <line x1="500" y1="150" x2="550" y2="150" stroke="#10b981" stroke-width="3" marker-end="url(#cdArrGreen)"/>
+  <text x="525" y="138" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#10b981">translation</text>
+
+  <!-- === Protein Box === -->
+  <rect x="560" y="80" width="200" height="140" rx="12" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+  <!-- Protein icon: folded blob -->
+  <path d="M635,105 Q645,95 660,100 Q675,92 680,105 Q690,110 685,120 Q680,128 665,125 Q655,130 645,123 Q633,120 635,105Z" fill="#a7f3d0" stroke="#10b981" stroke-width="1.5"/>
+  <text x="660" y="155" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="bold" fill="#065f46">Protein</text>
+  <text x="660" y="175" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#059669">The Worker</text>
+  <text x="660" y="192" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">20 amino acids</text>
+  <text x="660" y="207" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">3D folded machine</text>
+
+  <!-- === Concrete Example === -->
+  <rect x="40" y="245" width="720" height="75" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="60" y="270" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#0f172a">Example:</text>
+
+  <!-- DNA row -->
+  <text x="60" y="292" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#1e40af">DNA</text>
+  <text x="110" y="292" font-family="monospace" font-size="13" fill="#1e40af">5'-</text>
+  <text x="132" y="292" font-family="monospace" font-size="13" font-weight="bold" fill="#1e40af">ATG</text>
+  <text x="162" y="292" font-family="monospace" font-size="13" fill="#1e40af">-</text>
+  <text x="170" y="292" font-family="monospace" font-size="13" font-weight="bold" fill="#1e40af">CGG</text>
+  <text x="200" y="292" font-family="monospace" font-size="13" fill="#1e40af">-</text>
+  <text x="208" y="292" font-family="monospace" font-size="13" font-weight="bold" fill="#1e40af">TCT</text>
+  <text x="238" y="292" font-family="monospace" font-size="13" fill="#1e40af">-3'</text>
+
+  <!-- Arrow -->
+  <line x1="275" y1="288" x2="310" y2="288" stroke="#3b82f6" stroke-width="2" marker-end="url(#cdArrBlue)"/>
+
+  <!-- RNA row -->
+  <text x="325" y="292" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#92400e">RNA</text>
+  <text x="365" y="292" font-family="monospace" font-size="13" font-weight="bold" fill="#92400e">AUG</text>
+  <text x="395" y="292" font-family="monospace" font-size="13" fill="#92400e">-</text>
+  <text x="403" y="292" font-family="monospace" font-size="13" font-weight="bold" fill="#92400e">CGG</text>
+  <text x="433" y="292" font-family="monospace" font-size="13" fill="#92400e">-</text>
+  <text x="441" y="292" font-family="monospace" font-size="13" font-weight="bold" fill="#92400e">UCU</text>
+
+  <!-- Arrow -->
+  <line x1="480" y1="288" x2="515" y2="288" stroke="#10b981" stroke-width="2" marker-end="url(#cdArrGreen)"/>
+
+  <!-- Protein row -->
+  <text x="530" y="292" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#065f46">Protein</text>
+  <rect x="590" y="277" width="30" height="20" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="605" y="292" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#065f46">M</text>
+  <rect x="626" y="277" width="30" height="20" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="641" y="292" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#065f46">R</text>
+  <rect x="662" y="277" width="30" height="20" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="677" y="292" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#065f46">S</text>
+
+  <!-- Codon labels -->
+  <text x="146" y="310" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#94a3b8">Met</text>
+  <text x="184" y="310" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#94a3b8">Arg</text>
+  <text x="222" y="310" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#94a3b8">Ser</text>
+</svg>

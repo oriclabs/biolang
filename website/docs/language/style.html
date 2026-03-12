@@ -185,7 +185,7 @@ fn analyze(sample) {
   # Filter and transform
   let processed = validated
     |> filter(|r| r.score > 0)
-    |> mutate(normalized = |r| r.score / max_score)
+    |> mutate("normalized", |r| r.score / max_score)
 
   # Output
   write_csv(processed, sample.output)

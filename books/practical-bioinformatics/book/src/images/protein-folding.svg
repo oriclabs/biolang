@@ -1,0 +1,175 @@
+<svg viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg" style="background: #fff;">
+  <defs>
+    <linearGradient id="protBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="parr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="520" fill="url(#protBg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="400" y="36" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">How a Protein Takes Shape</text>
+  <text x="400" y="56" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#64748b">Sequence → Structure → Function (and how mutations break it)</text>
+
+  <!-- === STEP 1: Translation === -->
+  <rect x="20" y="75" width="370" height="175" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <rect x="20" y="75" width="370" height="30" rx="10" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+  <rect x="20" y="95" width="370" height="10" fill="#dbeafe" stroke="none"/>
+  <text x="205" y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#1e40af">Step 1: Translation</text>
+
+  <!-- mRNA codons -->
+  <text x="40" y="130" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">mRNA codons:</text>
+  <rect x="40" y="138" width="48" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="64" y="155" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#92400e">AUG</text>
+  <rect x="96" y="138" width="48" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="120" y="155" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#92400e">GCU</text>
+  <rect x="152" y="138" width="48" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="176" y="155" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#92400e">AAC</text>
+  <rect x="208" y="138" width="48" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="232" y="155" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#92400e">GAU</text>
+  <rect x="264" y="138" width="48" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="288" y="155" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#92400e">CCU</text>
+  <rect x="320" y="138" width="48" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="344" y="155" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#92400e">AAA</text>
+
+  <!-- Arrows down -->
+  <line x1="64" y1="162" x2="64" y2="182" stroke="#6b7280" stroke-width="1.5" marker-end="url(#parr)"/>
+  <line x1="120" y1="162" x2="120" y2="182" stroke="#6b7280" stroke-width="1.5" marker-end="url(#parr)"/>
+  <line x1="176" y1="162" x2="176" y2="182" stroke="#6b7280" stroke-width="1.5" marker-end="url(#parr)"/>
+  <line x1="232" y1="162" x2="232" y2="182" stroke="#6b7280" stroke-width="1.5" marker-end="url(#parr)"/>
+  <line x1="288" y1="162" x2="288" y2="182" stroke="#6b7280" stroke-width="1.5" marker-end="url(#parr)"/>
+  <line x1="344" y1="162" x2="344" y2="182" stroke="#6b7280" stroke-width="1.5" marker-end="url(#parr)"/>
+
+  <!-- Amino acids -->
+  <text x="40" y="200" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">Amino acids:</text>
+  <rect x="40" y="205" width="30" height="26" rx="5" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="55" y="223" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#065f46">M</text>
+  <line x1="70" y1="218" x2="90" y2="218" stroke="#94a3b8" stroke-width="2"/>
+  <rect x="90" y="205" width="30" height="26" rx="5" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="105" y="223" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#065f46">A</text>
+  <line x1="120" y1="218" x2="140" y2="218" stroke="#94a3b8" stroke-width="2"/>
+  <rect x="140" y="205" width="30" height="26" rx="5" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="155" y="223" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#065f46">N</text>
+  <line x1="170" y1="218" x2="190" y2="218" stroke="#94a3b8" stroke-width="2"/>
+  <rect x="190" y="205" width="30" height="26" rx="5" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="205" y="223" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#065f46">D</text>
+  <line x1="220" y1="218" x2="240" y2="218" stroke="#94a3b8" stroke-width="2"/>
+  <rect x="240" y="205" width="30" height="26" rx="5" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="255" y="223" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#065f46">P</text>
+  <line x1="270" y1="218" x2="290" y2="218" stroke="#94a3b8" stroke-width="2"/>
+  <rect x="290" y="205" width="30" height="26" rx="5" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="305" y="223" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#065f46">K</text>
+  <text x="336" y="223" font-family="monospace" font-size="14" fill="#94a3b8">...</text>
+
+  <!-- === STEP 2: Folding === -->
+  <rect x="410" y="75" width="370" height="175" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <rect x="410" y="75" width="370" height="30" rx="10" fill="#fce7f3" stroke="#f9a8d4" stroke-width="1"/>
+  <rect x="410" y="95" width="370" height="10" fill="#fce7f3" stroke="none"/>
+  <text x="595" y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#9d174d">Step 2: Folding</text>
+
+  <!-- Linear chain -->
+  <text x="430" y="125" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">Linear chain:</text>
+  <line x1="430" y1="135" x2="750" y2="135" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="440" cy="135" r="4" fill="#065f46"/>
+  <circle cx="500" cy="135" r="4" fill="#065f46"/>
+  <circle cx="560" cy="135" r="4" fill="#065f46"/>
+  <circle cx="620" cy="135" r="4" fill="#065f46"/>
+  <circle cx="680" cy="135" r="4" fill="#065f46"/>
+  <circle cx="740" cy="135" r="4" fill="#065f46"/>
+
+  <!-- Arrow -->
+  <text x="595" y="160" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#6b7280">folds into 3D shape ↓</text>
+
+  <!-- Folded protein blob -->
+  <ellipse cx="520" cy="210" rx="65" ry="35" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+  <path d="M480,195 Q490,180 510,190 Q530,175 540,195 Q555,185 560,200 Q570,210 555,220 Q545,235 525,230 Q510,240 495,225 Q478,220 480,195Z" fill="#a7f3d0" stroke="#10b981" stroke-width="1.5"/>
+  <!-- Active site pocket -->
+  <path d="M525,195 L535,205 L525,215 L515,205Z" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="525" y="209" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#92400e">site</text>
+
+  <!-- Labels -->
+  <text x="640" y="195" font-family="system-ui, sans-serif" font-size="11" fill="#334155">Each amino acid's</text>
+  <text x="640" y="210" font-family="system-ui, sans-serif" font-size="11" fill="#334155">chemistry determines</text>
+  <text x="640" y="225" font-family="system-ui, sans-serif" font-size="11" fill="#334155">where it ends up</text>
+  <text x="640" y="240" font-family="system-ui, sans-serif" font-size="11" fill="#64748b">(hydrophobic → inside)</text>
+
+  <!-- === STEP 3: Function === -->
+  <rect x="20" y="270" width="370" height="230" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <rect x="20" y="270" width="370" height="30" rx="10" fill="#d1fae5" stroke="#6ee7b7" stroke-width="1"/>
+  <rect x="20" y="290" width="370" height="10" fill="#d1fae5" stroke="none"/>
+  <text x="205" y="291" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#065f46">Step 3: Function (correct shape)</text>
+
+  <!-- Working enzyme -->
+  <ellipse cx="140" cy="380" rx="70" ry="45" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+  <path d="M120,360 Q130,345 145,355 Q160,340 165,360 Q180,350 180,370 Q190,380 175,390 Q170,405 150,400 Q135,410 125,395 Q108,390 115,375Z" fill="#a7f3d0" stroke="#10b981" stroke-width="1.5"/>
+
+  <!-- Active site with substrate fitting -->
+  <path d="M148,368 L158,378 L148,388 L138,378Z" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+
+  <!-- Substrate -->
+  <path d="M155,371 L162,378 L155,385" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"/>
+  <text x="175" y="382" font-family="system-ui, sans-serif" font-size="10" fill="#92400e">substrate</text>
+
+  <!-- Arrow showing fit -->
+  <line x1="200" y1="365" x2="168" y2="372" stroke="#10b981" stroke-width="1.5" marker-end="url(#parr)"/>
+  <text x="210" y="362" font-family="system-ui, sans-serif" font-size="11" fill="#10b981" font-weight="bold">fits!</text>
+
+  <!-- Description -->
+  <text x="245" y="340" font-family="system-ui, sans-serif" font-size="12" fill="#334155" font-weight="bold">Shape = Function</text>
+  <circle cx="250" cy="360" r="3" fill="#10b981"/>
+  <text x="260" y="365" font-family="system-ui, sans-serif" font-size="11" fill="#334155">Substrate fits the active site</text>
+  <circle cx="250" cy="380" r="3" fill="#10b981"/>
+  <text x="260" y="385" font-family="system-ui, sans-serif" font-size="11" fill="#334155">Like a key fitting a lock</text>
+  <circle cx="250" cy="400" r="3" fill="#10b981"/>
+  <text x="260" y="405" font-family="system-ui, sans-serif" font-size="11" fill="#334155">Reaction happens → life works</text>
+
+  <!-- Check mark -->
+  <circle cx="140" cy="450" r="16" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+  <path d="M131,450 L137,456 L150,443" stroke="#10b981" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="170" y="455" font-family="system-ui, sans-serif" font-size="12" fill="#10b981" font-weight="bold">Healthy cell</text>
+
+  <!-- === STEP 4: Mutation === -->
+  <rect x="410" y="270" width="370" height="230" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <rect x="410" y="270" width="370" height="30" rx="10" fill="#fee2e2" stroke="#fca5a5" stroke-width="1"/>
+  <rect x="410" y="290" width="370" height="10" fill="#fee2e2" stroke="none"/>
+  <text x="595" y="291" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#991b1b">Step 4: Mutation (wrong shape)</text>
+
+  <!-- Misfolded protein -->
+  <ellipse cx="530" cy="380" rx="70" ry="45" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <path d="M505,355 Q520,340 535,360 Q555,345 560,365 Q575,355 575,375 Q585,390 565,395 Q560,415 540,405 Q520,415 510,398 Q495,395 500,378Z" fill="#fecaca" stroke="#dc2626" stroke-width="1.5"/>
+
+  <!-- Broken active site -->
+  <path d="M540,370 L548,382 L536,390 L528,378Z" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+  <!-- Substrate bouncing off -->
+  <path d="M555,373 L562,380 L555,387" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"/>
+  <text x="570" y="370" font-family="system-ui, sans-serif" font-size="18" fill="#dc2626" font-weight="bold">✕</text>
+  <text x="575" y="395" font-family="system-ui, sans-serif" font-size="10" fill="#991b1b">can't fit!</text>
+
+  <!-- Mutation marker -->
+  <circle cx="515" cy="370" r="8" fill="#dc2626"/>
+  <text x="515" y="374" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#fff">H</text>
+  <text x="490" y="353" font-family="monospace" font-size="10" fill="#dc2626">R175H</text>
+
+  <!-- Description -->
+  <text x="635" y="340" font-family="system-ui, sans-serif" font-size="12" fill="#334155" font-weight="bold">One mutation =</text>
+  <circle cx="640" cy="360" r="3" fill="#dc2626"/>
+  <text x="650" y="365" font-family="system-ui, sans-serif" font-size="11" fill="#334155">Wrong amino acid</text>
+  <circle cx="640" cy="380" r="3" fill="#dc2626"/>
+  <text x="650" y="385" font-family="system-ui, sans-serif" font-size="11" fill="#334155">Protein misfolds</text>
+  <circle cx="640" cy="400" r="3" fill="#dc2626"/>
+  <text x="650" y="405" font-family="system-ui, sans-serif" font-size="11" fill="#334155">Active site distorted</text>
+  <circle cx="640" cy="420" r="3" fill="#dc2626"/>
+  <text x="650" y="425" font-family="system-ui, sans-serif" font-size="11" fill="#334155">Function lost → disease</text>
+
+  <!-- X mark -->
+  <circle cx="530" cy="450" r="16" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <line x1="522" y1="442" x2="538" y2="458" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
+  <line x1="538" y1="442" x2="522" y2="458" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
+  <text x="560" y="455" font-family="system-ui, sans-serif" font-size="12" fill="#dc2626" font-weight="bold">Cancer (TP53 R175H)</text>
+</svg>

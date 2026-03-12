@@ -1,0 +1,69 @@
+<svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="380" rx="12" fill="url(#bg)"/>
+  <text x="400" y="35" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="bold" fill="#0f172a">Reproducible Pipeline DAG</text>
+
+  <!-- Main pipeline (top) -->
+  <!-- Raw FASTQ -->
+  <rect x="30" y="70" width="120" height="36" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="90" y="93" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="#1e40af">Raw FASTQ</text>
+
+  <!-- Quality Filter -->
+  <line x1="150" y1="88" x2="195" y2="88" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="200" y="70" width="130" height="36" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="265" y="93" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="#166534">Quality Filter</text>
+
+  <!-- Compute Stats -->
+  <line x1="330" y1="88" x2="365" y2="88" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="370" y="70" width="130" height="36" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="435" y="93" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="#166534">Compute Stats</text>
+
+  <!-- Branch: GC Analysis -->
+  <line x1="500" y1="80" x2="545" y2="60" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="550" y="40" width="120" height="36" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="610" y="63" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="#6b21a8">GC Analysis</text>
+
+  <!-- Branch: Length Analysis -->
+  <line x1="500" y1="96" x2="545" y2="116" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="550" y="100" width="140" height="36" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="620" y="123" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="#6b21a8">Length Analysis</text>
+
+  <!-- Converge: Summary Report -->
+  <line x1="670" y1="58" x2="705" y2="88" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="690" y1="118" x2="705" y2="98" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="710" y="72" width="60" height="42" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="740" y="90" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#854d0e">Summary</text>
+  <text x="740" y="103" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#854d0e">Report</text>
+
+  <!-- Provenance sidecars (bottom) -->
+  <text x="400" y="180" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="bold" fill="#64748b">Provenance Sidecars</text>
+  <line x1="100" y1="188" x2="700" y2="188" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4"/>
+
+  <!-- Checksum Input -->
+  <line x1="90" y1="106" x2="90" y2="195" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4"/>
+  <rect x="30" y="200" width="130" height="36" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="95" y="223" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#854d0e">Checksum Input</text>
+
+  <!-- Checksum Output -->
+  <line x1="740" y1="114" x2="740" y2="195" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4"/>
+  <rect x="670" y="200" width="130" height="36" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="735" y="223" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#854d0e">Checksum Output</text>
+
+  <!-- Provenance Log -->
+  <line x1="160" y1="218" x2="335" y2="280" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="670" y1="218" x2="465" y2="280" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="340" y="270" width="130" height="40" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="405" y="295" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="bold" fill="#6b21a8">Provenance Log</text>
+
+  <!-- Footer note -->
+  <rect x="100" y="335" width="600" height="32" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="400" y="356" text-anchor="middle" font-family="system-ui" font-size="12" fill="#64748b">Provenance sidecars run alongside analysis -- they make results reproducible</text>
+</svg>

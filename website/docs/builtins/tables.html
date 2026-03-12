@@ -93,10 +93,11 @@ summarize(grouped, aggregations) -> table</code></pre>
 
 counts
   |> group_by("sample")
-  |> summarize({
-    "total_reads": |g| sum(g.count),
-    "num_genes":   |g| len(unique(g.gene)),
-    "mean_count":  |g| mean(g.count)
+  |> summarize(|key, rows| {
+    sample: key,
+    total_reads: sum(col(rows, "count")),
+    num_genes: len(unique(col(rows, "gene"))),
+    mean_count: mean(col(rows, "count"))
   })</code></pre>
         </section>
 

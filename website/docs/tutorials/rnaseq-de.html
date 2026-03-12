@@ -121,9 +121,11 @@ print(f"Genes after filtering: {nrow(expressed)}")</code></pre>
 # CPM normalization (Counts Per Million)
 # Apply CPM to each sample column
 let cpm_table = expressed
-for s in sample_cols {
-  let vals = col(expressed, s)
-  cpm_table = mutate(cpm_table, s, cpm(vals))
+let total_reads = sample_cols |> map(|s| sum(col(expressed, s)))
+for i in range(0, len(sample_cols)) {
+  let s = sample_cols[i]
+  let total = total_reads[i]
+  cpm_table = mutate(cpm_table, s, |row| row[s] / total * 1_000_000.0)
 }
 
 print("CPM matrix:")
@@ -138,8 +140,15 @@ let lengths = col(with_lengths, "length")
 
 let tpm_table = with_lengths
 for s in sample_cols {
-  let vals = col(with_lengths, s)
-  tpm_table = mutate(tpm_table, s, tpm(vals, lengths))
+  tpm_table = mutate(tpm_table, s, |row| {
+    let rpk = row[s] / (row.length / 1000.0)
+    rpk
+  })
+}
+# Normalize RPK values to per-million
+for s in sample_cols {
+  let total_rpk = sum(col(tpm_table, s))
+  tpm_table = mutate(tpm_table, s, |row| row[s] / total_rpk * 1_000_000.0)
 }
 
 print("\nTPM matrix:")
@@ -148,8 +157,7 @@ print(head(tpm_table, 3))
 # Log2 transform for visualization
 let log_cpm = cpm_table
 for s in sample_cols {
-  let vals = col(cpm_table, s)
-  log_cpm = mutate(log_cpm, s, map(vals, |v| log2(v + 1.0)))
+  log_cpm = mutate(log_cpm, s, |row| log2(row[s] + 1.0))
 }
 
 # Check the distribution
@@ -192,8 +200,7 @@ let bh = de_results  # Already has FDR via Benjamini-Hochberg (default)
 # Apply Bonferroni for comparison
 let n_genes = nrow(de_results)
 let pvals = col(de_results, "pvalue")
-let bonf_pvals = map(pvals, |p| min(p * n_genes, 1.0))
-let bonf = mutate(de_results, "bonf_pvalue", bonf_pvals)
+let bonf = mutate(de_results, "bonf_pvalue", |row| min(row.pvalue * n_genes, 1.0))
 
 # Compare methods
 let n_bh = nrow(filter(bh, |row| row["fdr"] < 0.05))
@@ -203,9 +210,8 @@ print("Significant genes (FDR<0.05):")
 print(f"  Benjamini-Hochberg: {n_bh}")
 print(f"  Bonferroni:         {n_bonf}")
 
-# Q-value approach
-let qvalues = p_adjust(col(de_results, "pvalue"), "bh")
-let de_with_q = mutate(de_results, "qvalue", qvalues)
+# Q-value approach (same as BH FDR)
+let de_with_q = mutate(de_results, "qvalue", |row| row.fdr)
 </code></pre>
 
         <!-- Step 6 -->
@@ -249,8 +255,9 @@ let heatmap_data = log_cpm
 # Z-score normalize each sample column for visualization
 let z_scored = heatmap_data
 for s in sample_cols {
-  let vals = col(heatmap_data, s)
-  z_scored = mutate(z_scored, s, normalize(vals, "zscore"))
+  let m = mean(col(heatmap_data, s))
+  let sd = stdev(col(heatmap_data, s))
+  z_scored = mutate(z_scored, s, |row| (row[s] - m) / sd)
 }
 
 # Generate heatmap

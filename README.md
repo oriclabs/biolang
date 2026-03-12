@@ -150,9 +150,9 @@ translate(rna_seq)     # Protein(MH)
 let samples = read_tsv("samples.tsv")
 samples
   |> filter(|r| r.depth > 30)
-  |> mutate(pass_rate: |r| r.passing / r.total * 100)
-  |> group_by(|r| r.cohort)
-  |> summarize(mean_depth: |g| mean(g.depth))
+  |> mutate("pass_rate", |r| r.passing / r.total * 100)
+  |> group_by("cohort")
+  |> summarize(|key, rows| { mean_depth: mean(col(rows, "depth")) })
   |> arrange("-mean_depth")
   |> print()
 ```
@@ -260,40 +260,20 @@ reads |> map(|r| gc_content(r.seq)) |> histogram("GC Content")
 
 ## Benchmarks
 
-BioLang vs Python (BioPython) vs R (Bioconductor) on 30 bioinformatics tasks -- synthetic and real-world data.
+Benchmarked against Python (BioPython) and R (Bioconductor) on 30 bioinformatics tasks using real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E. coli K-12, S. cerevisiae, ClinVar) with 9-task three-way comparison.
 
-### Linux (WSL2) -- Intel i9-12900K, 16 GB RAM, BioLang 0.2.1, Python 3.12.3, R 4.3.3
-
-| Task | BioLang | Python | R | BL vs Py |
-|---|---|---|---|---|
-| FASTA Small (30 KB) | 0.138s | 0.926s | 1.243s | **6.7x** |
-| FASTA gzipped (1.3 MB) | 0.141s | 0.930s | 1.327s | **6.6x** |
-| Protein K-mers | 0.191s | 1.331s | 1.298s | **7.0x** |
-| ENCODE Peak Overlap | 0.363s | 2.574s | -- | **7.1x** |
-| E. coli Genome | 0.176s | 1.081s | 1.354s | **6.1x** |
-| GC Content (51 MB) | 0.830s | 2.771s | 2.358s | **3.3x** |
-| K-mer Counting (21-mers) | 6.551s | 21.01s | -- | **3.2x** |
-| Chr22 21-mer Count (51 MB) | 10.72s | 28.73s | -- | **2.7x** |
-| FASTQ QC Pipeline | 2.349s | 5.059s | -- | **2.2x** |
-| VCF Filtering | 0.349s | 0.166s | 6.312s | Py 2.1x |
-| CSV Join + Group-by | 0.281s | 0.156s | 0.312s | Py 1.8x |
-
-### Windows 11 -- Intel i9-12900K, 32 GB RAM, BioLang 0.2.1, Python 3.12.4
-
-| Task | BioLang | Python | BL vs Py |
+| Task | BioLang | Python | Speedup |
 |---|---|---|---|
-| K-mer Counting (21-mers) | 6.04s | 18.14s | **3.0x** |
-| ENCODE Peak Overlap | 1.03s | 3.03s | **2.9x** |
-| Chr22 21-mer Count (51 MB) | 9.08s | 24.24s | **2.7x** |
-| FASTQ QC Pipeline | 2.03s | 5.06s | **2.5x** |
-| FASTQ (26 MB) | 1.02s | 2.05s | **2.0x** |
-| FASTQ QC | 2.02s | 3.04s | **1.5x** |
+| ENCODE Peak Overlap | 0.363s | 2.574s | **7.1x** |
+| Protein K-mers | 0.191s | 1.331s | **7.0x** |
+| FASTA Parse (30 KB) | 0.138s | 0.926s | **6.7x** |
+| E. coli Genome | 0.176s | 1.081s | **6.1x** |
+| GC Content (51 MB) | 0.830s | 2.771s | **3.3x** |
+| K-mer Counting (21-mers) | 6.551s | 21.01s | **3.2x** |
 
-Windows process creation adds ~1s overhead per invocation, compressing ratios for fast benchmarks. See Linux results for accurate algorithmic comparison.
+Linux (WSL2), Intel i9-12900K. Python wins on VCF/CSV text parsing (optimized C extensions). BioLang scripts average **50-70% fewer lines** of code.
 
-BioLang scripts average **50-70% fewer lines** than equivalent Python. K-mer counting uses native 2-bit DNA encoding with canonical (strand-agnostic) counting -- strictly more work than Python's forward-only approach.
-
-See [`benchmarks/`](benchmarks/) for full suite with 30 benchmarks, platform-specific reports, methodology, and reproducible scripts.
+See the [full benchmark results](https://oriclabs.github.io/biolang/benchmarks.html) for all 30 tasks across Linux and Windows, methodology, and correctness validation. Raw data and reproducible scripts in [`benchmarks/`](benchmarks/).
 
 ## Releases
 

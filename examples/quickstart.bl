@@ -34,7 +34,7 @@ print("\nGenes in expression matrix: " + str(nrow(counts)))
 
 # Show top 5 genes by control mean expression
 counts
-  |> mutate(|row| {ctrl_mean: mean([row.CTRL_1, row.CTRL_2, row.CTRL_3])})
+  |> mutate("ctrl_mean", |row| mean([row.CTRL_1, row.CTRL_2, row.CTRL_3]))
   |> sort_by(|row| row.ctrl_mean)
   |> reverse()
   |> take(5)

@@ -111,7 +111,7 @@ nums |> filter(|x| x > 3) # [4, 5]
 
 ```bio
 let t = to_table(rows, ["name", "value", "score"])
-t |> select(["name", "score"])
+t |> select("name", "score")
 t |> where(|row| row.score > 0.5)
 t |> mutate("log_score", |row| log2(row.score))
 t |> summarize(|key, rows| {category: key, mean_score: mean(rows |> col("score"))})
@@ -198,10 +198,10 @@ h.my_function()
 | Function | Description |
 |----------|-------------|
 | `to_table(rows, columns)` | Create table from row data and column names |
-| `select(table, columns)` | Select columns by name |
+| `select(table, "col1", "col2", ...)` | Select columns by name |
 | `where(table, predicate)` | Filter rows by condition |
 | `mutate(table, name, func)` | Add or transform a column |
-| `summarize(table, name, func, col)` | Aggregate a column |
+| `summarize(grouped, \|key, rows\| {...})` | Aggregate grouped data |
 | `join_tables(t1, t2, key)` | Join two tables on a key column |
 | `group_by(table, column)` | Group rows by column value |
 | `sort_by(table, column, order)` | Sort rows (`"asc"` or `"desc"`) |

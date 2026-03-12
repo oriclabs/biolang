@@ -241,12 +241,13 @@ let amr = tsv("amr_results.tsv")
 
 # Summarize by drug class
 let by_class = amr
-  |> group_by(|x| x.drug_class)
-  |> summarize(
-    n_genes: |rows| { rows |> map(|x| x.gene) |> unique |> len },
-    total_rpkm: |rows| { rows |> map(|x| x.rpkm) |> sum },
-    samples_present: |rows| { rows |> map(|x| x.sample) |> unique |> len }
-  )
+  |> group_by("drug_class")
+  |> summarize(|drug_class, rows| {
+    drug_class: drug_class,
+    n_genes: rows |> map(|x| x.gene) |> unique |> len,
+    total_rpkm: rows |> map(|x| x.rpkm) |> sum,
+    samples_present: rows |> map(|x| x.sample) |> unique |> len
+  })
   |> sort_by(|a, b| b.total_rpkm - a.total_rpkm)
 
 print("AMR Gene Summary by Drug Class:")

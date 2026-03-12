@@ -136,8 +136,8 @@ fn quality_tier(mean_q: Float) -> String {
 # Count reads by quality tier
 let tier_counts = passing_reads
   |> map(|r| quality_tier(r["mean_quality"]))
-  |> group_by(|t| t)
-  |> map(|group| { "key": group["key"], "count": len(group["values"]) })
+  |> group_by("_value")
+  |> summarize(|key, rows| { key: key, count: len(rows) })
 
 print("Quality tiers:")
 for tier, count in tier_counts {

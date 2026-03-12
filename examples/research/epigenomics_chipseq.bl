@@ -194,7 +194,7 @@ let track = genome_track({data: myc_peaks, title: "H3K27ac at MYC locus (chr8)"}
 save_svg(track, "output/myc_h3k27ac_track.svg")
 
 # Hockey-stick rank plot for super-enhancer calling
-let rank_data = peaks |> sort(|a, b| a.signal - b.signal) |> select(["id", "signal"])
+let rank_data = peaks |> sort(|a, b| a.signal - b.signal) |> select("id", "signal")
 let rank_svg = plot({x: rank_data |> map(|r| r.id), y: rank_data |> map(|r| r.signal),
     title: "H3K27ac Signal Rank Plot (Super-Enhancer Cutoff)"})
 save_svg(rank_svg, "output/se_rank_plot.svg")

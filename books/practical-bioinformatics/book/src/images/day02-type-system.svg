@@ -1,0 +1,62 @@
+<svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" style="background: #fff;">
+  <defs>
+    <linearGradient id="tsBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="380" fill="url(#tsBg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="400" y="32" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">BioLang Type System</text>
+  <text x="400" y="52" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Everything is a value. No null surprises. Bio types know what they are.</text>
+
+  <!-- Column 1: Primitives (blue) -->
+  <rect x="30" y="75" width="230" height="195" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="145" y="98" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#1e40af">Primitives</text>
+  <line x1="50" y1="108" x2="240" y2="108" stroke="#93c5fd" stroke-width="1"/>
+  <text x="60" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af" font-weight="bold">Int</text>
+  <text x="180" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e3a8a">42</text>
+  <text x="60" y="155" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af" font-weight="bold">Float</text>
+  <text x="180" y="155" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e3a8a">3.14</text>
+  <text x="60" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af" font-weight="bold">Str</text>
+  <text x="180" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e3a8a">"BRCA1"</text>
+  <text x="60" y="201" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af" font-weight="bold">Bool</text>
+  <text x="180" y="201" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e3a8a">true</text>
+  <text x="60" y="224" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e40af" font-weight="bold">Nil</text>
+  <text x="180" y="224" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#1e3a8a">nil</text>
+
+  <!-- Column 2: Bio Types (green) -->
+  <rect x="285" y="75" width="230" height="195" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="400" y="98" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#166534">Bio Types</text>
+  <line x1="305" y1="108" x2="495" y2="108" stroke="#86efac" stroke-width="1"/>
+  <text x="315" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534" font-weight="bold">DNA</text>
+  <text x="420" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#14532d">dna"ATCG"</text>
+  <text x="315" y="155" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534" font-weight="bold">RNA</text>
+  <text x="420" y="155" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#14532d">rna"AUCG"</text>
+  <text x="315" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#166534" font-weight="bold">Protein</text>
+  <text x="420" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#14532d">protein"MK"</text>
+  <text x="400" y="215" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-style="italic" fill="#15803d">First-class,</text>
+  <text x="400" y="232" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-style="italic" fill="#15803d">not strings!</text>
+
+  <!-- Column 3: Collections (amber) -->
+  <rect x="540" y="75" width="230" height="195" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="655" y="98" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#854d0e">Collections</text>
+  <line x1="560" y1="108" x2="750" y2="108" stroke="#fde047" stroke-width="1"/>
+  <text x="570" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e" font-weight="bold">List</text>
+  <text x="680" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#713f12">[1, 2, 3]</text>
+  <text x="570" y="155" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e" font-weight="bold">Record</text>
+  <text x="680" y="155" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#713f12">{a: 1}</text>
+  <text x="570" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e" font-weight="bold">Table</text>
+  <text x="680" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#713f12">(rows+cols)</text>
+  <text x="570" y="201" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e" font-weight="bold">Set</text>
+  <text x="680" y="201" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#713f12">set(list)</text>
+  <text x="570" y="224" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#854d0e" font-weight="bold">Map</text>
+  <text x="680" y="224" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#713f12">map()</text>
+
+  <!-- Row 2: Special (purple) -->
+  <rect x="200" y="295" width="400" height="55" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="400" y="318" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#5b21b6">Special</text>
+  <text x="400" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#6d28d9">Stream    Interval    Regex    Range</text>
+</svg>

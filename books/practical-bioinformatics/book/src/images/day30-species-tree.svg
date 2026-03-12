@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" rx="12" fill="url(#bg)"/>
+  <text x="400" y="35" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">Species Tree</text>
+  <text x="400" y="55" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Approximate divergence times for eight species analyzed</text>
+
+  <!-- Time scale at bottom -->
+  <line x1="100" y1="470" x2="720" y2="470" stroke="#94a3b8" stroke-width="1"/>
+  <text x="410" y="500" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Million years ago (Mya)</text>
+  <text x="720" y="488" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">0</text>
+  <text x="635" y="488" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">90</text>
+  <text x="560" y="488" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">170</text>
+  <text x="475" y="488" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">320</text>
+  <text x="390" y="488" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">420</text>
+  <text x="280" y="488" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">600</text>
+  <text x="190" y="488" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">700</text>
+  <text x="100" y="488" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">800</text>
+
+  <!-- Tree branches -->
+  <!-- Human -->
+  <line x1="635" y1="100" x2="720" y2="100" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="720" y="88" width="55" height="24" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="748" y="105" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">Human</text>
+
+  <!-- Mouse -->
+  <line x1="635" y1="150" x2="720" y2="150" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="720" y="138" width="55" height="24" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="748" y="155" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">Mouse</text>
+
+  <!-- Human-Mouse node -->
+  <line x1="635" y1="100" x2="635" y2="150" stroke="#3b82f6" stroke-width="2"/>
+  <text x="625" y="135" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b">~90 Mya</text>
+
+  <!-- Chicken -->
+  <line x1="560" y1="200" x2="720" y2="200" stroke="#22c55e" stroke-width="2"/>
+  <rect x="720" y="188" width="55" height="24" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1"/>
+  <text x="748" y="205" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#166534">Chicken</text>
+
+  <!-- Mammals-Birds node -->
+  <line x1="560" y1="125" x2="635" y2="125" stroke="#334155" stroke-width="2"/>
+  <line x1="560" y1="125" x2="560" y2="200" stroke="#334155" stroke-width="2"/>
+  <text x="550" y="170" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b">~170 Mya</text>
+
+  <!-- Frog -->
+  <line x1="475" y1="250" x2="720" y2="250" stroke="#22c55e" stroke-width="2"/>
+  <rect x="720" y="238" width="55" height="24" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1"/>
+  <text x="748" y="255" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#166534">Frog</text>
+
+  <!-- Amniotes-Amphibians node -->
+  <line x1="475" y1="162" x2="560" y2="162" stroke="#334155" stroke-width="2"/>
+  <line x1="475" y1="162" x2="475" y2="250" stroke="#334155" stroke-width="2"/>
+  <text x="465" y="215" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b">~320 Mya</text>
+
+  <!-- Zebrafish -->
+  <line x1="390" y1="300" x2="720" y2="300" stroke="#eab308" stroke-width="2"/>
+  <rect x="720" y="288" width="55" height="24" rx="6" fill="#fef9c3" stroke="#eab308" stroke-width="1"/>
+  <text x="748" y="305" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" fill="#854d0e">Zebrafish</text>
+
+  <!-- Tetrapods-Fish node -->
+  <line x1="390" y1="206" x2="475" y2="206" stroke="#334155" stroke-width="2"/>
+  <line x1="390" y1="206" x2="390" y2="300" stroke="#334155" stroke-width="2"/>
+  <text x="380" y="260" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b">~420 Mya</text>
+
+  <!-- Fruit fly -->
+  <line x1="280" y1="350" x2="720" y2="350" stroke="#f97316" stroke-width="2"/>
+  <rect x="720" y="338" width="55" height="24" rx="6" fill="#fed7aa" stroke="#f97316" stroke-width="1"/>
+  <text x="748" y="355" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#9a3412">Fly</text>
+
+  <!-- Vertebrates-Insects node -->
+  <line x1="280" y1="253" x2="390" y2="253" stroke="#334155" stroke-width="2"/>
+  <line x1="280" y1="253" x2="280" y2="350" stroke="#334155" stroke-width="2"/>
+  <text x="270" y="310" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b">~600 Mya</text>
+
+  <!-- Roundworm -->
+  <line x1="190" y1="400" x2="720" y2="400" stroke="#8b5cf6" stroke-width="2"/>
+  <rect x="720" y="388" width="55" height="24" rx="6" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="748" y="405" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#5b21b6">Worm</text>
+
+  <!-- Animals-Nematodes node -->
+  <line x1="190" y1="302" x2="280" y2="302" stroke="#334155" stroke-width="2"/>
+  <line x1="190" y1="302" x2="190" y2="400" stroke="#334155" stroke-width="2"/>
+  <text x="180" y="360" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b">~700 Mya</text>
+
+  <!-- Yeast -->
+  <line x1="100" y1="450" x2="720" y2="450" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6,3"/>
+  <rect x="720" y="438" width="55" height="24" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="748" y="455" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#64748b">Yeast*</text>
+
+  <!-- Animals-Fungi node -->
+  <line x1="100" y1="351" x2="190" y2="351" stroke="#334155" stroke-width="2"/>
+  <line x1="100" y1="351" x2="100" y2="450" stroke="#334155" stroke-width="2"/>
+  <text x="90" y="410" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b">~800 Mya</text>
+
+  <!-- Note -->
+  <text x="400" y="510" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">* Yeast has no true TP53 ortholog; RAD9 (DNA-damage checkpoint) shown for comparison</text>
+</svg>

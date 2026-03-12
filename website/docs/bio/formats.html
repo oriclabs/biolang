@@ -100,7 +100,7 @@ let regions = bed("peaks.bed")
 # Columns: chrom, start, end, name, score, strand (BED6)
 regions
   |> filter(|r| r.score > 500)
-  |> mutate(width = |r| r.end - r.start)
+  |> mutate("width", |r| r.end - r.start)
   |> print()
 
 # Convert BED records to intervals for set operations

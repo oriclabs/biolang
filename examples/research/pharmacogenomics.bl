@@ -74,7 +74,7 @@ let patients = patients |> mutate("predicted_dose_mg", |row| {
 })
 
 println("Dose predictions computed")
-patients |> select(["id","cyp2c9","vkorc1","metabolizer","predicted_dose_mg"]) |> println()
+patients |> select("id", "cyp2c9", "vkorc1", "metabolizer", "predicted_dose_mg") |> println()
 
 # ── 5. Drug interaction lookups ────────────────────────────────────────────────
 # Warfarin (KEGG D00564) and known CYP2C9 inhibitors that potentiate bleeding risk

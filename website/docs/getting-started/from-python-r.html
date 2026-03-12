@@ -169,8 +169,8 @@ read.csv("samples.csv") |>
         <h3>BioLang</h3>
         <pre><code class="language-biolang">csv("samples.csv")
   |> filter(|row| row["reads"] >= 1_000_000)
-  |> mutate(|row| { "million_reads": row["reads"] / 1_000_000.0 })
-  |> select(["sample_id", "million_reads"])
+  |> mutate("million_reads", |row| row["reads"] / 1_000_000.0)
+  |> select("sample_id", "million_reads")
   |> arrange("-million_reads")
   |> print()</code></pre>
 

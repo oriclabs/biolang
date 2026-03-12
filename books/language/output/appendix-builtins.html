@@ -1,0 +1,725 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Builtin Reference - The BioLang Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to BioLang — the pipe-first bioinformatics programming language">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-2cfbb647.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-518730fb.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The BioLang Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/bioras/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="appendix-a-builtin-reference"><a class="header" href="#appendix-a-builtin-reference">Appendix A: Builtin Reference</a></h1>
+<p>BioLang ships with a comprehensive standard library of builtins designed for
+bioinformatics workflows. Every function listed here is available without
+imports – they are part of the language runtime.</p>
+<hr>
+<h2 id="sequence-operations"><a class="header" href="#sequence-operations">Sequence Operations</a></h2>
+<p>Builtins that operate on bio-typed sequences (<code>dna</code>, <code>rna</code>, <code>protein</code>).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>complement(seq) -&gt; Dna | Rna</code></td><td>Watson-Crick complement of a nucleotide sequence</td></tr>
+<tr><td><code>reverse_complement(seq) -&gt; Dna | Rna</code></td><td>Reverse complement – the opposing strand</td></tr>
+<tr><td><code>transcribe(seq) -&gt; Rna</code></td><td>Transcribe DNA to RNA (T to U)</td></tr>
+<tr><td><code>translate(seq) -&gt; Protein</code></td><td>Translate an RNA or DNA coding sequence to amino acids</td></tr>
+<tr><td><code>gc_content(seq) -&gt; Float</code></td><td>GC fraction of a nucleotide sequence (0.0 – 1.0)</td></tr>
+<tr><td><code>find_motif(seq, pattern) -&gt; List[Int]</code></td><td>All start positions where <code>pattern</code> occurs in <code>seq</code></td></tr>
+<tr><td><code>hamming_distance(a, b) -&gt; Int</code></td><td>Number of mismatched positions between equal-length sequences</td></tr>
+<tr><td><code>levenshtein(a, b) -&gt; Int</code></td><td>Edit distance between two sequences</td></tr>
+<tr><td><code>codon_table(name?) -&gt; Record</code></td><td>Standard or named codon-to-amino-acid translation table</td></tr>
+<tr><td><code>amino_acid_mass(aa) -&gt; Float</code></td><td>Monoisotopic mass of a single amino acid</td></tr>
+<tr><td><code>molecular_weight(seq) -&gt; Float</code></td><td>Total molecular weight of a protein or nucleotide sequence</td></tr>
+<tr><td><code>find_orfs(seq, min_len?) -&gt; List[Record]</code></td><td>Open reading frames with start, stop, and frame fields</td></tr>
+<tr><td><code>restriction_sites(seq, enzyme?) -&gt; List[Record]</code></td><td>Recognition sites for restriction enzymes</td></tr>
+<tr><td><code>tm(seq) -&gt; Float</code></td><td>Melting temperature estimate for a short oligonucleotide</td></tr>
+<tr><td><code>slice(seq, start, end) -&gt; Dna | Rna | Protein</code></td><td>Extract a subsequence by 0-based coordinates</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: quick primer analysis
+let primer = dna"ATCGATCGATCG"
+let rc     = reverse_complement(primer)
+let temp   = tm(primer)
+println(f"Primer Tm = {temp}C, reverse complement = {rc}")
+</code></pre>
+<hr>
+<h2 id="collection-operations"><a class="header" href="#collection-operations">Collection Operations</a></h2>
+<p>General-purpose operations on lists, records, and sets.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>len(coll) -&gt; Int</code></td><td>Number of elements in a list, string, or sequence</td></tr>
+<tr><td><code>push(list, item) -&gt; List</code></td><td>Append an element, returning a new list</td></tr>
+<tr><td><code>pop(list) -&gt; List</code></td><td>Remove the last element, returning a new list</td></tr>
+<tr><td><code>concat(a, b) -&gt; List</code></td><td>Concatenate two lists</td></tr>
+<tr><td><code>flatten(nested) -&gt; List</code></td><td>Flatten one level of nesting</td></tr>
+<tr><td><code>reverse(list) -&gt; List</code></td><td>Reverse element order</td></tr>
+<tr><td><code>contains(coll, item) -&gt; Bool</code></td><td>True if <code>item</code> is present</td></tr>
+<tr><td><code>index_of(list, item) -&gt; Int | Nil</code></td><td>First index of <code>item</code>, or nil</td></tr>
+<tr><td><code>last(list) -&gt; Any</code></td><td>Last element</td></tr>
+<tr><td><code>first(list) -&gt; Any</code></td><td>First element</td></tr>
+<tr><td><code>head(list, n) -&gt; List</code></td><td>First <code>n</code> elements</td></tr>
+<tr><td><code>tail(list, n) -&gt; List</code></td><td>Last <code>n</code> elements</td></tr>
+<tr><td><code>unique(list) -&gt; List</code></td><td>Remove duplicates, preserving order</td></tr>
+<tr><td><code>zip(a, b) -&gt; List</code></td><td>Pair elements from two lists into a list of tuples</td></tr>
+<tr><td><code>enumerate(list) -&gt; List</code></td><td>Pair each element with its 0-based index</td></tr>
+<tr><td><code>chunk(list, size) -&gt; List[List]</code></td><td>Split into fixed-size sublists</td></tr>
+<tr><td><code>window(list, size) -&gt; List[List]</code></td><td>Sliding window of the given size</td></tr>
+<tr><td><code>scan(list, init, fn) -&gt; List</code></td><td>Running accumulation (like reduce but keeps intermediates)</td></tr>
+<tr><td><code>range(start, end, step?) -&gt; List</code></td><td>Integer range</td></tr>
+<tr><td><code>set(list) -&gt; Set</code></td><td>Convert a list to a deduplicated set</td></tr>
+<tr><td><code>keys(record) -&gt; List[Str]</code></td><td>Field names of a record</td></tr>
+<tr><td><code>values(record) -&gt; List</code></td><td>Field values of a record</td></tr>
+<tr><td><code>has_key(record, key) -&gt; Bool</code></td><td>True if the record contains the named field</td></tr>
+<tr><td><code>sort_by(list, fn) -&gt; List</code></td><td>Sort by a key function</td></tr>
+<tr><td><code>group_by(list, fn) -&gt; Record</code></td><td>Group elements by a key function into a record of lists</td></tr>
+<tr><td><code>partition(list, fn) -&gt; [List, List]</code></td><td>Split into elements that pass and fail a predicate</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: enumerate quality-filtered reads
+let good_reads = reads
+  |&gt; filter(|r| r.mean_qual &gt; 30)
+  |&gt; enumerate()
+  |&gt; head(5)
+</code></pre>
+<hr>
+<h2 id="higher-order-functions"><a class="header" href="#higher-order-functions">Higher-Order Functions</a></h2>
+<p>Functions that accept other functions as arguments – the backbone of
+BioLang’s pipeline style.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>map(coll, fn) -&gt; List</code></td><td>Apply <code>fn</code> to every element</td></tr>
+<tr><td><code>filter(coll, fn) -&gt; List</code></td><td>Keep elements where <code>fn</code> returns true</td></tr>
+<tr><td><code>reduce(coll, init, fn) -&gt; Any</code></td><td>Fold elements into a single value</td></tr>
+<tr><td><code>sort(coll, fn?) -&gt; List</code></td><td>Sort, optionally by comparator</td></tr>
+<tr><td><code>each(coll, fn) -&gt; Nil</code></td><td>Execute <code>fn</code> for side effects on every element</td></tr>
+<tr><td><code>flat_map(coll, fn) -&gt; List</code></td><td>Map then flatten one level</td></tr>
+<tr><td><code>take_while(coll, fn) -&gt; List</code></td><td>Take leading elements while predicate holds</td></tr>
+<tr><td><code>any(coll, fn) -&gt; Bool</code></td><td>True if <code>fn</code> returns true for at least one element</td></tr>
+<tr><td><code>all(coll, fn) -&gt; Bool</code></td><td>True if <code>fn</code> returns true for every element</td></tr>
+<tr><td><code>none(coll, fn) -&gt; Bool</code></td><td>True if <code>fn</code> returns true for no elements</td></tr>
+<tr><td><code>find(coll, fn) -&gt; Any | Nil</code></td><td>First element satisfying <code>fn</code></td></tr>
+<tr><td><code>find_index(coll, fn) -&gt; Int | Nil</code></td><td>Index of first element satisfying <code>fn</code></td></tr>
+<tr><td><code>par_map(coll, fn) -&gt; List</code></td><td>Parallel map across available cores</td></tr>
+<tr><td><code>par_filter(coll, fn) -&gt; List</code></td><td>Parallel filter across available cores</td></tr>
+<tr><td><code>mat_map(matrix, fn) -&gt; Matrix</code></td><td>Apply <code>fn</code> element-wise to a matrix</td></tr>
+<tr><td><code>try_call(fn, args) -&gt; Result</code></td><td>Call <code>fn</code> with <code>args</code>, capturing errors instead of panicking</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: parallel GC content across a genome's chromosomes
+let gc_values = chromosomes
+  |&gt; par_map(|chr| {name: chr.name, gc: gc_content(chr.seq)})
+  |&gt; sort_by(|r| r.gc)
+</code></pre>
+<hr>
+<h2 id="table-operations"><a class="header" href="#table-operations">Table Operations</a></h2>
+<p>Tabular data manipulation inspired by dataframe semantics – designed for
+sample sheets, variant tables, and expression matrices.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>table(data) -&gt; Table</code></td><td>Create a table from a list of records</td></tr>
+<tr><td><code>select(tbl, ...cols) -&gt; Table</code></td><td>Pick columns by name</td></tr>
+<tr><td><code>mutate(tbl, name, fn) -&gt; Table</code></td><td>Add or transform a column</td></tr>
+<tr><td><code>summarize(tbl, ...aggs) -&gt; Table</code></td><td>Aggregate columns (sum, mean, etc.)</td></tr>
+<tr><td><code>group_by(tbl, col) -&gt; GroupedTable</code></td><td>Group rows by a column value (table variant)</td></tr>
+<tr><td><code>join(a, b, on, how?) -&gt; Table</code></td><td>Join two tables on a key column</td></tr>
+<tr><td><code>read_csv(path, header?) -&gt; Table</code></td><td>Read a CSV file into a table</td></tr>
+<tr><td><code>read_tsv(path, header?) -&gt; Table</code></td><td>Read a TSV file into a table</td></tr>
+<tr><td><code>write_csv(tbl, path) -&gt; Nil</code></td><td>Write a table to CSV</td></tr>
+<tr><td><code>write_tsv(tbl, path) -&gt; Nil</code></td><td>Write a table to TSV</td></tr>
+<tr><td><code>nrow(tbl) -&gt; Int</code></td><td>Number of rows</td></tr>
+<tr><td><code>ncol(tbl) -&gt; Int</code></td><td>Number of columns</td></tr>
+<tr><td><code>col_names(tbl) -&gt; List[Str]</code></td><td>Column name list</td></tr>
+<tr><td><code>row_names(tbl) -&gt; List[Str]</code></td><td>Row name list (if set)</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: summarize variant counts per chromosome
+read_tsv("variants.tsv")
+  |&gt; group_by("chrom")
+  |&gt; summarize(count: len, mean_qual: |rows| mean(rows |&gt; map(|r| r.qual)))
+  |&gt; write_csv("chrom_summary.csv")
+</code></pre>
+<hr>
+<h2 id="bio-file-io"><a class="header" href="#bio-file-io">Bio File I/O</a></h2>
+<p>Read and write standard bioinformatics file formats. Readers return lazy
+streams that integrate with pipes; writers flush on completion.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>read_fasta(path) -&gt; List[Record]</code></td><td>Parse FASTA; each record has <code>id</code>, <code>desc</code>, <code>seq</code> fields</td></tr>
+<tr><td><code>read_fastq(path) -&gt; List[Record]</code></td><td>Parse FASTQ; each record has <code>id</code>, <code>seq</code>, <code>qual</code> fields</td></tr>
+<tr><td><code>read_vcf(path) -&gt; List[Record]</code></td><td>Parse VCF; each record has <code>chrom</code>, <code>pos</code>, <code>ref</code>, <code>alt</code>, <code>qual</code>, <code>info</code> fields</td></tr>
+<tr><td><code>read_bed(path) -&gt; List[Record]</code></td><td>Parse BED; each record has <code>chrom</code>, <code>start</code>, <code>end</code> and optional fields</td></tr>
+<tr><td><code>read_gff(path) -&gt; List[Record]</code></td><td>Parse GFF/GTF; each record has <code>seqid</code>, <code>type</code>, <code>start</code>, <code>end</code>, <code>attributes</code></td></tr>
+<tr><td><code>write_fasta(records, path) -&gt; Nil</code></td><td>Write records to FASTA format</td></tr>
+<tr><td><code>write_fastq(records, path) -&gt; Nil</code></td><td>Write records to FASTQ format</td></tr>
+<tr><td><code>write_bed(records, path) -&gt; Nil</code></td><td>Write records to BED format</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: filter FASTQ reads by quality and write survivors
+read_fastq("sample_R1.fastq.gz")
+  |&gt; filter(|r| mean(r.qual) &gt; 30)
+  |&gt; write_fastq("sample_R1.filtered.fq")
+</code></pre>
+<hr>
+<h2 id="genomic-intervals"><a class="header" href="#genomic-intervals">Genomic Intervals</a></h2>
+<p>Interval arithmetic for coordinate-based genomic analysis. Intervals carry
+<code>chrom</code>, <code>start</code>, <code>end</code>, and optional <code>strand</code> and <code>data</code> fields.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>interval(chrom, start, end, strand?) -&gt; Interval</code></td><td>Create a genomic interval</td></tr>
+<tr><td><code>interval_tree(intervals) -&gt; IntervalTree</code></td><td>Build an index for fast overlap queries</td></tr>
+<tr><td><code>query_overlaps(tree, query) -&gt; List[Interval]</code></td><td>All intervals overlapping the query</td></tr>
+<tr><td><code>query_nearest(tree, query, k?) -&gt; List[Interval]</code></td><td>K nearest intervals to the query</td></tr>
+<tr><td><code>coverage(intervals) -&gt; List[Record]</code></td><td>Per-base or per-region coverage depth</td></tr>
+<tr><td><code>merge_intervals(intervals, dist?) -&gt; List[Interval]</code></td><td>Merge overlapping or nearby intervals</td></tr>
+<tr><td><code>intersect_intervals(a, b) -&gt; List[Interval]</code></td><td>Pairwise intersection of two interval sets</td></tr>
+<tr><td><code>subtract_intervals(a, b) -&gt; List[Interval]</code></td><td>Regions in <code>a</code> not covered by <code>b</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: find promoter-peak overlaps
+let promoters = read_bed("promoters.bed") |&gt; map(|r| interval(r.chrom, r.start, r.end))
+let peaks     = read_bed("chip_peaks.bed") |&gt; map(|r| interval(r.chrom, r.start, r.end))
+let tree      = interval_tree(peaks)
+let hits      = promoters |&gt; flat_map(|p| query_overlaps(tree, p))
+println(f"Found {len(hits)} promoter-peak overlaps")
+</code></pre>
+<hr>
+<h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
+<p>Builtins for working with genetic variant records. Variant objects carry
+<code>chrom</code>, <code>pos</code>, <code>ref</code>, <code>alt</code>, <code>qual</code>, and <code>info</code> fields.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>variant(chrom, pos, ref, alt) -&gt; Variant</code></td><td>Construct a variant record</td></tr>
+<tr><td><code>is_snp(v) -&gt; Bool</code></td><td>True if single-nucleotide polymorphism</td></tr>
+<tr><td><code>is_indel(v) -&gt; Bool</code></td><td>True if insertion or deletion</td></tr>
+<tr><td><code>is_transition(v) -&gt; Bool</code></td><td>True if purine-purine or pyrimidine-pyrimidine substitution</td></tr>
+<tr><td><code>is_transversion(v) -&gt; Bool</code></td><td>True if purine-pyrimidine substitution</td></tr>
+<tr><td><code>variant_type(v) -&gt; Str</code></td><td>Classification string: “snp”, “ins”, “del”, “mnv”, “complex”</td></tr>
+<tr><td><code>is_het(v) -&gt; Bool</code></td><td>True if heterozygous genotype</td></tr>
+<tr><td><code>is_hom_ref(v) -&gt; Bool</code></td><td>True if homozygous reference</td></tr>
+<tr><td><code>is_hom_alt(v) -&gt; Bool</code></td><td>True if homozygous alternate</td></tr>
+<tr><td><code>is_multiallelic(v) -&gt; Bool</code></td><td>True if more than one alt allele</td></tr>
+<tr><td><code>parse_vcf_info(info_str) -&gt; Record</code></td><td>Parse a VCF INFO field string into a record</td></tr>
+<tr><td><code>variant_summary(variants) -&gt; Record</code></td><td>Aggregate counts of SNPs, indels, Ti/Tv ratio, het/hom ratio</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: compute Ti/Tv ratio for a VCF
+let vars = read_vcf("calls.vcf") |&gt; filter(|v| v.qual &gt; 30)
+let summary = variant_summary(vars)
+println(f"Ti/Tv = {summary.ti_tv_ratio}, SNPs = {summary.snp_count}")
+</code></pre>
+<hr>
+<h2 id="statistics"><a class="header" href="#statistics">Statistics</a></h2>
+<p>Statistical functions for quality control, expression analysis, and
+hypothesis testing.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>mean(xs) -&gt; Float</code></td><td>Arithmetic mean</td></tr>
+<tr><td><code>median(xs) -&gt; Float</code></td><td>Median value</td></tr>
+<tr><td><code>stdev(xs) -&gt; Float</code></td><td>Sample standard deviation</td></tr>
+<tr><td><code>variance(xs) -&gt; Float</code></td><td>Sample variance</td></tr>
+<tr><td><code>quantile(xs, q) -&gt; Float</code></td><td>Quantile at fraction <code>q</code> (0.0 – 1.0)</td></tr>
+<tr><td><code>min(xs) -&gt; Num</code></td><td>Minimum value</td></tr>
+<tr><td><code>max(xs) -&gt; Num</code></td><td>Maximum value</td></tr>
+<tr><td><code>sum(xs) -&gt; Num</code></td><td>Sum of all elements</td></tr>
+<tr><td><code>cor(xs, ys) -&gt; Float</code></td><td>Pearson correlation coefficient</td></tr>
+<tr><td><code>ttest(xs, ys) -&gt; Record</code></td><td>Two-sample t-test; returns <code>{statistic, pvalue}</code></td></tr>
+<tr><td><code>chi_square(observed, expected) -&gt; Record</code></td><td>Chi-squared test; returns <code>{statistic, pvalue, df}</code></td></tr>
+<tr><td><code>wilcoxon(xs, ys) -&gt; Record</code></td><td>Wilcoxon rank-sum test</td></tr>
+<tr><td><code>anova(groups) -&gt; Record</code></td><td>One-way ANOVA across groups</td></tr>
+<tr><td><code>fisher_exact(table) -&gt; Record</code></td><td>Fisher’s exact test on a 2x2 contingency table</td></tr>
+<tr><td><code>p_adjust(pvals, method?) -&gt; List[Float]</code></td><td>Multiple testing correction (default: Benjamini-Hochberg)</td></tr>
+<tr><td><code>lm(xs, ys) -&gt; Record</code></td><td>Simple linear regression; returns <code>{slope, intercept, r_squared}</code></td></tr>
+<tr><td><code>ks_test(xs, ys) -&gt; Record</code></td><td>Kolmogorov-Smirnov test</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: differential expression significance
+let control   = [5.2, 4.8, 5.1, 4.9]
+let treatment = [8.1, 7.5, 8.3, 7.9]
+let result    = ttest(control, treatment)
+println(f"p-value = {result.pvalue}")
+</code></pre>
+<hr>
+<h2 id="linear-algebra"><a class="header" href="#linear-algebra">Linear Algebra</a></h2>
+<p>Matrix operations for expression matrices, PCA, distance calculations, and
+numerical biology.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>matrix(data) -&gt; Matrix</code></td><td>Create a matrix from a list of lists (row-major)</td></tr>
+<tr><td><code>transpose(m) -&gt; Matrix</code></td><td>Transpose rows and columns</td></tr>
+<tr><td><code>mat_mul(a, b) -&gt; Matrix</code></td><td>Matrix multiplication</td></tr>
+<tr><td><code>determinant(m) -&gt; Float</code></td><td>Determinant of a square matrix</td></tr>
+<tr><td><code>inverse(m) -&gt; Matrix</code></td><td>Matrix inverse</td></tr>
+<tr><td><code>eigenvalues(m) -&gt; List[Float]</code></td><td>Eigenvalues of a square matrix</td></tr>
+<tr><td><code>svd(m) -&gt; Record</code></td><td>Singular value decomposition; returns <code>{u, s, vt}</code></td></tr>
+<tr><td><code>solve(a, b) -&gt; Matrix</code></td><td>Solve the linear system Ax = b</td></tr>
+<tr><td><code>trace(m) -&gt; Float</code></td><td>Sum of diagonal elements</td></tr>
+<tr><td><code>norm(m, p?) -&gt; Float</code></td><td>Matrix or vector norm (default: Frobenius / L2)</td></tr>
+<tr><td><code>rank(m) -&gt; Int</code></td><td>Numerical rank</td></tr>
+<tr><td><code>identity(n) -&gt; Matrix</code></td><td>n x n identity matrix</td></tr>
+<tr><td><code>zeros(rows, cols) -&gt; Matrix</code></td><td>Matrix of zeros</td></tr>
+<tr><td><code>ones(rows, cols) -&gt; Matrix</code></td><td>Matrix of ones</td></tr>
+<tr><td><code>diag(values) -&gt; Matrix</code></td><td>Diagonal matrix from a list of values</td></tr>
+<tr><td><code>mat_map(m, fn) -&gt; Matrix</code></td><td>Apply <code>fn</code> element-wise</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: PCA on a gene expression matrix
+let expr = read_tsv("counts.tsv") |&gt; table()
+let m    = matrix(expr |&gt; select("gene_a", "gene_b", "gene_c"))
+let decomp = svd(m)
+println(f"Top 3 singular values: {head(decomp.s, 3)}")
+</code></pre>
+<hr>
+<h2 id="math"><a class="header" href="#math">Math</a></h2>
+<p>Standard mathematical functions available for scoring, normalization, and
+modeling.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>abs(x) -&gt; Num</code></td><td>Absolute value</td></tr>
+<tr><td><code>ceil(x) -&gt; Int</code></td><td>Round up to nearest integer</td></tr>
+<tr><td><code>floor(x) -&gt; Int</code></td><td>Round down to nearest integer</td></tr>
+<tr><td><code>round(x, digits?) -&gt; Float</code></td><td>Round to <code>digits</code> decimal places (default: 0)</td></tr>
+<tr><td><code>sqrt(x) -&gt; Float</code></td><td>Square root</td></tr>
+<tr><td><code>log(x) -&gt; Float</code></td><td>Natural logarithm</td></tr>
+<tr><td><code>log2(x) -&gt; Float</code></td><td>Base-2 logarithm (common in fold-change analysis)</td></tr>
+<tr><td><code>log10(x) -&gt; Float</code></td><td>Base-10 logarithm</td></tr>
+<tr><td><code>exp(x) -&gt; Float</code></td><td>Euler’s number raised to <code>x</code></td></tr>
+<tr><td><code>pow(base, exp) -&gt; Float</code></td><td>Exponentiation</td></tr>
+<tr><td><code>sin(x) -&gt; Float</code></td><td>Sine</td></tr>
+<tr><td><code>cos(x) -&gt; Float</code></td><td>Cosine</td></tr>
+<tr><td><code>tan(x) -&gt; Float</code></td><td>Tangent</td></tr>
+<tr><td><code>ode_solve(fn, y0, t_span, dt?) -&gt; List[Record]</code></td><td>Numerical ODE integration (Runge-Kutta)</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: log2 fold-change between conditions
+let control   = 12.5
+let treatment = 50.0
+let lfc = log2(treatment / control)
+println(f"Log2 fold-change = {lfc}")
+</code></pre>
+<hr>
+<h2 id="string-operations"><a class="header" href="#string-operations">String Operations</a></h2>
+<p>Text manipulation for parsing identifiers, annotations, and formatted output.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>split(s, delim) -&gt; List[Str]</code></td><td>Split string on delimiter</td></tr>
+<tr><td><code>join(list, delim) -&gt; Str</code></td><td>Join list elements into a string</td></tr>
+<tr><td><code>trim(s) -&gt; Str</code></td><td>Strip leading and trailing whitespace</td></tr>
+<tr><td><code>upper(s) -&gt; Str</code></td><td>Convert to uppercase</td></tr>
+<tr><td><code>lower(s) -&gt; Str</code></td><td>Convert to lowercase</td></tr>
+<tr><td><code>starts_with(s, prefix) -&gt; Bool</code></td><td>True if <code>s</code> begins with <code>prefix</code></td></tr>
+<tr><td><code>ends_with(s, suffix) -&gt; Bool</code></td><td>True if <code>s</code> ends with <code>suffix</code></td></tr>
+<tr><td><code>replace(s, from, to) -&gt; Str</code></td><td>Replace all occurrences</td></tr>
+<tr><td><code>matches(s, pattern) -&gt; Bool</code></td><td>True if regex <code>pattern</code> matches</td></tr>
+<tr><td><code>format(template, ...args) -&gt; Str</code></td><td>Printf-style formatting</td></tr>
+</tbody>
+</table>
+</div>
+<p>BioLang also supports <strong>f-strings</strong> for inline interpolation:</p>
+<pre><code># Example: parse a FASTA header
+let header = "&gt;sp|P12345|MYG_HUMAN Myoglobin OS=Homo sapiens"
+let parts  = split(header, "|")
+let acc    = parts[1]
+println(f"Accession: {acc}")
+</code></pre>
+<hr>
+<h2 id="type-operations"><a class="header" href="#type-operations">Type Operations</a></h2>
+<p>Runtime type inspection and conversion – useful for dynamic dispatch in
+pipelines that handle mixed bio types.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>type(val) -&gt; Str</code></td><td>Runtime type name as a string</td></tr>
+<tr><td><code>is_dna(val) -&gt; Bool</code></td><td>True if val is a DNA sequence</td></tr>
+<tr><td><code>is_rna(val) -&gt; Bool</code></td><td>True if val is an RNA sequence</td></tr>
+<tr><td><code>is_protein(val) -&gt; Bool</code></td><td>True if val is a protein sequence</td></tr>
+<tr><td><code>is_interval(val) -&gt; Bool</code></td><td>True if val is a genomic interval</td></tr>
+<tr><td><code>is_variant(val) -&gt; Bool</code></td><td>True if val is a variant record</td></tr>
+<tr><td><code>is_record(val) -&gt; Bool</code></td><td>True if val is a record</td></tr>
+<tr><td><code>is_list(val) -&gt; Bool</code></td><td>True if val is a list</td></tr>
+<tr><td><code>is_table(val) -&gt; Bool</code></td><td>True if val is a table</td></tr>
+<tr><td><code>is_nil(val) -&gt; Bool</code></td><td>True if val is nil</td></tr>
+<tr><td><code>is_int(val) -&gt; Bool</code></td><td>True if val is an integer</td></tr>
+<tr><td><code>is_float(val) -&gt; Bool</code></td><td>True if val is a float</td></tr>
+<tr><td><code>is_str(val) -&gt; Bool</code></td><td>True if val is a string</td></tr>
+<tr><td><code>is_bool(val) -&gt; Bool</code></td><td>True if val is a boolean</td></tr>
+<tr><td><code>into(val, target_type) -&gt; Any</code></td><td>Convert between compatible types</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: route processing based on sequence type
+let seq = read_fasta("input.fa") |&gt; first() |&gt; .seq
+if is_dna(seq) then
+  println(f"DNA, GC = {gc_content(seq)}")
+else if is_protein(seq) then
+  println(f"Protein, MW = {molecular_weight(seq)}")
+end
+</code></pre>
+<hr>
+<h2 id="bio-apis"><a class="header" href="#bio-apis">Bio APIs</a></h2>
+<p>Remote database queries for annotation enrichment. All API builtins are
+async-aware and return structured records.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ncbi_search(db, query, max?) -&gt; List[Record]</code></td><td>Search NCBI Entrez databases</td></tr>
+<tr><td><code>ncbi_gene(gene_id) -&gt; Record</code></td><td>Fetch NCBI Gene record</td></tr>
+<tr><td><code>ncbi_sequence(acc) -&gt; Record</code></td><td>Fetch sequence by accession from NCBI Nucleotide/Protein</td></tr>
+<tr><td><code>ensembl_gene(species, symbol) -&gt; Record</code></td><td>Ensembl gene lookup by symbol</td></tr>
+<tr><td><code>ensembl_vep(variants) -&gt; List[Record]</code></td><td>Variant Effect Predictor annotation</td></tr>
+<tr><td><code>uniprot_search(query, max?) -&gt; List[Record]</code></td><td>Search UniProt by keyword or accession</td></tr>
+<tr><td><code>uniprot_entry(acc) -&gt; Record</code></td><td>Full UniProt entry</td></tr>
+<tr><td><code>ucsc_sequence(genome, chrom, start, end) -&gt; Dna</code></td><td>Fetch genomic sequence from UCSC DAS</td></tr>
+<tr><td><code>kegg_get(entry) -&gt; Record</code></td><td>Retrieve a KEGG database entry</td></tr>
+<tr><td><code>kegg_find(db, query) -&gt; List[Record]</code></td><td>Search KEGG databases</td></tr>
+<tr><td><code>string_network(proteins, species?) -&gt; Record</code></td><td>STRING protein-protein interaction network</td></tr>
+<tr><td><code>pdb_entry(pdb_id) -&gt; Record</code></td><td>Fetch PDB structure metadata</td></tr>
+<tr><td><code>reactome_pathways(gene) -&gt; List[Record]</code></td><td>Reactome pathway memberships for a gene</td></tr>
+<tr><td><code>go_term(go_id) -&gt; Record</code></td><td>Gene Ontology term details</td></tr>
+<tr><td><code>go_annotations(gene, species?) -&gt; List[Record]</code></td><td>GO annotations for a gene</td></tr>
+<tr><td><code>cosmic_gene(symbol) -&gt; Record</code></td><td>COSMIC cancer gene census entry</td></tr>
+<tr><td><code>datasets_gene(symbol, taxon?) -&gt; Record</code></td><td>NCBI Datasets gene data</td></tr>
+<tr><td><code>biomart_query(dataset, attributes, filters?) -&gt; Table</code></td><td>BioMart query returning a table</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: annotate a gene list with pathway data
+let genes = ["BRCA1", "TP53", "EGFR"]
+genes |&gt; each(|g| {
+  let pathways = reactome_pathways(g)
+  println(f"{g}: {len(pathways)} pathways")
+})
+</code></pre>
+<hr>
+<h2 id="utility"><a class="header" href="#utility">Utility</a></h2>
+<p>General-purpose helpers for debugging, timing, unit conversion, and
+serialization.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>print(val) -&gt; Nil</code></td><td>Print without newline</td></tr>
+<tr><td><code>println(val) -&gt; Nil</code></td><td>Print with newline</td></tr>
+<tr><td><code>assert(cond, msg?) -&gt; Nil</code></td><td>Panic with <code>msg</code> if <code>cond</code> is false</td></tr>
+<tr><td><code>sleep(ms) -&gt; Nil</code></td><td>Pause execution for <code>ms</code> milliseconds</td></tr>
+<tr><td><code>now() -&gt; Float</code></td><td>Current timestamp in seconds since epoch</td></tr>
+<tr><td><code>elapsed(start) -&gt; Float</code></td><td>Seconds elapsed since <code>start</code> (from <code>now()</code>)</td></tr>
+<tr><td><code>bp(n) -&gt; Int</code></td><td>Identity; documents that <code>n</code> is in base pairs</td></tr>
+<tr><td><code>kb(n) -&gt; Int</code></td><td>Convert kilobases to base pairs (<code>n * 1000</code>)</td></tr>
+<tr><td><code>mb(n) -&gt; Int</code></td><td>Convert megabases to base pairs (<code>n * 1_000_000</code>)</td></tr>
+<tr><td><code>gb(n) -&gt; Int</code></td><td>Convert gigabases to base pairs (<code>n * 1_000_000_000</code>)</td></tr>
+<tr><td><code>to_json(val) -&gt; Str</code></td><td>Serialize any value to a JSON string</td></tr>
+<tr><td><code>from_json(s) -&gt; Any</code></td><td>Parse a JSON string into a BioLang value</td></tr>
+<tr><td><code>env(name) -&gt; Str | Nil</code></td><td>Read an environment variable</td></tr>
+<tr><td><code>exit(code?) -&gt; Never</code></td><td>Terminate the process with an exit code (default: 0)</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code># Example: time a heavy operation
+let t0 = now()
+let result = read_fasta("genome.fa")
+  |&gt; flat_map(|r| find_orfs(r.seq, 300))
+println(f"Found {len(result)} ORFs in {elapsed(t0)}s")
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch17-plugins.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="appendix-operators.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch17-plugins.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="appendix-operators.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

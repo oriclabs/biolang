@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440">
+  <defs>
+    <linearGradient id="bg15" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+    <marker id="arr15" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="440" rx="12" fill="url(#bg15)"/>
+  <text x="400" y="35" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="bold" fill="#0f172a">Choosing the Right Visualization</text>
+
+  <!-- Central question -->
+  <rect x="280" y="55" width="240" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="80" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#1e40af">What are you showing?</text>
+
+  <!-- Five branches -->
+  <!-- Distribution -->
+  <line x1="320" y1="95" x2="100" y2="140" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr15)"/>
+  <rect x="20" y="143" width="160" height="38" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="100" y="167" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#854d0e">Distribution</text>
+
+  <!-- Comparison -->
+  <line x1="350" y1="95" x2="260" y2="140" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr15)"/>
+  <rect x="190" y="143" width="140" height="38" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="260" y="167" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#854d0e">Comparison</text>
+
+  <!-- Relationship -->
+  <line x1="400" y1="95" x2="400" y2="140" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr15)"/>
+  <rect x="330" y="143" width="140" height="38" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="167" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#854d0e">Relationship</text>
+
+  <!-- Trend -->
+  <line x1="450" y1="95" x2="540" y2="140" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr15)"/>
+  <rect x="475" y="143" width="130" height="38" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="540" y="167" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#854d0e">Trend</text>
+
+  <!-- Genomic -->
+  <line x1="480" y1="95" x2="690" y2="140" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr15)"/>
+  <rect x="620" y="143" width="140" height="38" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="690" y="167" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#5b21b6">Genomic</text>
+
+  <!-- Distribution children -->
+  <line x1="100" y1="181" x2="100" y2="210" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr15)"/>
+  <rect x="25" y="213" width="150" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="100" y="234" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">histogram</text>
+  <rect x="25" y="252" width="150" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="100" y="273" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">boxplot</text>
+  <rect x="25" y="291" width="150" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="100" y="312" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">violin</text>
+
+  <!-- Comparison children -->
+  <line x1="260" y1="181" x2="260" y2="210" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr15)"/>
+  <rect x="190" y="213" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="260" y="234" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">bar_chart</text>
+  <rect x="190" y="252" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="260" y="273" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">boxplot</text>
+
+  <!-- Relationship children -->
+  <line x1="400" y1="181" x2="400" y2="210" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr15)"/>
+  <rect x="330" y="213" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="400" y="234" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">scatter plot</text>
+  <rect x="330" y="252" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="400" y="273" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">heatmap</text>
+
+  <!-- Trend children -->
+  <line x1="540" y1="181" x2="540" y2="210" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr15)"/>
+  <rect x="475" y="213" width="130" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="540" y="234" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">line plot</text>
+
+  <!-- Genomic children -->
+  <line x1="690" y1="181" x2="690" y2="210" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr15)"/>
+  <rect x="620" y="213" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="690" y="234" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">manhattan</text>
+  <rect x="620" y="252" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="690" y="273" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">volcano</text>
+  <rect x="620" y="291" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="690" y="312" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">ma_plot</text>
+  <rect x="620" y="330" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="690" y="351" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">genome_track</text>
+  <rect x="620" y="369" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="690" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">quality_plot</text>
+  <rect x="620" y="408" width="140" height="32" rx="6" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="690" y="429" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#166534">coverage</text>
+</svg>

@@ -1,0 +1,99 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" style="background: #fff;">
+  <defs>
+    <linearGradient id="wfBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <marker id="wfArr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#94a3b8"/>
+    </marker>
+    <marker id="wfArrBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#3b82f6"/>
+    </marker>
+    <marker id="wfArrAmber" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#eab308"/>
+    </marker>
+    <marker id="wfArrGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#22c55e"/>
+    </marker>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#wfBg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="400" y="32" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#0f172a">The Bioinformatics Workflow Cycle</text>
+  <text x="400" y="52" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#64748b">From biological question to insight and back again</text>
+
+  <!-- "Where bioinformatics lives" highlight region (steps 4-7) -->
+  <rect x="195" y="138" width="410" height="310" rx="14" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" stroke-dasharray="6 3" opacity="0.5"/>
+  <text x="400" y="160" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534" opacity="0.8">Where bioinformatics lives</text>
+
+  <!-- ===== STEP BOXES ===== -->
+  <!-- Elliptical layout: cx=400, cy=290, rx=280, ry=170 -->
+  <!-- Step 1: Biological Question (top center) — blue -->
+  <rect x="308" y="68" width="184" height="44" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="86" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">1</text>
+  <text x="400" y="101" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#1e40af">Biological Question</text>
+
+  <!-- Step 2: Experimental Design (top right) — blue -->
+  <rect x="570" y="128" width="174" height="44" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="657" y="146" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">2</text>
+  <text x="657" y="161" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#1e40af">Experimental Design</text>
+
+  <!-- Step 3: Generate Data (right) — blue -->
+  <rect x="600" y="238" width="150" height="44" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="675" y="256" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">3</text>
+  <text x="675" y="271" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#1e40af">Generate Data</text>
+
+  <!-- Step 4: Quality Control (bottom right) — amber -->
+  <rect x="570" y="348" width="160" height="44" rx="10" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="650" y="366" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#854d0e">4</text>
+  <text x="650" y="381" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#854d0e">Quality Control</text>
+
+  <!-- Step 5: Analysis (bottom center) — amber -->
+  <rect x="338" y="410" width="124" height="44" rx="10" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+  <text x="400" y="428" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#854d0e">5</text>
+  <text x="400" y="443" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#854d0e">Analysis</text>
+
+  <!-- Step 6: Visualization (bottom left) — green -->
+  <rect x="68" y="348" width="146" height="44" rx="10" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="141" y="366" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534">6</text>
+  <text x="141" y="381" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#166534">Visualization</text>
+
+  <!-- Step 7: Interpretation (left) — green -->
+  <rect x="48" y="238" width="150" height="44" rx="10" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="123" y="256" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534">7</text>
+  <text x="123" y="271" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#166534">Interpretation</text>
+
+  <!-- Step 8: Biological Insight (top left) — green -->
+  <rect x="56" y="128" width="160" height="44" rx="10" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="136" y="146" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534">8</text>
+  <text x="136" y="161" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#166534">Biological Insight</text>
+
+  <!-- ===== ARROWS ===== -->
+  <!-- 1 → 2: top center to top right -->
+  <line x1="492" y1="95" x2="568" y2="130" stroke="#3b82f6" stroke-width="2" marker-end="url(#wfArrBlue)"/>
+
+  <!-- 2 → 3: top right to right -->
+  <line x1="672" y1="172" x2="678" y2="236" stroke="#3b82f6" stroke-width="2" marker-end="url(#wfArrBlue)"/>
+
+  <!-- 3 → 4: right to bottom right -->
+  <line x1="672" y1="282" x2="660" y2="346" stroke="#94a3b8" stroke-width="2" marker-end="url(#wfArr)"/>
+
+  <!-- 4 → 5: bottom right to bottom center -->
+  <line x1="570" y1="385" x2="462" y2="420" stroke="#eab308" stroke-width="2" marker-end="url(#wfArrAmber)"/>
+
+  <!-- 5 → 6: bottom center to bottom left -->
+  <line x1="338" y1="440" x2="216" y2="385" stroke="#eab308" stroke-width="2" marker-end="url(#wfArrAmber)"/>
+
+  <!-- 6 → 7: bottom left to left -->
+  <line x1="133" y1="348" x2="127" y2="284" stroke="#22c55e" stroke-width="2" marker-end="url(#wfArrGreen)"/>
+
+  <!-- 7 → 8: left to top left -->
+  <line x1="125" y1="238" x2="132" y2="174" stroke="#22c55e" stroke-width="2" marker-end="url(#wfArrGreen)"/>
+
+  <!-- 8 → 1: top left back to top center (loop-back arrow) -->
+  <path d="M 216 145 C 260 110, 290 88, 306 86" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#wfArrGreen)"/>
+  <text x="258" y="98" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-style="italic" fill="#166534">New questions</text>
+
+</svg>

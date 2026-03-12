@@ -166,7 +166,7 @@ let pairs = [("BRCA1", 672), ("TP53", 7157)]
 let m = into(pairs, "Map")
 
 # Group a list into a map
-let reads_by_chrom = reads |> group_by(|r| r.chrom)
+let reads_by_chrom = reads |> group_by("chrom")
 # Map[String, List[Read]]
 
 # Count occurrences

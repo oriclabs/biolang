@@ -189,7 +189,7 @@ let window_size = 50000
 let step = 25000
 
 let windowed = fst_data
-  |> group_by(|r| { r["chrom"] })
+  |> group_by("chrom")
   |> flat_map(|chrom, snps| {
     let sorted = snps |> sort_by(|a, b| (a["pos"] |> int) - (b["pos"] |> int))
     let max_pos = sorted |> last |> get("pos") |> int
@@ -295,7 +295,7 @@ let clusters = leiden(matrix(adj), 0.8)
 let comparison = labeled
   |> mutate("cluster", |i, _| { clusters[i] })
   |> group_by(.population, .cluster)
-  |> summarize(n: count)
+  |> summarize(|key, rows| { population: key[0], cluster: key[1], n: len(rows) })
   |> sort_by(.population, .cluster)
 
 comparison |> print</code></pre>
