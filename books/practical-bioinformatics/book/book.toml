@@ -1,0 +1,28 @@
+[book]
+title = "Practical Bioinformatics in 30 Days"
+authors = ["Oriclabs"]
+language = "en"
+description = "From zero to bioinformatician — a structured 30-day journey through modern bioinformatics with BioLang, Python, and R"
+src = "src"
+
+[build]
+build-dir = "../../../website/books/practical-bioinformatics"
+
+[output.html]
+default-theme = "rust"
+git-repository-url = "https://github.com/oriclabs/biolang"
+additional-js = ["mermaid.min.js", "mermaid-init.js", "book-runner.js"]
+
+[output.html.search]
+enable = true
+
+[output.html.playground]
+editable = false
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output.pdf]
+command = "mdbook-pdf"
+output-file = "practical-bioinformatics-in-30-days.pdf"
+paper-size = "A4"

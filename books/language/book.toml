@@ -18,6 +18,7 @@ additional-js = ["theme/toolbar-buttons.js", "theme/book-runner.js"]
 [output.pdf]
 title = "The BioLang Programming Language"
 authors = "Bioras"
+output-file = "the-biolang-programming-language.pdf"
 paper-width = 8.27
 paper-height = 11.69
 margin-top = 0.6
