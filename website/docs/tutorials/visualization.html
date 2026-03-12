@@ -377,7 +377,8 @@ print("All plots saved to results/")</code></pre>
           Here is a full example that loads data, creates multiple visualizations, and saves
           them all to SVG files.
         </p>
-        <pre><code class="language-biolang"># workflow.bl — complete visualization pipeline
+        <pre><code class="language-biolang"># requires: results/de_results.csv and data/expression_matrix.csv in working directory
+# workflow.bl — complete visualization pipeline
 
 # Load differential expression results
 let de = csv("results/de_results.csv")

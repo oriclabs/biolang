@@ -125,7 +125,7 @@ let reads = all_reads |> filter(high_qual)
 
 # Closure captures 'reference'
 fn make_aligner(reference: DNA) {
-  |query| align(query, reference, method = "sw")
+  |query| find_motif(query, to_string(reference))
 }
 
 let align_to_hg38 = make_aligner(load_reference("hg38.fa"))
@@ -304,7 +304,8 @@ fn align_reads(reads, reference) where len(reads) > 0 && len(reference) > 100 {
           decorator caches results based on arguments &mdash; critical for expensive computations
           like sequence alignment scores or API calls:
         </p>
-        <pre><code class="language-biolang">@memoize
+        <pre><code class="language-biolang"># requires: internet connection
+@memoize
 fn fetch_gene_info(symbol) {
     ncbi_gene(symbol)
 }

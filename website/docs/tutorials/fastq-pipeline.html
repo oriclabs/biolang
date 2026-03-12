@@ -81,7 +81,8 @@ bl run examples/quickstart.bl</code></pre>
           <code>fastq()</code> for a lazy stream (better for large files).
           Each record contains an id, sequence, and quality scores.
         </p>
-        <pre><code class="language-biolang"># qc.bio — FASTQ quality control pipeline
+        <pre><code class="language-biolang"># requires: examples/sample-data/reads.fq in working directory
+# qc.bio — FASTQ quality control pipeline
 
 # read_fastq returns a Table (reusable)
 let reads = read_fastq("examples/sample-data/reads.fq")
@@ -237,7 +238,8 @@ print(detected)</code></pre>
         <p>
           Now let us combine everything into a single pipeline using the pipe operator.
         </p>
-        <pre><code class="language-biolang"># fastq_qc.bio — complete FASTQ QC pipeline
+        <pre><code class="language-biolang"># requires: examples/sample.fastq in working directory
+# fastq_qc.bio — complete FASTQ QC pipeline
 
 fn run_qc(input_path, output_path) {
   print(f"Reading {input_path}...")
@@ -276,7 +278,8 @@ run_qc("examples/sample.fastq", "examples/sample_clean.fastq")</code></pre>
         <p>
           Build a comparison table of raw vs clean statistics and export it as CSV.
         </p>
-        <pre><code class="language-biolang"># Generate a summary table comparing raw vs clean reads
+        <pre><code class="language-biolang"># requires: examples/sample.fastq and examples/sample_clean.fastq in working directory
+# Generate a summary table comparing raw vs clean reads
 let raw = read_fastq("examples/sample.fastq")
 let clean = read_fastq("examples/sample_clean.fastq")
 

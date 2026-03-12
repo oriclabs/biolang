@@ -43,7 +43,8 @@ print(counts["A"], counts["C"], counts["G"], counts["T"])</code></pre>
         <section id="gbk" class="mt-12">
           <h2 class="text-2xl font-bold text-white mb-2">GBK &mdash; GenBank Introduction</h2>
           <p class="text-slate-400 mb-4">Search NCBI's Nucleotide database for entries from a given organism published between two dates. Return the count.</p>
-          <pre><code class="language-biolang"># Search GenBank for organism entries within a date range
+          <pre><code class="language-biolang"># requires: internet connection (NCBI API)
+# Search GenBank for organism entries within a date range
 let organism = "Anthoxanthum"
 let date_from = "2003/07/25"
 let date_to = "2005/12/27"
@@ -57,7 +58,8 @@ print(len(result))</code></pre>
         <section id="frmt" class="mt-12">
           <h2 class="text-2xl font-bold text-white mb-2">FRMT &mdash; Data Formats</h2>
           <p class="text-slate-400 mb-4">Given a list of GenBank IDs, fetch their FASTA records and return the one with the shortest sequence.</p>
-          <pre><code class="language-biolang"># Find the shortest sequence among GenBank accessions
+          <pre><code class="language-biolang"># requires: internet connection (NCBI API)
+# Find the shortest sequence among GenBank accessions
 let ids = ["JX205496.1", "JX ## 469991.1", "JX469983.1"]
 
 let shortest = ids
@@ -228,7 +230,8 @@ print(longest_orf[0])</code></pre>
         <section id="need" class="mt-12">
           <h2 class="text-2xl font-bold text-white mb-2">NEED &mdash; Pairwise Global Alignment</h2>
           <p class="text-slate-400 mb-4">Fetch two protein sequences from UniProt and compute their global alignment score using BLOSUM62.</p>
-          <pre><code class="language-biolang"># Fetch two UniProt protein entries
+          <pre><code class="language-biolang"># requires: internet connection (UniProt API)
+# Fetch two UniProt protein entries
 let entry1 = uniprot_entry("B5ZC00")
 let entry2 = uniprot_entry("P07204")
 

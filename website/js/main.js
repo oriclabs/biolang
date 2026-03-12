@@ -124,15 +124,33 @@
     var btn = document.getElementById('mobile-menu-btn');
     var sidebar = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebar-overlay');
-    if (!btn || !sidebar) return;
+    var dropdown = document.getElementById('mobile-nav-dropdown');
+    if (!btn) return;
+
     btn.addEventListener('click', function () {
-      sidebar.classList.toggle('-translate-x-full');
-      if (overlay) overlay.classList.toggle('hidden');
+      if (sidebar) {
+        // Docs page with sidebar — toggle the sidebar
+        sidebar.classList.toggle('-translate-x-full');
+        if (overlay) overlay.classList.toggle('hidden');
+      } else if (dropdown) {
+        // Standalone page (no sidebar) — toggle the dropdown nav
+        dropdown.classList.toggle('hidden');
+      }
     });
+
     if (overlay) {
       overlay.addEventListener('click', function () {
-        sidebar.classList.add('-translate-x-full');
+        if (sidebar) sidebar.classList.add('-translate-x-full');
         overlay.classList.add('hidden');
+      });
+    }
+
+    // Close dropdown when clicking outside
+    if (dropdown) {
+      document.addEventListener('click', function (e) {
+        if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
       });
     }
   }

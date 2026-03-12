@@ -30,7 +30,8 @@
         <h2>ClinVar Queries</h2>
 
         <h3>Query ClinVar for a gene</h3>
-        <pre><code class="language-biolang"># Search ClinVar for variants in BRCA1
+        <pre><code class="language-biolang"># requires: internet connection
+# Search ClinVar for variants in BRCA1
 let ids = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
 
 print(f"Pathogenic BRCA1 variant IDs: {ids |> len}")
@@ -41,7 +42,8 @@ summaries |> each(|s| {
 })</code></pre>
 
         <h3>Batch ClinVar annotation</h3>
-        <pre><code class="language-biolang"># Annotate a VCF with ClinVar data
+        <pre><code class="language-biolang"># requires: internet connection
+# Annotate a VCF with ClinVar data
 let vcf = read_vcf("patient_variants.vcf")
 
 let annotated = vcf

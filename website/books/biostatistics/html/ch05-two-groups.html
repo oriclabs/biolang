@@ -1,0 +1,1096 @@
+<!DOCTYPE HTML>
+<html lang="en" class="coal sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Comparing Two Groups - Biostatistics in Practice</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A practical guide to statistical thinking for genomics and bioinformatics using BioLang">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-d890680f.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "coal";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-9adb9a6e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-22d9afbc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Biostatistics in Practice</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="comparing-two-groups"><a class="header" href="#comparing-two-groups">Comparing Two Groups</a></h1>
+<blockquote>
+<p><em>“The difference between a significant result and a non-significant result is not
+itself statistically significant.”</em> — Andrew Gelman &amp; Hal Stern</p>
+</blockquote>
+<p>You have gene expression measurements from tumor tissue and normal tissue. The
+question seems simple: which genes are different? The answer is anything but.</p>
+<p>This chapter teaches you to compare two groups properly — with the right test,
+the right assumptions check, the right effect size measure, and the right
+visualization. We will work with real breast cancer expression data and discover
+that p-values alone are dangerously incomplete.</p>
+<hr>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>A breast cancer researcher has RNA-seq expression data from tumor and adjacent
+normal tissue. For each of ~20,000 genes, she has FPKM values in both
+conditions. She wants to identify genes that are differentially expressed between
+tumor and normal.</p>
+<p>Her first instinct: run a t-test on every gene, keep the ones with p &lt; 0.05.</p>
+<p>This approach has at least five problems. By the end of this chapter, you will
+understand all of them and know how to do it correctly.</p>
+<hr>
+<h2 id="why-it-matters"><a class="header" href="#why-it-matters">Why It Matters</a></h2>
+<p>Comparing two groups is the most common statistical task in biology. Tumor vs
+normal. Treated vs untreated. Responder vs non-responder. Wild-type vs knockout.
+Case vs control.</p>
+<p>Getting this comparison wrong has real consequences:</p>
+<ul>
+<li><strong>False positives</strong> waste years of follow-up experiments on genes that are not
+truly different</li>
+<li><strong>False negatives</strong> miss real biological signals — the drug target that was
+actually there</li>
+<li><strong>Ignoring effect size</strong> means you chase genes with tiny differences that are
+statistically significant only because of large sample size</li>
+<li><strong>Ignoring assumptions</strong> means the p-values you report are not calibrated —
+they do not mean what you think they mean</li>
+</ul>
+<p>The t-test was invented in 1908 by William Sealy Gosset (publishing under the
+pseudonym “Student”) while working at the Guinness Brewery. He needed to compare
+small samples of barley yields. Over a century later, biologists still misuse
+his test daily.</p>
+<hr>
+<h2 id="the-data"><a class="header" href="#the-data">The Data</a></h2>
+<p>We use GEO dataset GSE183947, which contains FPKM expression values from breast
+cancer (tumor) and adjacent normal tissue samples. This is a real RNA-seq dataset
+with paired tumor-normal samples.</p>
+<h3 id="downloading-the-data"><a class="header" href="#downloading-the-data">Downloading the Data</a></h3>
+<pre><code class="language-text"># Download the breast cancer expression dataset
+let url = "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE183nnn/GSE183947/suppl/GSE183947_fpkm.csv.gz"
+let raw_file = download(url, "GSE183947_fpkm.csv.gz")
+println("Downloaded: " + raw_file)
+</code></pre>
+<h3 id="loading-and-inspecting"><a class="header" href="#loading-and-inspecting">Loading and Inspecting</a></h3>
+<pre><code class="language-text"># Load the expression matrix
+let expr = read_csv("GSE183947_fpkm.csv.gz")
+
+# Basic dimensions
+println("Rows: " + to_string(len(expr)))
+println("Columns: " + to_string(ncols(expr)))
+println("Column names:")
+let cols = columns(expr)
+cols |&gt; each(|c| println("  " + c))
+</code></pre>
+<pre><code class="language-text"># Preview the first few rows
+take(expr, 5)
+</code></pre>
+<p>The data has genes in rows and samples in columns. Tumor samples and normal
+samples are identified by their column names. We need to separate them.</p>
+<h3 id="preparing-tumor-vs-normal-groups"><a class="header" href="#preparing-tumor-vs-normal-groups">Preparing Tumor vs Normal Groups</a></h3>
+<pre><code class="language-text"># Identify tumor and normal sample columns
+# In GSE183947, tumor samples contain "tumor" and normal contain "normal"
+let all_cols = columns(expr)
+
+# Separate sample columns (skip the gene ID column)
+let tumor_cols = all_cols |&gt; filter(|c| contains(c, "tumor"))
+let normal_cols = all_cols |&gt; filter(|c| contains(c, "normal"))
+
+println("Tumor samples: " + to_string(len(tumor_cols)))
+println("Normal samples: " + to_string(len(normal_cols)))
+</code></pre>
+<pre><code class="language-text"># Extract expression values for a single gene to demonstrate
+# Let us start with TP53 — a well-known tumor suppressor
+let tp53_row = expr |&gt; filter_by("gene", |g| contains(g, "TP53"))
+
+let tp53_tumor = tumor_cols |&gt; map(|c| col_values(tp53_row, c)) |&gt; flatten()
+let tp53_normal = normal_cols |&gt; map(|c| col_values(tp53_row, c)) |&gt; flatten()
+
+println("TP53 tumor values: " + to_string(tp53_tumor))
+println("TP53 normal values: " + to_string(tp53_normal))
+</code></pre>
+<hr>
+<h2 id="exploration"><a class="header" href="#exploration">Exploration</a></h2>
+<p>Before running any test, <strong>look at your data</strong>. This is not optional. Skipping
+exploration is the single most common source of wrong conclusions in genomics.</p>
+<h3 id="summary-statistics"><a class="header" href="#summary-statistics">Summary Statistics</a></h3>
+<pre><code class="language-text"># Descriptive statistics for TP53 in both groups
+println("=== TP53 Expression ===")
+println("Tumor:")
+println("  n     = " + to_string(len(tp53_tumor)))
+println("  mean  = " + to_string(round(mean(tp53_tumor), 3)))
+println("  median= " + to_string(round(median(tp53_tumor), 3)))
+println("  sd    = " + to_string(round(stdev(tp53_tumor), 3)))
+println("  min   = " + to_string(round(min(tp53_tumor), 3)))
+println("  max   = " + to_string(round(max(tp53_tumor), 3)))
+
+println("Normal:")
+println("  n     = " + to_string(len(tp53_normal)))
+println("  mean  = " + to_string(round(mean(tp53_normal), 3)))
+println("  median= " + to_string(round(median(tp53_normal), 3)))
+println("  sd    = " + to_string(round(stdev(tp53_normal), 3)))
+println("  min   = " + to_string(round(min(tp53_normal), 3)))
+println("  max   = " + to_string(round(max(tp53_normal), 3)))
+</code></pre>
+<p>Already you can see something important: are the standard deviations similar?
+If one group is much more variable than the other, we need Welch’s t-test, not
+Student’s t-test.</p>
+<h3 id="visualizing-the-distributions"><a class="header" href="#visualizing-the-distributions">Visualizing the Distributions</a></h3>
+<pre><code class="language-text"># Histogram of TP53 expression in both groups
+histogram(tp53_tumor, "TP53 Tumor Expression (FPKM)")
+  |&gt; save_plot("tp53_tumor_hist.svg")
+
+histogram(tp53_normal, "TP53 Normal Expression (FPKM)")
+  |&gt; save_plot("tp53_normal_hist.svg")
+</code></pre>
+<pre><code class="language-text"># Side-by-side boxplot
+let tp53_data = table(
+  "expression", concat(tp53_tumor, tp53_normal),
+  "group", concat(
+    tp53_tumor |&gt; map(|_| "Tumor"),
+    tp53_normal |&gt; map(|_| "Normal")
+  )
+)
+
+boxplot(tp53_data, "group", "expression")
+  |&gt; save_plot("tp53_boxplot.svg")
+</code></pre>
+<h3 id="the-log-transform-question"><a class="header" href="#the-log-transform-question">The Log-Transform Question</a></h3>
+<p>Gene expression data is almost always right-skewed — a few genes have very high
+expression, most are moderate or low. This violates the normality assumption of
+the t-test.</p>
+<pre><code class="language-text"># Raw expression is typically right-skewed
+# Check skewness by comparing mean vs median
+let skew_ratio = mean(tp53_tumor) / median(tp53_tumor)
+println("Mean/median ratio (tumor): " + to_string(round(skew_ratio, 3)))
+# If ratio &gt;&gt; 1, the data is right-skewed
+</code></pre>
+<p>The standard solution is to log-transform:</p>
+<pre><code class="language-text"># Log2-transform with pseudocount to avoid log(0)
+let log_tp53_tumor = tp53_tumor |&gt; map(|x| log2(x + 1.0))
+let log_tp53_normal = tp53_normal |&gt; map(|x| log2(x + 1.0))
+
+println("Log2 tumor mean:   " + to_string(round(mean(log_tp53_tumor), 3)))
+println("Log2 tumor median: " + to_string(round(median(log_tp53_tumor), 3)))
+println("Log2 normal mean:  " + to_string(round(mean(log_tp53_normal), 3)))
+println("Log2 normal median:" + to_string(round(median(log_tp53_normal), 3)))
+</code></pre>
+<pre><code class="language-text"># QQ plot to check normality after log-transform
+qq_plot(log_tp53_tumor, "TP53 Tumor (log2)")
+  |&gt; save_plot("tp53_tumor_qq.svg")
+
+qq_plot(log_tp53_normal, "TP53 Normal (log2)")
+  |&gt; save_plot("tp53_normal_qq.svg")
+</code></pre>
+<p>A QQ plot plots the quantiles of your data against the quantiles of a normal
+distribution. If the points fall on a straight line, the data is approximately
+normal. Deviations at the tails indicate heavy or light tails.</p>
+<p><strong>Rule of thumb</strong>: Log-transformed expression data is usually close enough to
+normal for the t-test. Always check with a QQ plot.</p>
+<hr>
+<h2 id="the-analysis"><a class="header" href="#the-analysis">The Analysis</a></h2>
+<h3 id="step-1-students-t-test--the-classic"><a class="header" href="#step-1-students-t-test--the-classic">Step 1: Student’s t-Test — The Classic</a></h3>
+<p>Student’s t-test assumes:</p>
+<ol>
+<li>Both groups are drawn from normal distributions</li>
+<li>Both groups have <strong>equal variance</strong> (homoscedasticity)</li>
+<li>Observations are independent</li>
+</ol>
+<pre><code class="language-text"># Student's t-test on log-transformed TP53
+let result = ttest(log_tp53_tumor, log_tp53_normal)
+println("=== Student's t-test (TP53 log2-FPKM) ===")
+println("t-statistic: " + to_string(round(result.statistic, 4)))
+println("p-value:     " + to_string(result.p_value))
+println("df:          " + to_string(round(result.df, 1)))
+</code></pre>
+<p>But wait — did we check the equal variance assumption?</p>
+<pre><code class="language-text"># Check variance ratio (F-ratio)
+let var_tumor = variance(log_tp53_tumor)
+let var_normal = variance(log_tp53_normal)
+let f_ratio = var_tumor / var_normal
+println("Variance tumor:  " + to_string(round(var_tumor, 4)))
+println("Variance normal: " + to_string(round(var_normal, 4)))
+println("F-ratio:         " + to_string(round(f_ratio, 4)))
+# If F-ratio is far from 1 (say &gt; 2 or &lt; 0.5), variances are unequal
+</code></pre>
+<h3 id="step-2-welchs-t-test--the-safer-choice"><a class="header" href="#step-2-welchs-t-test--the-safer-choice">Step 2: Welch’s t-Test — The Safer Choice</a></h3>
+<p>Welch’s t-test does <strong>not</strong> assume equal variance. It adjusts the degrees of
+freedom based on the sample variances. In practice, Welch’s test is almost
+always preferred because:</p>
+<ul>
+<li>When variances are equal, Welch’s gives nearly identical results to Student’s</li>
+<li>When variances are unequal, Student’s gives wrong p-values but Welch’s is correct</li>
+<li>There is almost no cost to using Welch’s and a real cost to using Student’s incorrectly</li>
+</ul>
+<pre><code class="language-text"># Welch's t-test (default in most modern software)
+# In BioLang, ttest performs Welch's by default
+let welch = ttest(log_tp53_tumor, log_tp53_normal)
+println("=== Welch's t-test (TP53 log2-FPKM) ===")
+println("t-statistic: " + to_string(round(welch.statistic, 4)))
+println("p-value:     " + to_string(welch.p_value))
+println("df:          " + to_string(round(welch.df, 1)))
+</code></pre>
+<p><strong>Key insight</strong>: The degrees of freedom in Welch’s test are often not an integer.
+This is correct — it is the Welch-Satterthwaite approximation. If you see
+df = 14.7 instead of df = 18, that is Welch’s adjustment working.</p>
+<h3 id="step-3-when-to-use-paired-tests"><a class="header" href="#step-3-when-to-use-paired-tests">Step 3: When to Use Paired Tests</a></h3>
+<p>If each tumor sample has a matched normal sample from the same patient, you
+should use a <strong>paired</strong> t-test. Pairing removes patient-to-patient variability
+and dramatically increases statistical power.</p>
+<pre><code class="language-text"># If samples are paired (tumor-normal from same patient):
+# The paired test operates on DIFFERENCES within each pair
+let differences = zip(log_tp53_tumor, log_tp53_normal)
+  |&gt; map(|pair| pair[0] - pair[1])
+
+println("Mean of differences: " + to_string(round(mean(differences), 4)))
+println("SD of differences:   " + to_string(round(stdev(differences), 4)))
+
+# The paired t-test tests whether the mean difference is zero
+let paired_result = ttest_paired(log_tp53_tumor, log_tp53_normal)
+println("=== Paired t-test (TP53 log2-FPKM) ===")
+println("t-statistic: " + to_string(round(paired_result.statistic, 4)))
+println("p-value:     " + to_string(paired_result.p_value))
+</code></pre>
+<p><strong>When to pair</strong>: If the samples are naturally matched (same patient, same litter,
+same batch processed together), ALWAYS use the paired test. The unpaired test
+ignores this information and throws away statistical power.</p>
+<p><strong>When NOT to pair</strong>: If the samples are independent (different patients, no
+natural matching), the paired test is inappropriate and can give wrong results.</p>
+<h3 id="step-4-effect-size--cohens-d"><a class="header" href="#step-4-effect-size--cohens-d">Step 4: Effect Size — Cohen’s d</a></h3>
+<p>A p-value tells you whether a difference is statistically distinguishable from
+zero. It does NOT tell you how large the difference is. With a large enough
+sample size, even a biologically meaningless 0.01-FPKM difference becomes
+“statistically significant.”</p>
+<p>Cohen’s d measures effect size in units of standard deviation:</p>
+<pre><code class="language-text"># Cohen's d for independent samples
+# d = (mean1 - mean2) / pooled_sd
+let mean_diff = mean(log_tp53_tumor) - mean(log_tp53_normal)
+let n1 = to_float(len(log_tp53_tumor))
+let n2 = to_float(len(log_tp53_normal))
+let pooled_var = ((n1 - 1.0) * variance(log_tp53_tumor) + (n2 - 1.0) * variance(log_tp53_normal)) / (n1 + n2 - 2.0)
+let pooled_sd = sqrt(pooled_var)
+let cohens_d = mean_diff / pooled_sd
+
+println("=== Effect Size ===")
+println("Mean difference (log2): " + to_string(round(mean_diff, 4)))
+println("Pooled SD:              " + to_string(round(pooled_sd, 4)))
+println("Cohen's d:              " + to_string(round(cohens_d, 4)))
+</code></pre>
+<p>Interpreting Cohen’s d:</p>
+<ul>
+<li>|d| &lt; 0.2: negligible effect</li>
+<li>|d| ~ 0.2: small effect</li>
+<li>|d| ~ 0.5: medium effect</li>
+<li>|d| ~ 0.8: large effect</li>
+<li>|d| &gt; 1.0: very large effect</li>
+</ul>
+<pre><code class="language-text"># Effect size interpretation
+let d_abs = abs(cohens_d)
+let interpretation = if d_abs &lt; 0.2 then "negligible"
+  else if d_abs &lt; 0.5 then "small"
+  else if d_abs &lt; 0.8 then "medium"
+  else "large"
+
+println("Effect size interpretation: " + interpretation)
+</code></pre>
+<p><strong>Critical point</strong>: A gene with p = 0.001 and d = 0.1 is probably not
+biologically interesting. A gene with p = 0.06 and d = 1.2 probably is. Report
+both.</p>
+<h3 id="step-5-confidence-intervals"><a class="header" href="#step-5-confidence-intervals">Step 5: Confidence Intervals</a></h3>
+<p>A confidence interval gives you a range of plausible values for the true
+difference. Unlike a p-value, it tells you about the magnitude of the effect.</p>
+<pre><code class="language-text"># 95% confidence interval for the difference in means
+let se_diff = sqrt(variance(log_tp53_tumor) / n1 + variance(log_tp53_normal) / n2)
+let t_crit = qnorm(0.975)  # approximate for large samples
+let ci_lower = mean_diff - t_crit * se_diff
+let ci_upper = mean_diff + t_crit * se_diff
+
+println("=== 95% Confidence Interval ===")
+println("Difference in means (log2): " + to_string(round(mean_diff, 4)))
+println("SE of difference:           " + to_string(round(se_diff, 4)))
+println("95% CI: [" + to_string(round(ci_lower, 4)) + ", " + to_string(round(ci_upper, 4)) + "]")
+</code></pre>
+<p>If the confidence interval contains zero, the difference is not statistically
+significant at the 0.05 level. But notice how much MORE information the CI
+provides compared to a binary yes/no p-value.</p>
+<h3 id="step-6-the-fold-change"><a class="header" href="#step-6-the-fold-change">Step 6: The Fold Change</a></h3>
+<p>In genomics, the fold change is the ratio of expression between conditions.
+On log2-transformed data, the fold change is simply the difference:</p>
+<pre><code class="language-text"># Log2 fold change
+let log2fc = mean(log_tp53_tumor) - mean(log_tp53_normal)
+println("log2 fold change: " + to_string(round(log2fc, 4)))
+
+# Convert back to fold change
+let fc = pow(2.0, abs(log2fc))
+let direction = if log2fc &gt; 0.0 then "upregulated in tumor" else "downregulated in tumor"
+println("Fold change: " + to_string(round(fc, 2)) + "x " + direction)
+</code></pre>
+<h3 id="step-7-genome-wide-analysis"><a class="header" href="#step-7-genome-wide-analysis">Step 7: Genome-Wide Analysis</a></h3>
+<p>Now let us scale up to all genes. This is where things get interesting.</p>
+<pre><code class="language-text"># Run t-tests for every gene across the expression matrix
+let gene_col = columns(expr) |&gt; take(1)  # first column is gene ID
+let genes = col_values(expr, gene_col[0])
+
+# Build results table gene by gene
+let results = genes |&gt; map(|gene| {
+  let row = expr |&gt; filter_by(gene_col[0], |g| g == gene)
+
+  # Extract tumor and normal values
+  let tumor_vals = tumor_cols |&gt; map(|c| col_values(row, c)) |&gt; flatten()
+  let normal_vals = normal_cols |&gt; map(|c| col_values(row, c)) |&gt; flatten()
+
+  # Log2 transform
+  let log_tumor = tumor_vals |&gt; map(|x| log2(x + 1.0))
+  let log_normal = normal_vals |&gt; map(|x| log2(x + 1.0))
+
+  # Calculate statistics
+  let log2fc = mean(log_tumor) - mean(log_normal)
+  let test_result = ttest(log_tumor, log_normal)
+
+  # Cohen's d
+  let n_t = to_float(len(log_tumor))
+  let n_n = to_float(len(log_normal))
+  let pvar = ((n_t - 1.0) * variance(log_tumor) + (n_n - 1.0) * variance(log_normal)) / (n_t + n_n - 2.0)
+  let d = if pvar &gt; 0.0 then log2fc / sqrt(pvar) else 0.0
+
+  record(
+    "gene", gene,
+    "log2fc", round(log2fc, 4),
+    "t_stat", round(test_result.statistic, 4),
+    "p_value", test_result.p_value,
+    "cohens_d", round(d, 4),
+    "mean_tumor", round(mean(log_tumor), 4),
+    "mean_normal", round(mean(log_normal), 4)
+  )
+}) |&gt; to_list()
+
+let results_table = table(results)
+println("Tested " + to_string(len(results_table)) + " genes")
+</code></pre>
+<pre><code class="language-text"># Sort by p-value to see top hits
+let top_genes = results_table
+  |&gt; arrange("p_value")
+  |&gt; take(20)
+
+println("=== Top 20 Genes by P-value ===")
+top_genes
+</code></pre>
+<h3 id="step-8-the-volcano-plot"><a class="header" href="#step-8-the-volcano-plot">Step 8: The Volcano Plot</a></h3>
+<p>The volcano plot is the signature visualization of differential expression
+analysis. It plots log2 fold change (x-axis) against -log10 p-value (y-axis).
+Genes that are both statistically significant AND have large effect size appear
+in the upper corners.</p>
+<pre><code class="language-text"># Create the volcano plot
+let volcano_data = results_table
+  |&gt; mutate("neg_log10_p", |row| -log10(row.p_value + 1e-300))
+
+volcano(volcano_data, "log2fc", "neg_log10_p")
+  |&gt; save_plot("breast_cancer_volcano.svg")
+</code></pre>
+<pre><code class="language-text"># Annotated volcano with significance thresholds
+# Genes with |log2FC| &gt; 1 AND p &lt; 0.05 are "significant"
+let sig_up = results_table
+  |&gt; filter_by("log2fc", |fc| fc &gt; 1.0)
+  |&gt; filter_by("p_value", |p| p &lt; 0.05)
+
+let sig_down = results_table
+  |&gt; filter_by("log2fc", |fc| fc &lt; -1.0)
+  |&gt; filter_by("p_value", |p| p &lt; 0.05)
+
+println("Upregulated (FC&gt;2, p&lt;0.05):   " + to_string(len(sig_up)))
+println("Downregulated (FC&lt;0.5, p&lt;0.05): " + to_string(len(sig_down)))
+println("Not significant:                " + to_string(
+  len(results_table) - len(sig_up) - len(sig_down)
+))
+</code></pre>
+<h3 id="step-9-mann-whitney-u-wilcoxon-rank-sum-as-alternative"><a class="header" href="#step-9-mann-whitney-u-wilcoxon-rank-sum-as-alternative">Step 9: Mann-Whitney U (Wilcoxon Rank-Sum) as Alternative</a></h3>
+<p>When the normality assumption is questionable, the Wilcoxon rank-sum test is a
+non-parametric alternative. It tests whether one group tends to have larger
+values than the other, without assuming any particular distribution shape.</p>
+<pre><code class="language-text"># Wilcoxon rank-sum test on TP53
+let wilcox_result = wilcoxon(log_tp53_tumor, log_tp53_normal)
+println("=== Wilcoxon Rank-Sum Test (TP53 log2-FPKM) ===")
+println("W statistic: " + to_string(wilcox_result.statistic))
+println("p-value:     " + to_string(wilcox_result.p_value))
+</code></pre>
+<h3 id="step-10-head-to-head--t-test-vs-wilcoxon"><a class="header" href="#step-10-head-to-head--t-test-vs-wilcoxon">Step 10: Head-to-Head — t-Test vs Wilcoxon</a></h3>
+<p>This is the real question: when do parametric and non-parametric tests disagree?</p>
+<pre><code class="language-text"># Compare t-test and Wilcoxon across all genes
+let comparison = genes |&gt; map(|gene| {
+  let row = expr |&gt; filter_by(gene_col[0], |g| g == gene)
+  let tumor_vals = tumor_cols |&gt; map(|c| col_values(row, c)) |&gt; flatten()
+  let normal_vals = normal_cols |&gt; map(|c| col_values(row, c)) |&gt; flatten()
+
+  let log_tumor = tumor_vals |&gt; map(|x| log2(x + 1.0))
+  let log_normal = normal_vals |&gt; map(|x| log2(x + 1.0))
+
+  let t_result = ttest(log_tumor, log_normal)
+  let w_result = wilcoxon(log_tumor, log_normal)
+
+  record(
+    "gene", gene,
+    "p_ttest", t_result.p_value,
+    "p_wilcoxon", w_result.p_value
+  )
+}) |&gt; to_list()
+
+let comp_table = table(comparison)
+</code></pre>
+<pre><code class="language-text"># Scatter plot: t-test p-values vs Wilcoxon p-values
+let comp_log = comp_table
+  |&gt; mutate("log_p_t", |row| -log10(row.p_ttest + 1e-300))
+  |&gt; mutate("log_p_w", |row| -log10(row.p_wilcoxon + 1e-300))
+
+scatter(comp_log, "log_p_t", "log_p_w")
+  |&gt; save_plot("ttest_vs_wilcoxon.svg")
+</code></pre>
+<pre><code class="language-text"># Find genes where the tests disagree
+# Significant by t-test but not by Wilcoxon
+let t_only = comp_table
+  |&gt; filter_by("p_ttest", |p| p &lt; 0.05)
+  |&gt; filter_by("p_wilcoxon", |p| p &gt;= 0.05)
+
+# Significant by Wilcoxon but not by t-test
+let w_only = comp_table
+  |&gt; filter_by("p_wilcoxon", |p| p &lt; 0.05)
+  |&gt; filter_by("p_ttest", |p| p &gt;= 0.05)
+
+println("=== Disagreements ===")
+println("Significant by t-test only:   " + to_string(len(t_only)))
+println("Significant by Wilcoxon only: " + to_string(len(w_only)))
+println("Agree on significance:        " + to_string(
+  len(comp_table) - len(t_only) - len(w_only)
+))
+</code></pre>
+<p><strong>Why do they disagree?</strong></p>
+<p>The t-test is sensitive to outliers because it uses means and variances.
+A single extreme value can pull the mean and inflate the variance, changing
+the p-value substantially.</p>
+<p>The Wilcoxon test uses ranks instead of raw values. An outlier that is 10x
+larger than the next value gets rank n regardless — its magnitude does not
+matter. This makes it robust to outliers but less powerful when the data
+truly is normal.</p>
+<pre><code class="language-text"># Examine a gene where they disagree
+let disagreement_genes = col_values(t_only, "gene")
+if len(disagreement_genes) &gt; 0 then {
+  let check_gene = disagreement_genes[0]
+  let row = expr |&gt; filter_by(gene_col[0], |g| g == check_gene)
+  let tumor_vals = tumor_cols |&gt; map(|c| col_values(row, c)) |&gt; flatten()
+  let normal_vals = normal_cols |&gt; map(|c| col_values(row, c)) |&gt; flatten()
+
+  let log_tumor = tumor_vals |&gt; map(|x| log2(x + 1.0))
+  let log_normal = normal_vals |&gt; map(|x| log2(x + 1.0))
+
+  println("Gene: " + check_gene)
+  println("Tumor values (log2): " + to_string(log_tumor))
+  println("Normal values (log2): " + to_string(log_normal))
+
+  # Check for outliers — values more than 3 SDs from mean
+  let t_mean = mean(log_tumor)
+  let t_sd = stdev(log_tumor)
+  let outliers = log_tumor |&gt; filter(|x| abs(x - t_mean) &gt; 3.0 * t_sd)
+  println("Outliers in tumor: " + to_string(len(outliers)))
+
+  # Box plot to visualize
+  let check_data = table(
+    "expression", concat(log_tumor, log_normal),
+    "group", concat(
+      log_tumor |&gt; map(|_| "Tumor"),
+      log_normal |&gt; map(|_| "Normal")
+    )
+  )
+  boxplot(check_data, "group", "expression")
+    |&gt; save_plot("disagreement_gene_boxplot.svg")
+}
+</code></pre>
+<h3 id="step-11-the-one-sample-t-test"><a class="header" href="#step-11-the-one-sample-t-test">Step 11: The One-Sample t-Test</a></h3>
+<p>Sometimes you want to test whether a single group differs from a known value.
+For instance: is the average log2 fold change across a pathway significantly
+different from zero?</p>
+<pre><code class="language-text"># One-sample t-test: are the fold changes in a gene set different from zero?
+# Let us test a set of known breast cancer genes
+let bc_genes = ["BRCA1", "BRCA2", "TP53", "ERBB2", "ESR1", "PGR", "MKI67", "CDH1"]
+
+let bc_fcs = bc_genes |&gt; map(|gene| {
+  let row = results_table |&gt; filter_by("gene", |g| contains(g, gene))
+  if len(row) &gt; 0 then col_values(row, "log2fc")[0] else 0.0
+}) |&gt; filter(|x| x != 0.0)
+
+println("Fold changes of BC genes: " + to_string(bc_fcs))
+println("Mean log2FC: " + to_string(round(mean(bc_fcs), 4)))
+
+# Test: is the mean FC significantly different from 0?
+let one_sample = ttest_one(bc_fcs, 0.0)
+println("=== One-sample t-test ===")
+println("t-statistic: " + to_string(round(one_sample.statistic, 4)))
+println("p-value:     " + to_string(one_sample.p_value))
+</code></pre>
+<hr>
+<h2 id="interpretation"><a class="header" href="#interpretation">Interpretation</a></h2>
+<h3 id="what-the-p-value-actually-means"><a class="header" href="#what-the-p-value-actually-means">What the P-value Actually Means</a></h3>
+<p>The p-value is the probability of observing data as extreme as (or more extreme
+than) what was observed, <strong>assuming the null hypothesis is true</strong>. It is NOT:</p>
+<ul>
+<li>The probability that the null hypothesis is true</li>
+<li>The probability that you made an error</li>
+<li>The probability that the result will replicate</li>
+</ul>
+<p>A p-value of 0.03 means: “If there were truly no difference between tumor and
+normal, data this extreme would occur about 3% of the time by chance.”</p>
+<h3 id="the-complete-report-for-a-gene"><a class="header" href="#the-complete-report-for-a-gene">The Complete Report for a Gene</a></h3>
+<p>Never report just a p-value. A complete comparison includes:</p>
+<pre><code class="language-text"># Complete report for TP53
+let report_gene = "TP53"
+let row = results_table |&gt; filter_by("gene", |g| contains(g, report_gene))
+
+println("=== Complete Report: " + report_gene + " ===")
+println("Mean expression (log2 FPKM):")
+println("  Tumor:  " + to_string(col_values(row, "mean_tumor")[0]))
+println("  Normal: " + to_string(col_values(row, "mean_normal")[0]))
+println("Log2 fold change: " + to_string(col_values(row, "log2fc")[0]))
+println("Fold change: " + to_string(round(pow(2.0, abs(col_values(row, "log2fc")[0])), 2)) + "x")
+println("Direction: " + if col_values(row, "log2fc")[0] &gt; 0.0 then "up in tumor" else "down in tumor")
+println("t-statistic: " + to_string(col_values(row, "t_stat")[0]))
+println("p-value: " + to_string(col_values(row, "p_value")[0]))
+println("Cohen's d: " + to_string(col_values(row, "cohens_d")[0]))
+println("Note: p-value is NOT corrected for multiple testing (see Chapter 8)")
+</code></pre>
+<h3 id="when-the-t-test-finds-significance-but-the-biology-does-not"><a class="header" href="#when-the-t-test-finds-significance-but-the-biology-does-not">When the t-Test Finds Significance but the Biology Does Not</a></h3>
+<pre><code class="language-text"># Find genes with tiny fold changes but "significant" p-values
+let stat_only = results_table
+  |&gt; filter_by("p_value", |p| p &lt; 0.01)
+  |&gt; filter_by("log2fc", |fc| abs(fc) &lt; 0.3)
+  |&gt; arrange("p_value")
+
+println("=== Statistically Significant but Biologically Questionable ===")
+println("Genes with p &lt; 0.01 but |log2FC| &lt; 0.3:")
+println("(These are less than 1.23-fold changes)")
+take(stat_only, 10)
+</code></pre>
+<p>These genes are statistically different but the difference is so small it is
+unlikely to be biologically meaningful. This is exactly why effect size matters.</p>
+<h3 id="when-biology-happens-without-statistical-significance"><a class="header" href="#when-biology-happens-without-statistical-significance">When Biology Happens Without Statistical Significance</a></h3>
+<pre><code class="language-text"># Find genes with large fold changes but non-significant p-values
+let bio_only = results_table
+  |&gt; filter_by("p_value", |p| p &gt; 0.05)
+  |&gt; filter_by("log2fc", |fc| abs(fc) &gt; 2.0)
+  |&gt; arrange("log2fc")
+
+println("=== Biologically Large but Not Statistically Significant ===")
+println("Genes with p &gt; 0.05 but |log2FC| &gt; 2 (4-fold change):")
+take(bio_only, 10)
+</code></pre>
+<p>These genes have large fold changes but high variance or small sample sizes
+prevent the difference from being statistically significant. They may be worth
+investigating with more samples.</p>
+<hr>
+<h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
+<h3 id="what-test-should-you-use"><a class="header" href="#what-test-should-you-use">What Test Should You Use?</a></h3>
+<pre><code class="language-text"># Decision framework encoded in code:
+
+# 1. Are the samples paired (same patient)?
+let paired = true  # set based on experimental design
+
+# 2. Check normality of the data (or log-data)
+let check_normality = true  # QQ plot looked reasonable
+
+# 3. Choose the test
+let test_choice = if paired then {
+  if check_normality then "paired t-test"
+  else "Wilcoxon signed-rank"
+} else {
+  if check_normality then "Welch's t-test"
+  else "Wilcoxon rank-sum"
+}
+
+println("Recommended test: " + test_choice)
+</code></pre>
+<h3 id="summary-table-of-all-methods"><a class="header" href="#summary-table-of-all-methods">Summary Table of All Methods</a></h3>
+<pre><code class="language-text"># Build a decision summary
+let summary_table = table(
+  "scenario", [
+    "Paired, normal data",
+    "Paired, non-normal data",
+    "Unpaired, normal data",
+    "Unpaired, non-normal data",
+    "Unpaired, unequal variance"
+  ],
+  "test", [
+    "Paired t-test",
+    "Wilcoxon signed-rank",
+    "Student's t-test",
+    "Wilcoxon rank-sum",
+    "Welch's t-test"
+  ],
+  "biolang_function", [
+    "ttest_paired(x, y)",
+    "wilcoxon(x, y)",
+    "ttest(x, y)",
+    "wilcoxon(x, y)",
+    "ttest(x, y)"
+  ],
+  "note", [
+    "Most powerful when pairing exists",
+    "Uses ranks, robust to outliers",
+    "Assumes equal variance",
+    "No distribution assumption",
+    "Default — safe with unequal variance"
+  ]
+)
+
+summary_table
+</code></pre>
+<h3 id="the-recommended-workflow"><a class="header" href="#the-recommended-workflow">The Recommended Workflow</a></h3>
+<pre><code class="language-text"># Complete workflow for comparing two groups in genomics:
+
+# 1. Log-transform expression data
+# 2. Check normality with QQ plots
+# 3. Check variance equality (compare SDs)
+# 4. Use paired test if samples are matched
+# 5. Use Welch's t-test as default (not Student's)
+# 6. Always compute Cohen's d
+# 7. Always compute confidence intervals
+# 8. Always make a volcano plot
+# 9. Do NOT interpret raw p-values when testing many genes
+#    (see Chapter 8 for multiple testing correction)
+</code></pre>
+<hr>
+<h2 id="pitfalls"><a class="header" href="#pitfalls">Pitfalls</a></h2>
+<h3 id="pitfall-1-using-students-t-test-when-variances-are-unequal"><a class="header" href="#pitfall-1-using-students-t-test-when-variances-are-unequal">Pitfall 1: Using Student’s t-Test When Variances Are Unequal</a></h3>
+<pre><code class="language-text"># Simulate unequal variances
+let group_a = rnorm(30, 5.0, 1.0)   # mean=5, sd=1
+let group_b = rnorm(30, 5.5, 3.0)   # mean=5.5, sd=3
+
+# Student's t-test ASSUMES equal variance
+# Welch's does not
+let t_student = ttest(group_a, group_b)
+println("Welch's p-value: " + to_string(t_student.p_value))
+
+# With unequal n AND unequal variance, Student's can be seriously wrong
+let small_a = rnorm(10, 5.0, 1.0)
+let large_b = rnorm(50, 5.5, 3.0)
+let t_wrong = ttest(small_a, large_b)
+println("Unequal n + unequal var: p = " + to_string(t_wrong.p_value))
+</code></pre>
+<p><strong>Rule</strong>: Just use Welch’s t-test. Always. There is no good reason to use
+Student’s t-test in practice.</p>
+<h3 id="pitfall-2-testing-without-log-transforming"><a class="header" href="#pitfall-2-testing-without-log-transforming">Pitfall 2: Testing Without Log-Transforming</a></h3>
+<pre><code class="language-text"># Demonstrate the danger of testing raw FPKM values
+# Raw expression is heavily right-skewed
+let raw_result = ttest(tp53_tumor, tp53_normal)
+let log_result = ttest(log_tp53_tumor, log_tp53_normal)
+
+println("=== Raw vs Log-transformed ===")
+println("Raw FPKM t-test p-value: " + to_string(raw_result.p_value))
+println("Log2 FPKM t-test p-value: " + to_string(log_result.p_value))
+println("These can differ substantially!")
+</code></pre>
+<h3 id="pitfall-3-confusing-statistical-and-biological-significance"><a class="header" href="#pitfall-3-confusing-statistical-and-biological-significance">Pitfall 3: Confusing Statistical and Biological Significance</a></h3>
+<p>A gene with p = 1e-10 and fold change = 1.05 is statistically significant but
+biologically irrelevant. With enough samples, ANY non-zero difference becomes
+significant. Always report and filter by effect size.</p>
+<h3 id="pitfall-4-ignoring-multiple-testing"><a class="header" href="#pitfall-4-ignoring-multiple-testing">Pitfall 4: Ignoring Multiple Testing</a></h3>
+<pre><code class="language-text"># Running 20,000 t-tests without correction
+let n_tests = len(results_table)
+let n_sig_raw = results_table
+  |&gt; filter_by("p_value", |p| p &lt; 0.05)
+  |&gt; len()
+
+let expected_false_pos = to_float(n_tests) * 0.05
+
+println("=== The Multiple Testing Problem ===")
+println("Total genes tested: " + to_string(n_tests))
+println("Significant at p&lt;0.05: " + to_string(n_sig_raw))
+println("Expected false positives by chance: " + to_string(round(expected_false_pos, 0)))
+println("See Chapter 8 for correction methods!")
+</code></pre>
+<h3 id="pitfall-5-applying-paired-test-to-unpaired-data-or-vice-versa"><a class="header" href="#pitfall-5-applying-paired-test-to-unpaired-data-or-vice-versa">Pitfall 5: Applying Paired Test to Unpaired Data (or Vice Versa)</a></h3>
+<pre><code class="language-text"># Paired test on unpaired data gives WRONG results
+# If samples are not truly paired, the differences are meaningless
+
+# Simulate: generate two independent groups
+let independent_a = rnorm(20, 10.0, 2.0)
+let independent_b = rnorm(20, 11.0, 2.0)
+
+# Wrong: treating independent data as paired
+let wrong_paired = ttest_paired(independent_a, independent_b)
+
+# Correct: unpaired test
+let correct_unpaired = ttest(independent_a, independent_b)
+
+println("Wrong (paired on unpaired data): p = " + to_string(wrong_paired.p_value))
+println("Correct (unpaired test):         p = " + to_string(correct_unpaired.p_value))
+</code></pre>
+<h3 id="pitfall-6-cherry-picking-genes"><a class="header" href="#pitfall-6-cherry-picking-genes">Pitfall 6: Cherry-Picking Genes</a></h3>
+<p>If you look at a gene because it has a large fold change and then test it, you
+are not doing an honest hypothesis test. You are confirming what you already saw
+in the data. This inflates false positive rates. Either test all genes (and
+correct for multiple testing) or have a pre-specified hypothesis.</p>
+<h3 id="pitfall-7-the-pseudocount-matters"><a class="header" href="#pitfall-7-the-pseudocount-matters">Pitfall 7: The Pseudocount Matters</a></h3>
+<pre><code class="language-text"># The choice of pseudocount affects log2 fold change for lowly expressed genes
+let low_expr = [0.0, 0.0, 0.1, 0.0, 0.2]
+
+let log_pc1 = low_expr |&gt; map(|x| log2(x + 1.0))
+let log_pc01 = low_expr |&gt; map(|x| log2(x + 0.1))
+let log_pc001 = low_expr |&gt; map(|x| log2(x + 0.01))
+
+println("Pseudocount = 1:    " + to_string(log_pc1))
+println("Pseudocount = 0.1:  " + to_string(log_pc01))
+println("Pseudocount = 0.01: " + to_string(log_pc001))
+println("The pseudocount dramatically affects near-zero genes!")
+</code></pre>
+<hr>
+<h2 id="putting-it-all-together"><a class="header" href="#putting-it-all-together">Putting It All Together</a></h2>
+<p>Here is the complete analysis pipeline for comparing tumor vs normal expression:</p>
+<pre><code class="language-text"># ============================================================
+# Complete Two-Group Comparison Pipeline
+# ============================================================
+
+# 1. Load data
+let url = "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE183nnn/GSE183947/suppl/GSE183947_fpkm.csv.gz"
+let expr = download(url, "GSE183947_fpkm.csv.gz") |&gt; read_csv()
+
+# 2. Identify groups
+let all_cols = columns(expr)
+let tumor_cols = all_cols |&gt; filter(|c| contains(c, "tumor"))
+let normal_cols = all_cols |&gt; filter(|c| contains(c, "normal"))
+let gene_col = all_cols[0]
+
+# 3. Genome-wide comparison
+let results = col_values(expr, gene_col) |&gt; map(|gene| {
+  let row = expr |&gt; filter_by(gene_col, |g| g == gene)
+
+  let tumor_vals = tumor_cols |&gt; map(|c| col_values(row, c)) |&gt; flatten()
+  let normal_vals = normal_cols |&gt; map(|c| col_values(row, c)) |&gt; flatten()
+
+  # Log-transform
+  let lt = tumor_vals |&gt; map(|x| log2(x + 1.0))
+  let ln = normal_vals |&gt; map(|x| log2(x + 1.0))
+
+  # Test and effect size
+  let log2fc = mean(lt) - mean(ln)
+  let t_res = ttest(lt, ln)
+  let w_res = wilcoxon(lt, ln)
+
+  let nt = to_float(len(lt))
+  let nn = to_float(len(ln))
+  let pv = ((nt - 1.0) * variance(lt) + (nn - 1.0) * variance(ln)) / (nt + nn - 2.0)
+  let d = if pv &gt; 0.0 then log2fc / sqrt(pv) else 0.0
+
+  record(
+    "gene", gene,
+    "log2fc", round(log2fc, 4),
+    "p_ttest", t_res.p_value,
+    "p_wilcoxon", w_res.p_value,
+    "cohens_d", round(d, 4)
+  )
+}) |&gt; to_list() |&gt; table()
+
+# 4. Volcano plot
+let plot_data = results
+  |&gt; mutate("neg_log10_p", |row| -log10(row.p_ttest + 1e-300))
+
+volcano(plot_data, "log2fc", "neg_log10_p")
+  |&gt; save_plot("complete_volcano.svg")
+
+# 5. Summary
+let sig = results
+  |&gt; filter_by("p_ttest", |p| p &lt; 0.05)
+  |&gt; filter_by("log2fc", |fc| abs(fc) &gt; 1.0)
+
+println("=== Final Summary ===")
+println("Total genes tested: " + to_string(len(results)))
+println("Significant (p&lt;0.05, |FC|&gt;2): " + to_string(len(sig)))
+println("WARNING: p-values are NOT adjusted for multiple testing")
+println("See Chapter 8 before reporting these results!")
+</code></pre>
+<hr>
+<h2 id="where-next"><a class="header" href="#where-next">Where Next?</a></h2>
+<p>This chapter covered comparing <strong>two</strong> groups. But what happens when you have
+three, four, or five groups? You cannot simply run pairwise t-tests — that
+creates a multiple testing problem within a single comparison. Chapter 6 covers
+<strong>multi-group comparisons</strong> with ANOVA and Kruskal-Wallis.</p>
+<p>We also noted repeatedly that testing 20,000 genes requires correction for
+multiple testing. Chapter 8 covers this critical topic — Bonferroni,
+Benjamini-Hochberg, and why the choice matters enormously.</p>
+<p>And if your data is not normally distributed even after log-transformation,
+Chapter 7 covers <strong>non-parametric methods</strong> in detail.</p>
+<h3 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h3>
+<ol>
+<li><strong>Use Welch’s t-test</strong> by default, not Student’s</li>
+<li><strong>Log-transform</strong> expression data before testing</li>
+<li><strong>Always compute effect size</strong> (Cohen’s d) alongside p-values</li>
+<li><strong>Always compute confidence intervals</strong> — they tell you more than p-values</li>
+<li><strong>Visualize with volcano plots</strong> — they combine fold change and significance</li>
+<li><strong>Check your assumptions</strong> — QQ plots for normality, variance comparison</li>
+<li><strong>Use paired tests</strong> when samples are naturally paired</li>
+<li><strong>Consider Wilcoxon</strong> when normality is questionable</li>
+<li><strong>Never interpret raw p-values</strong> from genome-wide tests (Chapter 8)</li>
+<li><strong>Report the complete picture</strong>: mean, SD, fold change, CI, p-value, effect size</li>
+</ol>
+<h3 id="exercises"><a class="header" href="#exercises">Exercises</a></h3>
+<ol>
+<li>
+<p>Download GSE183947 and identify the 10 most upregulated and 10 most
+downregulated genes. Report all six statistics (mean per group, log2FC, p-value,
+Cohen’s d, 95% CI).</p>
+</li>
+<li>
+<p>For the gene ERBB2 (HER2), compare the t-test result on raw FPKM vs
+log2-transformed FPKM. Which is more appropriate and why?</p>
+</li>
+<li>
+<p>Pick 5 genes where the t-test and Wilcoxon disagree. Make boxplots for each.
+What pattern do you see? (Hint: look for outliers.)</p>
+</li>
+<li>
+<p>Calculate Cohen’s d for all 20,000 genes. What percentage have |d| &gt; 0.8?
+How does this compare to the percentage with p &lt; 0.05?</p>
+</li>
+<li>
+<p>Simulate paired data: generate 20 pairs where each “normal” value is drawn
+from N(10, 2) and each “tumor” value is the paired normal value plus a
+random effect from N(1, 1). Run both paired and unpaired t-tests. Which is
+more powerful? Why?</p>
+</li>
+</ol>
+<hr>
+<h2 id="summary-table"><a class="header" href="#summary-table">Summary Table</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Concept</th><th>Key Point</th></tr>
+</thead>
+<tbody>
+<tr><td>Student’s t-test</td><td>Assumes equal variance — almost never use</td></tr>
+<tr><td>Welch’s t-test</td><td>Default choice — handles unequal variance</td></tr>
+<tr><td>Paired t-test</td><td>Use when samples are matched — much more powerful</td></tr>
+<tr><td>Wilcoxon rank-sum</td><td>Non-parametric alternative — robust to outliers</td></tr>
+<tr><td>Cohen’s d</td><td>Effect size in SD units — report alongside p-value</td></tr>
+<tr><td>Confidence interval</td><td>Range of plausible effect sizes — more informative than p-value</td></tr>
+<tr><td>Log-transformation</td><td>Essential for expression data — makes it approximately normal</td></tr>
+<tr><td>Volcano plot</td><td>Combines fold change and significance — the signature genomics plot</td></tr>
+<tr><td>Multiple testing</td><td>Testing 20,000 genes at p&lt;0.05 yields ~1,000 false positives</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<p><em>Next: <a href="ch06-multi-group.html">Chapter 6 — Multi-Group Comparisons</a></em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch04-experimental-design.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ch06-multi-group.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch04-experimental-design.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ch06-multi-group.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/theme-toggle-817b00c6.js"></script>
+        <script src="theme/toolbar-buttons-d041ba86.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

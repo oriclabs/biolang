@@ -1,0 +1,1187 @@
+<!DOCTYPE HTML>
+<html lang="en" class="coal sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Correlation &amp; Regression - Biostatistics in Practice</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A practical guide to statistical thinking for genomics and bioinformatics using BioLang">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-d890680f.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "coal";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-9adb9a6e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-22d9afbc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Biostatistics in Practice</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="correlation--regression"><a class="header" href="#correlation--regression">Correlation &amp; Regression</a></h1>
+<blockquote>
+<p>“Correlation does not imply causation, but it does waggle its eyebrows
+suggestively and gesture furtively while mouthing ‘look over there.’”
+— Randall Munroe</p>
+</blockquote>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You have RNA-seq expression data and clinical outcomes for over a thousand
+breast cancer patients from TCGA. A collaborator asks: “Does ESR1 expression
+predict survival? What about ERBB2? Can we build a model that uses expression
+of a handful of genes to predict patient outcomes?”</p>
+<p>These are correlation and regression questions. Before you can answer them, you
+need to understand what correlation actually measures, when it misleads, and how
+regression lets you disentangle the effects of multiple variables acting
+simultaneously.</p>
+<p>This chapter takes you from pairwise correlation to multiple regression, using
+real TCGA breast cancer data throughout.</p>
+<h2 id="why-it-matters"><a class="header" href="#why-it-matters">Why It Matters</a></h2>
+<h3 id="clinical-decisions-depend-on-associations"><a class="header" href="#clinical-decisions-depend-on-associations">Clinical Decisions Depend on Associations</a></h3>
+<p>Breast cancer treatment has been revolutionized by molecular markers. The
+estrogen receptor (ER), progesterone receptor (PR), and HER2 (ERBB2) status
+determine treatment strategy. These markers were discovered through correlation
+studies: researchers noticed that expression of certain genes correlated with
+treatment response and survival.</p>
+<p>But not every correlation is a useful biomarker. Thousands of genes correlate
+with survival in breast cancer — most because they correlate with subtype, which
+correlates with survival. The challenge is distinguishing direct, useful
+associations from indirect, confounded ones.</p>
+<h3 id="the-stakes-of-getting-it-wrong"><a class="header" href="#the-stakes-of-getting-it-wrong">The Stakes of Getting It Wrong</a></h3>
+<p>If you report a “survival gene” that is actually correlated with survival only
+because it is a marker of ER status, you have not found a new biomarker — you
+have rediscovered ER status with extra steps. Worse, if you build a model that
+ignores confounders, it will fail when applied to a different cohort.</p>
+<h3 id="regression-gives-you-conditional-associations"><a class="header" href="#regression-gives-you-conditional-associations">Regression Gives You Conditional Associations</a></h3>
+<p>Simple correlation tells you whether two variables move together. Regression
+tells you whether they move together <em>after accounting for other variables</em>.
+This is the tool that lets you ask: “Does gene X predict survival <em>after
+controlling for age, stage, and subtype</em>?”</p>
+<h2 id="the-data"><a class="header" href="#the-data">The Data</a></h2>
+<p>We use two TCGA BRCA datasets from the Genomic Data Commons (GDC):</p>
+<ol>
+<li><strong>Expression data</strong>: FPKM-normalized RNA-seq expression for ~20,000 genes
+across ~1,200 samples.</li>
+<li><strong>Clinical phenotype data</strong>: Patient demographics, tumor characteristics,
+survival outcomes.</li>
+</ol>
+<pre><code class="language-text"># Download TCGA BRCA expression data (FPKM)
+let expr_url = "https://gdc-hub.s3.us-east-1.amazonaws.com/download/TCGA-BRCA.htseq_fpkm.tsv.gz"
+let expr_file = download(expr_url, "tcga_brca_fpkm.tsv.gz")
+
+# Download clinical phenotype data
+let clin_url = "https://gdc-hub.s3.us-east-1.amazonaws.com/download/TCGA-BRCA.GDC_phenotype.tsv.gz"
+let clin_file = download(clin_url, "tcga_brca_phenotype.tsv.gz")
+</code></pre>
+<h3 id="loading-and-inspecting-the-expression-matrix"><a class="header" href="#loading-and-inspecting-the-expression-matrix">Loading and Inspecting the Expression Matrix</a></h3>
+<pre><code class="language-text"># Read the expression matrix
+let expr = read_tsv(expr_file)
+println("Expression matrix dimensions:")
+println("  Rows (genes): " + to_string(len(expr)))
+println("  Columns (samples): " + to_string(ncols(expr)))
+
+# Preview the first few rows and columns
+head(expr, 5)
+</code></pre>
+<p>The expression matrix has genes as rows and samples as columns. Each value is
+the FPKM (Fragments Per Kilobase of transcript per Million mapped fragments)
+for that gene in that sample.</p>
+<pre><code class="language-text"># Check column names — first column is gene ID, rest are sample barcodes
+let columns = columns(expr)
+println("First 5 columns:")
+println(slice(columns, 0, 5))
+</code></pre>
+<h3 id="loading-clinical-data"><a class="header" href="#loading-clinical-data">Loading Clinical Data</a></h3>
+<pre><code class="language-text"># Read clinical phenotype data
+let clinical = read_tsv(clin_file)
+println("Clinical data dimensions:")
+println("  Patients: " + to_string(len(clinical)))
+println("  Variables: " + to_string(ncols(clinical)))
+
+# What clinical variables do we have?
+println("Clinical columns:")
+println(columns(clinical))
+</code></pre>
+<p>The clinical data contains dozens of variables. The ones we care about most:</p>
+<ul>
+<li><code>submitter_id.samples</code> — The sample barcode (links to expression columns)</li>
+<li><code>age_at_initial_pathologic_diagnosis</code> — Patient age</li>
+<li><code>pathologic_stage</code> — Tumor stage (Stage I through Stage IV)</li>
+<li><code>OS</code> — Overall survival status (0 = alive/censored, 1 = dead)</li>
+<li><code>OS.time</code> — Overall survival time in days</li>
+<li><code>breast_carcinoma_estrogen_receptor_status</code> — ER status</li>
+<li><code>breast_carcinoma_progesterone_receptor_status</code> — PR status</li>
+<li><code>lab_proc_her2_neu_immunohistochemistry_receptor_status</code> — HER2 status</li>
+</ul>
+<pre><code class="language-text"># Summary of key clinical variables
+let age = col_values(clinical, "age_at_initial_pathologic_diagnosis")
+let stage = col_values(clinical, "pathologic_stage")
+let os_status = col_values(clinical, "OS")
+let os_time = col_values(clinical, "OS.time")
+
+println("Age summary:")
+let age_numeric = age |&gt; filter(|x| !is_none(x)) |&gt; map(|x| to_float(x))
+println("  Mean: " + to_string(round(mean(age_numeric), 1)))
+println("  Median: " + to_string(median(age_numeric)))
+println("  SD: " + to_string(round(stdev(age_numeric), 1)))
+println("  Range: " + to_string(min(age_numeric)) + " - " + to_string(max(age_numeric)))
+</code></pre>
+<h3 id="preparing-a-joint-dataset"><a class="header" href="#preparing-a-joint-dataset">Preparing a Joint Dataset</a></h3>
+<p>The expression matrix has samples as columns — we need to extract specific
+genes and join them with clinical data.</p>
+<pre><code class="language-text"># Extract expression for key genes
+# ESR1 (estrogen receptor), ERBB2 (HER2), TP53, MKI67 (Ki-67 proliferation marker)
+# PGR (progesterone receptor), BRCA1
+
+let genes_of_interest = ["ESR1", "ERBB2", "TP53", "MKI67", "PGR", "BRCA1"]
+
+# Filter expression matrix for our genes of interest
+let gene_col = columns(expr) |&gt; head(1)
+let expr_subset = expr |&gt; filter_by(gene_col, |g| contains(genes_of_interest, g))
+
+println("Extracted expression for " + to_string(len(expr_subset)) + " genes")
+head(expr_subset, 6)
+</code></pre>
+<pre><code class="language-text"># Transpose so genes become columns and samples become rows
+let expr_t = transpose(expr_subset)
+
+# Merge expression with clinical data on sample ID
+let merged = inner_join(expr_t, clinical, "sample_id", "submitter_id.samples")
+
+println("Merged dataset: " + to_string(len(merged)) + " patients with both expression and clinical data")
+
+# Drop rows with missing survival data
+let analysis_data = merged |&gt; drop_null("OS") |&gt; drop_null("OS.time")
+println("After removing missing survival: " + to_string(len(analysis_data)) + " patients")
+</code></pre>
+<h2 id="exploration"><a class="header" href="#exploration">Exploration</a></h2>
+<p>Before computing any correlations, look at the data.</p>
+<h3 id="distribution-of-expression-values"><a class="header" href="#distribution-of-expression-values">Distribution of Expression Values</a></h3>
+<pre><code class="language-text"># FPKM values are right-skewed — check ESR1
+let esr1_vals = col_values(analysis_data, "ESR1") |&gt; map(|x| to_float(x))
+
+println("ESR1 FPKM summary:")
+println(summary(esr1_vals))
+
+histogram(esr1_vals, "ESR1 FPKM Distribution") |&gt; save_plot("esr1_fpkm_raw.svg")
+</code></pre>
+<p>The histogram will show a dramatically right-skewed distribution. Most samples
+have moderate ESR1 expression, but some ER-positive tumors have very high
+values. This is typical of gene expression data and matters for correlation.</p>
+<pre><code class="language-text"># Log-transform for more normal distribution
+# Add small constant to avoid log(0)
+let esr1_log = esr1_vals |&gt; map(|x| log2(x + 1.0))
+
+println("log2(ESR1 + 1) summary:")
+println(summary(esr1_log))
+
+histogram(esr1_log, "ESR1 log2(FPKM+1) Distribution") |&gt; save_plot("esr1_fpkm_log.svg")
+</code></pre>
+<p>The log-transformed distribution is much closer to normal. This is important
+because Pearson correlation assumes linear relationships, which are more likely
+after log transformation of expression data.</p>
+<h3 id="pairwise-scatter-plots"><a class="header" href="#pairwise-scatter-plots">Pairwise Scatter Plots</a></h3>
+<pre><code class="language-text"># ESR1 vs PGR — these should be strongly correlated (both ER pathway)
+let pgr_log = col_values(analysis_data, "PGR") |&gt; map(|x| log2(to_float(x) + 1.0))
+
+scatter(esr1_log, pgr_log, "ESR1 vs PGR (log2 FPKM)")
+    |&gt; save_plot("esr1_pgr_scatter.svg")
+</code></pre>
+<pre><code class="language-text"># ESR1 vs ERBB2 — these should be negatively correlated
+# (ER+ and HER2+ are largely distinct subtypes)
+let erbb2_log = col_values(analysis_data, "ERBB2") |&gt; map(|x| log2(to_float(x) + 1.0))
+
+scatter(esr1_log, erbb2_log, "ESR1 vs ERBB2 (log2 FPKM)")
+    |&gt; save_plot("esr1_erbb2_scatter.svg")
+</code></pre>
+<pre><code class="language-text"># MKI67 (proliferation) vs survival time
+let mki67_log = col_values(analysis_data, "MKI67") |&gt; map(|x| log2(to_float(x) + 1.0))
+let surv_time = col_values(analysis_data, "OS.time") |&gt; map(|x| to_float(x))
+
+scatter(mki67_log, surv_time, "Ki-67 vs Overall Survival Time")
+    |&gt; save_plot("ki67_survival_scatter.svg")
+</code></pre>
+<h2 id="the-analysis"><a class="header" href="#the-analysis">The Analysis</a></h2>
+<h3 id="part-1-pearson-correlation"><a class="header" href="#part-1-pearson-correlation">Part 1: Pearson Correlation</a></h3>
+<p>Pearson correlation (r) measures the strength and direction of the <em>linear</em>
+relationship between two continuous variables. It ranges from -1 (perfect
+negative linear relationship) to +1 (perfect positive linear relationship).
+Zero means no linear relationship.</p>
+<p><strong>The formula:</strong></p>
+<p>r = sum((x_i - mean_x)(y_i - mean_y)) / sqrt(sum((x_i - mean_x)^2) * sum((y_i - mean_y)^2))</p>
+<p><strong>Assumptions:</strong></p>
+<ol>
+<li>Both variables are continuous</li>
+<li>The relationship is linear</li>
+<li>Both variables are approximately normally distributed (for inference)</li>
+<li>No extreme outliers (they inflate or deflate r dramatically)</li>
+</ol>
+<pre><code class="language-text"># Pearson correlation between ESR1 and PGR
+let r_esr1_pgr = cor(esr1_log, pgr_log)
+println("Pearson r (ESR1, PGR): " + to_string(round(r_esr1_pgr, 4)))
+</code></pre>
+<p>Expected result: r around 0.65-0.75. ESR1 and PGR are co-regulated — the
+estrogen receptor drives PGR transcription. This is a biologically meaningful
+positive correlation.</p>
+<pre><code class="language-text"># ESR1 vs ERBB2
+let r_esr1_erbb2 = cor(esr1_log, erbb2_log)
+println("Pearson r (ESR1, ERBB2): " + to_string(round(r_esr1_erbb2, 4)))
+</code></pre>
+<p>Expected: r around -0.20 to -0.35. The negative correlation reflects the
+biological reality that ER+ and HER2+ are largely distinct subtypes, though
+the correlation is moderate because some tumors are double-positive or
+double-negative.</p>
+<pre><code class="language-text"># Full correlation matrix for all genes of interest
+let gene_names = ["ESR1", "ERBB2", "TP53", "MKI67", "PGR", "BRCA1"]
+let gene_data = gene_names |&gt; map(|g|
+    col_values(analysis_data, g) |&gt; map(|x| log2(to_float(x) + 1.0))
+)
+
+let gene_matrix = matrix(gene_data)
+let cor_mat = cor_matrix(gene_matrix)
+
+println("Gene-gene correlation matrix:")
+println(cor_mat)
+
+heatmap(cor_mat, gene_names, gene_names, "Gene Expression Correlation Matrix")
+    |&gt; save_plot("gene_correlation_heatmap.svg")
+</code></pre>
+<h3 id="interpreting-the-correlation-matrix"><a class="header" href="#interpreting-the-correlation-matrix">Interpreting the Correlation Matrix</a></h3>
+<p>The heatmap reveals the structure of breast cancer biology:</p>
+<ul>
+<li><strong>ESR1-PGR</strong>: Strong positive. Co-regulated by estrogen signaling.</li>
+<li><strong>ESR1-ERBB2</strong>: Negative. Different subtypes.</li>
+<li><strong>MKI67-ESR1</strong>: Negative. High-proliferation tumors tend to be ER-negative.</li>
+<li><strong>MKI67-ERBB2</strong>: Positive. HER2+ tumors tend to be more proliferative.</li>
+<li><strong>TP53-MKI67</strong>: Positive. TP53 mutations associate with high proliferation.</li>
+<li><strong>BRCA1-ESR1</strong>: Negative. BRCA1-related tumors are often triple-negative.</li>
+</ul>
+<p>Each of these correlations has a biological explanation. But correlation alone
+does not tell you which is cause and which is effect. ESR1 drives PGR
+transcription (causal), but ESR1 and ERBB2 are negatively correlated because
+they mark different cell lineages (not causal — subtype is the common cause).</p>
+<h3 id="part-2-correlation-is-not-causation"><a class="header" href="#part-2-correlation-is-not-causation">Part 2: Correlation Is Not Causation</a></h3>
+<p>This point deserves a detailed treatment because genomics is full of
+misleading correlations.</p>
+<p><strong>Example 1: The Subtype Confounder</strong></p>
+<pre><code class="language-text"># Separate ER-positive and ER-negative patients
+let er_status = col_values(analysis_data, "breast_carcinoma_estrogen_receptor_status")
+
+let er_pos_idx = er_status |&gt; map(|x| x == "Positive")
+let er_neg_idx = er_status |&gt; map(|x| x == "Negative")
+
+# Correlation between MKI67 and ERBB2 in ALL patients
+let mki67_all = col_values(analysis_data, "MKI67") |&gt; map(|x| log2(to_float(x) + 1.0))
+let erbb2_all = col_values(analysis_data, "ERBB2") |&gt; map(|x| log2(to_float(x) + 1.0))
+let r_all = cor(mki67_all, erbb2_all)
+println("MKI67-ERBB2 correlation (all patients): " + to_string(round(r_all, 4)))
+
+# Now separate by ER status
+let data_er_pos = analysis_data |&gt; filter_by("breast_carcinoma_estrogen_receptor_status", |x| x == "Positive")
+let data_er_neg = analysis_data |&gt; filter_by("breast_carcinoma_estrogen_receptor_status", |x| x == "Negative")
+
+let mki67_pos = col_values(data_er_pos, "MKI67") |&gt; map(|x| log2(to_float(x) + 1.0))
+let erbb2_pos = col_values(data_er_pos, "ERBB2") |&gt; map(|x| log2(to_float(x) + 1.0))
+let r_pos = cor(mki67_pos, erbb2_pos)
+
+let mki67_neg = col_values(data_er_neg, "MKI67") |&gt; map(|x| log2(to_float(x) + 1.0))
+let erbb2_neg = col_values(data_er_neg, "ERBB2") |&gt; map(|x| log2(to_float(x) + 1.0))
+let r_neg = cor(mki67_neg, erbb2_neg)
+
+println("MKI67-ERBB2 correlation (ER+): " + to_string(round(r_pos, 4)))
+println("MKI67-ERBB2 correlation (ER-): " + to_string(round(r_neg, 4)))
+</code></pre>
+<p>This demonstrates a critical phenomenon. The overall correlation between MKI67
+and ERBB2 may be positive, but within each ER subgroup, the correlation can be
+much weaker or even reversed. The overall correlation was driven by ER status
+acting as a confounder — ER-negative tumors tend to have both higher MKI67 and
+higher ERBB2 on average, creating an apparent positive correlation.</p>
+<p>This is Simpson’s paradox in action: the trend in the combined data does not
+hold within the subgroups.</p>
+<p><strong>Example 2: Batch Effects Create Spurious Correlation</strong></p>
+<pre><code class="language-text"># Suppose two genes are uncorrelated biologically but both are affected
+# by library size. Samples processed in batch A have larger libraries.
+# Both genes appear "upregulated" in batch A — creating a correlation
+# that is purely technical.
+
+# Simulate this to demonstrate the principle
+let batch_a_lib = rnorm(50, 100.0, 10.0)  # larger libraries
+let batch_b_lib = rnorm(50, 60.0, 10.0)   # smaller libraries
+let all_lib = concat(batch_a_lib, batch_b_lib)
+
+# Gene X: no real difference, but expression scales with library size
+let gene_x = all_lib |&gt; map(|lib| lib * 0.5 + rnorm(1, 0.0, 5.0) |&gt; head(1))
+let gene_x_flat = gene_x |&gt; flatten()
+
+# Gene Y: also no real difference, also scales with library size
+let gene_y = all_lib |&gt; map(|lib| lib * 0.3 + rnorm(1, 0.0, 5.0) |&gt; head(1))
+let gene_y_flat = gene_y |&gt; flatten()
+
+let r_spurious = cor(gene_x_flat, gene_y_flat)
+println("Spurious correlation from batch effect: " + to_string(round(r_spurious, 4)))
+# This will be strongly positive despite no biological relationship
+</code></pre>
+<h3 id="part-3-spearman-correlation-for-non-linear-relationships"><a class="header" href="#part-3-spearman-correlation-for-non-linear-relationships">Part 3: Spearman Correlation for Non-Linear Relationships</a></h3>
+<p>Pearson correlation measures linear relationships. But many biological
+relationships are monotonic but non-linear: as X increases, Y increases, but
+not at a constant rate.</p>
+<p>Spearman correlation works on ranks rather than raw values. It measures whether
+the rank order of X matches the rank order of Y.</p>
+<pre><code class="language-text"># Spearman correlation for ESR1 vs PGR
+let sp_esr1_pgr = spearman(esr1_log, pgr_log)
+println("Spearman rho (ESR1, PGR): " + to_string(round(sp_esr1_pgr.rho, 4)))
+println("Spearman p-value: " + to_string(sp_esr1_pgr.p_value))
+</code></pre>
+<pre><code class="language-text"># Compare Pearson and Spearman for all gene pairs
+println("Comparison of Pearson r and Spearman rho:")
+println("Gene Pair            Pearson    Spearman")
+println("─────────────────    ───────    ────────")
+
+let pairs = [
+    ["ESR1", "PGR"], ["ESR1", "ERBB2"], ["ESR1", "MKI67"],
+    ["ERBB2", "MKI67"], ["TP53", "MKI67"], ["BRCA1", "ESR1"]
+]
+
+pairs |&gt; each(|pair|
+    let v1 = col_values(analysis_data, pair[0]) |&gt; map(|x| log2(to_float(x) + 1.0))
+    let v2 = col_values(analysis_data, pair[1]) |&gt; map(|x| log2(to_float(x) + 1.0))
+    let r = cor(v1, v2)
+    let sp = spearman(v1, v2)
+    let label = pair[0] + "-" + pair[1]
+    println(label + "    " + to_string(round(r, 4)) + "    " + to_string(round(sp.rho, 4)))
+)
+</code></pre>
+<p>When Pearson and Spearman agree closely, the relationship is close to linear.
+When Spearman is notably larger than Pearson, the relationship is monotonic but
+non-linear — common with expression data where a few extreme values distort
+the linear fit.</p>
+<h3 id="kendalls-tau"><a class="header" href="#kendalls-tau">Kendall’s Tau</a></h3>
+<p>Kendall’s tau is another rank-based correlation. It counts concordant and
+discordant pairs. It is more robust than Spearman with small sample sizes and
+ties.</p>
+<pre><code class="language-text"># Kendall's tau for ESR1 vs PGR
+let kt = kendall(esr1_log, pgr_log)
+println("Kendall tau (ESR1, PGR): " + to_string(round(kt.tau, 4)))
+println("Kendall p-value: " + to_string(kt.p_value))
+</code></pre>
+<p>Kendall’s tau is always smaller in magnitude than Spearman’s rho for the same
+data. This is normal — they have different scales. The p-values, however, are
+usually similar.</p>
+<h3 id="part-4-simple-linear-regression"><a class="header" href="#part-4-simple-linear-regression">Part 4: Simple Linear Regression</a></h3>
+<p>Correlation tells you that two variables are associated. Regression goes
+further: it fits a line that predicts one variable from the other and
+quantifies the prediction.</p>
+<p><strong>The model:</strong> Y = beta_0 + beta_1 * X + epsilon</p>
+<ul>
+<li>beta_0: intercept (predicted Y when X = 0)</li>
+<li>beta_1: slope (change in Y per unit change in X)</li>
+<li>epsilon: residual error (what the model cannot explain)</li>
+</ul>
+<pre><code class="language-text"># Does ESR1 expression predict overall survival time?
+let esr1_expr = col_values(analysis_data, "ESR1") |&gt; map(|x| log2(to_float(x) + 1.0))
+let survival_days = col_values(analysis_data, "OS.time") |&gt; map(|x| to_float(x))
+
+# Remove any remaining nulls
+let valid_idx = zip(esr1_expr, survival_days)
+    |&gt; filter(|pair| !is_none(pair[0]) &amp;&amp; !is_none(pair[1]))
+let esr1_clean = valid_idx |&gt; map(|pair| pair[0])
+let surv_clean = valid_idx |&gt; map(|pair| pair[1])
+
+# Fit simple linear regression
+let model_simple = lm(surv_clean, esr1_clean)
+println("Simple Linear Regression: Survival ~ ESR1")
+println("  Intercept (beta_0): " + to_string(round(model_simple.intercept, 2)))
+println("  Slope (beta_1): " + to_string(round(model_simple.coefficients[0], 2)))
+println("  R-squared: " + to_string(round(model_simple.r_squared, 4)))
+println("  P-value (slope): " + to_string(model_simple.p_values[0]))
+</code></pre>
+<h3 id="interpreting-the-simple-regression"><a class="header" href="#interpreting-the-simple-regression">Interpreting the Simple Regression</a></h3>
+<p>The <strong>slope</strong> (beta_1) tells you: for each unit increase in log2(ESR1 FPKM+1),
+the predicted survival time changes by beta_1 days. If it is positive, higher
+ESR1 expression is associated with longer survival; if negative, shorter.</p>
+<p>The <strong>R-squared</strong> tells you what fraction of the variance in survival time is
+explained by ESR1 expression alone. In genomics, R-squared for a single gene
+predicting a clinical outcome is usually very small (0.01-0.05). This does not
+mean the association is unimportant — survival is determined by many factors,
+and any single gene explains only a small fraction.</p>
+<p>The <strong>p-value</strong> tells you whether the slope is significantly different from zero.
+With 1,000+ patients, even tiny effects can be significant. This is a case
+where statistical significance and practical significance diverge.</p>
+<pre><code class="language-text"># Visualize the regression
+scatter(esr1_clean, surv_clean, "ESR1 Expression vs Survival Time")
+    |&gt; save_plot("esr1_survival_regression.svg")
+
+# QQ plot of residuals to check normality assumption
+let residuals = zip(surv_clean, esr1_clean) |&gt; map(|pair|
+    pair[0] - (model_simple.intercept + model_simple.coefficients[0] * pair[1])
+)
+qq_plot(residuals, "Residuals QQ Plot") |&gt; save_plot("esr1_survival_qq.svg")
+</code></pre>
+<p>The QQ plot is crucial. If the residuals are normally distributed, the points
+fall along the diagonal. Survival data is notoriously non-normal (right-skewed,
+censored), so the QQ plot will likely show deviation. This means the p-values
+from linear regression are approximate at best, which is one reason survival
+analysis (Chapter 11) uses specialized methods.</p>
+<h3 id="part-5-multiple-regression--controlling-for-confounders"><a class="header" href="#part-5-multiple-regression--controlling-for-confounders">Part 5: Multiple Regression — Controlling for Confounders</a></h3>
+<p>Simple regression of survival on ESR1 ignores everything else about the patient.
+Older patients have shorter survival regardless of gene expression. Higher-stage
+tumors have shorter survival. Multiple regression lets us ask: “Does ESR1 predict
+survival <em>after controlling for age and stage</em>?”</p>
+<p><strong>The model:</strong> Y = beta_0 + beta_1<em>ESR1 + beta_2</em>Age + beta_3*Stage + epsilon</p>
+<pre><code class="language-text"># Prepare variables for multiple regression
+let age_vals = col_values(analysis_data, "age_at_initial_pathologic_diagnosis")
+    |&gt; map(|x| to_float(x))
+
+# Encode stage as numeric (simplified)
+# Stage I = 1, Stage II = 2, Stage III = 3, Stage IV = 4
+let stage_vals = col_values(analysis_data, "pathologic_stage") |&gt; map(|s|
+    if contains(to_string(s), "IV") then 4.0
+    else if contains(to_string(s), "III") then 3.0
+    else if contains(to_string(s), "II") then 2.0
+    else if contains(to_string(s), "I") then 1.0
+    else 0.0  # unknown/missing
+)
+
+# Build predictor matrix: [ESR1, Age, Stage]
+let predictors = [esr1_clean, age_vals, stage_vals]
+let pred_matrix = matrix(predictors)
+
+# Fit multiple regression
+let model_multi = lm(surv_clean, pred_matrix)
+println("Multiple Regression: Survival ~ ESR1 + Age + Stage")
+println("  Intercept: " + to_string(round(model_multi.intercept, 2)))
+println("  ESR1 coefficient: " + to_string(round(model_multi.coefficients[0], 2)))
+println("  Age coefficient: " + to_string(round(model_multi.coefficients[1], 2)))
+println("  Stage coefficient: " + to_string(round(model_multi.coefficients[2], 2)))
+println("  R-squared: " + to_string(round(model_multi.r_squared, 4)))
+println("  Adjusted R-squared: " + to_string(round(model_multi.adj_r_squared, 4)))
+</code></pre>
+<h3 id="interpreting-multiple-regression-coefficients"><a class="header" href="#interpreting-multiple-regression-coefficients">Interpreting Multiple Regression Coefficients</a></h3>
+<p>Each coefficient is now a <strong>partial regression coefficient</strong> — it represents the
+effect of that variable <em>holding the other variables constant</em>.</p>
+<ul>
+<li><strong>ESR1 coefficient</strong>: Change in predicted survival per unit increase in
+log2(ESR1), <em>holding age and stage constant</em>. This is the adjusted effect.</li>
+<li><strong>Age coefficient</strong>: Change in predicted survival per year of age, <em>holding
+ESR1 and stage constant</em>. Expected to be negative (older patients have
+shorter survival).</li>
+<li><strong>Stage coefficient</strong>: Change in predicted survival per stage increase,
+<em>holding ESR1 and age constant</em>. Expected to be strongly negative (higher
+stage = shorter survival).</li>
+</ul>
+<pre><code class="language-text"># Compare simple vs multiple regression ESR1 coefficient
+println("ESR1 effect comparison:")
+println("  Unadjusted (simple): " + to_string(round(model_simple.coefficients[0], 2)))
+println("  Adjusted (multiple): " + to_string(round(model_multi.coefficients[0], 2)))
+</code></pre>
+<p>If the ESR1 coefficient changes substantially between simple and multiple
+regression, this tells you that age and stage were confounders. The unadjusted
+effect was partially attributable to correlations between ESR1, age, and stage.</p>
+<h3 id="part-6-residual-analysis"><a class="header" href="#part-6-residual-analysis">Part 6: Residual Analysis</a></h3>
+<p>The validity of regression depends on its assumptions. Residual analysis checks
+those assumptions.</p>
+<p><strong>Assumptions of linear regression:</strong></p>
+<ol>
+<li><strong>Linearity</strong>: The relationship between X and Y is linear</li>
+<li><strong>Independence</strong>: Residuals are independent of each other</li>
+<li><strong>Homoscedasticity</strong>: Residuals have constant variance</li>
+<li><strong>Normality</strong>: Residuals are normally distributed</li>
+</ol>
+<pre><code class="language-text"># Calculate residuals from multiple regression
+let predicted = zip(esr1_clean, zip(age_vals, stage_vals)) |&gt; map(|pair|
+    let esr1_val = pair[0]
+    let age_val = pair[1][0]
+    let stage_val = pair[1][1]
+    model_multi.intercept
+        + model_multi.coefficients[0] * esr1_val
+        + model_multi.coefficients[1] * age_val
+        + model_multi.coefficients[2] * stage_val
+)
+
+let resid_multi = zip(surv_clean, predicted) |&gt; map(|pair| pair[0] - pair[1])
+
+# 1. Residuals vs fitted values (check linearity and homoscedasticity)
+scatter(predicted, resid_multi, "Residuals vs Fitted Values")
+    |&gt; save_plot("residuals_vs_fitted.svg")
+
+# 2. QQ plot of residuals (check normality)
+qq_plot(resid_multi, "Multiple Regression Residuals") |&gt; save_plot("multi_reg_qq.svg")
+
+# 3. Residual summary statistics
+println("Residual summary:")
+println(summary(resid_multi))
+println("Residual standard deviation: " + to_string(round(stdev(resid_multi), 2)))
+</code></pre>
+<p>If the residuals-vs-fitted plot shows a funnel shape (wider on one side), you
+have heteroscedasticity. If it shows a curve, the linearity assumption is
+violated. For survival data, both problems are common because survival times
+are bounded below by zero and right-skewed.</p>
+<h3 id="part-7-gene-gene-correlation-networks"><a class="header" href="#part-7-gene-gene-correlation-networks">Part 7: Gene-Gene Correlation Networks</a></h3>
+<p>Beyond pairwise correlations, we can build a network of gene-gene correlations.
+This reveals modules of co-expressed genes, which often correspond to biological
+pathways.</p>
+<pre><code class="language-text"># Select top variable genes for correlation network
+# First, compute variance across samples for each gene
+let expr_data = read_tsv(expr_file)
+
+# Get a subset of known cancer-related genes
+let cancer_genes = [
+    "ESR1", "ERBB2", "TP53", "MKI67", "PGR", "BRCA1",
+    "EGFR", "CDH1", "PTEN", "PIK3CA", "AKT1", "MTOR",
+    "MYC", "CCND1", "CDK4", "RB1", "VEGFA", "KRAS",
+    "BRAF", "MAP2K1"
+]
+
+# Extract expression for these genes across all samples
+let cancer_expr = expr_data |&gt; filter_by("Ensembl_ID", |g| contains(cancer_genes, g))
+
+# Build correlation matrix
+let cancer_vals = cancer_genes |&gt; map(|g|
+    col_values(analysis_data, g) |&gt; map(|x| log2(to_float(x) + 1.0))
+)
+let cancer_matrix = matrix(cancer_vals)
+let cancer_cor = cor_matrix(cancer_matrix)
+
+# Heatmap of the correlation network
+heatmap(cancer_cor, cancer_genes, cancer_genes, "Cancer Gene Correlation Network")
+    |&gt; save_plot("cancer_gene_network.svg")
+</code></pre>
+<pre><code class="language-text"># Build a graph where edges represent strong correlations
+let gene_network = graph()
+
+# Add nodes
+cancer_genes |&gt; each(|g| add_node(gene_network, g))
+
+# Add edges for correlations above threshold
+let threshold = 0.3
+let n_genes = len(cancer_genes)
+
+let edge_count = 0
+let i = 0
+cancer_genes |&gt; each(|g1|
+    let j = i + 1
+    slice(cancer_genes, j, n_genes) |&gt; each(|g2|
+        let v1 = col_values(analysis_data, g1) |&gt; map(|x| log2(to_float(x) + 1.0))
+        let v2 = col_values(analysis_data, g2) |&gt; map(|x| log2(to_float(x) + 1.0))
+        let r_val = abs(cor(v1, v2))
+        if r_val &gt; threshold then
+            add_edge(gene_network, g1, g2)
+            edge_count = edge_count + 1
+        end
+    )
+    i = i + 1
+)
+
+println("Gene correlation network:")
+println("  Nodes: " + to_string(len(cancer_genes)))
+println("  Edges (|r| &gt; " + to_string(threshold) + "): " + to_string(edge_count))
+
+# Find connected components — these are co-expression modules
+let components = connected_components(gene_network)
+println("  Connected components: " + to_string(len(components)))
+
+# Show the degree of each gene (number of strong correlations)
+cancer_genes |&gt; each(|g|
+    let deg = degree(gene_network, g)
+    println("  " + g + ": " + to_string(deg) + " strong correlations")
+)
+</code></pre>
+<p>Genes with high degree are “hub” genes — they correlate with many other genes.
+In cancer biology, hub genes often correspond to transcription factors or
+signaling pathway components that regulate many downstream targets.</p>
+<h3 id="part-8-regression-to-the-mean"><a class="header" href="#part-8-regression-to-the-mean">Part 8: Regression to the Mean</a></h3>
+<p>Regression to the mean is one of the most misunderstood phenomena in
+biostatistics. It was discovered by Francis Galton (who also coined the term
+“regression” — the method is named after this phenomenon).</p>
+<p><strong>The trap</strong>: If you select patients with the highest gene expression at time
+point 1 and measure them again at time point 2, their expression will appear
+to decrease — even if nothing has changed. This is because extreme values
+include measurement error, and that error is unlikely to be equally extreme
+at the next measurement.</p>
+<pre><code class="language-text"># Demonstrate regression to the mean with simulated data
+# True expression is constant, but measurement adds noise
+
+let n_patients = 200
+let true_expr = rnorm(n_patients, 10.0, 2.0)  # true expression
+
+# Measurement 1: true + noise
+let noise1 = rnorm(n_patients, 0.0, 1.5)
+let measure1 = zip(true_expr, noise1) |&gt; map(|pair| pair[0] + pair[1])
+
+# Measurement 2: true + different noise
+let noise2 = rnorm(n_patients, 0.0, 1.5)
+let measure2 = zip(true_expr, noise2) |&gt; map(|pair| pair[0] + pair[1])
+
+# Select the top 20% from measurement 1
+let sorted_m1 = measure1 |&gt; sort() |&gt; to_list()
+let cutoff = quantile(measure1, 0.80)
+let top_idx = measure1 |&gt; map(|x| x &gt;= cutoff)
+
+let top_m1 = zip(measure1, top_idx) |&gt; filter(|pair| pair[1]) |&gt; map(|pair| pair[0])
+let top_m2 = zip(measure2, top_idx) |&gt; filter(|pair| pair[1]) |&gt; map(|pair| pair[0])
+
+println("Regression to the mean demonstration:")
+println("  Mean of top 20% at time 1: " + to_string(round(mean(top_m1), 2)))
+println("  Mean of same patients at time 2: " + to_string(round(mean(top_m2), 2)))
+println("  Apparent decrease: " + to_string(round(mean(top_m1) - mean(top_m2), 2)))
+println("  (This 'decrease' is purely statistical, not biological)")
+</code></pre>
+<p>This is devastating for pre-post studies. If you select patients with the
+highest tumor marker levels and give them a treatment, the marker will likely
+decrease at follow-up even if the treatment does nothing. Regression to the
+mean masquerades as a treatment effect.</p>
+<p><strong>The solution</strong>: Use a control group. If both treatment and control groups are
+selected for high values, both will regress to the mean. Only the <em>difference</em>
+between groups reflects a true treatment effect.</p>
+<pre><code class="language-text"># Show the same phenomenon with a scatter plot
+scatter(measure1, measure2, "Measurement 1 vs Measurement 2")
+    |&gt; save_plot("regression_to_mean.svg")
+
+# The slope of the regression line is less than 1.0
+let rtm_model = lm(measure2, measure1)
+println("Regression slope (should be &lt; 1 if regression to mean): "
+    + to_string(round(rtm_model.coefficients[0], 4)))
+</code></pre>
+<p>A slope less than 1.0 means that extreme values on X are associated with less
+extreme values on Y. This is regression to the mean. The more measurement
+noise, the stronger the effect.</p>
+<h3 id="part-9-building-a-practical-prediction-model"><a class="header" href="#part-9-building-a-practical-prediction-model">Part 9: Building a Practical Prediction Model</a></h3>
+<p>Now let us combine everything into a practical prediction model for breast
+cancer outcomes.</p>
+<pre><code class="language-text"># Build a multi-gene model predicting survival
+# Include: ESR1, ERBB2, MKI67, Age, Stage
+
+let esr1_v = col_values(analysis_data, "ESR1") |&gt; map(|x| log2(to_float(x) + 1.0))
+let erbb2_v = col_values(analysis_data, "ERBB2") |&gt; map(|x| log2(to_float(x) + 1.0))
+let mki67_v = col_values(analysis_data, "MKI67") |&gt; map(|x| log2(to_float(x) + 1.0))
+let age_v = col_values(analysis_data, "age_at_initial_pathologic_diagnosis")
+    |&gt; map(|x| to_float(x))
+let stage_v = col_values(analysis_data, "pathologic_stage") |&gt; map(|s|
+    if contains(to_string(s), "IV") then 4.0
+    else if contains(to_string(s), "III") then 3.0
+    else if contains(to_string(s), "II") then 2.0
+    else if contains(to_string(s), "I") then 1.0
+    else 0.0
+)
+let surv_v = col_values(analysis_data, "OS.time") |&gt; map(|x| to_float(x))
+
+# Fit the full model
+let pred_full = matrix([esr1_v, erbb2_v, mki67_v, age_v, stage_v])
+let model_full = lm(surv_v, pred_full)
+
+println("Full Model: Survival ~ ESR1 + ERBB2 + MKI67 + Age + Stage")
+println("  R-squared: " + to_string(round(model_full.r_squared, 4)))
+println("  Adjusted R-squared: " + to_string(round(model_full.adj_r_squared, 4)))
+println("")
+println("  Coefficients:")
+let coef_names = ["ESR1", "ERBB2", "MKI67", "Age", "Stage"]
+zip(coef_names, model_full.coefficients) |&gt; each(|pair|
+    println("    " + pair[0] + ": " + to_string(round(pair[1], 4))
+        + "  (p = " + to_string(round(model_full.p_values[0], 4)) + ")")
+)
+</code></pre>
+<pre><code class="language-text"># Compare models: simple vs multiple
+println("Model comparison:")
+println("  ESR1 only:        R^2 = " + to_string(round(model_simple.r_squared, 4)))
+println("  ESR1+Age+Stage:   R^2 = " + to_string(round(model_multi.r_squared, 4)))
+println("  Full (5 vars):    R^2 = " + to_string(round(model_full.r_squared, 4)))
+</code></pre>
+<p>The improvement from adding more variables shows you how much additional
+variance each variable explains. But beware: adding more variables always
+increases R-squared (even random variables will increase it). The adjusted
+R-squared penalizes for the number of predictors and is a better guide.</p>
+<pre><code class="language-text"># Normalize coefficients to compare effect sizes
+# Standardize each predictor to mean 0, SD 1
+let esr1_z = normalize(esr1_v)
+let erbb2_z = normalize(erbb2_v)
+let mki67_z = normalize(mki67_v)
+let age_z = normalize(age_v)
+let stage_z = normalize(stage_v)
+
+let pred_std = matrix([esr1_z, erbb2_z, mki67_z, age_z, stage_z])
+let model_std = lm(surv_v, pred_std)
+
+println("Standardized coefficients (effect size comparison):")
+zip(coef_names, model_std.coefficients) |&gt; each(|pair|
+    println("  " + pair[0] + ": " + to_string(round(pair[1], 2)))
+)
+</code></pre>
+<p>Standardized coefficients are directly comparable: the variable with the
+largest absolute standardized coefficient has the strongest effect on survival.
+Typically, stage dominates, followed by age, with individual gene effects
+being smaller but still meaningful.</p>
+<h2 id="interpretation"><a class="header" href="#interpretation">Interpretation</a></h2>
+<h3 id="what-we-found"><a class="header" href="#what-we-found">What We Found</a></h3>
+<ol>
+<li>
+<p><strong>ESR1 and PGR are strongly positively correlated</strong> (r ~ 0.7), reflecting
+the biology of estrogen receptor signaling.</p>
+</li>
+<li>
+<p><strong>ESR1 and ERBB2 are negatively correlated</strong> (r ~ -0.25), reflecting
+distinct breast cancer subtypes.</p>
+</li>
+<li>
+<p><strong>ESR1 expression predicts survival</strong> in simple regression, but the effect
+is partially confounded by age and stage.</p>
+</li>
+<li>
+<p><strong>Multiple regression reveals the adjusted effect</strong>: after controlling for
+clinical variables, the independent contribution of ESR1 to survival
+prediction is smaller than the unadjusted effect suggests.</p>
+</li>
+<li>
+<p><strong>Stage is the dominant predictor</strong> of survival time, as expected.</p>
+</li>
+<li>
+<p><strong>Gene-gene correlation networks</strong> reveal modules of co-expressed genes
+corresponding to known biological pathways.</p>
+</li>
+</ol>
+<h3 id="what-we-cannot-conclude"><a class="header" href="#what-we-cannot-conclude">What We Cannot Conclude</a></h3>
+<ul>
+<li>
+<p>We <strong>cannot</strong> say ESR1 expression <em>causes</em> longer survival. ER-positive
+tumors are a distinct subtype with different biology, different treatment
+(tamoxifen, aromatase inhibitors), and different prognosis.</p>
+</li>
+<li>
+<p>We <strong>cannot</strong> use this linear regression model for clinical prediction of
+survival. Survival data requires specialized methods (Chapter 11) because
+of censoring.</p>
+</li>
+<li>
+<p>We <strong>cannot</strong> conclude that low-correlation genes are biologically
+unrelated. Correlation measures linear (or rank-based) association.
+Non-linear relationships, threshold effects, and interactions are invisible
+to correlation.</p>
+</li>
+</ul>
+<h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
+<h3 id="when-to-report-a-correlation"><a class="header" href="#when-to-report-a-correlation">When to Report a Correlation</a></h3>
+<p>Report correlations when:</p>
+<ul>
+<li>The sample size is large enough for the confidence interval to be narrow</li>
+<li>You have checked that the relationship is not driven by outliers</li>
+<li>You have considered and addressed potential confounders</li>
+<li>You report the confidence interval, not just the point estimate</li>
+</ul>
+<h3 id="when-to-use-multiple-regression"><a class="header" href="#when-to-use-multiple-regression">When to Use Multiple Regression</a></h3>
+<p>Use multiple regression when:</p>
+<ul>
+<li>You want the effect of X on Y <em>adjusting for</em> other variables</li>
+<li>You suspect confounders (age, batch, clinical variables)</li>
+<li>You want to compare the relative importance of multiple predictors</li>
+<li>The outcome variable is continuous and approximately normal</li>
+</ul>
+<h3 id="when-to-use-something-else"><a class="header" href="#when-to-use-something-else">When to Use Something Else</a></h3>
+<ul>
+<li><strong>Binary outcome</strong> (alive/dead, mutated/wild-type): Use logistic regression
+(Chapter 10)</li>
+<li><strong>Survival time with censoring</strong>: Use Cox regression (Chapter 11)</li>
+<li><strong>Count data</strong> (read counts, variant counts): Use Poisson or negative
+binomial regression (Chapter 10)</li>
+<li><strong>Non-linear relationships</strong>: Consider spline regression or generalized
+additive models</li>
+</ul>
+<h2 id="pitfalls"><a class="header" href="#pitfalls">Pitfalls</a></h2>
+<h3 id="pitfall-1-ignoring-non-linearity"><a class="header" href="#pitfall-1-ignoring-non-linearity">Pitfall 1: Ignoring Non-Linearity</a></h3>
+<pre><code class="language-text"># Pearson correlation can be zero even with a strong non-linear relationship
+# Example: quadratic relationship
+let x_vals = rnorm(200, 0.0, 3.0)
+let y_quad = x_vals |&gt; map(|x| pow(x, 2.0) + rnorm(1, 0.0, 1.0) |&gt; head(1))
+let y_flat = y_quad |&gt; flatten()
+
+let r_quad = cor(x_vals, y_flat)
+println("Pearson r for quadratic relationship: " + to_string(round(r_quad, 4)))
+println("(Near zero despite perfect quadratic relationship)")
+
+# Always plot your data!
+scatter(x_vals, y_flat, "Quadratic Relationship (r ~ 0)")
+    |&gt; save_plot("quadratic_relationship.svg")
+</code></pre>
+<h3 id="pitfall-2-correlation-of-ratios"><a class="header" href="#pitfall-2-correlation-of-ratios">Pitfall 2: Correlation of Ratios</a></h3>
+<p>In genomics, we often correlate ratios or normalized values. This creates
+spurious correlations because ratios share denominators.</p>
+<p>If X = A/C and Y = B/C, then X and Y will be correlated even if A and B are
+independent — because both depend on C. This affects:</p>
+<ul>
+<li>FPKM values (normalized by library size)</li>
+<li>Compositional data (proportions that sum to 1)</li>
+<li>Fold changes relative to the same reference</li>
+</ul>
+<pre><code class="language-text"># Demonstrate spurious ratio correlation
+let a_vals = rnorm(100, 50.0, 10.0)  # independent
+let b_vals = rnorm(100, 50.0, 10.0)  # independent
+let c_vals = rnorm(100, 50.0, 10.0)  # shared denominator
+
+let ratio_x = zip(a_vals, c_vals) |&gt; map(|pair| pair[0] / pair[1])
+let ratio_y = zip(b_vals, c_vals) |&gt; map(|pair| pair[0] / pair[1])
+
+let r_ratio = cor(ratio_x, ratio_y)
+println("Correlation of A/C and B/C (A, B independent): " + to_string(round(r_ratio, 4)))
+println("(Positive despite A and B being independent)")
+</code></pre>
+<h3 id="pitfall-3-extrapolation"><a class="header" href="#pitfall-3-extrapolation">Pitfall 3: Extrapolation</a></h3>
+<p>Linear regression fits a line through the observed range of data. Predicting
+outside that range (extrapolation) is unreliable because the relationship may
+not be linear beyond the data.</p>
+<p>If your TCGA patients range from age 25 to 90, do not use the model to predict
+survival for a 15-year-old. The linear relationship between age and survival
+may not hold at extreme ages.</p>
+<h3 id="pitfall-4-multicollinearity"><a class="header" href="#pitfall-4-multicollinearity">Pitfall 4: Multicollinearity</a></h3>
+<p>When predictors in multiple regression are highly correlated with each other,
+the individual coefficients become unstable. This is multicollinearity.</p>
+<pre><code class="language-text"># ESR1 and PGR are highly correlated — including both may cause instability
+let pred_collinear = matrix([esr1_v, pgr_log, age_v])
+let model_collinear = lm(surv_v, pred_collinear)
+
+println("Model with collinear predictors (ESR1 + PGR + Age):")
+println("  ESR1 coefficient: " + to_string(round(model_collinear.coefficients[0], 4)))
+println("  PGR coefficient: " + to_string(round(model_collinear.coefficients[1], 4)))
+println("  R-squared: " + to_string(round(model_collinear.r_squared, 4)))
+
+# Compare to models with only one of the two
+let model_esr1_only = lm(surv_v, matrix([esr1_v, age_v]))
+let model_pgr_only = lm(surv_v, matrix([pgr_log, age_v]))
+
+println("ESR1 + Age only R^2: " + to_string(round(model_esr1_only.r_squared, 4)))
+println("PGR + Age only R^2: " + to_string(round(model_pgr_only.r_squared, 4)))
+</code></pre>
+<p>When two predictors carry largely the same information, adding both does not
+improve prediction and makes individual coefficients unreliable. Choose one or
+use dimensionality reduction.</p>
+<h3 id="pitfall-5-overfitting"><a class="header" href="#pitfall-5-overfitting">Pitfall 5: Overfitting</a></h3>
+<p>With enough predictors, you can fit any dataset perfectly. But the model will
+not generalize to new data.</p>
+<p><strong>Rule of thumb</strong>: You need at least 10-15 observations per predictor variable.
+With 1,000 patients, a model with 5 predictors is fine. A model with 200
+gene predictors needs 2,000-3,000 patients.</p>
+<pre><code class="language-text"># Demonstrate with adjusted R-squared
+println("Adjusted R-squared penalizes for number of predictors:")
+println("  Simple (1 predictor): adj R^2 = " + to_string(round(model_simple.adj_r_squared, 4)))
+println("  Multiple (3 predictors): adj R^2 = " + to_string(round(model_multi.adj_r_squared, 4)))
+println("  Full (5 predictors): adj R^2 = " + to_string(round(model_full.adj_r_squared, 4)))
+println("If adj R^2 stops increasing or decreases, added variables are not helping.")
+</code></pre>
+<h3 id="pitfall-6-p-value-fishing"><a class="header" href="#pitfall-6-p-value-fishing">Pitfall 6: P-value Fishing</a></h3>
+<p>With 20,000 genes, testing each one for correlation with survival will produce
+~1,000 “significant” results at p &lt; 0.05 by chance alone. Always correct for
+multiple testing when scanning many genes.</p>
+<pre><code class="language-text"># Suppose we tested 100 genes for correlation with survival
+# Collect p-values and apply correction
+let test_genes = slice(cancer_genes, 0, 10)  # using our subset for demonstration
+
+let p_values_raw = test_genes |&gt; map(|g|
+    let gv = col_values(analysis_data, g) |&gt; map(|x| log2(to_float(x) + 1.0))
+    let sp = spearman(gv, surv_v)
+    sp.p_value
+)
+
+let p_adj = p_adjust(p_values_raw, "BH")
+
+println("Gene          Raw P         BH-adjusted P")
+println("────────      ─────         ─────────────")
+zip(test_genes, zip(p_values_raw, p_adj)) |&gt; each(|pair|
+    println(pair[0] + "    " + to_string(round(pair[1][0], 6))
+        + "    " + to_string(round(pair[1][1], 6)))
+)
+</code></pre>
+<h2 id="where-next"><a class="header" href="#where-next">Where Next?</a></h2>
+<h3 id="immediate-extensions"><a class="header" href="#immediate-extensions">Immediate Extensions</a></h3>
+<ul>
+<li>
+<p><strong>Logistic regression</strong>: When the outcome is binary (Chapter 10). Use GLM
+with logit link to predict ER status from gene expression.</p>
+</li>
+<li>
+<p><strong>Cox regression</strong>: When the outcome is survival time with censoring
+(Chapter 11). The correct approach for the survival question we explored
+here with imperfect linear regression.</p>
+</li>
+<li>
+<p><strong>Partial correlation</strong>: Correlation between X and Y after removing the
+effect of Z. Computable by correlating the residuals from regressing X on Z
+and Y on Z.</p>
+</li>
+</ul>
+<h3 id="advanced-topics"><a class="header" href="#advanced-topics">Advanced Topics</a></h3>
+<ul>
+<li>
+<p><strong>Ridge and Lasso regression</strong>: When you have more predictors than samples
+(the genomics default). Regularization prevents overfitting.</p>
+</li>
+<li>
+<p><strong>Principal component regression</strong>: Use PCA to reduce thousands of genes to
+a handful of components, then regress survival on the components.</p>
+</li>
+<li>
+<p><strong>Weighted gene co-expression network analysis (WGCNA)</strong>: Scale gene-gene
+correlation networks to the entire transcriptome. Identify modules and
+relate them to clinical traits.</p>
+</li>
+</ul>
+<h3 id="practice-problems"><a class="header" href="#practice-problems">Practice Problems</a></h3>
+<ol>
+<li>
+<p><strong>Hormone receptor genes</strong>: Compute the correlation matrix for all known
+hormone receptor genes (ESR1, ESR2, PGR, AR) and their downstream targets
+in the TCGA BRCA dataset. Which pairs have the strongest correlations?</p>
+</li>
+<li>
+<p><strong>Confounding by subtype</strong>: Run simple regression of MKI67 on ERBB2 in
+all patients, then separately within PAM50 subtypes. Does the relationship
+change? This demonstrates that subtype acts as a confounder.</p>
+</li>
+<li>
+<p><strong>Effect of log transformation</strong>: Compare Pearson correlations between
+ESR1 and PGR on raw FPKM values vs log2-transformed values. How much
+does the transformation change the result? Plot both.</p>
+</li>
+<li>
+<p><strong>Regression to the mean</strong>: Using two replicate measurements from the same
+samples (if available), demonstrate regression to the mean by selecting
+extreme samples from replicate 1 and measuring their values in replicate 2.</p>
+</li>
+<li>
+<p><strong>Multicollinearity</strong>: Build a regression model using 10 genes from the
+same pathway (e.g., the PI3K-AKT pathway). Examine how unstable the
+individual coefficients are. Then use PCA on the 10 genes and regress
+survival on the first 2 principal components instead.</p>
+</li>
+</ol>
+<hr>
+<p><strong>Key takeaways from this chapter:</strong></p>
+<ul>
+<li>Correlation measures association, not causation. Always consider confounders.</li>
+<li>Always visualize the data before computing correlations — scatter plots
+reveal non-linearity, outliers, and subgroups that numbers hide.</li>
+<li>Multiple regression adjusts for confounders but assumes linearity and
+independence.</li>
+<li>Spearman and Kendall correlations handle non-linear monotonic relationships.</li>
+<li>Regression to the mean traps pre-post studies without control groups.</li>
+<li>Multicollinearity makes individual coefficients in multiple regression
+unreliable when predictors are correlated.</li>
+<li>Gene-gene correlation networks reveal co-expression modules, but edges are
+not causal relationships.</li>
+<li>With thousands of genes, always correct for multiple testing.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch08-multiple-testing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ch10-glm.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch08-multiple-testing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ch10-glm.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/theme-toggle-817b00c6.js"></script>
+        <script src="theme/toolbar-buttons-d041ba86.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

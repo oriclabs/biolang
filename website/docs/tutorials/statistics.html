@@ -59,7 +59,8 @@
 
         <!-- Step 1 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Descriptive Statistics</h2>
-        <pre><code class="language-biolang"># stats.bio — statistical analysis
+        <pre><code class="language-biolang"># requires: data/experiment.csv in working directory
+# stats.bio — statistical analysis
 
 let data = csv("data/experiment.csv")
 
@@ -233,7 +234,8 @@ plot(data, {
 
         <!-- Step 7 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — PCA Visualization</h2>
-        <pre><code class="language-biolang"># Load expression matrix (samples as rows, genes as columns)
+        <pre><code class="language-biolang"># requires: data/expression_matrix.csv in working directory
+# Load expression matrix (samples as rows, genes as columns)
 let expr = csv("data/expression_matrix.csv")
 
 # pca_plot performs PCA and renders a scatter plot of PC1 vs PC2

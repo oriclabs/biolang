@@ -254,7 +254,8 @@ print(f"Computed GC for {len(results)} reads")</code></pre>
           <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>collect</code>
           pipeline on any format.
         </p>
-        <pre><code class="language-biolang"># Stream BAM files
+        <pre><code class="language-biolang"># requires: alignments.bam, variants.vcf.gz, genome.fa, regions.bed in working directory
+# Stream BAM files
 # BAM records have fields: qname, flag, rname, pos, mapq, cigar, seq, qual
 # Plus computed properties: is_mapped, is_paired, is_primary, aligned_length, etc.
 let mapped_count = bam("alignments.bam")

@@ -70,7 +70,8 @@
           BioLang has a built-in VCF parser that understands the full VCF 4.3 specification,
           including INFO, FORMAT, and genotype fields.
         </p>
-        <pre><code class="language-biolang"># variants.bio — VCF variant analysis
+        <pre><code class="language-biolang"># requires: examples/sample-data/calls.vcf in working directory
+# variants.bio — VCF variant analysis
 
 let variants = vcf("examples/sample-data/calls.vcf") |> collect()
 
@@ -170,7 +171,8 @@ print(density)</code></pre>
           Use <code>ensembl_vep()</code> to predict variant consequences via the Ensembl
           Variant Effect Predictor. Pass variants in HGVS notation.
         </p>
-        <pre><code class="language-biolang"># Annotate variants using Ensembl VEP
+        <pre><code class="language-biolang"># requires: internet connection
+# Annotate variants using Ensembl VEP
 # ensembl_vep takes HGVS notation: "chrom:g.posRef>Alt"
 let annotated = passed |> map(|v| {
   let hgvs = f"{v.chrom}:g.{v.pos}{v.ref}>{v.alt}"

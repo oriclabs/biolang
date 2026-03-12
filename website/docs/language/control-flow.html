@@ -98,7 +98,8 @@ fn process(data) {
           The <code>for</code> loop iterates over any iterable value &mdash; lists, ranges,
           strings, maps, tables, and streams:
         </p>
-        <pre><code class="language-biolang"># Iterate over a list
+        <pre><code class="language-biolang"># requires: internet connection
+# Iterate over a list
 for gene in ["BRCA1", "TP53", "EGFR"] {
   print(f"Looking up {gene}")
   let info = ncbi_gene(gene)

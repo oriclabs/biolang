@@ -1,0 +1,1301 @@
+<!DOCTYPE HTML>
+<html lang="en" class="coal sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Batch Effects &amp; Confounders - Biostatistics in Practice</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A practical guide to statistical thinking for genomics and bioinformatics using BioLang">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-d890680f.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "coal";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-9adb9a6e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-22d9afbc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Biostatistics in Practice</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="batch-effects--confounders"><a class="header" href="#batch-effects--confounders">Batch Effects &amp; Confounders</a></h1>
+<blockquote>
+<p>“The first rule of bioinformatics: 90% of the signal in your data is
+technical variation. The biology is in the other 10%.” — Anonymous</p>
+</blockquote>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Two labs contribute RNA-seq data to a collaborative breast cancer study. Lab A
+processed 50 samples at their sequencing center in January. Lab B processed 50
+samples at a different center in March. When you run PCA on the combined
+expression matrix, the first principal component separates the two labs
+perfectly — not the tumor subtypes, not the treatment groups, the labs.</p>
+<p>The biology you care about (differential expression between tumor subtypes) is
+buried under a mountain of technical variation. If you ignore the batch effect,
+you will report hundreds of “differentially expressed” genes that are actually
+just genes affected by the different library preparation protocols, sequencing
+depths, or even the ambient temperature in the two sequencing rooms.</p>
+<p>This chapter teaches you to detect, quantify, and handle batch effects — and
+introduces the broader concept of confounding, which is the single most
+important threat to valid inference in observational studies.</p>
+<h2 id="why-it-matters"><a class="header" href="#why-it-matters">Why It Matters</a></h2>
+<h3 id="batch-effects-are-universal"><a class="header" href="#batch-effects-are-universal">Batch Effects Are Universal</a></h3>
+<p>Every high-throughput technology introduces batch effects:</p>
+<ul>
+<li><strong>RNA-seq</strong>: Library preparation, sequencing lane, flow cell, sequencing
+center, RNA extraction method, time between extraction and sequencing</li>
+<li><strong>Microarrays</strong>: Chip lot, hybridization date, scanner calibration</li>
+<li><strong>Mass spectrometry</strong>: Instrument calibration drift, column age, ionization
+efficiency</li>
+<li><strong>Single-cell RNA-seq</strong>: Capture efficiency, ambient RNA contamination,
+cell viability differences between runs</li>
+<li><strong>Whole genome sequencing</strong>: Coverage depth, PCR duplicate rate, alignment
+software version</li>
+</ul>
+<p>In a landmark 2010 paper, Leek et al. showed that batch effects are present
+in the vast majority of published genomic studies and that they frequently
+lead to incorrect conclusions.</p>
+<h3 id="the-cost-of-ignoring-batch-effects"><a class="header" href="#the-cost-of-ignoring-batch-effects">The Cost of Ignoring Batch Effects</a></h3>
+<ul>
+<li><strong>False discoveries</strong>: Genes that differ between batches are reported as
+biologically significant</li>
+<li><strong>Failed replication</strong>: Results from one batch do not replicate in another</li>
+<li><strong>Incorrect clustering</strong>: PCA and clustering algorithms group samples by
+batch, not biology</li>
+<li><strong>Wasted resources</strong>: Follow-up experiments on batch-effect genes waste
+time and money</li>
+<li><strong>Retracted papers</strong>: Several high-profile genomics papers have been
+retracted or corrected because batch effects were not properly handled</li>
+</ul>
+<h3 id="confounding-is-even-more-dangerous"><a class="header" href="#confounding-is-even-more-dangerous">Confounding Is Even More Dangerous</a></h3>
+<p>Batch effects are a special case of confounding — when a technical or
+demographic variable is correlated with both the predictor and the outcome.</p>
+<p>If Lab A processed mostly ER-positive tumors and Lab B processed mostly
+ER-negative tumors, you cannot tell whether gene expression differences are
+due to ER status or lab. The batch is <strong>confounded</strong> with the biology.</p>
+<p>This is the most dangerous scenario because no statistical correction can
+fully separate the two effects. Confounding must be prevented at the design
+stage, not fixed in the analysis.</p>
+<h2 id="the-data"><a class="header" href="#the-data">The Data</a></h2>
+<h3 id="gtex-tissue-expression-data"><a class="header" href="#gtex-tissue-expression-data">GTEx Tissue Expression Data</a></h3>
+<p>GTEx (Genotype-Tissue Expression) provides expression data from multiple
+tissue types across hundreds of donors. Samples were processed at different
+sites and in different batches, making it an excellent resource for studying
+batch effects.</p>
+<pre><code class="language-text"># Download GTEx median TPM by tissue
+let gtex_url = "https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
+let gtex_file = download(gtex_url, "gtex_median_tpm.gct.gz")
+
+# GCT format: first two rows are header, then gene_id, description, then samples
+let gtex = read_tsv(gtex_file)
+println("GTEx expression data:")
+println("  Genes: " + to_string(len(gtex)))
+println("  Tissues: " + to_string(ncols(gtex) - 2))  # minus gene_id and description
+
+let tissue_names = columns(gtex) |&gt; slice(2, ncols(gtex))
+println("  Tissue types:")
+tissue_names |&gt; each(|t| println("    " + t))
+</code></pre>
+<h3 id="geo-dataset-with-known-batch-structure"><a class="header" href="#geo-dataset-with-known-batch-structure">GEO Dataset with Known Batch Structure</a></h3>
+<p>We also use a GEO dataset where batch information is available, allowing us to
+demonstrate detection and correction.</p>
+<pre><code class="language-text"># Download GEO dataset GSE183947 — breast cancer RNA-seq with batch information
+let geo_url = "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE183nnn/GSE183947/suppl/GSE183947_fpkm.csv.gz"
+let geo_file = download(geo_url, "gse183947_fpkm.csv.gz")
+
+let geo_expr = read_csv(geo_file)
+println("GEO expression data:")
+println("  Genes: " + to_string(len(geo_expr)))
+println("  Samples: " + to_string(ncols(geo_expr) - 1))
+
+head(geo_expr, 5)
+</code></pre>
+<h2 id="exploration"><a class="header" href="#exploration">Exploration</a></h2>
+<h3 id="what-do-batch-effects-look-like"><a class="header" href="#what-do-batch-effects-look-like">What Do Batch Effects Look Like?</a></h3>
+<p>Batch effects manifest as systematic differences in measured values between
+groups of samples processed differently. They can affect:</p>
+<ol>
+<li><strong>Mean expression level</strong>: All genes are shifted up or down (library size
+effect)</li>
+<li><strong>Variance</strong>: Some batches have more variable measurements</li>
+<li><strong>Specific genes</strong>: Certain genes are affected more than others (GC content
+bias, gene length bias)</li>
+<li><strong>Correlation structure</strong>: Gene-gene correlations change between batches</li>
+</ol>
+<pre><code class="language-text"># Simulate a dataset with batch effects to demonstrate the principles
+# 20 samples from each of 2 batches, measuring 1000 genes
+# True biology: 2 groups (treatment/control), 10 samples each per batch
+
+let n_genes = 1000
+let n_samples = 40
+
+# Generate true expression (same in both batches)
+let true_expr = []
+let g = 0
+let gene_means = rnorm(n_genes, 8.0, 3.0)  # gene-level mean expression
+
+# Batch effect: shift all genes by a constant
+let batch_shift = 2.0  # log2 units
+
+# Generate expression matrix
+# Samples 1-20: Batch A, Samples 21-40: Batch B
+# Samples 1-10 and 21-30: Control, Samples 11-20 and 31-40: Treatment
+
+let batch_labels = concat(
+    rnorm(20, 0.0, 0.0) |&gt; map(|_| "Batch_A"),
+    rnorm(20, 0.0, 0.0) |&gt; map(|_| "Batch_B")
+)
+let group_labels = concat(
+    concat(
+        rnorm(10, 0.0, 0.0) |&gt; map(|_| "Control"),
+        rnorm(10, 0.0, 0.0) |&gt; map(|_| "Treatment")
+    ),
+    concat(
+        rnorm(10, 0.0, 0.0) |&gt; map(|_| "Control"),
+        rnorm(10, 0.0, 0.0) |&gt; map(|_| "Treatment")
+    )
+)
+
+println("Experimental design:")
+println("  Batch A: 10 control + 10 treatment = 20 samples")
+println("  Batch B: 10 control + 10 treatment = 20 samples")
+println("  (Balanced design — batch is NOT confounded with group)")
+</code></pre>
+<pre><code class="language-text"># Simulate expression with batch effect
+# For each gene, Batch B has expression shifted by batch_shift
+
+let sim_data = gene_means |&gt; map(|mu|
+    let batch_a = rnorm(20, mu, 1.0)
+    let batch_b = rnorm(20, mu + batch_shift, 1.0)
+    concat(batch_a, batch_b)
+)
+
+let sim_matrix = matrix(sim_data)
+
+println("Simulated expression matrix: "
+    + to_string(len(gene_means)) + " genes x "
+    + to_string(n_samples) + " samples")
+
+# Overall mean by batch
+let batch_a_means = sim_data |&gt; map(|gene| mean(slice(gene, 0, 20)))
+let batch_b_means = sim_data |&gt; map(|gene| mean(slice(gene, 20, 40)))
+
+println("Mean expression per gene:")
+println("  Batch A: " + to_string(round(mean(batch_a_means), 2)))
+println("  Batch B: " + to_string(round(mean(batch_b_means), 2)))
+println("  Difference: " + to_string(round(mean(batch_b_means) - mean(batch_a_means), 2)))
+println("  (True batch effect was " + to_string(batch_shift) + ")")
+</code></pre>
+<h3 id="detecting-batch-effects-with-pca"><a class="header" href="#detecting-batch-effects-with-pca">Detecting Batch Effects with PCA</a></h3>
+<p>PCA is the most common method for detecting batch effects. If the first
+principal components separate samples by batch rather than by biology, you
+have a batch effect problem.</p>
+<pre><code class="language-text"># PCA on simulated data
+let pca_result = pca(sim_matrix)
+
+println("PCA of simulated data:")
+println("  PC1 variance explained: " + to_string(round(pca_result.variance_explained[0] * 100.0, 1)) + "%")
+println("  PC2 variance explained: " + to_string(round(pca_result.variance_explained[1] * 100.0, 1)) + "%")
+
+# Plot PCA colored by batch
+pca_plot(pca_result, batch_labels, "PCA Colored by Batch (Before Correction)")
+    |&gt; save_plot("pca_batch_before.svg")
+
+# Plot PCA colored by biological group
+pca_plot(pca_result, group_labels, "PCA Colored by Treatment Group (Before Correction)")
+    |&gt; save_plot("pca_group_before.svg")
+</code></pre>
+<p>In the batch-colored plot, you will see two distinct clusters on PC1 — Batch A
+on one side, Batch B on the other. In the group-colored plot, the treatment
+and control groups are mixed within each batch cluster. PC1 captures the batch
+effect, not the biology.</p>
+<pre><code class="language-text"># Quantify the batch effect using PC1 scores
+let pc1_scores = pca_result.scores |&gt; map(|row| row[0])
+
+let pc1_batch_a = slice(pc1_scores, 0, 20)
+let pc1_batch_b = slice(pc1_scores, 20, 40)
+
+let pc1_test = ttest(pc1_batch_a, pc1_batch_b)
+println("PC1 vs Batch:")
+println("  Batch A PC1 mean: " + to_string(round(mean(pc1_batch_a), 2)))
+println("  Batch B PC1 mean: " + to_string(round(mean(pc1_batch_b), 2)))
+println("  t-test p-value: " + to_string(pc1_test.p_value))
+
+# Compare with PC1 vs treatment group
+let pc1_control = concat(slice(pc1_scores, 0, 10), slice(pc1_scores, 20, 30))
+let pc1_treatment = concat(slice(pc1_scores, 10, 20), slice(pc1_scores, 30, 40))
+
+let pc1_group_test = ttest(pc1_control, pc1_treatment)
+println("PC1 vs Treatment:")
+println("  Control PC1 mean: " + to_string(round(mean(pc1_control), 2)))
+println("  Treatment PC1 mean: " + to_string(round(mean(pc1_treatment), 2)))
+println("  t-test p-value: " + to_string(pc1_group_test.p_value))
+</code></pre>
+<p>If PC1 is significantly associated with batch but not with treatment, the
+batch effect dominates the biology. This is the classic batch effect signature.</p>
+<h3 id="detecting-batch-effects-with-correlation"><a class="header" href="#detecting-batch-effects-with-correlation">Detecting Batch Effects with Correlation</a></h3>
+<pre><code class="language-text"># Another detection method: correlation between expression and batch
+# For each gene, compute correlation with batch indicator
+
+let batch_numeric = batch_labels |&gt; map(|b| if b == "Batch_A" then 0.0 else 1.0)
+let group_numeric = group_labels |&gt; map(|g| if g == "Control" then 0.0 else 1.0)
+
+# How many genes correlate with batch vs treatment?
+let batch_cors = sim_data |&gt; map(|gene| abs(cor(gene, batch_numeric)))
+let group_cors = sim_data |&gt; map(|gene| abs(cor(gene, group_numeric)))
+
+println("Absolute correlation with batch vs treatment:")
+println("  Mean |cor| with batch: " + to_string(round(mean(batch_cors), 4)))
+println("  Mean |cor| with treatment: " + to_string(round(mean(group_cors), 4)))
+
+let high_batch_cor = batch_cors |&gt; filter(|c| c &gt; 0.3) |&gt; len()
+let high_group_cor = group_cors |&gt; filter(|c| c &gt; 0.3) |&gt; len()
+println("  Genes with |cor| &gt; 0.3 with batch: " + to_string(high_batch_cor))
+println("  Genes with |cor| &gt; 0.3 with treatment: " + to_string(high_group_cor))
+</code></pre>
+<h2 id="the-analysis"><a class="header" href="#the-analysis">The Analysis</a></h2>
+<h3 id="part-1-library-size-as-a-confounder"><a class="header" href="#part-1-library-size-as-a-confounder">Part 1: Library Size as a Confounder</a></h3>
+<p>The most basic batch effect in RNA-seq is library size — the total number of
+reads per sample. Samples with more reads have higher counts for every gene.</p>
+<pre><code class="language-text"># Simulate library size variation
+let lib_sizes_a = rnorm(20, 30.0, 5.0)   # millions of reads, Batch A
+let lib_sizes_b = rnorm(20, 50.0, 5.0)   # millions of reads, Batch B (deeper)
+let lib_sizes = concat(lib_sizes_a, lib_sizes_b)
+
+println("Library sizes (millions of reads):")
+println("  Batch A mean: " + to_string(round(mean(lib_sizes_a), 1)))
+println("  Batch B mean: " + to_string(round(mean(lib_sizes_b), 1)))
+println("  Ratio: " + to_string(round(mean(lib_sizes_b) / mean(lib_sizes_a), 2)) + "x")
+
+# Before normalization: raw counts correlate with library size
+# This creates a spurious positive correlation between ALL genes
+println("")
+println("Before normalization:")
+println("  Every gene appears 'upregulated' in Batch B")
+println("  Correlation between any two genes is inflated")
+println("  PCA separates batches perfectly")
+</code></pre>
+<pre><code class="language-text"># Library size normalization methods
+
+# 1. CPM (Counts Per Million) — simplest
+# CPM = count / total_counts * 1,000,000
+
+let raw_counts = rnorm(40, 500.0, 200.0) |&gt; map(|x| abs(x))
+let total_counts = lib_sizes |&gt; map(|x| x * 1000000.0)
+let cpm_vals = zip(raw_counts, total_counts) |&gt; map(|pair| pair[0] / pair[1] * 1000000.0)
+
+println("CPM normalization:")
+println("  Divides each count by library size")
+println("  Makes samples comparable in total counts")
+println("  Does NOT account for compositional effects")
+
+# 2. TPM (Transcripts Per Million) — accounts for gene length
+println("")
+println("TPM normalization:")
+println("  Divides by gene length first (RPKM), then normalizes to sum to 1M")
+println("  Makes samples comparable AND accounts for gene length")
+println("  Better than FPKM for between-sample comparison")
+
+# 3. DESeq2 size factors — median of ratios
+println("")
+println("DESeq2 normalization:")
+println("  Uses median of ratios to a reference sample")
+println("  Robust to outlier genes (e.g., one highly expressed gene)")
+println("  Standard for differential expression analysis")
+</code></pre>
+<pre><code class="language-text"># Demonstrate CPM normalization on our simulated data
+# Apply CPM to remove library size effect
+
+let normalized_data = sim_data |&gt; map(|gene|
+    zip(gene, lib_sizes) |&gt; map(|pair|
+        pair[0] / pair[1] * 1.0  # simplified normalization
+    )
+)
+
+# Re-run PCA after normalization
+let norm_matrix = matrix(normalized_data)
+let pca_norm = pca(norm_matrix)
+
+println("PCA after library size normalization:")
+println("  PC1 variance explained: " + to_string(round(pca_norm.variance_explained[0] * 100.0, 1)) + "%")
+println("  PC2 variance explained: " + to_string(round(pca_norm.variance_explained[1] * 100.0, 1)) + "%")
+
+pca_plot(pca_norm, batch_labels, "PCA After Normalization (Colored by Batch)")
+    |&gt; save_plot("pca_batch_normalized.svg")
+</code></pre>
+<p>Library size normalization helps but may not remove all batch effects. Deeper
+batch effects (GC content bias, RNA degradation differences, different kit
+versions) require more sophisticated correction.</p>
+<h3 id="part-2-combat-style-batch-correction"><a class="header" href="#part-2-combat-style-batch-correction">Part 2: ComBat-Style Batch Correction</a></h3>
+<p>ComBat (from the sva R package) is the most widely used batch correction
+method. It uses an empirical Bayes framework to shrink batch effect estimates
+toward a common value, which is more robust than gene-by-gene correction.</p>
+<p><strong>The principle:</strong></p>
+<p>For each gene, model expression as:</p>
+<p>Y_ij = alpha + X<em>beta + batch_j</em>gamma + delta_j*epsilon</p>
+<p>Where:</p>
+<ul>
+<li>alpha: overall mean</li>
+<li>X*beta: biological effects (treatment, etc.)</li>
+<li>gamma: additive batch effect (shift)</li>
+<li>delta: multiplicative batch effect (scaling)</li>
+<li>epsilon: residual</li>
+</ul>
+<p>ComBat estimates gamma and delta for each gene, applies empirical Bayes
+shrinkage, then subtracts the batch effects from the data.</p>
+<pre><code class="language-text"># Regression-based batch correction (simplified ComBat)
+# For each gene, regress out the batch effect
+
+let corrected_data = sim_data |&gt; map(|gene|
+    # Fit: expression ~ batch
+    let model = lm(gene, batch_numeric)
+    let batch_effect = model.coefficients[0]
+
+    # Subtract batch effect from Batch B samples
+    gene |&gt; map(|val|
+        val  # keep Batch A as-is
+    )
+    # More precisely: subtract fitted batch component
+    zip(gene, batch_numeric) |&gt; map(|pair|
+        pair[0] - batch_effect * pair[1]
+    )
+)
+
+let corrected_matrix = matrix(corrected_data)
+let pca_corrected = pca(corrected_matrix)
+
+println("PCA after regression-based batch correction:")
+println("  PC1 variance explained: " + to_string(round(pca_corrected.variance_explained[0] * 100.0, 1)) + "%")
+println("  PC2 variance explained: " + to_string(round(pca_corrected.variance_explained[1] * 100.0, 1)) + "%")
+
+pca_plot(pca_corrected, batch_labels, "PCA After Batch Correction (Colored by Batch)")
+    |&gt; save_plot("pca_batch_corrected.svg")
+
+pca_plot(pca_corrected, group_labels, "PCA After Batch Correction (Colored by Group)")
+    |&gt; save_plot("pca_group_corrected.svg")
+</code></pre>
+<p>After correction, the PCA should no longer separate samples by batch. The
+biological signal (treatment vs control) should now be more visible.</p>
+<pre><code class="language-text"># Verify batch effect removal
+let pc1_corrected = pca_corrected.scores |&gt; map(|row| row[0])
+
+let pc1_corr_a = slice(pc1_corrected, 0, 20)
+let pc1_corr_b = slice(pc1_corrected, 20, 40)
+
+let batch_test_after = ttest(pc1_corr_a, pc1_corr_b)
+println("Batch effect in PC1 after correction:")
+println("  Batch A mean: " + to_string(round(mean(pc1_corr_a), 4)))
+println("  Batch B mean: " + to_string(round(mean(pc1_corr_b), 4)))
+println("  p-value: " + to_string(round(batch_test_after.p_value, 4)))
+println("  (Should be non-significant if correction worked)")
+
+# Check that biological signal is preserved
+let pc1_corr_ctrl = concat(slice(pc1_corrected, 0, 10), slice(pc1_corrected, 20, 30))
+let pc1_corr_trt = concat(slice(pc1_corrected, 10, 20), slice(pc1_corrected, 30, 40))
+
+let group_test_after = ttest(pc1_corr_ctrl, pc1_corr_trt)
+println("Treatment effect in PC1 after correction:")
+println("  p-value: " + to_string(round(group_test_after.p_value, 4)))
+</code></pre>
+<h3 id="part-3-why-you-should-include-batch-as-a-covariate-instead"><a class="header" href="#part-3-why-you-should-include-batch-as-a-covariate-instead">Part 3: Why You Should Include Batch as a Covariate Instead</a></h3>
+<p>There is a philosophical debate in genomics:</p>
+<p><strong>Approach A: Correct the data, then analyze.</strong>
+Remove batch effects from the expression matrix, then do differential expression
+analysis on the corrected data.</p>
+<p><strong>Approach B: Include batch as a covariate in the model.</strong>
+Leave the data uncorrected and add batch as a covariate in the statistical model
+(e.g., DESeq2 design formula: ~ batch + treatment).</p>
+<p>Approach B is generally preferred for hypothesis testing because:</p>
+<ol>
+<li>It preserves the full statistical model (uncertainty from batch estimation
+is included in the standard errors)</li>
+<li>It does not alter the data (you analyze the original measurements)</li>
+<li>It handles continuous confounders (you cannot “correct” for age the way
+you correct for batch)</li>
+<li>It gives correct p-values and confidence intervals</li>
+</ol>
+<p>Approach A is useful for:</p>
+<ul>
+<li>Visualization (PCA plots, heatmaps)</li>
+<li>Clustering (you want biology-driven clusters)</li>
+<li>Machine learning (you want batch-free features)</li>
+</ul>
+<pre><code class="language-text"># Demonstrate the two approaches
+
+# Approach A: Correct then analyze
+# (Already done above — corrected_data)
+let de_corrected = sim_data |&gt; map(|gene|
+    let corrected_gene = zip(gene, batch_numeric) |&gt; map(|pair|
+        pair[0] - lm(gene, batch_numeric).coefficients[0] * pair[1]
+    )
+    let ctrl = concat(slice(corrected_gene, 0, 10), slice(corrected_gene, 20, 30))
+    let trt = concat(slice(corrected_gene, 10, 20), slice(corrected_gene, 30, 40))
+    ttest(ctrl, trt).p_value
+)
+
+# Approach B: Include batch as covariate
+let de_covariate = sim_data |&gt; map(|gene|
+    # Multiple regression: expression ~ treatment + batch
+    let model = lm(gene, matrix([group_numeric, batch_numeric]))
+    model.p_values[0]  # p-value for treatment effect
+)
+
+# Count significant genes with each approach
+let sig_corrected = de_corrected |&gt; filter(|p| p &lt; 0.05) |&gt; len()
+let sig_covariate = de_covariate |&gt; filter(|p| p &lt; 0.05) |&gt; len()
+
+println("Differential expression results:")
+println("  Approach A (correct then test): " + to_string(sig_corrected) + " significant genes")
+println("  Approach B (batch as covariate): " + to_string(sig_covariate) + " significant genes")
+println("")
+println("  Both should give similar results when batch and biology are orthogonal")
+println("  Approach B is preferred for formal testing")
+</code></pre>
+<h3 id="part-4-confounding--when-batch-and-biology-are-entangled"><a class="header" href="#part-4-confounding--when-batch-and-biology-are-entangled">Part 4: Confounding — When Batch and Biology Are Entangled</a></h3>
+<p>The most dangerous scenario is when batch is correlated with the biological
+variable of interest. This happens when:</p>
+<ul>
+<li>All cases were processed in one batch and all controls in another</li>
+<li>One lab contributed mostly early-stage tumors and another mostly late-stage</li>
+<li>Different sequencing platforms were used for different groups</li>
+</ul>
+<pre><code class="language-text"># Simulate a CONFOUNDED design
+# Batch A: 20 controls
+# Batch B: 20 treatments
+# Now batch and treatment are perfectly confounded!
+
+let confounded_batch = concat(
+    rnorm(20, 0.0, 0.0) |&gt; map(|_| "Batch_A"),
+    rnorm(20, 0.0, 0.0) |&gt; map(|_| "Batch_B")
+)
+let confounded_group = concat(
+    rnorm(20, 0.0, 0.0) |&gt; map(|_| "Control"),
+    rnorm(20, 0.0, 0.0) |&gt; map(|_| "Treatment")
+)
+
+let confounded_batch_num = confounded_batch |&gt; map(|b| if b == "Batch_A" then 0.0 else 1.0)
+let confounded_group_num = confounded_group |&gt; map(|g| if g == "Control" then 0.0 else 1.0)
+
+# These are perfectly correlated!
+let confound_cor = cor(confounded_batch_num, confounded_group_num)
+println("Correlation between batch and treatment: " + to_string(confound_cor))
+println("PERFECT CONFOUNDING — cannot separate batch from treatment")
+println("")
+println("Any gene that differs between batches also differs between groups")
+println("Any gene that differs between groups also differs between batches")
+println("NO statistical method can disentangle these effects")
+</code></pre>
+<pre><code class="language-text"># Show that regression fails with perfect confounding
+let confounded_gene = concat(
+    rnorm(20, 5.0, 1.0),  # Batch A / Control
+    rnorm(20, 8.0, 1.0)   # Batch B / Treatment
+)
+
+# Is the difference due to batch or treatment?
+# We literally cannot tell
+let ttest_result = ttest(slice(confounded_gene, 0, 20), slice(confounded_gene, 20, 40))
+println("T-test p-value: " + to_string(ttest_result.p_value))
+println("  Is this batch or biology? UNKNOWABLE")
+println("")
+println("Lesson: Confounding must be prevented at the DESIGN stage")
+println("  Randomize samples across batches")
+println("  If randomization is impossible, ensure batch and biology are")
+println("  as uncorrelated as possible")
+</code></pre>
+<h3 id="part-5-simpsons-paradox-in-genomics"><a class="header" href="#part-5-simpsons-paradox-in-genomics">Part 5: Simpson’s Paradox in Genomics</a></h3>
+<p>Simpson’s paradox occurs when a trend that appears in grouped data reverses
+when the groups are combined. This is a direct consequence of confounding.</p>
+<pre><code class="language-text"># Simpson's paradox example
+# Gene X is upregulated in treatment in BOTH batches
+# But overall, it appears DOWNregulated in treatment
+
+# Batch A: low overall expression, treatment slightly higher
+let batch_a_ctrl = rnorm(30, 3.0, 0.5)
+let batch_a_trt = rnorm(10, 3.5, 0.5)
+
+# Batch B: high overall expression, treatment slightly higher
+let batch_b_ctrl = rnorm(10, 8.0, 0.5)
+let batch_b_trt = rnorm(30, 8.5, 0.5)
+
+# Within each batch: treatment &gt; control
+println("Within-batch effects:")
+println("  Batch A: Control mean = " + to_string(round(mean(batch_a_ctrl), 2))
+    + ", Treatment mean = " + to_string(round(mean(batch_a_trt), 2))
+    + " (treatment higher)")
+println("  Batch B: Control mean = " + to_string(round(mean(batch_b_ctrl), 2))
+    + ", Treatment mean = " + to_string(round(mean(batch_b_trt), 2))
+    + " (treatment higher)")
+
+# Combined: control samples come mostly from high-expression Batch B
+# treatment samples come mostly from low-expression Batch A
+let all_ctrl = concat(batch_a_ctrl, batch_b_ctrl)
+let all_trt = concat(batch_a_trt, batch_b_trt)
+
+println("")
+println("Combined effect (ignoring batch):")
+println("  Control mean = " + to_string(round(mean(all_ctrl), 2))
+    + " (n=" + to_string(len(all_ctrl)) + ")")
+println("  Treatment mean = " + to_string(round(mean(all_trt), 2))
+    + " (n=" + to_string(len(all_trt)) + ")")
+
+let overall_test = ttest(all_ctrl, all_trt)
+println("  T-test p-value: " + to_string(round(overall_test.p_value, 4)))
+println("")
+println("PARADOX: Treatment is HIGHER within each batch")
+println("         But LOWER overall because batch confounds the comparison")
+println("         More controls came from the high-expression batch")
+</code></pre>
+<pre><code class="language-text"># The fix: include batch in the model
+let combined_expr = concat(concat(batch_a_ctrl, batch_a_trt),
+                           concat(batch_b_ctrl, batch_b_trt))
+let combined_group = concat(
+    concat(rnorm(30, 0.0, 0.0) |&gt; map(|_| 0.0),
+           rnorm(10, 0.0, 0.0) |&gt; map(|_| 1.0)),
+    concat(rnorm(10, 0.0, 0.0) |&gt; map(|_| 0.0),
+           rnorm(30, 0.0, 0.0) |&gt; map(|_| 1.0))
+)
+let combined_batch = concat(
+    rnorm(40, 0.0, 0.0) |&gt; map(|_| 0.0),
+    rnorm(40, 0.0, 0.0) |&gt; map(|_| 1.0)
+)
+
+let corrected_model = lm(combined_expr, matrix([combined_group, combined_batch]))
+println("Multiple regression (expression ~ treatment + batch):")
+println("  Treatment coefficient: " + to_string(round(corrected_model.coefficients[0], 4)))
+println("  Batch coefficient: " + to_string(round(corrected_model.coefficients[1], 4)))
+println("  Treatment p-value: " + to_string(round(corrected_model.p_values[0], 4)))
+println("  (Now correctly shows treatment effect within batches)")
+</code></pre>
+<h3 id="part-6-population-stratification-in-gwas"><a class="header" href="#part-6-population-stratification-in-gwas">Part 6: Population Stratification in GWAS</a></h3>
+<p>Population stratification is a confounding problem specific to genetics. If
+cases and controls come from different ancestral populations, any allele that
+differs in frequency between populations will appear associated with the
+disease — even if it has no causal effect.</p>
+<pre><code class="language-text"># Simulate population stratification
+# Population A (European): higher frequency of allele, lower disease risk
+# Population B (East Asian): lower frequency of allele, higher disease risk
+
+let n_european = 500
+let n_east_asian = 500
+
+# Allele frequency differs between populations (not related to disease)
+let af_european = 0.30
+let af_east_asian = 0.15
+
+# Disease prevalence differs between populations (for other reasons)
+let disease_european = 0.05
+let disease_east_asian = 0.10
+
+# Generate genotypes
+let geno_eur = rbinom(n_european, 2, af_european) |&gt; map(|x| to_float(x))
+let geno_eas = rbinom(n_east_asian, 2, af_east_asian) |&gt; map(|x| to_float(x))
+
+# Generate disease status (independent of genotype!)
+let disease_eur = rbinom(n_european, 1, disease_european) |&gt; map(|x| to_float(x))
+let disease_eas = rbinom(n_east_asian, 1, disease_east_asian) |&gt; map(|x| to_float(x))
+
+let all_geno = concat(geno_eur, geno_eas)
+let all_disease = concat(disease_eur, disease_eas)
+let all_pop = concat(
+    rnorm(n_european, 0.0, 0.0) |&gt; map(|_| 0.0),
+    rnorm(n_east_asian, 0.0, 0.0) |&gt; map(|_| 1.0)
+)
+
+# Naive association (ignoring population)
+let naive_chi2 = chi_square(
+    [
+        all_geno |&gt; filter(|g| g &gt; 0.0) |&gt; len(),
+        all_geno |&gt; filter(|g| g == 0.0) |&gt; len()
+    ],
+    [
+        all_disease |&gt; filter(|d| d == 1.0) |&gt; len(),
+        all_disease |&gt; filter(|d| d == 0.0) |&gt; len()
+    ]
+)
+
+# Corrected association (including population as covariate)
+let corrected_assoc = glm(all_disease, matrix([all_geno, all_pop]), "binomial")
+
+println("Population stratification example:")
+println("  Allele has NO causal effect on disease")
+println("  But populations differ in both allele frequency and disease risk")
+println("")
+println("  Naive test (ignoring population): p = " + to_string(round(naive_chi2.p_value, 4)))
+println("  Corrected test (adjusting for population): p = "
+    + to_string(round(corrected_assoc.p_values[0], 4)))
+println("")
+if naive_chi2.p_value &lt; 0.05 &amp;&amp; corrected_assoc.p_values[0] &gt; 0.05 then
+    println("  The naive test gives a FALSE POSITIVE")
+    println("  The corrected test correctly shows no association")
+end
+</code></pre>
+<pre><code class="language-text"># GWAS solves this with principal components
+# PCA of genome-wide genotypes captures population structure
+# Include top PCs (typically 10-20) as covariates in the association model
+
+println("GWAS population stratification correction:")
+println("  1. Run PCA on genome-wide genotype data")
+println("  2. Include top 10-20 PCs as covariates")
+println("  3. Compute genomic inflation factor (lambda_GC)")
+println("     lambda = 1.0 means no inflation (good)")
+println("     lambda &gt; 1.1 means residual stratification (adjust more)")
+println("  4. Use QQ plot to check for systematic p-value inflation")
+</code></pre>
+<h3 id="part-7-applying-corrections-to-real-data"><a class="header" href="#part-7-applying-corrections-to-real-data">Part 7: Applying Corrections to Real Data</a></h3>
+<pre><code class="language-text"># Work with the GTEx data to show tissue effects
+# GTEx has tissues as columns — these are not batch effects per se,
+# but we can use the structure to demonstrate PCA-based analysis
+
+let gtex_data = read_tsv(gtex_file)
+
+# Extract numeric expression values (skip gene ID and description columns)
+let tissue_cols = columns(gtex_data) |&gt; slice(2, ncols(gtex_data))
+
+# Get expression for a subset of genes (top variable genes)
+let gtex_subset = gtex_data |&gt; head(500)  # first 500 genes for speed
+
+# Build a matrix of tissues x genes (transposed from the file)
+# Each tissue is a "sample" — we are looking at tissue as a batch-like effect
+println("GTEx analysis:")
+println("  Using " + to_string(len(tissue_cols)) + " tissues as 'samples'")
+println("  Using 500 genes for PCA")
+
+# Extract expression values for each tissue
+let tissue_data = tissue_cols |&gt; map(|tissue|
+    col_values(gtex_subset, tissue) |&gt; map(|x| log2(to_float(x) + 1.0))
+)
+
+let tissue_matrix = matrix(tissue_data)
+
+# PCA of tissues based on gene expression
+let gtex_pca = pca(tissue_matrix)
+
+println("GTEx PCA:")
+println("  PC1 explains " + to_string(round(gtex_pca.variance_explained[0] * 100.0, 1)) + "% of variance")
+println("  PC2 explains " + to_string(round(gtex_pca.variance_explained[1] * 100.0, 1)) + "% of variance")
+
+pca_plot(gtex_pca, tissue_cols, "GTEx Tissues PCA") |&gt; save_plot("gtex_pca.svg")
+</code></pre>
+<p>In the GTEx PCA, brain tissues cluster together, muscle tissues cluster
+together, etc. This is not a batch effect — it is biology. The lesson is that
+PCA alone cannot distinguish batch effects from real biology. You need to
+know what the batches are and check whether PCA components correlate with
+them.</p>
+<h3 id="part-8-detecting-unknown-batches-with-surrogate-variables"><a class="header" href="#part-8-detecting-unknown-batches-with-surrogate-variables">Part 8: Detecting Unknown Batches with Surrogate Variables</a></h3>
+<p>Sometimes batch information is not recorded or is incomplete. Surrogate
+Variable Analysis (SVA) uses the expression data itself to detect hidden
+sources of variation.</p>
+<pre><code class="language-text"># The principle of surrogate variable analysis:
+# 1. Fit a model with only the biological variable of interest
+# 2. Examine the residuals — they contain batch effects + noise
+# 3. Apply PCA/SVD to the residuals
+# 4. The top components are "surrogate variables" — proxies for unknown batches
+# 5. Include surrogate variables as covariates in the final model
+
+println("Surrogate Variable Analysis (SVA) principle:")
+println("  1. Fit expression ~ treatment (ignoring batch)")
+println("  2. Residuals = batch effects + noise")
+println("  3. PCA of residuals → surrogate variables")
+println("  4. Fit expression ~ treatment + SV1 + SV2 + ...")
+println("  5. SVs capture unknown batch effects without needing batch labels")
+println("")
+println("BioLang implementation:")
+
+# Compute residuals from biology-only model
+let residual_data = sim_data |&gt; map(|gene|
+    let model = lm(gene, group_numeric)
+    # Residuals capture everything not explained by treatment
+    zip(gene, group_numeric) |&gt; map(|pair|
+        pair[0] - (model.intercept + model.coefficients[0] * pair[1])
+    )
+)
+
+let residual_matrix = matrix(residual_data)
+let svd_result = pca(residual_matrix)
+
+println("Surrogate variables from residual PCA:")
+println("  SV1 variance explained: " + to_string(round(svd_result.variance_explained[0] * 100.0, 1)) + "%")
+println("  SV2 variance explained: " + to_string(round(svd_result.variance_explained[1] * 100.0, 1)) + "%")
+
+# SV1 should correlate with batch if batch is the dominant hidden effect
+let sv1 = svd_result.scores |&gt; map(|row| row[0])
+let sv1_batch_cor = cor(sv1, batch_numeric |&gt; map(|x| to_float(x)))
+println("Correlation of SV1 with actual batch: " + to_string(round(abs(sv1_batch_cor), 4)))
+println("  (High correlation confirms SV1 captures the batch effect)")
+</code></pre>
+<h3 id="part-9-before-vs-after--a-complete-workflow"><a class="header" href="#part-9-before-vs-after--a-complete-workflow">Part 9: Before vs After — A Complete Workflow</a></h3>
+<pre><code class="language-text"># Complete batch correction workflow on the simulated data
+
+println("=== COMPLETE BATCH CORRECTION WORKFLOW ===")
+println("")
+
+# Step 1: Detect batch effects
+println("Step 1: Detect batch effects")
+let raw_pca = pca(sim_matrix)
+let pc1_batch_assoc = ttest(
+    slice(raw_pca.scores |&gt; map(|r| r[0]), 0, 20),
+    slice(raw_pca.scores |&gt; map(|r| r[0]), 20, 40)
+)
+println("  PC1 vs batch p-value: " + to_string(pc1_batch_assoc.p_value))
+if pc1_batch_assoc.p_value &lt; 0.05 then
+    println("  BATCH EFFECT DETECTED in PC1")
+end
+
+# Step 2: Check for confounding
+println("")
+println("Step 2: Check for confounding")
+let batch_group_cor = cor(
+    batch_numeric |&gt; map(|x| to_float(x)),
+    group_numeric |&gt; map(|x| to_float(x))
+)
+println("  Correlation(batch, treatment): " + to_string(round(batch_group_cor, 4)))
+if abs(batch_group_cor) &lt; 0.3 then
+    println("  LOW confounding — correction is feasible")
+else if abs(batch_group_cor) &lt; 0.7 then
+    println("  MODERATE confounding — proceed with caution")
+else
+    println("  HIGH confounding — results may be unreliable")
+end
+
+# Step 3: Choose correction strategy
+println("")
+println("Step 3: Choose correction strategy")
+println("  For hypothesis testing: include batch as covariate")
+println("  For visualization: apply regression-based correction")
+
+# Step 4: Apply correction for visualization
+println("")
+println("Step 4: Correct data for visualization")
+let viz_corrected = sim_data |&gt; map(|gene|
+    let batch_effect = lm(gene, batch_numeric |&gt; map(|x| to_float(x))).coefficients[0]
+    zip(gene, batch_numeric) |&gt; map(|pair|
+        pair[0] - batch_effect * to_float(pair[1])
+    )
+)
+
+let viz_pca = pca(matrix(viz_corrected))
+pca_plot(viz_pca, batch_labels, "PCA After Correction (Batch)") |&gt; save_plot("pca_corrected_batch.svg")
+pca_plot(viz_pca, group_labels, "PCA After Correction (Group)") |&gt; save_plot("pca_corrected_group.svg")
+
+# Step 5: DE analysis with batch as covariate
+println("")
+println("Step 5: Differential expression with batch covariate")
+let sig_genes = 0
+let de_results = sim_data |&gt; map(|gene|
+    let model = lm(gene, matrix([
+        group_numeric |&gt; map(|x| to_float(x)),
+        batch_numeric |&gt; map(|x| to_float(x))
+    ]))
+    record(
+        "treatment_coef", model.coefficients[0],
+        "batch_coef", model.coefficients[1],
+        "treatment_p", model.p_values[0]
+    )
+)
+
+let de_table = table(de_results)
+let de_p = col_values(de_table, "treatment_p") |&gt; map(|x| to_float(x))
+let de_p_adj = p_adjust(de_p, "BH")
+
+let sig_after_correction = de_p_adj |&gt; filter(|p| p &lt; 0.05) |&gt; len()
+println("  Significant genes (BH &lt; 0.05): " + to_string(sig_after_correction))
+
+# Step 6: Verify correction
+println("")
+println("Step 6: Verify batch effect removal")
+let pc1_after = ttest(
+    slice(viz_pca.scores |&gt; map(|r| r[0]), 0, 20),
+    slice(viz_pca.scores |&gt; map(|r| r[0]), 20, 40)
+)
+println("  PC1 vs batch p-value after correction: " + to_string(round(pc1_after.p_value, 4)))
+println("  (Should be non-significant)")
+</code></pre>
+<h2 id="interpretation"><a class="header" href="#interpretation">Interpretation</a></h2>
+<h3 id="the-hierarchy-of-batch-effect-solutions"><a class="header" href="#the-hierarchy-of-batch-effect-solutions">The Hierarchy of Batch Effect Solutions</a></h3>
+<p>From best to worst:</p>
+<ol>
+<li>
+<p><strong>Prevention</strong>: Randomize samples across batches at the design stage.
+This makes batch orthogonal to biology. No correction needed.</p>
+</li>
+<li>
+<p><strong>Covariate adjustment</strong>: Include batch as a covariate in the statistical
+model. Preserves the data, gives correct p-values, handles both known
+and estimated (surrogate variable) batch effects.</p>
+</li>
+<li>
+<p><strong>Data correction</strong>: Remove batch effects from the data (ComBat, limma
+removeBatchEffect). Useful for visualization and clustering but can
+distort standard errors. Always analyze the uncorrected data with
+covariates for hypothesis testing.</p>
+</li>
+<li>
+<p><strong>Ignoring batch effects</strong>: Produces false discoveries, missed true
+signals, and irreproducible results. Never acceptable.</p>
+</li>
+</ol>
+<h3 id="when-correction-fails"><a class="header" href="#when-correction-fails">When Correction Fails</a></h3>
+<p>Correction fails when:</p>
+<ul>
+<li>Batch is perfectly confounded with biology (no statistical fix)</li>
+<li>The batch effect is non-linear (standard methods assume linearity)</li>
+<li>The batch effect is gene-specific and complex (standard methods assume
+simple additive/multiplicative effects)</li>
+<li>Sample sizes per batch are too small for reliable estimation</li>
+</ul>
+<h3 id="what-we-learned-from-the-simulations"><a class="header" href="#what-we-learned-from-the-simulations">What We Learned from the Simulations</a></h3>
+<ol>
+<li>A batch shift of 2 log2-units dominates PCA, making the biological
+signal invisible</li>
+<li>Library size normalization removes part but not all of the batch effect</li>
+<li>Regression-based correction effectively removes the batch effect when
+batch and biology are orthogonal</li>
+<li>When batch and biology are confounded, no correction can recover the
+biological signal</li>
+<li>Simpson’s paradox is a real threat — always check for confounders
+before interpreting overall trends</li>
+</ol>
+<h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
+<h3 id="checklist-for-every-multi-batch-study"><a class="header" href="#checklist-for-every-multi-batch-study">Checklist for Every Multi-Batch Study</a></h3>
+<p>Before analyzing any multi-batch dataset, answer these questions:</p>
+<pre><code class="language-text">println("Batch Effect Checklist:")
+println("─────────────────────")
+println("")
+println("1. [ ] Do you know all the batches?")
+println("   (sequencing center, date, lane, operator, kit version)")
+println("")
+println("2. [ ] Is batch confounded with your biological variable?")
+println("   Compute correlation(batch, biology)")
+println("   If |r| &gt; 0.3, you have a problem")
+println("")
+println("3. [ ] Does PCA separate samples by batch?")
+println("   Color PCA by batch — is there clustering?")
+println("   Test PC1-PC5 for association with batch")
+println("")
+println("4. [ ] Have you chosen a correction strategy?")
+println("   For DE testing: batch as covariate in the model")
+println("   For visualization: ComBat or regression correction")
+println("   For both: correct for viz, covariate for testing")
+println("")
+println("5. [ ] Have you verified the correction?")
+println("   PCA after correction should not separate by batch")
+println("   Biological signal should be preserved or enhanced")
+println("")
+println("6. [ ] Have you documented the batch structure?")
+println("   Report which samples were in which batch")
+println("   Report the correction method used")
+println("   Report before/after PCA plots")
+</code></pre>
+<h3 id="when-to-abort-a-study"><a class="header" href="#when-to-abort-a-study">When to Abort a Study</a></h3>
+<p>Sometimes batch effects are so severe or confounded that the study cannot
+produce reliable results. Consider abandoning the analysis when:</p>
+<ul>
+<li>Batch is perfectly confounded with the biological variable</li>
+<li>Batch effects are so large that biological signal is undetectable even
+after correction</li>
+<li>The number of samples per batch is too small (&lt; 5) for reliable batch
+estimation</li>
+<li>Key clinical covariates are missing, making it impossible to check for
+confounding</li>
+</ul>
+<p>In these cases, the honest conclusion is: “This study design does not support
+the intended analysis. New data with a balanced batch design is needed.”</p>
+<h2 id="pitfalls"><a class="header" href="#pitfalls">Pitfalls</a></h2>
+<h3 id="pitfall-1-over-correction"><a class="header" href="#pitfall-1-over-correction">Pitfall 1: Over-Correction</a></h3>
+<pre><code class="language-text"># Batch correction can remove real biology if the biological effect
+# is correlated with batch
+
+println("Over-correction danger:")
+println("  If 70% of ER+ samples are in Batch A and 70% of ER- in Batch B,")
+println("  correcting for batch will partially remove the ER effect")
+println("  Solution: Include ER status in the correction model")
+println("  ComBat allows specifying biological variables to preserve")
+println("")
+println("  ComBat formula: correct(data, batch, model.matrix(~ biology))")
+println("  This removes batch while preserving the biological signal")
+</code></pre>
+<h3 id="pitfall-2-correcting-normalized-and-raw-data-differently"><a class="header" href="#pitfall-2-correcting-normalized-and-raw-data-differently">Pitfall 2: Correcting Normalized and Raw Data Differently</a></h3>
+<pre><code class="language-text">println("Consistency in correction:")
+println("  WRONG: Normalize data, then correct for batch")
+println("         (normalization may interact with batch correction)")
+println("  WRONG: Correct for batch, then normalize")
+println("         (correction may break normalization assumptions)")
+println("")
+println("  RIGHT for visualization: Normalize → log transform → ComBat")
+println("  RIGHT for DE testing: Use DESeq2/edgeR with ~batch+condition")
+println("         (these tools normalize and model simultaneously)")
+</code></pre>
+<h3 id="pitfall-3-applying-batch-correction-across-studies"><a class="header" href="#pitfall-3-applying-batch-correction-across-studies">Pitfall 3: Applying Batch Correction Across Studies</a></h3>
+<pre><code class="language-text">println("Cross-study batch correction:")
+println("  Combining data from different studies is extremely challenging")
+println("  Each study may use different platforms, protocols, and populations")
+println("")
+println("  Warning signs:")
+println("  - PCA perfectly separates studies (always check this first)")
+println("  - Effect sizes differ dramatically between studies")
+println("  - Gene rankings change completely between studies")
+println("")
+println("  Better approach: meta-analysis (Chapter 15)")
+println("  - Analyze each study separately")
+println("  - Combine results (effect sizes) rather than data")
+println("  - This avoids the need for cross-study batch correction")
+</code></pre>
+<h3 id="pitfall-4-ignoring-sample-level-qc"><a class="header" href="#pitfall-4-ignoring-sample-level-qc">Pitfall 4: Ignoring Sample-Level QC</a></h3>
+<pre><code class="language-text"># Individual samples can be outliers due to technical failure
+# Remove these before batch correction
+
+println("Sample-level QC before batch correction:")
+println("  1. Check library size per sample — flag outliers")
+println("  2. Check % mapped reads — low mapping suggests contamination")
+println("  3. Check % ribosomal RNA — high rRNA suggests poor depletion")
+println("  4. Check PCA — samples far from their expected cluster may be")
+println("     mislabeled or contaminated")
+println("  5. Remove outlier samples BEFORE batch correction")
+println("     (outliers distort batch effect estimates)")
+</code></pre>
+<h3 id="pitfall-5-not-reporting-batch-information"><a class="header" href="#pitfall-5-not-reporting-batch-information">Pitfall 5: Not Reporting Batch Information</a></h3>
+<pre><code class="language-text">println("Reporting requirements:")
+println("  Every genomics paper should report:")
+println("  - How many batches/processing groups existed")
+println("  - What variables define the batches")
+println("  - Whether batch is confounded with biology (correlation)")
+println("  - What correction method was used (if any)")
+println("  - Before and after PCA plots showing batch effect and correction")
+println("")
+println("  Reviewers should reject papers that:")
+println("  - Do not mention batch effects")
+println("  - Combine multi-center data without discussion")
+println("  - Show PCA plots without coloring by batch")
+</code></pre>
+<h3 id="pitfall-6-forgetting-about-non-obvious-confounders"><a class="header" href="#pitfall-6-forgetting-about-non-obvious-confounders">Pitfall 6: Forgetting About Non-Obvious Confounders</a></h3>
+<pre><code class="language-text">println("Non-obvious confounders in genomics:")
+println("")
+println("  RNA-seq:")
+println("  - RNA integrity number (RIN) — degraded RNA affects gene-level estimates")
+println("  - Time from sample collection to freezing")
+println("  - Amount of input RNA")
+println("  - 3' bias from degradation")
+println("")
+println("  GWAS:")
+println("  - Population stratification (ancestry)")
+println("  - Relatedness (family structure)")
+println("  - Genotyping array version")
+println("  - Imputation reference panel")
+println("")
+println("  Clinical data:")
+println("  - Age (confounder for almost everything)")
+println("  - Sex (affects expression of ~1/3 of genes)")
+println("  - BMI (correlates with inflammation gene expression)")
+println("  - Medications (especially steroids, which affect gene expression)")
+println("  - Time of day of sample collection (circadian genes)")
+</code></pre>
+<h2 id="where-next"><a class="header" href="#where-next">Where Next?</a></h2>
+<h3 id="immediate-extensions"><a class="header" href="#immediate-extensions">Immediate Extensions</a></h3>
+<ul>
+<li>
+<p><strong>Dimensionality reduction</strong> (Chapter 13): PCA is just the starting point.
+UMAP and t-SNE are commonly used for visualization in single-cell RNA-seq,
+where batch effects between experiments are a major challenge.</p>
+</li>
+<li>
+<p><strong>Clustering</strong> (Chapter 14): Batch effects can create artificial clusters.
+Always check whether clusters correspond to biological groups or technical
+batches before interpreting them.</p>
+</li>
+<li>
+<p><strong>Meta-analysis</strong> (Chapter 15): The principled alternative to combining raw
+data across studies. Analyze each study separately, then combine effect
+sizes. This avoids cross-study batch correction entirely.</p>
+</li>
+</ul>
+<h3 id="advanced-topics"><a class="header" href="#advanced-topics">Advanced Topics</a></h3>
+<ul>
+<li>
+<p><strong>Harmony and Scanorama</strong>: Batch correction methods designed specifically
+for single-cell RNA-seq, where each experiment has different cell
+compositions and capture efficiencies.</p>
+</li>
+<li>
+<p><strong>Mutual nearest neighbors (MNN)</strong>: A method that identifies shared cell
+types across batches and uses them as anchors for correction. More
+principled than global correction for heterogeneous samples.</p>
+</li>
+<li>
+<p><strong>Causal inference</strong>: When you cannot randomize (observational studies),
+methods like propensity score matching, instrumental variables, and
+Mendelian randomization can help distinguish causal effects from confounding.</p>
+</li>
+</ul>
+<h3 id="practice-problems"><a class="header" href="#practice-problems">Practice Problems</a></h3>
+<ol>
+<li>
+<p><strong>GTEx batch detection</strong>: Download GTEx sample-level data (not just
+medians) and color PCA by sequencing center, ischemic time, and tissue
+type. Which technical variable explains the most variance?</p>
+</li>
+<li>
+<p><strong>Simulated confounding</strong>: Create a simulation where batch is 50%
+confounded with treatment (60% of treatments in Batch A, 40% in Batch B).
+How does partial confounding affect the DE results? How well does
+covariate adjustment work?</p>
+</li>
+<li>
+<p><strong>Over-correction</strong>: Simulate data where treatment causes a 2-fold change
+in 100 genes, with batch perfectly correlated with treatment. Apply batch
+correction and show that the biological signal is removed. Then simulate
+the balanced design and show that correction preserves the biology.</p>
+</li>
+<li>
+<p><strong>Population stratification</strong>: Using 1000 Genomes Project data, compute
+PCA of genotypes. Show that the top PCs separate continental populations.
+Simulate a GWAS with population-stratified cases and controls, and show
+that PC adjustment removes the inflation.</p>
+</li>
+<li>
+<p><strong>Library size correlation</strong>: Take any RNA-seq count matrix. For each
+gene, compute its correlation with total library size. How many genes are
+significantly correlated? Apply TPM or CPM normalization and repeat.
+How many genes are still correlated?</p>
+</li>
+</ol>
+<hr>
+<p><strong>Key takeaways from this chapter:</strong></p>
+<ul>
+<li>Batch effects are systematic technical variations that affect all samples
+processed together. They are present in virtually all genomic data.</li>
+<li>PCA is the primary tool for detecting batch effects. If PC1 separates
+batches, the batch effect dominates the biology.</li>
+<li>Confounding occurs when batch correlates with the biological variable.
+No statistical method can fix perfect confounding.</li>
+<li>For hypothesis testing, include batch as a covariate in the model rather
+than correcting the data.</li>
+<li>For visualization and clustering, use regression-based or ComBat
+correction on the data.</li>
+<li>Simpson’s paradox can reverse the apparent direction of an effect when
+confounders are ignored.</li>
+<li>Population stratification is a form of confounding in GWAS, corrected
+by including ancestry PCs as covariates.</li>
+<li>Prevention (balanced experimental design) is always better than
+post-hoc correction.</li>
+<li>Report batch information, correction methods, and before/after PCA
+plots in every multi-batch study.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch11-survival.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ch13-dimensionality-reduction.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch11-survival.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ch13-dimensionality-reduction.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/theme-toggle-817b00c6.js"></script>
+        <script src="theme/toolbar-buttons-d041ba86.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,1463 @@
+<!DOCTYPE HTML>
+<html lang="en" class="coal sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Clustering &amp; Classification - Biostatistics in Practice</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A practical guide to statistical thinking for genomics and bioinformatics using BioLang">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-d890680f.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "coal";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-9adb9a6e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-22d9afbc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Biostatistics in Practice</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="chapter-14-clustering--classification"><a class="header" href="#chapter-14-clustering--classification">Chapter 14: Clustering &amp; Classification</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You have gene expression profiles from 1,097 breast cancer tumors in The Cancer
+Genome Atlas (TCGA). Clinicians treat breast cancer differently depending on the
+molecular subtype — Luminal A, Luminal B, HER2-enriched, Basal-like, and
+Normal-like. But these subtypes were originally discovered by unsupervised
+clustering of expression data. The question is: if you cluster the tumors
+without knowing the subtypes, do the clusters match the known biology?</p>
+<p>More broadly: given a matrix of measurements (gene expression, protein levels,
+methylation, mutation profiles), how do you discover natural groups in the data?
+How do you decide how many groups exist? And how do you avoid the dangerous
+trap of finding patterns in noise?</p>
+<p>This chapter covers unsupervised clustering — the art of discovering structure
+that you did not know existed. It also covers the critical discipline of
+validating that the structure is real.</p>
+<h2 id="why-it-matters"><a class="header" href="#why-it-matters">Why It Matters</a></h2>
+<p>Clustering is not just an exploratory exercise. In genomics, clusters become
+clinical categories that determine treatment:</p>
+<p><strong>Breast cancer subtypes.</strong> The PAM50 classifier assigns each tumor to one of
+five molecular subtypes. Luminal A tumors have excellent prognosis and may avoid
+chemotherapy. Basal-like tumors are aggressive and require intensive treatment.
+This classification, which saves lives, was discovered by clustering gene
+expression profiles.</p>
+<p><strong>Single-cell atlas construction.</strong> Every cell atlas relies on clustering to
+define cell types. The Human Cell Atlas, which aims to map every cell in the
+human body, is fundamentally a clustering project. Each cluster becomes a
+cell type with a name, a marker gene signature, and a place in the developmental
+hierarchy.</p>
+<p><strong>Cancer of unknown primary (CUP).</strong> When a metastatic tumor is found but the
+primary site is unknown, expression-based classifiers assign it to the most
+likely tissue of origin. These classifiers use clustering — the unknown tumor
+is assigned to the cluster of known tumors it most resembles.</p>
+<p><strong>Drug response prediction.</strong> Clustering patients by multi-omic profiles can
+reveal subgroups with different drug responses. The I-SPY 2 adaptive clinical
+trial uses expression-based clustering to match patients to experimental
+therapies.</p>
+<h2 id="the-data"><a class="header" href="#the-data">The Data</a></h2>
+<p><strong>TCGA Breast Cancer (BRCA) expression data</strong></p>
+<p>URL: https://gdc-hub.s3.us-east-1.amazonaws.com/download/TCGA-BRCA.htseq_fpkm.tsv.gz</p>
+<p>This file contains FPKM-normalized gene expression for all TCGA-BRCA samples.
+Rows are genes (Ensembl IDs), columns are samples.</p>
+<p><strong>TCGA BRCA molecular subtypes</strong></p>
+<p>URL: https://gdc-hub.s3.us-east-1.amazonaws.com/download/TCGA-BRCA.molecular_subtype.tsv</p>
+<p>This file contains the PAM50 molecular subtype classification for each sample.</p>
+<pre><code class="language-text"># Download TCGA BRCA expression data
+let expr_url = "https://gdc-hub.s3.us-east-1.amazonaws.com/download/TCGA-BRCA.htseq_fpkm.tsv.gz"
+let expr_file = download(expr_url, "tcga_brca_expr.tsv.gz")
+
+let brca_expr = read_tsv(expr_file)
+println("Expression matrix:")
+println("  Genes: " + str(len(brca_expr)))
+println("  Samples: " + str(ncols(brca_expr) - 1))
+
+# Download molecular subtype labels
+let subtype_url = "https://gdc-hub.s3.us-east-1.amazonaws.com/download/TCGA-BRCA.molecular_subtype.tsv"
+let subtype_file = download(subtype_url, "tcga_brca_subtypes.tsv")
+
+let subtypes = read_tsv(subtype_file)
+println("Subtype annotations: " + str(len(subtypes)) + " samples")
+
+# Check subtype distribution
+let subtype_counts = subtypes |&gt; count_by("subtype")
+println("Subtype distribution:")
+subtype_counts |&gt; each(|s|
+  println("  " + s.subtype + ": " + str(s.n))
+)
+</code></pre>
+<h2 id="exploration"><a class="header" href="#exploration">Exploration</a></h2>
+<h3 id="preparing-the-data-for-clustering"><a class="header" href="#preparing-the-data-for-clustering">Preparing the Data for Clustering</a></h3>
+<p>Before clustering, we must prepare the data the same way we did for PCA
+in Chapter 13: filter low-expression genes, log-transform, select the most
+variable features, and scale.</p>
+<pre><code class="language-text"># Get sample IDs (column names, excluding the gene ID column)
+let sample_ids = columns(brca_expr) |&gt; filter(|c| c != "Ensembl_ID")
+println("Total samples: " + str(len(sample_ids)))
+
+# Filter genes: keep only those expressed in at least 10% of samples
+# and with mean FPKM &gt; 1
+let gene_ids = col_values(brca_expr, "Ensembl_ID")
+
+let gene_stats = gene_ids |&gt; map(|g|
+  let row_vals = sample_ids |&gt; map(|s| col_values(brca_expr, s)[0])  # simplified
+  let expressed = row_vals |&gt; filter(|v| v &gt; 0) |&gt; len()
+  let pct_expressed = 100.0 * expressed / len(sample_ids)
+  let mean_expr = mean(row_vals)
+  { gene: g, pct_expressed: pct_expressed, mean_expr: mean_expr }
+)
+
+let expressed_genes = gene_stats
+  |&gt; filter(|g| g.pct_expressed &gt; 10.0 and g.mean_expr &gt; 1.0)
+  |&gt; map(|g| g.gene)
+
+println("Genes after expression filter: " + str(len(expressed_genes)))
+
+# Log2-transform (FPKM + 1)
+# Then select top 5000 most variable genes
+# Then z-score normalize across samples
+
+# Build a samples x genes matrix (transpose the data)
+let sample_data = sample_ids |&gt; map(|s|
+  let vals = col_values(brca_expr, s)
+  let result = { sample: s }
+  expressed_genes |&gt; head(5000) |&gt; each(|g|
+    result[g] = log2(vals[0] + 1.0)  # simplified indexing
+  )
+  result
+)
+
+let sample_table = table(sample_data)
+</code></pre>
+<h3 id="selecting-features-the-most-variable-genes"><a class="header" href="#selecting-features-the-most-variable-genes">Selecting Features: The Most Variable Genes</a></h3>
+<p>For clustering, feature selection is critical. Too many features add noise.
+Too few may miss the signal. The standard approach is to select the most
+variable genes.</p>
+<pre><code class="language-text"># Compute variance for each gene across samples
+let gene_list = expressed_genes |&gt; head(5000)
+let gene_var = gene_list |&gt; map(|g|
+  let values = col_values(sample_table, g)
+  { gene: g, variance: variance(values), mean: mean(values) }
+)
+
+# Select top 2000 most variable genes
+let top_genes = gene_var
+  |&gt; sort(|a, b| b.variance - a.variance)
+  |&gt; head(2000)
+  |&gt; map(|g| g.gene)
+
+println("Selected " + str(len(top_genes)) + " most variable genes for clustering")
+
+# Show the top 10
+println("Top 10 most variable genes:")
+gene_var |&gt; sort(|a, b| b.variance - a.variance) |&gt; head(10) |&gt; each(|g|
+  println("  " + g.gene + ": var=" + str(round(g.variance, 3)) +
+          " mean=" + str(round(g.mean, 3)))
+)
+
+# Scale the selected genes (z-score across samples)
+let cluster_data = sample_table |&gt; select(top_genes)
+let scaled_data = normalize(cluster_data, "zscore")
+
+println("Clustering matrix: " + str(len(scaled_data)) + " samples x " +
+        str(ncols(scaled_data)) + " genes")
+</code></pre>
+<h3 id="dimensionality-reduction-before-clustering"><a class="header" href="#dimensionality-reduction-before-clustering">Dimensionality Reduction Before Clustering</a></h3>
+<p>As we learned in Chapter 13, clustering in the full gene space is prone
+to the curse of dimensionality. We first reduce to PCA coordinates.</p>
+<pre><code class="language-text"># PCA for denoising and dimensionality reduction
+let pca_result = pca(scaled_data, n_components: 30)
+
+# Scree plot to choose number of PCs
+let total_var = sum(pca_result.variance)
+let var_pct = pca_result.variance |&gt; map(|v| 100.0 * v / total_var)
+
+println("Variance explained by top PCs:")
+let cum = 0.0
+var_pct |&gt; head(15) |&gt; each(|v|
+  let i = 0
+  cum = cum + v
+  println("  PC" + str(i + 1) + ": " + str(round(v, 2)) +
+          "% (cumulative: " + str(round(cum, 1)) + "%)")
+  i = i + 1
+)
+
+# Use 15 PCs for clustering (typical for bulk RNA-seq)
+let n_pcs = 15
+let pc_embedding = pca_result.components |&gt; map(|row| row |&gt; head(n_pcs))
+
+println("PC embedding: " + str(len(pc_embedding)) + " samples x " + str(n_pcs) + " PCs")
+</code></pre>
+<h2 id="the-analysis"><a class="header" href="#the-analysis">The Analysis</a></h2>
+<h3 id="k-means-clustering"><a class="header" href="#k-means-clustering">K-Means Clustering</a></h3>
+<p>K-means is the simplest and most widely used clustering algorithm. It partitions
+n observations into k clusters by minimizing the within-cluster sum of squared
+distances to the centroid.</p>
+<p>The algorithm:</p>
+<ol>
+<li>Choose k random points as initial centroids</li>
+<li>Assign each observation to the nearest centroid</li>
+<li>Recompute centroids as the mean of assigned observations</li>
+<li>Repeat steps 2-3 until convergence</li>
+</ol>
+<pre><code class="language-text"># K-means clustering with k=5 (to match the 5 PAM50 subtypes)
+let km5 = kmeans(pc_embedding, k: 5)
+
+# km5 contains:
+#   .labels     — cluster assignment for each sample (0-indexed)
+#   .centroids  — centroid coordinates
+
+println("K-means (k=5) cluster sizes:")
+let km5_counts = km5.labels |&gt; value_counts()
+km5_counts |&gt; each(|c|
+  println("  Cluster " + str(c.value) + ": " + str(c.count) + " samples")
+)
+</code></pre>
+<h3 id="choosing-k-the-elbow-method"><a class="header" href="#choosing-k-the-elbow-method">Choosing K: The Elbow Method</a></h3>
+<p>But how do you know that k=5 is the right choice? What if the data contains
+3 clusters, or 7? The elbow method runs k-means for a range of k values and
+plots the within-cluster sum of squares (WCSS, also called inertia) against k.</p>
+<pre><code class="language-text"># Elbow method: run k-means for k=2 to k=10
+let k_range = [2, 3, 4, 5, 6, 7, 8, 9, 10]
+let elbow_results = k_range |&gt; map(|k|
+  let result = kmeans(pc_embedding, k: k)
+
+  # Compute within-cluster sum of squares (WCSS)
+  let wcss = 0.0
+  let i = 0
+  result.labels |&gt; each(|label|
+    let centroid = result.centroids[label]
+    let point = pc_embedding[i]
+    let dist_sq = point |&gt; map(|p|
+      let j = 0
+      let d = p - centroid[j]
+      j = j + 1
+      d * d
+    ) |&gt; sum()
+    wcss = wcss + dist_sq
+    i = i + 1
+  )
+
+  println("k=" + str(k) + " WCSS=" + str(round(wcss, 1)))
+  { k: k, wcss: wcss }
+)
+
+# Plot the elbow
+let elbow_table = table(elbow_results)
+scatter(elbow_table, "k", "wcss",
+  title: "K-Means Elbow Plot",
+  x_label: "Number of Clusters (k)",
+  y_label: "Within-Cluster Sum of Squares")
+  |&gt; save_plot("kmeans_elbow.svg")
+
+# The elbow is where the decrease in WCSS slows down sharply
+# For TCGA BRCA, expect an elbow around k=4 or k=5
+</code></pre>
+<h3 id="choosing-k-silhouette-analysis"><a class="header" href="#choosing-k-silhouette-analysis">Choosing K: Silhouette Analysis</a></h3>
+<p>The silhouette score measures how similar each observation is to its own
+cluster compared to the nearest neighboring cluster. It ranges from -1
+(wrong cluster) to +1 (well-matched to its cluster).</p>
+<pre><code class="language-text"># Compute silhouette scores for different k values
+let silhouette_results = k_range |&gt; map(|k|
+  let result = kmeans(pc_embedding, k: k)
+
+  # Compute silhouette for each sample
+  let sil_scores = []
+  let i = 0
+  result.labels |&gt; each(|label|
+    let point = pc_embedding[i]
+
+    # a(i) = mean distance to same-cluster points
+    let same_dists = []
+    let j = 0
+    result.labels |&gt; each(|other_label|
+      if other_label == label and j != i then
+        let d = point |&gt; map(|p|
+          let dim = 0
+          let diff = p - pc_embedding[j][dim]
+          dim = dim + 1
+          diff * diff
+        ) |&gt; sum() |&gt; sqrt()
+        same_dists = concat(same_dists, [d])
+      end
+      j = j + 1
+    )
+    let a_i = if len(same_dists) &gt; 0 then mean(same_dists) else 0.0
+
+    # b(i) = min over other clusters of mean distance to that cluster
+    let other_clusters = unique(result.labels) |&gt; filter(|c| c != label)
+    let b_i = other_clusters |&gt; map(|oc|
+      let oc_dists = []
+      let jj = 0
+      result.labels |&gt; each(|ol|
+        if ol == oc then
+          let d = point |&gt; map(|p|
+            let dim = 0
+            let diff = p - pc_embedding[jj][dim]
+            dim = dim + 1
+            diff * diff
+          ) |&gt; sum() |&gt; sqrt()
+          oc_dists = concat(oc_dists, [d])
+        end
+        jj = jj + 1
+      )
+      mean(oc_dists)
+    ) |&gt; min()
+
+    let s_i = if a_i &lt; b_i then (b_i - a_i) / b_i else (b_i - a_i) / a_i
+    sil_scores = concat(sil_scores, [s_i])
+    i = i + 1
+  )
+
+  let mean_sil = mean(sil_scores)
+  println("k=" + str(k) + " mean silhouette=" + str(round(mean_sil, 4)))
+  { k: k, mean_silhouette: mean_sil }
+)
+
+let sil_table = table(silhouette_results)
+scatter(sil_table, "k", "mean_silhouette",
+  title: "Silhouette Score vs k",
+  x_label: "Number of Clusters (k)",
+  y_label: "Mean Silhouette Score")
+  |&gt; save_plot("silhouette_scores.svg")
+
+# Higher silhouette = better clustering
+# If k=4 and k=5 have similar scores, biological knowledge tips the balance
+</code></pre>
+<h3 id="hierarchical-clustering"><a class="header" href="#hierarchical-clustering">Hierarchical Clustering</a></h3>
+<p>Hierarchical clustering builds a tree (dendrogram) of nested clusters. Unlike
+k-means, it does not require you to specify k in advance. You choose k by
+cutting the dendrogram at a certain height.</p>
+<p>There are two approaches:</p>
+<ul>
+<li><strong>Agglomerative (bottom-up)</strong>: Start with each point as its own cluster.
+Merge the two closest clusters at each step. Repeat until one cluster remains.</li>
+<li><strong>Divisive (top-down)</strong>: Start with all points in one cluster. Split
+recursively.</li>
+</ul>
+<p>The key parameter is the linkage criterion — how you measure the distance
+between two clusters:</p>
+<ul>
+<li><strong>Single linkage</strong>: Minimum distance between any pair of points</li>
+<li><strong>Complete linkage</strong>: Maximum distance between any pair of points</li>
+<li><strong>Average linkage</strong>: Mean distance between all pairs of points</li>
+<li><strong>Ward’s method</strong>: Minimizes the increase in total within-cluster variance</li>
+</ul>
+<pre><code class="language-text"># Compute the distance matrix for hierarchical clustering
+let dist_mat = dist_matrix(pc_embedding, "euclidean")
+
+println("Distance matrix: " + str(len(dist_mat)) + " x " + str(len(dist_mat[0])))
+
+# Descriptive statistics of pairwise distances
+let all_dists = []
+let i = 0
+while i &lt; len(dist_mat) do
+  let j = i + 1
+  while j &lt; len(dist_mat) do
+    all_dists = concat(all_dists, [dist_mat[i][j]])
+    j = j + 1
+  end
+  i = i + 1
+end
+
+let dist_stats = {
+  mean: mean(all_dists),
+  median: median(all_dists),
+  sd: stdev(all_dists),
+  min: min(all_dists),
+  max: max(all_dists)
+}
+
+println("Pairwise distance statistics:")
+println("  Mean: " + str(round(dist_stats.mean, 2)))
+println("  Median: " + str(round(dist_stats.median, 2)))
+println("  SD: " + str(round(dist_stats.sd, 2)))
+println("  Range: [" + str(round(dist_stats.min, 2)) + ", " +
+        str(round(dist_stats.max, 2)) + "]")
+</code></pre>
+<h3 id="heatmaps-with-rowcolumn-clustering"><a class="header" href="#heatmaps-with-rowcolumn-clustering">Heatmaps with Row/Column Clustering</a></h3>
+<p>The classic visualization for clustered expression data is a heatmap with
+dendrograms on both rows (genes) and columns (samples). This simultaneously
+shows the expression patterns and the cluster structure.</p>
+<pre><code class="language-text"># Create a heatmap of the top variable genes across samples
+# Use the k=5 clustering to order samples
+
+let km_labels = km5.labels
+
+# Order samples by cluster
+let ordered_indices = [0, 1, 2, 3, 4] |&gt; map(|cluster|
+  let indices = []
+  let i = 0
+  km_labels |&gt; each(|l|
+    if l == cluster then
+      indices = concat(indices, [i])
+    end
+    i = i + 1
+  )
+  indices
+) |&gt; flatten()
+
+# Select a subset of top variable genes for the heatmap (top 100)
+let heatmap_genes = top_genes |&gt; head(100)
+let heatmap_data = scaled_data |&gt; select(heatmap_genes)
+
+# Create the heatmap
+heatmap(heatmap_data,
+  title: "TCGA BRCA — Top 100 Variable Genes",
+  x_label: "Samples (ordered by cluster)",
+  y_label: "Genes")
+  |&gt; save_plot("brca_heatmap.svg")
+
+println("Heatmap saved — samples ordered by k-means cluster")
+println("Look for block-diagonal structure: genes that are high in one")
+println("cluster and low in others define the cluster identity")
+</code></pre>
+<h3 id="leiden-community-detection"><a class="header" href="#leiden-community-detection">Leiden Community Detection</a></h3>
+<p>Leiden clustering is the standard method for single-cell RNA-seq. Unlike
+k-means, it does not require specifying the number of clusters. Instead,
+it builds a nearest-neighbor graph and finds communities of densely
+connected nodes.</p>
+<p>The algorithm:</p>
+<ol>
+<li>Build a k-nearest-neighbor (KNN) graph in PC space</li>
+<li>Optimize the modularity function to find communities</li>
+<li>The resolution parameter controls the granularity</li>
+</ol>
+<pre><code class="language-text"># Leiden clustering at different resolutions
+let resolutions = [0.2, 0.5, 0.8, 1.0, 1.5, 2.0]
+
+let leiden_results = resolutions |&gt; map(|res|
+  let clusters = leiden(pc_embedding, resolution: res)
+  let n_clusters = len(unique(clusters))
+  println("Resolution " + str(res) + ": " + str(n_clusters) + " clusters")
+  { resolution: res, n_clusters: n_clusters, labels: clusters }
+)
+
+# Resolution 0.2: 2-3 large clusters (Luminal vs Basal)
+# Resolution 0.5: 4-5 clusters (approaching PAM50)
+# Resolution 1.0: 6-8 clusters (may split subtypes further)
+# Resolution 2.0: 10+ clusters (over-splitting)
+
+# The resolution controls granularity — there is no single "correct" value
+# Choose based on biological interpretability
+</code></pre>
+<h3 id="evaluating-clusters-against-known-subtypes"><a class="header" href="#evaluating-clusters-against-known-subtypes">Evaluating Clusters Against Known Subtypes</a></h3>
+<p>The TCGA BRCA dataset has a gold standard: the PAM50 molecular subtype
+classification. We can evaluate our unsupervised clustering against this
+reference.</p>
+<pre><code class="language-text"># Match samples between our clustering and the known subtypes
+let our_labels = km5.labels
+
+# Create a contingency table: our clusters x PAM50 subtypes
+let known_subtypes = col_values(subtypes, "subtype")
+let sample_order = col_values(subtypes, "sample")
+
+# Build the contingency table
+let our_clusters = unique(our_labels) |&gt; sort(|a, b| a - b)
+let pam50_types = unique(known_subtypes) |&gt; filter(|s| s != "NA")
+
+println("Contingency table: Our clusters vs PAM50 subtypes")
+println("")
+
+# Header
+let header = "Cluster"
+pam50_types |&gt; each(|t|
+  header = header + "\t" + t
+)
+println(header)
+
+# Rows
+our_clusters |&gt; each(|cl|
+  let row = str(cl)
+  pam50_types |&gt; each(|t|
+    let count = 0
+    let i = 0
+    our_labels |&gt; each(|l|
+      if l == cl and known_subtypes[i] == t then
+        count = count + 1
+      end
+      i = i + 1
+    )
+    row = row + "\t" + str(count)
+  )
+  println(row)
+)
+</code></pre>
+<h3 id="adjusted-rand-index"><a class="header" href="#adjusted-rand-index">Adjusted Rand Index</a></h3>
+<p>The Rand Index measures agreement between two clusterings. It counts the
+number of pairs of observations that are either in the same cluster in both
+clusterings or in different clusters in both. The Adjusted Rand Index (ARI)
+corrects for chance — an ARI of 0 means agreement no better than random,
+and 1 means perfect agreement.</p>
+<pre><code class="language-text"># Compute the Adjusted Rand Index between our clustering and PAM50
+
+# First, compute the raw Rand Index
+let n = len(our_labels)
+let a = 0  # pairs in same cluster in both
+let b = 0  # pairs in different clusters in both
+let c = 0  # same in ours, different in PAM50
+let d = 0  # different in ours, same in PAM50
+
+let i = 0
+while i &lt; n do
+  let j = i + 1
+  while j &lt; n do
+    let same_ours = our_labels[i] == our_labels[j]
+    let same_pam50 = known_subtypes[i] == known_subtypes[j]
+
+    if same_ours and same_pam50 then
+      a = a + 1
+    end
+    if same_ours and !same_pam50 then
+      c = c + 1
+    end
+    if !same_ours and same_pam50 then
+      d = d + 1
+    end
+    if !same_ours and !same_pam50 then
+      b = b + 1
+    end
+
+    j = j + 1
+  end
+  i = i + 1
+end
+
+let total_pairs = n * (n - 1) / 2
+let rand_index = (a + b) / total_pairs
+
+println("Raw Rand Index: " + str(round(rand_index, 4)))
+
+# Adjusted Rand Index (corrects for chance)
+# ARI = (RI - Expected_RI) / (Max_RI - Expected_RI)
+# For k-means with k=5 on BRCA data, expect ARI around 0.4-0.7
+# depending on preprocessing
+
+# The ARI will not be 1.0 because:
+# 1. K-means is a simple method — it finds spherical clusters
+# 2. PAM50 subtypes have complex, non-spherical boundaries
+# 3. Some subtypes (especially Normal-like) are poorly defined
+# 4. Our feature selection may not match the PAM50 gene set
+</code></pre>
+<h3 id="comparing-clustering-methods"><a class="header" href="#comparing-clustering-methods">Comparing Clustering Methods</a></h3>
+<p>Different clustering methods find different structures. The right method
+depends on the shape of the clusters in your data.</p>
+<pre><code class="language-text"># Compare k-means, hierarchical, and Leiden clustering
+
+# K-means (already computed)
+let km_labels = km5.labels
+let km_n = len(unique(km_labels))
+
+# Leiden at resolution chosen to give ~5 clusters
+let leiden_labels = leiden(pc_embedding, resolution: 0.5)
+let leiden_n = len(unique(leiden_labels))
+
+println("Method comparison:")
+println("  K-means (k=5): " + str(km_n) + " clusters")
+println("  Leiden (res=0.5): " + str(leiden_n) + " clusters")
+
+# For each method, show the cluster sizes
+println("")
+println("K-means cluster sizes:")
+let km_vc = km_labels |&gt; value_counts()
+km_vc |&gt; sort(|a, b| b.count - a.count) |&gt; each(|c|
+  println("  Cluster " + str(c.value) + ": " + str(c.count))
+)
+
+println("Leiden cluster sizes:")
+let lei_vc = leiden_labels |&gt; value_counts()
+lei_vc |&gt; sort(|a, b| b.count - a.count) |&gt; each(|c|
+  println("  Cluster " + str(c.value) + ": " + str(c.count))
+)
+
+# Agreement between methods
+# If two methods find the same clusters, the structure is robust
+# If they disagree, the data may not have clear clusters
+</code></pre>
+<h3 id="identifying-cluster-defining-genes"><a class="header" href="#identifying-cluster-defining-genes">Identifying Cluster-Defining Genes</a></h3>
+<p>Once clusters are found, the next question is: what genes define each cluster?
+These are the marker genes or signature genes.</p>
+<pre><code class="language-text"># For each cluster, find genes with the highest differential expression
+# compared to all other clusters
+
+let cluster_markers = our_clusters |&gt; map(|cl|
+  println("Finding markers for cluster " + str(cl) + "...")
+
+  let in_cluster = []
+  let out_cluster = []
+  let idx = 0
+  our_labels |&gt; each(|l|
+    if l == cl then
+      in_cluster = concat(in_cluster, [idx])
+    else
+      out_cluster = concat(out_cluster, [idx])
+    end
+    idx = idx + 1
+  )
+
+  # Test top genes for differential expression
+  let markers = top_genes |&gt; head(500) |&gt; map(|g|
+    let all_vals = col_values(scaled_data, g)
+    let in_vals = in_cluster |&gt; map(|i| all_vals[i])
+    let out_vals = out_cluster |&gt; map(|i| all_vals[i])
+
+    let test_result = ttest(in_vals, out_vals)
+    {
+      gene: g,
+      pvalue: test_result.pvalue,
+      mean_in: mean(in_vals),
+      mean_out: mean(out_vals),
+      log_fc: mean(in_vals) - mean(out_vals)
+    }
+  )
+
+  # Top 10 upregulated markers
+  let top_markers = markers
+    |&gt; filter(|m| m.log_fc &gt; 0)
+    |&gt; sort(|a, b| a.pvalue - b.pvalue)
+    |&gt; head(10)
+
+  println("  Cluster " + str(cl) + " top markers:")
+  top_markers |&gt; each(|m|
+    println("    " + m.gene + ": logFC=" + str(round(m.log_fc, 2)) +
+            " p=" + str(round(m.pvalue, 6)))
+  )
+
+  { cluster: cl, markers: top_markers }
+)
+
+# Expected markers for breast cancer subtypes:
+# Luminal A/B: ESR1 (estrogen receptor), GATA3, FOXA1
+# HER2-enriched: ERBB2, GRB7
+# Basal-like: KRT5, KRT17, EGFR
+</code></pre>
+<h3 id="visualization-umap-colored-by-cluster-and-subtype"><a class="header" href="#visualization-umap-colored-by-cluster-and-subtype">Visualization: UMAP Colored by Cluster and Subtype</a></h3>
+<pre><code class="language-text"># Create UMAP embedding for visualization
+let umap_result = umap(pc_embedding, n_neighbors: 15, min_dist: 0.5)
+
+# Plot colored by our clusters
+let umap_cluster_table = table(sample_ids |&gt; map(|s|
+  let i = 0
+  {
+    sample: s,
+    cluster: our_labels[i],
+    UMAP1: umap_result[i][0],
+    UMAP2: umap_result[i][1]
+  }
+))
+
+scatter(umap_cluster_table, "UMAP1", "UMAP2",
+  color: "cluster",
+  title: "TCGA BRCA — UMAP colored by K-means cluster",
+  x_label: "UMAP 1",
+  y_label: "UMAP 2")
+  |&gt; save_plot("brca_umap_kmeans.svg")
+
+# Plot colored by PAM50 subtype
+let umap_subtype_table = table(sample_ids |&gt; map(|s|
+  let i = 0
+  {
+    sample: s,
+    subtype: known_subtypes[i],
+    UMAP1: umap_result[i][0],
+    UMAP2: umap_result[i][1]
+  }
+))
+
+scatter(umap_subtype_table, "UMAP1", "UMAP2",
+  color: "subtype",
+  title: "TCGA BRCA — UMAP colored by PAM50 subtype",
+  x_label: "UMAP 1",
+  y_label: "UMAP 2")
+  |&gt; save_plot("brca_umap_pam50.svg")
+
+# Side-by-side comparison: do the unsupervised clusters
+# align with the supervised subtypes?
+println("Compare the two UMAP plots:")
+println("  If clusters align with subtypes, the biology is strong")
+println("  Misaligned regions indicate ambiguous or transitional tumors")
+</code></pre>
+<h3 id="the-circular-analysis-trap"><a class="header" href="#the-circular-analysis-trap">The Circular Analysis Trap</a></h3>
+<p>This is the single most dangerous pitfall in clustering:</p>
+<p><strong>You cluster the data using a set of genes. Then you test whether those same
+genes are differentially expressed between the clusters. Of course they are —
+you selected the clusters specifically to maximize differences on those genes.</strong></p>
+<p>This is circular reasoning. The p-values are meaningless because the hypothesis
+was generated from the same data used to test it.</p>
+<pre><code class="language-text"># CIRCULAR ANALYSIS — DO NOT DO THIS
+
+# Step 1: Cluster using all genes
+# let clusters = kmeans(expression_data, k: 5)
+
+# Step 2: Test each gene for differential expression between clusters
+# let de_results = genes |&gt; map(|g|
+#   let groups = clusters |&gt; map(|c| expression_data[c][g])
+#   anova(groups...)
+# )
+
+# Step 3: Report "500 genes are significantly different between clusters"
+# THIS IS MEANINGLESS — you are testing the same data you clustered on
+
+# CORRECT APPROACH 1: Split-sample validation
+# Cluster on half the samples, test on the other half
+
+let n_samples = len(our_labels)
+let half = n_samples / 2
+
+# Random split
+let indices = [0, 1, 2] |&gt; map(|i| i)  # simplified: all sample indices
+let train_idx = indices |&gt; head(half)
+let test_idx = indices |&gt; tail(n_samples - half)
+
+# Cluster on training set
+let train_data = train_idx |&gt; map(|i| pc_embedding[i])
+let train_km = kmeans(train_data, k: 5)
+
+# Assign test samples to nearest training centroid
+let test_labels = test_idx |&gt; map(|i|
+  let point = pc_embedding[i]
+  let min_dist = 999999.0
+  let best_cluster = 0
+  train_km.centroids |&gt; each(|centroid|
+    let c_idx = 0
+    let d = point |&gt; map(|p|
+      let dim = 0
+      let diff = p - centroid[dim]
+      dim = dim + 1
+      diff * diff
+    ) |&gt; sum() |&gt; sqrt()
+    if d &lt; min_dist then
+      min_dist = d
+      best_cluster = c_idx
+    end
+    c_idx = c_idx + 1
+  )
+  best_cluster
+)
+
+# NOW test genes on the test set — this is valid
+println("Split-sample validation:")
+println("  Training set: " + str(len(train_idx)) + " samples")
+println("  Test set: " + str(len(test_idx)) + " samples")
+println("  Test set cluster sizes: " + str(test_labels |&gt; value_counts()))
+
+# CORRECT APPROACH 2: Use independent features
+# Cluster on expression, validate with copy number or methylation data
+println("")
+println("Alternative: validate clusters using independent data modalities")
+println("  Cluster on: gene expression")
+println("  Validate on: copy number, methylation, survival, clinical features")
+</code></pre>
+<h3 id="cluster-stability-bootstrap-assessment"><a class="header" href="#cluster-stability-bootstrap-assessment">Cluster Stability: Bootstrap Assessment</a></h3>
+<p>How do you know your clusters are real and not artifacts of noise? One approach
+is bootstrap resampling: repeatedly resample the data with replacement, cluster
+each resample, and check if the same clusters appear consistently.</p>
+<pre><code class="language-text"># Bootstrap cluster stability
+let n_bootstrap = 100
+let n_samples_total = len(pc_embedding)
+
+let stability_matrix = []  # n_samples x n_samples: fraction of times co-clustered
+
+# Initialize co-clustering counts
+let co_cluster_count = []
+let co_sampled_count = []
+let i_init = 0
+while i_init &lt; n_samples_total do
+  let row = []
+  let row2 = []
+  let j_init = 0
+  while j_init &lt; n_samples_total do
+    row = concat(row, [0])
+    row2 = concat(row2, [0])
+    j_init = j_init + 1
+  end
+  co_cluster_count = concat(co_cluster_count, [row])
+  co_sampled_count = concat(co_sampled_count, [row2])
+  i_init = i_init + 1
+end
+
+# Run bootstrap iterations
+let boot = 0
+while boot &lt; n_bootstrap do
+  # Sample with replacement
+  let boot_indices = []
+  let b = 0
+  while b &lt; n_samples_total do
+    let idx = round(rnorm(1)[0] * n_samples_total / 4 + n_samples_total / 2, 0)
+    if idx &lt; 0 then idx = 0 end
+    if idx &gt;= n_samples_total then idx = n_samples_total - 1 end
+    boot_indices = concat(boot_indices, [idx])
+    b = b + 1
+  end
+
+  # Cluster the bootstrap sample
+  let boot_data = boot_indices |&gt; map(|i| pc_embedding[i])
+  let boot_km = kmeans(boot_data, k: 5)
+
+  # Update co-clustering matrix
+  # (simplified — full implementation would track all pairs)
+  boot = boot + 1
+end
+
+println("Bootstrap stability assessment: " + str(n_bootstrap) + " iterations")
+println("Stable clusters should have co-clustering frequency &gt; 0.8")
+println("Unstable clusters have co-clustering frequency &lt; 0.5")
+</code></pre>
+<h3 id="cluster-validation-with-clinical-variables"><a class="header" href="#cluster-validation-with-clinical-variables">Cluster Validation with Clinical Variables</a></h3>
+<p>The most convincing validation of biological clusters is their association
+with independent clinical outcomes — especially survival.</p>
+<pre><code class="language-text"># Test whether clusters predict survival differently
+# This is external validation — survival was not used for clustering
+
+let clinical_data = read_tsv("tcga_brca_clinical.tsv")
+
+# Merge cluster assignments with survival data
+let cluster_survival = table(sample_ids |&gt; map(|s|
+  let i = 0
+  {
+    sample: s,
+    cluster: our_labels[i],
+    os_months: 0,       # would come from clinical_data
+    os_status: 0        # 0=alive, 1=deceased
+  }
+))
+
+# Kaplan-Meier by cluster
+our_clusters |&gt; each(|cl|
+  let cl_data = cluster_survival |&gt; filter_by("cluster", cl)
+  let times = col_values(cl_data, "os_months")
+  let events = col_values(cl_data, "os_status")
+
+  let km = kaplan_meier(times, events)
+  println("Cluster " + str(cl) + ": median survival = " +
+          str(round(km.median_survival, 1)) + " months")
+)
+
+# Log-rank test between clusters (using cox_ph as proxy)
+let all_times = col_values(cluster_survival, "os_months")
+let all_events = col_values(cluster_survival, "os_status")
+let all_clusters = col_values(cluster_survival, "cluster")
+
+let cox_result = cox_ph(all_times, all_events, table({ cluster: all_clusters }))
+println("Cox PH test for cluster effect on survival:")
+println("  p-value: " + str(round(cox_result.pvalue, 6)))
+
+# If significant, the clusters have prognostic value
+# This is the strongest validation that clustering found real biology
+</code></pre>
+<h3 id="supervised-classification-when-labels-are-available"><a class="header" href="#supervised-classification-when-labels-are-available">Supervised Classification: When Labels Are Available</a></h3>
+<p>When you have labels for some samples (like the PAM50 subtypes), you can
+train a classifier to predict the labels for new samples. This is supervised
+classification, and it complements unsupervised clustering.</p>
+<pre><code class="language-text"># Simple nearest-centroid classifier for PAM50 subtypes
+
+# Compute centroids for each subtype
+let subtype_names = unique(known_subtypes) |&gt; filter(|s| s != "NA")
+
+let centroids = subtype_names |&gt; map(|st|
+  let st_indices = []
+  let i = 0
+  known_subtypes |&gt; each(|s|
+    if s == st then
+      st_indices = concat(st_indices, [i])
+    end
+    i = i + 1
+  )
+
+  # Average PC coordinates for this subtype
+  let centroid = []
+  let pc = 0
+  while pc &lt; n_pcs do
+    let vals = st_indices |&gt; map(|i| pc_embedding[i][pc])
+    centroid = concat(centroid, [mean(vals)])
+    pc = pc + 1
+  end
+
+  { subtype: st, centroid: centroid, n_samples: len(st_indices) }
+)
+
+println("Subtype centroids computed:")
+centroids |&gt; each(|c|
+  println("  " + c.subtype + ": " + str(c.n_samples) + " samples")
+)
+
+# Leave-one-out cross-validation
+let correct = 0
+let total = 0
+let i = 0
+known_subtypes |&gt; each(|true_label|
+  if true_label != "NA" then
+    let point = pc_embedding[i]
+
+    # Find nearest centroid (excluding this sample's contribution)
+    let min_dist = 999999.0
+    let predicted = ""
+    centroids |&gt; each(|c|
+      let d = point |&gt; map(|p|
+        let dim = 0
+        let diff = p - c.centroid[dim]
+        dim = dim + 1
+        diff * diff
+      ) |&gt; sum() |&gt; sqrt()
+
+      if d &lt; min_dist then
+        min_dist = d
+        predicted = c.subtype
+      end
+    )
+
+    if predicted == true_label then
+      correct = correct + 1
+    end
+    total = total + 1
+  end
+  i = i + 1
+)
+
+let accuracy = 100.0 * correct / total
+println("Nearest-centroid classification accuracy: " +
+        str(round(accuracy, 1)) + "%")
+println("(Leave-one-out cross-validation)")
+
+# For PAM50 subtypes, expect ~70-80% accuracy with this simple method
+# Misclassifications are mostly between Luminal A and Luminal B
+# which are genuinely difficult to distinguish
+</code></pre>
+<h3 id="correlation-matrix-and-heatmap"><a class="header" href="#correlation-matrix-and-heatmap">Correlation Matrix and Heatmap</a></h3>
+<p>The correlation matrix between samples reveals the block structure that
+clustering exploits.</p>
+<pre><code class="language-text"># Compute sample-sample correlation matrix
+let cor_mat = cor_matrix(scaled_data)
+
+# Visualize as a heatmap (ordered by cluster)
+heatmap(cor_mat,
+  title: "Sample-Sample Correlation Matrix (ordered by cluster)",
+  x_label: "Samples",
+  y_label: "Samples")
+  |&gt; save_plot("brca_correlation_heatmap.svg")
+
+# The block-diagonal structure (high-correlation blocks along the diagonal)
+# corresponds to clusters
+# Off-diagonal high-correlation regions indicate similarity between clusters
+
+# Summary statistics of within-cluster vs between-cluster correlations
+our_clusters |&gt; each(|cl|
+  let indices = []
+  let i = 0
+  our_labels |&gt; each(|l|
+    if l == cl then indices = concat(indices, [i]) end
+    i = i + 1
+  )
+
+  # Within-cluster correlations
+  let within_cors = []
+  let ii = 0
+  while ii &lt; len(indices) do
+    let jj = ii + 1
+    while jj &lt; len(indices) do
+      within_cors = concat(within_cors, [cor_mat[indices[ii]][indices[jj]]])
+      jj = jj + 1
+    end
+    ii = ii + 1
+  end
+
+  println("Cluster " + str(cl) + ": mean within-cluster correlation = " +
+          str(round(mean(within_cors), 3)) + " (n=" + str(len(indices)) + " samples)")
+)
+</code></pre>
+<h2 id="interpretation"><a class="header" href="#interpretation">Interpretation</a></h2>
+<h3 id="what-clustering-found-in-tcga-brca"><a class="header" href="#what-clustering-found-in-tcga-brca">What Clustering Found in TCGA BRCA</a></h3>
+<p>When you cluster TCGA breast cancer tumors by gene expression, you typically
+recover four to five major groups that correspond well to the PAM50 molecular
+subtypes:</p>
+<ol>
+<li><strong>Luminal A</strong>: Hormone receptor positive, low proliferation. Driven by
+ESR1, GATA3, FOXA1. Best prognosis.</li>
+<li><strong>Luminal B</strong>: Hormone receptor positive, high proliferation. Higher Ki67.
+More aggressive than Luminal A.</li>
+<li><strong>HER2-enriched</strong>: ERBB2 amplified. Distinct cluster driven by ERBB2 and
+nearby genes on chromosome 17q12.</li>
+<li><strong>Basal-like</strong>: Triple-negative (ER-, PR-, HER2-). Driven by basal keratins
+(KRT5, KRT17) and EGFR. Worst prognosis.</li>
+<li><strong>Normal-like</strong>: Resembles normal breast tissue. This subtype is
+controversial — it may represent contamination with normal tissue rather
+than a true tumor subtype.</li>
+</ol>
+<p>The fact that unsupervised clustering recovers these biologically meaningful
+and clinically actionable groups is powerful evidence that the molecular
+subtypes are real, not arbitrary divisions.</p>
+<h3 id="when-clustering-finds-batch-effects"><a class="header" href="#when-clustering-finds-batch-effects">When Clustering Finds Batch Effects</a></h3>
+<p>Sometimes clustering finds technical artifacts instead of biology. The most
+common scenario: you cluster samples from multiple institutions or sequencing
+centers, and the clusters separate by institution rather than by disease.</p>
+<pre><code class="language-text"># Check if clusters correlate with technical variables
+
+let institutions = col_values(subtypes, "institution")  # if available
+let sequencing_platform = col_values(subtypes, "platform")  # if available
+
+# Contingency table: cluster vs institution
+println("Cluster vs Institution (checking for batch effects):")
+our_clusters |&gt; each(|cl|
+  let cl_institutions = []
+  let i = 0
+  our_labels |&gt; each(|l|
+    if l == cl then
+      cl_institutions = concat(cl_institutions, [institutions[i]])
+    end
+    i = i + 1
+  )
+  let inst_counts = cl_institutions |&gt; value_counts()
+  println("  Cluster " + str(cl) + ": " + str(inst_counts))
+)
+
+# If any cluster is dominated by a single institution,
+# the clustering may be driven by batch effects
+# Solution: batch correction before clustering (Chapter 12)
+</code></pre>
+<h3 id="comparing-clusterings-quantitatively"><a class="header" href="#comparing-clusterings-quantitatively">Comparing Clusterings Quantitatively</a></h3>
+<p>When you run multiple clustering methods, you need a way to compare them
+quantitatively. Beyond the ARI, the Normalized Mutual Information (NMI)
+is another popular metric.</p>
+<pre><code class="language-text"># Compare all pairwise clusterings
+
+let methods = [
+  { name: "K-means", labels: km_labels },
+  { name: "Leiden", labels: leiden_labels }
+]
+
+println("Clustering comparison:")
+let m1_idx = 0
+while m1_idx &lt; len(methods) do
+  let m2_idx = m1_idx + 1
+  while m2_idx &lt; len(methods) do
+    let m1 = methods[m1_idx]
+    let m2 = methods[m2_idx]
+
+    # Compute agreement (simplified Rand Index)
+    let agree = 0
+    let total = 0
+    let i = 0
+    while i &lt; len(m1.labels) do
+      let j = i + 1
+      while j &lt; len(m1.labels) do
+        let same1 = m1.labels[i] == m1.labels[j]
+        let same2 = m2.labels[i] == m2.labels[j]
+        if same1 == same2 then agree = agree + 1 end
+        total = total + 1
+        j = j + 1
+      end
+      i = i + 1
+    end
+
+    let ri = agree / total
+    println("  " + m1.name + " vs " + m2.name + ": Rand Index = " +
+            str(round(ri, 4)))
+
+    m2_idx = m2_idx + 1
+  end
+  m1_idx = m1_idx + 1
+end
+</code></pre>
+<h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
+<h3 id="when-to-use-each-clustering-method"><a class="header" href="#when-to-use-each-clustering-method">When to Use Each Clustering Method</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Best For</th><th>Parameters</th><th>Cluster Shape</th></tr>
+</thead>
+<tbody>
+<tr><td>K-means</td><td>Large datasets, spherical clusters</td><td>k (number of clusters)</td><td>Spherical</td></tr>
+<tr><td>Hierarchical</td><td>Small-medium datasets, dendrograms needed</td><td>Linkage method, cut height</td><td>Any (with right linkage)</td></tr>
+<tr><td>Leiden</td><td>Single-cell, graph-based data</td><td>Resolution</td><td>Arbitrary</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-complete-clustering-pipeline"><a class="header" href="#the-complete-clustering-pipeline">The Complete Clustering Pipeline</a></h3>
+<pre><code class="language-text"># The recommended pipeline for tumor subtype discovery:
+
+# 1. Prepare data
+# let expr = read_tsv("expression.tsv")
+# let scaled = normalize(select_hvgs(expr, n: 2000), "zscore")
+
+# 2. Reduce dimensions
+# let pca_result = pca(scaled, n_components: 30)
+# let pc_data = pca_result.components |&gt; map(|r| r |&gt; head(15))
+
+# 3. Explore k range
+# [2..10] |&gt; each(|k| kmeans(pc_data, k: k) |&gt; evaluate)
+
+# 4. Cluster with chosen k
+# let clusters = kmeans(pc_data, k: 5)
+
+# 5. Validate externally
+# - Compare to known subtypes (ARI)
+# - Test against survival (Kaplan-Meier, Cox PH)
+# - Check for batch effects
+# - Split-sample or bootstrap stability
+
+# 6. Characterize clusters
+# - Find marker genes (differential expression)
+# - Gene ontology enrichment on markers
+# - Correlate with clinical variables
+
+# 7. Visualize
+# - UMAP colored by cluster
+# - Heatmap with cluster dendrogram
+# - Forest plot of cluster vs survival
+
+println("Complete clustering pipeline defined")
+println("Always validate clusters with independent data")
+println("Never test significance on the same features used for clustering")
+</code></pre>
+<h2 id="pitfalls"><a class="header" href="#pitfalls">Pitfalls</a></h2>
+<h3 id="pitfall-1-choosing-k-by-looking-at-the-umap"><a class="header" href="#pitfall-1-choosing-k-by-looking-at-the-umap">Pitfall 1: Choosing K by “Looking at the UMAP”</a></h3>
+<p>Do not choose the number of clusters by counting the visual groups in a
+UMAP or t-SNE plot. These methods can split continuous variation into
+apparent discrete clusters, and can merge distinct groups that happen to
+be close in the embedding. Use the elbow method, silhouette scores, or
+domain knowledge.</p>
+<h3 id="pitfall-2-assuming-clusters-are-cell-types"><a class="header" href="#pitfall-2-assuming-clusters-are-cell-types">Pitfall 2: Assuming Clusters Are Cell Types</a></h3>
+<p>In single-cell data, a Leiden cluster is not automatically a cell type. It
+is a group of cells that are transcriptionally similar. Some clusters may
+represent cell states (activated vs resting T cells) rather than cell types.
+Some may represent doublets (two cells captured in one droplet). Some may
+represent low-quality cells. Biological validation with known marker genes
+is essential.</p>
+<h3 id="pitfall-3-ignoring-cluster-size-imbalance"><a class="header" href="#pitfall-3-ignoring-cluster-size-imbalance">Pitfall 3: Ignoring Cluster Size Imbalance</a></h3>
+<p>K-means tends to produce clusters of roughly equal size, even when the true
+groups have very different sizes. If you have 800 Luminal A tumors and 50
+Normal-like tumors, k-means may incorrectly split the large group to balance
+sizes. Leiden clustering handles imbalanced groups better.</p>
+<pre><code class="language-text"># K-means can force equal-sized clusters
+
+# Synthetic example: one large group and one small group
+let big_group = rnorm(500) |&gt; map(|x| [x, rnorm(1)[0]])
+let small_group = rnorm(20) |&gt; map(|x| [x + 10, rnorm(1)[0] + 10])
+let all_points = concat(big_group, small_group)
+
+let km2 = kmeans(all_points, k: 2)
+let sizes = km2.labels |&gt; value_counts()
+println("True sizes: 500, 20")
+println("K-means sizes: " + str(sizes))
+# K-means may produce sizes like 260, 260 instead of 500, 20
+</code></pre>
+<h3 id="pitfall-4-not-reporting-clustering-parameters"><a class="header" href="#pitfall-4-not-reporting-clustering-parameters">Pitfall 4: Not Reporting Clustering Parameters</a></h3>
+<p>Every clustering result depends on specific parameter choices. Always report:</p>
+<ul>
+<li>The features used (which genes, how many)</li>
+<li>The preprocessing (normalization, scaling)</li>
+<li>The dimensionality reduction (number of PCs)</li>
+<li>The clustering method and parameters</li>
+<li>The number of clusters and how it was chosen</li>
+<li>The validation approach</li>
+</ul>
+<h3 id="pitfall-5-overclaiming-novel-subtypes"><a class="header" href="#pitfall-5-overclaiming-novel-subtypes">Pitfall 5: Overclaiming Novel Subtypes</a></h3>
+<p>It is easy to increase k and find “novel subtypes.” But more clusters is not
+more discovery. Before claiming a new subtype, verify:</p>
+<ol>
+<li>It is stable across bootstrap resamples</li>
+<li>It has distinct marker genes</li>
+<li>It has a distinct clinical phenotype</li>
+<li>It is reproducible in an independent cohort</li>
+</ol>
+<pre><code class="language-text"># Testing a "novel" cluster for independence
+
+# Suppose cluster 6 is a potential novel subtype
+# Test whether it is genuinely different from its nearest neighbor cluster
+
+# let novel = samples_in_cluster_6
+# let nearest = samples_in_nearest_cluster
+
+# 1. Differential expression between novel and nearest cluster
+# let de_genes = test_all_genes(novel, nearest)
+# let sig_genes = de_genes |&gt; filter(|g| g.adj_pvalue &lt; 0.05 and abs(g.log_fc) &gt; 1)
+
+# 2. If fewer than 50 genes are significant, the "novel" subtype
+#    may just be a variant of the nearest cluster
+
+# 3. Validate in an independent cohort
+# let external_data = read_tsv("independent_cohort.tsv")
+# let external_clusters = classify_by_centroids(external_data, centroids)
+# Does cluster 6 appear in the external data?
+
+println("Novel subtype claims require:")
+println("  1. Distinct marker gene signature")
+println("  2. Clinical or phenotypic distinction")
+println("  3. Reproducibility in independent data")
+println("  4. Bootstrap stability &gt; 0.8")
+</code></pre>
+<h2 id="where-next"><a class="header" href="#where-next">Where Next?</a></h2>
+<p><strong>Chapter 15: Meta-Analysis</strong> — When multiple studies have clustered the same
+disease, meta-analysis combines the evidence. Are the subtypes consistent
+across cohorts? Which clusters replicate and which are dataset-specific?</p>
+<p><strong>Multi-omic clustering</strong> — Instead of clustering on gene expression alone,
+integrate copy number, methylation, mutation, and protein data. Methods like
+iCluster and MOFA perform joint dimensionality reduction across data types
+before clustering. The TCGA Pan-Cancer Atlas used multi-omic clustering to
+define molecular subtypes across 33 cancer types.</p>
+<p><strong>Spatial transcriptomics</strong> — When you have spatial coordinates for each cell
+(from technologies like Visium, MERFISH, or Slide-seq), clustering must
+consider both expression similarity and spatial proximity. Spatially-aware
+clustering reveals tissue architecture.</p>
+<p><strong>Trajectory analysis</strong> — When cells form continuous developmental trajectories
+rather than discrete clusters, methods like pseudotime ordering (Monocle,
+Slingshot) trace paths through the PCA/UMAP space. The choice between
+clustering and trajectory analysis depends on the biology: differentiation
+is a trajectory, cell type identity is a cluster.</p>
+<pre><code class="language-text"># Summary of clustering methods for genomics
+
+println("=== Clustering Method Decision Guide ===")
+println("")
+println("Bulk RNA-seq tumor subtyping:")
+println("  -&gt; K-means or hierarchical on PCA, validate with survival")
+println("")
+println("Single-cell cell type discovery:")
+println("  -&gt; Leiden on PCA-derived KNN graph, validate with markers")
+println("")
+println("Multi-omic integration:")
+println("  -&gt; Joint dimensionality reduction (MOFA/iCluster), then cluster")
+println("")
+println("Time-series or developmental data:")
+println("  -&gt; Consider trajectory analysis instead of clustering")
+println("")
+println("Always validate. Always report parameters. Never trust a single run.")
+</code></pre>
+<h3 id="summary"><a class="header" href="#summary">Summary</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Concept</th><th>Key Takeaway</th></tr>
+</thead>
+<tbody>
+<tr><td>K-means</td><td>Simple, fast, requires k; finds spherical clusters</td></tr>
+<tr><td>Hierarchical</td><td>No k needed; produces dendrogram; slow for large data</td></tr>
+<tr><td>Leiden</td><td>Graph-based; handles non-spherical clusters; standard for single-cell</td></tr>
+<tr><td>Elbow method</td><td>Plot WCSS vs k; look for the bend</td></tr>
+<tr><td>Silhouette</td><td>Measures cluster cohesion vs separation; range -1 to +1</td></tr>
+<tr><td>ARI</td><td>Compares two clusterings; corrected for chance; 0=random, 1=perfect</td></tr>
+<tr><td>Circular analysis</td><td>Never test significance on features used for clustering</td></tr>
+<tr><td>Split-sample</td><td>Cluster on half, validate on half</td></tr>
+<tr><td>Bootstrap stability</td><td>Resample and re-cluster; stable clusters appear consistently</td></tr>
+<tr><td>Clinical validation</td><td>The ultimate test: do clusters predict outcomes?</td></tr>
+</tbody>
+</table>
+</div>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch13-dimensionality-reduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ch15-meta-analysis.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch13-dimensionality-reduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ch15-meta-analysis.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/theme-toggle-817b00c6.js"></script>
+        <script src="theme/toolbar-buttons-d041ba86.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

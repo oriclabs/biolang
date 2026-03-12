@@ -73,7 +73,8 @@
           Use <code>ncbi_gene()</code> to search for a gene by symbol. If a single gene matches,
           it returns a record with gene details. For multiple matches, it returns a list of IDs.
         </p>
-        <pre><code class="language-biolang"># databases.bio — querying biological databases
+        <pre><code class="language-biolang"># requires: internet connection (optional: NCBI_API_KEY for higher rate limits)
+# databases.bio — querying biological databases
 
 # Search for a gene by symbol
 let gene = ncbi_gene("TP53")
@@ -99,7 +100,8 @@ for s in summaries {
 
         <!-- Step 2 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — NCBI: Sequences and PubMed</h2>
-        <pre><code class="language-biolang"># Fetch a sequence by accession (returns FASTA text)
+        <pre><code class="language-biolang"># requires: internet connection (optional: NCBI_API_KEY for higher rate limits)
+# Fetch a sequence by accession (returns FASTA text)
 let fasta = ncbi_sequence("NM_000546.6")
 print(f"FASTA (first 200 chars): {fasta[0..200]}...")
 
@@ -128,7 +130,8 @@ for p in papers {
           <code>ensembl_gene(id)</code> to look up by Ensembl ID. Both return a record with
           gene location and metadata.
         </p>
-        <pre><code class="language-biolang"># Look up a gene by symbol
+        <pre><code class="language-biolang"># requires: internet connection
+# Look up a gene by symbol
 let gene = ensembl_symbol("human", "TP53")
 print(f"Ensembl ID:  {gene.id}")
 print(f"Symbol:      {gene.symbol}")
@@ -156,7 +159,8 @@ print(f"Sequence:   {seq.seq[0..60]}...")</code></pre>
           notation. This queries Ensembl's VEP REST API and returns transcript consequences
           with impact predictions.
         </p>
-        <pre><code class="language-biolang"># Predict variant effect using HGVS notation
+        <pre><code class="language-biolang"># requires: internet connection
+# Predict variant effect using HGVS notation
 let results = ensembl_vep("17:g.7675088C>T")
 
 for r in results {
@@ -186,7 +190,8 @@ for r in brca1_vep {
           to fetch a full protein record. Additional functions provide FASTA sequences, features,
           and GO annotations.
         </p>
-        <pre><code class="language-biolang"># Search UniProt for human TP53
+        <pre><code class="language-biolang"># requires: internet connection
+# Search UniProt for human TP53
 let results = uniprot_search("TP53 AND organism_id:9606", 5)
 for entry in results {
   print(f"{entry.accession}: {entry.name} — {entry.organism}")
@@ -226,7 +231,8 @@ for t in take(go_terms, 10) {
           <code>kegg_get(entry)</code> to fetch details, and <code>kegg_link(target, source)</code>
           to find relationships between databases.
         </p>
-        <pre><code class="language-biolang"># Search KEGG pathways
+        <pre><code class="language-biolang"># requires: internet connection
+# Search KEGG pathways
 let pathways = kegg_find("pathway", "p53 signaling")
 for p in pathways {
   print(f"{p.id}: {p.description}")
@@ -262,7 +268,8 @@ for c in compounds {
           Use <code>pdb_search(query)</code> to find structures and <code>pdb_entry(id)</code>
           to get details about a specific PDB entry.
         </p>
-        <pre><code class="language-biolang"># Search PDB for TP53 structures
+        <pre><code class="language-biolang"># requires: internet connection
+# Search PDB for TP53 structures
 let pdb_ids = pdb_search("TP53")
 print(f"Found {len(pdb_ids)} PDB structures for TP53")
 
@@ -277,7 +284,8 @@ print(f"Organism:   {entry.organism}")</code></pre>
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Cross-Database Queries</h2>
-        <pre><code class="language-biolang"># Gather information about a gene from multiple databases
+        <pre><code class="language-biolang"># requires: internet connection (optional: NCBI_API_KEY for higher rate limits)
+# Gather information about a gene from multiple databases
 
 fn gene_report(symbol: String) {
   print(f"\n=== Report for {symbol} ===\n")
@@ -333,7 +341,8 @@ gene_report("TP53")</code></pre>
           When working with multiple genes, you can build batch pipelines that query each
           database and combine results into a table.
         </p>
-        <pre><code class="language-biolang"># Annotate a list of genes from multiple databases
+        <pre><code class="language-biolang"># requires: internet connection (optional: NCBI_API_KEY for higher rate limits)
+# Annotate a list of genes from multiple databases
 let gene_symbols = ["TP53", "BRCA1", "EGFR", "KRAS", "MYC"]
 
 let annotations = gene_symbols |> map(|symbol| {
@@ -392,7 +401,8 @@ print(annotations)</code></pre>
           </ul>
         </div>
 
-        <pre><code class="language-biolang"># Set your NCBI API key for higher rate limits
+        <pre><code class="language-biolang"># requires: internet connection (optional: NCBI_API_KEY for higher rate limits)
+# Set your NCBI API key for higher rate limits
 # In your shell: export NCBI_API_KEY="your-key-here"
 
 # For large batch queries, use sleep() between requests

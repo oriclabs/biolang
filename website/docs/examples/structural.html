@@ -83,7 +83,8 @@ ca_atoms |> write_tsv("ca_coordinates.tsv")
 print(f"Extracted {ca_atoms |> len} C-alpha atoms")</code></pre>
 
         <h3>Fetching structures from RCSB</h3>
-        <pre><code class="language-biolang"># Fetch structure metadata from RCSB PDB
+        <pre><code class="language-biolang"># requires: internet connection (PDB API)
+# Fetch structure metadata from RCSB PDB
 let entry = pdb_entry("6LU7")  # SARS-CoV-2 main protease
 print(f"Title: {entry.title}")
 print(f"Method: {entry.method}")
@@ -97,7 +98,7 @@ for ent in entities {
 
 # Get protein sequence for entity 1
 let seq = pdb_sequence("6LU7", 1)
-print(f"Entity 1 sequence ({seq |> seq_len} aa): {subseq(seq, 0, 50)}...")</code></pre>
+print(f"Entity 1 sequence ({seq |> seq_len} aa): {substr(seq, 0, 50)}...")</code></pre>
 
         <h2>Contact Maps</h2>
 

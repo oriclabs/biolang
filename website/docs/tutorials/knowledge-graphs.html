@@ -170,7 +170,8 @@ print(f"Subgraph: {node_count(sub)} nodes, {edge_count(sub)} edges")
           In practice you'll build graphs from files or API results, not by hand.
           Here's how to construct a graph from a CSV edge list:
         </p>
-        <pre><code class="language-biolang"># Suppose interactions.csv has columns: gene_a, gene_b, score
+        <pre><code class="language-biolang"># requires: interactions.csv in working directory
+# Suppose interactions.csv has columns: gene_a, gene_b, score
 let edges_data = csv("interactions.csv")
 
 let g = graph()
@@ -185,7 +186,8 @@ print(f"Built graph: {node_count(g)} genes, {edge_count(g)} interactions")</code
         <p>
           Fetch real interaction data from the STRING database and build a graph:
         </p>
-        <pre><code class="language-biolang"># Fetch TP53 interaction network from STRING
+        <pre><code class="language-biolang"># requires: internet connection
+# Fetch TP53 interaction network from STRING
 let network = string_network(["TP53"], 9606)
 
 # Build a graph from the API results — each record has {protein_a, protein_b, score}

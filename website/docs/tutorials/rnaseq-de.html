@@ -63,7 +63,8 @@
           A count matrix has genes as rows and samples as columns. Each cell contains the
           number of reads mapped to that gene in that sample.
         </p>
-        <pre><code class="language-biolang"># rnaseq.bio — differential expression analysis
+        <pre><code class="language-biolang"># requires: data/counts.csv in working directory
+# rnaseq.bio — differential expression analysis
 
 # Read the count matrix
 let counts = csv("data/counts.csv")
@@ -116,7 +117,8 @@ print(f"Genes after filtering: {nrow(expressed)}")</code></pre>
 
         <!-- Step 3 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Normalization</h2>
-        <pre><code class="language-biolang"># CPM normalization (Counts Per Million)
+        <pre><code class="language-biolang"># requires: data/gene_lengths.csv in working directory
+# CPM normalization (Counts Per Million)
 # Apply CPM to each sample column
 let cpm_table = expressed
 for s in sample_cols {
@@ -261,7 +263,8 @@ print("Heatmap saved to results/heatmap.svg")</code></pre>
 
         <!-- Step 9 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Pathway Enrichment</h2>
-        <pre><code class="language-biolang"># Pathway enrichment using KEGG
+        <pre><code class="language-biolang"># requires: internet connection
+# Pathway enrichment using KEGG
 let sig_genes = col(sig, "gene")
 
 # Look up KEGG pathways for significant genes

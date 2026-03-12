@@ -47,7 +47,8 @@
               structural metadata including the title, experimental method, resolution,
               source organism, and release date.
             </p>
-            <pre><code class="language-biolang">let hb = pdb_entry("4HHB")
+            <pre><code class="language-biolang"># requires: internet connection (PDB API)
+let hb = pdb_entry("4HHB")
 print(hb.title)         # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN..."
 print(hb.method)        # "X-RAY DIFFRACTION"
 print(hb.resolution)    # 1.74
@@ -67,7 +68,8 @@ print(hb.release_date)  # "1984-07-17"</code></pre>
               Searches the PDB by keyword. Returns a list of PDB IDs matching the query.
               Use the results with <code>pdb_entry()</code> to fetch full metadata.
             </p>
-            <pre><code class="language-biolang">let ids = pdb_search("insulin receptor")
+            <pre><code class="language-biolang"># requires: internet connection (PDB API)
+let ids = pdb_search("insulin receptor")
 print(len(ids))   # number of matching structures
 print(ids[0..5])  # first 5 PDB IDs
 
@@ -89,7 +91,8 @@ ids[0..3]
               Lists the polymer chains in a structure. Each entry is a record with
               chain ID, entity ID, and description.
             </p>
-            <pre><code class="language-biolang">let chains = pdb_chains("4HHB")
+            <pre><code class="language-biolang"># requires: internet connection (PDB API)
+let chains = pdb_chains("4HHB")
 chains |> each(|c| print(c.chain_id + ": " + c.description))
 # A: HEMOGLOBIN (DEOXY) (ALPHA CHAIN)
 # B: HEMOGLOBIN (DEOXY) (BETA CHAIN)
@@ -110,7 +113,8 @@ chains |> each(|c| print(c.chain_id + ": " + c.description))
               Returns a record with the entity description, type, molecular weight,
               chain assignments, and organism source.
             </p>
-            <pre><code class="language-biolang">let alpha = pdb_entity("4HHB", 1)
+            <pre><code class="language-biolang"># requires: internet connection (PDB API)
+let alpha = pdb_entity("4HHB", 1)
 print(alpha.description)   # "HEMOGLOBIN ALPHA CHAIN"
 print(alpha.type)          # "polypeptide(L)"
 print(alpha.weight)        # 15126.4
@@ -129,7 +133,8 @@ print(alpha.chains)        # ["A", "C"]</code></pre>
               Retrieves the amino acid sequence for a given entity. Returns a plain
               protein sequence string suitable for alignment or further analysis.
             </p>
-            <pre><code class="language-biolang">let seq = pdb_sequence("4HHB", 1)
+            <pre><code class="language-biolang"># requires: internet connection (PDB API)
+let seq = pdb_sequence("4HHB", 1)
 print(len(seq))       # 141 residues
 print(seq[0..20])     # "VLSPADKTNVKAAWGKVGAH"</code></pre>
           </div>
@@ -143,7 +148,8 @@ print(seq[0..20])     # "VLSPADKTNVKAAWGKVGAH"</code></pre>
           their lengths and composition.
         </p>
 
-        <pre><code class="language-biolang"># Fetch chain information
+        <pre><code class="language-biolang"># requires: internet connection (PDB API)
+# Fetch chain information
 let chains = pdb_chains("4HHB")
 let entities = chains
   |> map(|c| c.entity_id)
@@ -194,7 +200,8 @@ seqs |> each(|s| {
               (list of PMIDs for the returned page). The optional second argument
               limits how many IDs are returned (default 20).
             </p>
-            <pre><code class="language-biolang">let results = pubmed_search("CRISPR Cas9 therapy", 5)
+            <pre><code class="language-biolang"># requires: internet connection (NCBI PubMed API)
+let results = pubmed_search("CRISPR Cas9 therapy", 5)
 # pubmed_search returns a list of PMID strings directly
 print(len(results))    # number of IDs returned (up to limit)
 print(results)         # ["39847123", "39841056", "39838901", "39835444", "39831200"]</code></pre>
@@ -213,7 +220,8 @@ print(results)         # ["39847123", "39841056", "39838901", "39835444", "39831
               record with <code>title</code>, <code>abstract</code>, <code>authors</code>,
               <code>journal</code>, <code>year</code>, and <code>doi</code>.
             </p>
-            <pre><code class="language-biolang">let paper = pubmed_abstract("32553272")
+            <pre><code class="language-biolang"># requires: internet connection (NCBI PubMed API)
+let paper = pubmed_abstract("32553272")
 print(paper.title)     # "Search-and-replace genome editing without..."
 print(paper.journal)   # "Nature"
 print(paper.year)      # 2020
@@ -229,7 +237,8 @@ print(paper.authors[0]) # "Anzalone AV"</code></pre>
           summary table for review.
         </p>
 
-        <pre><code class="language-biolang"># Search for recent gene therapy papers
+        <pre><code class="language-biolang"># requires: internet connection (NCBI PubMed API)
+# Search for recent gene therapy papers
 let hits = pubmed_search("AAV gene therapy retinal dystrophy", 10)
 print("Found " + str(hits.count) + " articles")
 

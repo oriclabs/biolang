@@ -83,7 +83,8 @@ print(f"DE genes: {len(de_genes)}")</code></pre>
           Gene sets are typically distributed in GMT (Gene Matrix Transposed) format.
           Each line is: <code>SET_NAME &lt;tab&gt; description &lt;tab&gt; gene1 &lt;tab&gt; gene2 ...</code>
         </p>
-        <pre><code class="language-biolang"># Load gene sets from a GMT file
+        <pre><code class="language-biolang"># requires: hallmark.gmt in working directory
+# Load gene sets from a GMT file
 let gene_sets = read_gmt("hallmark.gmt")
 print(f"Loaded {len(gene_sets)} gene sets")
 

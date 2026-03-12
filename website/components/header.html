@@ -20,8 +20,9 @@
       <a href="{BASE}/docs/builtins/index.html" data-nav="builtins" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Builtins</a>
       <a href="{BASE}/docs/bio/index.html" data-nav="bio" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Bio</a>
       <a href="{BASE}/docs/tutorials/index.html" data-nav="tutorials" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Tutorials</a>
-      <a href="{BASE}/book/index.html" data-nav="book" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Book</a>
+      <a href="{BASE}/books.html" data-nav="books" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Books</a>
       <a href="{BASE}/playground.html" data-nav="playground" class="px-3 py-1.5 text-sm text-emerald-400 hover:text-emerald-300 rounded-md hover:bg-emerald-500/10 transition-colors font-medium">Playground</a>
+      <a href="{BASE}/benchmarks.html" data-nav="benchmarks" class="px-3 py-1.5 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Benchmarks</a>
       <a href="{BASE}/features.html" data-nav="features" class="px-3 py-1.5 text-sm text-violet-400 hover:text-violet-300 rounded-md hover:bg-violet-500/10 transition-colors font-medium">Features</a>
     </nav>
 
@@ -39,6 +40,21 @@
   </div>
 </header>
 
-<!-- Mobile sidebar overlay -->
+<!-- Mobile nav dropdown (works on all pages, including standalone pages without sidebar) -->
+<div id="mobile-nav-dropdown" class="hidden lg:hidden border-b border-slate-800 bg-slate-950/95 backdrop-blur-sm">
+  <nav class="max-w-8xl mx-auto px-4 py-3 flex flex-col gap-1">
+    <a href="{BASE}/docs/getting-started/index.html" class="px-3 py-2 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Get Started</a>
+    <a href="{BASE}/docs/language/index.html" class="px-3 py-2 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Language</a>
+    <a href="{BASE}/docs/builtins/index.html" class="px-3 py-2 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Builtins</a>
+    <a href="{BASE}/docs/bio/index.html" class="px-3 py-2 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Bio</a>
+    <a href="{BASE}/docs/tutorials/index.html" class="px-3 py-2 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Tutorials</a>
+    <a href="{BASE}/books.html" class="px-3 py-2 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Books</a>
+    <a href="{BASE}/playground.html" class="px-3 py-2 text-sm text-emerald-400 hover:text-emerald-300 rounded-md hover:bg-emerald-500/10 transition-colors font-medium">Playground</a>
+    <a href="{BASE}/benchmarks.html" class="px-3 py-2 text-sm text-slate-400 hover:text-violet-400 rounded-md hover:bg-slate-800/50 transition-colors">Benchmarks</a>
+    <a href="{BASE}/features.html" class="px-3 py-2 text-sm text-violet-400 hover:text-violet-300 rounded-md hover:bg-violet-500/10 transition-colors font-medium">Features</a>
+  </nav>
+</div>
+
+<!-- Mobile sidebar overlay (for docs pages with sidebar) -->
 <div id="sidebar-overlay" class="hidden fixed inset-0 z-30 bg-black/50 lg:hidden"></div>
 

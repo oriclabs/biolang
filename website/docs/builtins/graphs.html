@@ -339,7 +339,8 @@ degree(grn, "TP53")              # 3 (2 outgoing + 1 incoming)</code></pre>
           by degree centrality, and check connectivity between genes of interest.
         </p>
 
-        <pre><code class="language-biolang"># Query STRING for TP53 interaction partners
+        <pre><code class="language-biolang"># requires: internet connection (STRING API)
+# Query STRING for TP53 interaction partners
 let interactions = string_network(["TP53"], 9606)
 
 # Build graph from STRING results — each record has {protein_a, protein_b, score}

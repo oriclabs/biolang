@@ -98,10 +98,12 @@ export OPENAI_MODEL="gpt-4o"</code></pre>
           response as a string. It uses a bioinformatics-aware system prompt, so it
           understands BioLang syntax and genomics concepts.
         </p>
-        <pre><code class="language-biolang"># Simple question
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# Simple question
 let answer = chat("What is the significance of a Ti/Tv ratio above 2.0 in human WGS?")
 print(answer)</code></pre>
-        <pre><code class="language-biolang"># Ask about a specific analysis approach
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# Ask about a specific analysis approach
 let advice = chat("How should I filter somatic variants from a tumor-normal pair VCF?")
 print(advice)</code></pre>
 
@@ -111,7 +113,8 @@ print(advice)</code></pre>
           The real power of <code>chat()</code> is the optional second argument — you can
           pass any BioLang value as context. The LLM sees it alongside your question.
         </p>
-        <pre><code class="language-biolang"># Pass a data summary as context
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# Pass a data summary as context
 let stats = {
   total_reads: 48_000_000,
   passing_q30: 42_500_000,
@@ -122,7 +125,8 @@ let stats = {
 
 let interpretation = chat("Interpret these QC metrics. Any red flags?", stats)
 print(interpretation)</code></pre>
-        <pre><code class="language-biolang"># Pass a table of results
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# Pass a table of results
 let de_results = [
   {gene: "TP53", log2fc: 3.2, pvalue: 1.2e-8},
   {gene: "BRCA1", log2fc: 2.8, pvalue: 4.5e-7},
@@ -132,7 +136,8 @@ let de_results = [
 
 let analysis = chat("What biological processes are suggested by these DE genes?", de_results)
 print(analysis)</code></pre>
-        <pre><code class="language-biolang"># Pass an error message for debugging help
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# Pass an error message for debugging help
 let error_msg = "Error at line 42: type mismatch: expected DNA, got Str"
 let fix = chat("How do I fix this BioLang error?", error_msg)
 print(fix)</code></pre>
@@ -143,14 +148,16 @@ print(fix)</code></pre>
           <code>chat_code()</code> returns pure BioLang code — no explanations, no markdown
           fences. It's designed for code generation that you can evaluate or save.
         </p>
-        <pre><code class="language-biolang"># Generate a script from a description
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# Generate a script from a description
 let code = chat_code("Read a FASTQ file, filter reads with mean Phred > 30, and print the count")
 print(code)
 # Output (pure BioLang code):
 # let reads = read_fastq("input.fastq")
 #   |> filter(|r| mean_phred(r.quality) > 30)
 # print(f"Passing reads: {len(reads)}")</code></pre>
-        <pre><code class="language-biolang"># Generate code with context about your data
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# Generate code with context about your data
 let schema = {
   file: "samples.tsv",
   columns: ["sample_id", "condition", "replicate", "fastq_r1", "fastq_r2"],
@@ -168,7 +175,8 @@ print(pipeline_code)</code></pre>
         <p>
           Use <code>llm_models()</code> to see which provider and model are configured:
         </p>
-        <pre><code class="language-biolang">let models = llm_models()
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+let models = llm_models()
 print(models)
 # {provider: "anthropic", model: "claude-sonnet-4-20250514"}</code></pre>
 
@@ -176,7 +184,8 @@ print(models)
         <h2>Step 6: Real-world patterns</h2>
 
         <h3>Interpret enrichment results</h3>
-        <pre><code class="language-biolang">let gene_sets = [
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+let gene_sets = [
   {name: "P53_PATHWAY", genes: ["TP53", "CDKN1A", "BAX", "MDM2"]},
   {name: "DNA_REPAIR", genes: ["BRCA1", "RAD51", "ATM", "CHEK2"]},
 ]
@@ -187,14 +196,16 @@ let summary = chat("Summarize these enrichment results in biological terms", ora
 print(summary)</code></pre>
 
         <h3>Explain a variant</h3>
-        <pre><code class="language-biolang">let v = variant("chr17", 7674220, "G", "A")
+        <pre><code class="language-biolang"># requires: internet connection, LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+let v = variant("chr17", 7674220, "G", "A")
 let vep = ensembl_vep("17:7674220:G:A")
 
 let explanation = chat("What is the clinical significance of this TP53 variant?", vep)
 print(explanation)</code></pre>
 
         <h3>Generate a report summary</h3>
-        <pre><code class="language-biolang"># After running your analysis, ask the LLM to write a summary
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# After running your analysis, ask the LLM to write a summary
 let results = {
   samples: 24,
   de_genes: 342,
@@ -212,7 +223,8 @@ let report = chat(
 print(report)</code></pre>
 
         <h3>Debug a pipeline</h3>
-        <pre><code class="language-biolang"># Capture an error and ask the LLM for help
+        <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+# Capture an error and ask the LLM for help
 let result = try_call(|| {
   let reads = read_fastq("missing_file.fq.gz")
   reads |> filter(|r| mean_phred(r.quality) > 30)

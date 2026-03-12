@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multi-species Comparative Genomics — BioLang</title>
+  <title>Multi-species Comparative Analysis — BioLang</title>
   <link rel="icon" href="../../assets/favicon.svg">
   <link rel="stylesheet" href="../../assets/styles.css">
   <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -19,32 +19,33 @@
       <nav class="mb-6 text-sm text-slate-500">
         <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
         <a href="index.html" class="hover:text-violet-400">Tutorials</a><span class="mx-2">/</span>
-        <span class="text-slate-300">Multi-species Comparative Genomics</span>
+        <span class="text-slate-300">Multi-species Comparative Analysis</span>
       </nav>
       <article class="prose prose-invert max-w-none">
 
         <div class="flex items-center gap-3 mb-4">
           <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-400/20 text-orange-400">Advanced</span>
-          <span class="text-sm text-slate-500">~40 minutes</span>
+          <span class="text-sm text-slate-500">~35 minutes</span>
         </div>
 
-        <h1 class="text-4xl font-bold text-white mb-4">Multi-species Comparative Genomics</h1>
+        <h1 class="text-4xl font-bold text-white mb-4">Multi-species Comparative Analysis</h1>
         <p class="text-lg text-slate-400 mb-8">
-          Compare genes and genomes across species to understand evolutionary
-          relationships. This tutorial covers cross-species gene lookup, multiple
-          sequence alignment, phylogenetic tree construction, and conservation analysis
-          using BioLang's comparative genomics toolkit.
+          Compare genes and proteins across species using BioLang's API clients,
+          sequence analysis functions, and visualization tools. This tutorial covers
+          cross-species gene lookup, sequence property comparison, k-mer analysis,
+          dotplot visualization, and rendering phylogenetic trees from Newick strings.
         </p>
 
         <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-6 mb-8">
           <h3 class="text-white font-semibold mb-3">What you will learn</h3>
           <ul class="space-y-1 text-slate-400 text-sm">
             <li>Looking up orthologous genes across species with <code>ensembl_symbol()</code></li>
-            <li>Multiple sequence alignment with MUSCLE and MAFFT</li>
-            <li>Computing evolutionary distances (dN/dS ratios)</li>
-            <li>Building phylogenetic trees (neighbor-joining, maximum likelihood)</li>
-            <li>Conservation analysis across genomes</li>
-            <li>Visualizing conservation and divergence</li>
+            <li>Fetching and comparing protein/CDS sequences across species</li>
+            <li>Comparing sequence properties: length, GC content, amino acid composition</li>
+            <li>K-mer analysis to measure sequence similarity</li>
+            <li>Pairwise sequence comparison with <code>dotplot()</code></li>
+            <li>Rendering phylogenetic trees from Newick strings with <code>phylo_tree()</code></li>
+            <li>Building comparison tables and visualizing differences</li>
           </ul>
         </div>
 
@@ -73,9 +74,10 @@
         <p>
           Orthologs are genes in different species that evolved from a common ancestral gene
           through speciation. We can look up the same gene in multiple species using
-          <code>ensembl_symbol()</code> to compare them.
+          <code>ensembl_symbol()</code>, which queries the Ensembl REST API.
         </p>
-        <pre><code class="language-biolang"># comparative.bio — multi-species comparative genomics
+        <pre><code class="language-biolang"># multispecies.bl — cross-species comparative analysis
+# requires: NCBI_API_KEY (optional, increases rate limit)
 
 # Define species and their gene symbols for TP53
 # (gene symbols differ by species naming conventions)
@@ -85,439 +87,440 @@ let gene_lookups = [
   { species: "rattus_norvegicus",        symbol: "Tp53" },
   { species: "gallus_gallus",            symbol: "TP53" },
   { species: "danio_rerio",             symbol: "tp53" },
-  { species: "drosophila_melanogaster",  symbol: "p53" },
 ]
 
 # Look up TP53 orthologs in each species
 let orthologs = gene_lookups |> map(|entry| {
   let gene = ensembl_symbol(entry.species, entry.symbol)
   { species: entry.species, gene_id: gene.id, symbol: gene.symbol,
-    chromosome: gene.chromosome, start: gene.start, end: gene.end }
+    description: gene.description }
 })
 
 print("=== TP53 Orthologs ===")
 for orth in orthologs {
-  print(f"{orth.species}  {orth.gene_id}  {orth.symbol}")
+  print(f"{orth.species}: {orth.gene_id} ({orth.symbol})")
 }
-
-# Fetch the protein sequences for each ortholog
-let sequences = orthologs |> map(|o| {
-  let seq = ensembl_sequence(o.gene_id, "protein")
-  { name: o.species, gene: o.symbol, sequence: seq.seq }
-})
-
-for s in sequences {
-  print(f"{s.name}: {len(s.sequence)} aa")
-}</code></pre>
+# homo_sapiens: ENSG00000141510 (TP53)
+# mus_musculus: ENSMUSG00000059552 (Trp53)
+# ...</code></pre>
 
         <!-- Step 2 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Multiple Sequence Alignment</h2>
-        <pre><code class="language-biolang"># Align orthologs using MUSCLE
-let alignment = align(sequences, {
-  method:     "muscle",
-  type:       "protein",
-  iterations: 3,
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Fetching and Comparing Protein Sequences</h2>
+        <p>
+          With the Ensembl gene IDs in hand, we can fetch protein sequences for each
+          ortholog and compare basic properties like length and amino acid composition.
+        </p>
+        <pre><code class="language-biolang"># Fetch protein sequences for each ortholog
+let proteins = orthologs |> map(|o| {
+  let seq_data = ensembl_sequence(o.gene_id, "protein")
+  let seq = protein"{seq_data.seq}"
+  { species: o.species, symbol: o.symbol, sequence: seq }
 })
 
-print("=== Multiple Sequence Alignment ===")
-print(f"Alignment length: {alignment.length}")
-print(f"Sequences: {alignment.n_sequences}")
-print(f"Gaps: {round(alignment.gap_fraction, 3)}")
-
-# Print alignment with conservation markers
-print_alignment(alignment, width: 80, conservation: true)
-# homo_sapiens       MEEPQSDPSVEPPLSQETFSDLWKLLPENNV--LSPLPS...
-# mus_musculus       MEESQAELSVEPPLSQETFSDLWKLLPENNV--LSPLPS...
-# rattus_norvegicus  MEDSQAELVVEPPLSQETFSDLWKLLPENNV--LSPLPS...
-# gallus_gallus      MEEPQSDLSAEPPLSQETFSDLWKLLPENNV--LSPLPS...
-# danio_rerio        MDVQNDDLSVEPPLSQETFSDLWKLLPENNV--LGPLPS...
-# drosophila_mel.    -----MDMSAEPALSRETFSDLWKLLPENNALGLSPLPS...
-#                          * ::**:********* ******* .:******
-
-# Conservation score per position
-let conservation = conservation_scores(alignment)
-print(f"Mean conservation: {round(mean(conservation), 3)}")
-
-# Find highly conserved regions (>90% identity)
-let conserved = conserved_regions(alignment, threshold: 0.9, min_length: 10)
-print("\nHighly conserved regions:")
-for region in conserved {
-  print(f"  Position {region.start}-{region.end} ({region.length} residues, {round(region.identity * 100, 1)}%)")
-}</code></pre>
-
-        <!-- Step 3 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Evolutionary Distances</h2>
-        <pre><code class="language-biolang"># Compute pairwise distances from the alignment
-let distances = distance_matrix(alignment, model: "jtt")
-
-print("=== Pairwise Distances (JTT model) ===")
-print(distances)
-
-# For coding sequences, compute dN/dS (Ka/Ks) ratios
-# Fetch the CDS sequences for each ortholog
-let cds_sequences = orthologs |> map(|o| {
-  let seq = ensembl_sequence(o.gene_id, "cds")
-  { name: o.species, sequence: seq.seq }
-})
-
-# Codon-aware alignment
-let codon_aln = align(cds_sequences, {
-  method: "muscle",
-  type:   "codon",   # align codons, not individual bases
-})
-
-# Compute dN/dS for all pairs
-let dnds = pairwise_dnds(codon_aln, method: "yn00")
-
-print("\n=== dN/dS Ratios ===")
-for pair in dnds {
-  let selection = match pair.omega {
-    w if w > 1.0  => "positive",
-    w if w < 0.5  => "purifying",
-    _ => "neutral",
-  }
-  print(f"{pair.species1} vs {pair.species2}: dN/dS = {round(pair.omega, 4)} ({selection})")
-}
-
-# Site-specific dN/dS to find positively selected sites
-let site_results = site_dnds(codon_aln, method: "slac")
-let positive_sites = site_results |> filter(|s| s.omega > 1.0 and s.pvalue < 0.05)
-print(f"\nPositively selected sites: {len(positive_sites)}")</code></pre>
-
-        <!-- Step 4 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Building a Phylogenetic Tree</h2>
-        <pre><code class="language-biolang"># Neighbor-joining tree from distance matrix
-let nj_tree = neighbor_joining(distances)
-
-print("=== Phylogenetic Tree (Neighbor-Joining) ===")
-print_ascii(nj_tree)
-# ┌─── homo_sapiens
-# ┌──┤
-# │  └─── mus_musculus
-# ──┤  ┌── rattus_norvegicus
-# │  ┌──┤
-# │  │  └── gallus_gallus
-# └──┤
-#    └──── danio_rerio
-#       └── drosophila_melanogaster
-
-# Write Newick format
-write_newick(nj_tree, "results/tp53_tree.nwk")
-
-# Maximum likelihood tree (more accurate but slower)
-let ml_tree = maximum_likelihood(alignment, {
-  model:      "JTT+G",     # JTT substitution model with gamma rates
-  bootstrap:  100,          # 100 bootstrap replicates
-})
-
-print("\n=== Maximum Likelihood Tree ===")
-print_ascii(ml_tree, show_bootstrap: true)
-
-# Tree statistics
-print(f"Tree length: {round(ml_tree.total_branch_length, 4)}")
-print(f"Log-likelihood: {round(ml_tree.log_likelihood, 2)}")
-
-# Save tree with bootstrap values
-write_newick(ml_tree, "results/tp53_ml_tree.nwk")
-
-# Generate publication-quality tree visualization
-phylo_tree(ml_tree, {
-  bootstrap:    true,
-  branch_color: "conservation",  # color by evolutionary rate
-  tip_labels:   gene_lookups |> map(|s| s.species),
-  scale_bar:    true,
-  title:        "TP53 Phylogeny",
-  output:       "results/phylo_tree.svg",
-})</code></pre>
-
-        <!-- Step 5 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Gene Family Expansion</h2>
-        <pre><code class="language-biolang"># Look at how a gene family has expanded/contracted across species
-
-# p53 family members: TP53, TP63, TP73
-# Each species uses different symbol conventions
-let family_queries = [
-  { species: "homo_sapiens",    genes: ["TP53", "TP63", "TP73"] },
-  { species: "mus_musculus",    genes: ["Trp53", "Trp63", "Trp73"] },
-  { species: "rattus_norvegicus", genes: ["Tp53", "Tp63", "Tp73"] },
-  { species: "gallus_gallus",   genes: ["TP53", "TP63", "TP73"] },
-  { species: "danio_rerio",    genes: ["tp53", "tp63", "tp73"] },
-  { species: "drosophila_melanogaster", genes: ["p53", "p63", "p73"] },
-]
-
-# Try to look up each gene; count successes
-let family_data = family_queries |> map(|entry| {
-  let counts = ["TP53", "TP63", "TP73"] |> enumerate() |> map(|i, label| {
-    let symbol = entry.genes[i]
-    # Attempt lookup; missing genes return nil
-    let result = try { ensembl_symbol(entry.species, symbol) }
-    { gene: label, found: result != nil }
-  })
-  { species: entry.species, genes: counts }
-})
-
-# Build a table
-let family_table = family_data
-  |> flat_map(|sp| sp.genes |> map(|g| {
-    { species: sp.species, gene: g.gene, present: if g.found then 1 else 0 }
-  }))
-  |> to_table()
-  |> pivot_wider(names_from: "gene", values_from: "present")
-
-print("=== p53 Family Presence Across Species ===")
-print(family_table)
-
-# Visualize with a dot plot
-plot(family_table |> pivot_longer(cols: ["TP53", "TP63", "TP73"], names_to: "gene", values_to: "present"), {
-  x:      "gene",
-  y:      "species",
-  size:   "present",
-  color:  "present",
-  title:  "p53 Family Across Species",
-  output: "results/family_size.svg",
-})</code></pre>
-
-        <!-- Step 6 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Comparing Gene Regions Across Species</h2>
-        <pre><code class="language-biolang"># Compare the TP53 genomic locus between human and mouse
-
-let human_tp53 = ensembl_symbol("homo_sapiens", "TP53")
-let mouse_tp53 = ensembl_symbol("mus_musculus", "Trp53")
-
-print("=== TP53 Locus Comparison ===")
-print(f"Human:  chr{human_tp53.chromosome}:{human_tp53.start}-{human_tp53.end} ({human_tp53.strand})")
-print(f"Mouse:  chr{mouse_tp53.chromosome}:{mouse_tp53.start}-{mouse_tp53.end} ({mouse_tp53.strand})")
-print(f"Human locus size: {human_tp53.end - human_tp53.start} bp")
-print(f"Mouse locus size: {mouse_tp53.end - mouse_tp53.start} bp")
-
-# Fetch genomic sequences for the loci
-let human_genomic = ensembl_sequence(human_tp53.id, "genomic")
-let mouse_genomic = ensembl_sequence(mouse_tp53.id, "genomic")
-
-print(f"\nHuman genomic length: {len(human_genomic.seq)} bp")
-print(f"Mouse genomic length: {len(mouse_genomic.seq)} bp")
-
-# Compare genes neighboring TP53 in both species
-let neighbor_genes = ["WRAP53", "EFNB3", "DNAH2"]
-let neighbor_comparison = neighbor_genes |> map(|gene| {
-  let human = try { ensembl_symbol("homo_sapiens", gene) }
-  let mouse = try { ensembl_symbol("mus_musculus", gene) }
+# Build a comparison table of protein properties
+let protein_table = proteins |> map(|p| {
+  let counts = base_counts(p.sequence)
   {
-    gene:         gene,
-    human_chr:    if human != nil then human.chromosome else "N/A",
-    human_pos:    if human != nil then human.start else 0,
-    mouse_chr:    if mouse != nil then mouse.chromosome else "N/A",
-    mouse_pos:    if mouse != nil then mouse.start else 0,
-    both_found:   human != nil and mouse != nil,
+    species:  p.species,
+    symbol:   p.symbol,
+    length:   len(p.sequence),
   }
 }) |> to_table()
 
-print("\n=== Neighboring Gene Comparison ===")
-print(neighbor_comparison)</code></pre>
+print("\n=== Protein Sequence Lengths ===")
+print(protein_table)
+# species              symbol  length
+# homo_sapiens         TP53    393
+# mus_musculus         Trp53   387
+# rattus_norvegicus    Tp53    391
+# gallus_gallus        TP53    367
+# danio_rerio          tp53    373</code></pre>
 
-        <!-- Step 7 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Conservation Scoring</h2>
-        <pre><code class="language-biolang"># Compute per-residue conservation scores from the alignment
-let scores = conservation_scores(alignment, method: "valdar")
+        <!-- Step 3 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — CDS Comparison and GC Content</h2>
+        <p>
+          Coding DNA sequences reveal differences in codon usage and GC content that
+          can reflect evolutionary pressures. Let's fetch the CDS for each ortholog
+          and compare them.
+        </p>
+        <pre><code class="language-biolang"># Fetch CDS (coding DNA) sequences
+let cds_data = orthologs |> map(|o| {
+  let seq_data = ensembl_sequence(o.gene_id, "cdna")
+  let seq = dna"{seq_data.seq}"
+  { species: o.species, symbol: o.symbol, sequence: seq }
+})
 
-# Map conservation to known domains
-let domains = [
-  { name: "Transactivation",     start: 1,   end: 62 },
-  { name: "Proline-rich",        start: 63,  end: 97 },
-  { name: "DNA-binding",         start: 98,  end: 292 },
-  { name: "Tetramerization",     start: 326, end: 356 },
-  { name: "C-terminal regulatory", start: 364, end: 393 },
+# Compare GC content and length across species
+let cds_table = cds_data |> map(|c| {
+  let counts = base_counts(c.sequence)
+  {
+    species:    c.species,
+    cds_length: len(c.sequence),
+    gc_content: round(gc_content(c.sequence), 3),
+    a_count:    counts.A,
+    t_count:    counts.T,
+    g_count:    counts.G,
+    c_count:    counts.C,
+  }
+}) |> to_table()
+
+print("\n=== CDS Properties ===")
+print(cds_table)
+
+# Visualize GC content across species
+bar_chart(cds_table, {
+  x:      "species",
+  y:      "gc_content",
+  color:  "#8b5cf6",
+  title:  "TP53 GC Content Across Species",
+  ylabel: "GC Content",
+  output: "results/gc_content_comparison.svg",
+})</code></pre>
+
+        <!-- Step 4 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — K-mer Analysis for Sequence Similarity</h2>
+        <p>
+          K-mer frequency profiles provide a quick, alignment-free way to estimate
+          how similar two sequences are. Sequences from closely related species will
+          share more k-mers than distantly related ones.
+        </p>
+        <pre><code class="language-biolang"># Generate k-mer profiles for each CDS
+let k = 4
+let kmer_profiles = cds_data |> map(|c| {
+  let kmer_list = kmers(c.sequence, k)
+  let freqs = frequencies(kmer_list)
+  { species: c.species, freqs: freqs, total: len(kmer_list) }
+})
+
+# Compute shared k-mer fractions between human and each species
+let human_profile = kmer_profiles[0]
+let human_kmers = keys(human_profile.freqs)
+
+let kmer_similarity = kmer_profiles |> map(|p| {
+  let shared = human_kmers |> filter(|km| p.freqs[km] != nil) |> len()
+  {
+    species:          p.species,
+    total_kmers:      p.total,
+    unique_kmers:     len(keys(p.freqs)),
+    shared_with_human: shared,
+    jaccard:          round(shared / len(unique(flatten([human_kmers, keys(p.freqs)]))), 3),
+  }
+}) |> to_table()
+
+print("\n=== K-mer Similarity to Human ===")
+print(kmer_similarity)
+
+# Visualize k-mer similarity
+bar_chart(kmer_similarity, {
+  x:      "species",
+  y:      "jaccard",
+  color:  "#22d3ee",
+  title:  f"TP53 {k}-mer Jaccard Similarity to Human",
+  ylabel: "Jaccard Index",
+  output: "results/kmer_similarity.svg",
+})</code></pre>
+
+        <!-- Step 5 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Pairwise Dotplot Comparison</h2>
+        <p>
+          Dotplots visually reveal regions of similarity (and divergence) between
+          two sequences. Diagonal lines indicate conserved regions; gaps in the
+          diagonal suggest insertions, deletions, or rearrangements.
+        </p>
+        <pre><code class="language-biolang"># Compare human TP53 protein with each other species using dotplots
+let human_protein = proteins[0].sequence
+
+# Human vs Mouse
+dotplot(human_protein, proteins[1].sequence, {
+  title:   "TP53 Dotplot: Human vs Mouse",
+  xlabel:  "Human TP53",
+  ylabel:  "Mouse Trp53",
+  word:    3,
+  output:  "results/dotplot_human_mouse.svg",
+})
+
+# Human vs Zebrafish (more divergent)
+dotplot(human_protein, proteins[4].sequence, {
+  title:   "TP53 Dotplot: Human vs Zebrafish",
+  xlabel:  "Human TP53",
+  ylabel:  "Zebrafish tp53",
+  word:    3,
+  output:  "results/dotplot_human_zebrafish.svg",
+})
+
+print("\nDotplots saved — compare the diagonals to see")
+print("how human-mouse conservation differs from human-zebrafish")</code></pre>
+
+        <!-- Step 6 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Gene Family Presence Across Species</h2>
+        <pre><code class="language-biolang"># The p53 family includes TP53, TP63, and TP73
+# Check which family members exist in each species
+let family_queries = [
+  { species: "homo_sapiens",       genes: ["TP53", "TP63", "TP73"] },
+  { species: "mus_musculus",       genes: ["Trp53", "Trp63", "Trp73"] },
+  { species: "rattus_norvegicus",  genes: ["Tp53", "Tp63", "Tp73"] },
+  { species: "gallus_gallus",      genes: ["TP53", "TP63", "TP73"] },
+  { species: "danio_rerio",       genes: ["tp53", "tp63", "tp73"] },
 ]
 
-print("=== Domain Conservation ===")
-for domain in domains {
-  let domain_scores = scores[domain.start..domain.end]
-  let mean_score = mean(domain_scores)
-  let bar = repeat("#", (mean_score * 20.0) as Int)
-  print(f"{domain.name}  {bar} {round(mean_score, 3)}")
-}
+let family_labels = ["TP53", "TP63", "TP73"]
 
-# Plot conservation profile
-plot(scores |> enumerate() |> map(|i, s| { pos: i, score: s }), {
-  x:       "pos",
-  y:       "score",
-  color:   "#8b5cf6",
-  title:   "TP53 Conservation Profile",
-  xlabel:  "Alignment Position",
-  ylabel:  "Conservation Score",
-  regions: domains |> map(|d| {
-    { start: d.start, end: d.end, label: d.name, color: "#22d3ee20" }
-  }),
-  output: "results/conservation.svg",
+# Try to look up each gene; missing genes return nil
+let family_data = family_queries |> map(|entry| {
+  let results = entry.genes |> enumerate() |> map(|pair| {
+    let i = pair[0]
+    let symbol = pair[1]
+    let result = try { ensembl_symbol(entry.species, symbol) }
+    { species: entry.species, gene: family_labels[i],
+      present: if result != nil then "Yes" else "No" }
+  })
+  results
+}) |> flatten() |> to_table()
+
+print("\n=== p53 Family Presence ===")
+let family_wide = family_data
+  |> pivot_wider(names_from: "gene", values_from: "present")
+print(family_wide)</code></pre>
+
+        <!-- Step 7 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Comparing Genomic Loci</h2>
+        <pre><code class="language-biolang"># Compare the TP53 genomic locus between species
+let locus_table = orthologs |> map(|o| {
+  let gene = ensembl_symbol(o.species, o.symbol)
+  let genomic = ensembl_sequence(gene.id, "genomic")
+  {
+    species:      o.species,
+    chromosome:   gene.chromosome,
+    start:        gene.start,
+    end_pos:      gene.end,
+    locus_size:   gene.end - gene.start,
+    genomic_len:  len(genomic.seq),
+  }
+}) |> to_table()
+
+print("\n=== TP53 Locus Comparison ===")
+print(locus_table)
+
+# Which species has the largest/smallest TP53 locus?
+let sorted_by_size = locus_table |> arrange("locus_size", "desc")
+print(f"\nLargest locus:  {sorted_by_size[0].species} ({sorted_by_size[0].locus_size} bp)")
+let n = len(sorted_by_size) - 1
+print(f"Smallest locus: {sorted_by_size[n].species} ({sorted_by_size[n].locus_size} bp)")
+
+# Visualize locus sizes
+bar_chart(locus_table, {
+  x:      "species",
+  y:      "locus_size",
+  color:  "#f59e0b",
+  title:  "TP53 Genomic Locus Size by Species",
+  ylabel: "Locus Size (bp)",
+  output: "results/locus_sizes.svg",
 })</code></pre>
 
         <!-- Step 8 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Cross-Species Sequence Comparison</h2>
-        <pre><code class="language-biolang"># Compare protein sequences between human and each other species
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Motif Search Across Species</h2>
+        <p>
+          Searching for known functional motifs across orthologous sequences can
+          reveal which motifs are conserved and which have been lost or gained
+          during evolution.
+        </p>
+        <pre><code class="language-biolang"># Search for the p53 DNA-binding domain core motif
+# The RCATG motif is part of the p53 response element
+let motif_pattern = "CATG"
 
-fn pairwise_comparison(species1_entry, species2_entry) -> Map {
-  let seq1 = ensembl_sequence(species1_entry.gene_id, "protein")
-  let seq2 = ensembl_sequence(species2_entry.gene_id, "protein")
+let motif_results = cds_data |> map(|c| {
+  let hits = find_motif(c.sequence, motif_pattern)
+  { species: c.species, motif_count: len(hits), cds_length: len(c.sequence),
+    density: round(len(hits) / len(c.sequence) * 1000, 2) }
+}) |> to_table()
 
-  let pair_aln = align([
-    { name: species1_entry.species, sequence: seq1.seq },
-    { name: species2_entry.species, sequence: seq2.seq },
-  ], { method: "muscle", type: "protein" })
+print("\n=== CATG Motif Density in TP53 CDS ===")
+print(motif_results)
 
-  let cons = conservation_scores(pair_aln)
-
-  {
-    species1:       species1_entry.species,
-    species2:       species2_entry.species,
-    length1:        len(seq1.seq),
-    length2:        len(seq2.seq),
-    aln_length:     pair_aln.length,
-    mean_identity:  round(mean(cons), 3),
-    gap_fraction:   round(pair_aln.gap_fraction, 3),
-  }
-}
-
-# Compare human (first entry) with each other species
-let human = orthologs[0]
-let comparisons = orthologs[1..] |> map(|sp|
-  pairwise_comparison(human, sp)
-) |> to_table()
-
-print("=== Pairwise Protein Comparison vs Human ===")
-print(comparisons)</code></pre>
+# Look for start codon context (Kozak-like sequence)
+print("\n=== Start Codon Context ===")
+for c in cds_data {
+  let context = substr(c.sequence, 0, 12)
+  print(f"  {c.species}: {context}")
+}</code></pre>
 
         <!-- Step 9 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Multi-Gene Phylogenomics</h2>
-        <pre><code class="language-biolang"># Build a species tree from multiple genes (concatenation approach)
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Visualizing a Phylogenetic Tree</h2>
+        <p>
+          BioLang can render phylogenetic trees from Newick-format strings using
+          <code>phylo_tree()</code>. The tree itself must be computed externally
+          (e.g., using MEGA, RAxML, IQ-TREE, or FastTree) or obtained from a
+          published source.
+        </p>
+        <pre><code class="language-biolang"># Known phylogeny of our study species (from published data)
+# This Newick string encodes the accepted vertebrate phylogeny
+# with approximate divergence-based branch lengths
+let newick = "((homo_sapiens:0.01,(mus_musculus:0.09,rattus_norvegicus:0.09):0.04):0.1,gallus_gallus:0.2,danio_rerio:0.4);"
 
-# Gene symbols per species for our marker genes
-let marker_genes = [
-  { label: "TP53",  symbols: { homo_sapiens: "TP53",  mus_musculus: "Trp53", rattus_norvegicus: "Tp53",
-                                gallus_gallus: "TP53",  danio_rerio: "tp53" } },
-  { label: "BRCA1", symbols: { homo_sapiens: "BRCA1", mus_musculus: "Brca1", rattus_norvegicus: "Brca1",
-                                gallus_gallus: "BRCA1", danio_rerio: "brca1" } },
-  { label: "RB1",   symbols: { homo_sapiens: "RB1",   mus_musculus: "Rb1",   rattus_norvegicus: "Rb1",
-                                gallus_gallus: "RB1",   danio_rerio: "rb1" } },
-  { label: "APC",   symbols: { homo_sapiens: "APC",   mus_musculus: "Apc",   rattus_norvegicus: "Apc",
-                                gallus_gallus: "APC",   danio_rerio: "apc" } },
-  { label: "PTEN",  symbols: { homo_sapiens: "PTEN",  mus_musculus: "Pten",  rattus_norvegicus: "Pten",
-                                gallus_gallus: "PTEN",  danio_rerio: "ptena" } },
-]
-
-let target_species = ["homo_sapiens", "mus_musculus", "rattus_norvegicus",
-                      "gallus_gallus", "danio_rerio"]
-
-# Fetch and align each gene across species
-let alignments = marker_genes |> map(|gene| {
-  print(f"Aligning {gene.label}...")
-  let seqs = target_species |> map(|sp| {
-    let symbol = gene.symbols[sp]
-    let info = ensembl_symbol(sp, symbol)
-    let seq = ensembl_sequence(info.id, "protein")
-    { name: sp, sequence: seq.seq }
-  })
-  align(seqs, method: "mafft")
+# Render the tree
+phylo_tree(newick, {
+  title:     "TP53 Species Phylogeny",
+  scale_bar: true,
+  output:    "results/tp53_phylogeny.svg",
 })
 
-# Concatenate alignments into a supermatrix
-let supermatrix = concatenate_alignments(alignments)
-print(f"Supermatrix: {supermatrix.n_sequences} taxa, {supermatrix.length} sites")
+print("\nPhylogenetic tree saved to results/tp53_phylogeny.svg")</code></pre>
 
-# Partition information for model selection
-let partitions = alignments |> enumerate() |> map(|i, aln| {
-  { name: marker_genes[i].label, start: aln.start_in_concat, end: aln.end_in_concat, model: "JTT+G" }
-})
-
-# Build partitioned ML tree
-let species_tree = maximum_likelihood(supermatrix, {
-  partitions: partitions,
-  bootstrap:  200,
-})
-
-print("\n=== Species Tree ===")
-print_ascii(species_tree, show_bootstrap: true)
-
-phylo_tree(species_tree, {
-  bootstrap:  true,
-  tip_labels: target_species,
-  title:      "Species Tree (5-gene phylogenomics)",
-  output:     "results/species_tree.svg",
-})</code></pre>
+        <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 mt-4 mb-8">
+          <h3 class="text-white font-semibold mb-2">Note: Phylogenetic inference</h3>
+          <p class="text-slate-400 text-sm">
+            BioLang's <code>phylo_tree()</code> function <em>visualizes</em> trees from
+            Newick strings &mdash; it does not compute phylogenetic inference. For full
+            phylogenetic analysis (neighbor-joining, maximum likelihood, Bayesian), export
+            your sequences with <code>write_fasta()</code> and use dedicated tools like
+            <strong>MEGA</strong>, <strong>RAxML</strong>, <strong>IQ-TREE</strong>, or
+            <strong>MrBayes</strong>. You can then load the resulting Newick file back
+            into BioLang for visualization.
+          </p>
+        </div>
 
         <!-- Step 10 -->
-        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Complete Comparative Pipeline</h2>
-        <pre><code class="language-biolang"># comparative_pipeline.bio — full comparative genomics workflow
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Exporting for External Analysis</h2>
+        <p>
+          For analyses that require multiple sequence alignment, dN/dS computation,
+          or tree inference, export your collected sequences in standard formats
+          for use with external tools.
+        </p>
+        <pre><code class="language-biolang"># Export protein sequences as FASTA for external alignment
+let fasta_records = proteins |> map(|p| {
+  { id: p.species, description: f"TP53 ortholog ({p.symbol})", seq: p.sequence }
+})
+write_fasta(fasta_records, "results/tp53_proteins.fasta")
+print("Protein sequences written to results/tp53_proteins.fasta")
 
-fn comparative_analysis(
-  gene_symbols: Map,  # { species_name: symbol }
-  gene_label: String,
-  output_dir: String,
-) {
-  print(f"=== Comparative Analysis: {gene_label} ===\n")
+# Export CDS sequences for codon-based analysis (dN/dS)
+let cds_records = cds_data |> map(|c| {
+  { id: c.species, description: f"TP53 CDS ({c.symbol})", seq: c.sequence }
+})
+write_fasta(cds_records, "results/tp53_cds.fasta")
+print("CDS sequences written to results/tp53_cds.fasta")
 
-  # 1. Look up gene in each species
-  let species_list = gene_symbols |> keys()
-  let gene_info = species_list |> map(|sp| {
+# Export the comparison data as CSV
+write_csv(cds_table, "results/tp53_cds_comparison.csv")
+write_csv(kmer_similarity, "results/tp53_kmer_similarity.csv")
+print("Comparison tables written to results/")
+
+# Export summary as JSON
+let summary = {
+  gene:           "TP53",
+  n_species:      len(orthologs),
+  species:        orthologs |> map(|o| o.species),
+  mean_protein_len: round(mean(proteins |> map(|p| len(p.sequence))), 1),
+  gc_range:       [
+    min(cds_data |> map(|c| gc_content(c.sequence))),
+    max(cds_data |> map(|c| gc_content(c.sequence))),
+  ],
+}
+write_json(summary, "results/tp53_summary.json")
+print("Summary written to results/tp53_summary.json")</code></pre>
+
+        <!-- Step 11 -->
+        <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 11 — Complete Multi-Gene Comparison</h2>
+        <p>
+          Let's wrap everything into a reusable function that compares a gene
+          across species and produces a comprehensive report.
+        </p>
+        <pre><code class="language-biolang"># requires: NCBI_API_KEY (optional, increases rate limit)
+
+fn compare_gene_across_species(gene_symbols, gene_label, output_dir) {
+  print(f"\n=== Comparing {gene_label} ===")
+
+  # 1. Look up genes
+  let species_list = keys(gene_symbols)
+  let genes = species_list |> map(|sp| {
     let info = ensembl_symbol(sp, gene_symbols[sp])
     { species: sp, gene_id: info.id, symbol: info.symbol }
   })
-  print(f"Found gene in {len(gene_info)} species")
+  print(f"  Found in {len(genes)} species")
 
-  # 2. Fetch protein sequences and align
-  let protein_seqs = gene_info |> map(|g| {
+  # 2. Fetch protein sequences
+  let prots = genes |> map(|g| {
     let seq = ensembl_sequence(g.gene_id, "protein")
-    { name: g.species, sequence: seq.seq }
-  })
-  let aln = align(protein_seqs, method: "muscle")
-  write_fasta(aln, f"{output_dir}/{gene_label}_alignment.fa")
-
-  # 3. Build tree
-  let tree = maximum_likelihood(aln, { model: "JTT+G", bootstrap: 100 })
-  write_newick(tree, f"{output_dir}/{gene_label}_tree.nwk")
-  phylo_tree(tree, { output: f"{output_dir}/{gene_label}_tree.svg", bootstrap: true })
-
-  # 4. Conservation analysis
-  let cons = conservation_scores(aln)
-  plot(cons |> enumerate() |> to_table(), {
-    output: f"{output_dir}/{gene_label}_conservation.svg",
-    title: f"{gene_label} Conservation",
+    { species: g.species, symbol: g.symbol, sequence: protein"{seq.seq}" }
   })
 
-  # 5. dN/dS analysis
-  let cds_seqs = gene_info |> map(|g| {
-    let seq = ensembl_sequence(g.gene_id, "cds")
-    { name: g.species, sequence: seq.seq }
+  # 3. Fetch CDS and compute GC content
+  let cds = genes |> map(|g| {
+    let seq = ensembl_sequence(g.gene_id, "cdna")
+    let s = dna"{seq.seq}"
+    { species: g.species, gc: round(gc_content(s), 3), cds_len: len(s) }
   })
-  let codon_aln = align(cds_seqs, method: "muscle", type: "codon")
-  let dnds = pairwise_dnds(codon_aln)
-  dnds |> to_table() |> write_csv(f"{output_dir}/{gene_label}_dnds.csv")
 
-  # 6. Summary
-  let summary = {
-    gene:           gene_label,
-    n_species:      len(gene_info),
-    aln_length:     aln.length,
-    mean_cons:      round(mean(cons), 3),
-    tree_length:    round(tree.total_branch_length, 4),
-  }
+  # 4. Build comparison table
+  let comparison = zip(prots, cds) |> map(|pair| {
+    { species: pair[0].species, symbol: pair[0].symbol,
+      protein_len: len(pair[0].sequence), cds_len: pair[1].cds_len,
+      gc_content: pair[1].gc }
+  }) |> to_table()
+  print(comparison)
 
-  write_json(f"{output_dir}/{gene_label}_summary.json", summary)
-  print(f"Results saved to {output_dir}/")
+  # 5. Export sequences for external phylogenetic analysis
+  let records = prots |> map(|p| {
+    { id: p.species, description: f"{gene_label} ({p.symbol})", seq: p.sequence }
+  })
+  write_fasta(records, f"{output_dir}/{gene_label}_proteins.fasta")
+
+  # 6. Pairwise dotplot: first species vs last (most divergent)
+  dotplot(prots[0].sequence, prots[len(prots) - 1].sequence, {
+    title:  f"{gene_label}: {prots[0].species} vs {prots[len(prots) - 1].species}",
+    xlabel: prots[0].species,
+    ylabel: prots[len(prots) - 1].species,
+    word:   3,
+    output: f"{output_dir}/{gene_label}_dotplot.svg",
+  })
+
+  write_csv(comparison, f"{output_dir}/{gene_label}_comparison.csv")
+  print(f"  Results saved to {output_dir}/")
 }
 
-# Run for TP53
-let tp53_symbols = {
-  homo_sapiens: "TP53", mus_musculus: "Trp53", rattus_norvegicus: "Tp53",
-  gallus_gallus: "TP53", danio_rerio: "tp53", drosophila_melanogaster: "p53",
+# Run for multiple tumor suppressor genes
+let genes_to_compare = [
+  { label: "TP53", symbols: { homo_sapiens: "TP53", mus_musculus: "Trp53",
+    rattus_norvegicus: "Tp53", gallus_gallus: "TP53", danio_rerio: "tp53" } },
+  { label: "BRCA1", symbols: { homo_sapiens: "BRCA1", mus_musculus: "Brca1",
+    rattus_norvegicus: "Brca1", gallus_gallus: "BRCA1", danio_rerio: "brca1" } },
+  { label: "RB1", symbols: { homo_sapiens: "RB1", mus_musculus: "Rb1",
+    rattus_norvegicus: "Rb1", gallus_gallus: "RB1", danio_rerio: "rb1" } },
+]
+
+for gene in genes_to_compare {
+  compare_gene_across_species(gene.symbols, gene.label, "results/comparative")
 }
-comparative_analysis(tp53_symbols, "TP53", "results/comparative")</code></pre>
+
+# Visualize the known species tree for context
+let species_tree = "((homo_sapiens:0.01,(mus_musculus:0.09,rattus_norvegicus:0.09):0.04):0.1,gallus_gallus:0.2,danio_rerio:0.4);"
+
+phylo_tree(species_tree, {
+  title:     "Species Phylogeny (3-gene comparison)",
+  scale_bar: true,
+  output:    "results/comparative/species_tree.svg",
+})
+
+print("\n=== All comparisons complete ===")</code></pre>
 
         <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
           <h3 class="text-white font-semibold mb-2">Next Steps</h3>
-          <p class="text-slate-400 text-sm">
-            Learn how to extend BioLang with custom functionality in the
-            <a href="plugins.html" class="text-violet-400 hover:underline">Building Custom Plugins</a> tutorial.
-          </p>
+          <ul class="text-slate-400 text-sm space-y-2">
+            <li>
+              For phylogenetic inference, export your FASTA files and use
+              <strong>IQ-TREE</strong> (<code>iqtree2 -s proteins.fasta -m JTT+G -bb 1000</code>),
+              then load the resulting <code>.treefile</code> back into BioLang with
+              <code>phylo_tree()</code> for visualization.
+            </li>
+            <li>
+              For multiple sequence alignment, use
+              <strong>MUSCLE</strong> or <strong>MAFFT</strong> on the exported FASTA.
+            </li>
+            <li>
+              Learn how to extend BioLang with custom functionality in the
+              <a href="plugins.html" class="text-violet-400 hover:underline">Building Custom Plugins</a> tutorial.
+            </li>
+          </ul>
         </div>
 
       </article>

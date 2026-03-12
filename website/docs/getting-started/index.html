@@ -68,6 +68,16 @@
           </tbody>
         </table>
 
+        <h2>Quick Install (Linux / macOS)</h2>
+        <p>One command to download and install the latest release:</p>
+        <pre><code class="language-bash">curl -fsSL https://lang.bio/install.sh | sh</code></pre>
+        <p>
+          This detects your platform and architecture, downloads the correct binary from
+          GitHub Releases, and installs <code>bl</code> and <code>bl-lsp</code> to
+          <code>/usr/local/bin</code>. Set <code>BIOLANG_INSTALL_DIR</code> to change the
+          install location.
+        </p>
+
         <h2>Install via Cargo</h2>
         <p>
           The fastest way to install BioLang if you already have a Rust toolchain. This installs the
@@ -75,8 +85,7 @@
         </p>
         <pre><code class="language-bash">cargo install biolang</code></pre>
         <p>Verify the installation:</p>
-        <pre><code class="language-bash">bl --version
-# biolang 0.1.0</code></pre>
+        <pre><code class="language-bash">bl --version</code></pre>
         <p>
           If <code>bl</code> is not found, ensure <code>~/.cargo/bin</code> is in your
           <code>PATH</code>:
@@ -159,9 +168,7 @@ cargo build --release
           BioLang has a built-in self-update mechanism. Check your current version and whether
           an update is available:
         </p>
-        <pre><code class="language-bash">bl version
-# BioLang v0.1.0
-# Checking for updates... up to date.</code></pre>
+        <pre><code class="language-bash">bl version</code></pre>
         <p>Upgrade to the latest release with a single command:</p>
         <pre><code class="language-bash">bl upgrade</code></pre>
         <p>

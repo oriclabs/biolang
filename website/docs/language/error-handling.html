@@ -225,7 +225,8 @@ let seq = fetch_with_retry("https://api.ncbi.nlm.nih.gov/seq/NM_007294")</code><
           The <code>retry</code> expression re-attempts a block up to N times with an
           optional delay &mdash; essential for flaky network calls to bio databases:
         </p>
-        <pre><code class="language-biolang"># Retry NCBI fetch 3 times with 2-second delay
+        <pre><code class="language-biolang"># requires: internet connection
+# Retry NCBI fetch 3 times with 2-second delay
 let gene = retry(3, delay: 2000) {
     ncbi_gene("TP53")
 }

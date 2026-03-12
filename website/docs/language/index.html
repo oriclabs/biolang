@@ -185,7 +185,7 @@ fn load_reference(path: String) {
 # try/catch for top-level scripts
 try {
   let ref_seq = load_reference("hg38.fa")
-  let aligned = align(reads, ref_seq)
+  let aligned = read_fastq(ref_seq) |> filter(|r| mean_phred(r.quality) >= 30)
 } catch e {
   print(f"Pipeline failed: {e}")
 }</code></pre>

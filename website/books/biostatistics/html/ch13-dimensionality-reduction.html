@@ -1,0 +1,1430 @@
+<!DOCTYPE HTML>
+<html lang="en" class="coal sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Dimensionality Reduction - Biostatistics in Practice</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A practical guide to statistical thinking for genomics and bioinformatics using BioLang">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-d890680f.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "coal";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-9adb9a6e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-22d9afbc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Biostatistics in Practice</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="chapter-13-dimensionality-reduction"><a class="header" href="#chapter-13-dimensionality-reduction">Chapter 13: Dimensionality Reduction</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You have a single-cell RNA-seq dataset: 2,700 peripheral blood mononuclear cells,
+each measured across roughly 20,000 genes. You want to visualize which cells are
+similar to each other. You want to discover cell types. You want to understand
+what gene programs drive the differences.</p>
+<p>But you cannot scatter-plot 20,000 dimensions. You cannot compute distances
+meaningfully in a space this large. And most of those 20,000 genes are noise —
+housekeeping genes expressed at the same level in every cell, or dropout zeros
+where the measurement failed entirely.</p>
+<p>How do you reduce 20,000 dimensions to 2 or 3 while preserving the meaningful
+biological structure?</p>
+<p>This is the dimensionality reduction problem, and it is the gateway to every
+single-cell analysis, every bulk transcriptomics comparison, every clinical
+genomics quality check. Get it wrong, and you will see patterns that do not
+exist. Get it right, and entire cell atlases emerge from the noise.</p>
+<h2 id="why-it-matters"><a class="header" href="#why-it-matters">Why It Matters</a></h2>
+<p>Dimensionality reduction is not just visualization. It is a fundamental
+analytical step that determines the success or failure of downstream analysis:</p>
+<p><strong>In single-cell RNA-seq</strong>, PCA followed by UMAP is the standard pipeline.
+Every cell atlas — the Human Cell Atlas, Tabula Sapiens, the Mouse Cell Atlas —
+depends on these methods to organize millions of cells into interpretable
+structures. If your PCA captures batch effects instead of biology, every
+cluster you find downstream is wrong.</p>
+<p><strong>In bulk RNA-seq</strong>, PCA is the primary quality control tool. Before running
+any differential expression analysis, you plot PC1 vs PC2. If samples do not
+group by biological condition — if instead they group by sequencing lane, RNA
+extraction date, or technician — you have a batch effect that must be addressed
+before any statistical test is valid.</p>
+<p><strong>In GWAS</strong>, PCA on genotype data reveals population structure. Failing to
+correct for population structure in a case-control study produces thousands of
+false positive associations. The top principal components of genotype data are
+routinely included as covariates in every GWAS regression model.</p>
+<p><strong>In clinical genomics</strong>, dimensionality reduction on tumor expression profiles
+reveals molecular subtypes that predict treatment response. The PAM50 breast
+cancer classifier, used clinically worldwide, is fundamentally a projection
+of expression data onto a low-dimensional subtype space.</p>
+<h2 id="the-data"><a class="header" href="#the-data">The Data</a></h2>
+<p>We use two datasets in this chapter.</p>
+<p><strong>Dataset 1: PBMC 3k (single-cell RNA-seq)</strong></p>
+<p>The 3,000 PBMC dataset from 10x Genomics is the standard benchmark for
+single-cell methods. It contains peripheral blood mononuclear cells from a
+healthy donor, processed with the Chromium Single Cell 3’ protocol.</p>
+<p>Reference: https://www.10xgenomics.com/datasets/3-k-pbm-cs-from-a-healthy-donor-1-standard-1-1-0</p>
+<p>For this chapter, we work with a pre-processed expression matrix where cells
+are rows and genes are columns — the standard format after Cell Ranger
+processing. We assume basic quality control has been performed: cells with
+fewer than 200 genes detected are removed, genes detected in fewer than 3
+cells are removed, and cells with more than 5% mitochondrial reads are
+filtered out.</p>
+<pre><code class="language-text"># Download the PBMC 3k filtered expression matrix
+# The 10x Genomics dataset page provides the filtered gene-barcode matrix
+# After Cell Ranger processing, we have a cells x genes table
+
+# For this chapter we work with a pre-processed TSV
+# (In practice you would use read_10x or similar to parse the HDF5/MEX format)
+
+let pbmc = read_tsv("pbmc3k_filtered.tsv")
+
+println("PBMC dataset dimensions:")
+println("  Cells: " + str(len(pbmc)))
+println("  Genes: " + str(ncols(pbmc) - 1))  # subtract 1 for cell barcode column
+</code></pre>
+<p><strong>Dataset 2: GTEx median TPM (bulk RNA-seq)</strong></p>
+<p>The GTEx (Genotype-Tissue Expression) project provides gene expression data
+across 54 human tissues from nearly 1,000 donors.</p>
+<p>URL: https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz</p>
+<pre><code class="language-text"># Download GTEx v8 median TPM per tissue
+let gtex_url = "https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
+let gtex_file = download(gtex_url, "gtex_median_tpm.gct.gz")
+
+# GCT format: skip first 2 header lines, then tab-separated
+# Columns: gene_id, gene_name, then one column per tissue
+let gtex = read_tsv(gtex_file)
+
+println("GTEx dimensions:")
+println("  Genes: " + str(len(gtex)))
+println("  Tissues: " + str(ncols(gtex) - 2))  # subtract gene_id and gene_name
+</code></pre>
+<h2 id="exploration"><a class="header" href="#exploration">Exploration</a></h2>
+<h3 id="understanding-the-curse-of-dimensionality"><a class="header" href="#understanding-the-curse-of-dimensionality">Understanding the Curse of Dimensionality</a></h3>
+<p>Before applying any method, we need to understand why high-dimensional data
+is fundamentally different from low-dimensional data.</p>
+<p>In high dimensions, distances become meaningless. In a 20,000-dimensional
+space, the ratio of the farthest point to the nearest point approaches 1 as
+dimensionality increases. Every point is approximately equidistant from every
+other point. This means that nearest-neighbor methods, distance-based
+clustering, and any visualization that relies on preserving distances will
+fail if applied directly to the raw gene expression matrix.</p>
+<pre><code class="language-text"># Demonstrate the curse of dimensionality
+# Compute pairwise distances in the full gene space
+
+let all_genes = columns(pbmc) |&gt; filter(|c| c != "barcode")
+
+# Sample 100 cells for illustration
+let sample_cells = sample(pbmc, 100)
+
+# Extract expression values for all genes
+let expr_matrix = sample_cells |&gt; select(all_genes)
+
+# Compute distance matrix in the full space
+let full_dist = dist_matrix(expr_matrix, "euclidean")
+
+# Extract all pairwise distances
+let distances = []
+let n = len(full_dist)
+let i = 0
+while i &lt; n do
+  let j = i + 1
+  while j &lt; n do
+    distances = concat(distances, [full_dist[i][j]])
+    j = j + 1
+  end
+  i = i + 1
+end
+
+# Look at the distribution of distances
+let dist_stats = {
+  mean: mean(distances),
+  sd: stdev(distances),
+  min: min(distances),
+  max: max(distances),
+  cv: stdev(distances) / mean(distances)
+}
+
+println("Distance statistics in full 20,000-D space:")
+println("  Mean distance: " + str(round(dist_stats.mean, 2)))
+println("  SD of distances: " + str(round(dist_stats.sd, 2)))
+println("  CV (SD/mean): " + str(round(dist_stats.cv, 4)))
+println("  Min/Max ratio: " + str(round(dist_stats.min / dist_stats.max, 4)))
+
+# The CV will be very small — distances are concentrated
+# This means "nearest neighbor" is barely distinguishable from "farthest neighbor"
+</code></pre>
+<h3 id="looking-at-variance-per-gene"><a class="header" href="#looking-at-variance-per-gene">Looking at Variance Per Gene</a></h3>
+<p>Not all genes are informative. Most genes are either not expressed, expressed
+at a constant level, or dominated by technical noise. The first step in any
+dimensionality reduction is to identify the genes that carry biological signal.</p>
+<pre><code class="language-text"># Compute variance for each gene across cells
+let gene_names = columns(pbmc) |&gt; filter(|c| c != "barcode")
+let gene_variances = gene_names |&gt; map(|g| {
+  name: g,
+  variance: variance(col_values(pbmc, g)),
+  mean_expr: mean(col_values(pbmc, g))
+})
+
+# Sort by variance, descending
+let sorted_genes = gene_variances |&gt; sort(|a, b| b.variance - a.variance)
+
+# Top 20 most variable genes
+println("Top 20 most variable genes:")
+sorted_genes |&gt; head(20) |&gt; each(|g|
+  println("  " + g.name + ": var=" + str(round(g.variance, 2)) +
+          " mean=" + str(round(g.mean_expr, 2)))
+)
+
+# How many genes have meaningful variance?
+let high_var = sorted_genes |&gt; filter(|g| g.variance &gt; 1.0)
+println("Genes with variance &gt; 1.0: " + str(len(high_var)))
+println("That is " + str(round(100.0 * len(high_var) / len(sorted_genes), 1)) + "% of all genes")
+</code></pre>
+<p>The typical result: fewer than 2,000 genes (10% of the genome) carry most
+of the variance. The rest are noise. This is why dimensionality reduction
+works — the data actually lives on a much lower-dimensional manifold.</p>
+<h3 id="the-mean-variance-relationship"><a class="header" href="#the-mean-variance-relationship">The Mean-Variance Relationship</a></h3>
+<p>In RNA-seq data, variance scales with the mean. Highly expressed genes have
+higher absolute variance simply because they have more counts. This is a
+problem for PCA, which finds directions of maximum variance — it would be
+dominated by highly expressed genes regardless of their biological relevance.</p>
+<pre><code class="language-text"># Plot mean vs variance to see the relationship
+let mean_var = gene_variances |&gt; map(|g| {
+  log_mean: log10(g.mean_expr + 0.01),
+  log_var: log10(g.variance + 0.01)
+})
+
+let mv_table = table(mean_var)
+scatter(mv_table, "log_mean", "log_var",
+  title: "Mean-Variance Relationship (PBMC 3k)",
+  x_label: "log10(Mean Expression)",
+  y_label: "log10(Variance)")
+  |&gt; save_plot("mean_variance_relationship.svg")
+
+# This is why we normalize and select highly variable genes (HVGs)
+# before PCA — to remove the mean-variance confound
+</code></pre>
+<h3 id="normalization-preparing-for-pca"><a class="header" href="#normalization-preparing-for-pca">Normalization: Preparing for PCA</a></h3>
+<p>Before PCA, we must normalize the data. The standard single-cell preprocessing
+pipeline is: (1) normalize to total counts per cell, (2) log-transform,
+(3) select highly variable genes.</p>
+<pre><code class="language-text"># Step 1: Library-size normalization
+# Scale each cell to the same total count (e.g., 10,000)
+let target_sum = 10000.0
+
+let normalized = pbmc |&gt; mutate(|row| {
+  let total = gene_names |&gt; map(|g| row[g]) |&gt; sum()
+  let scale = target_sum / total
+  let result = { barcode: row.barcode }
+  gene_names |&gt; each(|g|
+    result[g] = row[g] * scale
+  )
+  result
+})
+
+# Step 2: Log-transform (log1p to handle zeros)
+let log_normalized = normalized |&gt; mutate(|row| {
+  let result = { barcode: row.barcode }
+  gene_names |&gt; each(|g|
+    result[g] = log(1.0 + row[g])
+  )
+  result
+})
+
+# Step 3: Select highly variable genes (top 2000)
+let hvg_variances = gene_names |&gt; map(|g| {
+  name: g,
+  variance: variance(col_values(log_normalized, g))
+})
+
+let hvg_sorted = hvg_variances |&gt; sort(|a, b| b.variance - a.variance)
+let hvgs = hvg_sorted |&gt; head(2000) |&gt; map(|g| g.name)
+
+println("Selected " + str(len(hvgs)) + " highly variable genes for PCA")
+
+# Step 4: Center and scale (z-score each gene)
+let scaled = log_normalized |&gt; select(concat(["barcode"], hvgs))
+let scaled_data = normalize(scaled |&gt; select(hvgs), "zscore")
+
+println("Prepared expression matrix: " + str(len(scaled_data)) + " cells x " +
+        str(ncols(scaled_data)) + " genes")
+</code></pre>
+<h2 id="the-analysis"><a class="header" href="#the-analysis">The Analysis</a></h2>
+<h3 id="pca-finding-the-axes-of-maximum-variance"><a class="header" href="#pca-finding-the-axes-of-maximum-variance">PCA: Finding the Axes of Maximum Variance</a></h3>
+<p>Principal Component Analysis finds orthogonal directions (principal components)
+that capture the maximum variance in the data. Each PC is a linear combination
+of the original genes. The first PC captures the most variance, the second
+captures the most variance orthogonal to the first, and so on.</p>
+<pre><code class="language-text"># Run PCA on the scaled expression matrix
+let pca_result = pca(scaled_data, n_components: 50)
+
+# pca_result contains:
+#   .components   — the PC coordinates for each cell (n_cells x n_components)
+#   .variance     — variance explained by each component
+#   .loadings     — gene weights for each component (n_genes x n_components)
+
+println("PCA complete. Top 10 components — variance explained:")
+let total_var = sum(pca_result.variance)
+let cumulative = 0.0
+
+pca_result.variance |&gt; head(10) |&gt; each(|v|
+  let i = 0
+  let pct = 100.0 * v / total_var
+  cumulative = cumulative + pct
+  println("  PC" + str(i + 1) + ": " + str(round(pct, 2)) + "% (cumulative: " +
+          str(round(cumulative, 2)) + "%)")
+  i = i + 1
+)
+</code></pre>
+<h3 id="what-pca-actually-does--the-mathematics"><a class="header" href="#what-pca-actually-does--the-mathematics">What PCA Actually Does — The Mathematics</a></h3>
+<p>PCA is an eigenvalue decomposition. For a centered data matrix X (cells x genes),
+PCA computes the covariance matrix C = X^T X / (n-1), then finds its eigenvectors
+and eigenvalues. The eigenvectors are the principal component directions. The
+eigenvalues are the variance explained by each direction.</p>
+<p>But you don’t need to compute the full covariance matrix (which would be
+20,000 x 20,000). The singular value decomposition (SVD) of X gives the same
+result more efficiently: X = U S V^T, where the columns of V are the PC
+loadings (eigenvectors of the covariance matrix) and the diagonal of S squared
+gives the eigenvalues.</p>
+<pre><code class="language-text"># BioLang's pca() uses SVD internally
+# We can verify by computing SVD directly on a small example
+
+let small_data = scaled_data |&gt; head(100) |&gt; select(hvgs |&gt; head(50))
+let small_matrix = matrix(small_data)
+
+let svd_result = svd(small_matrix)
+# svd_result.u — left singular vectors (cell space)
+# svd_result.s — singular values
+# svd_result.v — right singular vectors (gene space / loadings)
+
+# Eigenvalues from SVD
+let eigenvalues = svd_result.s |&gt; map(|s| s * s / (len(small_matrix) - 1))
+
+println("Top 5 eigenvalues from direct SVD:")
+eigenvalues |&gt; head(5) |&gt; each(|e|
+  println("  " + str(round(e, 4)))
+)
+</code></pre>
+<h3 id="choosing-the-number-of-pcs-the-elbow-plot"><a class="header" href="#choosing-the-number-of-pcs-the-elbow-plot">Choosing the Number of PCs: The Elbow Plot</a></h3>
+<p>How many PCs should you keep? There is no single correct answer, but the
+elbow plot provides guidance. Plot the variance explained by each PC. Look
+for the “elbow” — the point where the curve flattens, indicating that
+additional PCs are capturing noise rather than signal.</p>
+<pre><code class="language-text"># Create the elbow plot (scree plot)
+let var_explained = pca_result.variance |&gt; head(50)
+let var_pct = var_explained |&gt; map(|v| 100.0 * v / total_var)
+
+let elbow_data = var_pct |&gt; map(|v|
+  let i = 0
+  let result = { pc: i + 1, variance_pct: v }
+  i = i + 1
+  result
+)
+
+let elbow_table = table(elbow_data)
+scatter(elbow_table, "pc", "variance_pct",
+  title: "Scree Plot — Variance Explained by PC",
+  x_label: "Principal Component",
+  y_label: "% Variance Explained")
+  |&gt; save_plot("scree_plot.svg")
+
+# Also plot cumulative variance
+let cum_var = []
+let running = 0.0
+var_pct |&gt; each(|v|
+  running = running + v
+  cum_var = concat(cum_var, [running])
+)
+
+let cum_data = cum_var |&gt; map(|v|
+  let i = 0
+  let result = { pc: i + 1, cumulative_pct: v }
+  i = i + 1
+  result
+)
+
+let cum_table = table(cum_data)
+scatter(cum_table, "pc", "cumulative_pct",
+  title: "Cumulative Variance Explained",
+  x_label: "Principal Component",
+  y_label: "Cumulative % Variance")
+  |&gt; save_plot("cumulative_variance.svg")
+
+# Typical single-cell: 10-30 PCs capture most biological signal
+# A common heuristic: keep PCs until cumulative variance reaches 80-90%
+# or until the scree plot elbow
+</code></pre>
+<p>In the PBMC 3k dataset, you will typically see an elbow around PC 10-15.
+The first 2-3 PCs separate major cell types (T cells from monocytes from
+B cells). PCs 4-15 capture finer distinctions (CD4+ vs CD8+ T cells,
+classical vs non-classical monocytes). Beyond PC 20, you are mostly
+fitting noise.</p>
+<h3 id="interpreting-pc-loadings--what-genes-drive-each-component"><a class="header" href="#interpreting-pc-loadings--what-genes-drive-each-component">Interpreting PC Loadings — What Genes Drive Each Component</a></h3>
+<p>Each principal component is a linear combination of genes. The loadings
+(weights) tell you which genes contribute most to each PC. These loadings
+have biological meaning — they represent gene programs.</p>
+<pre><code class="language-text"># Get the loadings for PC1 and PC2
+# Loadings: which genes have the highest weights in each PC
+
+let pc1_loadings = hvgs |&gt; map(|g|
+  let i = 0  # index into hvgs
+  { gene: g, loading: pca_result.loadings[i][0] }
+)
+
+let pc2_loadings = hvgs |&gt; map(|g|
+  let i = 0
+  { gene: g, loading: pca_result.loadings[i][1] }
+)
+
+# Sort by absolute loading to find the driving genes
+let pc1_sorted = pc1_loadings |&gt; sort(|a, b| abs(b.loading) - abs(a.loading))
+let pc2_sorted = pc2_loadings |&gt; sort(|a, b| abs(b.loading) - abs(a.loading))
+
+println("Top 10 genes driving PC1:")
+pc1_sorted |&gt; head(10) |&gt; each(|g|
+  println("  " + g.gene + ": " + str(round(g.loading, 4)))
+)
+
+println("Top 10 genes driving PC2:")
+pc2_sorted |&gt; head(10) |&gt; each(|g|
+  println("  " + g.gene + ": " + str(round(g.loading, 4)))
+)
+
+# In PBMC data, PC1 typically separates lymphoid vs myeloid cells
+# Key PC1 genes: LYZ, S100A9 (myeloid markers) vs NKG7, GNLY (lymphoid)
+# PC2 often separates T cells from B cells and NK cells
+</code></pre>
+<h3 id="visualizing-pca-the-workhorse-plot"><a class="header" href="#visualizing-pca-the-workhorse-plot">Visualizing PCA: The Workhorse Plot</a></h3>
+<p>The PC1 vs PC2 scatter plot is the most common visualization in genomics.
+It reveals the global structure of your data at a glance.</p>
+<pre><code class="language-text"># Create PC1 vs PC2 scatter plot
+let pc_coords = pca_result.components
+
+let pc_table = table(pc_coords |&gt; map(|row| {
+  PC1: row[0],
+  PC2: row[1],
+  PC3: row[2]
+}))
+
+scatter(pc_table, "PC1", "PC2",
+  title: "PBMC 3k — PCA (PC1 vs PC2)",
+  x_label: "PC1 (" + str(round(var_pct[0], 1)) + "% variance)",
+  y_label: "PC2 (" + str(round(var_pct[1], 1)) + "% variance)")
+  |&gt; save_plot("pbmc_pca.svg")
+
+# Also check PC1 vs PC3 — sometimes the third component
+# reveals structure hidden in the first two
+scatter(pc_table, "PC1", "PC3",
+  title: "PBMC 3k — PCA (PC1 vs PC3)",
+  x_label: "PC1 (" + str(round(var_pct[0], 1)) + "% variance)",
+  y_label: "PC3 (" + str(round(var_pct[2], 1)) + "% variance)")
+  |&gt; save_plot("pbmc_pca_pc1_pc3.svg")
+</code></pre>
+<h3 id="t-sne-preserving-local-neighborhoods"><a class="header" href="#t-sne-preserving-local-neighborhoods">t-SNE: Preserving Local Neighborhoods</a></h3>
+<p>t-distributed Stochastic Neighbor Embedding (t-SNE) is a nonlinear method
+that excels at preserving local structure. Unlike PCA, it does not seek
+directions of maximum variance. Instead, it tries to place cells that are
+close in the high-dimensional space close together in 2D.</p>
+<p>The algorithm:</p>
+<ol>
+<li>Compute pairwise similarities in high-D using Gaussian kernels</li>
+<li>Define pairwise similarities in 2D using a Student’s t-distribution</li>
+<li>Minimize the KL divergence between the two distributions</li>
+</ol>
+<p>The t-distribution in step 2 (hence the name) has heavy tails, which helps
+prevent the “crowding problem” — in low dimensions, moderately distant
+points would all pile up in a narrow shell if Gaussian kernels were used.</p>
+<pre><code class="language-text"># Run t-SNE on the PCA-reduced data (not on raw expression!)
+# This is critical: t-SNE on 20,000 raw genes is slow and noisy
+# Standard practice: PCA to 30-50 dims, then t-SNE on PCs
+
+let pc_input = pca_result.components |&gt; map(|row| row |&gt; head(30))
+let tsne_default = tsne(pc_input, perplexity: 30)
+
+let tsne_table = table(tsne_default |&gt; map(|row| {
+  tSNE1: row[0],
+  tSNE2: row[1]
+}))
+
+scatter(tsne_table, "tSNE1", "tSNE2",
+  title: "PBMC 3k — t-SNE (perplexity=30)",
+  x_label: "t-SNE 1",
+  y_label: "t-SNE 2")
+  |&gt; save_plot("pbmc_tsne_default.svg")
+</code></pre>
+<h3 id="the-perplexity-parameter-when-t-sne-lies"><a class="header" href="#the-perplexity-parameter-when-t-sne-lies">The Perplexity Parameter: When t-SNE Lies</a></h3>
+<p>The perplexity parameter controls how many neighbors each point considers.
+It roughly corresponds to the expected number of neighbors. Low perplexity
+emphasizes very local structure; high perplexity captures more global
+patterns.</p>
+<p><strong>This is where t-SNE lies.</strong> Different perplexity values produce
+dramatically different plots. Cluster sizes and distances between clusters
+in a t-SNE plot are NOT meaningful. A cluster that appears twice as large
+as another may contain the same number of cells. Two clusters that appear
+far apart may be more similar than two clusters that appear close.</p>
+<pre><code class="language-text"># Run t-SNE with different perplexity values to see the effect
+let perplexities = [5, 15, 30, 50, 100]
+
+perplexities |&gt; each(|p|
+  let result = tsne(pc_input, perplexity: p)
+  let result_table = table(result |&gt; map(|row| {
+    tSNE1: row[0],
+    tSNE2: row[1]
+  }))
+
+  scatter(result_table, "tSNE1", "tSNE2",
+    title: "t-SNE perplexity=" + str(p),
+    x_label: "t-SNE 1",
+    y_label: "t-SNE 2")
+    |&gt; save_plot("tsne_perplexity_" + str(p) + ".svg")
+
+  println("Perplexity " + str(p) + " complete")
+)
+
+# With perplexity=5: many tiny, tight clusters — overemphasis on local structure
+# With perplexity=30: balanced view, standard choice
+# With perplexity=100: clusters merge, global structure dominates
+# ALL of these are valid — which is why t-SNE is dangerous for quantitative claims
+</code></pre>
+<h3 id="umap-the-modern-alternative"><a class="header" href="#umap-the-modern-alternative">UMAP: The Modern Alternative</a></h3>
+<p>Uniform Manifold Approximation and Projection (UMAP) has largely replaced
+t-SNE as the default visualization method in single-cell genomics. It is
+faster, better preserves global structure, and produces more reproducible
+layouts.</p>
+<p>UMAP constructs a topological representation of the high-dimensional data
+using simplicial complexes, then finds a low-dimensional layout that
+preserves this topological structure. In practice, this means UMAP better
+preserves the relationships between clusters — clusters that are biologically
+related tend to appear near each other.</p>
+<pre><code class="language-text"># Run UMAP on the PCA-reduced data
+let umap_result = umap(pc_input, n_neighbors: 15, min_dist: 0.5)
+
+let umap_table = table(umap_result |&gt; map(|row| {
+  UMAP1: row[0],
+  UMAP2: row[1]
+}))
+
+scatter(umap_table, "UMAP1", "UMAP2",
+  title: "PBMC 3k — UMAP",
+  x_label: "UMAP 1",
+  y_label: "UMAP 2")
+  |&gt; save_plot("pbmc_umap.svg")
+</code></pre>
+<h3 id="umap-parameters-n_neighbors-and-min_dist"><a class="header" href="#umap-parameters-n_neighbors-and-min_dist">UMAP Parameters: n_neighbors and min_dist</a></h3>
+<p>Like t-SNE’s perplexity, UMAP has parameters that affect the visualization.
+Understanding them prevents misinterpretation.</p>
+<p><strong>n_neighbors</strong> controls how many neighbors define the local structure.
+Low values (5-15) emphasize fine local structure. High values (50-200)
+capture broader patterns. Default: 15.</p>
+<p><strong>min_dist</strong> controls how tightly points are packed. Low values (0.0-0.1)
+produce tighter clusters with more empty space between them. High values
+(0.5-1.0) produce a more uniform spread. Default: 0.1.</p>
+<pre><code class="language-text"># Compare UMAP with different parameter settings
+let umap_configs = [
+  { nn: 5,  md: 0.1, label: "local-tight" },
+  { nn: 15, md: 0.1, label: "default-tight" },
+  { nn: 15, md: 0.5, label: "default-spread" },
+  { nn: 50, md: 0.1, label: "global-tight" },
+  { nn: 50, md: 0.5, label: "global-spread" }
+]
+
+umap_configs |&gt; each(|cfg|
+  let result = umap(pc_input, n_neighbors: cfg.nn, min_dist: cfg.md)
+  let result_table = table(result |&gt; map(|row| {
+    UMAP1: row[0],
+    UMAP2: row[1]
+  }))
+
+  scatter(result_table, "UMAP1", "UMAP2",
+    title: "UMAP n_neighbors=" + str(cfg.nn) + " min_dist=" + str(cfg.md),
+    x_label: "UMAP 1",
+    y_label: "UMAP 2")
+    |&gt; save_plot("umap_" + cfg.label + ".svg")
+)
+
+# Key observation: all of these show the same major clusters
+# but with very different visual appearance
+# UMAP is more robust than t-SNE to parameter choice, but still varies
+</code></pre>
+<h3 id="pca-vs-t-sne-vs-umap-when-to-use-each"><a class="header" href="#pca-vs-t-sne-vs-umap-when-to-use-each">PCA vs t-SNE vs UMAP: When to Use Each</a></h3>
+<p>Each method has strengths and appropriate use cases:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Preserves</th><th>Speed</th><th>Reproducible</th><th>Best For</th></tr>
+</thead>
+<tbody>
+<tr><td>PCA</td><td>Global variance structure</td><td>Fast</td><td>Yes (deterministic)</td><td>QC, batch detection, pre-processing</td></tr>
+<tr><td>t-SNE</td><td>Local neighborhoods</td><td>Slow</td><td>No (stochastic)</td><td>Publication figures with clear clusters</td></tr>
+<tr><td>UMAP</td><td>Local + some global</td><td>Fast</td><td>Mostly (seed-dependent)</td><td>Exploratory analysis, large datasets</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Use PCA when</strong>: you need quantitative interpretation (loadings, variance
+explained), you are checking for batch effects, you need a deterministic
+result, or you are preparing input for downstream methods.</p>
+<p><strong>Use t-SNE when</strong>: you want to visualize clearly separated clusters in
+publication figures, and you understand that distances between clusters are
+not meaningful.</p>
+<p><strong>Use UMAP when</strong>: you are doing exploratory analysis, working with large
+datasets (&gt;100k cells), or need to preserve relationships between clusters.</p>
+<pre><code class="language-text"># Side-by-side comparison: color cells by a known marker gene
+
+# Extract marker gene expression
+let cd3d_expr = col_values(log_normalized, "CD3D")   # T cell marker
+let cd14_expr = col_values(log_normalized, "CD14")    # Monocyte marker
+let ms4a1_expr = col_values(log_normalized, "MS4A1")  # B cell marker (CD20)
+
+# Create combined table with all three embeddings
+let combined = table(pc_coords |&gt; map(|row|
+  let i = 0
+  let result = {
+    PC1: row[0],
+    PC2: row[1],
+    tSNE1: tsne_default[i][0],
+    tSNE2: tsne_default[i][1],
+    UMAP1: umap_result[i][0],
+    UMAP2: umap_result[i][1],
+    CD3D: cd3d_expr[i],
+    CD14: cd14_expr[i],
+    MS4A1: ms4a1_expr[i]
+  }
+  i = i + 1
+  result
+))
+
+# In all three views, T cells (CD3D+), monocytes (CD14+), and B cells (MS4A1+)
+# should form distinct groups
+# PCA shows them as broad clouds with some overlap
+# t-SNE shows them as tight, well-separated clusters
+# UMAP shows them as connected but distinct islands
+</code></pre>
+<h3 id="pca-on-gtex-tissues-separate-by-biology"><a class="header" href="#pca-on-gtex-tissues-separate-by-biology">PCA on GTEx: Tissues Separate by Biology</a></h3>
+<p>Now we apply PCA to the GTEx bulk RNA-seq data. This is a fundamentally
+different use case — instead of thousands of cells, we have tens of tissues,
+each summarized by a single median expression vector.</p>
+<pre><code class="language-text"># Prepare GTEx data for PCA
+# Columns are tissues, rows are genes
+# We need to transpose: make tissues the observations
+
+let tissue_names = columns(gtex) |&gt; filter(|c| c != "Name" and c != "Description")
+
+println("GTEx tissues: " + str(len(tissue_names)))
+
+# Select the top 5000 most variable genes across tissues
+let gene_vars = []
+let gene_ids = col_values(gtex, "Name")
+let gene_symbols = col_values(gtex, "Description")
+
+tissue_names |&gt; head(1) |&gt; each(|t|
+  println("Example tissue column: " + t)
+)
+
+# Compute variance across tissues for each gene
+let var_per_gene = gene_ids |&gt; map(|gid|
+  let row_idx = 0  # would need to find the row for this gene
+  let values = tissue_names |&gt; map(|t| col_values(gtex, t)[row_idx])
+  { gene: gid, variance: variance(values) }
+)
+
+# Select top 5000 most variable genes
+let top_genes = var_per_gene |&gt; sort(|a, b| b.variance - a.variance) |&gt; head(5000)
+let selected_gene_ids = top_genes |&gt; map(|g| g.gene)
+
+# Build tissue x gene matrix
+let tissue_data = tissue_names |&gt; map(|t|
+  let values = col_values(gtex, t)
+  let result = { tissue: t }
+  selected_gene_ids |&gt; each(|gid|
+    let idx = 0  # index of this gene
+    result[gid] = log2(values[idx] + 1.0)
+  )
+  result
+)
+
+let tissue_table = table(tissue_data)
+
+# Run PCA
+let gene_cols = selected_gene_ids
+let tissue_expr = tissue_table |&gt; select(gene_cols)
+let tissue_normalized = normalize(tissue_expr, "zscore")
+let tissue_pca = pca(tissue_normalized, n_components: 10)
+
+# Plot PC1 vs PC2 with tissue labels
+let tissue_pc_table = table(tissue_names |&gt; map(|t|
+  let i = 0
+  { tissue: t, PC1: tissue_pca.components[i][0], PC2: tissue_pca.components[i][1] }
+))
+
+scatter(tissue_pc_table, "PC1", "PC2",
+  title: "GTEx — PCA of Tissue Expression Profiles",
+  x_label: "PC1",
+  y_label: "PC2")
+  |&gt; save_plot("gtex_tissue_pca.svg")
+
+println("GTEx PCA complete")
+println("PC1 likely separates brain tissues from all others")
+println("PC2 likely separates testis and other reproductive tissues")
+</code></pre>
+<p>In the GTEx data, PCA reveals beautiful biological structure:</p>
+<ul>
+<li>Brain tissues cluster tightly together, separated from all other tissues on PC1</li>
+<li>Testis is an extreme outlier on PC2 (unique transcriptional program)</li>
+<li>Blood and immune tissues cluster together</li>
+<li>Muscle tissues (skeletal, cardiac) cluster together</li>
+<li>Liver stands somewhat alone (unique metabolic program)</li>
+</ul>
+<p>This is PCA working as a biological discovery tool. Nobody told the algorithm
+which tissues are similar — it recovered known biology purely from expression
+patterns.</p>
+<h3 id="pca-for-batch-effect-detection"><a class="header" href="#pca-for-batch-effect-detection">PCA for Batch Effect Detection</a></h3>
+<p>One of the most critical applications of PCA in genomics is detecting
+batch effects. If your PC1 separates by sequencing lane rather than by
+biological condition, you have a problem that no downstream test can fix.</p>
+<pre><code class="language-text"># Simulated batch effect detection example
+# Suppose we have expression data with sample metadata
+
+let expr_data = read_tsv("expression_with_batches.tsv")
+let metadata = read_tsv("sample_metadata.tsv")
+
+# Run PCA on expression
+let expr_cols = columns(expr_data) |&gt; filter(|c| c != "sample_id")
+let expr_matrix = expr_data |&gt; select(expr_cols)
+let expr_scaled = normalize(expr_matrix, "zscore")
+let batch_pca = pca(expr_scaled, n_components: 10)
+
+# Add metadata to PC coordinates
+let pc_with_meta = table(metadata |&gt; map(|m|
+  let i = 0
+  {
+    sample: m.sample_id,
+    condition: m.condition,      # biological variable of interest
+    batch: m.sequencing_batch,   # technical variable
+    PC1: batch_pca.components[i][0],
+    PC2: batch_pca.components[i][1]
+  }
+))
+
+# Test: does PC1 correlate with batch or condition?
+let pc1_values = col_values(pc_with_meta, "PC1")
+
+# Group PC1 by condition
+let cond_groups = pc_with_meta |&gt; group_by("condition")
+let cond_a = cond_groups |&gt; filter(|g| g.key == "treatment") |&gt; map(|g| g.PC1)
+let cond_b = cond_groups |&gt; filter(|g| g.key == "control") |&gt; map(|g| g.PC1)
+let cond_test = ttest(cond_a, cond_b)
+
+# Group PC1 by batch
+let batch_groups = pc_with_meta |&gt; group_by("batch")
+let batch_1 = batch_groups |&gt; filter(|g| g.key == "batch1") |&gt; map(|g| g.PC1)
+let batch_2 = batch_groups |&gt; filter(|g| g.key == "batch2") |&gt; map(|g| g.PC1)
+let batch_test = ttest(batch_1, batch_2)
+
+println("PC1 association with condition: p=" + str(round(cond_test.pvalue, 4)))
+println("PC1 association with batch: p=" + str(round(batch_test.pvalue, 4)))
+
+# If batch_test.pvalue &lt;&lt; cond_test.pvalue, you have a batch effect
+# The data must be corrected before differential expression
+</code></pre>
+<h3 id="pca-as-pre-processing-the-standard-pipeline"><a class="header" href="#pca-as-pre-processing-the-standard-pipeline">PCA as Pre-processing: The Standard Pipeline</a></h3>
+<p>In single-cell genomics, PCA is not the final step. It is the pre-processing
+step before clustering, UMAP visualization, and trajectory inference. The
+standard pipeline is:</p>
+<ol>
+<li>Normalize and log-transform</li>
+<li>Select highly variable genes</li>
+<li>Scale (z-score)</li>
+<li>PCA to 30-50 dimensions</li>
+<li>Use PCs (not raw genes) for all downstream analysis</li>
+</ol>
+<p>This is because: (a) PCA denoises the data by discarding low-variance
+components, (b) distances in PC space are more meaningful than in gene space,
+(c) it is computationally efficient — downstream algorithms work on 30-50
+dimensions instead of 20,000.</p>
+<pre><code class="language-text"># The standard single-cell pipeline in BioLang
+
+# Step 1-3: Already done above (normalize, log, HVG selection, scaling)
+
+# Step 4: PCA to 30 dimensions
+let n_pcs = 30
+let final_pca = pca(scaled_data, n_components: n_pcs)
+let pc_embedding = final_pca.components |&gt; map(|row| row |&gt; head(n_pcs))
+
+println("PC embedding: " + str(len(pc_embedding)) + " cells x " +
+        str(n_pcs) + " dimensions")
+
+# Step 5a: Cluster in PC space (covered in Chapter 14)
+let clusters = leiden(pc_embedding, resolution: 1.0)
+println("Found " + str(len(unique(clusters))) + " clusters")
+
+# Step 5b: UMAP for visualization, using PC embedding as input
+let final_umap = umap(pc_embedding, n_neighbors: 15, min_dist: 0.1)
+
+# Combine everything
+let cell_data = table(pbmc |&gt; map(|row|
+  let i = 0
+  {
+    barcode: row.barcode,
+    cluster: clusters[i],
+    UMAP1: final_umap[i][0],
+    UMAP2: final_umap[i][1],
+    PC1: pc_embedding[i][0],
+    PC2: pc_embedding[i][1]
+  }
+))
+
+# Plot UMAP colored by cluster
+scatter(cell_data, "UMAP1", "UMAP2",
+  color: "cluster",
+  title: "PBMC 3k — UMAP colored by Leiden cluster",
+  x_label: "UMAP 1",
+  y_label: "UMAP 2")
+  |&gt; save_plot("pbmc_umap_clusters.svg")
+
+# Count cells per cluster
+let cluster_counts = cell_data |&gt; count_by("cluster")
+println("Cells per cluster:")
+cluster_counts |&gt; each(|c|
+  println("  Cluster " + str(c.cluster) + ": " + str(c.n) + " cells")
+)
+</code></pre>
+<h3 id="annotating-pcs-with-known-biology"><a class="header" href="#annotating-pcs-with-known-biology">Annotating PCs with Known Biology</a></h3>
+<p>Once we have clusters and PC embeddings, we can ask: which genes define
+each cluster? And do the PCs correspond to known biological programs?</p>
+<pre><code class="language-text"># For each cluster, find the top marker genes
+# A marker gene is one that is highly expressed in one cluster vs all others
+
+let cluster_ids = unique(clusters) |&gt; sort(|a, b| a - b)
+
+cluster_ids |&gt; each(|cid|
+  println("Cluster " + str(cid) + " top markers:")
+
+  # Get cell indices in this cluster vs all others
+  let in_cluster = []
+  let out_cluster = []
+  let i = 0
+  clusters |&gt; each(|c|
+    if c == cid then
+      in_cluster = concat(in_cluster, [i])
+    else
+      out_cluster = concat(out_cluster, [i])
+    end
+    i = i + 1
+  )
+
+  # Test each HVG for differential expression
+  let markers = hvgs |&gt; head(500) |&gt; map(|g|
+    let vals = col_values(log_normalized, g)
+    let in_vals = in_cluster |&gt; map(|idx| vals[idx])
+    let out_vals = out_cluster |&gt; map(|idx| vals[idx])
+    let test = wilcoxon(in_vals, out_vals)
+    {
+      gene: g,
+      pvalue: test.pvalue,
+      mean_in: mean(in_vals),
+      mean_out: mean(out_vals),
+      log_fc: mean(in_vals) - mean(out_vals)
+    }
+  )
+
+  # Sort by p-value and show top 5
+  let top_markers = markers
+    |&gt; filter(|m| m.log_fc &gt; 0)  # upregulated in this cluster
+    |&gt; sort(|a, b| a.pvalue - b.pvalue)
+    |&gt; head(5)
+
+  top_markers |&gt; each(|m|
+    println("  " + m.gene + ": logFC=" + str(round(m.log_fc, 2)) +
+            " p=" + str(round(m.pvalue, 6)))
+  )
+)
+
+# Expected markers in PBMC data:
+# T cells:     CD3D, CD3E, IL7R (CD4+), CD8A, CD8B (CD8+)
+# Monocytes:   LYZ, S100A8, S100A9, CD14
+# B cells:     MS4A1 (CD20), CD79A, CD79B
+# NK cells:    NKG7, GNLY, GZMB
+# Dendritic:   FCER1A, CST3
+# Platelets:   PPBP, PF4
+</code></pre>
+<h3 id="the-eigenvalue-decomposition-in-detail"><a class="header" href="#the-eigenvalue-decomposition-in-detail">The Eigenvalue Decomposition in Detail</a></h3>
+<p>To fully understand what PCA gives you, let us look at the eigenvalue
+decomposition directly.</p>
+<pre><code class="language-text"># Compute the correlation matrix of the HVGs
+let cor_mat = cor_matrix(scaled_data |&gt; select(hvgs |&gt; head(100)))
+
+# The eigenvalues of the correlation matrix equal the variance
+# explained by each PC (when data is scaled)
+let eigenvals = eigenvalues(cor_mat)
+
+println("Top 10 eigenvalues of the correlation matrix:")
+eigenvals |&gt; head(10) |&gt; each(|e|
+  println("  " + str(round(e, 4)))
+)
+
+# Eigenvalue &gt; 1 means the PC explains more variance than any single gene
+# This is the Kaiser criterion: keep PCs with eigenvalue &gt; 1
+let kaiser_count = eigenvals |&gt; filter(|e| e &gt; 1.0) |&gt; len()
+println("PCs with eigenvalue &gt; 1 (Kaiser criterion): " + str(kaiser_count))
+
+# Warning: the Kaiser criterion is a rough heuristic
+# In genomics with thousands of genes, it often suggests too many PCs
+# The elbow plot is more reliable for biological data
+</code></pre>
+<h3 id="dimensionality-reduction-on-clinical-data"><a class="header" href="#dimensionality-reduction-on-clinical-data">Dimensionality Reduction on Clinical Data</a></h3>
+<p>PCA is not just for expression data. In clinical genomics, you often have
+a mix of continuous and categorical variables — age, BMI, lab values,
+mutation status, copy number — and want to see if patients cluster into
+meaningful groups.</p>
+<pre><code class="language-text"># Clinical data: tumor samples with mixed measurements
+let clinical = read_tsv("clinical_data.tsv")
+
+# Select numeric columns for PCA
+let numeric_cols = ["age", "tumor_size", "ki67_pct", "mutation_burden",
+                    "ctdna_fraction", "wbc_count", "albumin", "ldh"]
+
+let clinical_numeric = clinical |&gt; select(numeric_cols)
+let clinical_scaled = normalize(clinical_numeric, "zscore")
+
+# Handle missing values
+let clinical_clean = drop_null(clinical_scaled)
+println("Samples after dropping nulls: " + str(len(clinical_clean)))
+
+# PCA on clinical variables
+let clin_pca = pca(clinical_clean, n_components: 5)
+
+# What clinical features drive PC1?
+let clin_loadings = numeric_cols |&gt; map(|col|
+  let i = 0
+  { feature: col, pc1_loading: clin_pca.loadings[i][0], pc2_loading: clin_pca.loadings[i][1] }
+)
+
+println("Clinical feature loadings:")
+clin_loadings |&gt; sort(|a, b| abs(b.pc1_loading) - abs(a.pc1_loading)) |&gt; each(|l|
+  println("  " + l.feature + ": PC1=" + str(round(l.pc1_loading, 3)) +
+          " PC2=" + str(round(l.pc2_loading, 3)))
+)
+
+# Visualize clinical PCA
+let clin_pc_table = table(clinical |&gt; map(|row|
+  let i = 0
+  {
+    sample: row.sample_id,
+    stage: row.stage,
+    PC1: clin_pca.components[i][0],
+    PC2: clin_pca.components[i][1]
+  }
+))
+
+scatter(clin_pc_table, "PC1", "PC2",
+  color: "stage",
+  title: "Clinical Data PCA — colored by tumor stage",
+  x_label: "PC1",
+  y_label: "PC2")
+  |&gt; save_plot("clinical_pca.svg")
+</code></pre>
+<h2 id="interpretation"><a class="header" href="#interpretation">Interpretation</a></h2>
+<h3 id="what-pca-tells-you-and-what-it-doesnt"><a class="header" href="#what-pca-tells-you-and-what-it-doesnt">What PCA Tells You (and What It Doesn’t)</a></h3>
+<p>PCA tells you:</p>
+<ul>
+<li><strong>How much of the variance is low-dimensional.</strong> If 80% of variance is in
+the first 5 PCs, the data has strong structure.</li>
+<li><strong>Which genes co-vary.</strong> The loadings reveal gene programs — groups of genes
+that vary together across cells or samples.</li>
+<li><strong>Whether your data has batch effects.</strong> If technical variables correlate
+with the top PCs, you have a problem.</li>
+<li><strong>How many distinct groups exist.</strong> The number of clear elbows in the scree
+plot gives a rough estimate.</li>
+</ul>
+<p>PCA does NOT tell you:</p>
+<ul>
+<li><strong>What the groups are.</strong> PCA is unsupervised — it does not use labels.</li>
+<li><strong>Whether nonlinear relationships exist.</strong> PCA is strictly linear.</li>
+<li><strong>Whether small but important subpopulations exist.</strong> PCA prioritizes
+large-variance directions, which may miss rare cell types.</li>
+</ul>
+<h3 id="what-t-sne-and-umap-tell-you-and-what-they-dont"><a class="header" href="#what-t-sne-and-umap-tell-you-and-what-they-dont">What t-SNE and UMAP Tell You (and What They Don’t)</a></h3>
+<p>t-SNE and UMAP tell you:</p>
+<ul>
+<li><strong>Whether distinct clusters exist.</strong> Points that cluster together are
+genuinely similar in the original space.</li>
+<li><strong>Local neighborhood structure.</strong> Nearby points in the plot are truly
+nearby in the original space.</li>
+</ul>
+<p>They do NOT tell you:</p>
+<ul>
+<li><strong>Distances between clusters.</strong> The spacing is an artifact of the algorithm.</li>
+<li><strong>Cluster sizes.</strong> A large visual cluster may contain fewer cells than a
+small one.</li>
+<li><strong>Continuous gradients.</strong> Both methods discretize continuous variation into
+apparent clusters.</li>
+<li><strong>Statistical significance.</strong> Clusters in a UMAP plot are not automatically
+statistically significant cell types.</li>
+</ul>
+<pre><code class="language-text"># Demonstrate that UMAP distances are not quantitative
+# Compute actual distances between cluster centroids in PC space
+# vs apparent distances in UMAP space
+
+let centroids_pc = cluster_ids |&gt; map(|cid|
+  let mask = clusters |&gt; map(|c| c == cid)
+  let pc_vals = pc_embedding |&gt; filter(|row| mask[0])  # simplified
+  # In practice: average PC coordinates for cells in this cluster
+  { cluster: cid, type: "PC_space" }
+)
+
+# Key point: the rank order of inter-cluster distances in PC space
+# may not match the rank order in UMAP space
+# Two clusters that are far apart in UMAP may be closer in PC space
+# than two clusters that appear adjacent in UMAP
+println("Warning: UMAP distances are NOT quantitative measures of similarity")
+println("Always verify apparent relationships by checking PC space distances")
+println("or by computing marker gene overlap between clusters")
+</code></pre>
+<h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
+<h3 id="choosing-your-approach"><a class="header" href="#choosing-your-approach">Choosing Your Approach</a></h3>
+<p>Given your specific problem, here is the decision tree:</p>
+<p><strong>Exploratory analysis of single-cell data</strong>: PCA (30 PCs) -&gt; UMAP -&gt; Leiden
+clustering. This is the standard pipeline. Do not skip PCA.</p>
+<p><strong>Quality control of bulk RNA-seq</strong>: PCA only. Plot PC1 vs PC2. Color by
+biological condition AND by all technical variables (batch, lane, extraction
+date, operator). If any technical variable explains more variance than your
+biological question, correct the batch effect before proceeding.</p>
+<p><strong>Publication figure</strong>: Both PCA and UMAP/t-SNE. Show PCA for quantitative
+claims (variance explained, loadings). Show UMAP/t-SNE for visual clarity.
+Report the parameters you used.</p>
+<p><strong>Discovering gene programs</strong>: PCA loadings analysis. The genes with high
+absolute loadings on a PC form a biological program. Run gene ontology
+enrichment on these genes to interpret the program.</p>
+<pre><code class="language-text"># Gene program discovery from PC loadings
+
+# Get top 50 genes for PC1 (positive loadings)
+let pc1_pos = pc1_sorted
+  |&gt; filter(|g| g.loading &gt; 0)
+  |&gt; head(50)
+  |&gt; map(|g| g.gene)
+
+# Get top 50 genes for PC1 (negative loadings)
+let pc1_neg = pc1_sorted
+  |&gt; filter(|g| g.loading &lt; 0)
+  |&gt; head(50)
+  |&gt; map(|g| g.gene)
+
+println("PC1 positive gene program (myeloid):")
+println("  " + str(pc1_pos |&gt; head(10)))
+
+println("PC1 negative gene program (lymphoid):")
+println("  " + str(pc1_neg |&gt; head(10)))
+
+# You would run these through gene ontology enrichment to confirm:
+# pc1_pos should enrich for innate immunity, phagocytosis
+# pc1_neg should enrich for adaptive immunity, T cell receptor signaling
+</code></pre>
+<h3 id="reporting-dimensionality-reduction-results"><a class="header" href="#reporting-dimensionality-reduction-results">Reporting Dimensionality Reduction Results</a></h3>
+<p>When reporting dimensionality reduction in a paper or presentation:</p>
+<ol>
+<li><strong>State the preprocessing</strong>: normalization, gene selection, scaling</li>
+<li><strong>State the number of PCs used</strong> and how you chose it (elbow, cumulative
+variance threshold, or formal test)</li>
+<li><strong>Show the scree plot</strong> in supplementary materials</li>
+<li><strong>For UMAP/t-SNE</strong>: report all parameters (perplexity, n_neighbors, min_dist,
+random seed, number of iterations)</li>
+<li><strong>Do not make distance claims</strong> from UMAP/t-SNE plots</li>
+<li><strong>Show PC loadings</strong> when claiming biological programs</li>
+</ol>
+<pre><code class="language-text"># Summary statistics for methods section
+
+let var_explained_pct = pca_result.variance |&gt; head(n_pcs) |&gt; map(|v| 100.0 * v / total_var)
+let total_captured = sum(var_explained_pct)
+
+println("=== Methods Section Statistics ===")
+println("Expression matrix: " + str(len(pbmc)) + " cells x " + str(len(hvgs)) + " HVGs")
+println("Normalization: library-size to 10,000, log1p, z-score per gene")
+println("PCA: " + str(n_pcs) + " components retained (" +
+        str(round(total_captured, 1)) + "% total variance)")
+println("UMAP: n_neighbors=15, min_dist=0.1, metric=euclidean")
+println("Clustering: Leiden, resolution=1.0")
+println("Clusters identified: " + str(len(unique(clusters))))
+</code></pre>
+<h2 id="pitfalls"><a class="header" href="#pitfalls">Pitfalls</a></h2>
+<h3 id="pitfall-1-running-t-sneumap-on-raw-gene-expression"><a class="header" href="#pitfall-1-running-t-sneumap-on-raw-gene-expression">Pitfall 1: Running t-SNE/UMAP on Raw Gene Expression</a></h3>
+<p>Never run t-SNE or UMAP directly on the raw gene expression matrix. The noise
+in 20,000 genes drowns out the signal. Always reduce to 30-50 PCs first. This
+denoising step is essential.</p>
+<pre><code class="language-text"># DO NOT do this:
+# let bad_tsne = tsne(raw_expression_matrix)
+
+# DO this instead:
+# let pca_reduced = pca(scaled_data, n_components: 30)
+# let good_tsne = tsne(pca_reduced.components)
+
+println("Always run PCA before t-SNE or UMAP")
+println("PCA denoises the data by discarding low-variance components")
+println("Without this step, nonlinear methods amplify noise")
+</code></pre>
+<h3 id="pitfall-2-over-interpreting-t-sne-cluster-separation"><a class="header" href="#pitfall-2-over-interpreting-t-sne-cluster-separation">Pitfall 2: Over-Interpreting t-SNE Cluster Separation</a></h3>
+<p>A common mistake is to claim that two cell types are “highly distinct” because
+they appear well-separated in a t-SNE plot. The visual separation is an artifact
+of the algorithm’s optimization. Two groups with 10% gene expression overlap
+can look as separated as two groups with 0% overlap.</p>
+<h3 id="pitfall-3-ignoring-the-elbow-plot"><a class="header" href="#pitfall-3-ignoring-the-elbow-plot">Pitfall 3: Ignoring the Elbow Plot</a></h3>
+<p>Choosing too few PCs discards biological signal. Choosing too many includes
+noise dimensions that degrade clustering. Spend time on the scree plot.</p>
+<pre><code class="language-text"># How the number of PCs affects clustering
+
+let pc_counts = [5, 10, 15, 20, 30, 50]
+pc_counts |&gt; each(|n|
+  let embedding = final_pca.components |&gt; map(|row| row |&gt; head(n))
+  let cl = leiden(embedding, resolution: 1.0)
+  let n_clusters = len(unique(cl))
+  println("PCs=" + str(n) + " -&gt; " + str(n_clusters) + " clusters")
+)
+
+# Too few PCs (5): may merge distinct cell types
+# Too many PCs (50): may split cell types by noise
+# Sweet spot: where the scree plot elbows (typically 10-30 for single-cell)
+</code></pre>
+<h3 id="pitfall-4-not-checking-for-confounders-in-pca"><a class="header" href="#pitfall-4-not-checking-for-confounders-in-pca">Pitfall 4: Not Checking for Confounders in PCA</a></h3>
+<p>If PC1 correlates with your variable of interest AND with a technical
+confounder, you cannot tell which one is driving the pattern. Always test
+PCs against all known technical variables.</p>
+<pre><code class="language-text"># Check all PCs against technical variables
+let technical_vars = ["sequencing_batch", "library_prep_date",
+                      "rna_integrity_number", "percent_mito"]
+
+println("Testing PCs against technical variables:")
+technical_vars |&gt; each(|var|
+  # For continuous variables, use correlation
+  # For categorical variables, use ANOVA
+  println("  " + var + ": [test result here]")
+)
+</code></pre>
+<h3 id="pitfall-5-treating-umapt-sne-as-deterministic"><a class="header" href="#pitfall-5-treating-umapt-sne-as-deterministic">Pitfall 5: Treating UMAP/t-SNE as Deterministic</a></h3>
+<p>Both t-SNE and UMAP are stochastic algorithms. Running them twice with
+different random seeds produces different layouts. If a biological claim
+depends on the specific layout of a UMAP plot, it is not robust.</p>
+<pre><code class="language-text"># Demonstrate stochasticity
+let umap_run1 = umap(pc_input, n_neighbors: 15, min_dist: 0.1)
+let umap_run2 = umap(pc_input, n_neighbors: 15, min_dist: 0.1)
+
+# The overall cluster structure should be the same
+# But the rotation, reflection, and exact positions will differ
+# If your conclusion changes between runs, it is not robust
+println("UMAP is stochastic — always verify that conclusions are")
+println("consistent across multiple random seeds")
+</code></pre>
+<h3 id="pitfall-6-pca-on-non-centered-data"><a class="header" href="#pitfall-6-pca-on-non-centered-data">Pitfall 6: PCA on Non-Centered Data</a></h3>
+<p>PCA assumes the data is centered (mean-subtracted). If you skip centering,
+PC1 will point toward the mean of the data, wasting your most informative
+component on a trivial direction.</p>
+<pre><code class="language-text"># Centering matters
+let uncentered = log_normalized |&gt; select(hvgs)
+let centered = normalize(uncentered, "zscore")
+
+let pca_uncentered = pca(uncentered, n_components: 5)
+let pca_centered = pca(centered, n_components: 5)
+
+# Compare variance explained
+println("Uncentered PCA — PC1 variance: " +
+        str(round(100.0 * pca_uncentered.variance[0] / sum(pca_uncentered.variance), 1)) + "%")
+println("Centered PCA — PC1 variance: " +
+        str(round(100.0 * pca_centered.variance[0] / sum(pca_centered.variance), 1)) + "%")
+
+# The uncentered PC1 will explain a huge amount of variance
+# but it is trivially pointing toward the mean expression level
+# The centered PC1 captures actual biological variation
+</code></pre>
+<h2 id="where-next"><a class="header" href="#where-next">Where Next?</a></h2>
+<p>Dimensionality reduction opens the door to several downstream analyses:</p>
+<p><strong>Chapter 14: Clustering &amp; Classification</strong> — Once you have a PCA embedding,
+you can cluster cells or samples into groups. Leiden clustering on PCA
+coordinates is the standard approach in single-cell genomics. K-means on
+PCA is used for tumor subtyping.</p>
+<p><strong>Trajectory inference</strong> — If your cells represent a developmental process
+(stem cell differentiation, immune activation), dimensionality reduction
+reveals continuous trajectories rather than discrete clusters. Methods like
+diffusion maps and pseudotime ordering build on PCA/UMAP embeddings.</p>
+<p><strong>Data integration</strong> — When combining datasets from different labs,
+technologies, or species, PCA-based methods like Harmony, Scanorama, and
+BBKNN align the PC spaces across datasets to enable joint analysis.</p>
+<p><strong>Gene regulatory network inference</strong> — The co-variation structure captured
+by PCA can be used to infer which transcription factors regulate which genes.
+Genes with similar PC loading profiles are likely co-regulated.</p>
+<p><strong>Transfer learning</strong> — A PCA model trained on a large reference dataset
+(like the Human Cell Atlas) can be used to project new datasets into the
+same coordinate system. This enables automated cell type annotation by
+finding the nearest reference cell type in PC space.</p>
+<pre><code class="language-text"># Example: project a new dataset into the PBMC reference PCA space
+# This is the basis of automated cell type annotation
+
+# Suppose we have a new sample
+let new_sample = read_tsv("new_pbmc_sample.tsv")
+
+# Normalize the same way as the reference
+let new_normalized = normalize(new_sample |&gt; select(hvgs), "zscore")
+
+# Project into reference PC space using the saved loadings
+# new_PCs = new_data %*% reference_loadings
+let new_projected = new_normalized |&gt; map(|row|
+  let pc_coords = []
+  let pc_idx = 0
+  while pc_idx &lt; n_pcs do
+    let score = hvgs |&gt; map(|g|
+      let gene_idx = 0
+      row[g] * pca_result.loadings[gene_idx][pc_idx]
+    ) |&gt; sum()
+    pc_coords = concat(pc_coords, [score])
+    pc_idx = pc_idx + 1
+  end
+  pc_coords
+)
+
+# Now new_projected is in the same coordinate system as the reference
+# You can classify cells by nearest-neighbor in this space
+println("Projected " + str(len(new_projected)) + " new cells into reference PC space")
+println("Ready for automated cell type annotation")
+</code></pre>
+<h3 id="summary"><a class="header" href="#summary">Summary</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Concept</th><th>Key Takeaway</th></tr>
+</thead>
+<tbody>
+<tr><td>Curse of dimensionality</td><td>Distances become meaningless in high-D; reduce first</td></tr>
+<tr><td>PCA</td><td>Linear, deterministic, quantitative; use for QC and preprocessing</td></tr>
+<tr><td>Scree plot</td><td>Choose PCs at the elbow; typical range 10-30 for single-cell</td></tr>
+<tr><td>PC loadings</td><td>Reveal gene programs; have biological interpretation</td></tr>
+<tr><td>t-SNE</td><td>Good local structure; distances between clusters are meaningless</td></tr>
+<tr><td>UMAP</td><td>Better global structure than t-SNE; faster; standard for single-cell</td></tr>
+<tr><td>Perplexity/n_neighbors</td><td>Parameters matter; always try multiple values</td></tr>
+<tr><td>Pre-processing</td><td>Normalize, log-transform, select HVGs, scale, THEN reduce</td></tr>
+<tr><td>Batch effects</td><td>Check top PCs against technical variables before proceeding</td></tr>
+<tr><td>Stochasticity</td><td>t-SNE and UMAP are non-deterministic; verify robustness</td></tr>
+</tbody>
+</table>
+</div>
+<p>Dimensionality reduction is the bridge between raw high-dimensional
+measurements and biological understanding. It is not the destination — it
+is the foundation on which clustering, trajectory analysis, and biological
+interpretation are built. Master PCA first, understand its linearity
+limitations, then use UMAP/t-SNE for visualization while respecting
+their constraints.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch12-batch-effects.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ch14-clustering.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch12-batch-effects.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ch14-clustering.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/theme-toggle-817b00c6.js"></script>
+        <script src="theme/toolbar-buttons-d041ba86.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -118,7 +118,7 @@ let path = r"C:\Users\data\reads.fq.gz"   # Windows paths
 
 # String operations
 let up = upper(name)              # "BIOLANG"
-let sub = subseq(name, 0, 3)     # "Bio"
+let sub = substr(name, 0, 3)     # "Bio"
 let parts = split("A,B,C", ",")  # ["A", "B", "C"]</code></pre>
 
         <h3>Bool</h3>
@@ -138,7 +138,7 @@ let combined = yes && !no   # true</code></pre>
 
 let rc = reverse_complement(seq)       # dna"CGATCGATCGAT"
 let gc = gc_content(seq)               # 0.5
-let sub = subseq(seq, 0, 4)           # dna"ATCG"
+let sub = substr(seq, 0, 4)           # dna"ATCG"
 let rna_seq = transcribe(seq)          # rna"AUCGAUCGAUCG"
 let codons = kmers(seq, 3)            # [dna"ATC", dna"GAT", ...]
 let len_bp = seq_len(seq)             # 12</code></pre>

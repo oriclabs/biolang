@@ -293,7 +293,7 @@ type Pipeline = fn(List[Read]) -> Table
 
 # Usage
 fn build_gene_index(genes: List[Gene]) -> GeneMap {
-  genes |> map(|g| (g.symbol, g)) |> to_map()
+  genes |> map(|g| { g.symbol: g }) |> reduce(|a, b| merge(a, b))
 }
 
 let pipeline: Pipeline = |reads| {
@@ -356,8 +356,8 @@ impl PipelineResult {
 
 fn run_pipeline(manifest: SampleManifest) {
   let reads = read_fastq(manifest.fastq_r1)
-  let aligned = align(reads, manifest.reference)
-  let variants = call_variants(aligned)
+  let filtered = reads |> filter(|r| mean_phred(r.quality) >= 30)
+  let variants = filtered |> filter(|r| len(r.seq) >= 100)
 
   PipelineResult {
     sample_id: manifest.sample_id,

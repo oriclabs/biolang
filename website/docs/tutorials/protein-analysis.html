@@ -60,7 +60,8 @@
 
         <!-- Step 1 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Fetching a Protein from UniProt</h2>
-        <pre><code class="language-biolang"># protein.bl — protein analysis
+        <pre><code class="language-biolang"># requires: internet connection
+# protein.bl — protein analysis
 
 # Fetch TP53 (tumor protein p53) from UniProt
 let entry = uniprot_entry("P04637")
@@ -161,7 +162,7 @@ let nglyc = find_motif(seq, "N[^P][ST][^P]")
 print(f"\nPotential N-glycosylation sites: {len(nglyc)}")
 for pos in nglyc {
   # Extract the 4-residue motif at each position
-  let motif_seq = subseq(seq, pos, 4)
+  let motif_seq = substr(seq, pos, 4)
   print(f"  Position {pos}: {motif_seq}")
 }
 
@@ -169,7 +170,7 @@ for pos in nglyc {
 let phospho = find_motif(seq, "[ST]P")
 print(f"\nPotential phosphorylation sites (SP/TP): {len(phospho)}")
 for pos in phospho {
-  let motif_seq = subseq(seq, pos, 2)
+  let motif_seq = substr(seq, pos, 2)
   print(f"  Position {pos}: {motif_seq}")
 }
 
@@ -179,7 +180,8 @@ print(f"\nCysteine residues: {len(cys_positions)} at positions {cys_positions}")
 
         <!-- Step 5 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — UniProt Feature Annotations</h2>
-        <pre><code class="language-biolang"># Fetch annotated domains and features from UniProt
+        <pre><code class="language-biolang"># requires: internet connection
+# Fetch annotated domains and features from UniProt
 let features = uniprot_features("P04637")
 print(f"Total features: {len(features)}")
 
@@ -216,7 +218,8 @@ for tc in type_counts {
 
         <!-- Step 6 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Gene Ontology Terms</h2>
-        <pre><code class="language-biolang"># Fetch GO annotations for TP53
+        <pre><code class="language-biolang"># requires: internet connection
+# Fetch GO annotations for TP53
 let go_terms = uniprot_go("P04637")
 print(f"GO terms: {len(go_terms)}")
 
@@ -241,7 +244,8 @@ for bp in bio_proc {
 
         <!-- Step 7 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — PDB Structure Lookup</h2>
-        <pre><code class="language-biolang"># Look up PDB structure for the TP53 DNA-binding domain
+        <pre><code class="language-biolang"># requires: internet connection
+# Look up PDB structure for the TP53 DNA-binding domain
 let pdb = pdb_entry("1TUP")
 
 print(f"\n=== PDB Structure ===")
@@ -271,7 +275,8 @@ for id in tp53_structures |> take(10) {
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Comparing Multiple Proteins</h2>
-        <pre><code class="language-biolang"># Fetch a family of related proteins
+        <pre><code class="language-biolang"># requires: internet connection
+# Fetch a family of related proteins
 let accessions = ["P04637", "Q00987", "O15350"]  # TP53, MDM2, TP73
 
 let proteins = accessions |> map(|acc| uniprot_entry(acc))
@@ -367,7 +372,8 @@ histogram(col(dp_table, "count"), {
 
         <!-- Step 10 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Complete Protein Report</h2>
-        <pre><code class="language-biolang"># protein_report.bl — full protein analysis pipeline
+        <pre><code class="language-biolang"># requires: internet connection
+# protein_report.bl — full protein analysis pipeline
 
 fn analyze_protein(accession) {
   print(f"\n{'=' * 60}")

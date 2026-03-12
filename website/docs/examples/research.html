@@ -48,7 +48,8 @@
 frequency, classify as SNV/indel, flag Tier-1 cancer driver genes, query COSMIC and ClinVar,
 look up drug targets in KEGG, generate a volcano plot and oncoprint, and compile a clinical report.</p>
 
-<pre><code class="language-biolang"># cancer_genomics.bl — Identifying Actionable Mutations in a Tumor Sample
+<pre><code class="language-biolang"># requires: internet connection (NCBI, COSMIC, UniProt, KEGG APIs)
+# cancer_genomics.bl — Identifying Actionable Mutations in a Tumor Sample
 #
 # A clinical bioinformatics workflow: starting from somatic VCF calls,
 # filter for high-confidence variants, cross-reference cancer databases,
@@ -227,7 +228,8 @@ print("\n=== Analysis complete ===")</code></pre>
 expression testing, Benjamini-Hochberg correction, ORA and GSEA pathway enrichment,
 volcano plot, clustered heatmap, PCA, and Venn diagram.</p>
 
-<pre><code class="language-biolang"># RNA-seq Differential Expression Analysis
+<pre><code class="language-biolang"># requires: internet connection (Reactome, KEGG APIs)
+# RNA-seq Differential Expression Analysis
 # Scenario: Drug-treated vs control HCT116 colorectal cancer cell lines
 # Treatment: 48h exposure to 10uM Nutlin-3a (MDM2 inhibitor, activates p53)
 # Design: 3 biological replicates per condition (n=6 total)
@@ -418,7 +420,8 @@ print("\n=== Analysis complete ===")</code></pre>
 significance filtering, LD clumping, gene annotation via interval trees, forest plot
 of effect sizes, GO enrichment, and clinical report generation.</p>
 
-<pre><code class="language-biolang"># GWAS Analysis: Type 2 Diabetes Risk Loci
+<pre><code class="language-biolang"># requires: internet connection (NCBI, STRING, GO APIs)
+# GWAS Analysis: Type 2 Diabetes Risk Loci
 # Genome-wide association study identifying SNPs associated with T2D
 # Dataset: simulated summary statistics from a meta-analysis of ~50,000 cases
 
@@ -572,7 +575,8 @@ print("\n=== Analysis complete ===")</code></pre>
 Bray-Curtis beta diversity matrix, differential abundance analysis, taxonomy and
 KEGG pathway lookups, violin plots and heatmaps.</p>
 
-<pre><code class="language-biolang"># Gut Microbiome Analysis: IBD Patients vs Healthy Controls
+<pre><code class="language-biolang"># requires: internet connection (NCBI, KEGG APIs)
+# Gut Microbiome Analysis: IBD Patients vs Healthy Controls
 # 16S rRNA amplicon sequencing — V3-V4 region, paired-end 2x300bp
 
 # ── 1. Sample Metadata ──────────────────────────────────────────
@@ -712,7 +716,8 @@ print("\n=== Analysis complete ===")</code></pre>
 metabolizer phenotype assignment, IWPC-like dose prediction, drug interaction
 lookups, population allele frequencies, and clinical decision support.</p>
 
-<pre><code class="language-biolang"># Predicting drug response from patient genotypes — Warfarin dosing
+<pre><code class="language-biolang"># requires: internet connection (NCBI, KEGG, Reactome APIs)
+# Predicting drug response from patient genotypes — Warfarin dosing
 #
 # Warfarin: anticoagulant with narrow therapeutic window.
 # CYP2C9 star alleles (*2, *3) reduce metabolism; VKORC1 -1639G>A
@@ -827,7 +832,8 @@ print("\n=== Analysis complete ===")</code></pre>
 highly variable gene selection, UMAP and t-SNE embedding, Leiden clustering,
 marker-based cell type annotation, sparse matrix support.</p>
 
-<pre><code class="language-biolang"># Tumor Microenvironment Cell Type Identification from scRNA-seq
+<pre><code class="language-biolang"># requires: internet connection (NCBI API)
+# Tumor Microenvironment Cell Type Identification from scRNA-seq
 # Simulated 10x Chromium dataset from a solid tumor biopsy.
 
 # ── 1. Simulated Count Matrix (20 cells x 10 marker genes) ──
@@ -954,7 +960,8 @@ print("Identified", len(clusters |> unique), "clusters and", len(cell_types |> u
 log2 fold changes, gene-level aggregation, statistical testing with BH correction,
 hit identification, database annotation, and waterfall rank plot.</p>
 
-<pre><code class="language-biolang"># CRISPR Knockout Screen for Drug Resistance Genes in Melanoma
+<pre><code class="language-biolang"># requires: internet connection (NCBI, Reactome APIs)
+# CRISPR Knockout Screen for Drug Resistance Genes in Melanoma
 # Vemurafenib (BRAF inhibitor) resistance screen in A375 cells.
 
 # ── 1. sgRNA Library Definition ──
@@ -1063,7 +1070,8 @@ print("\n=== Analysis complete ===")</code></pre>
 queries, nearest-gene assignment, genome coverage, super-enhancer identification
 via rank-signal inflection, differential binding, motif scanning, and genome tracks.</p>
 
-<pre><code class="language-biolang"># H3K27ac ChIP-seq Identifies Super-Enhancers in Leukemia
+<pre><code class="language-biolang"># requires: internet connection (NCBI, STRING APIs)
+# H3K27ac ChIP-seq Identifies Super-Enhancers in Leukemia
 # AML patient blasts — hg38 coordinates near known leukemia loci.
 
 # ── 1. Define H3K27ac ChIP-seq Peaks ──────────────────────────
@@ -1178,7 +1186,8 @@ print("\n=== Analysis complete ===")</code></pre>
 trees, MinHash sketching, k-mer composition, mutation mapping, simplified dN/dS
 estimation, sequence logos, and lollipop mutation plots.</p>
 
-<pre><code class="language-biolang"># Molecular Evolution of SARS-CoV-2 Spike Protein Across Variants
+<pre><code class="language-biolang"># requires: internet connection (UniProt, PDB APIs)
+# Molecular Evolution of SARS-CoV-2 Spike Protein Across Variants
 # Phylogenomic analysis of spike protein RBD region across variants of concern.
 
 # ── 1. Define Spike Protein Sequences ──
@@ -1295,7 +1304,8 @@ recessive, compound heterozygous, and X-linked inheritance filtering, ACMG
 evidence classification, gene-disease lookup via ClinVar/UniProt/STRING, phenotype
 matching, circos and lollipop visualizations, and a clinical diagnostic report.</p>
 
-<pre><code class="language-biolang"># Rare Disease Diagnosis from Trio Whole-Exome Sequencing
+<pre><code class="language-biolang"># requires: internet connection (NCBI, UniProt, STRING APIs)
+# Rare Disease Diagnosis from Trio Whole-Exome Sequencing
 # 3-year-old male with developmental delay, seizures, microcephaly.
 # Trio WES: proband + unaffected parents.
 

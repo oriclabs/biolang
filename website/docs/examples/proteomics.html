@@ -102,7 +102,7 @@ print(f"Potential phosphorylation sites: {phos_sites |> len}")
 
 # N-terminal hydrophobicity check
 let hydrophobic_aa = ["A", "V", "I", "L", "M", "F", "W", "P"]
-let signal = subseq(prot.seq, 0, 30) |> to_string |> split("")
+let signal = substr(prot.seq, 0, 30) |> to_string |> split("")
 let n_hydro = signal |> filter(|aa| { hydrophobic_aa |> contains(aa) }) |> len
 let hydro_frac = n_hydro |> float / (signal |> len) |> float
 print(f"N-terminal hydrophobic fraction: {hydro_frac |> round(3)} (>0.5 suggests signal peptide)")</code></pre>

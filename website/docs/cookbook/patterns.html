@@ -41,7 +41,7 @@ fn trim_adapter(stream, adapter) {
   stream |> map(|r| {
     let idx = find_motif(r.seq, adapter)
     if idx != nil {
-      subseq(r.seq, 0, idx)
+      substr(r.seq, 0, idx)
     } else {
       r
     }

@@ -64,7 +64,8 @@
           The <code>csv()</code> function loads a CSV file into a <code>Table</code>.
           Column types are automatically inferred.
         </p>
-        <pre><code class="language-biolang"># tables.bio — working with tabular data
+        <pre><code class="language-biolang"># requires: data/expression.csv in working directory
+# tables.bio — working with tabular data
 
 # Read a gene expression file
 let expr = csv("data/expression.csv")
@@ -183,7 +184,8 @@ let flag_summary = summarize(flag_groups, |key, g| {
         <p>
           Combine tables using SQL-style joins.
         </p>
-        <pre><code class="language-biolang"># Load a gene annotation table
+        <pre><code class="language-biolang"># requires: data/gene_annotations.csv in working directory
+# Load a gene annotation table
 let annotations = csv("data/gene_annotations.csv")
 # gene, chromosome, start, end, description
 

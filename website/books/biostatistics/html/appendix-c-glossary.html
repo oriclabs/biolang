@@ -1,0 +1,539 @@
+<!DOCTYPE HTML>
+<html lang="en" class="coal sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Appendix C: Glossary - Biostatistics in Practice</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A practical guide to statistical thinking for genomics and bioinformatics using BioLang">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-d890680f.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "coal";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-9adb9a6e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-22d9afbc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Biostatistics in Practice</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="appendix-c-glossary"><a class="header" href="#appendix-c-glossary">Appendix C: Glossary</a></h1>
+<h2 id="a"><a class="header" href="#a">A</a></h2>
+<p><strong>Adjusted Rand Index (ARI)</strong>: A measure of agreement between two clusterings,
+corrected for chance. ARI = 0 means no better than random, ARI = 1 means
+perfect agreement. Used to compare unsupervised clusters to known labels
+(e.g., k-means clusters vs PAM50 subtypes). See Chapter 14.</p>
+<p><strong>AIC (Akaike Information Criterion)</strong>: A model selection criterion that
+balances goodness of fit against model complexity. Lower AIC is better.
+AIC = 2k - 2ln(L), where k is the number of parameters and L is the
+likelihood. Prefers simpler models when fit is comparable.</p>
+<p><strong>Alternative Hypothesis (H1)</strong>: The hypothesis that there is an effect or
+difference. In a two-sample t-test, the alternative hypothesis is that the
+two group means are not equal. The p-value is computed under the assumption
+that the null hypothesis is true.</p>
+<p><strong>ANOVA (Analysis of Variance)</strong>: A statistical test comparing means across
+three or more groups. Tests whether any group mean differs from the others.
+The F-statistic is the ratio of between-group variance to within-group
+variance. BioLang: <code>anova()</code>. See Chapter 6.</p>
+<h2 id="b"><a class="header" href="#b">B</a></h2>
+<p><strong>Batch Effect</strong>: A systematic technical artifact that affects measurements
+from different experimental batches (sequencing lanes, processing dates,
+laboratories). Batch effects can be larger than biological signal and must
+be identified and corrected before analysis. See Chapter 12.</p>
+<p><strong>Bayes Factor</strong>: The ratio of the likelihood of the data under two competing
+hypotheses. Unlike p-values, Bayes factors directly compare hypotheses and
+can provide evidence for the null.</p>
+<p><strong>Benjamini-Hochberg (BH) Procedure</strong>: The standard method for controlling
+the false discovery rate in multiple testing. Ranks p-values, then finds the
+largest rank i where p(i) &lt;= i/m * alpha. All tests with rank &lt;= i are called
+significant. BioLang: <code>p_adjust(pvals, "BH")</code>. See Chapter 8.</p>
+<p><strong>BIC (Bayesian Information Criterion)</strong>: A model selection criterion similar
+to AIC but with a stronger penalty for model complexity. BIC = k*ln(n) - 2ln(L).
+Tends to select simpler models than AIC, especially for large n.</p>
+<p><strong>Biological Replicate</strong>: An independent biological sample (different mouse,
+different patient, different cell culture). Biological replicates capture
+biological variability and are essential for valid statistical inference.
+Contrast with technical replicate.</p>
+<p><strong>Bonferroni Correction</strong>: The simplest multiple testing correction: multiply
+each p-value by the number of tests (or equivalently, divide the significance
+threshold by the number of tests). Controls the family-wise error rate but
+is very conservative. BioLang: <code>p_adjust(pvals, "bonferroni")</code>.</p>
+<p><strong>Box Plot</strong>: A visualization showing the median, interquartile range (box),
+and range (whiskers) of a distribution. Useful for comparing distributions
+across groups. BioLang: <code>boxplot()</code>.</p>
+<h2 id="c"><a class="header" href="#c">C</a></h2>
+<p><strong>Censoring</strong>: In survival analysis, an observation is censored when the
+event of interest has not occurred by the end of follow-up. Right censoring
+(the most common type) means the patient was alive at last contact but their
+eventual survival time is unknown.</p>
+<p><strong>Chi-Squared Test</strong>: A test for association between categorical variables,
+or for goodness of fit to an expected distribution. Compares observed counts
+to expected counts. BioLang: <code>chi_square()</code>. See Chapter 5.</p>
+<p><strong>Clustering</strong>: Unsupervised method for grouping observations based on
+similarity. Common methods: k-means, hierarchical, Leiden. See Chapter 14.</p>
+<p><strong>Cohen’s d</strong>: A standardized effect size for the difference between two
+group means. d = (mean1 - mean2) / pooled_SD. Small: d=0.2, medium: d=0.5,
+large: d=0.8. Independent of sample size, unlike p-values.</p>
+<p><strong>Confidence Interval (CI)</strong>: A range of values that, with a specified
+probability (typically 95%), contains the true population parameter. A 95% CI
+means: if you repeated the experiment many times, 95% of the resulting CIs
+would contain the true value. It does NOT mean there is a 95% probability
+the true value is in this specific interval.</p>
+<p><strong>Confounder</strong>: A variable that is associated with both the exposure and the
+outcome, distorting the apparent relationship between them. Example: age
+confounds the association between gray hair and cancer because age causes
+both. See Chapter 12.</p>
+<p><strong>Correlation</strong>: A measure of linear association between two variables.
+Pearson’s r ranges from -1 (perfect negative) to +1 (perfect positive).
+r=0 means no linear relationship. BioLang: <code>cor()</code>. See Chapter 9.</p>
+<p><strong>Covariance Matrix</strong>: A matrix where entry (i,j) is the covariance between
+variables i and j. The diagonal contains the variances. Used in PCA,
+multivariate tests, and mixed models. BioLang: <code>cov_matrix()</code>.</p>
+<p><strong>Cox Proportional Hazards</strong>: A semi-parametric regression model for
+time-to-event data. Estimates hazard ratios for each covariate. Assumes
+proportional hazards (the ratio of hazards is constant over time).
+BioLang: <code>cox_ph()</code>. See Chapter 11.</p>
+<h2 id="d"><a class="header" href="#d">D</a></h2>
+<p><strong>Degrees of Freedom (df)</strong>: The number of independent pieces of information
+used to estimate a parameter. For a t-test with n observations, df = n-1
+(or approximately n1+n2-2 for two-sample). More df means more precise
+estimates and narrower confidence intervals.</p>
+<p><strong>Density Plot</strong>: A smoothed version of a histogram showing the probability
+density function. BioLang: <code>histogram()</code>.</p>
+<p><strong>Differential Expression</strong>: Identifying genes whose expression differs
+between conditions. Uses negative binomial models (DESeq2, edgeR) for
+count data or linear models for normalized data.</p>
+<p><strong>Distance Matrix</strong>: A matrix where entry (i,j) is the distance between
+observations i and j. Used for clustering and dimensionality reduction.
+BioLang: <code>dist_matrix()</code>. Common metrics: Euclidean, Manhattan, correlation.</p>
+<h2 id="e"><a class="header" href="#e">E</a></h2>
+<p><strong>Effect Size</strong>: A quantitative measure of the magnitude of a phenomenon.
+Examples: Cohen’s d (standardized mean difference), odds ratio, hazard
+ratio, correlation coefficient. Unlike p-values, effect sizes are
+independent of sample size.</p>
+<p><strong>Eigenvalue</strong>: In PCA, the eigenvalue of a principal component equals the
+variance explained by that component. Eigenvalues are obtained from the
+eigenvalue decomposition of the covariance matrix. BioLang: <code>eigenvalues()</code>.</p>
+<p><strong>Elbow Plot (Scree Plot)</strong>: A plot of eigenvalues vs PC number used to
+choose the number of principal components. The “elbow” is where the curve
+flattens, indicating that additional PCs capture mostly noise.</p>
+<p><strong>Enrichment Analysis</strong>: Testing whether a set of genes (e.g., differentially
+expressed genes) is enriched for a particular pathway or GO term beyond what
+would be expected by chance. BioLang: <code>enrich()</code>. Uses Fisher’s exact test
+or hypergeometric test.</p>
+<h2 id="f"><a class="header" href="#f">F</a></h2>
+<p><strong>False Discovery Rate (FDR)</strong>: The expected proportion of false positives
+among all rejected hypotheses. FDR = 5% means that among all genes called
+significant, 5% are expected to be false positives. Controlled by the
+Benjamini-Hochberg procedure. See Chapter 8.</p>
+<p><strong>Family-Wise Error Rate (FWER)</strong>: The probability of making at least one
+false positive across all tests. More conservative than FDR. Controlled by
+Bonferroni or Holm corrections.</p>
+<p><strong>Fisher’s Exact Test</strong>: An exact test for association in a 2x2 contingency
+table. Unlike the chi-squared test, it is valid for small sample sizes.
+BioLang: <code>fisher_exact()</code>.</p>
+<p><strong>Fixed-Effects Model</strong>: In meta-analysis, assumes all studies estimate the
+same true effect. Appropriate when heterogeneity is low (I-squared &lt; 25%).
+See Chapter 15.</p>
+<p><strong>Fold Change</strong>: The ratio of expression in one condition to another.
+A fold change of 2 means the gene is twice as highly expressed. Often
+reported on the log2 scale: log2FC = 1 corresponds to a 2-fold increase.</p>
+<p><strong>Forest Plot</strong>: The standard meta-analysis visualization showing each
+study’s estimate with confidence interval, plus the pooled estimate.
+BioLang: <code>forest_plot()</code>. See Chapter 15.</p>
+<h2 id="g"><a class="header" href="#g">G</a></h2>
+<p><strong>GLM (Generalized Linear Model)</strong>: An extension of linear regression to
+non-normal outcomes. Includes logistic regression (binary outcome), Poisson
+regression (count outcome), and others. Uses a link function to relate the
+linear predictor to the mean. BioLang: <code>glm()</code>. See Chapter 10.</p>
+<h2 id="h"><a class="header" href="#h">H</a></h2>
+<p><strong>Hazard Ratio (HR)</strong>: In survival analysis, the ratio of hazard rates
+between two groups. HR=2 means the event rate is twice as high in one group.
+HR=1 means no difference. Estimated by Cox proportional hazards model.</p>
+<p><strong>Heatmap</strong>: A matrix visualization where values are represented by color
+intensity. Used to display expression matrices, correlation matrices, and
+distance matrices. BioLang: <code>heatmap()</code>.</p>
+<p><strong>Heterogeneity</strong>: In meta-analysis, the degree to which true effect sizes
+vary across studies. Measured by I-squared and Cochran’s Q. High
+heterogeneity (I-squared &gt; 75%) suggests the studies are measuring
+different things.</p>
+<p><strong>Histogram</strong>: A visualization showing the frequency distribution of a
+continuous variable. BioLang: <code>histogram()</code>.</p>
+<h2 id="i"><a class="header" href="#i">I</a></h2>
+<p><strong>I-Squared (I2)</strong>: The percentage of total variability in a meta-analysis
+that is due to true between-study heterogeneity (rather than sampling
+error). 0% = no heterogeneity, 25% = low, 50% = moderate, 75% = high.
+See Chapter 15.</p>
+<p><strong>Independent Filtering</strong>: In multiple testing, removing tests with low
+overall signal (e.g., low-expression genes) before FDR correction. This
+increases power by reducing the number of tests without biasing the results.
+See Chapter 8.</p>
+<h2 id="k"><a class="header" href="#k">K</a></h2>
+<p><strong>Kaplan-Meier Estimator</strong>: A non-parametric method for estimating the
+survival function from time-to-event data with censoring. Produces a
+step function that decreases at each event time. BioLang: <code>kaplan_meier()</code>.
+See Chapter 11.</p>
+<p><strong>K-Means Clustering</strong>: An unsupervised method that partitions n observations
+into k clusters by minimizing within-cluster sum of squares. Requires
+specifying k in advance. Finds spherical clusters. BioLang: <code>kmeans()</code>.
+See Chapter 14.</p>
+<h2 id="l"><a class="header" href="#l">L</a></h2>
+<p><strong>Leiden Algorithm</strong>: A community detection algorithm for graph-based
+clustering. Widely used in single-cell genomics. Does not require
+specifying the number of clusters; uses a resolution parameter instead.
+BioLang: <code>leiden()</code>. See Chapter 14.</p>
+<p><strong>Linear Regression</strong>: Models the relationship between a continuous outcome
+and one or more predictors as a linear function. Estimates slope (effect
+size), intercept, and R-squared. BioLang: <code>lm()</code>. See Chapter 9.</p>
+<p><strong>Link Function</strong>: In GLMs, the function that relates the linear predictor
+to the expected value of the outcome. Logistic regression uses the logit
+link; Poisson regression uses the log link; linear regression uses the
+identity link.</p>
+<p><strong>Log Transformation</strong>: Applying the logarithm (usually log2 or log10) to
+data. Common in genomics because expression data spans several orders of
+magnitude and raw counts are right-skewed. Log-transformed data is often
+approximately normal.</p>
+<h2 id="m"><a class="header" href="#m">M</a></h2>
+<p><strong>Meta-Analysis</strong>: The statistical method for combining results from
+multiple independent studies. Produces a pooled effect estimate with
+proper uncertainty. See Chapter 15.</p>
+<p><strong>Multiple Testing Problem</strong>: When performing many simultaneous tests
+(e.g., testing 20,000 genes), the probability of at least one false
+positive increases dramatically. At alpha=0.05 with 20,000 tests, expect
+1,000 false positives by chance. Must be corrected using FDR or FWER
+methods. See Chapter 8.</p>
+<h2 id="n"><a class="header" href="#n">N</a></h2>
+<p><strong>Negative Binomial Distribution</strong>: A count distribution that allows
+variance to exceed the mean (overdispersion). The standard model for
+RNA-seq count data. Used by DESeq2 and edgeR.</p>
+<p><strong>Non-Parametric Test</strong>: A statistical test that makes no assumptions about
+the distribution of the data. Examples: Wilcoxon rank-sum, Spearman
+correlation, Kruskal-Wallis. Generally less powerful than parametric tests
+when assumptions hold, but more robust when they do not.</p>
+<p><strong>Normal Distribution</strong>: See Appendix B. The bell curve, parameterized
+by mean and standard deviation.</p>
+<p><strong>Null Hypothesis (H0)</strong>: The hypothesis of no effect or no difference.
+In a t-test comparing treatment vs control, H0 is that the true means
+are equal. The p-value is the probability of observing data as extreme
+as yours if H0 is true.</p>
+<h2 id="o"><a class="header" href="#o">O</a></h2>
+<p><strong>Odds Ratio (OR)</strong>: The ratio of the odds of an event in one group to
+the odds in another. OR=1 means no association. OR&gt;1 means higher odds
+in the first group. Used in case-control studies and logistic regression.</p>
+<p><strong>Overdispersion</strong>: When the observed variance exceeds the variance
+predicted by a model. Common in count data: RNA-seq counts have more
+variance than the Poisson distribution predicts. Addressed by using the
+negative binomial distribution.</p>
+<h2 id="p"><a class="header" href="#p">P</a></h2>
+<p><strong>p-value</strong>: The probability of observing a test statistic as extreme as
+(or more extreme than) the one computed from the data, assuming the null
+hypothesis is true. It is NOT the probability that the null hypothesis is
+true. It is NOT the probability that the result is due to chance.</p>
+<p><strong>Parametric Test</strong>: A statistical test that assumes a specific distribution
+for the data (usually normal). Examples: t-test, ANOVA, Pearson correlation.
+More powerful than non-parametric tests when assumptions hold.</p>
+<p><strong>PCA (Principal Component Analysis)</strong>: A dimensionality reduction method
+that finds orthogonal directions of maximum variance. BioLang: <code>pca()</code>.
+See Chapter 13.</p>
+<p><strong>Poisson Distribution</strong>: See Appendix B. A count distribution where
+mean equals variance. Used for modeling rare events.</p>
+<p><strong>Power</strong>: The probability of correctly rejecting the null hypothesis when
+it is false (i.e., detecting a true effect). Power = 1 - Type II error rate.
+Depends on sample size, effect size, significance level, and variability.
+See Chapter 4.</p>
+<p><strong>Pseudoreplication</strong>: Treating non-independent observations as independent
+replicates. Example: measuring the same mouse 5 times and calling it n=5
+instead of n=1 with 5 technical replicates. Inflates sample size and
+produces falsely significant p-values.</p>
+<p><strong>Publication Bias</strong>: The tendency for studies with significant results to
+be published while null results remain unpublished. Biases meta-analyses
+toward overestimating effect sizes.</p>
+<h2 id="q"><a class="header" href="#q">Q</a></h2>
+<p><strong>QQ Plot (Quantile-Quantile Plot)</strong>: A plot comparing observed quantiles
+to theoretical quantiles (usually normal or uniform). Points on the
+diagonal indicate the data follows the theoretical distribution. Deviations
+reveal non-normality, inflation, or true signal. BioLang: <code>qq_plot()</code>.</p>
+<h2 id="r"><a class="header" href="#r">R</a></h2>
+<p><strong>R-Squared (R2)</strong>: The proportion of variance in the outcome explained by
+the predictor(s). R2 = 0 means no explanatory power, R2 = 1 means perfect
+prediction. In genomics, R2 is often small (0.01-0.10 for individual SNPs)
+because genetic effects are typically modest.</p>
+<p><strong>Random-Effects Model</strong>: In meta-analysis, assumes that true effect sizes
+vary between studies according to a distribution. Produces wider confidence
+intervals than fixed-effects. Appropriate when I-squared &gt; 25%.
+See Chapter 15.</p>
+<p><strong>Residual</strong>: The difference between an observed value and the value
+predicted by a model. Examining residuals reveals model misspecification
+(patterns in residuals indicate the model is wrong).</p>
+<h2 id="s"><a class="header" href="#s">S</a></h2>
+<p><strong>Sensitivity</strong>: The probability of a positive test result given that the
+condition is truly present. Also called the true positive rate or recall.
+Sensitivity = TP / (TP + FN).</p>
+<p><strong>Silhouette Score</strong>: A measure of cluster quality. For each observation,
+it compares the average distance to same-cluster points vs the average
+distance to the nearest other cluster. Ranges from -1 (wrong cluster) to
++1 (well-clustered). See Chapter 14.</p>
+<p><strong>Specificity</strong>: The probability of a negative test result given that the
+condition is truly absent. Also called the true negative rate.
+Specificity = TN / (TN + FP).</p>
+<p><strong>Standard Error (SE)</strong>: The standard deviation of a sampling distribution.
+For the sample mean, SE = SD / sqrt(n). Measures the precision of an
+estimate. Smaller SE = more precise estimate.</p>
+<p><strong>Survival Analysis</strong>: Statistical methods for analyzing time-to-event data,
+accounting for censoring. Key methods: Kaplan-Meier curves, log-rank test,
+Cox proportional hazards. BioLang: <code>kaplan_meier()</code>, <code>cox_ph()</code>.
+See Chapter 11.</p>
+<h2 id="t"><a class="header" href="#t">T</a></h2>
+<p><strong>t-SNE (t-distributed Stochastic Neighbor Embedding)</strong>: A nonlinear
+dimensionality reduction method for visualization. Preserves local structure
+but NOT global distances or cluster sizes. BioLang: <code>tsne()</code>.
+See Chapter 13.</p>
+<p><strong>Technical Replicate</strong>: Repeated measurements of the same biological
+sample (same RNA extraction sequenced twice, same sample run on two lanes).
+Technical replicates measure measurement precision but do NOT capture
+biological variability. They cannot substitute for biological replicates
+in statistical tests.</p>
+<p><strong>Type I Error (False Positive)</strong>: Rejecting the null hypothesis when it
+is actually true. The significance level (alpha) is the maximum acceptable
+Type I error rate. Alpha = 0.05 means you accept a 5% chance of a false
+positive.</p>
+<p><strong>Type II Error (False Negative)</strong>: Failing to reject the null hypothesis
+when it is actually false. Beta is the Type II error rate. Power = 1 - beta.</p>
+<h2 id="u"><a class="header" href="#u">U</a></h2>
+<p><strong>UMAP (Uniform Manifold Approximation and Projection)</strong>: A nonlinear
+dimensionality reduction method that preserves both local and some global
+structure. Faster than t-SNE and more reproducible. Standard for single-cell
+visualization. BioLang: <code>umap()</code>. See Chapter 13.</p>
+<h2 id="v"><a class="header" href="#v">V</a></h2>
+<p><strong>Variance</strong>: The average squared deviation from the mean. Measures the
+spread of a distribution. BioLang: <code>variance()</code>. Standard deviation is the
+square root of variance.</p>
+<p><strong>Volcano Plot</strong>: A scatter plot of effect size (log2 fold change) vs
+significance (-log10 p-value). Points in the upper corners are both
+statistically significant and biologically meaningful. BioLang:
+<code>volcano()</code>.</p>
+<h2 id="w"><a class="header" href="#w">W</a></h2>
+<p><strong>Wilcoxon Rank-Sum Test (Mann-Whitney U)</strong>: A non-parametric test for
+comparing two independent groups. Ranks all observations and compares
+the sum of ranks between groups. Does not assume normality. BioLang:
+<code>wilcoxon()</code>. See Chapter 7.</p>
+<p><strong>Winner’s Curse</strong>: The phenomenon where the effect size estimated in a
+discovery study is systematically larger than the true effect. Occurs
+because studies that detect significant effects (and get published) tend
+to overestimate the effect size. Replication studies typically show smaller
+effects. See Chapter 15.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="appendix-b-distributions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="appendix-b-distributions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/theme-toggle-817b00c6.js"></script>
+        <script src="theme/toolbar-buttons-d041ba86.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

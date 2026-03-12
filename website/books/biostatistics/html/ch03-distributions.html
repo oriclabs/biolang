@@ -1,0 +1,1200 @@
+<!DOCTYPE HTML>
+<html lang="en" class="coal sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Distributions in Genomics - Biostatistics in Practice</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A practical guide to statistical thinking for genomics and bioinformatics using BioLang">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-d890680f.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "coal";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-9adb9a6e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-22d9afbc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Biostatistics in Practice</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="distributions-in-genomics"><a class="header" href="#distributions-in-genomics">Distributions in Genomics</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>A senior bioinformatician reviews a variant calling pipeline’s quality metrics.
+The distribution of variant quality scores does not look right. Instead of the
+expected bell curve for true variants and a clear separation from artifacts, the
+histogram shows an unexpected shoulder at intermediate quality scores. Is this a
+real biological signal — perhaps a heterogeneous tumor sample with subclonal
+variants — or a technical artifact from a failing sequencing run?</p>
+<p>To answer this question, you need to know what the quality score distribution
+should look like when everything is working. You need to know which probability
+distributions describe different types of genomic data, how to check whether
+your data match those distributions, and what it means when they do not.</p>
+<p>This chapter is about the mathematical distributions that appear everywhere in
+genomics. Not as abstract theory, but as practical tools for understanding your
+data and detecting problems.</p>
+<h2 id="why-it-matters"><a class="header" href="#why-it-matters">Why It Matters</a></h2>
+<p>Every statistical test makes assumptions about the underlying distribution of
+the data. Use the wrong distribution, and your p-values, confidence intervals,
+and effect estimates are all wrong.</p>
+<p>Here are the distributions that matter most in genomics and why:</p>
+<ol>
+<li>
+<p><strong>Normal (Gaussian):</strong> Log-transformed expression values, measurement error,
+test statistics. Most parametric tests assume normality.</p>
+</li>
+<li>
+<p><strong>Poisson:</strong> Read counts at a genomic position under simple models, rare
+variant counts, random sampling events. The starting point for count models.</p>
+</li>
+<li>
+<p><strong>Negative binomial:</strong> Overdispersed counts — the real distribution of RNA-seq
+read counts. DESeq2 and edgeR use this instead of Poisson because biological
+variance exceeds what Poisson allows.</p>
+</li>
+<li>
+<p><strong>Binomial:</strong> Allele counts in genotyping, variant allele frequencies, the
+basis of Hardy-Weinberg equilibrium tests.</p>
+</li>
+<li>
+<p><strong>Uniform:</strong> P-values under the null hypothesis. If your null p-values are not
+uniform, your test is miscalibrated.</p>
+</li>
+</ol>
+<p>Understanding these distributions is not academic. It is the difference between
+detecting a real variant and calling an artifact, between finding a real
+expression change and chasing noise.</p>
+<h2 id="the-data"><a class="header" href="#the-data">The Data</a></h2>
+<p>We will use ClinVar variant data to explore real distributions of variant
+properties. ClinVar is NCBI’s database of clinically relevant genetic variants,
+containing hundreds of thousands of variants with their clinical significance,
+genomic coordinates, and associated metadata.</p>
+<pre><code class="language-text"># Download ClinVar variant summary data
+# This file contains variant-level information including
+# chromosomal location, clinical significance, review status, etc.
+let url = "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz"
+let raw_file = download(url, "data/variant_summary.txt.gz")
+
+# Read the tab-delimited file
+let variants = read_tsv(raw_file)
+
+println("ClinVar dataset:")
+println("  Total variants: " + to_string(len(variants)))
+println("  Columns: " + to_string(ncols(variants)))
+println("  Column names:")
+each(columns(variants), |c| println("    " + c))
+
+# Examine the first few rows
+take(variants, 5)
+</code></pre>
+<pre><code class="language-text"># Understanding the dataset structure
+# Key columns we will use:
+# - Type: variant type (single nucleotide variant, deletion, etc.)
+# - ClinicalSignificance: pathogenic, benign, uncertain, etc.
+# - Assembly: genome build (GRCh37, GRCh38)
+# - Chromosome: chromosomal location
+# - Start, Stop: genomic coordinates
+
+# Count variant types
+let type_counts = count_by(variants, "Type")
+println("Variant types:")
+println(type_counts)
+
+# Count clinical significance categories
+let clin_counts = count_by(variants, "ClinicalSignificance")
+println("Clinical significance:")
+println(take(clin_counts, 15))
+</code></pre>
+<h2 id="exploration"><a class="header" href="#exploration">Exploration</a></h2>
+<h3 id="the-normal-distribution"><a class="header" href="#the-normal-distribution">The Normal Distribution</a></h3>
+<p>The normal (Gaussian) distribution is the foundation of classical statistics.
+It describes continuous measurements that cluster symmetrically around a mean,
+with frequency falling off exponentially in the tails.</p>
+<pre><code class="language-text"># The normal distribution is defined by two parameters:
+# mu (mean) — the center
+# sigma (standard deviation) — the spread
+
+# In genomics, log-transformed expression values are approximately normal
+# Measurement errors are approximately normal
+# Many test statistics follow normal distributions (by CLT)
+
+# Generate normal samples and examine their properties
+let normal_data = rnorm(10000, 0.0, 1.0)
+
+println("Standard normal sample (n=10000):")
+println("  Mean: " + to_string(round(mean(normal_data), 4)) + " (expected: 0)")
+println("  SD: " + to_string(round(stdev(normal_data), 4)) + " (expected: 1)")
+println("  Median: " + to_string(round(median(normal_data), 4)) + " (expected: 0)")
+
+# The 68-95-99.7 rule
+let within_1sd = len(filter(normal_data, |x| abs(x) &lt; 1.0))
+let within_2sd = len(filter(normal_data, |x| abs(x) &lt; 2.0))
+let within_3sd = len(filter(normal_data, |x| abs(x) &lt; 3.0))
+println("  Within 1 SD: " + to_string(round(100.0 * within_1sd / 10000.0, 1)) + "% (expected: 68.3%)")
+println("  Within 2 SD: " + to_string(round(100.0 * within_2sd / 10000.0, 1)) + "% (expected: 95.4%)")
+println("  Within 3 SD: " + to_string(round(100.0 * within_3sd / 10000.0, 1)) + "% (expected: 99.7%)")
+
+histogram(normal_data, "plots/normal_distribution.svg")
+  |&gt; save_plot("plots/normal_distribution.svg")
+</code></pre>
+<pre><code class="language-text"># Normal distribution probability functions
+
+# dnorm: probability density function (height of the curve)
+# pnorm: cumulative distribution function (area to the left)
+# qnorm: quantile function (inverse of CDF)
+# rnorm: random number generator
+
+# Example: What fraction of a standard normal is above 1.96?
+let p_above_196 = 1.0 - pnorm(1.96, 0.0, 1.0)
+println("P(Z &gt; 1.96) = " + to_string(round(p_above_196, 4)))
+# This is 0.025 — the basis for 95% confidence intervals
+
+# What Z-score corresponds to the 95th percentile?
+let z_95 = qnorm(0.95, 0.0, 1.0)
+println("Z for 95th percentile: " + to_string(round(z_95, 4)))
+
+# What about more extreme values?
+let p_above_3 = 1.0 - pnorm(3.0, 0.0, 1.0)
+let p_above_5 = 1.0 - pnorm(5.0, 0.0, 1.0)
+println("P(Z &gt; 3.0) = " + to_string(round(p_above_3, 6)))
+println("P(Z &gt; 5.0) = " + to_string(round(p_above_5, 10)))
+# Very extreme values are vanishingly rare under normality
+</code></pre>
+<h3 id="the-normal-distribution-in-real-genomic-data"><a class="header" href="#the-normal-distribution-in-real-genomic-data">The Normal Distribution in Real Genomic Data</a></h3>
+<pre><code class="language-text"># Where does the normal distribution appear in genomics?
+
+# 1. Log-transformed expression values
+# Generate realistic log2(TPM+1) values
+let simulated_expr = rnorm(5000, 4.5, 2.8)
+# Center around 4.5 (median expression), SD around 2.8
+
+println("Simulated log2 expression:")
+println("  Mean: " + to_string(round(mean(simulated_expr), 2)))
+println("  SD: " + to_string(round(stdev(simulated_expr), 2)))
+
+# QQ-plot against normal distribution
+qq_plot(simulated_expr, "plots/log_expr_qqplot.svg")
+  |&gt; save_plot("plots/log_expr_qqplot.svg")
+
+# 2. Measurement error
+# Technical replicates of the same sample
+# The differences between replicates follow a normal distribution
+let replicate_diffs = rnorm(1000, 0.0, 0.15)
+# Mean near 0 (no systematic bias), SD reflects technical noise
+println("Replicate differences:")
+println("  Mean: " + to_string(round(mean(replicate_diffs), 4)))
+println("  SD: " + to_string(round(stdev(replicate_diffs), 4)))
+</code></pre>
+<h3 id="the-poisson-distribution"><a class="header" href="#the-poisson-distribution">The Poisson Distribution</a></h3>
+<p>The Poisson distribution describes the number of events occurring in a fixed
+interval when events happen independently at a constant average rate. In
+genomics, it models read counts at a locus under the simplest assumptions.</p>
+<pre><code class="language-text"># The Poisson distribution has ONE parameter: lambda (the mean)
+# Key property: mean = variance (for a true Poisson)
+
+# Example: sequencing reads at a genomic position
+# If the expected coverage is 30x, the number of reads
+# at any position follows approximately Poisson(30)
+
+let lambda = 30.0
+let poisson_data = rpois(10000, lambda)
+
+println("Poisson(lambda=30) sample:")
+println("  Mean: " + to_string(round(mean(poisson_data), 2)) + " (expected: 30)")
+println("  Variance: " + to_string(round(variance(poisson_data), 2)) + " (expected: 30)")
+println("  SD: " + to_string(round(stdev(poisson_data), 2)) + " (expected: ~5.48)")
+println("  Mean/Variance ratio: " + to_string(round(mean(poisson_data) / variance(poisson_data), 3)) + " (expected: 1.0)")
+
+histogram(poisson_data, "plots/poisson_distribution.svg")
+  |&gt; save_plot("plots/poisson_distribution.svg")
+</code></pre>
+<pre><code class="language-text"># Poisson probability functions
+
+# dpois: probability mass function (exact probability of k events)
+# ppois: cumulative distribution function
+# rpois: random number generator
+
+# Example: If expected coverage is 30x, what is the probability
+# of seeing 0 reads at a position?
+let p_zero = dpois(0, 30.0)
+println("P(X=0 | lambda=30) = " + to_string(round(p_zero, 10)))
+# Essentially zero — this is why 30x coverage is considered adequate
+
+# What about 10 reads? (half the expected coverage)
+let p_10 = dpois(10, 30.0)
+println("P(X=10 | lambda=30) = " + to_string(round(p_10, 6)))
+
+# What fraction of positions have &lt; 15 reads?
+let p_below_15 = ppois(14, 30.0)
+println("P(X &lt; 15 | lambda=30) = " + to_string(round(p_below_15, 6)))
+
+# For variant calling: if we need &gt;= 10 reads for a confident call,
+# what fraction of positions are callable at 30x?
+let p_callable = 1.0 - ppois(9, 30.0)
+println("P(X &gt;= 10 | lambda=30) = " + to_string(round(p_callable, 4)))
+# Very high — almost all positions are callable at 30x
+</code></pre>
+<h3 id="why-rna-seq-is-not-poisson"><a class="header" href="#why-rna-seq-is-not-poisson">Why RNA-seq Is NOT Poisson</a></h3>
+<pre><code class="language-text"># The critical insight: real RNA-seq counts are OVERDISPERSED
+# The variance exceeds the mean, violating the Poisson assumption
+
+# In Poisson: Var(X) = mean(X)
+# In real RNA-seq: Var(X) = mean(X) + alpha * mean(X)^2
+# where alpha is the dispersion parameter
+
+# Let us demonstrate with simulated biological replicates
+# If gene expression truly followed Poisson:
+let poisson_counts = rpois(100, 500.0)  # 100 samples, mean=500
+println("Poisson counts (mean=500):")
+println("  Mean: " + to_string(round(mean(poisson_counts), 1)))
+println("  Variance: " + to_string(round(variance(poisson_counts), 1)))
+println("  Ratio Var/Mean: " + to_string(round(variance(poisson_counts) / mean(poisson_counts), 2)))
+
+# But real RNA-seq has biological variation ON TOP of technical variation
+# This makes the variance much larger than the mean
+# Simulate this with a negative binomial
+let alpha = 0.1  # typical dispersion for RNA-seq
+let nb_mean = 500.0
+# Negative binomial: Var = mu + alpha * mu^2
+# For mu=500, alpha=0.1: Var = 500 + 0.1 * 250000 = 25500
+# SD = sqrt(25500) = ~160
+
+# Approximate NB by sampling means from a gamma distribution
+# then drawing Poisson counts
+let nb_counts = map(range(0, 100), |i| {
+  let true_rate = rnorm(1, nb_mean, nb_mean * sqrt(alpha)) |&gt; take(1)
+  let clamped_rate = max(true_rate, 1.0)
+  rpois(1, clamped_rate) |&gt; take(1)
+})
+
+println("Negative binomial-like counts (mean~500, overdispersed):")
+println("  Mean: " + to_string(round(mean(nb_counts), 1)))
+println("  Variance: " + to_string(round(variance(nb_counts), 1)))
+println("  Ratio Var/Mean: " + to_string(round(variance(nb_counts) / mean(nb_counts), 2)))
+println("  Expected ratio: ~" + to_string(round(1.0 + alpha * nb_mean, 1)))
+
+# The variance-to-mean ratio is much greater than 1
+# This is OVERDISPERSION and it is universal in RNA-seq data
+# Using Poisson when data are overdispersed gives p-values
+# that are FAR too small — massive false positive rates
+</code></pre>
+<h3 id="the-negative-binomial-distribution"><a class="header" href="#the-negative-binomial-distribution">The Negative Binomial Distribution</a></h3>
+<pre><code class="language-text"># The negative binomial (NB) is the standard distribution for RNA-seq counts
+# It has TWO parameters: mean (mu) and dispersion (alpha)
+# Variance = mu + alpha * mu^2
+#
+# When alpha = 0: NB reduces to Poisson (no overdispersion)
+# As alpha increases: variance grows much faster than mean
+#
+# Typical alpha values in RNA-seq:
+# - Highly expressed genes: alpha ~ 0.01 (almost Poisson)
+# - Moderately expressed genes: alpha ~ 0.1
+# - Lowly expressed genes: alpha ~ 1.0 (very overdispersed)
+
+# Demonstrate the effect of dispersion
+let mu = 100.0
+let dispersions = [0.0, 0.01, 0.1, 0.5, 1.0]
+
+each(dispersions, |alpha| {
+  let expected_var = mu + alpha * mu * mu
+  let expected_sd = sqrt(expected_var)
+  let cv = expected_sd / mu
+  println("alpha=" + to_string(alpha) + ": Var=" + to_string(round(expected_var, 1)) + ", SD=" + to_string(round(expected_sd, 1)) + ", CV=" + to_string(round(cv, 3)))
+})
+
+# At alpha=0 (Poisson): CV = 1/sqrt(mu) = 0.1 (10% variation)
+# At alpha=0.1: CV = 0.33 (33% variation)
+# At alpha=1.0: CV = 1.005 (100% variation!)
+# Biological variability is the dominant source of noise
+</code></pre>
+<h3 id="the-binomial-distribution"><a class="header" href="#the-binomial-distribution">The Binomial Distribution</a></h3>
+<pre><code class="language-text"># The binomial distribution describes the number of "successes" in n
+# independent trials, each with probability p of success.
+#
+# In genomics, it appears in:
+# 1. Genotype calling: expected allele counts given ploidy
+# 2. Allele frequency estimation
+# 3. Hardy-Weinberg equilibrium testing
+# 4. Variant allele frequency (VAF) in mixed samples
+
+# Example: at a heterozygous site, each read has p=0.5
+# probability of showing the reference allele
+# With 60 reads, the number showing ref follows Binomial(60, 0.5)
+
+let n_reads = 60
+let p_ref = 0.5
+let binom_data = rbinom(10000, n_reads, p_ref)
+
+println("Binomial(n=60, p=0.5) — heterozygous site:")
+println("  Mean: " + to_string(round(mean(binom_data), 2)) + " (expected: 30)")
+println("  SD: " + to_string(round(stdev(binom_data), 2)) + " (expected: ~3.87)")
+println("  Min observed: " + to_string(min(binom_data)))
+println("  Max observed: " + to_string(max(binom_data)))
+
+histogram(binom_data, "plots/binomial_heterozygous.svg")
+  |&gt; save_plot("plots/binomial_heterozygous.svg")
+</code></pre>
+<pre><code class="language-text"># Binomial probability functions
+# dbinom: P(X = k)
+# pbinom: P(X &lt;= k)
+# rbinom: random number generator
+
+# For variant calling: at a heterozygous site with 60 reads,
+# what is the probability of seeing 20 or fewer ref alleles?
+let p_20_or_less = pbinom(20, 60, 0.5)
+println("P(ref_count &lt;= 20 | n=60, p=0.5) = " + to_string(round(p_20_or_less, 6)))
+# This is quite unlikely (~0.003), suggesting allelic imbalance
+# or that the site might not actually be heterozygous
+
+# For a somatic mutation with VAF = 10% (early tumor clone):
+# Expected variant allele count at 100x coverage
+let vaf = 0.10
+let coverage = 100
+let expected_alt = vaf * coverage
+println("Expected alt reads: " + to_string(expected_alt))
+
+# What is the probability of seeing &gt;= 5 alt reads?
+let p_ge_5 = 1.0 - pbinom(4, coverage, vaf)
+println("P(alt &gt;= 5 | coverage=100, VAF=10%) = " + to_string(round(p_ge_5, 4)))
+
+# What about at 30x coverage?
+let p_ge_5_30x = 1.0 - pbinom(4, 30, vaf)
+println("P(alt &gt;= 5 | coverage=30, VAF=10%) = " + to_string(round(p_ge_5_30x, 4)))
+# Much lower — this is why low-frequency variant detection requires
+# deep sequencing
+</code></pre>
+<h3 id="analyzing-real-variant-data"><a class="header" href="#analyzing-real-variant-data">Analyzing Real Variant Data</a></h3>
+<pre><code class="language-text"># Analyze ClinVar variant characteristics
+# Filter to single nucleotide variants on GRCh38
+let snvs = filter_by(variants, col("Type") == "single nucleotide variant")
+let snvs_grch38 = filter_by(snvs, col("Assembly") == "GRCh38")
+
+println("Single nucleotide variants (GRCh38): " + to_string(len(snvs_grch38)))
+
+# Examine the distribution of variants across chromosomes
+let chr_counts = count_by(snvs_grch38, "Chromosome")
+println("Variants per chromosome:")
+println(chr_counts)
+</code></pre>
+<pre><code class="language-text"># Variant distribution across chromosomes should roughly
+# correlate with chromosome length
+# This is approximately a Poisson process along the genome
+
+# Known approximate chromosome lengths (Mb) for GRCh38
+let chr_lengths = record(
+  chr1: 248.9, chr2: 242.2, chr3: 198.3, chr4: 190.2,
+  chr5: 181.5, chr6: 170.8, chr7: 159.3, chr8: 145.1,
+  chr9: 138.4, chr10: 133.8, chr11: 135.1, chr12: 133.3,
+  chr13: 114.4, chr14: 107.0, chr15: 101.9, chr16: 90.3,
+  chr17: 83.3, chr18: 80.4, chr19: 58.6, chr20: 64.4,
+  chr21: 46.7, chr22: 50.8, chrX: 156.0
+)
+
+# If variants were uniformly distributed, the count per chromosome
+# would be proportional to chromosome length
+# Deviations from this indicate biological enrichment or depletion
+</code></pre>
+<h3 id="the-uniform-distribution-and-p-values-under-the-null"><a class="header" href="#the-uniform-distribution-and-p-values-under-the-null">The Uniform Distribution and P-values Under the Null</a></h3>
+<pre><code class="language-text"># Under the null hypothesis (no effect), p-values follow a
+# Uniform(0, 1) distribution. This is a FUNDAMENTAL property
+# that must hold for any valid test.
+#
+# If your null p-values are not uniform, either:
+# 1. The null hypothesis is false for some tests (expected)
+# 2. Your test is invalid (a problem)
+# 3. There are confounders or batch effects (a problem)
+
+# Demonstrate: random t-tests between identical groups
+let null_pvals = map(range(0, 5000), |i| {
+  let group1 = rnorm(10, 0.0, 1.0)
+  let group2 = rnorm(10, 0.0, 1.0)
+  let result = ttest(group1, group2)
+  result.p_value
+})
+
+# These should be uniform
+println("Null p-value distribution (should be uniform):")
+println("  Mean: " + to_string(round(mean(null_pvals), 3)) + " (expected: 0.5)")
+println("  Median: " + to_string(round(median(null_pvals), 3)) + " (expected: 0.5)")
+println("  &lt; 0.05: " + to_string(round(100.0 * len(filter(null_pvals, |p| p &lt; 0.05)) / 5000.0, 1)) + "% (expected: 5%)")
+println("  &lt; 0.01: " + to_string(round(100.0 * len(filter(null_pvals, |p| p &lt; 0.01)) / 5000.0, 1)) + "% (expected: 1%)")
+
+# Check with quantiles (should be 0.1, 0.2, ..., 0.9)
+each([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], |q| {
+  let observed = quantile(null_pvals, q)
+  println("  Q" + to_string(round(q * 100, 0)) + ": " + to_string(round(observed, 3)) + " (expected: " + to_string(q) + ")")
+})
+
+histogram(null_pvals, "plots/null_pvalue_uniform.svg")
+  |&gt; save_plot("plots/null_pvalue_uniform.svg")
+</code></pre>
+<pre><code class="language-text"># What does the p-value distribution look like when there IS a real effect?
+# Mix null tests with tests that have a real difference
+
+let mixed_pvals = map(range(0, 5000), |i| {
+  if i &lt; 4000 then {
+    # Null: no difference
+    let g1 = rnorm(10, 0.0, 1.0)
+    let g2 = rnorm(10, 0.0, 1.0)
+    let res = ttest(g1, g2)
+    res.p_value
+  } else {
+    # Alternative: real difference of d=1.0
+    let g1 = rnorm(10, 0.0, 1.0)
+    let g2 = rnorm(10, 1.0, 1.0)
+    let res = ttest(g1, g2)
+    res.p_value
+  }
+})
+
+histogram(mixed_pvals, "plots/mixed_pvalue_distribution.svg")
+  |&gt; save_plot("plots/mixed_pvalue_distribution.svg")
+
+# The histogram should show:
+# - A flat region (from 4000 null tests — uniform distribution)
+# - A spike near 0 (from 1000 tests with real effects)
+# The spike height above the flat region tells you how many
+# true positives you have
+</code></pre>
+<h2 id="the-analysis"><a class="header" href="#the-analysis">The Analysis</a></h2>
+<h3 id="qq-plots-the-universal-distribution-check"><a class="header" href="#qq-plots-the-universal-distribution-check">QQ-Plots: The Universal Distribution Check</a></h3>
+<pre><code class="language-text"># A QQ (Quantile-Quantile) plot compares the distribution of your data
+# against a theoretical distribution.
+#
+# How it works:
+# 1. Sort your data
+# 2. For each data point, compute its expected value under the
+#    theoretical distribution
+# 3. Plot observed (y-axis) vs expected (x-axis)
+# 4. If the data follow the theoretical distribution,
+#    points fall on the diagonal y = x
+
+# Check if our Poisson data looks Poisson
+qq_plot(poisson_data, "plots/poisson_qqplot.svg")
+  |&gt; save_plot("plots/poisson_qqplot.svg")
+
+# Check if overdispersed data looks Poisson (it should not)
+qq_plot(nb_counts, "plots/nb_qqplot.svg")
+  |&gt; save_plot("plots/nb_qqplot.svg")
+
+# The overdispersed data will show tails that deviate from the line
+# — more extreme values than Poisson predicts
+</code></pre>
+<h3 id="testing-for-distribution-fit"><a class="header" href="#testing-for-distribution-fit">Testing for Distribution Fit</a></h3>
+<pre><code class="language-text"># The Kolmogorov-Smirnov (KS) test compares a sample distribution
+# to a theoretical distribution, or two sample distributions to each other
+
+# Test if our normal data is actually normal
+let normal_sample = rnorm(500, 0.0, 1.0)
+let reference_sample = rnorm(500, 0.0, 1.0)
+let ks_result = ks_test(normal_sample, reference_sample)
+println("KS test — normal vs normal:")
+println("  statistic: " + to_string(round(ks_result.statistic, 4)))
+println("  p-value: " + to_string(round(ks_result.p_value, 4)))
+# High p-value = no evidence of different distributions (expected)
+
+# Test if overdispersed data differs from Poisson
+let true_poisson = rpois(500, 100.0)
+let overdispersed = map(range(0, 500), |i| {
+  let rate = rnorm(1, 100.0, 30.0) |&gt; take(1)
+  rpois(1, max(rate, 1.0)) |&gt; take(1)
+})
+
+let ks_overdispersed = ks_test(true_poisson, overdispersed)
+println("KS test — Poisson vs overdispersed:")
+println("  statistic: " + to_string(round(ks_overdispersed.statistic, 4)))
+println("  p-value: " + to_string(round(ks_overdispersed.p_value, 4)))
+# Low p-value = distributions differ (overdispersion detected)
+</code></pre>
+<h3 id="the-central-limit-theorem"><a class="header" href="#the-central-limit-theorem">The Central Limit Theorem</a></h3>
+<pre><code class="language-text"># The CLT is the most important theorem in statistics:
+# The mean of many independent random variables is approximately
+# normally distributed, REGARDLESS of the underlying distribution.
+#
+# This is why:
+# 1. The t-test works even when individual observations are not normal
+#    (as long as sample size is large enough)
+# 2. Confidence intervals based on the normal distribution are valid
+# 3. Many biological measurements appear normal (they are sums of
+#    many small effects)
+
+# Demonstrate: averages of Poisson samples approach normality
+let sample_sizes = [1, 2, 5, 10, 30, 100]
+
+each(sample_sizes, |n| {
+  # Take 2000 means of n Poisson(5) values
+  let means = map(range(0, 2000), |i| {
+    let sample = rpois(n, 5.0)
+    mean(sample)
+  })
+  let m = mean(means)
+  let s = stdev(means)
+  println("n=" + to_string(n) + ": mean=" + to_string(round(m, 3)) + ", SD=" + to_string(round(s, 3)))
+})
+
+# Even n=5 gives reasonably normal-looking means
+# By n=30, the CLT is working well for most distributions
+</code></pre>
+<pre><code class="language-text"># The CLT has limits!
+# It fails or is slow to converge when:
+# 1. The underlying distribution has very heavy tails (e.g., Cauchy)
+# 2. The sample size is too small (n &lt; 5 for skewed data)
+# 3. The data are not independent (correlated observations)
+
+# Demonstrate heavy tails: Cauchy distribution
+# (ratio of two normals — no finite mean or variance!)
+let cauchy_means = map(range(0, 2000), |i| {
+  let sample = map(range(0, 30), |j| {
+    let num = rnorm(1, 0.0, 1.0) |&gt; take(1)
+    let denom = rnorm(1, 0.0, 1.0) |&gt; take(1)
+    if abs(denom) &gt; 0.001 then num / denom else 0.0
+  })
+  mean(sample)
+})
+
+println("Means of Cauchy samples (n=30):")
+println("  Mean: " + to_string(round(mean(cauchy_means), 2)))
+println("  SD: " + to_string(round(stdev(cauchy_means), 2)))
+println("  These are highly variable — CLT does NOT apply!")
+</code></pre>
+<h3 id="allele-frequency-distributions"><a class="header" href="#allele-frequency-distributions">Allele Frequency Distributions</a></h3>
+<pre><code class="language-text"># In population genetics, allele frequencies follow specific patterns
+# The site frequency spectrum (SFS) describes the distribution of
+# allele frequencies in a population
+
+# Under neutral evolution, the expected number of variants at
+# frequency p in a sample of n chromosomes is proportional to 1/p
+# This is the neutral SFS
+
+# Simulate a neutral SFS for a sample of 100 chromosomes
+let n_chrom = 100
+let sfs = map(range(1, n_chrom), |k| {
+  # Expected count proportional to 1/k (Watterson's result)
+  let expected = 1000.0 / k  # scale factor of 1000
+  record(
+    allele_count: k,
+    frequency: round(k / n_chrom, 3),
+    expected_variants: round(expected, 1)
+  )
+})
+
+println("Neutral site frequency spectrum (first 20 bins):")
+each(take(sfs, 20), |s| {
+  println("  AC=" + to_string(s.allele_count) + " (freq=" + to_string(s.frequency) + "): ~" + to_string(s.expected_variants) + " variants")
+})
+
+# Key observation: most variants are RARE
+# There are far more singletons (AC=1) than common variants
+# This 1/f pattern is a prediction of neutral evolution theory
+</code></pre>
+<pre><code class="language-text"># Hardy-Weinberg Equilibrium uses the binomial distribution
+# For a biallelic site with allele freq p:
+# P(AA) = p^2, P(Aa) = 2p(1-p), P(aa) = (1-p)^2
+
+# Example: variant with minor allele frequency (MAF) = 0.3
+let p = 0.3
+let q = 1.0 - p
+
+let expected_AA = p * p
+let expected_Aa = 2.0 * p * q
+let expected_aa = q * q
+
+println("Hardy-Weinberg expectations for MAF = " + to_string(p) + ":")
+println("  P(AA) = " + to_string(round(expected_AA, 4)))
+println("  P(Aa) = " + to_string(round(expected_Aa, 4)))
+println("  P(aa) = " + to_string(round(expected_aa, 4)))
+println("  Sum = " + to_string(round(expected_AA + expected_Aa + expected_aa, 4)))
+
+# In a sample of 1000 individuals:
+let n_sample = 1000
+println("Expected genotype counts in n=" + to_string(n_sample) + ":")
+println("  AA: " + to_string(round(expected_AA * n_sample, 1)))
+println("  Aa: " + to_string(round(expected_Aa * n_sample, 1)))
+println("  aa: " + to_string(round(expected_aa * n_sample, 1)))
+
+# Deviations from HWE can indicate:
+# 1. Genotyping errors (common)
+# 2. Population stratification
+# 3. Selection (rare for a single test)
+# 4. Inbreeding (excess homozygosity)
+</code></pre>
+<h3 id="read-depth-distribution"><a class="header" href="#read-depth-distribution">Read Depth Distribution</a></h3>
+<pre><code class="language-text"># The distribution of read depth across the genome is important
+# for variant calling and quality assessment
+
+# In an ideal world, depth follows Poisson(lambda) where lambda
+# is the average coverage
+# In reality, GC bias, mappability, and duplicates cause deviations
+
+# Simulate realistic read depth distribution
+# Model: mixture of Poisson (unique regions) and inflated values (duplicates)
+let mean_depth = 30.0
+let n_positions = 10000
+
+let depths = map(range(0, n_positions), |i| {
+  # 80% of positions: Poisson with some GC-bias variation
+  # 20% of positions: lower coverage (GC-extreme or low-mappability)
+  let is_normal = rbinom(1, 1, 0.8) |&gt; take(1)
+  if is_normal == 1 then {
+    # GC-bias: modulate the rate
+    let gc_factor = rnorm(1, 1.0, 0.15) |&gt; take(1)
+    rpois(1, mean_depth * max(gc_factor, 0.1)) |&gt; take(1)
+  } else {
+    # Low-coverage region
+    rpois(1, mean_depth * 0.3) |&gt; take(1)
+  }
+})
+
+println("Simulated read depth distribution:")
+println("  Mean: " + to_string(round(mean(depths), 1)))
+println("  Median: " + to_string(round(median(depths), 1)))
+println("  SD: " + to_string(round(stdev(depths), 1)))
+println("  Min: " + to_string(min(depths)))
+println("  Max: " + to_string(max(depths)))
+
+# Variance/Mean ratio &gt; 1 indicates overdispersion (deviation from Poisson)
+let var_mean_ratio = variance(depths) / mean(depths)
+println("  Variance/Mean ratio: " + to_string(round(var_mean_ratio, 2)) + " (Poisson would be 1.0)")
+
+histogram(depths, "plots/read_depth_distribution.svg")
+  |&gt; save_plot("plots/read_depth_distribution.svg")
+</code></pre>
+<pre><code class="language-text"># Positions with very low depth are problematic for variant calling
+# Positions with very high depth may indicate duplicates or CNVs
+
+let very_low = len(filter(depths, |d| d &lt; 10))
+let low = len(filter(depths, |d| d &gt;= 10 &amp;&amp; d &lt; 20))
+let normal = len(filter(depths, |d| d &gt;= 20 &amp;&amp; d &lt;= 50))
+let high = len(filter(depths, |d| d &gt; 50))
+
+println("Depth categories:")
+println("  Very low (&lt;10x): " + to_string(very_low) + " (" + to_string(round(100.0 * very_low / n_positions, 1)) + "%)")
+println("  Low (10-19x): " + to_string(low) + " (" + to_string(round(100.0 * low / n_positions, 1)) + "%)")
+println("  Normal (20-50x): " + to_string(normal) + " (" + to_string(round(100.0 * normal / n_positions, 1)) + "%)")
+println("  High (&gt;50x): " + to_string(high) + " (" + to_string(round(100.0 * high / n_positions, 1)) + "%)")
+
+# For variant calling, a typical minimum depth threshold is 10x
+# The fraction of the genome below this threshold determines
+# the "callable" fraction
+let callable_frac = 1.0 - (very_low / n_positions)
+println("Callable fraction (&gt;= 10x): " + to_string(round(100.0 * callable_frac, 1)) + "%")
+</code></pre>
+<h3 id="distribution-mixtures-in-real-data"><a class="header" href="#distribution-mixtures-in-real-data">Distribution Mixtures in Real Data</a></h3>
+<pre><code class="language-text"># Real genomic data often follows MIXTURE distributions
+# — a combination of two or more distributions
+
+# Example: variant quality scores
+# True variants: high quality (normal distribution centered at 30)
+# Artifacts: low quality (normal distribution centered at 10)
+
+let n_true = 8000
+let n_artifact = 2000
+
+let true_quals = rnorm(n_true, 30.0, 5.0)
+let artifact_quals = rnorm(n_artifact, 10.0, 4.0)
+let all_quals = concat(true_quals, artifact_quals)
+
+println("Mixed quality score distribution:")
+println("  Mean: " + to_string(round(mean(all_quals), 2)))
+println("  Median: " + to_string(round(median(all_quals), 2)))
+println("  SD: " + to_string(round(stdev(all_quals), 2)))
+
+histogram(all_quals, "plots/mixed_quality_scores.svg")
+  |&gt; save_plot("plots/mixed_quality_scores.svg")
+
+# The histogram should show a bimodal distribution
+# A quality filter at Q=20 would separate most true variants
+# from artifacts
+
+let above_20 = len(filter(all_quals, |q| q &gt;= 20.0))
+let below_20 = len(filter(all_quals, |q| q &lt; 20.0))
+println("Q &gt;= 20: " + to_string(above_20) + " (" + to_string(round(100.0 * above_20 / len(all_quals), 1)) + "%)")
+println("Q &lt; 20: " + to_string(below_20) + " (" + to_string(round(100.0 * below_20 / len(all_quals), 1)) + "%)")
+
+# Estimate false positive and false negative rates at Q=20 cutoff
+let fp_at_20 = len(filter(artifact_quals, |q| q &gt;= 20.0))
+let fn_at_20 = len(filter(true_quals, |q| q &lt; 20.0))
+println("At Q=20 threshold:")
+println("  False positives (artifacts passing): " + to_string(fp_at_20) + " / " + to_string(n_artifact))
+println("  False negatives (true variants failing): " + to_string(fn_at_20) + " / " + to_string(n_true))
+</code></pre>
+<h3 id="clinvar-variant-length-distribution"><a class="header" href="#clinvar-variant-length-distribution">ClinVar Variant Length Distribution</a></h3>
+<pre><code class="language-text"># Analyze the distribution of variant sizes in ClinVar
+# For deletions and insertions, the size distribution is important
+
+let deletions = filter_by(variants, col("Type") == "Deletion")
+println("Total deletions in ClinVar: " + to_string(len(deletions)))
+
+# Calculate deletion sizes from Start and Stop positions
+let del_sizes = map(range(0, min(len(deletions), 5000)), |i| {
+  let row = slice(deletions, i, i + 1)
+  let start = col_values(row, "Start") |&gt; take(1) |&gt; to_float()
+  let stop = col_values(row, "Stop") |&gt; take(1) |&gt; to_float()
+  abs(stop - start) + 1.0
+})
+
+# Filter out any invalid sizes
+let valid_sizes = filter(del_sizes, |s| s &gt; 0.0 &amp;&amp; s &lt; 1000000.0)
+
+println("Deletion size distribution:")
+println("  Mean: " + to_string(round(mean(valid_sizes), 1)) + " bp")
+println("  Median: " + to_string(round(median(valid_sizes), 1)) + " bp")
+println("  Min: " + to_string(round(min(valid_sizes), 0)) + " bp")
+println("  Max: " + to_string(round(max(valid_sizes), 0)) + " bp")
+
+# Size categories
+let small = len(filter(valid_sizes, |s| s &lt;= 50.0))
+let medium = len(filter(valid_sizes, |s| s &gt; 50.0 &amp;&amp; s &lt;= 1000.0))
+let large = len(filter(valid_sizes, |s| s &gt; 1000.0))
+let total_valid = len(valid_sizes)
+
+println("Size categories:")
+println("  Small (&lt;= 50 bp): " + to_string(small) + " (" + to_string(round(100.0 * small / total_valid, 1)) + "%)")
+println("  Medium (51-1000 bp): " + to_string(medium) + " (" + to_string(round(100.0 * medium / total_valid, 1)) + "%)")
+println("  Large (&gt; 1000 bp): " + to_string(large) + " (" + to_string(round(100.0 * large / total_valid, 1)) + "%)")
+</code></pre>
+<pre><code class="language-text"># Log-transform the sizes for better visualization
+let log_sizes = map(valid_sizes, |s| log10(s))
+histogram(log_sizes, "plots/deletion_size_log10.svg")
+  |&gt; save_plot("plots/deletion_size_log10.svg")
+
+# The deletion size distribution is typically heavy-tailed
+# with most deletions being small but a long tail of large ones
+</code></pre>
+<h2 id="interpretation"><a class="header" href="#interpretation">Interpretation</a></h2>
+<p>The distributions we have explored each tell us something fundamental about
+the data-generating process in genomics:</p>
+<p><strong>Normal distribution</strong> appears when many small, independent effects combine
+additively. Log-transformed expression values are approximately normal because
+gene regulation involves many multiplicative factors, and log transforms
+multiplication into addition. The CLT ensures that means and test statistics
+are approximately normal even when individual observations are not.</p>
+<p><strong>Poisson distribution</strong> appears when events occur independently at a constant
+rate. This is a reasonable first approximation for read counts at a locus, but
+it underestimates the variance because it ignores biological variability.</p>
+<p><strong>Negative binomial</strong> is the correct model for RNA-seq counts because it
+accounts for both technical (Poisson) and biological variability. The
+dispersion parameter captures the extent to which biological variance exceeds
+what Poisson predicts. Using Poisson when data are negative binomial leads to
+massive false positive inflation.</p>
+<p><strong>Binomial distribution</strong> describes allele sampling in genotyping. At a
+heterozygous site, each read independently samples one of two alleles with
+equal probability. Deviations from binomial expectations signal allelic
+imbalance, copy number changes, or genotyping errors.</p>
+<p><strong>Uniform distribution</strong> is what p-values look like when the null hypothesis
+is true. Any deviation from uniformity in your null p-values indicates a
+problem with your statistical test or your assumptions.</p>
+<h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
+<p>When choosing a distribution for your analysis:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Data Type</th><th>First Choice</th><th>Alternative</th><th>Red Flag</th></tr>
+</thead>
+<tbody>
+<tr><td>Log expression</td><td>Normal</td><td>Nonparametric</td><td>Heavy tails in QQ-plot</td></tr>
+<tr><td>Raw read counts</td><td>Negative binomial</td><td>Poisson</td><td>Var/Mean &gt;&gt; 1</td></tr>
+<tr><td>Allele counts</td><td>Binomial</td><td>Beta-binomial</td><td>Overdispersion</td></tr>
+<tr><td>Coverage depth</td><td>Neg. binomial</td><td>Poisson</td><td>Multimodal histogram</td></tr>
+<tr><td>P-values (null)</td><td>Uniform</td><td>—</td><td>Not flat histogram</td></tr>
+<tr><td>Variant sizes</td><td>Log-normal</td><td>Power law</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-text"># Quick distribution diagnostic pipeline
+# Run this on any new dataset to identify the distribution family
+
+let data = rnorm(1000, 10.0, 3.0)  # replace with your data
+
+let m = mean(data)
+let med = median(data)
+let s = stdev(data)
+let v = variance(data)
+
+println("Distribution diagnostics:")
+println("  Mean: " + to_string(round(m, 3)))
+println("  Median: " + to_string(round(med, 3)))
+println("  Mean/Median: " + to_string(round(m / med, 3)) + " (1.0 = symmetric)")
+println("  Var/Mean: " + to_string(round(v / m, 3)) + " (1.0 = Poisson)")
+println("  CV: " + to_string(round(s / m, 3)))
+
+# Decision rules:
+# Mean/Median ~ 1 and QQ-plot straight: Normal
+# Mean/Median &gt; 1.5: Right-skewed, try log transform
+# Var/Mean ~ 1: Poisson
+# Var/Mean &gt;&gt; 1: Negative binomial or overdispersed
+# Var/Mean &lt;&lt; 1: Underdispersed (unusual, check for truncation)
+# Bimodal histogram: Mixture model needed
+</code></pre>
+<h2 id="pitfalls"><a class="header" href="#pitfalls">Pitfalls</a></h2>
+<h3 id="pitfall-1-using-poisson-for-rna-seq"><a class="header" href="#pitfall-1-using-poisson-for-rna-seq">Pitfall 1: Using Poisson for RNA-seq</a></h3>
+<pre><code class="language-text"># This is the most common distributional error in genomics
+# Poisson assumes Var = Mean
+# RNA-seq data has Var &gt;&gt; Mean
+# Result: p-values are far too small, massive false positives
+
+# Demonstrate the damage
+let true_mean = 100.0
+let true_disp = 0.15
+
+# Generate NB data (realistic RNA-seq)
+let group1 = map(range(0, 50), |i| {
+  let rate = rnorm(1, true_mean, true_mean * sqrt(true_disp)) |&gt; take(1)
+  rpois(1, max(rate, 1.0)) |&gt; take(1) |&gt; to_float()
+})
+let group2 = map(range(0, 50), |i| {
+  let rate = rnorm(1, true_mean, true_mean * sqrt(true_disp)) |&gt; take(1)
+  rpois(1, max(rate, 1.0)) |&gt; take(1) |&gt; to_float()
+})
+
+# These groups have the SAME mean — no real difference
+# Test with t-test (approximately correct)
+let ttest_result = ttest(group1, group2)
+println("t-test p-value (correct): " + to_string(round(ttest_result.p_value, 4)))
+
+# The variance is much larger than Poisson would predict
+println("Group 1 Var/Mean: " + to_string(round(variance(group1) / mean(group1), 2)))
+println("Group 2 Var/Mean: " + to_string(round(variance(group2) / mean(group2), 2)))
+</code></pre>
+<h3 id="pitfall-2-ignoring-zero-inflation"><a class="header" href="#pitfall-2-ignoring-zero-inflation">Pitfall 2: Ignoring zero inflation</a></h3>
+<pre><code class="language-text"># Many genomic datasets have excess zeros
+# - Single-cell RNA-seq: most genes are zero in most cells (dropout)
+# - Rare variant counts: most genes have zero rare variants
+# - Methylation: some CpGs are completely unmethylated
+#
+# Standard distributions (normal, Poisson, NB) do not model excess zeros
+# You need zero-inflated versions or hurdle models
+#
+# How to detect: compare the observed zero fraction to
+# the expected zero fraction under your assumed distribution
+
+let lambda_estimate = 2.5
+let n_obs = 1000
+let observed_zeros_frac = 0.45  # example: 45% of observations are zero
+let expected_zeros_frac = dpois(0, lambda_estimate)
+
+println("Expected zero fraction (Poisson, lambda=2.5): " + to_string(round(expected_zeros_frac, 4)))
+println("Observed zero fraction: " + to_string(observed_zeros_frac))
+
+if observed_zeros_frac &gt; 2.0 * expected_zeros_frac then {
+  println("WARNING: Zero-inflated! Standard Poisson/NB is inappropriate")
+}
+</code></pre>
+<h3 id="pitfall-3-assuming-normality-for-small-samples"><a class="header" href="#pitfall-3-assuming-normality-for-small-samples">Pitfall 3: Assuming normality for small samples</a></h3>
+<pre><code class="language-text"># With n &lt; 10, you cannot reliably assess normality
+# The QQ-plot will look fine for almost any distribution
+# The Shapiro-Wilk test has low power
+#
+# Solution: use nonparametric tests (Wilcoxon, KS) for small samples
+# Or use the t-test but interpret results cautiously
+
+let small_sample = rnorm(5, 0.0, 1.0)
+println("Small sample (n=5): " + to_string(small_sample))
+println("Can we assess normality from this? No — too few points.")
+println("Use Wilcoxon test or bootstrap for inference.")
+</code></pre>
+<h3 id="pitfall-4-confusing-the-p-value-distribution-shape"><a class="header" href="#pitfall-4-confusing-the-p-value-distribution-shape">Pitfall 4: Confusing the p-value distribution shape</a></h3>
+<pre><code class="language-text"># When analyzing a genome-wide experiment, the p-value histogram
+# provides critical diagnostic information:
+#
+# GOOD shapes:
+# - Flat (uniform): all null, no real effects — unexpected in genomics
+# - Flat + spike at 0: mixture of nulls + true effects — typical
+#
+# BAD shapes:
+# - U-shaped (spikes at 0 AND 1): anti-conservative test, possible
+#   confounding or population stratification
+# - Spike only at 1: overly conservative test or wrong test direction
+# - Wavy/bumpy: batch effects or violated assumptions
+#
+# If you see a bad shape, DO NOT proceed with multiple testing correction
+# Fix the underlying problem first
+</code></pre>
+<h2 id="where-next"><a class="header" href="#where-next">Where Next?</a></h2>
+<p>Understanding distributions is the foundation for choosing the right
+statistical test. With this knowledge:</p>
+<ul>
+<li>
+<p>You can diagnose problems in your data by checking distributional
+assumptions (QQ-plots, variance/mean ratios, p-value histograms).</p>
+</li>
+<li>
+<p>You know why RNA-seq requires the negative binomial, not Poisson.</p>
+</li>
+<li>
+<p>You can interpret allele frequency distributions in population genetics.</p>
+</li>
+<li>
+<p>You know that p-values should be uniform under the null, and you can
+detect when they are not.</p>
+</li>
+</ul>
+<p>In <strong>Chapter 4: Experimental Design and Power</strong>, we will use these
+distributional insights to calculate sample size requirements. The variance
+of your chosen distribution directly determines how many samples you need
+to detect effects of a given size.</p>
+<h3 id="exercises"><a class="header" href="#exercises">Exercises</a></h3>
+<pre><code class="language-text"># Exercise 1: Generate 10,000 Poisson(5) samples and 10,000 NB samples
+# with the same mean but dispersion 0.2. Plot both histograms.
+# Can you visually distinguish them? What about Var/Mean ratio?
+
+# Exercise 2: Take the ClinVar data and examine the distribution of
+# variants across chromosomes. Is it proportional to chromosome length?
+# Use a chi-square test to check.
+
+# Exercise 3: Simulate allele sampling at a heterozygous site with
+# 30x coverage. What is the probability of seeing an allele ratio
+# more extreme than 80:20? (Use the binomial distribution.)
+
+# Exercise 4: Generate 1000 p-values from t-tests where the true
+# effect size is d=0.5 and n=20 per group. What fraction are
+# significant at alpha=0.05? This is the power.
+
+# Exercise 5: Create a QQ-plot of the deletion sizes from ClinVar
+# against a log-normal distribution. Do they match?
+
+# Exercise 6: Simulate the effect of GC-bias on coverage distribution.
+# Generate coverage from Poisson(30) but modulate lambda by a
+# GC-content factor drawn from Normal(1, 0.2). How does the
+# resulting coverage distribution differ from Poisson?
+
+# Exercise 7: For a gene with mean count 50 and dispersion 0.1,
+# calculate P(count &gt; 100) under both Poisson and negative binomial.
+# How much does the distributional choice matter?
+</code></pre>
+<h3 id="quick-reference-distribution-cheat-sheet"><a class="header" href="#quick-reference-distribution-cheat-sheet">Quick reference: distribution cheat sheet</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Distribution</th><th>Parameters</th><th>Mean</th><th>Variance</th><th>Genomics Use</th></tr>
+</thead>
+<tbody>
+<tr><td>Normal</td><td>mu, sigma</td><td>mu</td><td>sigma^2</td><td>Log-expression, errors</td></tr>
+<tr><td>Poisson</td><td>lambda</td><td>lambda</td><td>lambda</td><td>Idealized counts</td></tr>
+<tr><td>Neg. Binomial</td><td>mu, alpha</td><td>mu</td><td>mu + alpha*mu^2</td><td>RNA-seq counts</td></tr>
+<tr><td>Binomial</td><td>n, p</td><td>np</td><td>np(1-p)</td><td>Allele counts</td></tr>
+<tr><td>Uniform</td><td>a, b</td><td>(a+b)/2</td><td>(b-a)^2/12</td><td>Null p-values</td></tr>
+<tr><td>Log-normal</td><td>mu, sigma</td><td>exp(mu+s^2/2)</td><td>complex</td><td>Variant sizes</td></tr>
+</tbody>
+</table>
+</div>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch02-eda.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ch04-experimental-design.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch02-eda.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ch04-experimental-design.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/theme-toggle-817b00c6.js"></script>
+        <script src="theme/toolbar-buttons-d041ba86.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
