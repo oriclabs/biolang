@@ -1,0 +1,80 @@
+=== Creating Intervals ===
+
+BRCA1: chr17:43044295-43125483
+  Chromosome: chr17
+  Start: 43044295
+  End: 43125483
+  Length: 81188 bp
+
+TP53: chr17:7668402-7687550
+  Length: 19148 bp
+Strand: -
+
+=== Reading BED Files ===
+
+Exon regions: 20
+Total exonic bases: 22750
+
+First 5 exons:
+  BRCA1_exon23: chr17:43044295-43045802 (1507 bp)
+  BRCA1_exon22: chr17:43047643-43048451 (808 bp)
+  BRCA1_exon21: chr17:43049120-43049194 (74 bp)
+  BRCA1_exon20: chr17:43051063-43051117 (54 bp)
+  BRCA1_exon19: chr17:43057052-43057135 (83 bp)
+
+=== Interval Trees ===
+
+Query: chr17:43065000-43085000
+Overlapping regions: 2
+Number of overlaps: 2
+
+Bulk overlap queries:
+  Query 0: 1 overlaps
+  Query 1: 1 overlaps
+  Query 2: 0 overlaps
+
+Nearest to chr17:43055000-43056000: chr17:43060000-43070000
+
+=== Variant-in-Region Filtering ===
+
+Total variants: 15
+Exonic variants: 10
+Intronic/intergenic: 5
+
+=== Coverage Analysis ===
+
+Coverage segments: 8
+Coverage result: [{start: 100, end: 150, depth: 1}, {start: 150, end: 200, depth: 2}, {start: 200, end: 250, depth: 3}, {start: 250, end: 300, depth: 2}, {start: 300, end: 350, depth: 1}, {start: 400, end: 420, depth: 1}, {start: 420, end: 550, depth: 2}, {start: 550, end: 600, depth: 1}]
+
+=== Coordinate Conversion ===
+
+BED 43044294-43044295 -> VCF pos 43044295
+VCF pos 43044295 -> BED 43044294-43044295
+Round-trip VCF pos: 43044295 (should be 43044295)
+
+=== GFF Annotations ===
+
+BRCA1 exons: 5
+Interval tree built from 5 exons
+
+=== Writing BED Files ===
+
+Wrote high-coverage regions to BED file
+
+=== Exome Coverage Report ===
+
+Target regions: 20
+Total target bases: 22750
+
+Variant classification:
+  On-target:  10
+  Off-target: 5
+  On-target rate: 66.7%
+
+On-target variants per chromosome:
+chrom | n
+chr17 | 10
+
+Results saved
+
+=== Report complete ===

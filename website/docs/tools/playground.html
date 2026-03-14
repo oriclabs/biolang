@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playground — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/playground"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Playground</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Playground</h1>
+        <p>
+          The BioLang Playground lets you write and run BioLang code directly in your browser
+          using WebAssembly. No installation, no server — just open the page and start coding.
+        </p>
+
+        <h2>Features</h2>
+        <ul>
+          <li>Persistent state between runs — variables and functions carry over</li>
+          <li>Block numbering and "Run All Above + This" for multi-block scripts</li>
+          <li>Inline SVG chart rendering from <code>bar_chart()</code>, <code>scatter()</code>, <code>histogram()</code>, etc.</li>
+          <li>Syntax highlighting with BioLang-aware tokenizer</li>
+          <li>Dark/light theme toggle</li>
+        </ul>
+
+        <h2>How It Works</h2>
+        <ul>
+          <li>The playground compiles BioLang to WebAssembly via the <code>br-wasm</code> crate</li>
+          <li>Each code block runs in a shared interpreter instance (thread-local)</li>
+          <li>Output is captured as JSON: <code>{ ok, value, type, output, error }</code></li>
+          <li>SVG output is rendered inline with white background</li>
+        </ul>
+
+        <h2>Keyboard Shortcuts</h2>
+        <div class="not-prose overflow-x-auto my-4">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Shortcut</th>
+                <th class="py-3 px-4">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Ctrl</kbd> + <kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Enter</kbd></td>
+                <td class="py-3 px-4">Run current block</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Shift</kbd> + <kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Ctrl</kbd> + <kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Enter</kbd></td>
+                <td class="py-3 px-4">Run all above + this</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Limitations</h2>
+        <ul>
+          <li>File I/O reads via synchronous XHR (<code>__blFetch.sync</code>) — works for URLs only</li>
+          <li>No filesystem access (use the REPL for local files)</li>
+          <li>Single-threaded — no parallel execution</li>
+          <li>~50MB WASM binary download on first visit (cached by service worker)</li>
+        </ul>
+
+        <p class="mt-8">
+          <a href="../../playground.html" class="text-violet-400 hover:text-violet-300">Open the Playground &rarr;</a>
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <div></div>
+        <div></div>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

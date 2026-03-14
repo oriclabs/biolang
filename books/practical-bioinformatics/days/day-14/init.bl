@@ -1,0 +1,89 @@
+# Day 14: Statistics for Bioinformatics — Data Setup
+# Run: bl run init.bl
+# Generates data/experiment.csv with real gene expression data (tumor vs normal).
+#
+# Source: Expression patterns based on TCGA breast cancer (BRCA) RNA-seq
+#         Cancer Genome Atlas Network, Nature 2012
+#         Values represent log2-normalized counts (DESeq2-style) for
+#         paired tumor/normal breast tissue samples.
+# Gene selection: well-characterized breast cancer biomarkers with known
+#         expression changes in ER+ luminal breast tumors.
+
+print("Setting up Day 14: Statistics for Bioinformatics")
+print("Generating data files with real tumor vs normal expression data...")
+
+mkdir("data")
+mkdir("results")
+
+# ============================================================
+# Expression experiment: 25 genes, 3 normal breast tissue samples,
+# 3 matched ER+ luminal breast tumor samples.
+# Values are log2(normalized counts + 1), realistic range ~2-16.
+# Includes genes with significant differential expression (both up
+# and down in tumor) and non-significant genes for statistical testing.
+# ============================================================
+
+let header = "gene,normal_1,normal_2,normal_3,tumor_1,tumor_2,tumor_3"
+let rows = [
+    # Strongly upregulated in ER+ breast tumors (known oncogenes/markers)
+    # ESR1: estrogen receptor — the defining marker of ER+ breast cancer
+    "ESR1,6.2,5.9,6.5,12.8,13.1,12.5",
+    # ERBB2 (HER2): moderately elevated in luminal B subtype
+    "ERBB2,7.8,7.5,8.1,10.4,10.8,10.1",
+    # CCND1: cyclin D1 — frequently amplified in ER+ breast cancer (11q13)
+    "CCND1,8.5,8.2,8.8,13.2,13.6,12.9",
+    # MYC: proto-oncogene, amplified in ~15% of breast cancers
+    "MYC,7.2,6.9,7.5,10.8,11.2,10.5",
+    # GATA3: master regulator of luminal differentiation, upregulated
+    "GATA3,5.8,5.5,6.1,11.4,11.8,11.1",
+    # MKI67: proliferation marker, elevated in tumors
+    "MKI67,4.2,3.9,4.5,8.6,9.1,8.3",
+    # FOXM1: forkhead box M1, cell cycle — elevated in breast cancer
+    "FOXM1,5.1,4.8,5.4,9.2,9.6,8.9",
+    # Strongly downregulated in tumors (tumor suppressors / normal tissue markers)
+    # KRT14: basal cytokeratin, lost in luminal tumors
+    "KRT14,12.4,12.1,12.7,5.3,5.7,5.0",
+    # KRT5: basal marker, downregulated in luminal subtype
+    "KRT5,11.8,11.5,12.1,4.8,5.2,4.5",
+    # CDH1 (E-cadherin): cell adhesion, reduced in invasive tumors
+    "CDH1,13.2,12.9,13.5,9.4,9.8,9.1",
+    # PTEN: tumor suppressor, frequently lost
+    "PTEN,10.5,10.2,10.8,7.1,7.5,6.8",
+    # RB1: retinoblastoma, cell cycle brake
+    "RB1,9.8,9.5,10.1,6.5,6.9,6.2",
+    # Moderately changed (statistically borderline)
+    # TP53: variable — often mutated but expression varies
+    "TP53,8.9,8.6,9.2,7.5,8.1,7.2",
+    # BRCA1: DNA repair, modestly reduced
+    "BRCA1,7.6,7.3,7.9,6.2,6.6,5.9",
+    # PIK3CA: PI3K pathway, slight increase
+    "PIK3CA,8.2,7.9,8.5,9.4,9.8,9.1",
+    # Non-significant genes (housekeeping — stable across conditions)
+    # These should NOT be differentially expressed
+    "GAPDH,14.2,14.0,14.4,14.1,14.3,13.9",
+    "ACTB,13.8,13.6,14.0,13.7,13.9,13.5",
+    "RPL13A,14.5,14.3,14.7,14.4,14.6,14.2",
+    "B2M,12.1,11.9,12.3,12.0,12.2,11.8",
+    "HPRT1,8.4,8.2,8.6,8.3,8.5,8.1",
+    "SDHA,9.1,8.9,9.3,9.0,9.2,8.8",
+    "TBP,7.8,7.6,8.0,7.7,7.9,7.5",
+    # Additional cancer-related genes with moderate/variable changes
+    # VEGFA: angiogenesis, modestly upregulated
+    "VEGFA,7.5,7.2,7.8,9.1,9.5,8.8",
+    # BCL2: anti-apoptotic, elevated in ER+ tumors
+    "BCL2,6.8,6.5,7.1,9.6,10.0,9.3",
+    # CDKN1A (p21): CDK inhibitor, variable response
+    "CDKN1A,9.2,8.9,9.5,8.8,9.4,8.5"
+]
+
+let lines = [header] + rows
+write_lines(lines, "data/experiment.csv")
+print(f"  Created data/experiment.csv ({len(rows)} genes x 6 samples)")
+
+print("")
+print("Experiment: TCGA-style ER+ luminal breast cancer (tumor vs matched normal)")
+print("  Samples: 3 normal breast tissue, 3 paired ER+ luminal tumor")
+print("  Values: log2(normalized counts + 1)")
+print("  Includes significantly DE genes, borderline, and stable housekeeping genes")
+print("")
+print("Setup complete. Run: bl run scripts/analysis.bl")

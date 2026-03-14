@@ -1,0 +1,101 @@
+# Day 21: PCA / Dimensionality Reduction
+# Data sources:
+#   Zheng et al. 2017 Nature Communications — 10x Genomics PBMC dataset expression patterns
+#   Marker genes: CD3D/CD3E/CD4/CD8A (T cells), CD19/CD79A/MS4A1 (B cells),
+#   CD14/LYZ/CST3 (monocytes), ACTB/GAPDH/B2M (housekeeping)
+#   Expression values in log2(CPM+1) scale, typical ranges from single-cell PBMC data
+
+println("Setting up Day 21: PCA / Dimensionality Reduction")
+mkdir("data")
+
+# ── 50 gene names: 4 T-cell markers, 3 B-cell markers, 3 monocyte markers,
+#    3 housekeeping, 37 variable/noise genes ──
+let genes = [
+    "CD3D", "CD3E", "CD4", "CD8A",
+    "CD19", "CD79A", "MS4A1",
+    "CD14", "LYZ", "CST3",
+    "ACTB", "GAPDH", "B2M",
+    "IL7R", "LEF1", "TCF7", "GZMA", "GZMB", "PRF1", "NKG7",
+    "IGHM", "IGHD", "CD72", "BANK1", "BLK", "PAX5", "TCL1A",
+    "FCGR3A", "S100A8", "S100A9", "VCAN", "FCN1", "MNDA",
+    "HLA_DRA", "HLA_DRB1", "CD74", "FOS", "JUN",
+    "MALAT1", "TMSB4X", "RPS27", "RPL13A", "EEF1A1",
+    "TPT1", "RPS18", "RPL10", "RPL3", "UBA52", "NACA", "FTH1"
+]
+
+# ── Base expression profiles per cell type (log2(CPM+1) scale) ──
+# T-cell markers: high CD3D/CD3E/CD4/CD8A; low B/mono markers
+let t_cell_base = [
+    5.2, 4.8, 3.9, 2.1,
+    0.1, 0.05, 0.1,
+    0.2, 0.3, 0.1,
+    6.5, 7.2, 5.8,
+    4.1, 3.2, 2.8, 2.5, 1.8, 1.5, 2.2,
+    0.05, 0.1, 0.05, 0.1, 0.05, 0.1, 0.05,
+    0.8, 0.3, 0.4, 0.2, 0.1, 0.2,
+    3.5, 2.8, 4.1, 1.2, 0.8,
+    7.5, 6.2, 5.5, 5.1, 6.0,
+    5.8, 5.2, 4.9, 4.5, 3.8, 3.2, 4.5
+]
+# B-cell markers: high CD19/CD79A/MS4A1; low T/mono markers
+let b_cell_base = [
+    0.15, 0.1, 0.05, 0.05,
+    5.8, 5.2, 4.9,
+    0.1, 0.4, 0.2,
+    6.8, 7.0, 6.1,
+    0.2, 0.1, 0.1, 0.05, 0.1, 0.05, 0.1,
+    4.5, 3.8, 3.2, 4.1, 3.5, 4.8, 3.9,
+    0.3, 0.2, 0.3, 0.1, 0.2, 0.1,
+    4.2, 3.5, 5.0, 0.8, 0.5,
+    7.2, 5.8, 5.3, 5.4, 5.8,
+    5.5, 5.0, 4.7, 4.3, 3.5, 3.0, 4.2
+]
+# Monocyte markers: high CD14/LYZ/CST3; low T/B markers
+let mono_base = [
+    0.1, 0.05, 0.1, 0.05,
+    0.05, 0.1, 0.05,
+    5.5, 7.8, 5.2,
+    7.1, 7.5, 6.5,
+    0.1, 0.05, 0.1, 0.2, 0.1, 0.1, 0.3,
+    0.1, 0.05, 0.1, 0.05, 0.1, 0.05, 0.1,
+    3.8, 6.5, 6.2, 4.8, 5.1, 4.5,
+    5.5, 4.8, 5.8, 2.5, 1.8,
+    7.8, 6.5, 5.0, 5.2, 5.5,
+    5.2, 4.8, 4.5, 4.1, 3.6, 3.1, 5.8
+]
+
+let profiles = [t_cell_base, b_cell_base, mono_base]
+let type_names = ["T_cell", "B_cell", "Monocyte"]
+let type_counts = [200, 150, 150]
+let n_genes = len(genes)
+
+# ── Build CSV header ──
+let header = "cell_id,cell_type," + join(genes, ",")
+let lines = [header]
+
+let cell_num = 0
+for t in range(0, 3) {
+    let base = profiles[t]
+    let ctype = type_names[t]
+    for i in range(0, type_counts[t]) {
+        cell_num = cell_num + 1
+        let vals = []
+        for g in range(0, n_genes) {
+            # Deterministic noise: sin/cos hash based on cell and gene index
+            let noise_seed = cell_num * 137 + g * 59
+            let noise = ((noise_seed * 2654435761) % 10000) / 10000.0 - 0.5
+            let val = base[g] + noise * 1.8
+            if val < 0.0 then val = 0.0
+            vals = append(vals, f"{round(val, 2)}")
+        }
+        let row = f"cell_{cell_num},{ctype}," + join(vals, ",")
+        lines = append(lines, row)
+    }
+}
+
+write_lines(lines, "data/scrna_expression.csv")
+
+println(f"Created data/scrna_expression.csv")
+println(f"  500 cells (200 T, 150 B, 150 mono) x {n_genes} genes")
+println("  Real marker genes from Zheng et al. 2017 10x PBMC dataset")
+println("  Expression in log2(CPM+1) scale")

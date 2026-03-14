@@ -143,3 +143,107 @@ await_all([double(5), 100, double(15)])
         Value::Int(10), Value::Int(100), Value::Int(30),
     ]));
 }
+
+// ── Additional par_map / par_filter tests ─────────────────────────
+
+#[test]
+fn test_par_map_correctness_vs_sequential() {
+    // Verify par_map and map produce identical results
+    let code = r#"
+let data = range(1, 501)
+let expected = data |> map(|x| x * x + x)
+let actual = data |> par_map(|x| x * x + x)
+expected == actual
+"#;
+    assert_eq!(eval(code), Value::Bool(true));
+}
+
+#[test]
+fn test_par_filter_correctness_vs_sequential() {
+    let code = r#"
+let data = range(1, 501)
+let expected = data |> filter(|x| x % 3 == 0 or x % 5 == 0)
+let actual = data |> par_filter(|x| x % 3 == 0 or x % 5 == 0)
+expected == actual
+"#;
+    assert_eq!(eval(code), Value::Bool(true));
+}
+
+#[test]
+fn test_par_map_with_string_ops() {
+    let code = r#"
+let words = ["hello", "world", "foo", "bar"]
+let result = words |> par_map(|w| upper(w))
+result
+"#;
+    assert_eq!(eval(code), Value::List(vec![
+        Value::Str("HELLO".into()),
+        Value::Str("WORLD".into()),
+        Value::Str("FOO".into()),
+        Value::Str("BAR".into()),
+    ]));
+}
+
+#[test]
+fn test_par_map_large_dataset() {
+    // 10000 items should distribute across threads
+    let code = r#"
+let result = range(1, 10001) |> par_map(|x| x * 2) |> len()
+result
+"#;
+    assert_eq!(eval(code), Value::Int(10000));
+}
+
+#[test]
+fn test_par_filter_large_dataset() {
+    let code = r#"
+let result = range(1, 10001) |> par_filter(|x| x % 10 == 0) |> len()
+result
+"#;
+    assert_eq!(eval(code), Value::Int(1000));
+}
+
+#[test]
+fn test_par_map_with_records() {
+    let code = r#"
+let items = [{x: 1}, {x: 2}, {x: 3}]
+let result = items |> par_map(|r| {x: r.x * 10})
+result |> map(|r| r.x)
+"#;
+    assert_eq!(eval(code), Value::List(vec![
+        Value::Int(10), Value::Int(20), Value::Int(30),
+    ]));
+}
+
+#[test]
+fn test_par_map_two_items() {
+    // Edge case: fewer items than threads
+    let code = r#"
+[1, 2] |> par_map(|x| x + 100)
+"#;
+    assert_eq!(eval(code), Value::List(vec![
+        Value::Int(101), Value::Int(102),
+    ]));
+}
+
+#[test]
+fn test_async_fn_with_closure_capture() {
+    let code = r#"
+let factor = 7
+async fn scaled(x) { x * factor }
+let f = scaled(6)
+await f
+"#;
+    assert_eq!(eval(code), Value::Int(42));
+}
+
+#[test]
+fn test_await_all_large() {
+    let code = r#"
+async fn square(x) { x * x }
+let futures = range(1, 101) |> map(|i| square(i))
+let results = await_all(futures)
+len(results)
+"#;
+    assert_eq!(eval(code), Value::Int(100));
+}

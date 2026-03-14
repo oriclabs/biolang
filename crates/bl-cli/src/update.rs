@@ -385,20 +385,45 @@ pub fn cmd_upgrade() {
         }
     }
 
-    // Find the new binary
+    // Find the new binary — check top-level and subdirectories
     let bin_name = if cfg!(windows) { "bl.exe" } else { "bl" };
     let new_binary = tmp_dir.join(bin_name);
-    if !new_binary.exists() {
-        eprintln!("Error: '{bin_name}' not found in archive.");
-        eprintln!("Contents:");
+    let new_binary = if new_binary.exists() {
+        new_binary
+    } else {
+        // Search subdirectories (archives often nest in a folder)
+        let mut found = None;
         if let Ok(entries) = fs::read_dir(&tmp_dir) {
             for entry in entries.flatten() {
-                eprintln!("  {}", entry.file_name().to_string_lossy());
+                let candidate = entry.path().join(bin_name);
+                if candidate.exists() {
+                    found = Some(candidate);
+                    break;
+                }
             }
         }
-        let _ = fs::remove_dir_all(&tmp_dir);
-        std::process::exit(1);
-    }
+        match found {
+            Some(p) => p,
+            None => {
+                eprintln!("Error: '{bin_name}' not found in archive.");
+                eprintln!("Contents:");
+                fn list_dir(dir: &std::path::Path, indent: &str) {
+                    if let Ok(entries) = fs::read_dir(dir) {
+                        for entry in entries.flatten() {
+                            let p = entry.path();
+                            eprintln!("{}{}", indent, entry.file_name().to_string_lossy());
+                            if p.is_dir() {
+                                list_dir(&p, &format!("{indent}  "));
+                            }
+                        }
+                    }
+                }
+                list_dir(&tmp_dir, "  ");
+                let _ = fs::remove_dir_all(&tmp_dir);
+                std::process::exit(1);
+            }
+        }
+    };
 
     // Replace the current binary
     let backup = current_exe.with_extension("old");
@@ -443,4 +468,7 @@ pub fn cmd_upgrade() {
 
     eprintln!("\x1b[32mUpgraded to BioLang v{latest}!\x1b[0m");
     eprintln!("Release notes: {}", release.html_url);
+    eprintln!();
+    eprintln!("Please restart your terminal for the new version to take effect.");
+    eprintln!("Run 'bl version' to verify.");
 }

@@ -1,0 +1,95 @@
+============================================================
+Day 19: Biological Data Visualization
+============================================================
+
+── GWAS Visualization ──
+
+Loaded GWAS data: 100 variants
+
+Manhattan plot:
+  [ASCII Manhattan plot with chromosomes along x-axis, -log10(p) on y-axis]
+  [Significant peaks visible on chr6 (HLA region) and chr17 (BRCA region)]
+
+QQ plot:
+  [ASCII QQ plot showing observed vs expected -log10(p)]
+  [Points follow diagonal with tail deviation indicating true associations]
+
+Saved figures/manhattan.svg
+Saved figures/qq_plot.svg
+
+── Expression Visualization ──
+
+Violin plot:
+  [ASCII violin showing three groups: control (~5.0), low_dose (~6.8), high_dose (~9.1)]
+
+Density plot:
+  [ASCII density curve showing distribution shape]
+
+PCA plot:
+  [ASCII PCA showing two clusters: ctrl samples and treat samples]
+
+Clustered heatmap:
+  [ASCII heatmap grid with row/column clustering]
+
+── Clinical Visualization ──
+
+Kaplan-Meier survival curve:
+  [ASCII step function showing survival probability decreasing over time]
+
+ROC curve:
+  [ASCII ROC curve with AUC displayed]
+
+Forest plot:
+  [ASCII forest plot with 4 studies, effect sizes, and confidence intervals]
+
+── Genomic Structure Visualization ──
+
+Ideogram:
+  [ASCII chromosome 17 with 3 bands]
+
+Circos plot:
+  [ASCII circular representation with 3 chromosomes]
+
+Lollipop plot:
+  [ASCII lollipop showing 5 TP53 mutation hotspots]
+
+── Sequence Visualization ──
+
+Sequence logo:
+  [ASCII sequence logo showing TATA box conservation]
+
+Phylogenetic tree:
+  [ASCII tree with 5 species]
+
+── Specialized Genomic Plots ──
+
+Venn diagram:
+  [ASCII Venn diagram with 3 overlapping sets]
+
+UpSet plot:
+  [ASCII UpSet plot showing set intersections as matrix + bars]
+
+Oncoprint:
+  [ASCII oncoprint grid showing mutation types across samples]
+
+── RNA-seq Specific Plots ──
+
+Sashimi plot:
+  [ASCII sashimi with splice junction arcs]
+
+HiC contact map:
+  [ASCII heatmap of 4x4 contact matrix]
+
+── Additional Genomic Plots ──
+
+CNV plot:
+  [ASCII CNV plot showing gains and losses across chromosomes]
+
+Rainfall plot:
+  [ASCII rainfall showing inter-mutation distances]
+
+============================================================
+Day 19 complete!
+Generated ASCII plots for 21 bio visualization functions.
+SVG figures saved to figures/ directory.
+============================================================

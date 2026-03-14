@@ -469,12 +469,51 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::alignment::is_alignment_builtin(name) => {
             crate::alignment::call_alignment_builtin(name, args)
         }
-        _ => Err(BioLangError::runtime(
-            ErrorKind::NameError,
-            format!("unknown bio builtin '{name}'"),
-            None,
-        )),
+        _ => {
+            let mut err = BioLangError::runtime(
+                ErrorKind::NameError,
+                format!("unknown bio builtin '{name}'"),
+                None,
+            );
+            if let Some(suggestion) = suggest_bio_builtin(name) {
+                err = err.with_suggestion(format!("did you mean '{suggestion}'?"));
+            }
+            Err(err)
+        }
     }
+}
+
+/// Levenshtein edit distance between two strings.
+fn levenshtein(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let (m, n) = (a.len(), b.len());
+    let mut prev = (0..=n).collect::<Vec<_>>();
+    let mut curr = vec![0; n + 1];
+    for i in 1..=m {
+        curr[0] = i;
+        for j in 1..=n {
+            let cost = if a[i - 1] == b[j - 1] { 0 } else { 1 };
+            curr[j] = (prev[j] + 1).min(curr[j - 1] + 1).min(prev[j - 1] + cost);
+        }
+        std::mem::swap(&mut prev, &mut curr);
+    }
+    prev[n]
+}
+
+/// Find the most similar bio builtin name using Levenshtein distance.
+fn suggest_bio_builtin(name: &str) -> Option<String> {
+    let max_dist = (name.len() / 3).max(2);
+    let mut best: Option<(String, usize)> = None;
+    for (builtin_name, _) in bio_builtin_list() {
+        let dist = levenshtein(name, builtin_name);
+        if dist > 0 && dist <= max_dist {
+            if best.as_ref().map_or(true, |(_, d)| dist < *d) {
+                best = Some((builtin_name.to_string(), dist));
+            }
+        }
+    }
+    best.map(|(s, _)| s)
 }
 
 // ══════════════════════════════════════════════════════════════════════

@@ -1,0 +1,110 @@
+# Day 9: Non-Parametric Tests — Data Generation
+# Source: Human Microbiome Project (HMP) — hmpdacc.org
+#         Lloyd-Price et al. 2019 Nature 569:655-662 (IBD Multi-omics)
+# Relative abundances based on published HMP and IBDMDB 16S profiles.
+# Zero-inflated distributions characteristic of real microbiome data.
+
+println("Day 9: Non-Parametric Tests")
+println("============================")
+println("Generating microbiome abundance and diversity data...")
+
+mkdir("data")
+
+# --- File 1: microbiome_abundance.csv ---
+# Gut microbiome relative abundance (%) for 10 genera
+# 15 IBD patients + 15 healthy controls
+# Source: Lloyd-Price et al. 2019 IBDMDB
+# IBD: lower Faecalibacterium/Roseburia, higher Escherichia, more zeros
+# Healthy: higher diversity, fewer zeros, more Bacteroides/Faecalibacterium
+
+let micro_header = ["sample_id,group,Bacteroides,Prevotella,Faecalibacterium,Ruminococcus,Bifidobacterium,Clostridium,Lactobacillus,Escherichia,Akkermansia,Roseburia"]
+let micro_lines = micro_header
+
+# IBD patients — dysbiotic profiles (lower diversity, more zeros, higher Escherichia)
+# Values are relative abundance percentages
+let ibd_data = [
+    [12.5, 0.0, 1.2, 2.8, 0.5, 8.2, 0.1, 15.3, 0.0, 0.3],
+    [8.2, 0.0, 0.0, 1.5, 0.0, 12.5, 0.8, 22.1, 0.2, 0.0],
+    [15.8, 2.1, 2.5, 0.0, 1.2, 5.5, 0.0, 8.5, 0.0, 0.5],
+    [5.2, 0.0, 0.0, 3.2, 0.0, 15.8, 0.2, 18.5, 0.0, 0.0],
+    [18.5, 0.5, 0.8, 0.0, 0.0, 3.2, 1.5, 12.2, 0.5, 0.2],
+    [3.8, 0.0, 0.0, 0.8, 0.3, 18.2, 0.0, 25.5, 0.0, 0.0],
+    [10.2, 1.2, 1.5, 2.1, 0.0, 8.8, 0.0, 10.5, 0.1, 0.8],
+    [6.5, 0.0, 0.0, 0.0, 0.8, 14.2, 0.5, 20.8, 0.0, 0.0],
+    [14.2, 0.0, 3.2, 1.8, 0.0, 6.5, 0.0, 8.2, 0.3, 1.2],
+    [2.5, 0.0, 0.0, 0.5, 0.0, 20.5, 0.2, 28.5, 0.0, 0.0],
+    [11.8, 0.8, 0.5, 3.5, 0.5, 7.2, 0.0, 14.8, 0.0, 0.5],
+    [7.5, 0.0, 0.0, 0.0, 0.0, 16.8, 1.2, 22.5, 0.2, 0.0],
+    [16.2, 1.5, 2.0, 1.2, 0.8, 4.5, 0.0, 9.8, 0.0, 0.8],
+    [4.8, 0.0, 0.0, 2.5, 0.0, 18.5, 0.0, 20.2, 0.0, 0.0],
+    [9.5, 0.0, 0.8, 0.0, 0.2, 10.5, 0.5, 16.5, 0.1, 0.2]
+]
+
+# Healthy controls — higher diversity, more Faecalibacterium/Roseburia
+let healthy_data = [
+    [22.5, 8.2, 12.5, 5.8, 3.2, 2.5, 1.8, 0.5, 2.8, 8.5],
+    [18.2, 12.5, 10.8, 4.2, 2.8, 3.2, 0.5, 0.2, 1.5, 6.2],
+    [25.8, 5.5, 15.2, 6.5, 4.5, 1.8, 2.2, 0.8, 3.5, 10.2],
+    [20.5, 10.2, 8.5, 3.8, 1.5, 2.8, 1.2, 0.0, 2.2, 7.8],
+    [15.8, 15.2, 11.5, 7.2, 3.8, 1.5, 0.8, 0.5, 4.2, 9.5],
+    [28.2, 3.8, 14.8, 5.2, 2.2, 2.2, 1.5, 0.2, 1.8, 11.5],
+    [19.5, 11.8, 9.2, 4.5, 3.5, 3.5, 0.2, 0.0, 2.5, 5.8],
+    [23.8, 7.5, 13.5, 6.8, 4.8, 1.2, 2.5, 0.5, 3.2, 8.2],
+    [17.2, 14.5, 10.2, 3.5, 2.5, 2.8, 1.2, 0.8, 1.2, 7.5],
+    [26.5, 4.2, 16.5, 7.5, 5.2, 1.5, 1.8, 0.0, 4.5, 12.8],
+    [21.8, 9.8, 11.8, 5.5, 3.2, 2.5, 0.5, 0.2, 2.8, 9.2],
+    [16.5, 13.2, 8.8, 4.8, 1.8, 3.8, 2.8, 0.5, 1.5, 6.5],
+    [24.5, 6.8, 14.2, 6.2, 4.2, 1.8, 1.5, 0.0, 3.8, 10.8],
+    [19.8, 10.5, 12.2, 3.2, 2.8, 2.2, 0.8, 0.2, 2.2, 8.8],
+    [22.2, 8.8, 15.8, 5.8, 3.5, 1.2, 2.2, 0.5, 3.5, 11.2]
+]
+
+for i in range(0, 15) {
+    let d = ibd_data[i]
+    micro_lines = append(micro_lines,
+        f"IBD_{i + 1:02},IBD,{d[0]},{d[1]},{d[2]},{d[3]},{d[4]},{d[5]},{d[6]},{d[7]},{d[8]},{d[9]}")
+}
+for i in range(0, 15) {
+    let d = healthy_data[i]
+    micro_lines = append(micro_lines,
+        f"HLT_{i + 1:02},healthy,{d[0]},{d[1]},{d[2]},{d[3]},{d[4]},{d[5]},{d[6]},{d[7]},{d[8]},{d[9]}")
+}
+write_lines(micro_lines, "data/microbiome_abundance.csv")
+
+# --- File 2: body_site_diversity.csv ---
+# Shannon diversity index across 4 body sites from HMP
+# Source: HMP Consortium 2012 Nature 486:207-214
+# Gut: highest diversity (~3.5-4.5), Oral: moderate (~2.5-3.5),
+# Skin: moderate (~2.0-3.0), Vaginal: lowest (~0.5-2.0)
+
+let div_header = ["sample_id,body_site,shannon_diversity"]
+let div_lines = div_header
+
+# Gut — high diversity (Shannon 3.5-4.5)
+let gut_div = [4.12, 3.85, 4.28, 3.95, 4.35, 3.78, 4.15, 4.42, 3.88, 4.05,
+               3.72, 4.22, 3.98, 4.38, 3.82, 4.18, 3.92, 4.32, 3.75, 4.08]
+# Oral — moderate diversity (Shannon 2.5-3.5)
+let oral_div = [3.12, 2.85, 3.28, 2.95, 3.35, 2.78, 3.15, 2.68, 3.08, 2.92,
+                3.22, 2.72, 3.05, 3.38, 2.82, 3.18, 2.88, 3.32, 2.75, 3.02]
+# Skin — moderate-low diversity (Shannon 2.0-3.0)
+let skin_div = [2.52, 2.25, 2.68, 2.35, 2.75, 2.18, 2.55, 2.82, 2.28, 2.45,
+                2.12, 2.62, 2.38, 2.78, 2.22, 2.58, 2.32, 2.72, 2.15, 2.48]
+# Vaginal — lowest diversity (Shannon 0.5-2.0)
+let vag_div = [0.82, 1.55, 0.65, 1.82, 0.48, 1.25, 0.72, 1.68, 0.55, 1.92,
+               0.38, 1.45, 0.85, 1.72, 0.52, 1.35, 0.68, 1.88, 0.42, 1.58]
+
+let sites = ["gut", "oral", "skin", "vaginal"]
+let all_divs = [gut_div, oral_div, skin_div, vag_div]
+
+for s in range(0, 4) {
+    let site = sites[s]
+    let divs = all_divs[s]
+    for i in range(0, 20) {
+        div_lines = append(div_lines, f"{site}_{i + 1:02},{site},{divs[i]}")
+    }
+}
+write_lines(div_lines, "data/body_site_diversity.csv")
+
+println("Generated 2 files in data/")
+println("  data/microbiome_abundance.csv — 30 samples, 10 genera (IBDMDB)")
+println("  data/body_site_diversity.csv  — 80 samples, 4 body sites (HMP)")

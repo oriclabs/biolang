@@ -1,0 +1,41 @@
+{
+  "name": "BLViewer",
+  "short_name": "BLViewer",
+  "description": "View and analyze FASTA, FASTQ, VCF, BED, GFF, CSV bioinformatics files in your browser. No upload, no server — runs entirely offline.",
+  "start_url": "/viewer.html",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#7c3aed",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["science", "productivity", "utilities"],
+  "file_handlers": [
+    {
+      "action": "/viewer.html",
+      "accept": {
+        "chemical/x-fasta": [".fasta", ".fa", ".fna", ".faa"],
+        "chemical/x-fastq": [".fastq", ".fq"],
+        "text/x-vcf": [".vcf"],
+        "text/x-bed": [".bed"],
+        "text/x-gff": [".gff", ".gff3", ".gtf"],
+        "text/x-sam": [".sam"],
+        "text/csv": [".csv"],
+        "text/tab-separated-values": [".tsv"],
+        "text/plain": [".txt"]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+bioview",
+      "url": "/viewer.html?bioview=%s"
+    }
+  ]
+}

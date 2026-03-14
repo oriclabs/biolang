@@ -1,0 +1,124 @@
+============================================================
+Day 20: Multi-Species Comparison
+============================================================
+
+── Fetching BRCA1 Orthologs ──
+
+  Human: ENSG00000012048 (1863 aa)
+  Mouse: ENSMUSG00000017146 (1812 aa)
+  Chicken: ENSGALG00000006098 (1559 aa)
+  Zebrafish: ENSDARG00000052626 (1766 aa)
+
+| species   | gene_id              | protein_len | cds_len | gc   |
+|-----------|----------------------|-------------|---------|------|
+| Human     | ENSG00000012048      | 1863        | 5592    | 42.3 |
+| Mouse     | ENSMUSG00000017146   | 1812        | 5439    | 44.1 |
+| Chicken   | ENSGALG00000006098   | 1559        | 4680    | 48.7 |
+| Zebrafish | ENSDARG00000052626   | 1766        | 5301    | 45.9 |
+
+── Sequence Property Comparison ──
+
+BRCA1 GC Content by Species (%)
+
+Human     | ##########################################          42.3%
+Mouse     | ############################################        44.1%
+Chicken   | ################################################    48.7%
+Zebrafish | ##############################################      45.9%
+
+BRCA1 Protein Length by Species (aa)
+
+Human     | ################################################## 1863
+Mouse     | ################################################   1812
+Chicken   | ##########################################          1559
+Zebrafish | ################################################   1766
+
+── K-mer Similarity ──
+
+Pairwise k-mer Jaccard similarity (k=5):
+  Human vs Mouse: 0.412
+  Human vs Chicken: 0.287
+  Human vs Zebrafish: 0.198
+  Mouse vs Chicken: 0.271
+  Mouse vs Zebrafish: 0.189
+  Chicken vs Zebrafish: 0.163
+
+Effect of k on Human vs Mouse similarity:
+  k=3: 0.891
+  k=4: 0.645
+  k=5: 0.412
+  k=6: 0.268
+  k=7: 0.173
+  k=8: 0.112
+
+── Dotplot Comparison ──
+
+Human vs Mouse (Simplified)
+  [ASCII dotplot showing diagonal with disruption at position 16]
+
+── Amino Acid Composition ──
+
+Amino acid composition comparison:
+  Human: hydrophobic=38.2%, polar=24.1%, charged=25.3%
+  Mouse: hydrophobic=37.8%, polar=24.5%, charged=25.0%
+  Chicken: hydrophobic=37.1%, polar=23.8%, charged=26.2%
+  Zebrafish: hydrophobic=36.5%, polar=24.9%, charged=24.8%
+
+── Cross-Species Comparison Table ──
+
+| species   | protein_len | cds_len | gc_percent | cds_protein_ratio |
+|-----------|-------------|---------|------------|-------------------|
+| Human     | 1863        | 5592    | 42.3       | 3.0               |
+| Mouse     | 1812        | 5439    | 44.1       | 3.0               |
+| Chicken   | 1559        | 4680    | 48.7       | 3.0               |
+| Zebrafish | 1766        | 5301    | 45.9       | 3.0               |
+
+Saved results/species_comparison.csv
+
+── Phylogenetic Tree ──
+
+BRCA1 Species Phylogeny
+
+         ┌── Human (0.1)
+    ┌────┤
+    │    └──── Mouse (0.25)
+────┤
+    │    ┌────── Chicken (0.35)
+    └────┤
+         └──────── Zebrafish (0.45)
+
+── Multi-Gene Comparison ──
+
+| gene  | species   | length |
+|-------|-----------|--------|
+| TP53  | Human     | 393    |
+| TP53  | Mouse     | 387    |
+| TP53  | Chicken   | 367    |
+| TP53  | Zebrafish | 373    |
+| BRCA1 | Human     | 1863   |
+| BRCA1 | Mouse     | 1812   |
+| BRCA1 | Chicken   | 1559   |
+| BRCA1 | Zebrafish | 1766   |
+| EGFR  | Human     | 1210   |
+| EGFR  | Mouse     | 1210   |
+| EGFR  | Chicken   | 1213   |
+| EGFR  | Zebrafish | 1182   |
+
+TP53 Protein Length by Species
+  [ASCII bar chart]
+
+BRCA1 Protein Length by Species
+  [ASCII bar chart]
+
+EGFR Protein Length by Species
+  [ASCII bar chart]
+
+── Exporting Sequences ──
+
+Exported to results/brca1_orthologs.fasta
+Next steps:
+  mafft results/brca1_orthologs.fasta > results/brca1_aligned.fasta
+  iqtree -s results/brca1_aligned.fasta -m AUTO
+
+============================================================
+Day 20 complete!
+============================================================

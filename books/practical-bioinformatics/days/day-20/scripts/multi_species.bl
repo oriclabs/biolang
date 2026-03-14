@@ -1,0 +1,191 @@
+# Day 20: Multi-Species Comparison
+# Complete BioLang script — fetching orthologs, comparing sequences, visualizing conservation
+# requires: internet connection
+
+print("=" * 60)
+print("Day 20: Multi-Species Comparison")
+print("=" * 60)
+
+# ── Section 1: Fetch Orthologs via Ensembl ─────────────────────────────
+
+print("\n── Fetching BRCA1 Orthologs ──\n")
+
+let species = [
+    {name: "Human", id: "homo_sapiens"},
+    {name: "Mouse", id: "mus_musculus"},
+    {name: "Chicken", id: "gallus_gallus"},
+    {name: "Zebrafish", id: "danio_rerio"},
+]
+
+let results = []
+for sp in species {
+    try {
+        let gene = ensembl_symbol(sp.id, "BRCA1")
+        let protein = ensembl_sequence(gene.id, type: "protein")
+        let cds = ensembl_sequence(gene.id, type: "cdna")
+        let results = push(results, {
+            species: sp.name,
+            gene_id: gene.id,
+            protein_len: len(protein.seq),
+            protein_seq: protein.seq,
+            cds_len: len(cds.seq),
+            cds_seq: cds.seq,
+            gc: round(gc_content(cds.seq) * 100, 1)
+        })
+        print("  " + sp.name + ": " + gene.id + " (" + str(len(protein.seq)) + " aa)")
+    } catch e {
+        print("  " + sp.name + ": not found (" + str(e) + ")")
+    }
+}
+
+let comparison = results |> to_table()
+print(comparison)
+
+# ── Section 2: Sequence Property Comparison ────────────────────────────
+
+print("\n── Sequence Property Comparison ──\n")
+
+# GC content bar chart
+let gc_data = results |> map(|r| {category: r.species, count: r.gc})
+bar_chart(gc_data, title: "BRCA1 GC Content by Species (%)")
+
+# Protein length bar chart
+let len_data = results |> map(|r| {category: r.species, count: r.protein_len})
+bar_chart(len_data, title: "BRCA1 Protein Length by Species (aa)")
+
+# ── Section 3: K-mer Similarity (Alignment-Free) ──────────────────────
+
+print("\n── K-mer Similarity ──\n")
+
+fn kmer_jaccard(seq1, seq2, k) {
+    let k1 = set(kmers(seq1, k))
+    let k2 = set(kmers(seq2, k))
+    let shared = len(intersection(k1, k2))
+    let total = len(union(k1, k2))
+    if total > 0 { round(shared / total, 3) } else { 0.0 }
+}
+
+let sequences = results |> map(|r| {name: r.species, seq: r.cds_seq})
+
+print("Pairwise k-mer Jaccard similarity (k=5):")
+for i in range(0, len(sequences)) {
+    for j in range(i + 1, len(sequences)) {
+        let sim = kmer_jaccard(sequences[i].seq, sequences[j].seq, 5)
+        print("  " + sequences[i].name + " vs " + sequences[j].name + ": " + str(sim))
+    }
+}
+
+# Effect of k on similarity
+print("\nEffect of k on Human vs Mouse similarity:")
+for k in [3, 4, 5, 6, 7, 8] {
+    let sim = kmer_jaccard(sequences[0].seq, sequences[1].seq, k)
+    print("  k=" + str(k) + ": " + str(sim))
+}
+
+# ── Section 4: Dotplot Comparison ──────────────────────────────────────
+
+print("\n── Dotplot Comparison ──\n")
+
+let human_seq = dna"ATCGATCGATCGATCGATCGATCG"
+let mouse_seq = dna"ATCGATCGATCGATCAATCGATCG"
+dotplot(human_seq, mouse_seq, title: "Human vs Mouse (Simplified)")
+
+# ── Section 5: Amino Acid Composition ──────────────────────────────────
+
+print("\n── Amino Acid Composition ──\n")
+
+fn aa_composition(seq) {
+    let residues = split(str(seq), "")
+    let residues = residues |> filter(|c| c != "")
+    let hydrophobic = residues |> filter(|aa| contains("AVLIMFWP", aa)) |> len()
+    let polar = residues |> filter(|aa| contains("STNQYC", aa)) |> len()
+    let charged = residues |> filter(|aa| contains("DEKRH", aa)) |> len()
+    let total = len(residues)
+    {
+        hydrophobic: round(hydrophobic / total * 100, 1),
+        polar: round(polar / total * 100, 1),
+        charged: round(charged / total * 100, 1)
+    }
+}
+
+print("Amino acid composition comparison:")
+for r in results {
+    let comp = aa_composition(r.protein_seq)
+    print("  " + r.species + ": hydrophobic=" + str(comp.hydrophobic) + "%, polar=" + str(comp.polar) + "%, charged=" + str(comp.charged) + "%")
+}
+
+# ── Section 6: Cross-Species Comparison Table ──────────────────────────
+
+print("\n── Cross-Species Comparison Table ──\n")
+
+let full_comparison = results |> map(|r| {
+    species: r.species,
+    protein_len: r.protein_len,
+    cds_len: r.cds_len,
+    gc_percent: r.gc,
+    cds_protein_ratio: round(r.cds_len / r.protein_len, 1)
+})
+let table = full_comparison |> to_table()
+print(table)
+write_csv(table, "results/species_comparison.csv")
+print("Saved results/species_comparison.csv")
+
+# ── Section 7: Phylogenetic Tree ───────────────────────────────────────
+
+print("\n── Phylogenetic Tree ──\n")
+
+let tree = "((Human:0.1,Mouse:0.25):0.08,(Chicken:0.35,Zebrafish:0.45):0.15);"
+phylo_tree(tree, title: "BRCA1 Species Phylogeny")
+
+# Note: BioLang visualizes pre-defined Newick trees but does not compute
+# phylogenies. For inference, use MAFFT/MUSCLE + IQ-TREE/RAxML.
+
+# ── Section 8: Multi-Gene Comparison ───────────────────────────────────
+
+print("\n── Multi-Gene Comparison ──\n")
+
+fn compare_gene_across_species(gene_symbol, species_list) {
+    let results = []
+    for sp in species_list {
+        try {
+            let gene = ensembl_symbol(sp.id, gene_symbol)
+            let prot = ensembl_sequence(gene.id, type: "protein")
+            let results = push(results, {
+                gene: gene_symbol,
+                species: sp.name,
+                length: len(prot.seq)
+            })
+        } catch e {
+            # Gene may not exist in all species — skip silently
+        }
+    }
+    results
+}
+
+let genes = ["TP53", "BRCA1", "EGFR"]
+let all_results = genes |> flat_map(|g| compare_gene_across_species(g, species))
+let summary = all_results |> to_table()
+print(summary)
+
+# Bar charts per gene
+for gene_name in genes {
+    let gene_data = all_results
+        |> filter(|r| r.gene == gene_name)
+        |> map(|r| {category: r.species, count: r.length})
+    bar_chart(gene_data, title: gene_name + " Protein Length by Species")
+}
+
+# ── Section 9: Export Sequences ────────────────────────────────────────
+
+print("\n── Exporting Sequences ──\n")
+
+let seqs = results |> map(|r| {id: r.species + "_BRCA1", seq: r.protein_seq})
+write_fasta(seqs, "results/brca1_orthologs.fasta")
+print("Exported to results/brca1_orthologs.fasta")
+print("Next steps:")
+print("  mafft results/brca1_orthologs.fasta > results/brca1_aligned.fasta")
+print("  iqtree -s results/brca1_aligned.fasta -m AUTO")
+
+print("\n" + "=" * 60)
+print("Day 20 complete!")
+print("=" * 60)

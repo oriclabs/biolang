@@ -5,6 +5,26 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+/// Hook for fetching file content (used by WASM to load local files from in-memory registry).
+/// Set via `set_bio_fetch_hook()` from the WASM bridge.
+thread_local! {
+    static BIO_FETCH_HOOK: std::cell::RefCell<Option<Arc<dyn Fn(&str) -> std::result::Result<String, String>>>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// Set the bio fetch hook (called from br-wasm to enable local file access).
+pub fn set_bio_fetch_hook(hook: Option<Arc<dyn Fn(&str) -> std::result::Result<String, String>>>) {
+    BIO_FETCH_HOOK.with(|h| *h.borrow_mut() = hook);
+}
+
+fn try_bio_fetch(path: &str) -> Option<std::result::Result<String, String>> {
+    BIO_FETCH_HOOK.with(|h| {
+        let hook = h.borrow();
+        hook.as_ref().map(|f| f(path))
+    })
+}
 
 // noodles traits for BAM record field iteration
 use noodles_sam::alignment::record::Cigar as CigarTrait;
@@ -67,6 +87,12 @@ pub fn read_fasta(path: &str) -> Result<Value> {
     let path = resolve_data_path(path);
     let path_obj = Path::new(&path);
     if !path_obj.exists() {
+        // Try fetch hook (WASM local file registry)
+        if let Some(Ok(text)) = try_bio_fetch(&path) {
+            if !text.starts_with("ERROR:") {
+                return read_fasta_from_text(&text, &path);
+            }
+        }
         return Err(BioLangError::runtime(
             bl_core::error::ErrorKind::IOError,
             format!("file not found: {path}"),
@@ -95,6 +121,17 @@ pub fn read_fasta(path: &str) -> Result<Value> {
             Box::new(FastaIter::new(reader)),
         )))
     }
+}
+
+/// Parse FASTA from an in-memory string (used by WASM fetch hook).
+fn read_fasta_from_text(text: &str, path: &str) -> Result<Value> {
+    let cursor = std::io::Cursor::new(text.as_bytes().to_vec());
+    let reader = noodles_fasta::io::Reader::new(BufReader::new(cursor));
+    let label = format!("fasta:{path}");
+    Ok(Value::Stream(StreamValue::new(
+        label,
+        Box::new(FastaIter::new(reader)),
+    )))
 }
 
 /// Compute aggregate FASTA statistics in a single native pass.
@@ -220,6 +257,18 @@ pub fn read_fastq(path: &str) -> Result<Value> {
     let path = resolve_data_path(path);
     let path_obj = Path::new(&path);
     if !path_obj.exists() {
+        // Try fetch hook (WASM local file registry)
+        if let Some(Ok(text)) = try_bio_fetch(&path) {
+            if !text.starts_with("ERROR:") {
+                let cursor = std::io::Cursor::new(text.as_bytes().to_vec());
+                let reader = noodles_fastq::io::Reader::new(BufReader::new(cursor));
+                let label = format!("fastq:{path}");
+                return Ok(Value::Stream(StreamValue::new(
+                    label,
+                    Box::new(FastqIter::new(reader)),
+                )));
+            }
+        }
         return Err(BioLangError::runtime(
             bl_core::error::ErrorKind::IOError,
             format!("file not found: {path}"),
@@ -506,10 +555,24 @@ pub fn read_bed(path: &str) -> Result<Value> {
 
     let path = resolve_data_path(path);
     check_format_mismatch(&path, "bed")?;
-    let file = std::fs::File::open(&path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("bed(): cannot open '{path}': {e}"), None)
-    })?;
-    let reader = BufReader::with_capacity(128 * 1024, file);
+
+    // Try fetch hook first (WASM local file registry)
+    let reader: Box<dyn std::io::Read> = if let Some(Ok(text)) = try_bio_fetch(&path) {
+        if !text.starts_with("ERROR:") {
+            Box::new(std::io::Cursor::new(text.into_bytes()))
+        } else {
+            let file = std::fs::File::open(&path).map_err(|e| {
+                BioLangError::runtime(ErrorKind::IOError, format!("bed(): cannot open '{path}': {e}"), None)
+            })?;
+            Box::new(file)
+        }
+    } else {
+        let file = std::fs::File::open(&path).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("bed(): cannot open '{path}': {e}"), None)
+        })?;
+        Box::new(file)
+    };
+    let reader = BufReader::with_capacity(128 * 1024, reader);
     let mut rows: Vec<Vec<Value>> = Vec::new();
     let mut num_fields = 0;
     let mut line_buf = String::new();
@@ -571,10 +634,24 @@ pub fn read_gff(path: &str) -> Result<Value> {
 
     let path = resolve_data_path(path);
     check_format_mismatch(&path, "gff")?;
-    let file = std::fs::File::open(&path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("gff(): cannot open '{path}': {e}"), None)
-    })?;
-    let reader = BufReader::with_capacity(128 * 1024, file);
+
+    // Try fetch hook first (WASM local file registry)
+    let reader: Box<dyn std::io::Read> = if let Some(Ok(text)) = try_bio_fetch(&path) {
+        if !text.starts_with("ERROR:") {
+            Box::new(std::io::Cursor::new(text.into_bytes()))
+        } else {
+            let file = std::fs::File::open(&path).map_err(|e| {
+                BioLangError::runtime(ErrorKind::IOError, format!("gff(): cannot open '{path}': {e}"), None)
+            })?;
+            Box::new(file)
+        }
+    } else {
+        let file = std::fs::File::open(&path).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("gff(): cannot open '{path}': {e}"), None)
+        })?;
+        Box::new(file)
+    };
+    let reader = BufReader::with_capacity(128 * 1024, reader);
     let columns: Vec<String> = vec![
         "seqid", "source", "type", "start", "end", "score", "strand", "phase", "attributes",
     ].into_iter().map(|s| s.to_string()).collect();
@@ -639,10 +716,24 @@ pub fn read_vcf(path: &str) -> Result<Value> {
 
     let path = resolve_data_path(path);
     check_format_mismatch(&path, "vcf")?;
-    let file = std::fs::File::open(&path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("read_vcf(): cannot open '{path}': {e}"), None)
-    })?;
-    let reader = BufReader::with_capacity(128 * 1024, file);
+
+    // Try fetch hook first (WASM local file registry)
+    let reader: Box<dyn std::io::Read> = if let Some(Ok(text)) = try_bio_fetch(&path) {
+        if !text.starts_with("ERROR:") {
+            Box::new(std::io::Cursor::new(text.into_bytes()))
+        } else {
+            let file = std::fs::File::open(&path).map_err(|e| {
+                BioLangError::runtime(ErrorKind::IOError, format!("read_vcf(): cannot open '{path}': {e}"), None)
+            })?;
+            Box::new(file)
+        }
+    } else {
+        let file = std::fs::File::open(&path).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("read_vcf(): cannot open '{path}': {e}"), None)
+        })?;
+        Box::new(file)
+    };
+    let reader = BufReader::with_capacity(128 * 1024, reader);
     let mut variants: Vec<Value> = Vec::new();
     let mut line_buf = String::new();
     let mut buf_reader = reader;
@@ -711,6 +802,12 @@ fn read_file_content(path: &str, func: &str) -> Result<String> {
     let path = resolve_data_path(path);
     let path_obj = Path::new(&path);
     if !path_obj.exists() {
+        // Try fetch hook (WASM local file registry)
+        if let Some(Ok(text)) = try_bio_fetch(&path) {
+            if !text.starts_with("ERROR:") {
+                return Ok(text);
+            }
+        }
         return Err(BioLangError::runtime(
             ErrorKind::IOError,
             format!("file not found: {path}"),

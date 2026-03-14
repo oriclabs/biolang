@@ -1,0 +1,27 @@
+{
+  "name": "BioLang REPL",
+  "short_name": "BioLang",
+  "description": "Offline bioinformatics IDE with local file access. Write BioLang code, analyze FASTA/VCF/CSV files — no server needed.",
+  "start_url": "/repl.html",
+  "display": "standalone",
+  "background_color": "#080c14",
+  "theme_color": "#7c3aed",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["science", "developer tools", "productivity"],
+  "file_handlers": [
+    {
+      "action": "/repl.html",
+      "accept": {
+        "text/plain": [".bl", ".fasta", ".fa", ".fna", ".fastq", ".fq", ".vcf", ".bed", ".gff", ".gff3", ".gtf", ".csv", ".tsv", ".sam", ".txt"]
+      }
+    }
+  ]
+}

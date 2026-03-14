@@ -1,0 +1,66 @@
+# Expected output structure from: bl init.bl && bl scripts/analysis.bl
+
+# --- After init.bl ---
+# data/sequences.fasta        8 sequences with varying GC content
+# data/qc_reads.fasta         6 reads including short and extreme GC
+# lib/seq_utils.bl            Sequence utilities module
+# lib/qc.bl                   Quality control module
+# data/output/                empty directory
+# tests/                      empty directory
+
+# --- After analysis.bl ---
+# data/output/report.txt containing:
+# data/output/gc_classification.csv containing:
+
+# report.txt structure:
+
+# Module-Based Analysis Report
+#
+# ## Sequence Summary (seq_utils module)
+# Total sequences: 8
+# High GC: 2 (promoter_cpg_island, tata_box_region)
+# Low GC: 3 (intron_at_rich, utr_region, repeat_element)
+# Moderate GC: 3 (coding_exon, gc_balanced, mixed_features)
+# Mean GC: ~0.45 (varies by calculation)
+# GC stdev: ~0.20 (varies by calculation)
+#
+# ## GC Classification
+#   promoter_cpg_island: high (GC=~0.76)
+#   coding_exon: moderate (GC=0.5)
+#   intron_at_rich: low (GC=~0.05)
+#   utr_region: low (GC=~0.11)
+#   gc_balanced: moderate (GC=0.5)
+#   repeat_element: low (GC=0.0)
+#   tata_box_region: high (GC=~0.67)
+#   mixed_features: moderate (GC=~0.48)
+#
+# ## Motif Search
+# TATAAA hits: 3 (in tata_box_region)
+# GAATTC (EcoRI) hits: 1 (in mixed_features)
+#
+# ## QC Report (qc module)
+# Sequences: 6
+# Passing QC: 3-4 (depends on exact thresholds)
+# Failing QC: 2-3
+# Length range: 3-84
+# Mean length: ~60
+# Mean GC: ~0.45
+# GC stdev: ~0.28
+#
+# ## Failing Sequences
+#   read_003: flags=too_short
+#   (possibly others depending on GC thresholds)
+#
+# ## Passing Sequences - GC Classification
+#   (classified by GC content: high/moderate/low)
+
+# gc_classification.csv structure:
+# id,length,gc,class,label
+# promoter_cpg_island,84,0.7619...,high,GC-rich
+# coding_exon,84,0.5,moderate,balanced
+# intron_at_rich,84,0.0476...,low,AT-rich
+# utr_region,84,0.1190...,low,AT-rich
+# gc_balanced,84,0.5,moderate,balanced
+# repeat_element,84,0.0,low,AT-rich
+# tata_box_region,84,0.6666...,high,GC-rich
+# mixed_features,84,0.4880...,moderate,balanced

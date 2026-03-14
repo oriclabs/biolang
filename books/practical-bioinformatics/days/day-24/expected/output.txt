@@ -1,0 +1,46 @@
+Created data/gene_list.csv with 20 genes
+Created data/variants.csv with 5 variants
+Created data/cache/ directory
+
+Setup complete. Run scripts/analysis.bl next.
+NOTE: analysis.bl requires internet access for API calls.
+
+--- After running scripts/analysis.bl ---
+
+data/annotations.tsv contains 20 rows with columns:
+symbol	ncbi_found	ensembl_id	uniprot_found	pathway_count	go_term_count
+TP53	true	ENSG00000141510	true	(varies)	(varies)
+BRCA1	true	ENSG00000012048	true	(varies)	(varies)
+PTEN	true	ENSG00000171862	true	(varies)	(varies)
+RB1	true	ENSG00000139687	true	(varies)	(varies)
+APC	true	ENSG00000134982	true	(varies)	(varies)
+CDKN1A	true	ENSG00000124762	true	(varies)	(varies)
+BAX	true	ENSG00000087088	true	(varies)	(varies)
+CASP3	true	ENSG00000164305	true	(varies)	(varies)
+EGFR	true	ENSG00000146648	true	(varies)	(varies)
+MYC	true	ENSG00000136997	true	(varies)	(varies)
+KRAS	true	ENSG00000133703	true	(varies)	(varies)
+VEGFA	true	ENSG00000112715	true	(varies)	(varies)
+CDK4	true	ENSG00000135446	true	(varies)	(varies)
+ERBB2	true	ENSG00000141736	true	(varies)	(varies)
+PIK3CA	true	ENSG00000121879	true	(varies)	(varies)
+BRAF	true	ENSG00000157764	true	(varies)	(varies)
+JAK2	true	ENSG00000096968	true	(varies)	(varies)
+MDM2	true	ENSG00000135679	true	(varies)	(varies)
+BCL2	true	ENSG00000171791	true	(varies)	(varies)
+FOXP3	true	ENSG00000049768	true	(varies)	(varies)
+
+data/summary.json contains:
+{
+  "total_genes": 20,
+  "upregulated": 12,
+  "downregulated": 8,
+  "annotations_complete": 20,
+  "up_pathway_hits": (varies by API response),
+  "down_pathway_hits": (varies by API response),
+  "network_found": true
+}
+
+NOTE: pathway_count, go_term_count, and pathway hit counts vary
+because they depend on live API responses from Reactome and QuickGO.
+Ensembl IDs and ncbi_found/uniprot_found values should be stable.

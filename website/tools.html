@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>Tools — BioLang</title>
+  <meta name="description" content="BioLang browser tools: Playground, Viewer, Studio, and BioBrowser. All run client-side with WebAssembly — no server, no uploads.">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="."></div>
+
+  <main class="max-w-5xl mx-auto px-6 py-16">
+    <h1 class="text-4xl font-bold text-white mb-4">Browser Tools</h1>
+    <p class="text-lg text-slate-400 mb-4 max-w-3xl">
+      BioLang compiles to WebAssembly, so all these tools run entirely in your browser.
+      No server, no uploads, no accounts. Your data stays on your machine.
+    </p>
+    <p class="text-sm text-slate-500 mb-12">
+      All tools are installable as Progressive Web Apps (PWAs) and work offline after the first visit.
+    </p>
+
+    <!-- ═══ Playground ═══ -->
+    <section class="mb-8 border border-emerald-500/20 rounded-xl overflow-hidden bg-emerald-500/[0.03]">
+      <div class="p-8">
+        <div class="flex items-center gap-4 mb-4">
+          <span class="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-500/15 text-emerald-400 text-2xl shrink-0">&#9654;</span>
+          <div>
+            <h2 class="text-2xl font-bold text-emerald-400">Playground</h2>
+            <span class="text-sm text-slate-500">Run code instantly in your browser</span>
+          </div>
+        </div>
+        <p class="text-slate-400 mb-5">
+          Write and execute BioLang code blocks with persistent state between runs. Variables carry over,
+          SVG charts render inline, and syntax is highlighted with a BioLang-aware tokenizer. Perfect for
+          experimenting with language features, testing one-liners, or following along with the documentation.
+        </p>
+        <ul class="grid sm:grid-cols-2 gap-2 text-sm text-slate-400 mb-6">
+          <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#9679;</span> Persistent state &mdash; variables carry over between blocks</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#9679;</span> Inline SVG rendering for bar_chart, scatter, histogram, etc.</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#9679;</span> Block numbering and "Run All Above + This"</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#9679;</span> Dark/light theme toggle</li>
+        </ul>
+        <div class="flex flex-wrap gap-3">
+          <a href="playground.html" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors">
+            Open Playground &rarr;
+          </a>
+          <a href="docs/tools/playground.html" class="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-700 hover:border-emerald-500/50 text-slate-300 hover:text-emerald-400 text-sm font-medium rounded-lg transition-colors">
+            Help &amp; Shortcuts
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Viewer ═══ -->
+    <section class="mb-8 border border-cyan-500/20 rounded-xl overflow-hidden bg-cyan-500/[0.03]">
+      <div class="p-8">
+        <div class="flex items-center gap-4 mb-4">
+          <span class="flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-500/15 text-cyan-400 text-2xl shrink-0">&#128269;</span>
+          <div>
+            <h2 class="text-2xl font-bold text-cyan-400">BLViewer</h2>
+            <span class="text-sm text-slate-500">Inspect bioinformatics files in your browser</span>
+          </div>
+        </div>
+        <p class="text-slate-400 mb-5">
+          Drop FASTA, FASTQ, VCF, BED, GFF, SAM, CSV, or TSV files for instant client-side parsing.
+          Four view modes: sortable Table with colored nucleotides and quality scores, Stats with
+          SVG charts (per-base quality, length histograms, GC content, variant donut, chromosome bars),
+          Raw line-numbered text, and a BioLang Console for running expressions against the data.
+        </p>
+        <ul class="grid sm:grid-cols-2 gap-2 text-sm text-slate-400 mb-6">
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> 8 bioinformatics formats with auto-detection</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> Format-specific statistics (N50, GC%, Q30, Ti/Tv)</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> Multi-file tabs, search/filter, multi-format export (CSV/TSV/BED/VCF)</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> URL loading, column filters, debounced search</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> 100% private &mdash; data never leaves your machine</li>
+        </ul>
+        <div class="flex flex-wrap gap-3">
+          <a href="viewer.html" class="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors">
+            Open Viewer &rarr;
+          </a>
+          <a href="docs/tools/viewer-help.html" class="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 text-sm font-medium rounded-lg transition-colors">
+            Formats &amp; Help
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Genome Browser ═══ -->
+    <section class="mb-8 border border-emerald-500/20 rounded-xl overflow-hidden bg-emerald-500/[0.03]">
+      <div class="p-8">
+        <div class="flex items-center gap-4 mb-4">
+          <span class="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-500/15 text-emerald-400 text-2xl shrink-0">&#127758;</span>
+          <div>
+            <h2 class="text-2xl font-bold text-emerald-400">BioBrowser</h2>
+            <span class="text-sm text-slate-500">Genome coordinate viewer</span>
+          </div>
+        </div>
+        <p class="text-slate-400 mb-5">
+          Interactive genome browser: drop SAM, VCF, BED, or GFF files and visualize them as
+          layered tracks on genomic coordinates. Canvas-based rendering for smooth navigation
+          with drag-to-pan, scroll-to-zoom, and base-level resolution when zoomed in.
+        </p>
+        <ul class="grid sm:grid-cols-2 gap-2 text-sm text-slate-400 mb-6">
+          <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#9679;</span> Read pileup with strand coloring and MAPQ shading</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#9679;</span> Variant lollipop track (SNP/indel, PASS/FAIL)</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#9679;</span> BED region and GFF annotation tracks</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#9679;</span> Keyboard shortcuts, coordinate search, multi-track overlay</li>
+        </ul>
+        <div class="flex flex-wrap gap-3">
+          <a href="browser.html" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors">
+            Open Browser &rarr;
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Studio ═══ -->
+    <section class="mb-8 border border-amber-500/20 rounded-xl overflow-hidden bg-amber-500/[0.03]">
+      <div class="p-8">
+        <div class="flex items-center gap-4 mb-4">
+          <span class="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500/15 text-amber-400 text-2xl shrink-0">&#128300;</span>
+          <div>
+            <h2 class="text-2xl font-bold text-amber-400">BioLang Studio</h2>
+            <span class="text-sm text-slate-500">Code editor + database search + local file access</span>
+          </div>
+        </div>
+        <p class="text-slate-400 mb-5">
+          A full bioinformatics IDE with 5 tabs: NCBI, UniProt, PDB, Files, and Editor. Search public
+          biological databases directly from your browser, fetch sequences, open local files, and
+          analyze everything with the BioLang code editor — variable inspector, SVG rendering, and REPL bar included.
+        </p>
+        <ul class="grid sm:grid-cols-2 gap-2 text-sm text-slate-400 mb-6">
+          <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">&#9679;</span> NCBI E-utilities (Gene, Nucleotide, Protein, PubMed)</li>
+          <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">&#9679;</span> UniProt REST &amp; RCSB PDB search</li>
+          <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">&#9679;</span> Local file access with <code class="text-xs bg-slate-700/50 px-1.5 py-0.5 rounded">read_csv()</code> and <code class="text-xs bg-slate-700/50 px-1.5 py-0.5 rounded">read_fasta()</code></li>
+          <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">&#9679;</span> Variable inspector, SVG rendering, REPL history</li>
+        </ul>
+        <div class="flex flex-wrap gap-3">
+          <a href="studio.html" class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors">
+            Open Studio &rarr;
+          </a>
+          <a href="docs/tools/studio-help.html" class="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-sm font-medium rounded-lg transition-colors">
+            Features &amp; Help
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CLI Tools ═══ -->
+    <div class="mt-16 mb-6">
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Desktop Tools</h2>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-4">
+      <a href="docs/tools/cli.html" class="group bg-slate-800/30 border border-slate-700/50 hover:border-violet-500/40 rounded-xl p-5 transition-all">
+        <h3 class="text-sm font-bold text-white group-hover:text-violet-400 mb-1">CLI (<code>bl</code>)</h3>
+        <p class="text-xs text-slate-500">Run scripts, manage projects, install plugins, format code, type-check, and benchmark.</p>
+      </a>
+      <a href="docs/tools/repl.html" class="group bg-slate-800/30 border border-slate-700/50 hover:border-violet-500/40 rounded-xl p-5 transition-all">
+        <h3 class="text-sm font-bold text-white group-hover:text-violet-400 mb-1">Terminal REPL</h3>
+        <p class="text-xs text-slate-500">Interactive terminal with :env, :reset, :load, :save, :time, :type, :profile commands.</p>
+      </a>
+      <a href="docs/tools/lsp.html" class="group bg-slate-800/30 border border-slate-700/50 hover:border-violet-500/40 rounded-xl p-5 transition-all">
+        <h3 class="text-sm font-bold text-white group-hover:text-violet-400 mb-1">Language Server</h3>
+        <p class="text-xs text-slate-500">LSP with diagnostics, completion, and hover. Works with VS Code, Neovim, Helix, etc.</p>
+      </a>
+      <a href="docs/tools/notebook.html" class="group bg-slate-800/30 border border-slate-700/50 hover:border-violet-500/40 rounded-xl p-5 transition-all">
+        <h3 class="text-sm font-bold text-white group-hover:text-violet-400 mb-1">Notebooks</h3>
+        <p class="text-xs text-slate-500">Jupyter-style notebooks with code + text + plots in one document.</p>
+      </a>
+      <a href="docs/tools/compiler.html" class="group bg-slate-800/30 border border-slate-700/50 hover:border-violet-500/40 rounded-xl p-5 transition-all">
+        <h3 class="text-sm font-bold text-white group-hover:text-violet-400 mb-1">Compiler &amp; JIT</h3>
+        <p class="text-xs text-slate-500">Bytecode compiler and Cranelift JIT for performance-critical pipelines.</p>
+      </a>
+      <a href="docs/tools/plugins.html" class="group bg-slate-800/30 border border-slate-700/50 hover:border-violet-500/40 rounded-xl p-5 transition-all">
+        <h3 class="text-sm font-bold text-white group-hover:text-violet-400 mb-1">Plugins</h3>
+        <p class="text-xs text-slate-500">Extend BioLang with Python, R, Deno, or native subprocess plugins.</p>
+      </a>
+    </div>
+  </main>
+
+  <div data-component="footer" data-base-path="."></div>
+  <script src="js/main.js"></script>
+</body>
+</html>

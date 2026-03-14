@@ -1,0 +1,82 @@
+# Day 16: Pathway and Enrichment Analysis — Complete Analysis Script
+# Requires: data/de_results.csv, data/hallmark.gmt, data/ranked_genes.csv
+# (run init.bl first)
+#
+# Demonstrates: read_gmt, enrich, gsea, csv, filter, arrange, head, col,
+# collect, nrow, len, abs, print, write_csv, bar_chart, map, take, to_table
+
+# ── Step 1: Load Gene Sets ─────────────────────────────────────────────
+
+print("=== Step 1: Load Gene Sets ===\n")
+
+let gene_sets = read_gmt("data/hallmark.gmt")
+print(f"Gene sets loaded: {len(gene_sets)}")
+
+let dna_repair = gene_sets["HALLMARK_DNA_REPAIR"]
+print(f"DNA repair genes: {len(dna_repair)}")
+print(f"First 5: {dna_repair |> take(5)}")
+
+# ── Step 2: Over-Representation Analysis (ORA) ────────────────────────
+
+print("\n=== Step 2: Over-Representation Analysis ===\n")
+
+let de = csv("data/de_results.csv")
+print(f"Total genes in DE results: {nrow(de)}")
+
+# Extract significant genes
+let sig_genes = de
+    |> filter(|r| r.padj < 0.05 and abs(r.log2fc) > 1.0)
+    |> col("gene")
+    |> collect()
+print(f"Significant DE genes (|log2FC| > 1, padj < 0.05): {len(sig_genes)}")
+print(f"Genes: {sig_genes}")
+
+# Run ORA
+let ora_results = enrich(sig_genes, gene_sets, 20000)
+print(f"\nORA results ({nrow(ora_results)} terms tested):")
+let ora_sig = ora_results |> filter(|r| r.fdr < 0.05) |> arrange("fdr")
+print(f"Significant terms (FDR < 0.05): {nrow(ora_sig)}")
+print(ora_sig)
+
+# ── Step 3: Gene Set Enrichment Analysis (GSEA) ───────────────────────
+
+print("\n=== Step 3: Gene Set Enrichment Analysis ===\n")
+
+let ranked = csv("data/ranked_genes.csv")
+print(f"Ranked genes loaded: {nrow(ranked)}")
+print(f"Top 5 genes:")
+print(ranked |> head(5))
+
+let gsea_results = gsea(ranked, gene_sets)
+print(f"\nGSEA results ({nrow(gsea_results)} terms tested):")
+let gsea_sig = gsea_results |> filter(|r| r.fdr < 0.25)
+print(f"Significant terms (FDR < 0.25): {nrow(gsea_sig)}")
+print(gsea_sig)
+
+# ── Step 4: Compare ORA and GSEA ──────────────────────────────────────
+
+print("\n=== Step 4: Comparison ===\n")
+
+let ora_terms = ora_sig |> col("term") |> collect()
+let gsea_terms = gsea_sig |> col("term") |> collect()
+print(f"ORA significant: {ora_terms}")
+print(f"GSEA significant: {gsea_terms}")
+
+# ── Step 5: Visualize Results ──────────────────────────────────────────
+
+print("\n=== Step 5: Visualization ===\n")
+
+let chart_data = ora_sig |> map(|r| {category: r.term, count: r.overlap})
+print("Top enriched terms (ORA):")
+bar_chart(chart_data)
+
+# ── Step 6: Export Results ─────────────────────────────────────────────
+
+print("\n=== Step 6: Export ===\n")
+
+write_csv(ora_sig, "results/ora_results.csv")
+write_csv(gsea_sig, "results/gsea_results.csv")
+print("Saved results/ora_results.csv")
+print("Saved results/gsea_results.csv")
+
+print("\n=== Analysis complete ===")

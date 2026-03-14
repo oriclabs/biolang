@@ -2,6 +2,26 @@ use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Arity, StreamValue, Table, Value};
 use std::collections::HashMap;
 use std::io::BufRead;
+use std::sync::Arc;
+
+/// Hook for fetching URL content (used by WASM to load CSV from same-origin HTTP).
+/// Set via `set_fetch_hook()` from the WASM bridge.
+thread_local! {
+    static FETCH_HOOK: std::cell::RefCell<Option<Arc<dyn Fn(&str) -> std::result::Result<String, String>>>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// Set the fetch hook (called from br-wasm to enable HTTP CSV loading).
+pub fn set_fetch_hook(hook: Option<Arc<dyn Fn(&str) -> std::result::Result<String, String>>>) {
+    FETCH_HOOK.with(|h| *h.borrow_mut() = hook);
+}
+
+fn try_fetch_url(url: &str) -> Option<std::result::Result<String, String>> {
+    FETCH_HOOK.with(|h| {
+        let hook = h.borrow();
+        hook.as_ref().map(|f| f(url))
+    })
+}
 
 pub fn csv_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
@@ -102,7 +122,22 @@ fn read_delimited_buffered(path: &str, sep: &str, has_header: bool) -> Result<Va
     let file = std::fs::File::open(path).map_err(|e| {
         BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot open '{path}': {e}"), None)
     })?;
-    let mut reader = std::io::BufReader::with_capacity(128 * 1024, file);
+    let mut reader: Box<dyn BufRead> = if path.ends_with(".gz") || path.ends_with(".csv.gz") || path.ends_with(".tsv.gz") {
+        #[cfg(feature = "native")]
+        {
+            Box::new(std::io::BufReader::with_capacity(128 * 1024, flate2::read::GzDecoder::new(file)))
+        }
+        #[cfg(not(feature = "native"))]
+        {
+            return Err(BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("csv: gzip support requires native feature: '{path}'"),
+                None,
+            ));
+        }
+    } else {
+        Box::new(std::io::BufReader::with_capacity(128 * 1024, file))
+    };
     let sep_char = sep.chars().next().unwrap_or(',');
 
     let mut line_buf = String::new();
@@ -256,7 +291,7 @@ fn builtin_csv(args: Vec<Value>) -> Result<Value> {
         }
         opts
     } else {
-        let sep = if path.ends_with(".tsv") || path.ends_with(".tab") {
+        let sep = if path.ends_with(".tsv") || path.ends_with(".tab") || path.ends_with(".tsv.gz") {
             "\t".to_string()
         } else {
             ",".to_string()
@@ -271,14 +306,133 @@ fn builtin_read_csv_eager(args: Vec<Value>) -> Result<Value> {
     let (sep, has_header) = if args.len() > 1 {
         extract_csv_options(&args[1], path)?
     } else {
-        let sep = if path.ends_with(".tsv") || path.ends_with(".tab") {
+        let sep = if path.ends_with(".tsv") || path.ends_with(".tab") || path.ends_with(".tsv.gz") {
             "\t".to_string()
         } else {
             ",".to_string()
         };
         (sep, true)
     };
+
+    // HTTP/HTTPS URL: use fetch hook (WASM) or ureq (native)
+    if path.starts_with("http://") || path.starts_with("https://") {
+        return read_csv_from_url(path, &sep, has_header);
+    }
+
+    // For local paths, try the fetch hook first (enables WASM local file access
+    // via the __blFetch.sync JS hook that checks in-memory file registries).
+    if let Some(result) = try_fetch_url(path) {
+        match result {
+            Ok(text) if !text.starts_with("ERROR:") => {
+                return parse_csv_text(&text, &sep, has_header);
+            }
+            _ => {} // Fall through to filesystem
+        }
+    }
+
     read_delimited_buffered(path, &sep, has_header)
+}
+
+fn read_csv_from_url(url: &str, sep: &str, has_header: bool) -> Result<Value> {
+    // Try the WASM fetch hook first
+    if let Some(result) = try_fetch_url(url) {
+        let text = result.map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("read_csv: fetch error for '{url}': {e}"), None)
+        })?;
+        return parse_csv_text(&text, sep, has_header);
+    }
+
+    // Native fallback: try ureq if available
+    #[cfg(feature = "native")]
+    {
+        let resp = ureq::get(url).call().map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("read_csv: HTTP error for '{url}': {e}"), None)
+        })?;
+        let text = resp.into_string().map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("read_csv: read error for '{url}': {e}"), None)
+        })?;
+        return parse_csv_text(&text, sep, has_header);
+    }
+
+    #[cfg(not(feature = "native"))]
+    {
+        Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_csv: no fetch hook available for URL '{url}'"),
+            None,
+        ))
+    }
+}
+
+/// Parse CSV from an in-memory string.
+fn parse_csv_text(text: &str, sep: &str, has_header: bool) -> Result<Value> {
+    let sep_char = sep.chars().next().unwrap_or(',');
+    let mut lines = text.lines();
+
+    let first_line = match lines.next() {
+        Some(l) => l,
+        None => return Ok(Value::Table(Table::empty())),
+    };
+    let first_clean = if first_line.starts_with('\u{feff}') { &first_line[3..] } else { first_line };
+
+    let col_names: Vec<String>;
+    let mut rows: Vec<Vec<Value>> = Vec::new();
+
+    if has_header {
+        col_names = split_csv_line(first_clean, sep_char).into_iter().map(|s| s.to_string()).collect();
+    } else {
+        let fields = split_csv_line(first_clean, sep_char);
+        col_names = (0..fields.len()).map(|i| format!("col_{}", i + 1)).collect();
+        rows.push(fields.into_iter().map(|f| infer_value(f)).collect());
+    }
+
+    for line in lines {
+        let trimmed = line.trim_end();
+        if trimmed.is_empty() { continue; }
+        let fields = split_csv_line(trimmed, sep_char);
+        rows.push(fields.into_iter().map(|f| infer_value(f)).collect());
+    }
+
+    let ncols = col_names.len();
+    let mut columns: Vec<Vec<Value>> = vec![Vec::with_capacity(rows.len()); ncols];
+    for row in &rows {
+        for (c, val) in row.iter().enumerate() {
+            if c < ncols {
+                columns[c].push(val.clone());
+            }
+        }
+    }
+
+    Ok(Value::Table(Table {
+        columns: col_names,
+        rows: columns,
+        max_col_width: None,
+    }))
+}
+
+fn split_csv_line(line: &str, sep: char) -> Vec<&str> {
+    // Simple split (doesn't handle quoted fields with embedded separators)
+    line.split(sep).collect()
+}
+
+fn infer_value(s: &str) -> Value {
+    let trimmed = s.trim();
+    if trimmed.is_empty() || trimmed == "NA" || trimmed == "na" || trimmed == "N/A" || trimmed == "." {
+        return Value::Nil;
+    }
+    if let Ok(i) = trimmed.parse::<i64>() {
+        return Value::Int(i);
+    }
+    if let Ok(f) = trimmed.parse::<f64>() {
+        return Value::Float(f);
+    }
+    if trimmed == "true" || trimmed == "TRUE" {
+        return Value::Bool(true);
+    }
+    if trimmed == "false" || trimmed == "FALSE" {
+        return Value::Bool(false);
+    }
+    Value::Str(trimmed.to_string())
 }
 
 fn builtin_tsv(args: Vec<Value>) -> Result<Value> {
@@ -310,7 +464,7 @@ fn extract_csv_options(opts: &Value, path: &str) -> Result<(String, bool)> {
                     _ => None,
                 })
                 .unwrap_or_else(|| {
-                    if path.ends_with(".tsv") || path.ends_with(".tab") {
+                    if path.ends_with(".tsv") || path.ends_with(".tab") || path.ends_with(".tsv.gz") {
                         "\t".to_string()
                     } else {
                         ",".to_string()

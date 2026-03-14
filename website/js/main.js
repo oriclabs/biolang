@@ -155,6 +155,7 @@
     }
   }
 
+  // ── Tools Dropdown ──
   // ── Sidebar Collapse ──
   function initSidebar() {
     document.querySelectorAll('#sidebar details[data-section]').forEach(function (det) {

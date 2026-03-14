@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>BioBrowser — Genome Coordinate Viewer</title>
+  <meta name="description" content="Interactive genome browser: visualize BAM alignments, VCF variants, BED regions, and GFF annotations. Runs entirely in your browser.">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gb-bg: #0a0e1a;
+      --gb-panel: #0d1117;
+      --gb-border: #1e293b;
+      --gb-accent: #a78bfa;
+      --gb-cyan: #22d3ee;
+      --gb-green: #34d399;
+      --gb-amber: #fbbf24;
+      --gb-red: #f87171;
+      --gb-text: #e2e8f0;
+      --gb-text-dim: #64748b;
+      --gb-text-muted: #475569;
+      --gb-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --gb-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    html:not(.dark) {
+      --gb-bg: #f8fafc;
+      --gb-panel: #ffffff;
+      --gb-border: #e2e8f0;
+      --gb-accent: #7c3aed;
+      --gb-cyan: #0891b2;
+      --gb-green: #059669;
+      --gb-amber: #d97706;
+      --gb-red: #dc2626;
+      --gb-text: #1e293b;
+      --gb-text-dim: #64748b;
+      --gb-text-muted: #94a3b8;
+    }
+
+    .gb-app { display: flex; flex-direction: column; flex: 1; min-height: 0; background: var(--gb-bg); overflow: hidden; }
+
+    /* Drop zone */
+    .gb-drop { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px; }
+    .gb-drop-title { font-family: var(--gb-sans); font-size: 22px; font-weight: 700; color: var(--gb-text); }
+    .gb-drop-sub { font-family: var(--gb-sans); font-size: 14px; color: var(--gb-text-dim); text-align: center; line-height: 1.6; max-width: 500px; }
+    .gb-drop-btn { font-family: var(--gb-sans); font-size: 14px; font-weight: 600; padding: 10px 28px; border-radius: 8px; border: none; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; cursor: pointer; }
+    .gb-drop-btn:hover { box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3); }
+    .gb-drop-formats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+    .gb-fmt-tag { font-family: var(--gb-mono); font-size: 11px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--gb-border); color: var(--gb-text-dim); background: var(--gb-panel); }
+    .gb-drop.drag-over { background: rgba(124, 58, 237, 0.08); }
+
+    /* Navigation bar */
+    .gb-nav { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--gb-panel); border-bottom: 1px solid var(--gb-border); flex-shrink: 0; }
+    .gb-nav-group { display: flex; align-items: center; gap: 4px; }
+    .gb-nav select, .gb-nav input { font-family: var(--gb-mono); font-size: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--gb-border); background: var(--gb-bg); color: var(--gb-text); outline: none; }
+    .gb-nav select:focus, .gb-nav input:focus { border-color: var(--gb-accent); }
+    .gb-nav input.gb-loc { width: 220px; }
+    .gb-nav-btn { font-family: var(--gb-sans); font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--gb-border); background: var(--gb-panel); color: var(--gb-text-dim); cursor: pointer; }
+    .gb-nav-btn:hover { border-color: var(--gb-accent); color: var(--gb-accent); }
+    .gb-nav-sep { width: 1px; height: 20px; background: var(--gb-border); margin: 0 4px; }
+    .gb-nav-label { font-family: var(--gb-sans); font-size: 11px; color: var(--gb-text-muted); }
+    .gb-zoom-range { width: 100px; accent-color: var(--gb-accent); }
+    .gb-nav-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+    /* Track area */
+    .gb-tracks { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
+
+    /* Individual track */
+    .gb-track { border-bottom: 1px solid var(--gb-border); }
+    .gb-track-header { display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: var(--gb-panel); border-bottom: 1px solid var(--gb-border); cursor: pointer; user-select: none; }
+    .gb-track-header:hover { background: rgba(124, 58, 237, 0.04); }
+    .gb-track-icon { font-size: 12px; }
+    .gb-track-name { font-family: var(--gb-sans); font-size: 12px; font-weight: 600; color: var(--gb-text); }
+    .gb-track-info { font-family: var(--gb-mono); font-size: 10px; color: var(--gb-text-muted); margin-left: auto; }
+    .gb-track-toggle { font-size: 10px; color: var(--gb-text-muted); transition: transform 0.2s; }
+    .gb-track.collapsed .gb-track-toggle { transform: rotate(-90deg); }
+    .gb-track.collapsed .gb-track-canvas-wrap { display: none; }
+    .gb-track-canvas-wrap { position: relative; }
+    .gb-track-canvas-wrap canvas { display: block; width: 100%; }
+
+    /* Coordinate ruler */
+    .gb-ruler { height: 28px; background: var(--gb-panel); border-bottom: 1px solid var(--gb-border); flex-shrink: 0; }
+    .gb-ruler canvas { display: block; width: 100%; height: 100%; }
+
+    /* Track sidebar */
+    .gb-track-list { display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: var(--gb-panel); border-bottom: 1px solid var(--gb-border); flex-shrink: 0; overflow-x: auto; }
+    .gb-track-chip { font-family: var(--gb-mono); font-size: 10px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--gb-border); color: var(--gb-text-dim); cursor: pointer; white-space: nowrap; }
+    .gb-track-chip.active { border-color: var(--gb-accent); color: var(--gb-accent); background: rgba(124, 58, 237, 0.1); }
+    .gb-track-chip .close { margin-left: 4px; opacity: 0.5; cursor: pointer; }
+    .gb-track-chip .close:hover { opacity: 1; color: var(--gb-red); }
+
+    /* Footer */
+    .gb-footer { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px; background: var(--gb-panel); border-top: 1px solid var(--gb-border); font-family: var(--gb-mono); font-size: 11px; color: var(--gb-text-muted); flex-shrink: 0; }
+
+    /* Tooltip */
+    .gb-tooltip { position: fixed; padding: 8px 12px; background: var(--gb-panel); border: 1px solid var(--gb-border); border-radius: 6px; font-family: var(--gb-mono); font-size: 11px; color: var(--gb-text); box-shadow: 0 4px 16px rgba(0,0,0,0.3); pointer-events: none; z-index: 200; max-width: 400px; line-height: 1.5; }
+
+    @media (max-width: 768px) {
+      .gb-nav { flex-wrap: wrap; }
+      .gb-nav input.gb-loc { width: 140px; }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-300" style="margin:0;overflow:hidden;height:100vh;display:flex;flex-direction:column">
+  <noscript><style>body>*{opacity:1!important}</style></noscript>
+  <div data-component="header" data-base-path="."></div>
+
+  <div class="gb-app" id="gb-app">
+    <!-- Drop zone -->
+    <div class="gb-drop" id="gb-drop">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--gb-text-muted)">
+        <rect x="4" y="12" width="72" height="56" rx="4" stroke-dasharray="4 3"/>
+        <line x1="4" y1="28" x2="76" y2="28" stroke-width="1" opacity="0.3"/>
+        <line x1="4" y1="44" x2="76" y2="44" stroke-width="1" opacity="0.3"/>
+        <line x1="4" y1="52" x2="76" y2="52" stroke-width="1" opacity="0.3"/>
+        <rect x="20" y="30" width="16" height="6" rx="2" fill="currentColor" opacity="0.2"/>
+        <rect x="42" y="30" width="20" height="6" rx="2" fill="currentColor" opacity="0.15"/>
+        <rect x="12" y="46" width="24" height="4" rx="1" fill="currentColor" opacity="0.2"/>
+        <rect x="50" y="46" width="14" height="4" rx="1" fill="currentColor" opacity="0.15"/>
+        <path d="M40 14v10M35 19l5-5 5 5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="gb-drop-title">Drop genome files to browse</div>
+      <div class="gb-drop-sub">
+        Visualize alignments, variants, and annotations on genomic coordinates.
+        Load SAM, VCF, BED, or GFF files — each becomes a track.
+      </div>
+      <button class="gb-drop-btn" id="gb-open-btn">Choose Files</button>
+      <input type="file" id="gb-file-input" multiple accept=".sam,.bam,.vcf,.bed,.gff,.gff3,.gtf" hidden>
+      <div class="gb-drop-formats">
+        <span class="gb-fmt-tag">SAM</span>
+        <span class="gb-fmt-tag">VCF</span>
+        <span class="gb-fmt-tag">BED</span>
+        <span class="gb-fmt-tag">GFF/GTF</span>
+      </div>
+    </div>
+
+    <!-- Workspace (shown after files loaded) -->
+    <div id="gb-workspace" style="display:none;flex:1;flex-direction:column;min-height:0">
+      <!-- Navigation -->
+      <div class="gb-nav" id="gb-nav">
+        <div class="gb-nav-group">
+          <select id="gb-chrom"></select>
+        </div>
+        <div class="gb-nav-group">
+          <input type="text" class="gb-loc" id="gb-loc" placeholder="chr1:10,000-20,000">
+          <button class="gb-nav-btn" id="gb-go">Go</button>
+        </div>
+        <div class="gb-nav-sep"></div>
+        <div class="gb-nav-group">
+          <button class="gb-nav-btn" id="gb-zoom-out" title="Zoom out (-)">&#x2212;</button>
+          <input type="range" class="gb-zoom-range" id="gb-zoom" min="1" max="20" value="10">
+          <button class="gb-nav-btn" id="gb-zoom-in" title="Zoom in (+)">+</button>
+        </div>
+        <div class="gb-nav-sep"></div>
+        <div class="gb-nav-group">
+          <button class="gb-nav-btn" id="gb-left" title="Pan left (&larr;)">&larr;</button>
+          <button class="gb-nav-btn" id="gb-right" title="Pan right (&rarr;)">&rarr;</button>
+        </div>
+        <div class="gb-nav-right">
+          <button class="gb-nav-btn" id="gb-add-track">+ Add Track</button>
+          <input type="file" id="gb-add-file" multiple accept=".sam,.bam,.vcf,.bed,.gff,.gff3,.gtf" hidden>
+        </div>
+      </div>
+
+      <!-- Track chips -->
+      <div class="gb-track-list" id="gb-track-list"></div>
+
+      <!-- Coordinate ruler -->
+      <div class="gb-ruler" id="gb-ruler">
+        <canvas id="gb-ruler-canvas"></canvas>
+      </div>
+
+      <!-- Tracks -->
+      <div class="gb-tracks" id="gb-tracks"></div>
+
+      <!-- Footer -->
+      <div class="gb-footer">
+        <span id="gb-footer-loc">-</span>
+        <span id="gb-footer-info">BioBrowser</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="gb-tooltip" id="gb-tooltip" style="display:none"></div>
+
+  <script src="js/main.js"></script>
+  <script src="js/browser.js"></script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+# Day 13: Gene Expression and RNA-seq — Data Setup
+# Run: bl run init.bl
+# Generates data/counts.csv (35 genes x 6 samples) and data/gene_lengths.csv
+#
+# Source: Expression levels inspired by published RNA-seq studies:
+#         - Barretina et al., Nature 2012 (CCLE — Cancer Cell Line Encyclopedia)
+#         - Wang et al., Nucleic Acids Res 2019 (drug-response RNA-seq)
+# Source: Gene lengths from NCBI RefSeq (GRCh38, longest transcript per gene)
+# Samples: 3 DMSO control vs 3 doxorubicin-treated HeLa cells (24h exposure)
+# Counts represent raw read counts (pre-normalization) at ~30M reads/sample
+
+print("Setting up Day 13: Gene Expression and RNA-seq")
+print("Generating data files with real gene names and realistic counts...")
+
+mkdir("data")
+mkdir("results")
+
+# ============================================================
+# 1. Raw count matrix: 35 genes x 6 samples
+#    3 control (DMSO) vs 3 treated (doxorubicin 1uM, 24h)
+#    Expression patterns reflect known doxorubicin response:
+#    - DNA damage response genes upregulated
+#    - Cell cycle genes downregulated
+#    - Housekeeping genes stable
+# ============================================================
+
+let counts_header = "gene,ctrl_1,ctrl_2,ctrl_3,dox_1,dox_2,dox_3"
+let counts_rows = [
+    # Housekeeping genes — stable across conditions (high expression)
+    "ACTB,38542,41203,39876,37891,40234,39012",
+    "GAPDH,42156,44321,43087,41543,43876,42234",
+    "RPL13A,28765,30102,29543,27987,29876,28654",
+    "EEF1A1,35432,37654,36543,34876,36987,35765",
+    "B2M,15678,16543,16012,15234,16098,15543",
+    "TUBB,22345,23876,23012,21876,23234,22543",
+    "HSP90AA1,18976,20123,19543,19234,20567,19876",
+    # DNA damage response — upregulated by doxorubicin
+    "CDKN1A,1234,1456,1345,8765,9234,8543",
+    "MDM2,2345,2567,2456,7654,8123,7876",
+    "BAX,3456,3678,3567,9876,10234,9543",
+    "GADD45A,876,1023,945,6543,7012,6765",
+    "BBC3,543,678,612,4321,4765,4543",
+    "FAS,1876,2012,1943,6234,6678,6456",
+    "SESN2,2123,2345,2234,7654,8012,7876",
+    # Immediate early genes — upregulated (stress response)
+    "FOS,456,534,498,5678,6123,5876",
+    "JUN,1234,1345,1287,4567,4987,4765",
+    "MYC,8765,9234,8987,3456,3876,3654",
+    "EGR1,678,789,734,4321,4678,4512",
+    # Cell cycle genes — downregulated by doxorubicin (growth arrest)
+    "CCNA2,6543,6987,6765,1876,2123,1987",
+    "CCNB1,7654,8012,7876,2345,2654,2487",
+    "CDK1,5432,5765,5598,1543,1876,1698",
+    "PCNA,8765,9123,8943,3456,3876,3654",
+    "TOP2A,4321,4567,4443,987,1123,1054",
+    "MKI67,5678,6012,5843,1234,1456,1345",
+    # Apoptosis regulators — mixed response
+    "BCL2,4567,4876,4721,2345,2567,2456",
+    "MCL1,6543,6876,6709,5876,6123,5987",
+    "BIRC5,5432,5765,5598,1876,2123,1987",
+    # TP53 pathway
+    "TP53,3456,3678,3567,4321,4567,4443",
+    "PTEN,2876,3012,2943,3456,3678,3567",
+    # Drug metabolism
+    "ABCB1,876,987,934,4567,4987,4765",
+    "CYP1A1,234,312,278,1876,2123,1987",
+    # Low expression genes
+    "INS,12,18,15,8,14,11",
+    "ALB,5,8,6,3,6,4",
+    "HBB,23,31,27,19,25,22",
+    # Inflammatory response
+    "IL6,345,423,387,2345,2678,2512"
+]
+
+let counts_lines = [counts_header] + counts_rows
+write_lines(counts_lines, "data/counts.csv")
+print(f"  Created data/counts.csv ({len(counts_rows)} genes x 6 samples)")
+
+# ============================================================
+# 2. Gene lengths (bp) for TPM/FPKM normalization
+#    Values from NCBI RefSeq — longest coding transcript per gene
+# ============================================================
+
+let lengths_header = "gene,length"
+let lengths_rows = [
+    "ACTB,1852",
+    "GAPDH,1310",
+    "RPL13A,672",
+    "EEF1A1,1386",
+    "B2M,660",
+    "TUBB,1356",
+    "HSP90AA1,2199",
+    "CDKN1A,648",
+    "MDM2,1893",
+    "BAX,579",
+    "GADD45A,498",
+    "BBC3,585",
+    "FAS,1008",
+    "SESN2,1521",
+    "FOS,1149",
+    "JUN,996",
+    "MYC,2358",
+    "EGR1,1716",
+    "CCNA2,1341",
+    "CCNB1,1308",
+    "CDK1,897",
+    "PCNA,789",
+    "TOP2A,4587",
+    "MKI67,9768",
+    "BCL2,720",
+    "MCL1,1050",
+    "BIRC5,429",
+    "TP53,2629",
+    "PTEN,1212",
+    "ABCB1,3843",
+    "CYP1A1,1557",
+    "INS,333",
+    "ALB,1830",
+    "HBB,444",
+    "IL6,639"
+]
+
+let lengths_lines = [lengths_header] + lengths_rows
+write_lines(lengths_lines, "data/gene_lengths.csv")
+print(f"  Created data/gene_lengths.csv ({len(lengths_rows)} genes)")
+
+print("")
+print("Experiment: HeLa cells — DMSO control vs doxorubicin (1uM, 24h)")
+print("Setup complete. Run: bl run scripts/analysis.bl")

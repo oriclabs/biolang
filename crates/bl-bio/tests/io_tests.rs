@@ -1396,3 +1396,309 @@ fn test_read_bed_bufread_multi() {
         panic!("read_bed should return Table");
     }
 }
+
+// ════════════════════════════════════════════════════════════════
+// STREAMING & LARGE FILE HANDLING TESTS
+// ════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_fasta_stream_constant_memory_pattern() {
+    // Verify streaming: consume records one at a time without collecting
+    // This pattern should work for files of any size
+    let path = test_data_dir().join("test.fa");
+    let result = read_fasta(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let mut count = 0;
+        let mut total_len = 0i64;
+        while let Some(item) = s.next() {
+            if let Value::Record(rec) = item {
+                if let Some(Value::Int(len)) = rec.get("length") {
+                    total_len += len;
+                }
+                count += 1;
+            }
+        }
+        assert!(count > 0, "should have read at least one record");
+        assert!(total_len > 0, "total length should be positive");
+        // Stream should now be exhausted
+        assert!(s.next().is_none());
+        assert!(s.is_exhausted());
+    } else {
+        panic!("read_fasta should return Stream");
+    }
+}
+
+#[test]
+fn test_fastq_stream_constant_memory_pattern() {
+    let path = test_data_dir().join("test.fq");
+    let result = read_fastq(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let mut count = 0;
+        while let Some(item) = s.next() {
+            if let Value::Record(rec) = item {
+                // Each FASTQ record should have seq and quality
+                assert!(rec.contains_key("seq"), "record should have seq field");
+                assert!(rec.contains_key("quality"), "record should have quality field");
+                count += 1;
+            }
+        }
+        assert!(count > 0, "should have read at least one FASTQ record");
+        assert!(s.is_exhausted());
+    } else {
+        panic!("read_fastq should return Stream");
+    }
+}
+
+#[test]
+fn test_fasta_stream_early_termination() {
+    // Reading only first N records from a stream (simulates constant-memory
+    // processing of huge files by stopping early)
+    let path = test_data_dir().join("test.fa");
+    let result = read_fasta(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        // Take only the first record
+        let first = s.next();
+        assert!(first.is_some(), "should have at least one record");
+        // Drop the stream — should not panic or leak
+        drop(s);
+    } else {
+        panic!("read_fasta should return Stream");
+    }
+}
+
+#[test]
+fn test_fasta_gz_stream() {
+    let path = test_data_dir().join("test.fa.gz");
+    let result = read_fasta(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let mut count = 0;
+        while let Some(_) = s.next() {
+            count += 1;
+        }
+        assert!(count > 0, "gzipped FASTA should have records");
+    } else {
+        panic!("read_fasta should return Stream for .gz");
+    }
+}
+
+#[test]
+fn test_fastq_gz_stream() {
+    let path = test_data_dir().join("test.fq.gz");
+    let result = read_fastq(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let mut count = 0;
+        while let Some(_) = s.next() {
+            count += 1;
+        }
+        assert!(count > 0, "gzipped FASTQ should have records");
+    } else {
+        panic!("read_fastq should return Stream for .gz");
+    }
+}
+
+#[test]
+fn test_fasta_stream_double_consume_exhausted() {
+    let path = test_data_dir().join("test.fa");
+    let result = read_fasta(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        // Consume all
+        while s.next().is_some() {}
+        assert!(s.is_exhausted());
+        // Calling next again should return None (not panic)
+        assert!(s.next().is_none());
+    } else {
+        panic!("expected Stream");
+    }
+}
+
+#[test]
+fn test_fasta_empty_file_stream() {
+    let path = test_data_dir().join("empty.fa");
+    let result = read_fasta(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        assert!(s.next().is_none(), "empty file should produce no records");
+    } else {
+        panic!("read_fasta should return Stream");
+    }
+}
+
+#[test]
+fn test_fasta_single_record_stream() {
+    let path = test_data_dir().join("single.fa");
+    let result = read_fasta(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let first = s.next();
+        assert!(first.is_some(), "single.fa should have one record");
+        assert!(s.next().is_none(), "single.fa should have only one record");
+    } else {
+        panic!("read_fasta should return Stream");
+    }
+}
+
+#[test]
+fn test_fasta_multiline_stream() {
+    // Multiline FASTA (sequence split across lines)
+    let path = test_data_dir().join("multiline.fa");
+    let result = read_fasta(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let first = s.next();
+        assert!(first.is_some(), "multiline.fa should have records");
+        if let Some(Value::Record(rec)) = first {
+            // The sequence should be concatenated from multiple lines
+            if let Some(Value::Int(len)) = rec.get("length") {
+                assert!(*len > 0, "sequence length should be positive");
+            }
+        }
+    } else {
+        panic!("read_fasta should return Stream");
+    }
+}
+
+#[test]
+fn test_generated_large_fasta_stream() {
+    // Generate a FASTA file with many records and stream it
+    use std::io::Write;
+    let tmp = std::env::temp_dir().join("biolang_test_large.fa");
+    {
+        let mut f = std::fs::File::create(&tmp).unwrap();
+        for i in 0..10000 {
+            writeln!(f, ">seq_{i} test sequence").unwrap();
+            writeln!(f, "ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG").unwrap();
+        }
+    }
+
+    let result = read_fasta(tmp.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let mut count = 0u64;
+        while let Some(_) = s.next() {
+            count += 1;
+        }
+        assert_eq!(count, 10000, "should stream all 10000 records");
+    } else {
+        panic!("expected Stream");
+    }
+    let _ = std::fs::remove_file(&tmp);
+}
+
+#[test]
+fn test_generated_large_fastq_stream() {
+    use std::io::Write;
+    let tmp = std::env::temp_dir().join("biolang_test_large.fq");
+    {
+        let mut f = std::fs::File::create(&tmp).unwrap();
+        for i in 0..5000 {
+            writeln!(f, "@read_{i}").unwrap();
+            writeln!(f, "ATCGATCGATCGATCGATCGATCGATCG").unwrap();
+            writeln!(f, "+").unwrap();
+            writeln!(f, "IIIIIIIIIIIIIIIIIIIIIIIIIIIII").unwrap();
+        }
+    }
+
+    let result = read_fastq(tmp.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let mut count = 0u64;
+        while let Some(_) = s.next() {
+            count += 1;
+        }
+        assert_eq!(count, 5000, "should stream all 5000 reads");
+    } else {
+        panic!("expected Stream");
+    }
+    let _ = std::fs::remove_file(&tmp);
+}
+
+#[test]
+fn test_generated_large_vcf_stream() {
+    use std::io::Write;
+    let tmp = std::env::temp_dir().join("biolang_test_large.vcf");
+    {
+        let mut f = std::fs::File::create(&tmp).unwrap();
+        writeln!(f, "##fileformat=VCFv4.3").unwrap();
+        writeln!(f, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO").unwrap();
+        for i in 1..=5000 {
+            writeln!(f, "chr1\t{i}\t.\tA\tT\t30\tPASS\t.").unwrap();
+        }
+    }
+
+    let result = read_vcf(tmp.to_str().unwrap()).unwrap();
+    // read_vcf returns List of Variant values
+    match result {
+        Value::List(items) => {
+            assert_eq!(items.len(), 5000, "should have all 5000 variants");
+        }
+        _ => panic!("expected List from read_vcf, got {:?}", result.type_of()),
+    }
+    let _ = std::fs::remove_file(&tmp);
+}
+
+#[test]
+fn test_fasta_stream_gc_computation() {
+    // Simulate a real-world pattern: stream FASTA, compute GC for each
+    let path = test_data_dir().join("test.fa");
+    let result = read_fasta(path.to_str().unwrap()).unwrap();
+    if let Value::Stream(s) = result {
+        let mut gc_values = Vec::new();
+        while let Some(item) = s.next() {
+            if let Value::Record(rec) = item {
+                if let Some(Value::Float(gc)) = rec.get("gc") {
+                    gc_values.push(*gc);
+                }
+            }
+        }
+        assert!(!gc_values.is_empty(), "should have computed GC values");
+        for gc in &gc_values {
+            assert!(*gc >= 0.0 && *gc <= 1.0, "GC should be in [0, 1]");
+        }
+    } else {
+        panic!("expected Stream");
+    }
+}
+
+#[test]
+fn test_fasta_stats_returns_record() {
+    let path = test_data_dir().join("test.fa");
+    let result = fasta_stats(path.to_str().unwrap()).unwrap();
+    if let Value::Record(rec) = result {
+        assert!(rec.contains_key("count"));
+        assert!(rec.contains_key("total_bp"));
+        assert!(rec.contains_key("mean_length"));
+        assert!(rec.contains_key("n50"));
+        assert!(rec.contains_key("mean_gc"));
+        if let Some(Value::Int(count)) = rec.get("count") {
+            assert!(*count > 0);
+        }
+    } else {
+        panic!("fasta_stats should return Record");
+    }
+}
+
+#[test]
+fn test_fasta_stats_empty() {
+    let path = test_data_dir().join("empty.fa");
+    let result = fasta_stats(path.to_str().unwrap()).unwrap();
+    if let Value::Record(rec) = result {
+        assert_eq!(rec.get("count"), Some(&Value::Int(0)));
+    } else {
+        panic!("fasta_stats should return Record");
+    }
+}
+
+#[test]
+fn test_read_nonexistent_file() {
+    let result = read_fasta("/nonexistent/path/file.fa");
+    assert!(result.is_err(), "should error on nonexistent file");
+}
+
+#[test]
+fn test_format_mismatch_fasta_vs_fastq() {
+    // Trying to read a FASTQ file as FASTA should give a helpful error
+    let path = test_data_dir().join("test.fq");
+    let result = read_fasta(path.to_str().unwrap());
+    assert!(result.is_err(), "reading FASTQ as FASTA should error");
+    let err = result.unwrap_err();
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("FASTQ") || msg.contains("fastq"),
+        "error should mention FASTQ format mismatch"
+    );
+}

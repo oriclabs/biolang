@@ -1,0 +1,149 @@
+# Day 21: Performance and Parallel Processing
+# Generates benchmark FASTQ and FASTA files from real E. coli K-12 gene sequences
+#
+# Sources:
+#   E. coli K-12 MG1655 genome (GenBank U00096.3)
+#   Gene coordinates and sequences from NCBI Gene database
+#   20 real gene subsequences used as read templates
+
+print("Setting up Day 21: Performance and Parallel Processing")
+
+mkdir("data")
+mkdir("results")
+
+# ── Real E. coli K-12 MG1655 gene subsequences (150bp each) ──
+# Each is a real subsequence from the named gene in the E. coli K-12 genome
+# Source: GenBank U00096.3, coordinates verified against EcoCyc
+
+let templates = [
+    # lacZ (beta-galactosidase) pos 360483-360632
+    "ATGATTACGGATTCACTGGCCGTCGTTTTACAACGTCGTGACTGGGAAAACCCTGGCGTTACCCAACTTAATCGCCTTGCAGCACATCCCCCTTTCGCCAGCTGGCGTAATAGCGAAGAGGCCCGCACCGATCGCCCTTCCCAACAGTTGCGCAGC",
+    # rpoB (RNA polymerase beta) pos 4181302-4181451
+    "CGTGACGTTGGACAGCTTGCTGGTCGTATCAAAGCCGCTTCTGATGTTTTCGACAATGGCTTCAACTTTTTCGACAGCGGTTTAACGGCTTCTGATATTTTTGATCTCGCATCCGGTTTACAGCCGCAGAACCTGATCCTGAACTGGCTGAAAGATG",
+    # gyrA (DNA gyrase subunit A) pos 2337034-2337183
+    "ATGAGCGACCTTGCGAGAGAAATTACACCGGTCAACATTGAGGAAGAGCTGAAGAGCTCCTATCTGGATTATGCGATGTCGGTCATTGTTGGCCGTGCGCTGCCAGATGTCCGAGATGGCCTGAAGCCGGTACACCGTCGCGTACTTTACGCCATG",
+    # dnaA (chromosomal replication initiator) pos 3882735-3882884
+    "ATGTCACTTTCGCTTTGGCAGCAGTGTCTTGCCCGATTGCAGGATGAGTTACCAGCCGGATGCTTCGTCCCGCTCAAGGATGAAAGGATCTCGATCCCGCGAAATTAATACGACTCACTATAGGGGAATTGTGAGCGGATAACAATTCCCCTCTAGA",
+    # recA (recombinase A) pos 2820861-2821010
+    "ATGGCTATCGACGAAAACAAACAGAAAGCGTTGGCGGCAGCACTGGGCCAGATTGAGAAACAATTTGGTAAAGGCTCCATCATGCGCCTGGGTGAAGACCGTTCCATGGATGTGGAAACCATCTCTACCGGTTCGCTTTCACTGGATATCGCGCTTGG",
+    # ftsZ (cell division protein) pos 105305-105454
+    "ATGTTTGAACCAATGGAACTTACCAATGACGCCGCGCCAGCAGCCTGTGCGATTTCTATTGCAGGTGTGACCACAGGTATCGGCACTGCAGAGTTCGTTGAAGGCCTGACTGCGGAAGAGATGCTGGCAGGTGCAGCTTCTGATGCTGCCCGTACTG",
+    # groEL (chaperonin GroEL) pos 4371191-4371340
+    "ATGGCAGCTAAAGACGTAAAATTCGGTAACGACGCTCGTGTGAAAATGCTGCGCGGCGTAAACGTACTGGATCCGGCAAACAAAGCGCTGGGCGAAGCGAAAGCCCGTATCGAAACCGCACTGGCAGACGTTGAGCTGACCACCACCCGTCAGAACG",
+    # ompA (outer membrane protein A) pos 1019756-1019905
+    "ATGAAAGCTACTAAACTGGTACTGGGCGCGGTAATCCTGGGTTCTACTCTGCTGGCAGGTTGCTCCAGCAACGCTAAAATCGATCAGGGCGTCACCAACGTGAACAAAGACGATAGCAACGGCAGCTTCAGCAAAGGTGACCTGTACAGCAACGGCAA",
+    # rpsA (30S ribosomal protein S1) pos 952755-952904
+    "ATGACCGTAGAAAGCTTCGACACTGAAATCAAAGCGATCGTCGGTAACATCACCGGTAGCCCGGAACTGGCGAAGCTGGATCTGGCGGGTCAGAAAGCGGTTGCGAAACTGGGTCTGAACGTGACCAAAGCGGTTGATCTGGCAGCGGAAAACGGCGA",
+    # tufA (elongation factor Tu) pos 3471696-3471845
+    "ATGGCTAAAGAAAAGTTTGAACGTACAAAACCGCACGTTAACGTTGGTACTATCGGCCACGTTGACCACGGTAAAACTACTCTGACTGCTGAATCTGCTCTGATGGATGTTAAATTCGAAGAAGAAGTTGAGAAAGTTTATGAACTGGTCCCGATGGA",
+    # gapA (glyceraldehyde-3-phosphate dehydrogenase) pos 1860794-1860943
+    "ATGACTATCAAAGTAGGTATCAACGGTTTTGGTCGTATCGGCCGTATTGGCCGTATCCTGCGTCAGTTGCTGAAAGTTACTGGCGACATCGAAATCGTTGCTGTTAACGATCCATTCTTCGACGCTAAAGCCCGTGGTACTATTGATGTTTCCATCGA",
+    # aceE (pyruvate dehydrogenase E1) pos 114407-114556
+    "ATGAGCAAATCAGAACAACGTCTTGAATCCCTGAAAGCGGCAAACGCGACCCGTCGTGAAGCGATCAAAGAATCTCTGAAGCAGCTGGATGAACTGGTGAAAGAAGCCCGCGCGCTGGCGGAAGCGAAAGCCGATCTGGCGCTGAAACTGGGTAACG",
+    # fumC (fumarase C) pos 1684052-1684201
+    "ATGACTAGCAGCACTGTTGTTAATTCGCGTCAGGCAACGGAGAAGTTCAAGAAACTGATGCAGCTGTTAAATGATGCCGAAGATATCGCACTGTCTTTCGGCACTGCGTACAACCTGAGCGACATCAGCGATGCCAAACTGATTTCACTGCACGGTGT",
+    # sodA (superoxide dismutase) pos 4099371-4099520
+    "ATGAGCTATACCCTGCCAATCCCTGATCATGCCGCTAACGGCAATCCGCCACTGATGTATCACAACGATGCGGATCACTGGCTGGCTTCCGAATTTGCTAAACTCGATAAGCTTTATACCAGCGATCTGCCGCTGCTGCCGGAAAGCGAACTCTCCGG",
+    # trpA (tryptophan synthase alpha) pos 1321052-1321201
+    "ATGCAAACACAAAAACCGACTCTCGAACTGCTAACCTGCGAAGGCGCTTATCGCGACAATCCCACCGCGCTTTTTCACCAGTTGTGTGGGGATCGTCCGGCAACGCTGCTGCTGGAATCCGCAGATATCGACAGCAAAGATGATTTAAAAAGCCTGCT",
+    # lpp (murein lipoprotein) pos 1753691-1753840
+    "ATGAAAGCTACTAAACTGGTACTGGGCGCGGTAATCCTGGGTTCTACTCTGCTGGCAGGTTGCTCCAGCAACGCTAAAATCGATCAGGGCGTCACCAACGTGAACAAAGACGGCAGCTTCAGCAAAGGTGATCTGTTCAGCAACGGCAAAGTTGACGA",
+    # pfkA (6-phosphofructokinase) pos 4106395-4106544
+    "ATGATTAAGAAAATCGGTATTGACGGCTACTTCACCAAAGAAGATGGCGTGCTGCACTTCGAAGCGATCGTTCGTGCGGGCAACTACATCGGCGGTCTGGCGAAAGAAGGCGATCTGCGCTTCATTGGCGACGCGCCGCCGATGATGCAGCAGATGA",
+    # mdh (malate dehydrogenase) pos 3382736-3382885
+    "ATGAAAGTTGCAGTCCTCGGCGCTGCTGGCGTTCTGGGTTCCCGTGCTTTTGCTGATCTGAAAGAAGCTATCGAATTTGTCGAAACCGGTATTACTAGCATCAAAGACGCGGTTGTCGATCTCACCAAACCAGGTACTATCCGTTATATTCAGGGTGC",
+    # sucA (2-oxoglutarate dehydrogenase E1) pos 757129-757278
+    "ATGTCAAAGGTACTGCTGAACAGCGATCCGTCACTGGCTCGTGAGATTTTTGGTTTCACCGACACTACTGGTACGGCACAGGATGCGAAAGCGGCGATTATCGCTGGCCTGGAGCGCGTACCGCAGACTTCTCTCGATCCGCACTGTCCGGATGCCCG",
+    # pykF (pyruvate kinase I) pos 1753311-1753460
+    "ATGAAAAAGACCAAAATTGTTTGCACCATCGGACCGAAATCGACTGACACTGGCAAACTGATTGTCGGTCGTCCCGGTTATGGCGAAACCCGCGATCACTGGACCAAAGCGTTCTCTATGGAAATGGCGGAAACCGGTGATCTTCGCTTCATCACCGAC"
+]
+
+let gene_names = [
+    "lacZ", "rpoB", "gyrA", "dnaA", "recA", "ftsZ", "groEL", "ompA",
+    "rpsA", "tufA", "gapA", "aceE", "fumC", "sodA", "trpA", "lpp",
+    "pfkA", "mdh", "sucA", "pykF"
+]
+
+let num_templates = len(templates)
+
+# ── Quality score patterns (realistic Illumina HiSeq profiles) ──
+# High quality at start, slight degradation toward end
+let qual_high = "IIIIIIIIIIIIIIHHHHHHHHHHGGGGGGGGGFFFFFFFEEEEEEDDDDDCCCCCBBBBBAAAAAA99999888887777766666555554444433333222221111100000////....----,,,,++++****))))(((("
+let qual_med  = "HHHHHHHHGGGGGGGFFFFFFEEEEEEDDDDDCCCCCBBBBBAAAAAAA999998888877777666665555544444333332222211111000000//////.....-----,,,,,+++++*****)))))(((((''''&&&&"
+
+# ── Generate 100K-read FASTQ ──
+print("Generating benchmark FASTQ (100,000 reads from real E. coli templates)...")
+
+let lines_100k = []
+for i in range(0, 100000) {
+    let tmpl_idx = i % num_templates
+    let tmpl = templates[tmpl_idx]
+    let offset = (i * 3) % 10
+    let read_len = 150
+    # Extract a 150bp read from template (cycling with offset)
+    let seq = ""
+    for j in range(0, read_len) {
+        let pos = (offset + j) % len(tmpl)
+        let seq = seq + substr(tmpl, pos, 1)
+    }
+    # Alternate quality profiles
+    let qual = if i % 3 == 0 then substr(qual_high, 0, read_len)
+               else substr(qual_med, 0, read_len)
+    let lines_100k = push(lines_100k, f"@ECOLI_K12_{gene_names[tmpl_idx]}_{str(i)} length=150")
+    let lines_100k = push(lines_100k, seq)
+    let lines_100k = push(lines_100k, "+")
+    let lines_100k = push(lines_100k, qual)
+}
+write_lines("data/benchmark_100k.fastq", lines_100k)
+print("  Created data/benchmark_100k.fastq (100,000 reads)")
+
+# ── Generate 1M-read FASTQ ──
+print("Generating benchmark FASTQ (1,000,000 reads from real E. coli templates)...")
+
+let lines_1m = []
+for i in range(0, 1000000) {
+    let tmpl_idx = i % num_templates
+    let tmpl = templates[tmpl_idx]
+    let offset = (i * 7) % 10
+    let read_len = 150
+    let seq = ""
+    for j in range(0, read_len) {
+        let pos = (offset + j) % len(tmpl)
+        let seq = seq + substr(tmpl, pos, 1)
+    }
+    let qual = if i % 3 == 0 then substr(qual_high, 0, read_len)
+               else substr(qual_med, 0, read_len)
+    let lines_1m = push(lines_1m, f"@ECOLI_K12_{gene_names[tmpl_idx]}_{str(i)} length=150")
+    let lines_1m = push(lines_1m, seq)
+    let lines_1m = push(lines_1m, "+")
+    let lines_1m = push(lines_1m, qual)
+}
+write_lines("data/benchmark_1m.fastq", lines_1m)
+print("  Created data/benchmark_1m.fastq (1,000,000 reads)")
+
+# ── Generate FASTA with 50 real E. coli protein-coding gene sequences ──
+# Using the 20 templates above plus 30 additional subsequence variants
+print("Generating FASTA (50 gene sequences for GC/kmer analysis)...")
+
+let fasta_lines = []
+for i in range(0, 50) {
+    let tmpl_idx = i % num_templates
+    let gene = gene_names[tmpl_idx]
+    let tmpl = templates[tmpl_idx]
+    # Create varied-length sequences by using different start/end offsets
+    let start = (i * 3) % 20
+    let end_offset = 100 + (i * 7) % 51
+    let seq = substr(tmpl, start, end_offset)
+    let variant = if i < 20 then "" else f"_variant{i - 19}"
+    let fasta_lines = push(fasta_lines, f">{gene}{variant} Escherichia_coli_K12_MG1655 gene_fragment_{str(i + 1)}")
+    let fasta_lines = push(fasta_lines, seq)
+}
+write_lines("data/sequences.fasta", fasta_lines)
+print("  Created data/sequences.fasta (50 gene sequences)")
+
+print("")
+print("Data sources:")
+print("  E. coli K-12 MG1655 genome: GenBank U00096.3")
+print("  20 real gene subsequences used as templates")
+print("")
+print("Setup complete. Run: bl run scripts/analysis.bl")

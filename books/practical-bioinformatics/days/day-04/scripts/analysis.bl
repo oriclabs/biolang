@@ -1,0 +1,181 @@
+# Day 4: Coding Crash Course for Biologists
+# Complete analysis script combining all concepts
+# Run: bl run scripts/analysis.bl
+
+print("=" * 60)
+print("Day 4: Coding Crash Course for Biologists")
+print("=" * 60)
+
+# ── Section 1: Variables ──────────────────────────────────────
+
+print("")
+print("--- Variables: Labeling Your Tubes ---")
+
+let sample_name = "Patient_042"
+let concentration = 23.5
+let is_contaminated = false
+let bases_sequenced = 3200000
+
+print(f"Sample: {sample_name}")
+print(f"Concentration: {concentration} ng/uL")
+print(f"Clean: {not is_contaminated}")
+print(f"Bases: {bases_sequenced}")
+
+# ── Section 2: Lists ─────────────────────────────────────────
+
+print("")
+print("--- Lists: Your Sample Rack ---")
+
+let samples = ["Control_1", "Control_2", "Treated_1", "Treated_2"]
+print(f"Number of samples: {len(samples)}")
+print(f"First sample: {first(samples)}")
+
+let updated = push(samples, "Treated_3")
+print(f"After adding: {len(updated)} samples")
+print(f"Contains Control_1: {contains(samples, "Control_1")}")
+print(f"Contains Control_9: {contains(samples, "Control_9")}")
+
+# ── Section 3: Records ───────────────────────────────────────
+
+print("")
+print("--- Records: Lab Notebook Entries ---")
+
+let experiment = {
+    date: "2024-03-15",
+    investigator: "Dr. Chen",
+    cell_line: "HeLa",
+    treatment: "Doxorubicin",
+    concentration_uM: 0.5,
+    viability_percent: 72.3
+}
+
+print(f"Cell line: {experiment.cell_line}")
+print(f"Viability: {experiment.viability_percent}%")
+
+# ── Section 4: Loops ─────────────────────────────────────────
+
+print("")
+print("--- Loops: Processing Every Sample ---")
+
+let genes = ["BRCA1", "TP53", "EGFR", "KRAS", "MYC"]
+for gene in genes {
+    print(f"  Analyzing {gene}...")
+}
+
+print("")
+print("GC content per sequence:")
+let sequences = [dna"ATCGATCG", dna"GCGCGCGC", dna"AATTAATT"]
+for seq in sequences {
+    let gc = gc_content(seq)
+    let gc_pct = round(gc * 100.0, 1)
+    print(f"  {seq} -> GC: {gc_pct}%")
+}
+
+# ── Section 5: Conditions ────────────────────────────────────
+
+print("")
+print("--- Conditions: QC Decisions ---")
+
+let qc_samples = [
+    {name: "S001", reads: 25000000, quality: 35.2},
+    {name: "S002", reads: 500000,   quality: 28.7},
+    {name: "S003", reads: 18000000, quality: 33.1},
+    {name: "S004", reads: 12000000, quality: 22.0}
+]
+
+for s in qc_samples {
+    if s.reads < 1000000 {
+        print(f"  {s.name}: FAIL (too few reads: {s.reads})")
+    } else if s.quality < 25.0 {
+        print(f"  {s.name}: FAIL (low quality: {s.quality})")
+    } else {
+        print(f"  {s.name}: PASS")
+    }
+}
+
+# ── Section 6: Functions ─────────────────────────────────────
+
+print("")
+print("--- Functions: Reusable Protocols ---")
+
+fn qc_check(reads, min_reads) {
+    if reads < min_reads {
+        "FAIL"
+    } else {
+        "PASS"
+    }
+}
+
+fn fold_change(control, treated) {
+    round(treated / control, 2)
+}
+
+print(f"QC 25M reads: {qc_check(25000000, 1000000)}")
+print(f"QC 500K reads: {qc_check(500000, 1000000)}")
+print(f"Fold change 5.2 -> 12.8: {fold_change(5.2, 12.8)}")
+print(f"Fold change 8.1 -> 7.9: {fold_change(8.1, 7.9)}")
+
+# ── Section 7: Pipes ─────────────────────────────────────────
+
+print("")
+print("--- Pipes: Connecting Steps ---")
+
+let gc_result = dna"ATGCGATCGATCGATCGATCGATCG"
+    |> gc_content()
+    |> round(3)
+print(f"GC content (piped): {gc_result}")
+
+let dna_seqs = [
+    dna"ATCGATCGATCG",
+    dna"GCGCGCGCGCGC",
+    dna"ATATATATATATAT",
+    dna"GCGCATATAGCGC",
+    dna"TTTTTAAAAACCCCC"
+]
+
+let gc_rich_count = dna_seqs
+    |> map(|s| {seq: s, gc: gc_content(s)})
+    |> filter(|r| r.gc > 0.5)
+    |> len()
+
+print(f"{gc_rich_count} out of {len(dna_seqs)} sequences are GC-rich")
+
+# ── Section 8: Complete Analysis ──────────────────────────────
+
+print("")
+print("--- Complete Analysis: Gene Expression ---")
+
+let expr_samples = [
+    {gene: "BRCA1", control: 5.2,  treated: 12.8},
+    {gene: "TP53",  control: 8.1,  treated: 7.9},
+    {gene: "EGFR",  control: 3.4,  treated: 15.2},
+    {gene: "MYC",   control: 6.7,  treated: 6.5},
+    {gene: "KRAS",  control: 4.1,  treated: 11.3}
+]
+
+let results = expr_samples |> map(|s| {
+    gene: s.gene,
+    fold_change: fold_change(s.control, s.treated),
+    direction: if s.treated > s.control { "UP" } else { "DOWN" }
+})
+
+let upregulated = results
+    |> filter(|r| r.fold_change > 2.0)
+    |> sort_by(|r| r.fold_change)
+    |> reverse()
+
+print("=== Upregulated Genes (FC > 2.0) ===")
+for gene in upregulated {
+    print(f"  {gene.gene}: {gene.fold_change}x {gene.direction}")
+}
+print(f"\nTotal: {len(upregulated)} of {len(expr_samples)} genes upregulated")
+
+# ── Summary ───────────────────────────────────────────────────
+
+print("")
+print("=" * 60)
+print("Day 4 complete! You now know:")
+print("  - Variables, lists, records")
+print("  - Loops, conditions, functions")
+print("  - Pipes for chaining analysis steps")
+print("=" * 60)

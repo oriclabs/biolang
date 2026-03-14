@@ -1,0 +1,63 @@
+============================================================
+Day 4: Coding Crash Course for Biologists
+============================================================
+
+--- Variables: Labeling Your Tubes ---
+Sample: Patient_042
+Concentration: 23.5 ng/uL
+Clean: true
+Bases: 3200000
+
+--- Lists: Your Sample Rack ---
+Number of samples: 4
+First sample: Control_1
+After adding: 5 samples
+Contains Control_1: true
+Contains Control_9: false
+
+--- Records: Lab Notebook Entries ---
+Cell line: HeLa
+Viability: 72.3%
+
+--- Loops: Processing Every Sample ---
+  Analyzing BRCA1...
+  Analyzing TP53...
+  Analyzing EGFR...
+  Analyzing KRAS...
+  Analyzing MYC...
+
+GC content per sequence:
+  ATCGATCG -> GC: 50.0%
+  GCGCGCGC -> GC: 100.0%
+  AATTAATT -> GC: 0.0%
+
+--- Conditions: QC Decisions ---
+  S001: PASS
+  S002: FAIL (too few reads: 500000)
+  S003: PASS
+  S004: FAIL (low quality: 22)
+
+--- Functions: Reusable Protocols ---
+QC 25M reads: PASS
+QC 500K reads: FAIL
+Fold change 5.2 -> 12.8: 2.46
+Fold change 8.1 -> 7.9: 0.98
+
+--- Pipes: Connecting Steps ---
+GC content (piped): 0.48
+2 out of 5 sequences are GC-rich
+
+--- Complete Analysis: Gene Expression ---
+=== Upregulated Genes (FC > 2.0) ===
+  EGFR: 4.47x UP
+  KRAS: 2.76x UP
+  BRCA1: 2.46x UP
+
+Total: 3 of 5 genes upregulated
+
+============================================================
+Day 4 complete! You now know:
+  - Variables, lists, records
+  - Loops, conditions, functions
+  - Pipes for chaining analysis steps
+============================================================

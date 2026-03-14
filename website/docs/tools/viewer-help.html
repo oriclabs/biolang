@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLViewer — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+  <style>
+    .feature-card { background: rgba(30,41,59,0.5); border: 1px solid rgba(100,116,139,0.2); border-radius: 12px; padding: 20px 24px; margin: 16px 0; }
+    .feature-card h3 { color: #a78bfa; margin-top: 0; font-size: 1.1rem; }
+    .feature-card p { color: #94a3b8; font-size: 0.9rem; line-height: 1.7; }
+    .diagram { background: rgba(15,23,42,0.6); border: 1px solid rgba(100,116,139,0.15); border-radius: 10px; padding: 16px; margin: 12px 0; text-align: center; overflow-x: auto; }
+    .diagram svg { max-width: 100%; height: auto; }
+    .key-combo { display: inline-block; font-family: ui-monospace, monospace; font-size: 0.8rem; padding: 2px 7px; border-radius: 4px; background: rgba(124,58,237,0.15); color: #c4b5fd; border: 1px solid rgba(124,58,237,0.3); }
+    .note-box { background: rgba(251,191,36,0.08); border-left: 3px solid #fbbf24; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 0.88rem; color: #fbbf24; }
+    .note-box strong { color: #fcd34d; }
+    .info-box { background: rgba(34,211,238,0.06); border-left: 3px solid #22d3ee; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 0.88rem; color: #67e8f9; }
+    .toolbar-icon { display: inline-block; padding: 2px 8px; border-radius: 5px; border: 1px solid rgba(100,116,139,0.3); background: rgba(30,41,59,0.5); font-size: 0.85rem; color: #e2e8f0; font-family: system-ui; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/viewer"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Viewer</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>BLViewer</h1>
+        <p>
+          BLViewer is a client-side bioinformatics file viewer. Drop FASTA, FASTQ, VCF, BED,
+          GFF, CSV, TSV, or SAM files into your browser for instant parsing, statistics, and
+          analysis. Your data never leaves your machine &mdash; everything runs 100% in the browser.
+        </p>
+
+        <p>Available as a <strong>standalone web app</strong> (installable as PWA), a <strong>Chrome extension</strong>, and embeddable in any website.</p>
+
+        <div class="feature-card" style="text-align:center">
+          <h3 style="margin-bottom:12px">Feature Tour</h3>
+          <video controls playsinline preload="metadata" style="width:100%;max-width:900px;border-radius:8px;border:1px solid rgba(100,116,139,0.2)" poster="screenshots/landing.png">
+            <source src="video/tutorial.webm" type="video/webm">
+            Your browser does not support the video tag.
+          </video>
+          <p style="margin-top:8px;font-size:0.8rem;color:#64748b">~1 minute tour of key features</p>
+        </div>
+
+        <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
+          <img src="screenshots/landing.png" alt="BLViewer landing page with drop zone" style="width:100%;display:block;border-radius:10px" loading="lazy">
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>Supported Formats</h2>
+        <div class="not-prose overflow-x-auto my-4">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Format</th>
+                <th class="py-3 px-4">Extensions</th>
+                <th class="py-3 px-4">Auto-detected by</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-3 px-4 font-mono">FASTA</td><td class="py-3 px-4">.fasta, .fa, .fna, .faa</td><td class="py-3 px-4">">" header lines</td></tr>
+              <tr><td class="py-3 px-4 font-mono">FASTQ</td><td class="py-3 px-4">.fastq, .fq</td><td class="py-3 px-4">"@" header + quality lines</td></tr>
+              <tr><td class="py-3 px-4 font-mono">VCF</td><td class="py-3 px-4">.vcf</td><td class="py-3 px-4">##fileformat=VCF header</td></tr>
+              <tr><td class="py-3 px-4 font-mono">BED</td><td class="py-3 px-4">.bed</td><td class="py-3 px-4">Tab-separated, 3+ columns, chrom/start/end</td></tr>
+              <tr><td class="py-3 px-4 font-mono">GFF/GTF</td><td class="py-3 px-4">.gff, .gff3, .gtf</td><td class="py-3 px-4">Tab-separated with "##gff" or 9 columns</td></tr>
+              <tr><td class="py-3 px-4 font-mono">SAM</td><td class="py-3 px-4">.sam</td><td class="py-3 px-4">Tab-separated with @HD/@SQ headers</td></tr>
+              <tr><td class="py-3 px-4 font-mono">CSV/TSV</td><td class="py-3 px-4">.csv, .tsv</td><td class="py-3 px-4">Comma or tab delimited</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Supported Formats Gallery</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0">
+          <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/loading-vcf.png" alt="VCF file loaded" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">VCF</div></div>
+          <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/loading-fasta.png" alt="FASTA file loaded" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">FASTA</div></div>
+          <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/loading-fastq.png" alt="FASTQ file with quality colors" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">FASTQ</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0">
+          <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/loading-bed.png" alt="BED file loaded" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">BED</div></div>
+          <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/loading-csv.png" alt="CSV file loaded" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">CSV</div></div>
+          <div class="diagram" style="padding:0;overflow:hidden;opacity:0.3;display:flex;align-items:center;justify-content:center;min-height:80px"><span style="color:#64748b;font-size:12px">More formats supported</span></div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>View Modes</h2>
+
+        <div class="diagram">
+          <svg viewBox="0 0 720 60" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="10" width="160" height="40" rx="8" fill="#7c3aed" opacity="0.2" stroke="#7c3aed" stroke-width="1.5"/>
+            <text x="80" y="36" text-anchor="middle" fill="#c4b5fd" font-family="system-ui" font-size="13" font-weight="600">1 Table</text>
+            <rect x="180" y="10" width="160" height="40" rx="8" fill="#0891b2" opacity="0.15" stroke="#0891b2" stroke-width="1"/>
+            <text x="260" y="36" text-anchor="middle" fill="#67e8f9" font-family="system-ui" font-size="13" font-weight="600">2 Stats</text>
+            <rect x="360" y="10" width="160" height="40" rx="8" fill="#059669" opacity="0.15" stroke="#059669" stroke-width="1"/>
+            <text x="440" y="36" text-anchor="middle" fill="#6ee7b7" font-family="system-ui" font-size="13" font-weight="600">3 Raw</text>
+            <rect x="540" y="10" width="160" height="40" rx="8" fill="#d97706" opacity="0.15" stroke="#d97706" stroke-width="1"/>
+            <text x="620" y="36" text-anchor="middle" fill="#fcd34d" font-family="system-ui" font-size="13" font-weight="600">4 BioLang</text>
+          </svg>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0">
+          <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/view-table.png" alt="Table view" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Table</div></div>
+          <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/view-stats.png" alt="Stats view" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Stats</div></div>
+          <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/view-raw.png" alt="Raw view" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Raw</div></div>
+        </div>
+
+        <ul>
+          <li><strong>Table</strong> (press <span class="key-combo">1</span>) &mdash; Sortable columns, colored nucleotide highlighting (A=green, T=red, G=amber, C=blue), row numbers, search/filter, anomaly highlighting</li>
+          <li><strong>Stats</strong> (press <span class="key-combo">2</span>) &mdash; Format-specific statistics: sequence count, N50, GC% for FASTA; Q30%, mean quality for FASTQ; Ti/Tv ratio, SNP/indel breakdown for VCF; total coverage for BED. Each SVG chart has a download button. Export stats as JSON, TSV, or copy to clipboard.</li>
+          <li><strong>Raw</strong> (press <span class="key-combo">3</span>) &mdash; Line-numbered raw text view with search highlighting</li>
+          <li><strong>BioLang</strong> (press <span class="key-combo">4</span>) &mdash; Interactive console with file pre-loaded as a <code>data</code> Table variable. Powered by WASM.</li>
+        </ul>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>Toolbar Reference</h2>
+
+        <div class="diagram">
+          <svg viewBox="0 0 780 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Toolbar background -->
+            <rect x="0" y="0" width="780" height="100" rx="8" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
+            <!-- Row 1: view modes + chips -->
+            <rect x="12" y="10" width="52" height="26" rx="5" fill="#7c3aed" opacity="0.2" stroke="#7c3aed" stroke-width="1"/>
+            <text x="38" y="28" text-anchor="middle" fill="#c4b5fd" font-family="system-ui" font-size="10" font-weight="600">Table</text>
+            <rect x="70" y="10" width="46" height="26" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="93" y="28" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="10">Stats</text>
+            <rect x="122" y="10" width="40" height="26" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="142" y="28" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="10">Raw</text>
+            <rect x="168" y="10" width="58" height="26" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="197" y="28" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="10">BioLang</text>
+            <!-- separator -->
+            <line x1="236" y1="14" x2="236" y2="32" stroke="#1e293b" stroke-width="1"/>
+            <!-- chips -->
+            <rect x="244" y="12" width="44" height="22" rx="4" fill="rgba(34,211,238,0.08)" stroke="rgba(34,211,238,0.3)" stroke-width="1"/>
+            <text x="266" y="27" text-anchor="middle" fill="#22d3ee" font-family="monospace" font-size="9">VCF</text>
+            <rect x="294" y="12" width="70" height="22" rx="4" fill="rgba(52,211,153,0.08)" stroke="rgba(52,211,153,0.3)" stroke-width="1"/>
+            <text x="329" y="27" text-anchor="middle" fill="#34d399" font-family="monospace" font-size="9">1,234 rows</text>
+            <!-- search -->
+            <rect x="374" y="12" width="140" height="22" rx="4" fill="#151b2b" stroke="#1e293b" stroke-width="1"/>
+            <text x="386" y="27" fill="#475569" font-family="monospace" font-size="10">Search...</text>
+            <!-- Row 2: action buttons -->
+            <rect x="12" y="46" width="72" height="24" rx="5" fill="none" stroke="rgba(251,191,36,0.3)" stroke-width="1"/>
+            <text x="48" y="62" text-anchor="middle" fill="#fbbf24" font-family="system-ui" font-size="9">Bookmarks</text>
+            <rect x="90" y="46" width="64" height="24" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="122" y="62" text-anchor="middle" fill="#94a3b8" font-family="system-ui" font-size="9">Pin Cols</text>
+            <rect x="160" y="46" width="50" height="24" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="185" y="62" text-anchor="middle" fill="#94a3b8" font-family="system-ui" font-size="9">Detail</text>
+            <rect x="216" y="46" width="48" height="24" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="240" y="62" text-anchor="middle" fill="#94a3b8" font-family="system-ui" font-size="9">Split</text>
+            <rect x="270" y="46" width="42" height="24" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="291" y="62" text-anchor="middle" fill="#94a3b8" font-family="system-ui" font-size="9">Diff</text>
+            <rect x="318" y="46" width="72" height="24" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="354" y="62" text-anchor="middle" fill="#94a3b8" font-family="system-ui" font-size="9">Screenshot</text>
+            <rect x="396" y="46" width="52" height="24" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="422" y="62" text-anchor="middle" fill="#94a3b8" font-family="system-ui" font-size="9">Share</text>
+            <rect x="454" y="46" width="52" height="24" rx="5" fill="none" stroke="rgba(34,211,238,0.3)" stroke-width="1"/>
+            <text x="480" y="62" text-anchor="middle" fill="#22d3ee" font-family="system-ui" font-size="9">Export</text>
+            <rect x="512" y="46" width="52" height="24" rx="5" fill="none" stroke="rgba(251,191,36,0.2)" stroke-width="1"/>
+            <text x="538" y="62" text-anchor="middle" fill="#fbbf24" font-family="system-ui" font-size="9">Theme</text>
+            <!-- Help -->
+            <rect x="570" y="46" width="34" height="24" rx="5" fill="none" stroke="#1e293b" stroke-width="1"/>
+            <text x="587" y="62" text-anchor="middle" fill="#94a3b8" font-family="system-ui" font-size="9">?</text>
+          </svg>
+        </div>
+
+        <div class="not-prose overflow-x-auto my-4">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Button</th>
+                <th class="py-3 px-4">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#9734; Bookmarks</span></td><td class="py-2 px-4">Toggle bookmark column &mdash; click stars to flag rows, click &#9733; header to export bookmarked rows</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#128204; Pin Cols</span></td><td class="py-2 px-4">Freeze first 2 columns when scrolling wide tables (6+ columns)</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#8597; Detail</span></td><td class="py-2 px-4">Enable/disable row click detail panel (off by default, persists in localStorage)</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#9707; Split</span></td><td class="py-2 px-4">Side-by-side view: table on left, summary stats on right</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#8800; Diff</span></td><td class="py-2 px-4">Compare rows between two open files of the same format (appears when 2+ same-format tabs open)</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#128247; Screenshot</span></td><td class="py-2 px-4">Export current view as PNG image</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#128279; Share</span></td><td class="py-2 px-4">Generate a shareable URL with file data encoded (files &lt; 100KB)</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">Export &#9662;</span></td><td class="py-2 px-4">Export as CSV, TSV, BED, VCF, HTML, or convert formats (VCF&rarr;BED, GFF&rarr;BED, FASTA&rarr;reverse complement)</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#9788; Theme</span></td><td class="py-2 px-4">Toggle dark/light mode (persists in localStorage)</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#8634; Transpose</span></td><td class="py-2 px-4">Toggle transpose view &mdash; swap rows and columns (<span class="key-combo">Ctrl+T</span>)</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">Row #</span></td><td class="py-2 px-4">Show/hide the row numbers column</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">Wrap</span></td><td class="py-2 px-4">Toggle word wrapping for long text cells</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">&#9635; Fullscreen</span></td><td class="py-2 px-4">Toggle fullscreen mode (<span class="key-combo">F11</span>)</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">Replace</span></td><td class="py-2 px-4">Toggle find &amp; replace bar next to search box</td></tr>
+              <tr><td class="py-2 px-4"><span class="toolbar-icon">?</span></td><td class="py-2 px-4">Show keyboard shortcuts overlay</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>Features</h2>
+
+        <!-- ── Split View ────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9707; Split View</h3>
+          <p>Click <span class="toolbar-icon">Split</span> in the toolbar to display the table and stats side by side. The table takes 2/3 width, with a summary panel on the right showing all computed statistics for the current file.</p>
+          <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
+            <img src="screenshots/split-view.png" alt="Split view showing table and stats side by side" style="width:100%;display:block;border-radius:10px" loading="lazy">
+          </div>
+        </div>
+
+        <!-- ── Diff View ─────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#8800; Diff &mdash; Compare Two Files</h3>
+          <p>When two or more files of the same format are open, the <span class="toolbar-icon">Diff</span> button appears. Click it to compare rows between the active file and the next same-format tab. Rows are matched by natural keys:</p>
+          <ul style="color:#94a3b8;font-size:0.9rem">
+            <li><strong>VCF</strong>: CHROM:POS:REF&gt;ALT</li>
+            <li><strong>BED</strong>: CHROM:START-END</li>
+            <li><strong>FASTA/FASTQ</strong>: Sequence ID</li>
+            <li><strong>Other</strong>: Entire row as key</li>
+          </ul>
+          <div class="diagram">
+            <svg viewBox="0 0 500 130" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="500" height="130" rx="6" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
+              <!-- Summary bar -->
+              <rect x="8" y="8" width="484" height="28" rx="5" fill="#151b2b"/>
+              <text x="16" y="26" fill="#e2e8f0" font-family="system-ui" font-size="10" font-weight="600">Comparing: sample_A.vcf vs sample_B.vcf</text>
+              <text x="300" y="26" fill="#34d399" font-family="monospace" font-size="10">892 shared</text>
+              <text x="370" y="26" fill="#f87171" font-family="monospace" font-size="10">23 only in A</text>
+              <text x="460" y="26" fill="#22d3ee" font-family="monospace" font-size="10">17 only in B</text>
+              <!-- Diff rows -->
+              <rect x="8" y="42" width="484" height="18" fill="rgba(248,113,113,0.08)"/>
+              <text x="16" y="55" fill="#f87171" font-family="monospace" font-size="9">&#9664; sample_A</text>
+              <text x="100" y="55" fill="#e2e8f0" font-family="monospace" font-size="9">chr1  10542  A  G  PASS</text>
+              <rect x="8" y="62" width="484" height="18" fill="rgba(248,113,113,0.08)"/>
+              <text x="16" y="75" fill="#f87171" font-family="monospace" font-size="9">&#9664; sample_A</text>
+              <text x="100" y="75" fill="#e2e8f0" font-family="monospace" font-size="9">chr3  44891  T  C  PASS</text>
+              <rect x="8" y="82" width="484" height="18" fill="rgba(52,211,153,0.08)"/>
+              <text x="16" y="95" fill="#34d399" font-family="monospace" font-size="9">&#9654; sample_B</text>
+              <text x="100" y="95" fill="#e2e8f0" font-family="monospace" font-size="9">chr2  15274  G  A  PASS</text>
+              <rect x="8" y="102" width="484" height="18" fill="rgba(52,211,153,0.08)"/>
+              <text x="16" y="115" fill="#34d399" font-family="monospace" font-size="9">&#9654; sample_B</text>
+              <text x="100" y="115" fill="#e2e8f0" font-family="monospace" font-size="9">chr5  78023  C  T  LowQual</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ── Shareable Links ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#128279; Shareable Links</h3>
+          <p>Click <span class="toolbar-icon">Share</span> to generate a URL with the file data encoded directly in the link. Anyone who opens the link sees the file instantly &mdash; no server, no upload.</p>
+          <div class="diagram">
+            <svg viewBox="0 0 560 140" xmlns="http://www.w3.org/2000/svg">
+              <!-- Step 1: File -->
+              <rect x="0" y="30" width="100" height="60" rx="8" fill="#151b2b" stroke="#7c3aed" stroke-width="1"/>
+              <text x="50" y="55" text-anchor="middle" fill="#a78bfa" font-family="system-ui" font-size="10" font-weight="600">Your File</text>
+              <text x="50" y="72" text-anchor="middle" fill="#64748b" font-family="monospace" font-size="9">&lt; 100 KB</text>
+              <!-- Arrow 1 -->
+              <line x1="105" y1="60" x2="145" y2="60" stroke="#475569" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+              <text x="125" y="52" text-anchor="middle" fill="#475569" font-family="system-ui" font-size="8">base64</text>
+              <!-- Step 2: URL -->
+              <rect x="150" y="30" width="200" height="60" rx="8" fill="#151b2b" stroke="#22d3ee" stroke-width="1"/>
+              <text x="250" y="52" text-anchor="middle" fill="#67e8f9" font-family="system-ui" font-size="10" font-weight="600">Shareable URL</text>
+              <text x="250" y="72" text-anchor="middle" fill="#475569" font-family="monospace" font-size="8">lang.bio/viewer?data=...</text>
+              <!-- Arrow 2 -->
+              <line x1="355" y1="60" x2="395" y2="60" stroke="#475569" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+              <text x="375" y="52" text-anchor="middle" fill="#475569" font-family="system-ui" font-size="8">open</text>
+              <!-- Step 3: Viewer -->
+              <rect x="400" y="30" width="130" height="60" rx="8" fill="#151b2b" stroke="#34d399" stroke-width="1"/>
+              <text x="465" y="52" text-anchor="middle" fill="#6ee7b7" font-family="system-ui" font-size="10" font-weight="600">Recipient's</text>
+              <text x="465" y="68" text-anchor="middle" fill="#6ee7b7" font-family="system-ui" font-size="10" font-weight="600">BLViewer</text>
+              <defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#475569"/></marker></defs>
+            </svg>
+          </div>
+
+          <div class="note-box">
+            <strong>Hosting matters:</strong> Share links only work when BLViewer is hosted on a public URL (e.g., <code>lang.bio/viewer.html</code>).
+            If you run BLViewer locally (<code>file://</code> or <code>localhost</code>), the generated URL points to your local machine and <strong>cannot be opened by others</strong>.
+            The Chrome extension also cannot generate working share links.
+          </div>
+
+          <div class="not-prose overflow-x-auto my-3">
+            <table class="w-full text-sm text-left">
+              <thead class="text-violet-400 border-b border-slate-700">
+                <tr>
+                  <th class="py-2 px-4">Deployment</th>
+                  <th class="py-2 px-4">Share works?</th>
+                  <th class="py-2 px-4">Why</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr><td class="py-2 px-4 font-mono">lang.bio/viewer</td><td class="py-2 px-4 text-green-400">Yes</td><td class="py-2 px-4">Public URL &mdash; anyone can open the link</td></tr>
+                <tr><td class="py-2 px-4 font-mono">your-domain.com/viewer</td><td class="py-2 px-4 text-green-400">Yes</td><td class="py-2 px-4">Any public deployment works</td></tr>
+                <tr><td class="py-2 px-4 font-mono">localhost:8080</td><td class="py-2 px-4 text-red-400">No</td><td class="py-2 px-4">URL points to your machine only</td></tr>
+                <tr><td class="py-2 px-4 font-mono">file:///path/viewer.html</td><td class="py-2 px-4 text-red-400">No</td><td class="py-2 px-4">Local filesystem path</td></tr>
+                <tr><td class="py-2 px-4 font-mono">Chrome Extension</td><td class="py-2 px-4 text-red-400">No</td><td class="py-2 px-4">Extension pages have chrome-extension:// URLs</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>File size limit: <strong>100 KB</strong> (larger files would create URLs too long for browsers to handle).</p>
+        </div>
+
+        <!-- ── Anomaly Detection ─────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9888; Anomaly Detection</h3>
+          <p>BLViewer automatically scans files for common data quality issues and highlights affected rows with an amber left border. Hover over a highlighted row to see the anomaly description.</p>
+          <div class="diagram">
+            <svg viewBox="0 0 440 110" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="440" height="110" rx="6" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
+              <!-- Normal row -->
+              <rect x="6" y="8" width="428" height="20" fill="none"/>
+              <text x="14" y="22" fill="#64748b" font-family="monospace" font-size="9">1</text>
+              <text x="40" y="22" fill="#e2e8f0" font-family="monospace" font-size="9">chr1  1000  5000  gene_A</text>
+              <!-- Anomaly row -->
+              <rect x="6" y="32" width="428" height="20" fill="rgba(251,191,36,0.08)"/>
+              <rect x="6" y="32" width="3" height="20" fill="#fbbf24"/>
+              <text x="14" y="46" fill="#64748b" font-family="monospace" font-size="9">2</text>
+              <text x="40" y="46" fill="#e2e8f0" font-family="monospace" font-size="9">chr1  8000  3000  gene_B</text>
+              <text x="250" y="46" fill="#fbbf24" font-family="system-ui" font-size="9" font-style="italic">&#9888; Start > End: 8000 > 3000</text>
+              <!-- Normal row -->
+              <rect x="6" y="56" width="428" height="20" fill="none"/>
+              <text x="14" y="70" fill="#64748b" font-family="monospace" font-size="9">3</text>
+              <text x="40" y="70" fill="#e2e8f0" font-family="monospace" font-size="9">chr2  5000  9500  gene_C</text>
+              <!-- Anomaly row -->
+              <rect x="6" y="80" width="428" height="20" fill="rgba(251,191,36,0.08)"/>
+              <rect x="6" y="80" width="3" height="20" fill="#fbbf24"/>
+              <text x="14" y="94" fill="#64748b" font-family="monospace" font-size="9">4</text>
+              <text x="40" y="94" fill="#e2e8f0" font-family="monospace" font-size="9">chr2  -100  500   gene_D</text>
+              <text x="250" y="94" fill="#fbbf24" font-family="system-ui" font-size="9" font-style="italic">&#9888; Negative coordinate: -100</text>
+            </svg>
+          </div>
+          <p>Checks performed per format:</p>
+          <div class="not-prose overflow-x-auto my-3">
+            <table class="w-full text-sm text-left">
+              <thead class="text-violet-400 border-b border-slate-700">
+                <tr>
+                  <th class="py-2 px-4">Format</th>
+                  <th class="py-2 px-4">Anomalies Detected</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr><td class="py-2 px-4 font-mono">FASTA</td><td class="py-2 px-4">Duplicate sequence IDs; unusually short or long sequences (IQR outliers)</td></tr>
+                <tr><td class="py-2 px-4 font-mono">FASTQ</td><td class="py-2 px-4">Sequence/quality length mismatch</td></tr>
+                <tr><td class="py-2 px-4 font-mono">VCF</td><td class="py-2 px-4">Duplicate variants (same CHROM:POS:REF&gt;ALT); low QUAL (&lt; 20)</td></tr>
+                <tr><td class="py-2 px-4 font-mono">BED</td><td class="py-2 px-4">Start &gt; End coordinates; negative coordinates</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── File Validation ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9888; File Validation Report</h3>
+          <p>When a file is loaded, BLViewer automatically checks for format-level issues (missing headers, wrong column counts, etc.) and shows a validation panel at the bottom if problems are found. This is separate from row-level anomaly detection.</p>
+          <div class="diagram">
+            <svg viewBox="0 0 500 70" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="500" height="70" rx="6" fill="#0d1117" stroke="#fbbf24" stroke-width="1.5"/>
+              <rect x="0" y="0" width="500" height="24" rx="6" fill="#151b2b"/>
+              <rect x="0" y="18" width="500" height="6" fill="#151b2b"/>
+              <text x="16" y="16" fill="#fbbf24" font-family="system-ui" font-size="11" font-weight="600">&#9888; 3 validation issues</text>
+              <text x="480" y="16" text-anchor="end" fill="#475569" font-family="system-ui" font-size="14">&times;</text>
+              <text x="16" y="40" fill="#f87171" font-family="system-ui" font-size="10">&#10006;</text>
+              <text x="30" y="40" fill="#e2e8f0" font-family="monospace" font-size="10">Missing ##fileformat=VCF header line</text>
+              <text x="16" y="58" fill="#fbbf24" font-family="system-ui" font-size="10">&#9888;</text>
+              <text x="30" y="58" fill="#e2e8f0" font-family="monospace" font-size="10">2 data anomalies detected (duplicate IDs, outliers, etc.)</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ── Column Histogram Sidebar ──────────────────────────── -->
+        <div class="feature-card">
+          <h3>Column Histogram Sidebar</h3>
+          <p><strong>Double-click</strong> any column header to open a sidebar showing statistics and a histogram for that column. Numeric columns show min, max, mean, median, and a bar chart distribution. Categorical columns show frequency counts for the top values.</p>
+          <div class="diagram">
+            <svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="320" height="160" rx="6" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
+              <text x="16" y="18" fill="#a78bfa" font-family="system-ui" font-size="11" font-weight="600">Column: QUAL</text>
+              <text x="300" y="18" text-anchor="end" fill="#475569" font-family="system-ui" font-size="14">&times;</text>
+              <line x1="0" y1="24" x2="320" y2="24" stroke="#1e293b" stroke-width="0.5"/>
+              <!-- Stats -->
+              <text x="16" y="42" fill="#64748b" font-family="system-ui" font-size="9">Min</text>
+              <text x="60" y="42" fill="#e2e8f0" font-family="monospace" font-size="9">3.2</text>
+              <text x="100" y="42" fill="#64748b" font-family="system-ui" font-size="9">Max</text>
+              <text x="140" y="42" fill="#e2e8f0" font-family="monospace" font-size="9">255</text>
+              <text x="180" y="42" fill="#64748b" font-family="system-ui" font-size="9">Mean</text>
+              <text x="220" y="42" fill="#e2e8f0" font-family="monospace" font-size="9">87.4</text>
+              <!-- Histogram bars -->
+              <rect x="16" y="54" width="30" height="80" rx="2" fill="rgba(124,58,237,0.3)" stroke="#7c3aed" stroke-width="0.5"/>
+              <rect x="52" y="74" width="30" height="60" rx="2" fill="rgba(124,58,237,0.3)" stroke="#7c3aed" stroke-width="0.5"/>
+              <rect x="88" y="94" width="30" height="40" rx="2" fill="rgba(124,58,237,0.3)" stroke="#7c3aed" stroke-width="0.5"/>
+              <rect x="124" y="64" width="30" height="70" rx="2" fill="rgba(124,58,237,0.3)" stroke="#7c3aed" stroke-width="0.5"/>
+              <rect x="160" y="84" width="30" height="50" rx="2" fill="rgba(124,58,237,0.3)" stroke="#7c3aed" stroke-width="0.5"/>
+              <rect x="196" y="104" width="30" height="30" rx="2" fill="rgba(124,58,237,0.3)" stroke="#7c3aed" stroke-width="0.5"/>
+              <rect x="232" y="114" width="30" height="20" rx="2" fill="rgba(124,58,237,0.3)" stroke="#7c3aed" stroke-width="0.5"/>
+              <!-- Axis labels -->
+              <text x="31" y="148" text-anchor="middle" fill="#475569" font-family="monospace" font-size="7">0-36</text>
+              <text x="67" y="148" text-anchor="middle" fill="#475569" font-family="monospace" font-size="7">37-73</text>
+              <text x="103" y="148" text-anchor="middle" fill="#475569" font-family="monospace" font-size="7">74-109</text>
+              <text x="139" y="148" text-anchor="middle" fill="#475569" font-family="monospace" font-size="7">110-146</text>
+              <text x="175" y="148" text-anchor="middle" fill="#475569" font-family="monospace" font-size="7">147-182</text>
+              <text x="211" y="148" text-anchor="middle" fill="#475569" font-family="monospace" font-size="7">183-219</text>
+              <text x="247" y="148" text-anchor="middle" fill="#475569" font-family="monospace" font-size="7">220-255</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ── Clipboard Paste ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Clipboard Paste</h3>
+          <p>Paste text directly into BLViewer with <span class="key-combo">Ctrl+V</span>. If the pasted text looks like bioinformatics data (starts with <code>&gt;</code>, <code>@</code>, <code>##</code>, etc.), it is auto-parsed as a new file tab named <code>pasted-&lt;timestamp&gt;</code>. Useful for quick inspection of sequences from papers or terminal output.</p>
+        </div>
+
+        <!-- ── Sequence Tools ────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Sequence Selection Tools</h3>
+          <p>Select any DNA/RNA text in the table and a popup appears with:</p>
+          <ul style="color:#94a3b8;font-size:0.9rem">
+            <li><strong>Reverse complement</strong> &mdash; computed client-side</li>
+            <li><strong>GC content</strong> &mdash; percentage of G+C bases</li>
+            <li><strong>Codon translation</strong> &mdash; 3-frame translation to amino acids</li>
+            <li><strong>Copy buttons</strong> for each result</li>
+          </ul>
+        </div>
+
+        <!-- ── BLAST ─────────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>BLAST Search</h3>
+          <p>Right-click any sequence cell (&ge; 10 bp) and select <strong>"BLAST this sequence"</strong> to open NCBI BLAST in a new tab with the sequence pre-filled. Works with FASTA sequences and any column detected as a DNA/RNA sequence.</p>
+        </div>
+
+        <!-- ── Format Conversion ─────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Format Conversion</h3>
+          <p>The <span class="toolbar-icon">Export</span> dropdown includes format conversion options based on the current file type:</p>
+          <div class="not-prose overflow-x-auto my-3">
+            <table class="w-full text-sm text-left">
+              <thead class="text-violet-400 border-b border-slate-700">
+                <tr>
+                  <th class="py-2 px-4">Source Format</th>
+                  <th class="py-2 px-4">Conversion Available</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr><td class="py-2 px-4 font-mono">VCF</td><td class="py-2 px-4">Convert to BED (CHROM, POS-1, POS, ID)</td></tr>
+                <tr><td class="py-2 px-4 font-mono">GFF</td><td class="py-2 px-4">Convert to BED (CHROM, START, END, attributes)</td></tr>
+                <tr><td class="py-2 px-4 font-mono">FASTA</td><td class="py-2 px-4">Reverse complement FASTA</td></tr>
+                <tr><td class="py-2 px-4 font-mono">All</td><td class="py-2 px-4">Export as CSV or TSV (always available)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Screenshot ────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#128247; Screenshot Export</h3>
+          <p>Click <span class="toolbar-icon">Screenshot</span> to export the current view as a PNG image. The screenshot includes file name, format, row count, column headers, and up to 30 rows of data. Stats view captures all computed statistics. Screenshots preserve ATCG nucleotide coloring (A=green, T=red, G=amber, C=blue), column auto-sizing, and the current theme (dark/light). The image downloads automatically as a PNG file.</p>
+          <div class="info-box">
+            For pixel-perfect full-page screenshots, use your browser's built-in tool: <span class="key-combo">Ctrl+Shift+S</span> in Chrome/Edge, or <span class="key-combo">Ctrl+Shift+5</span> in Firefox.
+          </div>
+        </div>
+
+        <!-- ── Regex Capture Groups ──────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Regex Capture Groups</h3>
+          <p>Type a regex with capture groups (parentheses) in the search box. A floating panel appears showing all matches with extracted groups. Useful for pulling structured data out of free-text columns like VCF INFO or GFF attributes.</p>
+          <p>Example: searching <code>gene_name "([^"]+)"</code> in a GTF file extracts gene names into a results panel.</p>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- BATCH 3 FEATURES -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+
+        <!-- ── Theme Toggle ────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9788; Theme Toggle</h3>
+          <p>Click the <span class="toolbar-icon">Theme</span> button in the toolbar to switch between dark and light mode. Your preference is persisted in <code>localStorage</code> and applied automatically on next visit. The theme also applies to screenshots and exported HTML.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
+            <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/theme-dark.png" alt="Dark theme" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Dark theme</div></div>
+            <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/theme-light.png" alt="Light theme" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Light theme</div></div>
+          </div>
+        </div>
+
+        <!-- ── Column Resize ───────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Column Resize</h3>
+          <p>Hover over the right edge of any column header to reveal a drag handle. Click and drag to resize the column width. The cursor changes to a resize indicator on hover. Column widths are remembered for the current session.</p>
+          <div class="info-box">
+            <strong>Double-click</strong> the column resize handle to auto-fit the column width to its content.
+          </div>
+        </div>
+
+        <!-- ── Sort Arrows ─────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Sort Arrows</h3>
+          <p>Active sort columns display visual indicators in the header: <strong>&#9650;</strong> for ascending and <strong>&#9660;</strong> for descending. The sorted column header is highlighted to make the current sort state immediately visible. Click a column header to cycle through: ascending &rarr; descending &rarr; unsorted.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
+            <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/sort-ascending.png" alt="Sort ascending with arrow indicator" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Ascending</div></div>
+            <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/sort-descending.png" alt="Sort descending with arrow indicator" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Descending</div></div>
+          </div>
+        </div>
+
+        <!-- ── Pin Columns ─────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#128204; Pin Columns</h3>
+          <p>Pin any column to keep it visible while scrolling horizontally. Right-click a column header and select <strong>Pin Column</strong>, or use the <span class="toolbar-icon">Pin Cols</span> toolbar button to pin the first two columns. Pinned columns stay frozen on the left side of the table. You can pin multiple columns independently &mdash; not just the first two.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
+            <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/header-menu.png" alt="Column header right-click context menu" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Header context menu</div></div>
+            <div class="diagram" style="padding:0;overflow:hidden"><img src="screenshots/cell-menu.png" alt="Cell right-click context menu" style="width:100%;display:block;border-radius:10px" loading="lazy"><div style="text-align:center;font-size:11px;color:#64748b;padding:4px">Cell context menu</div></div>
+          </div>
+        </div>
+
+        <!-- ── Inline Filters ──────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9662; Inline Column Filters</h3>
+          <p>Each column header has a small filter icon (<strong>&#9662;</strong>). Click it to open a dropdown showing all unique values in that column. Check or uncheck values to filter the table. Active filters show a highlighted filter icon. Multiple column filters combine with AND logic.</p>
+          <div class="diagram">
+            <svg viewBox="0 0 300 140" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="300" height="140" rx="6" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
+              <!-- Header -->
+              <rect x="6" y="6" width="120" height="22" rx="3" fill="#151b2b"/>
+              <text x="14" y="21" fill="#a78bfa" font-family="monospace" font-size="10" font-weight="600">CHROM &#9662;</text>
+              <!-- Dropdown -->
+              <rect x="6" y="32" width="120" height="100" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+              <text x="28" y="50" fill="#e2e8f0" font-family="system-ui" font-size="9">&#9745; chr1</text>
+              <text x="28" y="66" fill="#e2e8f0" font-family="system-ui" font-size="9">&#9745; chr2</text>
+              <text x="28" y="82" fill="#64748b" font-family="system-ui" font-size="9">&#9744; chr3</text>
+              <text x="28" y="98" fill="#e2e8f0" font-family="system-ui" font-size="9">&#9745; chrX</text>
+              <text x="28" y="114" fill="#64748b" font-family="system-ui" font-size="9">&#9744; chrY</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ── Row Count in Tabs ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Row Count in Tabs</h3>
+          <p>Each file tab displays a badge showing the number of rows in that file. This gives an at-a-glance size comparison when multiple files are open. The badge updates when filters are applied, showing filtered count vs total (e.g., <code>234 / 1,089</code>).</p>
+        </div>
+
+        <!-- ── Multi-Column Sort ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Multi-Column Sort</h3>
+          <p>Hold <span class="key-combo">Shift</span> and click additional column headers to sort by multiple columns. Each sorted column shows a priority number (<strong>&#9312;&#9313;&#9314;</strong>) indicating the sort order. The first-clicked column is the primary sort, second is secondary, and so on. Click a sorted column without Shift to reset to single-column sort.</p>
+          <div class="diagram">
+            <svg viewBox="0 0 400 40" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="400" height="40" rx="6" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
+              <rect x="6" y="6" width="90" height="28" rx="3" fill="rgba(124,58,237,0.15)" stroke="rgba(124,58,237,0.3)" stroke-width="1"/>
+              <text x="14" y="25" fill="#c4b5fd" font-family="monospace" font-size="10" font-weight="600">CHROM &#9312;&#9650;</text>
+              <rect x="102" y="6" width="80" height="28" rx="3" fill="rgba(124,58,237,0.1)" stroke="rgba(124,58,237,0.2)" stroke-width="1"/>
+              <text x="110" y="25" fill="#a78bfa" font-family="monospace" font-size="10">POS &#9313;&#9650;</text>
+              <rect x="188" y="6" width="80" height="28" rx="3" fill="none"/>
+              <text x="196" y="25" fill="#64748b" font-family="monospace" font-size="10">QUAL</text>
+              <rect x="274" y="6" width="80" height="28" rx="3" fill="none"/>
+              <text x="282" y="25" fill="#64748b" font-family="monospace" font-size="10">FILTER</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ── Column Reorder ──────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Column Reorder</h3>
+          <p>Drag any column header to rearrange the column order. A blue insertion indicator shows where the column will be placed. The reordered layout persists for the current session and is included when saving views.</p>
+        </div>
+
+        <!-- ── Saved Views ─────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#128190; Saved Views</h3>
+          <p>Save the current table configuration (sort order, filters, column order, pinned columns, column widths) as a named view. Views are stored in <code>localStorage</code> and can be restored later. Useful for switching between different analysis perspectives on the same file.</p>
+          <div class="info-box">
+            Saved views are tied to the file format, not the specific file. A "VCF quality review" view can be applied to any VCF file.
+          </div>
+        </div>
+
+        <!-- ── Selection Stats ─────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Selection Stats</h3>
+          <p>Hold <span class="key-combo">Ctrl</span> and click rows to select multiple rows. The footer bar updates to show the count of selected rows. Use <span class="key-combo">Space</span> to toggle selection on the focused row. Selected rows can be exported as a subset via the Export menu.</p>
+        </div>
+
+        <!-- ── VCF INFO Parser ─────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>VCF INFO Parser</h3>
+          <p>VCF INFO fields are automatically expanded into individual key=value pairs in the row detail panel. Click a row (with Detail toggle enabled) to see the full INFO field parsed into a readable list. Fields like <code>DP=42;AF=0.5;MQ=60</code> become separate labeled entries.</p>
+          <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
+            <img src="screenshots/row-detail.png" alt="Row detail panel open" style="width:100%;display:block;border-radius:10px" loading="lazy">
+          </div>
+        </div>
+
+        <!-- ── Reverse Complement ──────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Reverse Complement</h3>
+          <p>Right-click any cell containing a DNA/RNA sequence and select <strong>Reverse Complement</strong> from the context menu. The reverse complement is computed client-side and can be copied to clipboard. Also available via the sequence selection popup (select text in a sequence cell).</p>
+        </div>
+
+        <!-- ── GC% Auto-offer ──────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>GC% Auto-offer</h3>
+          <p>When BLViewer detects a column containing DNA or RNA sequences, it automatically offers to compute GC content. A small <strong>GC%</strong> badge appears next to the column header. Click it to add a computed GC% column to the table. The GC percentage is calculated as <code>(G+C) / (A+T+G+C) &times; 100</code>.</p>
+        </div>
+
+        <!-- ── Coordinate Jump ─────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Coordinate Jump</h3>
+          <p>Press <span class="key-combo">Ctrl+G</span> to open the "Go to Row" dialog. Type a row number and press Enter to scroll directly to that row. Useful for navigating large files with thousands of rows.</p>
+        </div>
+
+        <!-- ── Keyboard Help ───────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Keyboard Help Overlay</h3>
+          <p>Press <span class="key-combo">?</span> to display a keyboard shortcuts overlay listing all available hotkeys. The overlay groups shortcuts by category (navigation, selection, view modes, tools). Press <span class="key-combo">Esc</span> or <span class="key-combo">?</span> again to dismiss.</p>
+          <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
+            <img src="screenshots/keyboard-help.png" alt="Keyboard shortcuts overlay" style="width:100%;display:block;border-radius:10px" loading="lazy">
+          </div>
+        </div>
+
+        <!-- ── Recent Files ────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Recent Files</h3>
+          <p>The BLViewer landing page shows a list of recently opened files. Each entry displays the file name, format icon, file size, row count, and the date it was last opened. Files cached in IndexedDB show a green dot and restore instantly on click. Recent file history is stored in <code>localStorage</code>.</p>
+        </div>
+
+        <!-- ── Drag-to-Group ───────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Drag-to-Group</h3>
+          <p>Drag a column header to the group bar area above the table to group rows by that column's values. Grouped rows are collapsible &mdash; click the group header to expand or collapse. Group headers show the value and row count. Useful for grouping VCF variants by chromosome or BED features by strand.</p>
+        </div>
+
+        <!-- ── Cell Editing ────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Cell Editing</h3>
+          <p><strong>Double-click</strong> any cell to edit its value in place. Press <span class="key-combo">Enter</span> to confirm the edit or <span class="key-combo">Esc</span> to cancel. Each edit pushes an undo entry &mdash; press <span class="key-combo">Ctrl+Z</span> to revert. Edited cells are highlighted with a subtle border to indicate modifications.</p>
+          <div class="note-box">
+            <strong>In-memory only:</strong> Edits are applied to the in-memory table only. They are preserved when exporting but do not modify the original file on disk.
+          </div>
+        </div>
+
+        <!-- ── Column Type Override ────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Column Type Override</h3>
+          <p>Right-click a column header and select <strong>Change Type</strong> to override the auto-detected column type. Options include text, numeric, and sequence. Changing a column to numeric enables statistical functions (min, max, mean); changing to sequence enables GC%, reverse complement, and BLAST tools.</p>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- BATCH 4 FEATURES -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+
+        <!-- ── Tab Colors ──────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#127912; Tab Colors</h3>
+          <p>File tabs are color-coded by format for quick visual identification when multiple files are open:</p>
+          <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
+            <img src="screenshots/multi-tab.png" alt="Multiple tabs with format-specific colors" style="width:100%;display:block;border-radius:10px" loading="lazy">
+          </div>
+          <div class="not-prose overflow-x-auto my-3">
+            <table class="w-full text-sm text-left">
+              <thead class="text-violet-400 border-b border-slate-700">
+                <tr>
+                  <th class="py-2 px-4">Format</th>
+                  <th class="py-2 px-4">Tab Color</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr><td class="py-2 px-4 font-mono">VCF</td><td class="py-2 px-4" style="color:#22d3ee">Cyan</td></tr>
+                <tr><td class="py-2 px-4 font-mono">FASTA</td><td class="py-2 px-4" style="color:#34d399">Green</td></tr>
+                <tr><td class="py-2 px-4 font-mono">FASTQ</td><td class="py-2 px-4" style="color:#a78bfa">Violet</td></tr>
+                <tr><td class="py-2 px-4 font-mono">BED</td><td class="py-2 px-4" style="color:#fbbf24">Amber</td></tr>
+                <tr><td class="py-2 px-4 font-mono">GFF/GTF</td><td class="py-2 px-4" style="color:#f472b6">Pink</td></tr>
+                <tr><td class="py-2 px-4 font-mono">SAM</td><td class="py-2 px-4" style="color:#fb923c">Orange</td></tr>
+                <tr><td class="py-2 px-4 font-mono">CSV/TSV</td><td class="py-2 px-4" style="color:#94a3b8">Slate</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Tab Tooltip ─────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Tab Tooltip</h3>
+          <p>Hover over any file tab to see a tooltip with detailed file information: file size, row count, detected format, and data quality score. The quality score reflects completeness (percentage of non-empty cells) and validity (percentage of values passing format checks).</p>
+        </div>
+
+        <!-- ── Rename Tab ──────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Rename Tab</h3>
+          <p><strong>Double-click</strong> a file tab to rename it. Type the new name and press <span class="key-combo">Enter</span> to confirm, or <span class="key-combo">Esc</span> to cancel. The rename is cosmetic only &mdash; it does not affect the underlying file.</p>
+        </div>
+
+        <!-- ── Duplicate Tab ───────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Duplicate Tab</h3>
+          <p>Right-click a file tab and select <strong>Duplicate</strong> to create a copy of the tab with the same data. The duplicate tab has an independent sort/filter state, so you can compare different views of the same data side by side.</p>
+        </div>
+
+        <!-- ── Fullscreen ──────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9635; Fullscreen</h3>
+          <p>Press <span class="key-combo">F11</span> or click the <span class="toolbar-icon">Fullscreen</span> button to toggle fullscreen mode. In fullscreen, the toolbar and navigation are hidden, giving maximum space to the table. Press <span class="key-combo">F11</span> or <span class="key-combo">Esc</span> to exit.</p>
+        </div>
+
+        <!-- ── Row Number Toggle ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Row Number Toggle</h3>
+          <p>Click the <span class="toolbar-icon">Row #</span> button in the toolbar to show or hide the row number column. Row numbers are shown by default but can be hidden to save horizontal space on narrow screens.</p>
+        </div>
+
+        <!-- ── Copy Column ─────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Copy Column</h3>
+          <p>Right-click any column header and select <strong>Copy Column</strong> to copy all values in that column to the clipboard, one value per line. Respects any active filters &mdash; only visible rows are copied.</p>
+        </div>
+
+        <!-- ── Unique Values ───────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Unique Values</h3>
+          <p>Right-click a column header and select <strong>Unique Values</strong> to see a popup listing all distinct values in the column with their frequency counts, sorted by count descending. Useful for quick data profiling.</p>
+        </div>
+
+        <!-- ── Column Auto-fit ─────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Column Auto-fit</h3>
+          <p><strong>Double-click</strong> the column resize handle (right edge of header) to auto-fit the column width to the widest value in that column. Scans visible rows to determine optimal width.</p>
+        </div>
+
+        <!-- ── Text Wrap ───────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Text Wrap</h3>
+          <p>Click the <span class="toolbar-icon">Wrap</span> toolbar button to toggle word wrapping for long text cells. When enabled, cell content wraps within the cell instead of being truncated with an ellipsis. Particularly useful for GFF attribute columns and VCF INFO fields.</p>
+        </div>
+
+        <!-- ── Numeric Formatting ──────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Numeric Formatting</h3>
+          <p>Right-click a numeric column header and select <strong>Format</strong> to choose how numbers are displayed: fixed decimal places (0&ndash;6), scientific notation, or percentage. Formatting is visual only and does not alter the underlying data. Useful for quality scores, p-values, and allele frequencies.</p>
+        </div>
+
+        <!-- ── BLAST Link ──────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#127981; External Database Links</h3>
+          <p>Right-click cells to open external biological databases in a new tab. BLViewer detects the data type and offers the appropriate link:</p>
+          <div class="not-prose overflow-x-auto my-3">
+            <table class="w-full text-sm text-left">
+              <thead class="text-violet-400 border-b border-slate-700">
+                <tr>
+                  <th class="py-2 px-4">Data Type</th>
+                  <th class="py-2 px-4">Database</th>
+                  <th class="py-2 px-4">Trigger</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr><td class="py-2 px-4">DNA/RNA sequence (&ge; 10 bp)</td><td class="py-2 px-4">NCBI BLAST</td><td class="py-2 px-4">Right-click &rarr; "BLAST this sequence"</td></tr>
+                <tr><td class="py-2 px-4">rs ID (e.g., rs12345)</td><td class="py-2 px-4">dbSNP</td><td class="py-2 px-4">Right-click &rarr; "Open in dbSNP"</td></tr>
+                <tr><td class="py-2 px-4">Gene name (e.g., BRCA1)</td><td class="py-2 px-4">GeneCards</td><td class="py-2 px-4">Right-click &rarr; "Open in GeneCards"</td></tr>
+                <tr><td class="py-2 px-4">Gene / variant ID</td><td class="py-2 px-4">Ensembl</td><td class="py-2 px-4">Right-click &rarr; "Open in Ensembl"</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Regex Search ────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Regex Search</h3>
+          <p>The search box supports regular expression patterns. Type a regex pattern and matching rows are highlighted. When the pattern includes capture groups, a floating panel shows extracted matches. For example, <code>AF=([0-9.]+)</code> extracts allele frequency values from VCF INFO fields.</p>
+          <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
+            <img src="screenshots/search-filter.png" alt="Search filtered results" style="width:100%;display:block;border-radius:10px" loading="lazy">
+          </div>
+        </div>
+
+        <!-- ── Bookmark Rows ───────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9733; Bookmark Rows</h3>
+          <p>Click the <span class="toolbar-icon">Bookmarks</span> toolbar button to reveal a star column. Click the star icon on any row to bookmark it. Bookmarked rows persist for the session. Click the filled star (&#9733;) in the header to export only bookmarked rows. Useful for flagging variants of interest during manual review.</p>
+          <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
+            <img src="screenshots/bookmarks.png" alt="Bookmark mode with starred rows" style="width:100%;display:block;border-radius:10px" loading="lazy">
+          </div>
+        </div>
+
+        <!-- ── Export HTML ─────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Export HTML</h3>
+          <p>From the <span class="toolbar-icon">Export</span> dropdown, select <strong>Export as HTML</strong> to save the current view as a standalone HTML file with all styling included. The exported file is self-contained (no external dependencies) and can be opened in any browser or shared via email.</p>
+        </div>
+
+        <!-- ── Split View (Dual Tab) ───────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9707; Split View &mdash; Dual Tab Comparison</h3>
+          <p>Click <span class="toolbar-icon">Split</span> when two or more files are open to enter side-by-side dual-tab comparison mode. Each pane has independent scroll, sort, and filter controls. Useful for comparing different samples or before/after filtering results.</p>
+        </div>
+
+        <!-- ── Goto Row ────────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Goto Row</h3>
+          <p>Press <span class="key-combo">Ctrl+G</span> to open the "Go to Row" dialog. Enter a row number to jump directly to it. The target row is briefly highlighted after navigation. Works with both the original row numbers and filtered-view row numbers.</p>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- BATCH 5 FEATURES -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+
+        <!-- ── Conditional Formatting ──────────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#127912; Conditional Formatting</h3>
+          <p>Right-click a column header and select <strong>Conditional Format</strong> to color cells based on value rules. Set an operator (equals, greater than, less than, contains, between), a threshold value, and a highlight color. Multiple rules can be applied to the same column. Rules stack in order &mdash; later rules override earlier ones for the same cell.</p>
+          <div class="diagram">
+            <svg viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="400" height="100" rx="6" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
+              <text x="16" y="18" fill="#a78bfa" font-family="system-ui" font-size="10" font-weight="600">Conditional Format: QUAL</text>
+              <!-- Rule 1 -->
+              <rect x="10" y="26" width="380" height="20" rx="3" fill="#151b2b"/>
+              <text x="18" y="40" fill="#e2e8f0" font-family="system-ui" font-size="9">If QUAL &lt; 20</text>
+              <rect x="160" y="28" width="50" height="16" rx="3" fill="rgba(248,113,113,0.3)" stroke="#f87171" stroke-width="0.5"/>
+              <text x="174" y="40" fill="#f87171" font-family="system-ui" font-size="9">Red</text>
+              <!-- Rule 2 -->
+              <rect x="10" y="50" width="380" height="20" rx="3" fill="#151b2b"/>
+              <text x="18" y="64" fill="#e2e8f0" font-family="system-ui" font-size="9">If QUAL &ge; 20 and &lt; 100</text>
+              <rect x="200" y="52" width="60" height="16" rx="3" fill="rgba(251,191,36,0.3)" stroke="#fbbf24" stroke-width="0.5"/>
+              <text x="218" y="64" fill="#fbbf24" font-family="system-ui" font-size="9">Amber</text>
+              <!-- Rule 3 -->
+              <rect x="10" y="74" width="380" height="20" rx="3" fill="#151b2b"/>
+              <text x="18" y="88" fill="#e2e8f0" font-family="system-ui" font-size="9">If QUAL &ge; 100</text>
+              <rect x="160" y="76" width="60" height="16" rx="3" fill="rgba(52,211,153,0.3)" stroke="#34d399" stroke-width="0.5"/>
+              <text x="178" y="88" fill="#34d399" font-family="system-ui" font-size="9">Green</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ── Find & Replace ──────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Find &amp; Replace</h3>
+          <p>Click the <span class="toolbar-icon">Replace</span> toggle next to the search box to expand the find &amp; replace bar. Type the search term and replacement value, then click <strong>Replace</strong> (single match) or <strong>Replace All</strong>. Works on text columns only &mdash; numeric columns are not modified. Each replacement pushes an undo entry.</p>
+          <div class="note-box">
+            <strong>In-memory only:</strong> Find &amp; replace modifies the in-memory data. Export the file to save changes.
+          </div>
+        </div>
+
+        <!-- ── Header Sparklines ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Header Sparklines</h3>
+          <p>Numeric column headers display tiny inline SVG histograms showing the value distribution at a glance. The sparkline uses 10 bins and scales to the column header width. Hover over the sparkline to see bin ranges and counts. Sparklines are automatically computed when the file is loaded.</p>
+          <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
+            <img src="screenshots/column-header-hover.png" alt="Column header tooltip with statistics" style="width:100%;display:block;border-radius:10px" loading="lazy">
+          </div>
+          <div class="diagram">
+            <svg viewBox="0 0 300 50" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="300" height="50" rx="6" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
+              <text x="14" y="20" fill="#a78bfa" font-family="monospace" font-size="10" font-weight="600">QUAL</text>
+              <!-- Mini sparkline bars -->
+              <rect x="70" y="10" width="8" height="28" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <rect x="80" y="16" width="8" height="22" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <rect x="90" y="22" width="8" height="16" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <rect x="100" y="18" width="8" height="20" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <rect x="110" y="8" width="8" height="30" rx="1" fill="rgba(124,58,237,0.4)"/>
+              <rect x="120" y="14" width="8" height="24" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <rect x="130" y="26" width="8" height="12" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <rect x="140" y="30" width="8" height="8" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <rect x="150" y="32" width="8" height="6" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <rect x="160" y="34" width="8" height="4" rx="1" fill="rgba(124,58,237,0.3)"/>
+              <!-- Label -->
+              <text x="180" y="28" fill="#64748b" font-family="system-ui" font-size="8">distribution</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ── Diff Two Rows ───────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Diff Two Rows</h3>
+          <p>Select exactly 2 rows with <span class="key-combo">Ctrl+click</span>, then click the <span class="toolbar-icon">Diff</span> button (or the "Diff Rows" option that appears). A side-by-side comparison panel opens, with differing cell values highlighted in amber. Identical values are dimmed. Useful for comparing two variants, two sequences, or two samples.</p>
+        </div>
+
+        <!-- ── Selection Stats in Footer ───────────────────────────── -->
+        <div class="feature-card">
+          <h3>Selection Stats in Footer</h3>
+          <p>Select cells by clicking or <span class="key-combo">Ctrl+click</span>ing rows. The footer bar shows live statistics for the selected data: <strong>count</strong>, <strong>sum</strong>, <strong>average</strong>, <strong>min</strong>, and <strong>max</strong> of numeric values in the selection. Non-numeric values contribute to count only.</p>
+          <div class="diagram">
+            <svg viewBox="0 0 500 32" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="500" height="32" rx="6" fill="#151b2b" stroke="#1e293b" stroke-width="1"/>
+              <text x="14" y="20" fill="#64748b" font-family="system-ui" font-size="9">Selected:</text>
+              <text x="68" y="20" fill="#c4b5fd" font-family="monospace" font-size="9" font-weight="600">5 rows</text>
+              <text x="130" y="20" fill="#64748b" font-family="system-ui" font-size="9">Sum:</text>
+              <text x="158" y="20" fill="#e2e8f0" font-family="monospace" font-size="9">1,247</text>
+              <text x="210" y="20" fill="#64748b" font-family="system-ui" font-size="9">Avg:</text>
+              <text x="236" y="20" fill="#e2e8f0" font-family="monospace" font-size="9">249.4</text>
+              <text x="290" y="20" fill="#64748b" font-family="system-ui" font-size="9">Min:</text>
+              <text x="316" y="20" fill="#e2e8f0" font-family="monospace" font-size="9">23</text>
+              <text x="350" y="20" fill="#64748b" font-family="system-ui" font-size="9">Max:</text>
+              <text x="380" y="20" fill="#e2e8f0" font-family="monospace" font-size="9">482</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ── JSON Cell Expander ──────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>JSON Cell Expander</h3>
+          <p><strong>Double-click</strong> a cell that contains JSON content (detected by leading <code>{</code> or <code>[</code>) to open a formatted, syntax-colored popup. The JSON is pretty-printed with indentation. Collapsible nodes allow exploration of nested structures. Click outside or press <span class="key-combo">Esc</span> to close.</p>
+        </div>
+
+        <!-- ── Copy Column Name ────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Copy Column Name</h3>
+          <p>Right-click any column header and select <strong>Copy Column Name</strong> to copy the header text to the clipboard. Handy for referencing column names in BioLang scripts or other tools.</p>
+        </div>
+
+        <!-- ── Paste to Filter ─────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Paste to Filter</h3>
+          <p>Open a column's inline filter, then paste a list of values (one per line or comma-separated) into the filter input. The column is automatically filtered to show only rows matching the pasted values. Useful for filtering by a list of gene names, variant IDs, or sample identifiers from an external source.</p>
+        </div>
+
+        <!-- ── Undo Toast ──────────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Undo Toast</h3>
+          <p>Press <span class="key-combo">Ctrl+Z</span> to undo the last action (cell edit, find &amp; replace, column delete, sort reset). A brief toast notification appears confirming the undo. Multiple undo levels are supported &mdash; keep pressing <span class="key-combo">Ctrl+Z</span> to step back through the history.</p>
+        </div>
+
+        <!-- ── Data Quality Badge ──────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Data Quality Badge</h3>
+          <p>Each tab tooltip includes a data quality score, shown as a percentage badge. The score is composed of two metrics:</p>
+          <ul style="color:#94a3b8;font-size:0.9rem">
+            <li><strong>Completeness %</strong> &mdash; percentage of non-empty cells across all columns</li>
+            <li><strong>Validity %</strong> &mdash; percentage of values that pass format-specific checks (e.g., valid chromosome names, positive coordinates, parseable numbers)</li>
+          </ul>
+        </div>
+
+        <!-- ── Streaming Full-File Stats ───────────────────────────── -->
+        <div class="feature-card">
+          <h3>&#9881; Streaming Full-File Stats</h3>
+          <p>For files larger than 50 MB (which are truncated to the first 50 MB for table display), a <span class="toolbar-icon">Compute full stats</span> button appears in the Stats view. Clicking it streams through the entire file in 8 MB chunks without loading everything into memory.</p>
+          <div class="info-box">
+            <strong>Algorithms used:</strong> Welford's online algorithm for exact mean, variance, and standard deviation. Reservoir sampling (k=1000) for approximate median and percentiles. Full exact counting for categorical frequencies.
+          </div>
+          <p>A progress bar shows streaming progress. Stats update incrementally as each chunk is processed. The final result includes total row count, column statistics, and format-specific metrics for the complete file.</p>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>Keyboard &amp; Interaction</h2>
+        <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px;margin-bottom:16px">
+          <img src="screenshots/keyboard-help.png" alt="Keyboard shortcuts overlay" style="width:100%;display:block;border-radius:10px" loading="lazy">
+        </div>
+        <div class="not-prose overflow-x-auto my-4">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-2 px-4">Key / Action</th>
+                <th class="py-2 px-4">Effect</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">Navigation</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">j</span> / <span class="key-combo">k</span> or <span class="key-combo">&uarr;</span> / <span class="key-combo">&darr;</span></td><td class="py-2 px-4">Navigate table rows</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">h</span> / <span class="key-combo">l</span> or <span class="key-combo">&larr;</span> / <span class="key-combo">&rarr;</span></td><td class="py-2 px-4">Navigate table columns</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">g</span></td><td class="py-2 px-4">Jump to first row</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">G</span></td><td class="py-2 px-4">Jump to last row</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+G</span></td><td class="py-2 px-4">Go to specific row number</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Tab</span></td><td class="py-2 px-4">Switch to next file tab</td></tr>
+              <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">View Modes</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">1</span> <span class="key-combo">2</span> <span class="key-combo">3</span> <span class="key-combo">4</span></td><td class="py-2 px-4">Switch view mode: Table, Stats, Raw, BioLang</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+T</span></td><td class="py-2 px-4">Toggle transpose view (rows &harr; columns)</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">F11</span></td><td class="py-2 px-4">Toggle fullscreen mode</td></tr>
+              <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">Search &amp; Filter</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">/</span></td><td class="py-2 px-4">Focus search box</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+Shift+F</span></td><td class="py-2 px-4">Find column by name</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Esc</span></td><td class="py-2 px-4">Close overlay, panel, or search</td></tr>
+              <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">Selection &amp; Editing</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Enter</span></td><td class="py-2 px-4">Copy cell value / confirm edit / expand row detail</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Space</span></td><td class="py-2 px-4">Toggle row selection</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+click</span> row</td><td class="py-2 px-4">Multi-select rows (summary stats in footer)</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+Z</span></td><td class="py-2 px-4">Undo last action (edit, replace, sort reset)</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+V</span></td><td class="py-2 px-4">Paste text as new file tab</td></tr>
+              <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">Help</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">?</span></td><td class="py-2 px-4">Show keyboard shortcuts overlay</td></tr>
+              <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">Column Headers</td></tr>
+              <tr><td class="py-2 px-4">Click column header</td><td class="py-2 px-4">Sort: ascending &rarr; descending &rarr; unsorted</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Shift</span>+click header</td><td class="py-2 px-4">Add secondary sort column (multi-column sort with priority numbers)</td></tr>
+              <tr><td class="py-2 px-4">Right-click column header</td><td class="py-2 px-4">Column menu: filter, pin, copy name, copy column, unique values, change type, conditional format, numeric format</td></tr>
+              <tr><td class="py-2 px-4">Double-click column header</td><td class="py-2 px-4">Open column histogram sidebar</td></tr>
+              <tr><td class="py-2 px-4">Double-click column resize handle</td><td class="py-2 px-4">Auto-fit column width to content</td></tr>
+              <tr><td class="py-2 px-4">Drag column header</td><td class="py-2 px-4">Reorder columns</td></tr>
+              <tr><td class="py-2 px-4">Drag column header edge</td><td class="py-2 px-4">Resize column width</td></tr>
+              <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">Cells &amp; Rows</td></tr>
+              <tr><td class="py-2 px-4">Right-click cell</td><td class="py-2 px-4">Context menu: copy cell, copy row, BLAST sequence, dbSNP/GeneCards/Ensembl links</td></tr>
+              <tr><td class="py-2 px-4">Double-click cell</td><td class="py-2 px-4">Edit cell value in-place (pushes undo)</td></tr>
+              <tr><td class="py-2 px-4">Double-click JSON cell</td><td class="py-2 px-4">Open formatted JSON viewer popup</td></tr>
+              <tr><td class="py-2 px-4">Select text in sequence cell</td><td class="py-2 px-4">Sequence tools popup (rev comp, GC%, translation)</td></tr>
+              <tr><td class="py-2 px-4">Hover numeric column header</td><td class="py-2 px-4">Tooltip with min, max, mean, median + sparkline</td></tr>
+              <tr><td class="py-2 px-4">Double-click tab</td><td class="py-2 px-4">Rename tab</td></tr>
+              <tr><td class="py-2 px-4">Right-click tab</td><td class="py-2 px-4">Duplicate tab</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>URL Loading</h2>
+        <p>Load a remote file by appending a <code>url</code> query parameter:</p>
+        <pre><code>https://lang.bio/viewer.html?url=https://example.com/data.vcf</code></pre>
+        <p>The file is fetched client-side &mdash; the server never sees your data URL. Requires CORS headers on the remote server.</p>
+
+        <h3>Protocol Handler</h3>
+        <p>BLViewer registers the <code>web+bioview:</code> protocol. Other tools and scripts can link to:</p>
+        <pre><code>web+bioview:https://example.com/data.vcf</code></pre>
+
+        <h3>Share Link Format</h3>
+        <p>Share links encode data directly in the URL:</p>
+        <pre><code>https://lang.bio/viewer.html?name=sample.fa&amp;data=&lt;base64-encoded-content&gt;</code></pre>
+        <p>The <code>data</code> parameter contains the file content as base64. Maximum practical size: ~100 KB (limited by browser URL length).</p>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>PWA &amp; Offline</h2>
+        <ul>
+          <li><strong>Installable</strong> &mdash; click the install prompt or use your browser's install option. Works offline after first visit.</li>
+          <li><strong>File Handling API</strong> &mdash; when installed as PWA, double-click .vcf, .fasta, .bed, etc. files to open directly in BLViewer</li>
+          <li><strong>Session restore</strong> &mdash; files under 5 MB are cached in IndexedDB. On next visit, BLViewer offers to restore your last session.</li>
+          <li><strong>Recent files history</strong> &mdash; the landing page shows recently opened files with format, size, row count, and time. Cached files (green dot) restore instantly.</li>
+        </ul>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>Chrome Extension</h2>
+        <p>The Chrome extension provides BLViewer directly in your browser with additional integration features:</p>
+        <ul>
+          <li><strong>Context menu</strong> &mdash; right-click any link to a bioinformatics file and select "Open in BLViewer"</li>
+          <li><strong>Download interception</strong> &mdash; automatically offers to open downloaded bio files</li>
+          <li><strong>Popup quick-open</strong> &mdash; drop files or paste URLs in the extension popup</li>
+          <li><strong>Text selection</strong> &mdash; select sequence text on any page, right-click, "Analyze selection in BLViewer"</li>
+        </ul>
+        <div class="note-box">
+          <strong>Extension limitations:</strong> Share links and PWA features (file handling, install prompt) are not available in the extension. The extension uses <code>chrome-extension://</code> URLs that cannot be shared externally.
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>Binary File Detection</h2>
+        <p>
+          BAM, BCF, and CRAM files are binary formats that cannot be parsed in the browser text viewer.
+          BLViewer detects these and suggests extracting regions to text formats using BioLang or
+          samtools before viewing.
+        </p>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>BioLang Console</h2>
+        <p>
+          The console tab loads parsed data as a BioLang Table variable named <code>data</code>.
+          Columns from the file become table columns. Powered by WebAssembly.
+        </p>
+        <pre><code class="language-biolang">data |> head(5)
+
+mean(column(data, "length"))
+
+data |> filter(|r| r.gc > 0.5)</code></pre>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <h2>Large File Handling</h2>
+        <div class="not-prose overflow-x-auto my-4">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-2 px-4">File Size</th>
+                <th class="py-2 px-4">Behavior</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr><td class="py-2 px-4 font-mono">&lt; 5 MB</td><td class="py-2 px-4">Full content cached in IndexedDB for session restore</td></tr>
+              <tr><td class="py-2 px-4 font-mono">&lt; 10 MB</td><td class="py-2 px-4">Full text kept in memory for raw view and console</td></tr>
+              <tr><td class="py-2 px-4 font-mono">&lt; 50 MB</td><td class="py-2 px-4">Full text parsed; raw view shows all content</td></tr>
+              <tr><td class="py-2 px-4 font-mono">&gt; 50 MB</td><td class="py-2 px-4">First 50 MB parsed and shown; text memory released for files &gt; 10 MB. A "Compute full stats" button appears to stream the entire file.</td></tr>
+              <tr><td class="py-2 px-4 font-mono">Table view</td><td class="py-2 px-4">DOM limited to 5,000 rows for scroll performance; use search/filter to narrow</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="feature-card">
+          <h3>Streaming Stats for Large Files</h3>
+          <p>For files larger than 50 MB, only the first 50 MB is loaded into the table view. To get accurate statistics for the <em>entire</em> file, click the <span class="toolbar-icon">Compute full stats</span> button that appears in the Stats view.</p>
+          <ul style="color:#94a3b8;font-size:0.9rem">
+            <li>Streams the file in <strong>8 MB chunks</strong> without loading the entire file into memory</li>
+            <li>Uses <strong>Welford's online algorithm</strong> for exact mean, variance, and standard deviation</li>
+            <li>Uses <strong>reservoir sampling</strong> (k=1000) for approximate median and percentiles</li>
+            <li>Full exact counting for categorical value frequencies</li>
+            <li>A progress bar shows streaming progress as each chunk is processed</li>
+            <li>Stats update incrementally &mdash; you can see partial results while streaming continues</li>
+          </ul>
+        </div>
+
+        <p class="mt-8">
+          <a href="../../viewer.html" class="text-violet-400 hover:text-violet-300">Open BLViewer &rarr;</a>
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <div></div>
+        <div></div>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

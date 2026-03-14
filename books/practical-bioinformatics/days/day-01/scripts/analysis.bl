@@ -1,0 +1,31 @@
+# Day 1: What Is Bioinformatics? — Analysis Script
+
+# 1. Sequence basics
+let seq = dna"ATGCGATCGATCGATCG"
+print(f"Sequence: {seq}")
+print(f"Length: {len(seq)} bases")
+print(f"Type: {type(seq)}")
+
+# 2. Central dogma
+let gene = dna"ATGAAACCCGGGTTTTAA"
+print(f"DNA:     {gene}")
+print(f"RNA:     {transcribe(gene)}")
+print(f"Protein: {translate(gene)}")
+
+# 3. Base composition
+let fragment = dna"ATGCGATCGATCGAATTCGATCG"
+print(f"Base composition: {base_counts(fragment)}")
+print(f"GC content: {gc_content(fragment)}")
+
+# 4. Motif search
+let target = dna"ATCGATCGAATTCGATCGATCG"
+print(f"EcoRI sites: {find_motif(target, "GAATTC")}")
+
+# 5. Pipe operator
+let result = dna"ATGCGATCGATCG" |> complement() |> reverse_complement() |> transcribe()
+print(f"Piped result: {result}")
+
+# 6. Exercises
+print(f"Ex2: {translate(dna"ATGGATCCCTAA")}")
+print(f"Ex3: {base_counts(dna"AAAAATTTTTCCCCCGGGGG")}")
+print(f"Ex4: {find_motif(dna"ATGATGATGATG", "ATG")}")

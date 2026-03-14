@@ -1,0 +1,129 @@
+/* Practical Bioinformatics in 30 Days — custom styles */
+
+/* Day difficulty badges */
+.day-meta {
+    background: #f5f5f5;
+    border-left: 4px solid #4a9eff;
+    padding: 12px 16px;
+    margin: 16px 0 24px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9em;
+}
+
+.day-meta .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.badge-biology { background: #e8f5e9; color: #2e7d32; }
+.badge-coding { background: #e3f2fd; color: #1565c0; }
+.badge-time { background: #fff3e0; color: #e65100; }
+
+/* Language comparison tables */
+table.lang-compare th { text-align: center; }
+table.lang-compare td:nth-child(2) { color: #1565c0; font-weight: 600; } /* BioLang column */
+
+/* Concept boxes */
+.concept-box {
+    background: #f0f7ff;
+    border: 1px solid #bbdefb;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.concept-box h4 {
+    margin-top: 0;
+    color: #1565c0;
+}
+
+/* Biology note for developers */
+.bio-note {
+    background: #f1f8e9;
+    border-left: 4px solid #7cb342;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Code note for biologists */
+.code-note {
+    background: #e8eaf6;
+    border-left: 4px solid #5c6bc0;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Expected output blocks */
+.expected-output {
+    background: #fafafa;
+    border: 1px dashed #ccc;
+    padding: 12px;
+    margin: 8px 0;
+    font-family: monospace;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+}
+
+/* Exercise sections */
+.exercises {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 24px 0;
+}
+
+.exercises h3 {
+    margin-top: 0;
+    color: #f57f17;
+}
+
+/* Key takeaways */
+.takeaways {
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 24px 0;
+}
+
+.takeaways h3 {
+    margin-top: 0;
+    color: #2e7d32;
+}
+
+/* SVG diagrams - responsive */
+.diagram {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Mermaid diagram containers */
+.mermaid {
+    text-align: center;
+    margin: 20px 0;
+}
+
+/* Hide WASM Run bars and output in print/PDF */
+@media print {
+    .bl-run-bar,
+    .bl-output {
+        display: none !important;
+    }
+    pre {
+        border-radius: 6px !important;
+        margin-top: 8px !important;
+        border-top: 1px solid #334155 !important;
+    }
+}

@@ -1,0 +1,69 @@
+# Day 6: Confidence Intervals — Data Generation
+# Source: Druker et al. 2006 NEJM (imatinib IC50 on BCR-ABL),
+#         Polack et al. 2020 NEJM (BNT162b2 mRNA COVID-19 vaccine trial)
+# IC50 values based on published kinase inhibitor dose-response.
+# Vaccine trial structure mirrors Polack et al. Phase 3 trial design.
+
+println("Day 6: Confidence Intervals")
+println("============================")
+println("Generating IC50 and vaccine trial data...")
+
+mkdir("data")
+
+# --- File 1: drug_ic50.csv ---
+# Imatinib IC50 on BCR-ABL+ CML cells (K562 cell line)
+# Published mean IC50 ~260 nM with ~15% CV (Druker et al.)
+# 8 replicate measurements with realistic lab variability
+
+let ic50_header = ["replicate,ic50_nm"]
+let ic50_lines = ic50_header
+
+# Base IC50 = 260 nM, CV ~15% -> SD ~39 nM
+# Hardcoded 8 replicate values with realistic variation
+let ic50_values = [245.3, 278.1, 252.8, 290.5, 238.7, 265.2, 272.4, 255.0]
+
+for i in range(0, 8) {
+    ic50_lines = append(ic50_lines, f"{i + 1},{ic50_values[i]}")
+}
+write_lines(ic50_lines, "data/drug_ic50.csv")
+
+# --- File 2: vaccine_trial.csv ---
+# Based on Polack et al. 2020 NEJM 383:2603-2615
+# BNT162b2 (Pfizer-BioNTech COVID-19 vaccine) Phase 3 trial
+# Original trial: 21,720 vaccine / 21,728 placebo
+# Here: scaled to 200/200 maintaining similar infection rates
+# Vaccine group: 8/21720 = 0.037% -> ~0 in 200 (use 1 for teaching)
+# Placebo group: 162/21728 = 0.75% -> ~2 in 200
+# Efficacy = 1 - (8/162) = 95.0%
+
+let vax_header = ["group,participant_id,infected"]
+let vax_lines = vax_header
+
+# Vaccine group: 200 participants, 1 infected (participant 42)
+for i in range(0, 200) {
+    let pid = i + 1
+    let infected = if pid == 42 { 1 } else { 0 }
+    vax_lines = append(vax_lines, f"vaccine,V{pid:03},{infected}")
+}
+
+# Placebo group: 200 participants, 19 infected
+# ~9.5% infection rate in placebo (scaled to make CI calculation meaningful)
+# Efficacy = 1 - (1/19) / 1 = 94.7% — close to published 95%
+let placebo_infected = [5, 18, 31, 47, 62, 78, 95, 108, 121, 134,
+                        148, 155, 163, 172, 178, 185, 191, 195, 199]
+
+for i in range(0, 200) {
+    let pid = i + 1
+    let infected = 0
+    for pi in placebo_infected {
+        if pid == pi {
+            infected = 1
+        }
+    }
+    vax_lines = append(vax_lines, f"placebo,P{pid:03},{infected}")
+}
+write_lines(vax_lines, "data/vaccine_trial.csv")
+
+println("Generated 2 files in data/")
+println("  data/drug_ic50.csv     — 8 imatinib IC50 replicates (Druker 2006)")
+println("  data/vaccine_trial.csv — 400 participants, BNT162b2 trial (Polack 2020)")

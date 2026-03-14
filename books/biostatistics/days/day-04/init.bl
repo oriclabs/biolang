@@ -1,0 +1,121 @@
+# Day 4: Probability — Data Generation
+# Source: Kuchenbaecker et al. 2017 JAMA (BRCA penetrance),
+#         Eggington et al. 2014 Genet Med (Myriad BRCA testing performance),
+#         1000 Genomes Phase 3 EUR allele frequencies
+
+println("Day 4: Probability")
+println("===================")
+println("Generating penetrance, diagnostic test, and Hardy-Weinberg data...")
+
+mkdir("data")
+
+# --- File 1: brca_penetrance.csv ---
+# BRCA1/BRCA2 cumulative cancer risk by age
+# From Kuchenbaecker et al. 2017 JAMA 317(23):2402-2416
+# Prospective study of 6036 BRCA1 and 3820 BRCA2 mutation carriers
+
+let pen_header = ["gene,age,cumulative_risk_breast,cumulative_risk_ovarian"]
+let pen_lines = pen_header
+
+# BRCA1 — published cumulative risks (%)
+let brca1_breast = [0.0, 2.0, 10.0, 26.0, 40.0, 55.0, 65.0, 72.0]
+let brca1_ovarian = [0.0, 0.3, 1.0, 4.0, 12.0, 26.0, 36.0, 44.0]
+# BRCA2 — published cumulative risks (%)
+let brca2_breast = [0.0, 1.0, 6.0, 16.0, 29.0, 45.0, 55.0, 69.0]
+let brca2_ovarian = [0.0, 0.1, 0.4, 1.0, 3.0, 8.0, 13.0, 17.0]
+
+let ages = [20, 25, 30, 40, 50, 60, 70, 80]
+
+for i in range(0, 8) {
+    pen_lines = append(pen_lines, f"BRCA1,{ages[i]},{brca1_breast[i]},{brca1_ovarian[i]}")
+}
+for i in range(0, 8) {
+    pen_lines = append(pen_lines, f"BRCA2,{ages[i]},{brca2_breast[i]},{brca2_ovarian[i]}")
+}
+write_lines(pen_lines, "data/brca_penetrance.csv")
+
+# --- File 2: diagnostic_test.csv ---
+# Simulated genetic test for BRCA pathogenic variants
+# Prevalence: ~1/400 in general population (Anglian Breast Cancer Study 2000)
+# Sensitivity: 99.0% (Myriad myRisk panel validation)
+# Specificity: 99.8% (Eggington et al. 2014)
+# 10,000 individuals with deterministic assignment based on position
+
+let diag_header = ["individual_id,true_status,test_result"]
+let diag_lines = diag_header
+
+# With prevalence 1/400 = 0.0025, expect ~25 carriers in 10,000
+# Sensitivity 99% -> ~25 TP, 0 FN
+# Specificity 99.8% -> ~20 FP out of 9975
+
+# Carriers: individuals 1-25 (deterministic for reproducibility)
+# False negatives: individual 13 (1 of 25 = ~4% FN -> close to 1% for teaching)
+# False positives: individuals 100, 500, 1000, 1500, 2000, 2500, 3000,
+#                  3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000,
+#                  7500, 8000, 8500, 9000, 9500
+
+let carrier_ids = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
+let fn_ids = [13]
+let fp_ids = [100,500,1000,1500,2000,2500,3000,3500,4000,4500,
+              5000,5500,6000,6500,7000,7500,8000,8500,9000,9500]
+
+for i in range(0, 10000) {
+    let pid = i + 1
+    let is_carrier = false
+    for c in carrier_ids {
+        if pid == c {
+            is_carrier = true
+        }
+    }
+
+    let is_fn = false
+    for f in fn_ids {
+        if pid == f {
+            is_fn = true
+        }
+    }
+
+    let is_fp = false
+    for f in fp_ids {
+        if pid == f {
+            is_fp = true
+        }
+    }
+
+    let status = if is_carrier { "carrier" } else { "non_carrier" }
+    let result = if is_carrier {
+        if is_fn { "negative" } else { "positive" }
+    } else {
+        if is_fp { "positive" } else { "negative" }
+    }
+
+    diag_lines = append(diag_lines, f"{pid},{status},{result}")
+}
+write_lines(diag_lines, "data/diagnostic_test.csv")
+
+# --- File 3: hardy_weinberg.csv ---
+# 5 SNPs from 1000 Genomes with known EUR allele frequencies
+# Observed counts for 1000 individuals (slight HW deviation for teaching)
+# p = freq of major allele, q = 1-p
+
+let hw_header = ["snp_id,ref,alt,p,expected_AA,expected_AB,expected_BB,observed_AA,observed_AB,observed_BB"]
+let hw_lines = hw_header
+
+# Real SNPs with EUR frequencies — expected vs observed (slight deviations)
+# rs1805007: MC1R red hair variant, EUR freq(T)=0.09
+hw_lines = append(hw_lines, "rs1805007,C,T,0.91,828,164,8,830,160,10")
+# rs4988235: LCT lactase persistence, EUR freq(A)=0.74
+hw_lines = append(hw_lines, "rs4988235,G,A,0.74,548,384,68,540,400,60")
+# rs12913832: HERC2/OCA2 eye color, EUR freq(A)=0.72
+hw_lines = append(hw_lines, "rs12913832,A,G,0.72,518,403,79,525,390,85")
+# rs1801133: MTHFR C677T, EUR freq(C)=0.64
+hw_lines = append(hw_lines, "rs1801133,C,T,0.64,410,461,129,405,470,125")
+# rs7412: APOE epsilon-2, EUR freq(C)=0.92
+hw_lines = append(hw_lines, "rs7412,C,T,0.92,846,148,6,850,142,8")
+
+write_lines(hw_lines, "data/hardy_weinberg.csv")
+
+println("Generated 3 files in data/")
+println("  data/brca_penetrance.csv — BRCA1/2 cumulative risk (Kuchenbaecker 2017)")
+println("  data/diagnostic_test.csv — 10,000 individuals, BRCA genetic testing")
+println("  data/hardy_weinberg.csv  — 5 SNPs, observed vs expected genotypes")

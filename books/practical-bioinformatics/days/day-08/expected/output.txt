@@ -1,0 +1,61 @@
+============================================================
+Day 8: Processing Large Files — Streaming Analysis
+============================================================
+
+--- 1. Eager vs Streaming ---
+Eager: loaded 500 reads (type: List)
+Stream type: Stream
+Stream count: 500
+
+--- 2. Constant-Memory Patterns ---
+Total reads: 500
+Passed Q20: 392
+Mean GC: 49.8%
+
+First 5 reads:
+  read_0001: 150 bp, Q=33.2
+  read_0002: 148 bp, Q=27.1
+  read_0003: 150 bp, Q=35.0
+  read_0004: 145 bp, Q=22.8
+  read_0005: 150 bp, Q=31.4
+
+--- 3. Lazy Pipeline ---
+High-quality reads (Q>=30): 170
+
+--- 4. Chunked Processing ---
+  Batch 1: 100 reads, mean GC: 50.2%
+  Batch 2: 100 reads, mean GC: 49.5%
+  Batch 3: 100 reads, mean GC: 49.9%
+  Batch 4: 100 reads, mean GC: 50.1%
+  Batch 5: 100 reads, mean GC: 49.3%
+
+--- 5. Streaming All Formats ---
+FASTA highest GC: ecoli_16s at 54.2%
+VCF PASS by chrom: {chr1: 3, chr17: 3, chrX: 2}
+BED total covered: 92500 bp
+
+--- 6. Tee Pattern ---
+  Checking: read_0001
+  Checking: read_0002
+  Checking: read_0003
+  Checking: read_0004
+  Checking: read_0005
+  Checking: read_0006
+Kept 3 reads with Q>=35
+
+--- 7. Streaming QC Report ---
+Total reads: 500
+Total bases: 73750
+Quality distribution:
+  excellent: 170
+  good: 222
+  poor: 108
+Length mean: 147.5
+Length min: 100, max: 150
+
+--- 8. Write Filtered Output ---
+Wrote 264 filtered reads to results/filtered.fastq
+
+============================================================
+Day 8 complete! You can now process files of any size.
+============================================================

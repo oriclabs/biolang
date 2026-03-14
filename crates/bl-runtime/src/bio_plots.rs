@@ -255,7 +255,7 @@ fn genome_x_layout(chroms: &[String], positions: &[f64]) -> (Vec<f64>, Vec<(Stri
 fn builtin_manhattan(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "manhattan")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
     let threshold = get_opt_f64(&opts, "threshold", 5e-8);
 
     let chrom_col = get_opt_str(&opts, "chrom", "chrom").to_string();
@@ -316,7 +316,7 @@ fn builtin_manhattan(args: Vec<Value>) -> Result<Value> {
 fn builtin_qq_plot(args: Vec<Value>) -> Result<Value> {
     let vals = nums_from_value(&args[0], "qq_plot")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let mut pvals: Vec<f64> = vals.into_iter().filter(|v| *v > 0.0 && v.is_finite()).collect();
     pvals.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -367,7 +367,7 @@ fn builtin_qq_plot(args: Vec<Value>) -> Result<Value> {
 fn builtin_ideogram(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "ideogram")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
     let bar_width = get_opt_usize(&opts, "width", 60);
 
     let chroms = extract_str_col(table, "chrom")?;
@@ -446,7 +446,7 @@ fn builtin_ideogram(args: Vec<Value>) -> Result<Value> {
 fn builtin_rainfall(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "rainfall")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let chroms = extract_str_col(table, get_opt_str(&opts, "chrom", "chrom"))?;
     let positions = extract_table_col(table, get_opt_str(&opts, "pos", "pos"))?;
@@ -509,7 +509,7 @@ fn builtin_rainfall(args: Vec<Value>) -> Result<Value> {
 fn builtin_cnv_plot(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "cnv_plot")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let chroms = extract_str_col(table, get_opt_str(&opts, "chrom", "chrom"))?;
     let starts = extract_table_col(table, get_opt_str(&opts, "start", "start"))?;
@@ -560,7 +560,7 @@ fn builtin_cnv_plot(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_violin(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     // Collect named groups of numeric data
     let groups: Vec<(String, Vec<f64>)> = match &args[0] {
@@ -643,7 +643,7 @@ fn builtin_violin(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_density(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
     let bw_opt = opts.get("bandwidth").and_then(|v| v.as_float());
 
     let groups: Vec<(String, Vec<f64>)> = match &args[0] {
@@ -718,7 +718,7 @@ fn builtin_density(args: Vec<Value>) -> Result<Value> {
 fn builtin_kaplan_meier(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "kaplan_meier")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let times = extract_table_col(table, get_opt_str(&opts, "time", "time"))?;
     let events = extract_table_col(table, get_opt_str(&opts, "event", "event"))?;
@@ -796,7 +796,7 @@ fn builtin_kaplan_meier(args: Vec<Value>) -> Result<Value> {
 fn builtin_forest_plot(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "forest_plot")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let labels = extract_str_col(table, get_opt_str(&opts, "label", "label"))?;
     let estimates = extract_table_col(table, get_opt_str(&opts, "estimate", "estimate"))?;
@@ -853,7 +853,7 @@ fn builtin_forest_plot(args: Vec<Value>) -> Result<Value> {
 fn builtin_roc_curve(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "roc_curve")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     // Support precomputed FPR/TPR columns or raw score/label columns
     let has_fpr_tpr = table.col_index("fpr").is_some() && table.col_index("tpr").is_some();
@@ -919,7 +919,7 @@ fn builtin_roc_curve(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
     let heat_chars: Vec<char> = get_opt_str(&opts, "chars", " ░▒▓█").chars().collect();
 
     let (row_names, col_names, data) = match &args[0] {
@@ -1021,7 +1021,7 @@ fn nn_order(data: &[Vec<f64>]) -> Vec<usize> {
 
 fn builtin_pca_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
     let color_col = get_opt_str(&opts, "color", "").to_string();
 
     let (xs, ys, labels) = match &args[0] {
@@ -1085,7 +1085,7 @@ fn builtin_pca_plot(args: Vec<Value>) -> Result<Value> {
 fn builtin_oncoprint(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "oncoprint")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let samples = extract_str_col(table, get_opt_str(&opts, "sample", "sample"))?;
     let genes = extract_str_col(table, get_opt_str(&opts, "gene", "gene"))?;
@@ -1142,7 +1142,7 @@ fn builtin_oncoprint(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_venn(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let sets: Vec<(String, HashSet<String>)> = match &args[0] {
         Value::Record(map) => {
@@ -1209,7 +1209,7 @@ fn builtin_venn(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_upset(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let sets: Vec<(String, HashSet<String>)> = match &args[0] {
         Value::Record(map) => map.iter().map(|(n, v)| {
@@ -1298,7 +1298,7 @@ fn builtin_upset(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_sequence_logo(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let seqs: Vec<String> = match &args[0] {
         Value::List(items) => items.iter().map(|v| match v {
@@ -1435,7 +1435,7 @@ fn builtin_phylo_tree(args: Vec<Value>) -> Result<Value> {
         _ => return Err(BioLangError::type_error("phylo_tree() requires Str (Newick format)", None)),
     };
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let root = parse_newick(&newick)?;
 
@@ -1516,7 +1516,7 @@ fn draw_tree_svg(c: &mut SvgCanvas, node: &TreeNode, x: f64, max_d: f64, leaf_id
 fn builtin_lollipop(args: Vec<Value>) -> Result<Value> {
     let table = require_table_bp(&args[0], "lollipop")?;
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let positions = extract_table_col(table, get_opt_str(&opts, "pos", "position"))?;
     let labels = extract_str_col(table, get_opt_str(&opts, "label", "label")).ok();
@@ -1571,7 +1571,7 @@ fn builtin_lollipop(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_circos(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     let (segments, links) = match &args[0] {
         Value::Record(map) => {
@@ -1692,7 +1692,7 @@ fn builtin_circos(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_hic_map(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
     let heat_chars: Vec<char> = get_opt_str(&opts, "chars", " ░▒▓█").chars().collect();
 
     let (_names, data) = match &args[0] {
@@ -1758,7 +1758,7 @@ fn builtin_hic_map(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_sashimi(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    let fmt = get_opt_str(&opts, "format", "ascii").to_string();
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
 
     // Input: Record{coverage: Table(pos, depth), junctions: Table(start, end, count)}
     // or just a Table of junctions

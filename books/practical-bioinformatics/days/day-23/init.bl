@@ -1,0 +1,111 @@
+# Day 23: Batch Processing and Automation
+# Multi-sample clinical sequencing experiment: 8 patients (4 tumor, 4 normal)
+# 3 FASTQ files each (3 sequencing lanes), using real oncogene templates
+#
+# Sources:
+#   TP53: NCBI Gene 7157, NM_000546.6, chr17:7668402-7687538 (GRCh38)
+#   BRCA1: NCBI Gene 672, NM_007294.4, chr17:43044295-43170245 (GRCh38)
+#   EGFR: NCBI Gene 1956, NM_005228.5, chr7:55019017-55211628 (GRCh38)
+#   KRAS: NCBI Gene 3845, NM_004985.5, chr12:25205246-25250929 (GRCh38)
+
+print("Setting up Day 23: Batch Processing and Automation")
+
+mkdir("data")
+mkdir("data/fastq")
+mkdir("results")
+mkdir("logs")
+
+# ── Real human oncogene subsequences (150bp each) ──
+
+let templates = [
+    # TP53 exon 5 (NM_000546.6 c.376-525)
+    "TACTTCCTGAAAACAACGTTCTGTCCCCCTTGCCGTCTGGGCTTCTTGCATTCTGGGACAGCCAAGTCTGTGACTTGCACGTACTCCCCTGCCCTCAACAAGATGTTTTGCCAACTGGCCAAGACCTGCCCTGTGCAGCTGTGGGTTGATTCCACACCC",
+    # TP53 exon 7 (NM_000546.6 c.701-850)
+    "CTTGGGCCTGTGTTATCTCCTAGGTTGGCTCTGACTGTACCACCATCCACTACAACTACATGTGTAACAGTTCCTGCATGGGCGGCATGAACCGGAGGCCCATCCTCACCATCATCACACTGGAAGACTCCAGTGGTAATCTACTGGGACGGAACAGCT",
+    # BRCA1 exon 11 region 1 (NM_007294.4 c.1016-1165)
+    "GATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAATTTTGCATGCTGAAACTTCTCAACCAG",
+    # BRCA1 exon 11 region 2 (NM_007294.4 c.2410-2559)
+    "AACAGATGGGCTGGAAGTAAGGAAACATGTAATGATAGGCGGACTCCCAGCACAGAAAAAAAGGTAGATCTGAATGCTGATCCCCTGTGTGAGAGAAAAGAATGGAATAAGCAGAAACTGCCATGCTCAGAGAATCCTAGAGATACTGAAGATGTTCCTT",
+    # EGFR exon 19 (NM_005228.5 c.2101-2250)
+    "GCTGGCCAAACTGCTGGGTGCGGAAGAGAAAGAATACCATGCAGAAGGAGGCAAAGTGCCTATCAAGTGGATGGCATTGGAATCAATTTTACACAGAATCTATACCCACCAGAGTGATGTCTGGAGCTACGGTGAGTCATAATCCTGATGATAATCATG",
+    # EGFR exon 21 (NM_005228.5 c.2501-2650)
+    "AACACCGCAGCATGTCAAGATCACAGATTTTGGGCTGGCCAAACTGCTGGGTGCGGAAGAGAAAGAATACCATGCAGAAGGAGGCAAAGTGCCTATCAAGTGGATGGCATTGGAATCAATTTTACACAGAATCTATACCCACCAGAGTGATGTCTGGAG",
+    # KRAS exon 2 (NM_004985.5 c.1-150)
+    "ATGACTGAATATAAACTTGTGGTAGTTGGAGCTGGTGGCGTAGGCAAGAGTGCCTTGACGATACAGCTAATTCAGAATCATTTTGTGGACGAATATGATCCAACAATAGAGGATTCCTACAGGAAGCAAGTAGTAATTGATGGAGAAACCTGTCTCTTG",
+    # KRAS exon 3 (NM_004985.5 c.151-300)
+    "GATATTCTCGACACAGCAGGTCAAGAGGAGTACAGTGCAATGAGGGACCAGTACATGAGGACTGGGGAGGGCTTTCTTTGTGTATTTGCCATAAATAATACTAAATCATTTGAAGATATTCACCATTATAGAGAACAAATTAAAAGAGTTAAGGACTCTG"
+]
+
+let gene_names = ["TP53_ex5", "TP53_ex7", "BRCA1_ex11a", "BRCA1_ex11b", "EGFR_ex19", "EGFR_ex21", "KRAS_ex2", "KRAS_ex3"]
+let num_templates = len(templates)
+
+# Quality score pattern
+let qual_good = "IIIIIIIIIIIIIIIIIIIIHHHHHHHHHHHHHHHHHHGGGGGGGGGGGGGGGFFFFFFFFFFFFFFEEEEEEEEEEEEEEDDDDDDDDDDDDDCCCCCCCCCCCCBBBBBBBBBBBBAAAAAAAAA999999998888888877777777"
+
+# ── Patient metadata ──
+let patients = [
+    { id: "PT001", type: "tumor",  sex: "F", age: "62", diagnosis: "breast_carcinoma" },
+    { id: "PT002", type: "tumor",  sex: "M", age: "55", diagnosis: "lung_adenocarcinoma" },
+    { id: "PT003", type: "tumor",  sex: "F", age: "71", diagnosis: "ovarian_carcinoma" },
+    { id: "PT004", type: "tumor",  sex: "M", age: "48", diagnosis: "colorectal_carcinoma" },
+    { id: "PT005", type: "normal", sex: "F", age: "62", diagnosis: "matched_normal" },
+    { id: "PT006", type: "normal", sex: "M", age: "55", diagnosis: "matched_normal" },
+    { id: "PT007", type: "normal", sex: "F", age: "71", diagnosis: "matched_normal" },
+    { id: "PT008", type: "normal", sex: "M", age: "48", diagnosis: "matched_normal" }
+]
+
+let lanes = ["L001", "L002", "L003"]
+
+# ── Generate FASTQ files and sample sheet ──
+let sheet_rows = []
+
+for p_idx in range(0, len(patients)) {
+    let patient = patients[p_idx]
+    for l_idx in range(0, len(lanes)) {
+        let lane = lanes[l_idx]
+        let filename = f"data/fastq/{patient.id}_{lane}.fastq"
+
+        # Generate 50 reads per file from real templates
+        let reads = []
+        for r in range(0, 50) {
+            let tmpl_idx = (p_idx + r + l_idx) % num_templates
+            let tmpl = templates[tmpl_idx]
+            let offset = (r * 3 + l_idx * 5) % 10
+            let read_len = 100 + (r * 7) % 51
+            let seq = ""
+            for j in range(0, read_len) {
+                let pos = (offset + j) % len(tmpl)
+                let seq = seq + substr(tmpl, pos, 1)
+            }
+            let qual = substr(qual_good, 0, read_len)
+            let reads = push(reads, f"@{patient.id}_{lane}_read{str(r)} {gene_names[tmpl_idx]} length={str(read_len)}")
+            let reads = push(reads, seq)
+            let reads = push(reads, "+")
+            let reads = push(reads, qual)
+        }
+        write_lines(filename, reads)
+
+        let sheet_rows = push(sheet_rows, f"{patient.id},{filename},{patient.type},{lane},50,{patient.sex},{patient.age},{patient.diagnosis}")
+    }
+}
+
+let header = "sample_id,fastq_file,sample_type,lane,expected_reads,sex,age,diagnosis"
+let sheet_content = push([header], sheet_rows |> join("\n")) |> join("\n")
+write_lines("data/sample_sheet.csv", [sheet_content])
+
+# ── Write pipeline config ──
+let config_text = "{\"pipeline_name\":\"batch_qc\",\"version\":\"1.0.0\",\"sample_sheet\":\"data/sample_sheet.csv\",\"output_dir\":\"results\",\"log_dir\":\"logs\",\"min_quality\":20,\"min_length\":50,\"reference_genes\":[\"TP53\",\"BRCA1\",\"EGFR\",\"KRAS\"],\"genome_build\":\"GRCh38\"}"
+write_lines("config.json", [config_text])
+
+print("Day 23 setup complete: 8 patients x 3 lanes = 24 FASTQ files")
+print("  4 tumor samples (PT001-PT004): breast, lung, ovarian, colorectal")
+print("  4 matched normals (PT005-PT008)")
+print("  Templates from TP53, BRCA1, EGFR, KRAS gene regions")
+print("")
+print("Data sources:")
+print("  TP53: NM_000546.6 exons 5,7")
+print("  BRCA1: NM_007294.4 exon 11")
+print("  EGFR: NM_005228.5 exons 19,21")
+print("  KRAS: NM_004985.5 exons 2,3")
+print("")
+print("Run: bl run scripts/analysis.bl")

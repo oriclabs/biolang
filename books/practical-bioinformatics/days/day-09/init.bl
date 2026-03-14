@@ -1,0 +1,97 @@
+# Day 9: Biological Databases and APIs — Data Setup
+# Run: bl run init.bl
+# Creates gene list and variant annotation files with real biological data.
+# Works fully offline — no API calls required.
+
+# Source: COSMIC Cancer Gene Census (Sondka et al., Nat Rev Cancer, 2018)
+# Source: ClinVar (Landrum et al., Nucleic Acids Res, 2018)
+# Coordinates: GRCh38/hg38
+
+print("Day 9: Biological Databases and APIs")
+print("=====================================")
+print("Generating data files with real cancer driver genes...")
+print("")
+
+mkdir("data")
+
+# ============================================================
+# 1. Gene list: 25 cancer driver genes with Ensembl IDs,
+#    chromosome locations, and functional descriptions
+# ============================================================
+
+let gene_header = "symbol,ensembl_id,chromosome,start,end,strand,description"
+let gene_rows = [
+    "TP53,ENSG00000141510,17,7668402,7687550,−,Tumor protein p53; guardian of the genome; most mutated gene in human cancer",
+    "BRCA1,ENSG00000012048,17,43044295,43170245,−,BRCA1 DNA repair associated; hereditary breast/ovarian cancer",
+    "BRCA2,ENSG00000139618,13,32315086,32400266,+,BRCA2 DNA repair associated; homologous recombination repair",
+    "KRAS,ENSG00000133703,12,25205246,25250936,−,KRAS proto-oncogene GTPase; RAS/MAPK signaling",
+    "EGFR,ENSG00000146648,7,55019017,55211628,+,Epidermal growth factor receptor; non-small cell lung cancer target",
+    "PIK3CA,ENSG00000121879,3,179148114,179240093,+,PI3K catalytic subunit alpha; PI3K/AKT/mTOR pathway",
+    "BRAF,ENSG00000157764,7,140719327,140924929,−,B-Raf proto-oncogene; MAPK/ERK signaling; melanoma driver",
+    "PTEN,ENSG00000171862,10,87863113,87971930,+,Phosphatase and tensin homolog; PI3K pathway negative regulator",
+    "RB1,ENSG00000139687,13,48303747,48481890,+,RB transcriptional corepressor 1; cell cycle checkpoint",
+    "APC,ENSG00000134982,5,112707498,112846239,+,APC WNT signaling pathway regulator; colorectal cancer gatekeeper",
+    "MYC,ENSG00000136997,8,127735434,127742951,+,MYC proto-oncogene; transcription factor; cell proliferation",
+    "ERBB2,ENSG00000141736,17,39687914,39730426,+,Erb-b2 receptor tyrosine kinase 2 (HER2); breast cancer target",
+    "CDH1,ENSG00000039068,16,68737292,68835537,+,Cadherin 1 (E-cadherin); cell adhesion; lobular breast cancer",
+    "VHL,ENSG00000134086,3,10141633,10153669,+,Von Hippel-Lindau tumor suppressor; clear cell renal carcinoma",
+    "IDH1,ENSG00000138413,2,208236227,208266074,−,Isocitrate dehydrogenase 1; glioma and AML driver",
+    "ALK,ENSG00000171094,2,29192774,29921566,−,ALK receptor tyrosine kinase; lung cancer fusion partner",
+    "JAK2,ENSG00000096968,9,4985245,5128183,+,Janus kinase 2; myeloproliferative neoplasm driver (V617F)",
+    "NRAS,ENSG00000213281,1,114704469,114716771,−,NRAS proto-oncogene; melanoma and AML driver",
+    "KIT,ENSG00000157404,4,54657918,54740715,+,KIT proto-oncogene; GIST and melanoma; imatinib target",
+    "CDKN2A,ENSG00000147889,9,21967751,21995301,−,Cyclin dependent kinase inhibitor 2A (p16); cell cycle regulator",
+    "SMAD4,ENSG00000141646,18,51028394,51085045,+,SMAD family member 4; TGF-beta signaling; pancreatic cancer",
+    "FBXW7,ENSG00000112242,4,152321580,152535843,−,F-box and WD repeat domain containing 7; ubiquitin ligase",
+    "ARID1A,ENSG00000117713,1,26696016,26782105,+,AT-rich interaction domain 1A; SWI/SNF chromatin remodeling",
+    "NFE2L2,ENSG00000116044,2,177230303,177264515,−,Nuclear factor erythroid 2-related factor 2 (NRF2); oxidative stress",
+    "CTNNB1,ENSG00000168036,3,41194741,41260096,+,Catenin beta-1; WNT signaling effector; hepatocellular carcinoma"
+]
+
+let gene_lines = [gene_header] + gene_rows
+write_lines(gene_lines, "data/gene_list.csv")
+print(f"  Created data/gene_list.csv ({len(gene_rows)} cancer driver genes)")
+
+# ============================================================
+# 2. Variants to annotate: real ClinVar pathogenic variants
+#    with HGVS notation for API-based annotation exercises
+# ============================================================
+
+let var_header = "hgvs_genomic,hgvs_protein,gene,rsid,clinical_significance,condition"
+let var_rows = [
+    "NC_000017.11:g.7674220C>T,NP_000537.3:p.Arg175His,TP53,rs28934578,Pathogenic,Li-Fraumeni syndrome",
+    "NC_000017.11:g.7674230C>T,NP_000537.3:p.Arg248Trp,TP53,rs28934576,Pathogenic,Li-Fraumeni syndrome",
+    "NC_000017.11:g.7674885C>T,NP_000537.3:p.Gly245Ser,TP53,rs28934575,Pathogenic,Li-Fraumeni syndrome",
+    "NC_000017.11:g.7675088G>A,NP_000537.3:p.Tyr220Cys,TP53,rs121912651,Pathogenic,Li-Fraumeni syndrome",
+    "NC_000017.11:g.7673802C>T,NP_000537.3:p.Arg273His,TP53,rs28934574,Pathogenic,Li-Fraumeni syndrome",
+    "NC_000017.11:g.43093449dupC,NP_009225.1:p.Gln1756ProfsTer74,BRCA1,rs80357906,Pathogenic,Hereditary breast/ovarian cancer",
+    "NC_000017.11:g.43104121A>C,NP_009225.1:p.Cys61Gly,BRCA1,rs28897672,Pathogenic,Hereditary breast/ovarian cancer",
+    "NC_000017.11:g.43124027_43124028delCT,NP_009225.1:p.Leu22SerfsTer24,BRCA1,rs80357914,Pathogenic,Hereditary breast/ovarian cancer",
+    "NC_000013.11:g.32340300delT,NP_000050.3:p.Ser1982ArgfsTer22,BRCA2,rs80359550,Pathogenic,Hereditary breast/ovarian cancer",
+    "NC_000013.11:g.32355250T>G,NP_000050.3:p.Tyr3098Asp,BRCA2,rs80358981,Pathogenic,Hereditary breast/ovarian cancer",
+    "NC_000012.12:g.25245350C>T,NP_004976.2:p.Gly12Asp,KRAS,rs121913529,Pathogenic,RASopathy; colorectal/pancreatic cancer",
+    "NC_000012.12:g.25245350C>A,NP_004976.2:p.Gly12Val,KRAS,rs121913529,Pathogenic,Non-small cell lung cancer",
+    "NC_000012.12:g.25245351C>A,NP_004976.2:p.Gly12Cys,KRAS,rs121913530,Pathogenic,Bladder/lung cancer",
+    "NC_000007.14:g.140753336A>T,NP_004324.2:p.Val600Glu,BRAF,rs113488022,Pathogenic,Melanoma; colorectal cancer",
+    "NC_000007.14:g.140753335T>C,NP_004324.2:p.Val600Asp,BRAF,rs121913227,Pathogenic,Melanoma",
+    "NC_000007.14:g.55191822T>G,NP_005219.2:p.Leu858Arg,EGFR,rs121434568,Pathogenic,Non-small cell lung cancer",
+    "NC_000007.14:g.55181378C>T,NP_005219.2:p.Thr790Met,EGFR,rs121434569,Pathogenic,EGFR TKI resistance",
+    "NC_000003.12:g.179234297A>G,NP_006209.2:p.His1047Arg,PIK3CA,rs121913279,Pathogenic,Breast/colorectal cancer",
+    "NC_000003.12:g.179218303G>A,NP_006209.2:p.Glu545Lys,PIK3CA,rs104886003,Pathogenic,Breast/colorectal cancer",
+    "NC_000002.12:g.208248388C>T,NP_005887.2:p.Arg132His,IDH1,rs121913500,Pathogenic,Glioma; acute myeloid leukemia",
+    "NC_000009.12:g.5073770G>T,NP_004963.1:p.Val617Phe,JAK2,rs77375493,Pathogenic,Polycythemia vera; myelofibrosis",
+    "NC_000010.11:g.87933147C>T,NP_000305.3:p.Arg130Ter,PTEN,rs121909218,Pathogenic,Cowden syndrome",
+    "NC_000010.11:g.87952118_87952119insA,NP_000305.3:p.Lys267AsnfsTer9,PTEN,rs587776667,Pathogenic,PTEN hamartoma tumor syndrome",
+    "NC_000013.11:g.48367556C>T,NP_000312.2:p.Arg320Ter,RB1,rs121913300,Pathogenic,Retinoblastoma",
+    "NC_000005.10:g.112839514delA,NP_000029.2:p.Glu1309AspfsTer4,APC,rs121913332,Pathogenic,Familial adenomatous polyposis"
+]
+
+let var_lines = [var_header] + var_rows
+write_lines(var_lines, "data/variants_to_annotate.csv")
+print(f"  Created data/variants_to_annotate.csv ({len(var_rows)} ClinVar variants)")
+
+print("")
+print("Files generated successfully (offline — no API calls needed).")
+print("These files provide real gene and variant data for Day 9 exercises.")
+print("")
+print("Run: bl run scripts/analysis.bl")

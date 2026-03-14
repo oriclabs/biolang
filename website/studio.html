@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>BioLang Studio — Bioinformatics IDE</title>
+  <meta name="description" content="Bioinformatics IDE in your browser. Search NCBI, UniProt, PDB. Code editor, local file access, variable inspector. Run BioLang. All offline-capable.">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="manifest" href="manifest-studio.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#080c14;--p1:#0d1117;--p2:#151b2b;--p3:#1a2233;
+      --b:#1e293b;--bf:#7c3aed;
+      --acc:#a78bfa;--cy:#22d3ee;--gn:#34d399;--am:#fbbf24;--rd:#f87171;--or:#fb923c;--pk:#f472b6;
+      --tx:#e2e8f0;--dm:#64748b;--mt:#334155;
+      --f:'JetBrains Mono',ui-monospace,monospace;
+    }
+    html:not(.dark){
+      --bg:#f1f5f9;--p1:#fff;--p2:#f8fafc;--p3:#f1f5f9;
+      --b:#e2e8f0;--bf:#7c3aed;
+      --acc:#7c3aed;--cy:#0891b2;--gn:#059669;--am:#d97706;--rd:#dc2626;--or:#ea580c;--pk:#db2777;
+      --tx:#1e293b;--dm:#64748b;--mt:#cbd5e1;
+    }
+    html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);overflow:hidden;font-size:12px;line-height:1.5}
+    ::selection{background:rgba(124,58,237,.3)}
+    input,textarea,button{font-family:var(--f);font-size:12px}
+
+    /* ── Chrome ── */
+    .chrome{display:flex;flex-direction:column;height:100%}
+
+    /* Tab bar */
+    .tab-bar{display:flex;align-items:center;height:30px;background:var(--p2);border-bottom:1px solid var(--b);padding:0 4px;gap:0;flex-shrink:0;overflow-x:auto}
+    .tab{padding:4px 14px;color:var(--dm);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .1s;user-select:none;font-size:11px;display:flex;align-items:center;gap:5px}
+    .tab:hover{color:var(--tx);background:rgba(124,58,237,.04)}
+    .tab.active{color:var(--acc);border-bottom-color:var(--acc);background:var(--p1)}
+    .tab .badge{font-size:9px;padding:0 5px;border-radius:8px;background:var(--mt);color:var(--dm);min-width:16px;text-align:center}
+    .tab.active .badge{background:rgba(167,139,250,.2);color:var(--acc)}
+    .tab-right{margin-left:auto;display:flex;align-items:center;gap:6px;padding-right:8px}
+    .tab-right .hint{font-size:10px;color:var(--mt)}
+    .tab-right button{background:none;border:none;color:var(--dm);cursor:pointer;padding:2px 4px}
+    .tab-right button:hover{color:var(--tx)}
+
+    /* Status bar */
+    .status-bar{display:flex;align-items:center;height:22px;background:var(--p2);border-top:1px solid var(--b);padding:0 8px;gap:12px;flex-shrink:0;font-size:10px;color:var(--mt)}
+    .status-bar .dot{width:6px;height:6px;border-radius:50%}
+    .status-bar .dot.ok{background:var(--gn)} .status-bar .dot.loading{background:var(--am);animation:pulse 1s infinite} .status-bar .dot.err{background:var(--rd)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .status-bar .sep{width:1px;height:12px;background:var(--b)}
+    .status-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+
+    /* Panel area */
+    .panels{flex:1;display:flex;overflow:hidden}
+    .panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+    .panel.active{display:flex}
+
+    /* ── Search bar (shared) ── */
+    .search-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--b);background:var(--p1);flex-shrink:0}
+    .search-bar input{flex:1;background:var(--p2);border:1px solid var(--b);border-radius:4px;padding:5px 10px;color:var(--tx);outline:none}
+    .search-bar input:focus{border-color:var(--bf);box-shadow:0 0 0 2px rgba(124,58,237,.15)}
+    .search-bar input::placeholder{color:var(--mt)}
+    .search-bar .filter{padding:4px 10px;border-radius:4px;border:1px solid var(--b);background:var(--p2);color:var(--dm);cursor:pointer}
+    .search-bar .filter:hover{border-color:var(--acc);color:var(--tx)}
+    .search-bar .filter.on{background:rgba(124,58,237,.15);color:var(--acc);border-color:var(--acc)}
+    .search-btn{padding:4px 14px;border-radius:4px;border:none;background:var(--acc);color:#fff;cursor:pointer;font-weight:600}
+    .search-btn:hover{opacity:.9}
+
+    /* ── Results list ── */
+    .results{flex:1;overflow-y:auto;background:var(--bg)}
+    .result-item{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border-bottom:1px solid var(--b);cursor:pointer;transition:background .1s}
+    .result-item:hover,.result-item.selected{background:rgba(124,58,237,.06)}
+    .result-item.selected{border-left:3px solid var(--acc)}
+    .result-title{color:var(--tx);font-weight:500;font-size:12px}
+    .result-title .id{color:var(--cy);font-weight:600}
+    .result-sub{color:var(--dm);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .result-tags{display:flex;gap:4px;flex-wrap:wrap}
+    .result-tag{font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--b);color:var(--dm)}
+    .result-tag.org{color:var(--gn);border-color:rgba(52,211,153,.3)}
+    .result-tag.type{color:var(--am);border-color:rgba(251,191,36,.3)}
+    .result-loading{padding:20px;text-align:center;color:var(--dm)}
+    .result-empty{padding:40px 20px;text-align:center;color:var(--mt);font-size:13px}
+    .result-count{padding:4px 10px;font-size:10px;color:var(--mt);background:var(--p1);border-bottom:1px solid var(--b)}
+
+    /* ── Resizers ── */
+    .h-resizer{width:5px;cursor:col-resize;background:var(--b);transition:background .2s;flex-shrink:0;position:relative;z-index:2}
+    .h-resizer:hover,.h-resizer.dragging{background:var(--acc)}
+    .v-resizer{height:5px;cursor:ns-resize;background:var(--b);transition:background .2s;flex-shrink:0}
+    .v-resizer:hover,.v-resizer.dragging{background:var(--acc)}
+
+    /* ── Detail panel ── */
+    .detail{width:45%;border-left:none;display:flex;flex-direction:column;overflow:hidden;background:var(--p1)}
+    .detail.hidden{display:none}
+    .detail-header{padding:8px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .detail-title{font-size:13px;font-weight:600;color:var(--tx);flex:1}
+    .detail-close{background:none;border:none;color:var(--dm);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:3px}
+    .detail-close:hover{background:var(--p2);color:var(--tx)}
+    .detail-actions{display:flex;gap:6px;padding:6px 12px;border-bottom:1px solid var(--b);flex-shrink:0}
+    .detail-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--b);background:var(--p2);color:var(--dm);cursor:pointer;font-size:11px;display:flex;align-items:center;gap:4px}
+    .detail-btn:hover{border-color:var(--acc);color:var(--tx)}
+    .detail-btn.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+    .detail-scroll{flex:1;overflow-y:auto;padding:10px 12px}
+    .detail-section{margin-bottom:12px}
+    .detail-label{font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+    .detail-value{color:var(--tx);font-size:12px;white-space:pre-wrap;word-break:break-all}
+    .detail-value.seq{color:var(--gn);letter-spacing:.5px;word-break:break-all}
+    .detail-table{width:100%;border-collapse:collapse;font-size:11px;margin:4px 0}
+    .detail-table th{text-align:left;color:var(--dm);padding:3px 8px;border-bottom:1px solid var(--b);font-weight:500}
+    .detail-table td{padding:3px 8px;border-bottom:1px solid var(--b);color:var(--tx)}
+
+    /* ── Files panel ── */
+    .file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px}
+    .file-card{background:var(--p1);border:1px solid var(--b);border-radius:6px;padding:12px;cursor:pointer;transition:all .15s}
+    .file-card:hover{border-color:var(--acc);transform:translateY(-1px)}
+    .file-card .name{font-size:12px;font-weight:500;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .file-card .meta{font-size:10px;color:var(--dm);margin-top:4px}
+    .file-drop-zone{border:2px dashed var(--b);border-radius:8px;padding:40px;text-align:center;color:var(--mt);margin:12px;cursor:pointer;transition:all .2s}
+    .file-drop-zone:hover,.file-drop-zone.drag-over{border-color:var(--acc);color:var(--dm);background:rgba(124,58,237,.04)}
+
+    /* ── Editor panel ── */
+    .editor-split{display:flex;flex:1;overflow:hidden}
+    .editor-pane{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .editor-pane textarea{flex:1;resize:none;border:none;outline:none;padding:8px 12px;background:var(--p1);color:var(--tx);tab-size:2;line-height:1.65}
+    .editor-pane textarea::placeholder{color:var(--mt)}
+    .editor-output{flex:1;overflow:auto;padding:8px 12px;background:var(--bg);border-left:1px solid var(--b)}
+    .editor-toolbar{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--p2);border-bottom:1px solid var(--b);flex-shrink:0}
+    .editor-toolbar button{padding:3px 10px;border-radius:4px;border:1px solid var(--b);background:var(--p2);color:var(--dm);cursor:pointer;font-size:11px}
+    .editor-toolbar button:hover{border-color:var(--acc);color:var(--tx)}
+    .editor-toolbar button.run{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
+    .editor-toolbar .spacer{flex:1}
+    .editor-toolbar .timing{font-size:10px;color:var(--mt)}
+
+    /* REPL bar */
+    .repl-bar{display:flex;align-items:center;gap:6px;padding:4px 10px;border-top:1px solid var(--b);background:var(--p1);flex-shrink:0}
+    .repl-bar .prompt{color:var(--acc);font-weight:600}
+    .repl-bar input{flex:1;background:var(--p2);border:1px solid var(--b);border-radius:4px;padding:4px 8px;color:var(--tx);outline:none}
+    .repl-bar input:focus{border-color:var(--bf)}
+
+    /* Variables panel */
+    .vars-panel{width:220px;border-left:1px solid var(--b);overflow-y:auto;background:var(--p1);flex-shrink:0}
+    .vars-header{padding:6px 10px;border-bottom:1px solid var(--b);font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+    .var-row{display:flex;align-items:baseline;gap:6px;padding:3px 10px;font-size:11px}
+    .var-row .n{color:var(--cy)}.var-row .t{color:var(--mt);font-size:10px}.var-row .v{color:var(--dm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px}
+
+    /* Helpers */
+    .nt-A{color:#34d399}.nt-T{color:#f87171}.nt-C{color:#60a5fa}.nt-G{color:#fbbf24}.nt-N{color:#94a3b8}
+    .hidden{display:none!important}
+  </style>
+</head>
+<body>
+<div class="chrome">
+  <!-- Tab bar -->
+  <div class="tab-bar" id="tab-bar">
+    <div class="tab active" data-tab="ncbi">🧬 NCBI <span class="badge" id="ncbi-count">0</span></div>
+    <div class="tab" data-tab="uniprot">🔬 UniProt <span class="badge" id="uniprot-count">0</span></div>
+    <div class="tab" data-tab="pdb">🧊 PDB <span class="badge" id="pdb-count">0</span></div>
+    <div class="tab" data-tab="files">📁 Files <span class="badge" id="files-count">0</span></div>
+    <div class="tab" data-tab="editor">⌨ Editor</div>
+    <div class="tab-right">
+      <span class="hint">Tab ↹ switch  /search  Esc back</span>
+      <button id="btn-theme" title="Toggle theme">🌓</button>
+    </div>
+  </div>
+
+  <!-- Panels -->
+  <div class="panels">
+    <!-- ═══ NCBI ═══ -->
+    <div class="panel active" id="panel-ncbi">
+      <div class="search-bar">
+        <input id="ncbi-q" placeholder="Search NCBI — gene, accession, keyword..." autofocus>
+        <button class="filter" data-db="gene" id="ncbi-db-gene">Gene</button>
+        <button class="filter on" data-db="nuccore" id="ncbi-db-nuc">Nucleotide</button>
+        <button class="filter" data-db="protein" id="ncbi-db-prot">Protein</button>
+        <button class="filter" data-db="pubmed" id="ncbi-db-pub">PubMed</button>
+        <button class="search-btn" id="ncbi-go">Search</button>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div class="result-count" id="ncbi-result-count"></div>
+          <div class="results" id="ncbi-results">
+            <div class="result-empty">Search NCBI E-utilities — genes, sequences, proteins, publications</div>
+          </div>
+        </div>
+        <div class="h-resizer" data-resizer="ncbi"></div>
+        <div class="detail hidden" id="ncbi-detail"></div>
+      </div>
+    </div>
+
+    <!-- ═══ UniProt ═══ -->
+    <div class="panel" id="panel-uniprot">
+      <div class="search-bar">
+        <input id="uniprot-q" placeholder="Search UniProt — protein name, gene, accession...">
+        <button class="filter on" data-reviewed="true" id="uniprot-reviewed">Reviewed</button>
+        <button class="filter" id="uniprot-organism">Human</button>
+        <button class="search-btn" id="uniprot-go">Search</button>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div class="result-count" id="uniprot-result-count"></div>
+          <div class="results" id="uniprot-results">
+            <div class="result-empty">Search UniProt for protein entries — reviewed (Swiss-Prot) or unreviewed (TrEMBL)</div>
+          </div>
+        </div>
+        <div class="h-resizer" data-resizer="uniprot"></div>
+        <div class="detail hidden" id="uniprot-detail"></div>
+      </div>
+    </div>
+
+    <!-- ═══ PDB ═══ -->
+    <div class="panel" id="panel-pdb">
+      <div class="search-bar">
+        <input id="pdb-q" placeholder="Search PDB — structure, protein, PDB ID...">
+        <button class="search-btn" id="pdb-go">Search</button>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div class="result-count" id="pdb-result-count"></div>
+          <div class="results" id="pdb-results">
+            <div class="result-empty">Search RCSB PDB for protein and nucleic acid structures</div>
+          </div>
+        </div>
+        <div class="h-resizer" data-resizer="pdb"></div>
+        <div class="detail hidden" id="pdb-detail"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Files ═══ -->
+    <div class="panel" id="panel-files">
+      <div class="search-bar">
+        <input id="files-q" placeholder="Filter files...">
+        <button class="search-btn" id="files-open">Open Files</button>
+      </div>
+      <div class="results" id="files-content" style="padding:12px">
+        <div class="file-drop-zone" id="file-drop-zone">
+          Drop bioinformatics files here<br>
+          <span style="font-size:10px;color:var(--mt)">FASTA, FASTQ, VCF, BED, GFF, CSV, TSV — files stay on your machine</span>
+        </div>
+        <div class="file-grid" id="file-grid"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Editor ═══ -->
+    <div class="panel" id="panel-editor">
+      <div class="editor-toolbar">
+        <button class="run" id="editor-run">▶ Run (Ctrl+Enter)</button>
+        <button id="editor-clear">Clear Output</button>
+        <button id="editor-reset">Reset</button>
+        <div class="spacer"></div>
+        <span class="timing" id="editor-timing"></span>
+      </div>
+      <div class="editor-split">
+        <div class="editor-pane">
+          <textarea id="editor-code" placeholder="# BioLang code here — Ctrl+Enter to run
+# Files you opened are available: read_csv(&quot;file.csv&quot;)
+# Data from NCBI/UniProt/PDB sent here as variables
+" spellcheck="false"></textarea>
+        </div>
+        <div class="h-resizer" id="editor-h-resizer"></div>
+        <div class="editor-output" id="editor-output"></div>
+        <div class="h-resizer" id="vars-resizer"></div>
+        <div class="vars-panel" id="vars-panel">
+          <div class="vars-header">Variables</div>
+          <div id="var-list"></div>
+        </div>
+      </div>
+      <div class="repl-bar">
+        <span class="prompt">bl&gt;</span>
+        <input id="repl-input" placeholder="Quick expression..." autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="dot loading" id="wasm-dot"></span>
+    <span id="wasm-status">Loading WASM...</span>
+    <span class="sep"></span>
+    <span id="file-status">0 files</span>
+    <span class="sep"></span>
+    <span id="key-hint">Tab: switch  /: search  j/k: navigate  Enter: select  e: send to editor</span>
+    <div class="status-right">
+      <span id="net-status">Online</span>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" multiple accept=".fasta,.fa,.fna,.faa,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.csv,.tsv,.sam,.txt,.bl" style="display:none">
+
+<script type="module">
+// ══════════════════════════════════════════════════════════════
+// BioLang Studio — Bioinformatics IDE
+// ══════════════════════════════════════════════════════════════
+
+// ── WASM ──
+let wasm = null;
+const wasmReady = (async () => {
+  try {
+    const mod = await import("./wasm/br_wasm.js");
+    await mod.default(); mod.init();
+    wasm = { evaluate: mod.evaluate, reset: mod.reset, listVars: mod.list_variables };
+    $("wasm-dot").className = "dot ok";
+    $("wasm-status").textContent = "WASM ready";
+  } catch (e) {
+    $("wasm-dot").className = "dot err";
+    $("wasm-status").textContent = "WASM error";
+  }
+})();
+
+// ── Local file registry ──
+const localFiles = new Map();
+window.__blFetch = {
+  sync(url) {
+    const name = url.replace(/^.*[/\\]/, "");
+    if (localFiles.has(url)) return localFiles.get(url);
+    if (localFiles.has(name)) return localFiles.get(name);
+    if (/^https?:\/\//i.test(url)) {
+      try {
+        const x = new XMLHttpRequest(); x.open("GET", url, false); x.send();
+        return x.status >= 200 && x.status < 300 ? x.responseText : "ERROR:" + x.status;
+      } catch (e) { return "ERROR:" + e; }
+    }
+    return "ERROR:File not found: " + url + " — open it in Files tab first";
+  }
+};
+
+// ── Helpers ──
+const $ = id => document.getElementById(id);
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function fmtBytes(b) { return b < 1024 ? b + " B" : b < 1048576 ? (b/1024).toFixed(1) + " KB" : (b/1048576).toFixed(1) + " MB"; }
+
+// ══════════════════════════════════════════════════════════════
+// TAB MANAGEMENT
+// ══════════════════════════════════════════════════════════════
+let activeTab = "ncbi";
+const tabs = document.querySelectorAll(".tab[data-tab]");
+function switchTab(name) {
+  activeTab = name;
+  tabs.forEach(t => { t.classList.toggle("active", t.dataset.tab === name); });
+  document.querySelectorAll(".panel").forEach(p => { p.classList.toggle("active", p.id === "panel-" + name); });
+  // Focus search input
+  const input = document.querySelector("#panel-" + name + " .search-bar input");
+  if (input) setTimeout(() => input.focus(), 50);
+}
+tabs.forEach(t => t.addEventListener("click", () => switchTab(t.dataset.tab)));
+
+// ══════════════════════════════════════════════════════════════
+// KEYBOARD NAVIGATION
+// ══════════════════════════════════════════════════════════════
+const tabOrder = ["ncbi", "uniprot", "pdb", "files", "editor"];
+document.addEventListener("keydown", (e) => {
+  // Don't capture when typing in inputs
+  const tag = e.target.tagName;
+  const inInput = tag === "INPUT" || tag === "TEXTAREA";
+
+  if (e.key === "Tab" && !e.ctrlKey && !inInput) {
+    e.preventDefault();
+    const idx = tabOrder.indexOf(activeTab);
+    switchTab(tabOrder[(idx + (e.shiftKey ? -1 : 1) + tabOrder.length) % tabOrder.length]);
+    return;
+  }
+  if (e.key === "/" && !inInput) {
+    e.preventDefault();
+    const input = document.querySelector("#panel-" + activeTab + " .search-bar input");
+    if (input) input.focus();
+    return;
+  }
+  if (e.key === "Escape") {
+    // Close detail panels, blur inputs
+    document.querySelectorAll(".detail").forEach(d => d.classList.add("hidden"));
+    if (inInput) e.target.blur();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    runEditorCode();
+    return;
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// NCBI SEARCH
+// ══════════════════════════════════════════════════════════════
+let ncbiDb = "nuccore";
+let ncbiResults = [];
+let ncbiSelected = -1;
+
+// DB filter buttons
+document.querySelectorAll("#panel-ncbi .filter").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#panel-ncbi .filter").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    ncbiDb = btn.dataset.db;
+  });
+});
+
+async function ncbiSearch(query) {
+  if (!query) return;
+  $("ncbi-results").innerHTML = '<div class="result-loading">Searching NCBI ' + ncbiDb + '...</div>';
+  try {
+    // E-utilities esearch
+    const searchUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=" + ncbiDb + "&term=" + encodeURIComponent(query) + "&retmax=25&retmode=json";
+    const searchRes = await fetch(searchUrl).then(r => r.json());
+    const ids = searchRes.esearchresult?.idlist || [];
+    $("ncbi-count").textContent = searchRes.esearchresult?.count || 0;
+    $("ncbi-result-count").textContent = ids.length + " of " + (searchRes.esearchresult?.count || 0) + " results";
+    if (!ids.length) { $("ncbi-results").innerHTML = '<div class="result-empty">No results found</div>'; return; }
+
+    // esummary for details
+    const sumUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=" + ncbiDb + "&id=" + ids.join(",") + "&retmode=json";
+    const sumRes = await fetch(sumUrl).then(r => r.json());
+    ncbiResults = ids.map(id => ({ id, ...sumRes.result?.[id] })).filter(r => r.uid);
+
+    renderNcbiResults();
+  } catch (e) {
+    $("ncbi-results").innerHTML = '<div class="result-empty">Error: ' + esc(String(e)) + '</div>';
+  }
+}
+
+function renderNcbiResults() {
+  $("ncbi-results").innerHTML = ncbiResults.map((r, i) => {
+    const title = r.title || r.description || r.caption || r.uid;
+    const org = r.organism?.scientificname || r.source || "";
+    const acc = r.accessionversion || r.caption || r.uid;
+    const len = r.slen || r.length || "";
+    return '<div class="result-item' + (i === ncbiSelected ? " selected" : "") + '" data-idx="' + i + '">' +
+      '<div class="result-title"><span class="id">' + esc(acc) + '</span> ' + esc(truncate(title, 80)) + '</div>' +
+      '<div class="result-tags">' +
+        (org ? '<span class="result-tag org">' + esc(org) + '</span>' : '') +
+        (len ? '<span class="result-tag type">' + esc(String(len)) + ' bp</span>' : '') +
+        '<span class="result-tag">' + ncbiDb + '</span>' +
+      '</div></div>';
+  }).join("");
+  $("ncbi-results").querySelectorAll(".result-item").forEach(el => {
+    el.addEventListener("click", () => showNcbiDetail(parseInt(el.dataset.idx)));
+  });
+}
+
+async function showNcbiDetail(idx) {
+  ncbiSelected = idx;
+  renderNcbiResults();
+  const r = ncbiResults[idx];
+  const det = $("ncbi-detail");
+  det.classList.remove("hidden");
+  det.innerHTML = '<div class="detail-header"><span class="detail-title">' + esc(r.accessionversion || r.uid) + '</span><button class="detail-close" onclick="this.closest(\'.detail\').classList.add(\'hidden\')">&times;</button></div>' +
+    '<div class="detail-actions">' +
+      '<button class="detail-btn primary" id="ncbi-send-editor">📝 Send to Editor</button>' +
+      '<button class="detail-btn" id="ncbi-fetch-fasta">🧬 Fetch FASTA</button>' +
+      '<button class="detail-btn" id="ncbi-copy-acc">📋 Copy Accession</button>' +
+    '</div>' +
+    '<div class="detail-scroll">' +
+      detailSection("Title", r.title || r.description || "") +
+      detailSection("Accession", r.accessionversion || r.caption || r.uid) +
+      detailSection("Organism", r.organism?.scientificname || r.source || "N/A") +
+      detailSection("Length", r.slen || r.length || "N/A") +
+      detailSection("Update", r.updatedate || "N/A") +
+      detailSection("UID", r.uid) +
+    '</div>';
+
+  $("ncbi-send-editor")?.addEventListener("click", () => {
+    const acc = r.accessionversion || r.uid;
+    appendEditorCode('# NCBI: ' + acc + '\nlet seq = ncbi_sequence("' + acc + '")\nprintln(seq)\n');
+    switchTab("editor");
+  });
+  $("ncbi-fetch-fasta")?.addEventListener("click", async () => {
+    try {
+      const url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=" + ncbiDb + "&id=" + r.uid + "&rettype=fasta&retmode=text";
+      const text = await fetch(url).then(r => r.text());
+      const name = (r.accessionversion || r.uid) + ".fasta";
+      localFiles.set(name, text);
+      renderFiles();
+      $("files-count").textContent = localFiles.size;
+      appendEditorOutput("Fetched " + name + " (" + fmtBytes(text.length) + ")", "info");
+    } catch (e) {
+      appendEditorOutput("Fetch error: " + String(e), "error");
+    }
+  });
+  $("ncbi-copy-acc")?.addEventListener("click", () => {
+    navigator.clipboard.writeText(r.accessionversion || r.uid);
+  });
+}
+
+$("ncbi-go").addEventListener("click", () => ncbiSearch($("ncbi-q").value.trim()));
+$("ncbi-q").addEventListener("keydown", e => { if (e.key === "Enter") ncbiSearch($("ncbi-q").value.trim()); });
+
+// ══════════════════════════════════════════════════════════════
+// UNIPROT SEARCH
+// ══════════════════════════════════════════════════════════════
+let uniprotResults = [];
+let uniprotReviewed = true;
+let uniprotHuman = false;
+
+$("uniprot-reviewed").addEventListener("click", function() { uniprotReviewed = !uniprotReviewed; this.classList.toggle("on", uniprotReviewed); });
+$("uniprot-organism").addEventListener("click", function() { uniprotHuman = !uniprotHuman; this.classList.toggle("on", uniprotHuman); });
+
+async function uniprotSearch(query) {
+  if (!query) return;
+  $("uniprot-results").innerHTML = '<div class="result-loading">Searching UniProt...</div>';
+  try {
+    let q = query;
+    if (uniprotReviewed) q += " AND reviewed:true";
+    if (uniprotHuman) q += " AND organism_id:9606";
+    const url = "https://rest.uniprot.org/uniprotkb/search?query=" + encodeURIComponent(q) + "&size=25&format=json&fields=accession,id,protein_name,organism_name,length,gene_names";
+    const res = await fetch(url).then(r => r.json());
+    uniprotResults = res.results || [];
+    $("uniprot-count").textContent = uniprotResults.length;
+    $("uniprot-result-count").textContent = uniprotResults.length + " results";
+    if (!uniprotResults.length) { $("uniprot-results").innerHTML = '<div class="result-empty">No results</div>'; return; }
+
+    $("uniprot-results").innerHTML = uniprotResults.map((r, i) => {
+      const name = r.proteinDescription?.recommendedName?.fullName?.value || r.proteinDescription?.submittedName?.[0]?.fullName?.value || r.uniProtkbId || "";
+      const org = r.organism?.scientificName || "";
+      const genes = (r.genes || []).map(g => g.geneName?.value || "").filter(Boolean).join(", ");
+      return '<div class="result-item" data-idx="' + i + '">' +
+        '<div class="result-title"><span class="id">' + esc(r.primaryAccession) + '</span> ' + esc(truncate(name, 70)) + '</div>' +
+        '<div class="result-sub">' + esc(genes) + '</div>' +
+        '<div class="result-tags">' +
+          '<span class="result-tag org">' + esc(org) + '</span>' +
+          '<span class="result-tag type">' + esc(String(r.sequence?.length || "")) + ' aa</span>' +
+        '</div></div>';
+    }).join("");
+    $("uniprot-results").querySelectorAll(".result-item").forEach(el => {
+      el.addEventListener("click", () => showUniprotDetail(parseInt(el.dataset.idx)));
+    });
+  } catch (e) {
+    $("uniprot-results").innerHTML = '<div class="result-empty">Error: ' + esc(String(e)) + '</div>';
+  }
+}
+
+async function showUniprotDetail(idx) {
+  const r = uniprotResults[idx];
+  const det = $("uniprot-detail");
+  det.classList.remove("hidden");
+  const name = r.proteinDescription?.recommendedName?.fullName?.value || r.uniProtkbId || "";
+  const genes = (r.genes || []).map(g => g.geneName?.value || "").filter(Boolean).join(", ");
+  det.innerHTML = '<div class="detail-header"><span class="detail-title">' + esc(r.primaryAccession) + ' — ' + esc(name) + '</span><button class="detail-close" onclick="this.closest(\'.detail\').classList.add(\'hidden\')">&times;</button></div>' +
+    '<div class="detail-actions">' +
+      '<button class="detail-btn primary" id="uni-send">📝 Send to Editor</button>' +
+      '<button class="detail-btn" id="uni-fasta">🧬 Fetch FASTA</button>' +
+    '</div>' +
+    '<div class="detail-scroll">' +
+      detailSection("Protein", name) +
+      detailSection("Genes", genes || "N/A") +
+      detailSection("Organism", r.organism?.scientificName || "N/A") +
+      detailSection("Length", (r.sequence?.length || "N/A") + " aa") +
+      detailSection("Accession", r.primaryAccession) +
+      (r.sequence?.value ? detailSection("Sequence", '<span class="seq">' + esc(r.sequence.value) + '</span>') : '') +
+    '</div>';
+
+  $("uni-send")?.addEventListener("click", () => {
+    appendEditorCode('# UniProt: ' + r.primaryAccession + '\nlet protein = uniprot_entry("' + r.primaryAccession + '")\nprintln(protein)\n');
+    switchTab("editor");
+  });
+  $("uni-fasta")?.addEventListener("click", async () => {
+    try {
+      const text = await fetch("https://rest.uniprot.org/uniprotkb/" + r.primaryAccession + ".fasta").then(r => r.text());
+      const name = r.primaryAccession + ".fasta";
+      localFiles.set(name, text);
+      renderFiles();
+      $("files-count").textContent = localFiles.size;
+      appendEditorOutput("Fetched " + name + " (" + fmtBytes(text.length) + ")", "info");
+    } catch (e) { appendEditorOutput("Fetch error: " + e, "error"); }
+  });
+}
+
+$("uniprot-go").addEventListener("click", () => uniprotSearch($("uniprot-q").value.trim()));
+$("uniprot-q").addEventListener("keydown", e => { if (e.key === "Enter") uniprotSearch($("uniprot-q").value.trim()); });
+
+// ══════════════════════════════════════════════════════════════
+// PDB SEARCH
+// ══════════════════════════════════════════════════════════════
+let pdbResults = [];
+
+async function pdbSearch(query) {
+  if (!query) return;
+  $("pdb-results").innerHTML = '<div class="result-loading">Searching PDB...</div>';
+  try {
+    const body = {
+      query: { type: "terminal", service: "full_text", parameters: { value: query } },
+      return_type: "entry", request_options: { paginate: { start: 0, rows: 25 } }
+    };
+    const res = await fetch("https://search.rcsb.org/rcsbsearch/v2/query", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    }).then(r => r.json());
+    const ids = (res.result_set || []).map(r => r.identifier);
+    $("pdb-count").textContent = res.total_count || 0;
+    $("pdb-result-count").textContent = ids.length + " of " + (res.total_count || 0) + " results";
+    if (!ids.length) { $("pdb-results").innerHTML = '<div class="result-empty">No results</div>'; return; }
+
+    // Fetch summaries
+    const summaries = await Promise.all(ids.slice(0, 25).map(async id => {
+      try {
+        const d = await fetch("https://data.rcsb.org/rest/v1/core/entry/" + id).then(r => r.json());
+        return { id, title: d.struct?.title || "", method: d.exptl?.[0]?.method || "", resolution: d.rcsb_entry_info?.resolution_combined?.[0] || null, organism: d.rcsb_entry_info?.organism_scientific_name || "" };
+      } catch { return { id, title: "", method: "", resolution: null }; }
+    }));
+    pdbResults = summaries;
+
+    $("pdb-results").innerHTML = pdbResults.map((r, i) => {
+      return '<div class="result-item" data-idx="' + i + '">' +
+        '<div class="result-title"><span class="id">' + esc(r.id) + '</span> ' + esc(truncate(r.title, 70)) + '</div>' +
+        '<div class="result-tags">' +
+          (r.method ? '<span class="result-tag type">' + esc(r.method) + '</span>' : '') +
+          (r.resolution ? '<span class="result-tag">' + r.resolution.toFixed(1) + ' Å</span>' : '') +
+        '</div></div>';
+    }).join("");
+    $("pdb-results").querySelectorAll(".result-item").forEach(el => {
+      el.addEventListener("click", () => showPdbDetail(parseInt(el.dataset.idx)));
+    });
+  } catch (e) {
+    $("pdb-results").innerHTML = '<div class="result-empty">Error: ' + esc(String(e)) + '</div>';
+  }
+}
+
+async function showPdbDetail(idx) {
+  const r = pdbResults[idx];
+  const det = $("pdb-detail");
+  det.classList.remove("hidden");
+  det.innerHTML = '<div class="detail-header"><span class="detail-title">' + esc(r.id) + '</span><button class="detail-close" onclick="this.closest(\'.detail\').classList.add(\'hidden\')">&times;</button></div>' +
+    '<div class="detail-actions">' +
+      '<button class="detail-btn primary" id="pdb-send">📝 Send to Editor</button>' +
+      '<button class="detail-btn" id="pdb-fetch">🧬 Fetch FASTA</button>' +
+    '</div>' +
+    '<div class="detail-scroll">' +
+      detailSection("Title", r.title) +
+      detailSection("Method", r.method || "N/A") +
+      detailSection("Resolution", r.resolution ? r.resolution.toFixed(2) + " Å" : "N/A") +
+      detailSection("PDB ID", r.id) +
+    '</div>';
+
+  $("pdb-send")?.addEventListener("click", () => {
+    appendEditorCode('# PDB: ' + r.id + '\nlet structure = pdb_entry("' + r.id + '")\nprintln(structure)\n');
+    switchTab("editor");
+  });
+  $("pdb-fetch")?.addEventListener("click", async () => {
+    try {
+      const text = await fetch("https://www.rcsb.org/fasta/entry/" + r.id).then(r => r.text());
+      const name = r.id + ".fasta";
+      localFiles.set(name, text);
+      renderFiles();
+      $("files-count").textContent = localFiles.size;
+      appendEditorOutput("Fetched " + name, "info");
+    } catch (e) { appendEditorOutput("Fetch error: " + e, "error"); }
+  });
+}
+
+$("pdb-go").addEventListener("click", () => pdbSearch($("pdb-q").value.trim()));
+$("pdb-q").addEventListener("keydown", e => { if (e.key === "Enter") pdbSearch($("pdb-q").value.trim()); });
+
+// ══════════════════════════════════════════════════════════════
+// FILES
+// ══════════════════════════════════════════════════════════════
+const fileInput = $("file-input");
+
+function openFiles(fileList) {
+  Array.from(fileList).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      localFiles.set(file.name, reader.result);
+      renderFiles();
+      $("files-count").textContent = localFiles.size;
+      $("file-status").textContent = localFiles.size + " files";
+    };
+    reader.readAsText(file.size > 50 * 1024 * 1024 ? file.slice(0, 50 * 1024 * 1024) : file);
+  });
+}
+
+function renderFiles() {
+  const grid = $("file-grid");
+  grid.innerHTML = "";
+  localFiles.forEach((content, name) => {
+    const card = document.createElement("div");
+    card.className = "file-card";
+    const ext = (name.match(/\.([^.]+)$/) || [,"txt"])[1].toLowerCase();
+    const lines = content.split("\n").length;
+    card.innerHTML = '<div class="name">' + esc(name) + '</div>' +
+      '<div class="meta">' + fmtBytes(content.length) + ' · ' + lines.toLocaleString() + ' lines · .' + ext + '</div>';
+    card.addEventListener("click", () => {
+      let fn = "read_csv";
+      if (["fasta","fa","fna","faa"].includes(ext)) fn = "read_fasta";
+      else if (["fastq","fq"].includes(ext)) fn = "read_fastq";
+      else if (ext === "vcf") fn = "read_vcf";
+      else if (ext === "bed") fn = "read_bed";
+      else if (["gff","gff3","gtf"].includes(ext)) fn = "read_gff";
+      appendEditorCode('let data = ' + fn + '("' + name + '")\nprintln(data)\n');
+      switchTab("editor");
+    });
+    grid.appendChild(card);
+  });
+}
+
+$("files-open").addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", () => { if (fileInput.files.length) openFiles(fileInput.files); fileInput.value = ""; });
+
+const dropZone = $("file-drop-zone");
+dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop", e => { e.preventDefault(); dropZone.classList.remove("drag-over"); if (e.dataTransfer.files.length) openFiles(e.dataTransfer.files); });
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer.files.length) openFiles(e.dataTransfer.files); });
+
+// ══════════════════════════════════════════════════════════════
+// EDITOR / REPL
+// ══════════════════════════════════════════════════════════════
+const editorCode = $("editor-code");
+const editorOutput = $("editor-output");
+
+function appendEditorCode(code) {
+  if (editorCode.value && !editorCode.value.endsWith("\n")) editorCode.value += "\n";
+  editorCode.value += code;
+}
+
+function runEditorCode() {
+  const code = editorCode.value;
+  if (!code.trim()) return;
+  runCode(code);
+}
+
+function runCode(code) {
+  if (!wasm) { appendEditorOutput("WASM not loaded", "error"); return; }
+  const t0 = performance.now();
+  let resultJson;
+  try { resultJson = wasm.evaluate(code); } catch (e) { appendEditorOutput("Crash: " + e, "error"); return; }
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(3);
+  $("editor-timing").textContent = elapsed + "s";
+
+  let result;
+  try { result = JSON.parse(resultJson); } catch { appendEditorOutput(resultJson, "stdout"); return; }
+
+  if (result.output?.trim()) {
+    const text = result.output.trimEnd();
+    if (text.includes("<svg")) {
+      text.split(/(<svg[\s\S]*?<\/svg>)/).forEach(p => {
+        if (p.trimStart().startsWith("<svg")) appendEditorSvg(p);
+        else if (p.trim()) appendEditorOutput(p, "stdout");
+      });
+    } else {
+      appendEditorOutput(text, "stdout");
+    }
+  }
+  if (result.ok) {
+    if (result.value && result.value !== "nil" && result.value !== "Nil") {
+      if (result.value.trimStart().startsWith("<svg")) appendEditorSvg(result.value);
+      else appendEditorOutput("→ " + result.value + (result.type ? "  : " + result.type : ""), "value");
+    }
+  } else {
+    appendEditorOutput("✖ " + (result.error || "Error"), "error");
+  }
+  refreshVars();
+}
+
+function appendEditorOutput(text, cls) {
+  const div = document.createElement("div");
+  div.style.whiteSpace = "pre-wrap";
+  div.style.wordBreak = "break-all";
+  div.style.padding = "1px 0";
+  const colors = { stdout: "var(--tx)", value: "var(--gn)", error: "var(--rd)", info: "var(--dm)", cmd: "var(--cy)" };
+  div.style.color = colors[cls] || colors.stdout;
+  div.textContent = text;
+  editorOutput.appendChild(div);
+  editorOutput.scrollTop = editorOutput.scrollHeight;
+}
+
+function appendEditorSvg(svg) {
+  const div = document.createElement("div");
+  div.style.cssText = "background:#fff;border-radius:6px;padding:8px;margin:6px 0;overflow-x:auto";
+  div.innerHTML = svg;
+  const el = div.querySelector("svg");
+  if (el) { el.style.maxWidth = "100%"; el.style.height = "auto"; }
+  editorOutput.appendChild(div);
+  editorOutput.scrollTop = editorOutput.scrollHeight;
+}
+
+function refreshVars() {
+  if (!wasm?.listVars) return;
+  try {
+    const vars = JSON.parse(wasm.listVars());
+    $("var-list").innerHTML = vars.map(v =>
+      '<div class="var-row"><span class="n">' + esc(v.name) + '</span><span class="t">' + esc(v.type) + '</span><span class="v">' + esc((v.preview || "").substring(0, 50)) + '</span></div>'
+    ).join("");
+  } catch {}
+}
+
+$("editor-run").addEventListener("click", runEditorCode);
+$("editor-clear").addEventListener("click", () => { editorOutput.innerHTML = ""; $("editor-timing").textContent = ""; });
+$("editor-reset").addEventListener("click", () => {
+  if (wasm) { wasm.reset(); refreshVars(); appendEditorOutput("Interpreter reset", "info"); }
+});
+editorCode.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runEditorCode(); }
+  if (e.key === "Tab") { e.preventDefault(); const s = editorCode.selectionStart; editorCode.value = editorCode.value.substring(0, s) + "  " + editorCode.value.substring(editorCode.selectionEnd); editorCode.selectionStart = editorCode.selectionEnd = s + 2; }
+});
+
+// REPL input
+const replHist = []; let replIdx = -1;
+$("repl-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const expr = e.target.value.trim();
+    if (!expr) return;
+    replHist.unshift(expr); replIdx = -1;
+    appendEditorOutput("bl> " + expr, "cmd");
+    runCode(expr);
+    e.target.value = "";
+  } else if (e.key === "ArrowUp") { if (replIdx < replHist.length - 1) { replIdx++; e.target.value = replHist[replIdx]; } }
+  else if (e.key === "ArrowDown") { if (replIdx > 0) { replIdx--; e.target.value = replHist[replIdx]; } else { replIdx = -1; e.target.value = ""; } }
+});
+
+// ══════════════════════════════════════════════════════════════
+// THEME / MISC
+// ══════════════════════════════════════════════════════════════
+$("btn-theme").addEventListener("click", () => {
+  document.documentElement.classList.toggle("dark");
+  localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+});
+
+function truncate(s, n) { return s.length > n ? s.substring(0, n) + "…" : s; }
+function detailSection(label, val) {
+  return '<div class="detail-section"><div class="detail-label">' + esc(label) + '</div><div class="detail-value">' + (val.startsWith("<") ? val : esc(val)) + '</div></div>';
+}
+
+// Network status
+function updateNetStatus() { $("net-status").textContent = navigator.onLine ? "Online" : "Offline"; }
+window.addEventListener("online", updateNetStatus);
+window.addEventListener("offline", updateNetStatus);
+updateNetStatus();
+
+// Service worker
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// PWA file handlers
+if ("launchQueue" in window) {
+  window.launchQueue.setConsumer(params => {
+    params.files.forEach(async handle => { const f = await handle.getFile(); openFiles([f]); });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// MOUSE: Resizable panels (detail panes + editor split)
+// ══════════════════════════════════════════════════════════════
+let resizeState = null;
+
+// Horizontal resizers between results and detail panels
+document.querySelectorAll(".h-resizer[data-resizer]").forEach(resizer => {
+  resizer.addEventListener("mousedown", e => {
+    e.preventDefault();
+    const container = resizer.parentElement;
+    const list = resizer.previousElementSibling;
+    const detail = resizer.nextElementSibling;
+    if (detail.classList.contains("hidden")) return;
+    resizeState = { type: "h", resizer, container, left: list, right: detail };
+    resizer.classList.add("dragging");
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  });
+});
+
+// Editor horizontal resizers
+$("editor-h-resizer").addEventListener("mousedown", e => {
+  e.preventDefault();
+  const pane = $("editor-code").parentElement;
+  const output = $("editor-output");
+  resizeState = { type: "editor-h", resizer: $("editor-h-resizer"), container: pane.parentElement, left: pane, right: output };
+  $("editor-h-resizer").classList.add("dragging");
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
+});
+
+$("vars-resizer").addEventListener("mousedown", e => {
+  e.preventDefault();
+  const output = $("editor-output");
+  const vars = $("vars-panel");
+  resizeState = { type: "vars-h", resizer: $("vars-resizer"), container: output.parentElement, left: output, right: vars };
+  $("vars-resizer").classList.add("dragging");
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
+});
+
+document.addEventListener("mousemove", e => {
+  if (!resizeState) return;
+  const rect = resizeState.container.getBoundingClientRect();
+  const pct = ((e.clientX - rect.left) / rect.width) * 100;
+  const clamped = Math.max(15, Math.min(85, pct));
+
+  if (resizeState.type === "h") {
+    resizeState.left.style.flex = "none";
+    resizeState.left.style.width = clamped + "%";
+    resizeState.right.style.flex = "1";
+  } else if (resizeState.type === "editor-h") {
+    resizeState.left.style.flex = "none";
+    resizeState.left.style.width = clamped + "%";
+    resizeState.right.style.flex = "1";
+  } else if (resizeState.type === "vars-h") {
+    resizeState.right.style.flex = "none";
+    resizeState.right.style.width = (100 - clamped) + "%";
+    resizeState.left.style.flex = "1";
+  }
+});
+
+document.addEventListener("mouseup", () => {
+  if (resizeState) {
+    resizeState.resizer.classList.remove("dragging");
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    resizeState = null;
+  }
+});
+
+// Touch support for resizers (mobile)
+document.querySelectorAll(".h-resizer, .v-resizer").forEach(resizer => {
+  resizer.addEventListener("touchstart", e => {
+    const mouseDown = new MouseEvent("mousedown", { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+    resizer.dispatchEvent(mouseDown);
+  }, { passive: true });
+});
+document.addEventListener("touchmove", e => {
+  if (resizeState) {
+    const mouseMove = new MouseEvent("mousemove", { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+    document.dispatchEvent(mouseMove);
+  }
+}, { passive: true });
+document.addEventListener("touchend", () => {
+  if (resizeState) document.dispatchEvent(new MouseEvent("mouseup"));
+});
+
+// Double-click result items to send to editor
+document.querySelectorAll(".results").forEach(list => {
+  list.addEventListener("dblclick", e => {
+    const item = e.target.closest(".result-item");
+    if (item) {
+      const titleEl = item.querySelector(".result-title .id");
+      if (titleEl) {
+        const acc = titleEl.textContent;
+        appendEditorCode('# fetched: ' + acc);
+        switchTab("editor");
+      }
+    }
+  });
+});
+
+await wasmReady;
+</script>
+</body>
+</html>

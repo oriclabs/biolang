@@ -1,0 +1,11 @@
+{
+  "day": 7,
+  "title": "Bioinformatics File Formats",
+  "files": {
+    "sequences.fasta": {"format": "FASTA", "records": 5, "description": "Reference sequence fragments"},
+    "variants.vcf": {"format": "VCF", "records": 10, "description": "Variant calls across 3 chromosomes"},
+    "regions.bed": {"format": "BED", "records": 10, "description": "Genomic regions of interest"},
+    "annotations.gff": {"format": "GFF3", "records": 15, "description": "Gene annotations (3 genes, 8 exons, 4 CDS)"},
+    "alignments.bam": {"format": "SAM/BAM", "records": 20, "description": "Read alignments (17 mapped, 3 unmapped)"}
+  }
+}

@@ -1,0 +1,224 @@
+# Day 19: Biological Data Visualization
+# Complete BioLang script demonstrating 21 bio visualization functions
+
+print("=" * 60)
+print("Day 19: Biological Data Visualization")
+print("=" * 60)
+
+# ── Section 1: GWAS Visualization ────────────────────────────────────
+
+print("\n── GWAS Visualization ──\n")
+
+let gwas = csv("data/gwas.csv")
+print("Loaded GWAS data: " + str(len(gwas)) + " variants")
+
+# Manhattan plot (ASCII)
+print("\nManhattan plot:")
+manhattan(gwas, title: "Genome-Wide Association Study")
+
+# QQ plot
+let pvalues = col(gwas, "pvalue") |> collect()
+print("\nQQ plot:")
+qq_plot(pvalues, title: "QQ Plot — Observed vs Expected")
+
+# Save SVG versions
+let svg = manhattan(gwas, format: "svg", title: "GWAS Results")
+save_svg(svg, "figures/manhattan.svg")
+print("\nSaved figures/manhattan.svg")
+
+let qq_svg = qq_plot(pvalues, format: "svg", title: "QQ Plot")
+save_svg(qq_svg, "figures/qq_plot.svg")
+print("Saved figures/qq_plot.svg")
+
+# ── Section 2: Expression Visualization ──────────────────────────────
+
+print("\n── Expression Visualization ──\n")
+
+# Violin plot
+let groups = {
+    control: [5.2, 4.8, 5.1, 4.9, 5.3, 5.0, 4.7, 5.4],
+    low_dose: [6.5, 7.1, 6.8, 6.3, 7.0, 6.6, 6.9, 7.2],
+    high_dose: [9.2, 8.8, 9.5, 9.0, 8.6, 9.3, 8.9, 9.1]
+}
+print("Violin plot:")
+violin(groups, title: "Expression by Treatment Group")
+
+# Density plot
+let values = [2.1, 3.5, 4.2, 5.8, 6.1, 7.3, 3.8, 5.5, 4.9, 6.7, 3.2, 5.1, 4.5, 6.0, 7.8]
+print("\nDensity plot:")
+density(values, title: "Expression Density")
+
+# PCA plot
+let expr = csv("data/expression_matrix.csv")
+print("\nPCA plot:")
+pca_plot(expr, title: "PCA — Sample Clustering")
+
+# Clustered heatmap
+print("\nClustered heatmap:")
+clustered_heatmap(expr, title: "Hierarchical Clustering")
+
+# ── Section 3: Clinical Visualization ────────────────────────────────
+
+print("\n── Clinical Visualization ──\n")
+
+# Kaplan-Meier survival curve
+let survival_data = [
+    {time: 12, event: 1}, {time: 24, event: 1}, {time: 36, event: 0},
+    {time: 8, event: 1}, {time: 48, event: 0}, {time: 15, event: 1},
+    {time: 30, event: 0}, {time: 20, event: 1}, {time: 42, event: 0},
+    {time: 6, event: 1},
+] |> to_table()
+print("Kaplan-Meier survival curve:")
+kaplan_meier(survival_data, title: "Overall Survival")
+
+# ROC curve
+let predictions = [
+    {score: 0.9, label: 1}, {score: 0.8, label: 1}, {score: 0.7, label: 0},
+    {score: 0.6, label: 1}, {score: 0.5, label: 0}, {score: 0.4, label: 0},
+    {score: 0.3, label: 0}, {score: 0.2, label: 1}, {score: 0.1, label: 0},
+] |> to_table()
+print("\nROC curve:")
+roc_curve(predictions, title: "Classifier Performance")
+
+# Forest plot
+let studies = [
+    {study: "Smith 2020", effect: 1.5, ci_lower: 1.1, ci_upper: 2.0},
+    {study: "Jones 2021", effect: 1.8, ci_lower: 1.3, ci_upper: 2.5},
+    {study: "Chen 2022", effect: 1.2, ci_lower: 0.8, ci_upper: 1.8},
+    {study: "Patel 2023", effect: 1.6, ci_lower: 1.2, ci_upper: 2.1},
+] |> to_table()
+print("\nForest plot:")
+forest_plot(studies, title: "Meta-Analysis: Gene X Association")
+
+# ── Section 4: Genomic Structure Visualization ───────────────────────
+
+print("\n── Genomic Structure Visualization ──\n")
+
+# Ideogram
+let bands = [
+    {chrom: "chr17", start: 0, end: 25000000, band: "p13.3", stain: "gneg"},
+    {chrom: "chr17", start: 25000000, end: 43000000, band: "p11.2", stain: "gpos50"},
+    {chrom: "chr17", start: 43000000, end: 83257441, band: "q25.3", stain: "gneg"},
+] |> to_table()
+print("Ideogram:")
+ideogram(bands, title: "Chromosome 17")
+
+# Circos plot
+let circos_data = [
+    {chrom: "chr1", start: 1000000, end: 2000000, value: 3.5},
+    {chrom: "chr2", start: 500000, end: 1500000, value: 2.8},
+    {chrom: "chr3", start: 2000000, end: 3000000, value: 4.1},
+] |> to_table()
+print("\nCircos plot:")
+circos(circos_data, title: "Genome-Wide View")
+
+# Lollipop plot
+let mutations = [
+    {position: 248, count: 45, label: "R248W"},
+    {position: 273, count: 38, label: "R273H"},
+    {position: 175, count: 30, label: "R175H"},
+    {position: 245, count: 25, label: "G245S"},
+    {position: 282, count: 18, label: "R282W"},
+] |> to_table()
+print("\nLollipop plot:")
+lollipop(mutations, title: "TP53 Hotspot Mutations")
+
+# ── Section 5: Sequence Visualization ────────────────────────────────
+
+print("\n── Sequence Visualization ──\n")
+
+# Sequence logo
+let sequences = [
+    "TATAAAGC", "TATAATGC", "TATAAAGC", "TATAATGC",
+    "TATAAAGC", "TATAATGC", "TATAAAGC", "TATAATGC",
+]
+print("Sequence logo:")
+sequence_logo(sequences, title: "TATA Box Motif")
+
+# Phylogenetic tree
+let newick = "((Human:0.1,Chimp:0.12):0.08,(Mouse:0.25,Rat:0.23):0.15,Zebrafish:0.45);"
+print("\nPhylogenetic tree:")
+phylo_tree(newick, title: "Species Phylogeny")
+
+# ── Section 6: Specialized Genomic Plots ─────────────────────────────
+
+print("\n── Specialized Genomic Plots ──\n")
+
+# Venn diagram
+let sets = {
+    "Experiment A": set(["BRCA1", "TP53", "EGFR", "MYC", "KRAS"]),
+    "Experiment B": set(["TP53", "EGFR", "PTEN", "RB1", "MYC"]),
+    "Experiment C": set(["BRCA1", "MYC", "APC", "PTEN", "TP53"]),
+}
+print("Venn diagram:")
+venn(sets, title: "Gene Overlap Across Experiments")
+
+# UpSet plot
+print("\nUpSet plot:")
+upset(sets, title: "Set Intersections")
+
+# Oncoprint
+let mutations_matrix = [
+    {gene: "TP53", sample1: "Missense", sample2: "Nonsense", sample3: "None", sample4: "Missense"},
+    {gene: "KRAS", sample1: "None", sample2: "Missense", sample3: "Missense", sample4: "None"},
+    {gene: "EGFR", sample1: "Amplification", sample2: "None", sample3: "None", sample4: "Deletion"},
+] |> to_table()
+print("\nOncoprint:")
+oncoprint(mutations_matrix, title: "Mutation Landscape")
+
+# ── Section 7: RNA-seq Specific Plots ────────────────────────────────
+
+print("\n── RNA-seq Specific Plots ──\n")
+
+# Sashimi plot
+let junctions = [
+    {chrom: "chr17", start: 43100000, end: 43105000, count: 25},
+    {chrom: "chr17", start: 43105000, end: 43110000, count: 18},
+    {chrom: "chr17", start: 43100000, end: 43110000, count: 5},
+] |> to_table()
+print("Sashimi plot:")
+sashimi(junctions, title: "Splice Junctions — BRCA1")
+
+# HiC contact map
+let contacts = [
+    [100, 50, 20, 5],
+    [50, 100, 40, 10],
+    [20, 40, 100, 30],
+    [5, 10, 30, 100],
+]
+print("\nHiC contact map:")
+hic_map(contacts, title: "Chromatin Contacts")
+
+# ── Section 8: Additional Genomic Plots ──────────────────────────────
+
+print("\n── Additional Genomic Plots ──\n")
+
+# CNV plot
+let cnv_data = [
+    {chrom: "chr1", start: 1000000, end: 5000000, log2ratio: 0.5},
+    {chrom: "chr1", start: 5000000, end: 10000000, log2ratio: -0.8},
+    {chrom: "chr2", start: 2000000, end: 8000000, log2ratio: 1.2},
+    {chrom: "chr3", start: 1000000, end: 6000000, log2ratio: -0.3},
+] |> to_table()
+print("CNV plot:")
+cnv_plot(cnv_data, title: "Copy Number Alterations")
+
+# Rainfall plot
+let mutation_positions = [
+    {chrom: "chr1", pos: 100000},
+    {chrom: "chr1", pos: 100050},
+    {chrom: "chr1", pos: 100120},
+    {chrom: "chr1", pos: 500000},
+    {chrom: "chr2", pos: 200000},
+    {chrom: "chr2", pos: 800000},
+] |> to_table()
+print("\nRainfall plot:")
+rainfall(mutation_positions, title: "Mutation Clustering")
+
+# ── Summary ──────────────────────────────────────────────────────────
+
+print("\n" + "=" * 60)
+print("Day 19 complete!")
+print("Generated ASCII plots for 21 bio visualization functions.")
+print("SVG figures saved to figures/ directory.")
+print("=" * 60)

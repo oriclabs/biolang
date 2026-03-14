@@ -1,0 +1,64 @@
+=== Step 1: Basic Plots ===
+
+--- Scatter Plot ---
+[Scatter plot: Gene Expression Correlation — 5 points showing linear relationship]
+
+--- Histogram ---
+[Histogram: Expression Distribution — 6 bins, values range 2.1-7.3]
+
+--- Bar Chart ---
+[Bar chart: SNP=3500, Insertion=450, Deletion=520, MNV=30]
+
+--- Boxplot ---
+[Boxplot: control median~5.05, treated median~8.05, resistant median~5.45]
+
+=== Step 2: Bioinformatics-Specific Plots ===
+
+Loaded DE results: 50 genes
+
+--- Volcano Plot ---
+[Volcano plot: Tumor vs Normal — 10 upregulated, 10 downregulated, 30 other]
+
+--- MA Plot ---
+[MA Plot: MA Plot - Tumor vs Normal — baseMean vs log2fc]
+
+Loaded GWAS results: 50 variants
+--- Manhattan Plot ---
+[Manhattan plot: GWAS Results — peaks on chr1, chr3, chr5, chr6, chr11, chr16]
+
+--- Heatmap ---
+[Heatmap: Expression Heatmap — 4 genes x 3 samples]
+
+--- Genome Track ---
+[Genome track: BRCA1 Locus — 3 features on chr17]
+
+=== Step 3: Quick Visualization Tools ===
+
+Sparkline: ▃▅▂█▄▇▁▆
+Quality:   ▆▇██▇▆▅▃▂▁
+
+--- Dotplot ---
+[Dotplot: Pairwise Comparison — 12bp vs 11bp sequences]
+
+--- Quality Plot (first read) ---
+[Quality plot: Phred scores for 40bp read]
+
+--- Coverage ---
+[Coverage plot: 4 intervals, region 100-800]
+
+=== Step 4: SVG Export ===
+
+Saved figures/fig1_volcano.svg
+Saved figures/fig2_ma.svg
+Saved figures/fig3_heatmap.svg
+Saved figures/fig4_histogram.svg
+
+=== Step 5: DE Summary ===
+
+Upregulated (padj<0.05, log2FC>1):   13
+Downregulated (padj<0.05, log2FC<-1): 10
+Not significant:                      27
+
+[Bar chart: Up=13, Down=10, NS=27]
+
+Done. All figures saved to figures/

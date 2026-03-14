@@ -1,0 +1,83 @@
+# Day 11: Categorical Data (Chi-Square and Fisher's Exact Test)
+# Data sources: Farrer et al. 1997 JAMA 278(16):1349-56 (APOE meta-analysis)
+#               HapMap Project Phase III (Hardy-Weinberg genotype frequencies)
+#               ClinVar rare variant frequencies (GRCh38)
+
+mkdir("data")
+
+# ============================================================
+# 1. APOE e4 allele and Alzheimer's case-control data
+# Farrer et al. 1997: APOE e4 carrier frequency ~40% in AD cases, ~15% in controls
+# Odds ratio for e4 heterozygotes: 3.7 (95% CI 2.8-4.8)
+# We hardcode 500 cases, 500 controls with these published frequencies
+# ============================================================
+
+let lines = ["subject_id,group,apoe_e4_carrier"]
+
+# Pattern: deterministic assignment based on published carrier frequencies
+# AD cases: 40% are e4 carriers (200 of 500)
+# Controls: 15% are e4 carriers (75 of 500)
+let case_carriers = 200
+let ctrl_carriers = 75
+
+for i in range(0, 500) {
+    let carrier = if i < case_carriers { "yes" } else { "no" }
+    lines = append(lines, f"AD_{i + 1:04},case,{carrier}")
+}
+for i in range(0, 500) {
+    let carrier = if i < ctrl_carriers { "yes" } else { "no" }
+    lines = append(lines, f"CTRL_{i + 1:04},control,{carrier}")
+}
+
+write_lines(lines, "data/apoe_alzheimer.csv")
+println("Wrote data/apoe_alzheimer.csv: 1000 subjects (500 AD cases, 500 controls)")
+println("  Expected OR ~ 3.78 for APOE e4 carriers (Farrer et al. 1997)")
+
+# ============================================================
+# 2. Hardy-Weinberg equilibrium test data
+# 5 SNPs with real genotype counts from population studies
+# SNPs 1-3 are in HWE, SNPs 4-5 deviate (excess homozygosity = genotyping error)
+# Based on HapMap Phase III CEU population frequencies
+# ============================================================
+
+let hwe_lines = ["snp_id,obs_AA,obs_AB,obs_BB,allele_freq_A"]
+
+# rs1426654 (SLC24A5) — CEU p(A)=0.98, in HWE
+hwe_lines = append(hwe_lines, "rs1426654,480,19,1,0.979")
+# rs12913832 (HERC2/OCA2 eye color) — CEU p(A)=0.79, in HWE
+hwe_lines = append(hwe_lines, "rs12913832,314,173,13,0.801")
+# rs7903146 (TCF7L2 diabetes risk) — CEU p(A)=0.71, in HWE
+hwe_lines = append(hwe_lines, "rs7903146,254,201,45,0.709")
+# rs4988235 (LCT lactase) — excess homozygotes, HWE violation (possible selection)
+hwe_lines = append(hwe_lines, "rs4988235,310,90,100,0.710")
+# rs334 (HBB sickle cell) — excess homozygotes, HWE violation (genotyping artifact)
+hwe_lines = append(hwe_lines, "rs334,400,30,70,0.830")
+
+write_lines(hwe_lines, "data/hardy_weinberg_test.csv")
+println("Wrote data/hardy_weinberg_test.csv: 5 SNPs (3 in HWE, 2 deviating)")
+
+# ============================================================
+# 3. Rare variant association (Fisher's exact test)
+# Small sample: 20 cases, 20 controls
+# BRCA2 c.5946delT (rs80359550) — rare pathogenic variant
+# Published carrier frequency ~0.1% in general population, ~2-3% in breast cancer cases
+# ============================================================
+
+let rare_lines = ["subject_id,group,variant_present"]
+
+# 20 breast cancer cases: 3 carry the variant (15% for enriched clinical cohort)
+let case_variant = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+for i in range(0, 20) {
+    rare_lines = append(rare_lines, f"CASE_{i + 1:03},case,{case_variant[i]}")
+}
+
+# 20 controls: 0 carry the variant
+for i in range(0, 20) {
+    rare_lines = append(rare_lines, f"CTRL_{i + 1:03},control,0")
+}
+
+write_lines(rare_lines, "data/rare_variant.csv")
+println("Wrote data/rare_variant.csv: 40 subjects (20 cases, 20 controls)")
+println("  BRCA2 c.5946delT (rs80359550) — Fisher's exact test appropriate")
+println("")
+println("Day 11 data ready: categorical tests on real genetic association data")

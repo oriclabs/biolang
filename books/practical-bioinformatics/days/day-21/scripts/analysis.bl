@@ -1,0 +1,59 @@
+let reads = read_fastq("data/sample.fastq")
+
+let t_serial = timer_start()
+let serial_gc = reads |> map(|r| gc_content(r.seq))
+let serial_avg = serial_gc |> mean()
+let serial_high = reads |> filter(|r| gc_content(r.seq) > 0.5) |> len()
+let serial_lengths = reads |> map(|r| len(r.seq))
+let serial_mean_len = serial_lengths |> mean()
+let serial_min_len = serial_lengths |> min()
+let serial_max_len = serial_lengths |> max()
+let serial_time = timer_elapsed(t_serial)
+
+let t_parallel = timer_start()
+let par_gc = reads |> par_map(|r| gc_content(r.seq))
+let par_avg = par_gc |> mean()
+let par_high = reads |> par_filter(|r| gc_content(r.seq) > 0.5) |> len()
+let par_lengths = reads |> par_map(|r| len(r.seq))
+let par_mean_len = par_lengths |> mean()
+let par_min_len = par_lengths |> min()
+let par_max_len = par_lengths |> max()
+let parallel_time = timer_elapsed(t_parallel)
+
+let t_stream = timer_start()
+let stream_gc_sum = 0.0
+let stream_len_sum = 0
+let stream_high = 0
+let stream_count = 0
+let stream_min = 999999
+let stream_max = 0
+
+stream_fastq("data/sample.fastq", |r| {
+    let gc = gc_content(r.seq)
+    let l = len(r.seq)
+    stream_gc_sum = stream_gc_sum + gc
+    stream_len_sum = stream_len_sum + l
+    if gc > 0.5 { stream_high = stream_high + 1 }
+    if l < stream_min { stream_min = l }
+    if l > stream_max { stream_max = l }
+    stream_count = stream_count + 1
+})
+let stream_time = timer_elapsed(t_stream)
+
+let seqs = read_fasta("data/sequences.fasta")
+
+let t_kmer_serial = timer_start()
+let kmer_serial = seqs |> map(|s| kmers(s.seq, 6) |> len())
+let kmer_serial_time = timer_elapsed(t_kmer_serial)
+
+let t_kmer_par = timer_start()
+let kmer_par = seqs |> par_map(|s| kmers(s.seq, 6) |> len())
+let kmer_par_time = timer_elapsed(t_kmer_par)
+
+let results = [
+    {approach: "Serial", gc_time: serial_time, kmer_time: kmer_serial_time},
+    {approach: "Parallel", gc_time: parallel_time, kmer_time: kmer_par_time},
+    {approach: "Streaming", gc_time: stream_time, kmer_time: 0.0}
+]
+let table = results |> to_table()
+write_csv(table, "results/benchmark_results.csv")

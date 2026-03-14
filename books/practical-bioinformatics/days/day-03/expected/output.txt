@@ -1,0 +1,59 @@
+============================================================
+Day 3: Biology Crash Course for Developers
+============================================================
+
+--- DNA: The Source Code ---
+Coding:     5'-ATGCGATCG-3'
+Complement: 3'-TACGCTAGC-5'
+RevComp:    5'-CGATCGCAT-3'
+
+--- The Central Dogma: DNA -> RNA -> Protein ---
+DNA:     ATGGCTAACTGA
+RNA:     AUGGCUAACUGA
+Protein: MAN
+M = Methionine (start), A = Alanine, N = Asparagine
+
+--- Codon Usage ---
+Sequence: ATGGCTGCTTCTGATTGA
+Usage:    {ATG: 1, GCT: 2, TCT: 1, GAT: 1, TGA: 1}
+
+--- Mutations: Bugs in the Code ---
+Normal DNA:     ATGGCTAACTGA
+Mutant DNA:     ATGGCTGACTGA
+Normal protein: MAN
+Mutant protein: MAD
+Changed:        true
+One base change (A->G) changed Asparagine (N) to Aspartate (D)
+
+--- Wobble Position Experiment ---
+Mutating each position of codon GCT (Alanine):
+Original (GCT): MA
+Pos1 mut (TCT): MS
+Pos2 mut (GAT): MD
+Pos3 mut (GCA): MA
+Position 3 (wobble) is most tolerant — GCA still encodes Alanine
+
+--- Genomic Intervals ---
+BRCA1: chr17:43044295-43125483
+TP53:  chr17:7668402-7687550
+Same chromosome: true
+EGFR: chr7:55019017-55211628
+BRAF: chr7:140719327-140924929
+Same chromosome: true
+Overlap: false
+
+--- TP53: The Guardian of the Genome ---
+TP53 coding start: ATGGAGGAGCCGCAGTCAGATCCTAGC
+Protein begins:    MEEPQSDPS
+GC content:        0.5555555555555556
+TP53 is mutated in >50% of all human cancers
+
+--- Exercise 1: Hand Translation ---
+Sequence: ATGAAAGCTTGA
+Codons:   ATG | AAA | GCT | TGA
+Expected: M     K     A    Stop
+Result:   MKA
+
+============================================================
+Day 3 complete!
+============================================================

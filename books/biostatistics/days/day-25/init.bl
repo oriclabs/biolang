@@ -1,0 +1,91 @@
+# Day 25: Statistical Visualization Best Practices
+# Data sources:
+#   Gene names from HUGO Gene Nomenclature Committee (HGNC)
+#   Expression fold-changes based on TCGA BRCA differential expression patterns
+#   Functional categories from Gene Ontology Consortium
+
+println("Setting up Day 25: Statistical Visualization")
+mkdir("data")
+
+# ── File 1: README listing datasets from previous days ──
+let readme_lines = [
+    "Day 25: Visualization - Dataset Reference",
+    "==========================================",
+    "",
+    "This day reuses datasets from previous days for different plot types:",
+    "",
+    "Volcano plot:       Day 29 data/counts.csv (DE analysis)",
+    "Heatmap:            Day 22 data/tumor_expression.csv (PAM50 subtypes)",
+    "PCA biplot:         Day 21 data/scrna_expression.csv (scRNA-seq)",
+    "Box/violin plots:   Day 23 data/small_sample.csv (tumor volumes)",
+    "Forest plot:        Day 26 data/gwas_studies.csv (meta-analysis)",
+    "Survival curves:    Day 28 data/survival.csv (clinical trial)",
+    "Manhattan plot:     Day 30 data/gwas_summary.csv (GWAS)",
+    "Scatter + marginal: Day 25 data/plot_demo.csv (general purpose)",
+    "",
+    "The plot_demo.csv file below provides a compact all-purpose dataset",
+    "suitable for demonstrating all basic plot types in a single exercise."
+]
+write_lines(readme_lines, "data/README.txt")
+
+# ── File 2: All-purpose plot demo dataset ──
+# 30 genes with expression data for 2 groups (tumor vs normal)
+let demo_lines = ["gene,group,expression,log2fc,p_value,significant,category"]
+
+let gene_names = [
+    "MYC", "VEGFA", "TP53", "EGFR", "BRCA1",
+    "PTEN", "AKT1", "KRAS", "BRAF", "PIK3CA",
+    "CDH1", "CTNNB1", "APC", "RB1", "CDKN2A",
+    "MMP9", "TIMP1", "IL6", "TNF", "STAT3",
+    "BCL2", "BAX", "CASP3", "NFKB1", "HIF1A",
+    "NOTCH1", "WNT5A", "SHH", "TGFB1", "FGF2"
+]
+
+# log2FC values: positive = upregulated in tumor
+let fold_changes = [
+    2.85, 2.12, -0.35, 1.95, -1.28,
+    -2.15, 1.42, 1.78, 0.25, 1.55,
+    -1.85, 0.92, -2.35, -0.18, -1.92,
+    3.15, 0.45, 2.55, 1.12, 1.88,
+    0.65, -0.82, -1.15, 1.35, 2.45,
+    0.38, -0.55, 0.22, 1.72, 0.95
+]
+
+# p-values (some significant, some not)
+let pvals = [
+    0.00001, 0.00015, 0.42, 0.0003, 0.002,
+    0.0001, 0.008, 0.001, 0.55, 0.003,
+    0.0005, 0.035, 0.00008, 0.62, 0.0002,
+    0.000005, 0.28, 0.00003, 0.015, 0.0008,
+    0.18, 0.045, 0.012, 0.006, 0.00002,
+    0.48, 0.22, 0.65, 0.0015, 0.038
+]
+
+let categories = [
+    "oncogene", "angiogenesis", "tumor_suppressor", "oncogene", "DNA_repair",
+    "tumor_suppressor", "signaling", "oncogene", "oncogene", "signaling",
+    "adhesion", "signaling", "tumor_suppressor", "tumor_suppressor", "tumor_suppressor",
+    "extracellular", "extracellular", "immune", "immune", "signaling",
+    "apoptosis", "apoptosis", "apoptosis", "immune", "angiogenesis",
+    "development", "development", "development", "signaling", "angiogenesis"
+]
+
+for i in range(0, 30) {
+    let sig = if pvals[i] < 0.05 { "yes" } else { "no" }
+    # Tumor group expression (base 8 + fold change)
+    let expr_t = round(8.0 + fold_changes[i], 2)
+    demo_lines = append(demo_lines, f"{gene_names[i]},tumor,{expr_t},{fold_changes[i]},{pvals[i]},{sig},{categories[i]}")
+    # Normal group expression (base 8)
+    let noise_val = ((i * 2654435761) % 1000) / 1000.0 - 0.5
+    let expr_n = round(8.0 + noise_val * 0.3, 2)
+    demo_lines = append(demo_lines, f"{gene_names[i]},normal,{expr_n},0.0,1.0,no,{categories[i]}")
+}
+
+write_lines(demo_lines, "data/plot_demo.csv")
+
+println("Created data/README.txt")
+println("  Index of datasets from previous days for each visualization type")
+println("Created data/plot_demo.csv")
+println("  30 genes x 2 groups (tumor/normal), 60 rows total")
+println("  Columns: gene, group, expression, log2fc, p_value, significant, category")
+println("  Suitable for: volcano, scatter, box, bar, heatmap demos")

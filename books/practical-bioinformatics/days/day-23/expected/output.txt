@@ -1,0 +1,3 @@
+Batch complete: 24/24 succeeded in <time>s
+Summary: results/batch_summary.csv
+Report:  logs/batch_report.json

@@ -1,0 +1,212 @@
+# Day 7: Bioinformatics File Formats — Data Generation
+# Run: bl run init.bl
+# Creates data files with REAL biological data in data/ directory
+#
+# Data sources:
+#   FASTA: Human insulin mRNA (NM_000207.3), BRCA1 exon 11 partial (NM_007294.4)
+#   BED:   TP53 exon coordinates on chr17 (GRCh38/hg38)
+#   GFF:   BRCA1 gene annotation from NCBI (chr17, GRCh38)
+#   VCF:   ClinVar pathogenic variants for TP53
+
+print("Day 7: Bioinformatics File Formats")
+print("====================================")
+print("Generating data files with real biological sequences...")
+
+mkdir("data")
+mkdir("results")
+
+# ============================================================
+# 1. FASTA — Real human gene sequences
+# ============================================================
+
+# Source: NCBI RefSeq NM_000207.3 — Human insulin (INS) mRNA, 465 bp
+# Source: NCBI RefSeq NM_007294.4 — BRCA1 exon 11 partial (first ~300 bp of exon 11)
+# Source: NCBI RefSeq NM_000546.6 — TP53 mRNA, first 300 bp
+# Source: GenBank U00096.3 — E. coli 16S rRNA partial
+# Source: NCBI RefSeq NM_005228.5 — EGFR mRNA, first 200 bp
+
+let fasta_content = ">NM_000207.3 Homo sapiens insulin (INS), mRNA\n"
+    + "AGCCCTCCAGGACAGGCTGCATCAGAAGAGGCCATCAAGCAGATCACTGTCCTTCTGCCAT\n"
+    + "GGCCCTGTGGATGCGCCTCCTGCCCCTGCTGGCGCTGCTGGCCCTCTGGGGACCTGACCC\n"
+    + "AGCCGCAGCCTTTGTGAACCAACACCTGTGCGGCTCACACCTGGTGGAAGCTCTCTACCTA\n"
+    + "GTGTGCGGGGAACGAGGCTTCTTCTACACACCCAAGACCCGCCGGGAGGCAGAGGACCTGC\n"
+    + "AGGTGGGGCAGGTGGAGCTGGGCGGGGGCCCTGGTGCAGGCAGCCTGCAGCCCTTGGCCCT\n"
+    + "GGAGGGGTCCCTGCAGAAGCGTGGCATTGTGGAACAATGCTGTACCAGCATCTGCTCCCTC\n"
+    + "TACCAGCTGGAGAACTACTGCAACTAGACGCAGCCCGCAGGCAGCCCCACACCCGCCGCCTC\n"
+    + "CTGCACCGAGAGAGATGGAATAAAGCCCTTGAACCAGC\n"
+    + ">NM_007294.4_exon11 BRCA1 exon 11 partial (first 300 bp)\n"
+    + "TCAGGGAACAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTA\n"
+    + "ATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTC\n"
+    + "CACAAAGTGTGACCACATATTTTGCAAATTTTGCATGCTGAAACTTCTCAACCAGAAGAAA\n"
+    + "GGGCCTTCACAGTGTCCTTTATGTAAGAATGATATAACCAAAAGGAGCCTACAAGAAAGTAC\n"
+    + "GAGATTTAGTCAACTTGTTGAAGAGCTATTGAAAATCATTTGTGCTTTTCAGCTTGACACAG\n"
+    + ">NM_000546.6 TP53 tumor protein p53 mRNA partial (exons 2-4)\n"
+    + "GATGCTGTCCCCGGACGATATTGAACAATGGTTCACTGAAGACCCAGGTCCAGATGAAGCTC\n"
+    + "CCAGAATGCCAGAGGCTGCTCCCCCCGTGGCCCCTGCACCAGCAGCTCCTACACCGGCGGCC\n"
+    + "CCTGCACCAGCCCTGTCGTCTCTCCAGCCCCAGCTGCTCACCATCGCTATCTGAGCAGCGCT\n"
+    + "CATGGTGGGGGCAGCGCCTCACAACCTCCGTCATGTGCTGTGACTGCTTGTAGATGGCCATG\n"
+    + ">U00096.3_16S E. coli K-12 16S rRNA partial (positions 4166659-4166900)\n"
+    + "AAATTGAAGAGTTTGATCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACACATGCAAG\n"
+    + "TCGAACGGTAACAGGAAGAAGCTTGCTTCTTTGCTGACGAGTGGCGGACGGGTGAGTAATG\n"
+    + "TCTGGGAAACTGCCTGATGGAGGGGGATAACTACTGGAAACGGTAGCTAATACCGCATAACG\n"
+    + "TCGCAAGCACAAAGAGGGGGACCTTAGGGCCTCTTGCCATCGGATGTGCCCAGATGGGATTA\n"
+    + ">NM_005228.5 EGFR epidermal growth factor receptor mRNA partial\n"
+    + "CGCGACCTCCCGCCCGGAGCCCCAGCCCCGAGCCCGCCGTCACTCGGCCCAGGACCCCCGCA\n"
+    + "GACCCCCCGGAGCAGCGCCAGCCCCGGCCAACGGCACAGCCCCGCAGCCCTCCCAGCGCCGC\n"
+    + "GCCCTCTCCCCGGCGCCGCGCCAGCCCCAAATGGCGCCGGCGGCCCCGCGCTCCCCCGACGC\n"
+
+write("data/sequences.fasta", fasta_content)
+print("  Created data/sequences.fasta (5 real gene sequences)")
+
+# ============================================================
+# 2. VCF — Real ClinVar pathogenic variants for TP53
+# Source: ClinVar database, GRCh38 coordinates
+# ============================================================
+
+let vcf_content = "##fileformat=VCFv4.3\n"
+    + "##source=ClinVar\n"
+    + "##reference=GRCh38\n"
+    + "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">\n"
+    + "##INFO=<ID=CLNSIG,Number=1,Type=String,Description=\"Clinical significance\">\n"
+    + "##FILTER=<ID=PASS,Description=\"All filters passed\">\n"
+    + "##FILTER=<ID=LowQual,Description=\"Low quality variant\">\n"
+    + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+    + "chr17\t7675088\trs28934578\tC\tT\t99\tPASS\tDP=85;CLNSIG=Pathogenic\n"
+    + "chr17\t7674220\trs11540652\tG\tA\t99\tPASS\tDP=92;CLNSIG=Pathogenic\n"
+    + "chr17\t7674221\trs28934576\tC\tT\t99\tPASS\tDP=78;CLNSIG=Pathogenic\n"
+    + "chr17\t7673802\trs28934574\tC\tA\t95\tPASS\tDP=65;CLNSIG=Pathogenic\n"
+    + "chr17\t7673700\trs121912651\tC\tT\t88\tPASS\tDP=55;CLNSIG=Pathogenic\n"
+    + "chr17\t7674872\trs587782144\tG\tA\t75\tPASS\tDP=42;CLNSIG=Likely_pathogenic\n"
+    + "chr17\t7675170\trs1042522\tG\tC\t99\tPASS\tDP=120;CLNSIG=Benign\n"
+    + "chr17\t7673535\trs28934575\tG\tC\t45\tPASS\tDP=30;CLNSIG=Pathogenic\n"
+    + "chr17\t7674858\trs730882018\tC\tT\t12\tLowQual\tDP=5;CLNSIG=Uncertain_significance\n"
+    + "chr17\t7673779\trs483352695\tCT\tC\t65\tPASS\tDP=48;CLNSIG=Pathogenic\n"
+
+write("data/variants.vcf", vcf_content)
+print("  Created data/variants.vcf (10 real ClinVar TP53 variants)")
+
+# ============================================================
+# 3. BED — Real TP53 exon coordinates on chr17 (GRCh38)
+# Source: NCBI Gene ID 7157, RefSeq NM_000546.6
+# TP53 is on the minus strand of chr17: 7,668,402-7,687,550
+# ============================================================
+
+let bed_content = "chr17\t7687376\t7687550\tTP53_exon1\t0\t-\n"
+    + "chr17\t7676381\t7676403\tTP53_exon2\t0\t-\n"
+    + "chr17\t7676244\t7676272\tTP53_exon2b\t0\t-\n"
+    + "chr17\t7675993\t7676272\tTP53_exon3\t0\t-\n"
+    + "chr17\t7674859\t7675093\tTP53_exon4\t0\t-\n"
+    + "chr17\t7674180\t7674290\tTP53_exon5\t0\t-\n"
+    + "chr17\t7673701\t7673837\tTP53_exon6\t0\t-\n"
+    + "chr17\t7673535\t7673608\tTP53_exon7\t0\t-\n"
+    + "chr17\t7670609\t7670715\tTP53_exon8\t0\t-\n"
+    + "chr17\t7668402\t7669690\tTP53_exon11\t0\t-\n"
+
+write("data/regions.bed", bed_content)
+print("  Created data/regions.bed (10 TP53 exon regions, GRCh38)")
+
+# ============================================================
+# 4. GFF — Real BRCA1 gene annotation (chr17, GRCh38)
+# Source: NCBI Gene ID 672, RefSeq NM_007294.4
+# BRCA1 minus strand: chr17:43,044,295-43,125,483
+# ============================================================
+
+let gff_content = "##gff-version 3\n"
+    + "##source=NCBI_RefSeq_GRCh38\n"
+    + "chr17\tRefSeq\tgene\t43044295\t43125483\t.\t-\t.\tID=gene-BRCA1;Name=BRCA1;gene_id \"672\"; gene_name \"BRCA1\"\n"
+    + "chr17\tRefSeq\tmRNA\t43044295\t43125483\t.\t-\t.\tID=rna-NM_007294.4;Parent=gene-BRCA1;gene_name \"BRCA1\"\n"
+    + "chr17\tRefSeq\texon\t43124017\t43125483\t.\t-\t.\tParent=rna-NM_007294.4;gene_name \"BRCA1\"; exon_number \"1\"\n"
+    + "chr17\tRefSeq\texon\t43115726\t43115779\t.\t-\t.\tParent=rna-NM_007294.4;gene_name \"BRCA1\"; exon_number \"2\"\n"
+    + "chr17\tRefSeq\texon\t43104867\t43104956\t.\t-\t.\tParent=rna-NM_007294.4;gene_name \"BRCA1\"; exon_number \"3\"\n"
+    + "chr17\tRefSeq\texon\t43104122\t43104261\t.\t-\t.\tParent=rna-NM_007294.4;gene_name \"BRCA1\"; exon_number \"4\"\n"
+    + "chr17\tRefSeq\texon\t43091435\t43094860\t.\t-\t.\tParent=rna-NM_007294.4;gene_name \"BRCA1\"; exon_number \"11\"\n"
+    + "chr17\tRefSeq\tCDS\t43124017\t43124115\t.\t-\t0\tParent=rna-NM_007294.4;gene_name \"BRCA1\"\n"
+    + "chr17\tRefSeq\tCDS\t43115726\t43115779\t.\t-\t2\tParent=rna-NM_007294.4;gene_name \"BRCA1\"\n"
+    + "chr17\tRefSeq\tCDS\t43104867\t43104956\t.\t-\t0\tParent=rna-NM_007294.4;gene_name \"BRCA1\"\n"
+    + "chr17\tRefSeq\tCDS\t43091435\t43094860\t.\t-\t0\tParent=rna-NM_007294.4;gene_name \"BRCA1\"\n"
+    + "chr17\tRefSeq\tgene\t7668402\t7687550\t.\t-\t.\tID=gene-TP53;Name=TP53;gene_id \"7157\"; gene_name \"TP53\"\n"
+    + "chr17\tRefSeq\texon\t7687376\t7687550\t.\t-\t.\tParent=gene-TP53;gene_name \"TP53\"; exon_number \"1\"\n"
+    + "chr17\tRefSeq\texon\t7674859\t7675093\t.\t-\t.\tParent=gene-TP53;gene_name \"TP53\"; exon_number \"4\"\n"
+    + "chr17\tRefSeq\tCDS\t7674859\t7675093\t.\t-\t0\tParent=gene-TP53;gene_name \"TP53\"\n"
+
+write("data/annotations.gff", gff_content)
+print("  Created data/annotations.gff (15 features: 2 genes, BRCA1 + TP53)")
+
+# ============================================================
+# 5. BAM — alignment data (20 reads mapped to TP53 region)
+# Uses SAM text format that BioLang can parse as sample data
+# ============================================================
+
+let sam_header = "@HD\tVN:1.6\tSO:coordinate\n"
+    + "@SQ\tSN:chr17\tLN:83257441\n"
+
+# Sequences from TP53 coding region (NM_000546.6)
+# 150 bp reads mapped across exons 4-8
+let tp53_seq1 = "GATGCTGTCCCCGGACGATATTGAACAATGGTTCACTGAAGACCCAGGTCCAGATGAAGCTCCCAGAATGCCAGAGGCTGCTCCCCCCGTGGCCCCTGCACCAGCAGCTCCTACACCGGCGGCCCCTGCACCAGCCCTGTCGTCTCTCCA"
+let tp53_seq2 = "CCCCAGCTGCTCACCATCGCTATCTGAGCAGCGCTCATGGTGGGGGCAGCGCCTCACAACCTCCGTCATGTGCTGTGACTGCTTGTAGATGGCCATGGCGCGGACGCGGGTGCCGGGCGGGGGTGTGCAGGGCCTGCACCCCCGCCCCCG"
+let tp53_seq3 = "TCAGGGAACAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAA"
+
+let sam_records = ""
+
+# 12 well-mapped reads on TP53 exon 4 region
+let i = 0
+while i < 4 {
+    let pos = 7674859 + (i * 35)
+    sam_records = sam_records + f"tp53_read_{i+1:03}\t83\tchr17\t{pos}\t60\t150M\t=\t{pos}\t0\t{tp53_seq1}\tIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII\n"
+    i = i + 1
+}
+while i < 8 {
+    let pos = 7675000 + ((i - 4) * 30)
+    sam_records = sam_records + f"tp53_read_{i+1:03}\t83\tchr17\t{pos}\t55\t150M\t=\t{pos}\t0\t{tp53_seq2}\tHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n"
+    i = i + 1
+}
+while i < 12 {
+    let pos = 7674220 + ((i - 8) * 40)
+    sam_records = sam_records + f"tp53_read_{i+1:03}\t83\tchr17\t{pos}\t50\t150M\t=\t{pos}\t0\t{tp53_seq1}\tGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG\n"
+    i = i + 1
+}
+
+# 3 reads on BRCA1 exon 11 with lower MAPQ
+let j = 0
+while j < 3 {
+    let pos = 43091435 + (j * 500)
+    sam_records = sam_records + f"brca1_read_{j+1:03}\t83\tchr17\t{pos}\t25\t150M\t=\t{pos}\t0\t{tp53_seq3}\tHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n"
+    j = j + 1
+}
+
+# 2 reads with insertions
+sam_records = sam_records + f"tp53_indel_001\t83\tchr17\t7674200\t45\t75M2I73M\t=\t7674200\t0\t{tp53_seq1}\tIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII\n"
+sam_records = sam_records + f"tp53_indel_002\t83\tchr17\t7673700\t40\t50M3D100M\t=\t7673700\t0\t{tp53_seq2}\tHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n"
+
+# 3 unmapped reads
+sam_records = sam_records + f"unmapped_001\t4\t*\t0\t0\t*\t*\t0\t0\t{tp53_seq1}\t555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555\n"
+sam_records = sam_records + f"unmapped_002\t4\t*\t0\t0\t*\t*\t0\t0\t{tp53_seq2}\t333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333\n"
+sam_records = sam_records + f"unmapped_003\t4\t*\t0\t0\t*\t*\t0\t0\t{tp53_seq3}\t222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222\n"
+
+write("data/alignments.bam", sam_header + sam_records)
+print("  Created data/alignments.bam (20 alignments: 17 mapped, 3 unmapped)")
+
+# ============================================================
+# 6. Manifest
+# ============================================================
+
+let manifest = "{\n"
+    + "  \"day\": 7,\n"
+    + "  \"title\": \"Bioinformatics File Formats\",\n"
+    + "  \"data_sources\": \"NCBI RefSeq, ClinVar, GRCh38\",\n"
+    + "  \"files\": {\n"
+    + "    \"sequences.fasta\": {\"format\": \"FASTA\", \"records\": 5, \"description\": \"INS, BRCA1, TP53, 16S rRNA, EGFR\"},\n"
+    + "    \"variants.vcf\": {\"format\": \"VCF\", \"records\": 10, \"description\": \"ClinVar TP53 pathogenic variants\"},\n"
+    + "    \"regions.bed\": {\"format\": \"BED\", \"records\": 10, \"description\": \"TP53 exon coordinates (GRCh38)\"},\n"
+    + "    \"annotations.gff\": {\"format\": \"GFF3\", \"records\": 15, \"description\": \"BRCA1 + TP53 gene annotations\"},\n"
+    + "    \"alignments.bam\": {\"format\": \"SAM/BAM\", \"records\": 20, \"description\": \"TP53 region alignments (17 mapped, 3 unmapped)\"}\n"
+    + "  }\n"
+    + "}\n"
+
+write("data/manifest.json", manifest)
+print("  Created data/manifest.json")
+
+print("")
+print("All data files created in data/ directory.")
+print("Data sources: NCBI RefSeq, ClinVar, GRCh38 assembly")
+print("Run: bl run scripts/analysis.bl")

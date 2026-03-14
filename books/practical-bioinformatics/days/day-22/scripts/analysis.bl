@@ -1,0 +1,154 @@
+let config_text = read_lines("config.json") |> reduce(|a, b| a + b)
+let config = json_decode(config_text)
+
+fn validate_config(config) {
+    let required = ["pipeline_name", "version", "input_files", "output_dir", "min_quality", "min_length"]
+    let config_keys = keys(config)
+    let missing = required |> filter(|k| !(config_keys |> filter(|ck| ck == k) |> len() > 0))
+    let errors = []
+    if len(missing) > 0 then {
+        errors = errors + ["Missing fields: " + str(missing)]
+    }
+    let missing_files = config.input_files |> filter(|f| !file_exists(f))
+    if len(missing_files) > 0 then {
+        errors = errors + ["Missing files: " + str(missing_files)]
+    }
+    errors
+}
+
+fn checksum_files(file_paths) {
+    file_paths |> map(|path| {file: path, sha256: sha256(path)})
+}
+
+fn create_provenance(config) {
+    {
+        pipeline: config.pipeline_name,
+        version: config.version,
+        started_at: now() |> format_date("%Y-%m-%d %H:%M:%S"),
+        parameters: config,
+        input_checksums: [],
+        steps: [],
+        output_checksums: [],
+        finished_at: nil,
+        status: "running"
+    }
+}
+
+fn log_step(prov, step_name, details) {
+    let step = {name: step_name, timestamp: now() |> format_date("%Y-%m-%d %H:%M:%S"), details: details}
+    {
+        pipeline: prov.pipeline,
+        version: prov.version,
+        started_at: prov.started_at,
+        parameters: prov.parameters,
+        input_checksums: prov.input_checksums,
+        steps: prov.steps + [step],
+        output_checksums: prov.output_checksums,
+        finished_at: prov.finished_at,
+        status: prov.status
+    }
+}
+
+fn finish_provenance(prov, status) {
+    {
+        pipeline: prov.pipeline,
+        version: prov.version,
+        started_at: prov.started_at,
+        parameters: prov.parameters,
+        input_checksums: prov.input_checksums,
+        steps: prov.steps,
+        output_checksums: prov.output_checksums,
+        finished_at: now() |> format_date("%Y-%m-%d %H:%M:%S"),
+        status: status
+    }
+}
+
+fn save_provenance(prov, log_dir) {
+    let filename = log_dir + "/provenance_" + str(now()) + ".json"
+    write_lines(filename, [json_encode(prov)])
+    filename
+}
+
+fn process_sample(file_path, config) {
+    let t = timer_start()
+    let reads = read_fastq(file_path)
+    let total_count = len(reads)
+    let filtered = reads |> quality_filter(config.min_quality)
+    let length_filtered = filtered |> filter(|r| len(r.seq) >= config.min_length)
+    let pass_count = len(length_filtered)
+    let gc_values = length_filtered |> map(|r| gc_content(r.seq))
+    let lengths = length_filtered |> map(|r| len(r.seq))
+    let qualities = length_filtered |> map(|r| mean(r.qual))
+    {
+        file: file_path,
+        total_reads: total_count,
+        passed_reads: pass_count,
+        pass_rate: pass_count / total_count,
+        gc_mean: mean(gc_values),
+        gc_stdev: stdev(gc_values),
+        length_mean: mean(lengths),
+        length_min: min(lengths),
+        length_max: max(lengths),
+        quality_mean: mean(qualities),
+        elapsed_seconds: timer_elapsed(t)
+    }
+}
+
+let errors = validate_config(config)
+if len(errors) > 0 then {
+    error("Configuration invalid: " + str(errors))
+}
+
+mkdir(config.output_dir)
+mkdir(config.log_dir)
+let prov = create_provenance(config)
+
+let input_checksums = checksum_files(config.input_files)
+let prov = {
+    pipeline: prov.pipeline,
+    version: prov.version,
+    started_at: prov.started_at,
+    parameters: prov.parameters,
+    input_checksums: input_checksums,
+    steps: prov.steps,
+    output_checksums: prov.output_checksums,
+    finished_at: prov.finished_at,
+    status: prov.status
+}
+let prov = log_step(prov, "checksum_inputs", {file_count: len(input_checksums)})
+
+let results = config.input_files |> map(|f| process_sample(f, config))
+let prov = log_step(prov, "process_samples", {
+    sample_count: len(results),
+    total_reads: results |> map(|r| r.total_reads) |> sum(),
+    total_passed: results |> map(|r| r.passed_reads) |> sum()
+})
+
+let summary = results |> map(|r| {
+    file: r.file,
+    total_reads: r.total_reads,
+    passed_reads: r.passed_reads,
+    pass_rate: r.pass_rate,
+    gc_mean: r.gc_mean,
+    length_mean: r.length_mean,
+    quality_mean: r.quality_mean
+}) |> to_table()
+
+let output_path = config.output_dir + "/qc_summary.csv"
+summary |> write_csv(output_path)
+let prov = log_step(prov, "write_results", {output_file: output_path})
+
+let output_checksums = checksum_files([output_path])
+let prov = {
+    pipeline: prov.pipeline,
+    version: prov.version,
+    started_at: prov.started_at,
+    parameters: prov.parameters,
+    input_checksums: prov.input_checksums,
+    steps: prov.steps,
+    output_checksums: output_checksums,
+    finished_at: prov.finished_at,
+    status: prov.status
+}
+let prov = finish_provenance(prov, "success")
+let prov_file = save_provenance(prov, config.log_dir)

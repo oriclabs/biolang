@@ -1,0 +1,77 @@
+============================================================
+Day 5: Data Structures for Biology
+============================================================
+
+--- 1. Lists: Ordered Collections ---
+Expression values: [2.1, 5.4, 3.2, 8.7, 1.1, 6.3]
+Mean: 4.47
+Median: 4.3
+Stdev: 2.65
+Min: 1.1, Max: 8.7
+Top 3 values: [8.7, 6.3, 5.4]
+Treated samples: [treated_1, treated_2, treated_3]
+Total: 5, Treated: 3
+Sample 2, Gene 3: 6.1
+
+--- 2. Records: Structured Metadata ---
+BRCA1 on chr17
+Length: 81188 bp
+Keys: [symbol, name, chromosome, start, end, strand, biotype]
+Has strand: true
+Has expression: false
+Chr17 variants: 2
+Affected genes: [BRCA1, TP53, EGFR]
+
+--- 3. Tables: Analysis Results ---
+Rows: 5, Columns: 3
+Columns: [gene, log2fc, pval]
+Significant genes (sorted by log2fc):
+ gene | log2fc | pval
+ MYC  | 1.9    | 0.04
+ BRCA1| 2.4    | 0.001
+ EGFR | 3.8    | 0.000001
+Gene-pval pairs:
+ gene | pval
+ BRCA1| 0.001
+ TP53 | 0.23
+ EGFR | 0.000001
+With significance flag:
+ gene | log2fc | pval     | significant
+ BRCA1| 2.4    | 0.001    | true
+ TP53 | -1.1   | 0.23     | false
+ EGFR | 3.8    | 0.000001 | true
+Counts by direction:
+ direction | count
+ down      | 2
+ up        | 3
+
+--- 4. Sets: Venn Diagram Logic ---
+Experiment A: {BRCA1, TP53, EGFR, MYC, KRAS}
+Experiment B: {TP53, EGFR, PTEN, RB1, MYC}
+Shared genes: {TP53, EGFR, MYC}
+Only in A: {BRCA1, KRAS}
+Only in B: {PTEN, RB1}
+Total unique: 7
+
+--- 5. Genomic Intervals ---
+Promoter: chr17:43125283-43125483
+Exon 1: chr17:43124017-43124115
+Enhancer: chr17:43125000-43125600
+Regions overlapping chr17:43125300-43125400: 2
+ chrom | start    | end      | name
+ chr17 | 43125283 | 43125483 | promoter
+ chr17 | 43125000 | 43125600 | enhancer
+
+--- 6. Combining Structures ---
+Core genes (in all samples): {TP53}
+Treatment-specific genes: {MYC, KRAS, PTEN}
+Summary:
+ category            | count
+ Core (all samples)  | 1
+ Treatment-specific  | 3
+ Control genes       | 3
+ Treated genes       | 5
+
+============================================================
+Day 5 complete! Week 1 foundations finished.
+============================================================

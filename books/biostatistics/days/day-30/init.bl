@@ -1,0 +1,189 @@
+# Day 30: Capstone — GWAS Analysis
+# Data sources:
+#   Type 2 diabetes GWAS loci from Mahajan et al. 2018 Nature Genetics
+#   (DIAbetes Genetics Replication And Meta-analysis, DIAGRAM consortium)
+#   50 true association loci with published odds ratios and chromosomal positions
+#   Gene names, rs IDs, and effect sizes from published T2D GWAS catalog
+#   499,950 null SNPs generated programmatically with uniform p-value distribution
+
+println("Setting up Day 30: Capstone — GWAS Analysis")
+mkdir("data")
+
+# ── File 1: Study-level sample information ──
+let study_lines = [
+    "parameter,value",
+    "n_cases,5000",
+    "n_controls,5000",
+    "total_n,10000",
+    "genotyping_platform,Illumina_Global_Screening_Array",
+    "imputation_panel,HRC_r1.1",
+    "ancestry,European",
+    "genome_build,GRCh38",
+    "lambda_gc,1.02",
+    "source,Simulated_based_on_Mahajan_2018_NatGenet"
+]
+write_lines(study_lines, "data/sample_info.csv")
+
+# ── 50 true T2D GWAS associations ──
+# Real loci from Mahajan et al. 2018, DIAGRAM consortium, and GWAS Catalog
+# Format: rsid, chr, position (GRCh38), ref, alt, maf, beta, se, p_value, or, gene
+let true_loci = [
+    # TCF7L2 — strongest T2D locus
+    "rs7903146,10,112998590,C,T,0.30,0.340,0.025,1.2e-42,1.40,TCF7L2",
+    "rs12243326,10,112998169,C,T,0.28,0.280,0.026,2.1e-27,1.32,TCF7L2",
+    # PPARG
+    "rs1801282,3,12351626,C,G,0.12,0.182,0.035,2.5e-7,1.20,PPARG",
+    # KCNJ11
+    "rs5219,11,17388025,C,T,0.36,0.140,0.024,5.8e-9,1.15,KCNJ11",
+    # FTO — obesity/T2D
+    "rs9939609,16,53786615,T,A,0.42,0.113,0.022,2.8e-7,1.12,FTO",
+    "rs8050136,16,53782363,A,C,0.40,0.105,0.023,4.5e-6,1.11,FTO",
+    # SLC30A8
+    "rs13266634,8,117172544,C,T,0.30,0.113,0.025,6.2e-6,1.12,SLC30A8",
+    # CDKN2A/B
+    "rs10811661,9,22134094,T,C,0.18,0.182,0.030,1.3e-9,1.20,CDKN2A_B",
+    # IGF2BP2
+    "rs4402960,3,185793899,G,T,0.29,0.131,0.025,1.5e-7,1.14,IGF2BP2",
+    # CDKAL1
+    "rs7756992,6,20661034,A,G,0.26,0.113,0.026,1.4e-5,1.12,CDKAL1",
+    # HHEX/IDE
+    "rs1111875,10,92703125,G,A,0.38,0.122,0.023,1.1e-7,1.13,HHEX_IDE",
+    # WFS1
+    "rs10010131,4,6271018,G,A,0.27,0.105,0.026,5.2e-5,1.11,WFS1",
+    # JAZF1
+    "rs864745,7,28150296,T,C,0.50,0.095,0.022,1.5e-5,1.10,JAZF1",
+    # MTNR1B
+    "rs10830963,11,92975544,C,G,0.28,0.160,0.026,3.2e-10,1.17,MTNR1B",
+    # GCKR
+    "rs780094,2,27518370,C,T,0.39,0.095,0.023,3.5e-5,1.10,GCKR",
+    # PROX1
+    "rs340874,1,214150654,C,T,0.48,0.078,0.022,3.8e-4,1.08,PROX1",
+    # ADCY5
+    "rs11708067,3,123082398,A,G,0.22,0.113,0.028,5.1e-5,1.12,ADCY5",
+    # GCK
+    "rs1799884,7,44184184,C,T,0.18,0.122,0.031,8.5e-5,1.13,GCK",
+    # DGKB/TMEM195
+    "rs2191349,7,15024684,T,G,0.44,0.078,0.022,4.2e-4,1.08,DGKB",
+    # THADA
+    "rs7578597,2,43505684,T,C,0.10,0.148,0.038,9.5e-5,1.16,THADA",
+    # ADAMTS9
+    "rs4607103,3,64686944,C,T,0.24,0.095,0.027,4.3e-4,1.10,ADAMTS9",
+    # NOTCH2
+    "rs10923931,1,120230001,T,G,0.11,0.140,0.037,1.5e-4,1.15,NOTCH2",
+    # TSPAN8/LGR5
+    "rs7961581,12,70962820,C,T,0.27,0.087,0.026,8.5e-4,1.09,TSPAN8",
+    # IRS1
+    "rs2943641,2,226801989,C,T,0.35,0.105,0.024,1.2e-5,1.11,IRS1",
+    # KLF14
+    "rs972283,7,130117394,G,A,0.47,0.069,0.022,1.7e-3,1.07,KLF14",
+    # KCNQ1
+    "rs2237892,11,2839751,C,T,0.08,0.223,0.043,2.1e-7,1.25,KCNQ1",
+    "rs2237895,11,2858546,A,C,0.38,0.095,0.023,3.5e-5,1.10,KCNQ1",
+    # HNF1B
+    "rs4430796,17,38741117,A,G,0.43,0.078,0.022,4.5e-4,1.08,HNF1B",
+    # PPARG related
+    "rs13081389,3,12379720,G,A,0.05,0.182,0.052,4.8e-4,1.20,PPARG_2",
+    # HNF1A
+    "rs7957197,12,120969461,T,A,0.34,0.078,0.024,1.1e-3,1.08,HNF1A",
+    # HNF4A
+    "rs4812829,20,43005885,A,G,0.18,0.105,0.030,4.8e-4,1.11,HNF4A",
+    # AP3S2
+    "rs2028299,15,89831018,C,A,0.28,0.087,0.026,8.2e-4,1.09,AP3S2",
+    # ZBED3
+    "rs4457053,5,76424949,G,A,0.26,0.087,0.027,1.2e-3,1.09,ZBED3",
+    # GRB14
+    "rs3923113,2,165221337,A,C,0.24,0.078,0.027,3.8e-3,1.08,GRB14",
+    # ANK1
+    "rs516946,8,41418512,C,T,0.22,0.095,0.028,7.1e-4,1.10,ANK1",
+    # BCAR1
+    "rs7202877,16,74956831,T,G,0.12,0.122,0.036,7.5e-4,1.13,BCAR1",
+    # ZMIZ1
+    "rs12571751,10,78861011,A,G,0.48,0.060,0.022,6.3e-3,1.06,ZMIZ1",
+    # MC4R
+    "rs12970134,18,60183864,G,A,0.27,0.087,0.026,8.1e-4,1.09,MC4R",
+    # CILP2
+    "rs10401969,19,19268718,T,C,0.08,0.148,0.043,5.8e-4,1.16,CILP2",
+    # CENTD2
+    "rs1552224,11,72433098,A,C,0.12,0.122,0.036,7.2e-4,1.13,CENTD2",
+    # PRC1
+    "rs8042680,15,89857054,A,C,0.22,0.095,0.028,7.5e-4,1.10,PRC1",
+    # HMGA2
+    "rs1531343,12,65857176,C,G,0.10,0.131,0.039,8.2e-4,1.14,HMGA2",
+    # PEPD
+    "rs3786897,19,33346582,A,G,0.35,0.069,0.024,4.0e-3,1.07,PEPD",
+    # GIPR
+    "rs10423928,19,46128523,A,T,0.18,0.095,0.030,1.6e-3,1.10,GIPR",
+    # ST6GAL1
+    "rs16861329,3,187033753,G,A,0.22,0.087,0.028,1.9e-3,1.09,ST6GAL1",
+    # TLE4
+    "rs13292136,9,79412870,C,G,0.06,0.160,0.050,1.4e-3,1.17,TLE4",
+    # DUSP9
+    "rs5945326,23,1555104,A,G,0.18,0.105,0.030,4.5e-4,1.11,DUSP9",
+    # PTPRD
+    "rs17584499,9,8869118,T,C,0.10,0.148,0.038,1.0e-4,1.16,PTPRD",
+    # VPS13C
+    "rs17271305,15,34765578,G,A,0.28,0.069,0.026,7.8e-3,1.07,VPS13C",
+    # ZFAND6
+    "rs11634397,15,80073758,G,A,0.32,0.069,0.024,4.1e-3,1.07,ZFAND6"
+]
+
+# ── Build the full GWAS summary stats ──
+println("Generating 500,000 SNP summary statistics...")
+
+let header = "snp_id,chr,position,ref,alt,maf,beta,se,p_value,odds_ratio,true_association"
+let lines = [header]
+
+# Write 50 true associations first
+for locus in true_loci {
+    lines = append(lines, locus + ",1")
+}
+println("  50 true T2D loci written (from Mahajan et al. 2018)")
+
+# ── Generate 499,950 null SNPs programmatically ──
+println("  Generating 499,950 null SNPs...")
+
+let ref_alleles = ["A", "C", "G", "T"]
+let alt_alleles = ["T", "G", "A", "C"]
+
+for i in range(0, 499950) {
+    # Deterministic pseudo-random values
+    let seed1 = (i * 2654435761 + 12345) % 2147483647
+    let seed2 = (i * 1664525 + 1013904223) % 2147483647
+    let seed3 = (i * 214013 + 2531011) % 2147483647
+    let seed4 = (i * 1103515245 + 54321) % 2147483647
+
+    let chr = (seed1 % 22) + 1
+    let pos = (seed2 % 200000000) + 1000000
+    let ref_idx = seed3 % 4
+    let alt_idx = (ref_idx + 1 + seed4 % 3) % 4
+
+    let maf = round(0.01 + (seed1 % 4900) / 10000.0, 4)
+
+    # Null SNP: p-value from uniform(0,1), small effect
+    let p_raw = (seed2 % 10000) / 10000.0
+    if p_raw < 0.0001 then p_raw = 0.0001
+    let p_val = round(p_raw, 6)
+
+    # Small random beta centered on 0
+    let beta_raw = ((seed3 % 10000) / 10000.0 - 0.5) * 0.1
+    let beta = round(beta_raw, 5)
+    let se = round(abs(beta) / 1.5 + 0.01 + (seed4 % 300) / 10000.0, 5)
+    let or_val = round(2.71828 ** beta, 4)
+
+    let snp_id = f"rs{1000000 + i}"
+    let ref_al = ref_alleles[ref_idx]
+    let alt_al = alt_alleles[alt_idx]
+
+    lines = append(lines, f"{snp_id},{chr},{pos},{ref_al},{alt_al},{maf},{beta},{se},{p_val},{or_val},0")
+}
+
+write_lines(lines, "data/gwas_summary.csv")
+
+println("")
+println("Created data/sample_info.csv")
+println("  Study metadata: 5,000 cases + 5,000 controls, European ancestry")
+println("Created data/gwas_summary.csv")
+println("  500,000 SNPs total")
+println("  50 true T2D associations from Mahajan et al. 2018 / DIAGRAM")
+println("  Loci include: TCF7L2, PPARG, KCNJ11, FTO, SLC30A8, CDKN2A/B, etc.")
+println("  499,950 null SNPs with uniform p-value distribution")

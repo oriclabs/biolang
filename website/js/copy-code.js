@@ -13,7 +13,7 @@
 
       var btn = document.createElement('button');
       btn.className = 'copy-btn';
-      btn.style.cssText = 'position:absolute;top:8px;right:8px;padding:4px 8px;font-size:12px;border-radius:4px;background:rgba(51,65,85,0.8);color:#94a3b8;border:none;cursor:pointer;opacity:0;transition:opacity 0.2s;z-index:10';
+      btn.style.cssText = 'position:absolute;top:8px;right:8px;padding:4px 8px;font-size:12px;border-radius:4px;background:rgba(51,65,85,0.8);color:#94a3b8;border:none;cursor:pointer;opacity:0.6;transition:opacity 0.2s;z-index:10';
       btn.textContent = 'Copy';
       btn.addEventListener('click', function () {
         var code = pre.querySelector('code');
@@ -25,7 +25,7 @@
         });
       });
       wrapper.addEventListener('mouseenter', function () { btn.style.opacity = '1'; });
-      wrapper.addEventListener('mouseleave', function () { btn.style.opacity = '0'; });
+      wrapper.addEventListener('mouseleave', function () { btn.style.opacity = '0.6'; });
       wrapper.appendChild(btn);
     });
   }

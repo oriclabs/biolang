@@ -1,0 +1,245 @@
+# Day 17: Protein Analysis — Complete Analysis Script
+# Requires: internet connection (UniProt, PDB, Ensembl APIs)
+#
+# Demonstrates: protein"...", uniprot_entry, uniprot_fasta, uniprot_features,
+# uniprot_go, pdb_entry, pdb_search, pdb_sequence, ensembl_vep, base_counts,
+# kmers, kmer_count, len, type, substr, str, split, frequencies, map, filter,
+# to_table, head, take, print, round, first, match
+
+# ── Step 1: Protein Sequence Basics ──────────────────────────────────
+
+print("=== Step 1: Protein Sequence Basics ===\n")
+
+let p53 = protein"MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYPQGLNGTVNLPGRNSFEV"
+print(f"Length: {len(p53)} amino acids")
+print(f"Type: {type(p53)}")
+
+# ── Step 2: UniProt Lookup ───────────────────────────────────────────
+
+print("\n=== Step 2: UniProt Lookup ===\n")
+
+let entry = uniprot_entry("P04637")  # TP53
+print(f"Protein: {entry.name}")
+print(f"Gene: {entry.gene_names}")
+print(f"Organism: {entry.organism}")
+print(f"Length: {entry.sequence_length} aa")
+print(f"Function: {substr(entry.function, 0, 80)}...")
+
+# Get FASTA sequence
+let fasta = uniprot_fasta("P04637")
+print(f"\nFirst 60 residues: {substr(fasta, 0, 60)}")
+print(f"Full length: {len(fasta)} aa")
+
+# ── Step 3: Protein Features and Domains ─────────────────────────────
+
+print("\n=== Step 3: Protein Features and Domains ===\n")
+
+let features = uniprot_features("P04637")
+print(f"Total features: {len(features)}")
+
+# Count by type
+let types = features |> map(|f| f.type) |> frequencies()
+print(f"Feature types: {types}")
+
+# Find domains
+let domains = features |> filter(|f| f.type == "Domain")
+for d in domains {
+    print(f"  Domain: {d.description} ({d.location})")
+}
+
+# Find binding sites
+let binding = features |> filter(|f| f.type == "Binding site")
+print(f"\nBinding sites: {len(binding)}")
+for b in binding {
+    print(f"  {b.description} ({b.location})")
+}
+
+# ── Step 4: GO Terms ─────────────────────────────────────────────────
+
+print("\n=== Step 4: GO Terms ===\n")
+
+let go_terms = uniprot_go("P04637")
+print(f"GO annotations: {len(go_terms)}")
+
+let bp = go_terms |> filter(|t| t.aspect == "biological_process") |> len()
+let mf = go_terms |> filter(|t| t.aspect == "molecular_function") |> len()
+let cc = go_terms |> filter(|t| t.aspect == "cellular_component") |> len()
+print(f"Biological Process: {bp}")
+print(f"Molecular Function: {mf}")
+print(f"Cellular Component: {cc}")
+
+let functions = go_terms |> filter(|t| t.aspect == "molecular_function")
+print(f"\nMolecular functions:")
+for f in functions |> take(5) {
+    print(f"  {f.id}: {f.term}")
+}
+
+# ── Step 5: PDB Structures ───────────────────────────────────────────
+
+print("\n=== Step 5: PDB Structures ===\n")
+
+let structure = pdb_entry("1TUP")
+print(f"Title: {structure.title}")
+print(f"Resolution: {structure.resolution} angstrom")
+print(f"Method: {structure.method}")
+print(f"Release date: {structure.release_date}")
+print(f"Organism: {structure.organism}")
+
+let p53_structures = pdb_search("TP53")
+print(f"\nTP53 structures in PDB: {len(p53_structures)}")
+print(f"First 5 IDs: {p53_structures |> take(5)}")
+
+# Get sequence from PDB
+let seq = pdb_sequence("1TUP", 1)
+print(f"\nPDB sequence type: {type(seq)}")
+print(f"PDB sequence length: {len(seq)} residues")
+
+# ── Step 6: Amino Acid Composition ───────────────────────────────────
+
+print("\n=== Step 6: Amino Acid Composition ===\n")
+
+let seq = protein"MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDD"
+let counts = base_counts(seq)
+print(f"Amino acid counts: {counts}")
+
+fn classify_aa(aa) {
+    match aa {
+        "A" | "V" | "L" | "I" | "M" | "F" | "W" | "P" => "hydrophobic",
+        "S" | "T" | "N" | "Q" | "Y" | "C" => "polar",
+        "K" | "R" | "H" => "positive",
+        "D" | "E" => "negative",
+        _ => "other"
+    }
+}
+
+let residues = split(str(seq), "")
+let groups = residues |> map(|aa| classify_aa(aa)) |> frequencies()
+print(f"Property distribution: {groups}")
+
+let total = len(residues)
+for group in ["hydrophobic", "polar", "negative", "positive"] {
+    let count = groups[group]
+    let pct = round(count / total * 100, 1)
+    print(f"  {group}: {count}/{total} ({pct}%)")
+}
+
+# ── Step 7: K-mer Analysis ───────────────────────────────────────────
+
+print("\n=== Step 7: K-mer Analysis ===\n")
+
+let seq = protein"MEEPQSDPSVEPPLSQETFSDLWKLL"
+let trimers = kmers(seq, 3)
+print(f"Protein 3-mers: {len(trimers)}")
+print(f"First 5 trimers: {trimers |> take(5)}")
+
+let dipeptides = kmer_count(seq, 2)
+print(f"\nDipeptide counts (top 10):")
+print(dipeptides |> head(10))
+
+# ── Step 8: Cross-Species Comparison ─────────────────────────────────
+
+print("\n=== Step 8: Cross-Species Comparison ===\n")
+
+let accessions = ["P04637", "Q00366", "O09185"]  # Human, Chicken, Mouse
+let names = ["Human", "Chicken", "Mouse"]
+
+let proteins = []
+for i in range(0, len(accessions)) {
+    let entry = uniprot_entry(accessions[i])
+    proteins = proteins + [{
+        species: names[i],
+        accession: entry.accession,
+        name: entry.name,
+        organism: entry.organism,
+        length: entry.sequence_length
+    }]
+}
+
+let comparison = proteins |> to_table()
+print("TP53 Orthologs:")
+print(comparison)
+
+# ── Step 9: Mutation Impact ──────────────────────────────────────────
+
+print("\n=== Step 9: Mutation Impact ===\n")
+
+let normal = protein"MEEPQSDPSVEPPLSQE"
+let mutant = protein"MEEPQSDPSVEPPLSRE"  # Q16R
+
+let normal_aa = substr(str(normal), 15, 1)
+let mutant_aa = substr(str(mutant), 15, 1)
+print(f"Position 16: {normal_aa} -> {mutant_aa}")
+
+let normal_class = classify_aa(normal_aa)
+let mutant_class = classify_aa(mutant_aa)
+print(f"Property: {normal_class} -> {mutant_class}")
+
+if normal_class != mutant_class {
+    print("WARNING: Property change detected --- likely functional impact")
+} else {
+    print("Same property class --- may be tolerated")
+}
+
+# VEP assessment
+let vep = ensembl_vep("7:55249071:C:T")
+print(f"\nEGFR variant VEP:")
+print(f"Consequence: {vep.consequence}")
+print(f"Gene: {vep.gene}")
+print(f"Impact: {vep.impact}")
+
+# ── Step 10: Complete Protein Report ─────────────────────────────────
+
+print("\n=== Step 10: Complete Protein Reports ===\n")
+
+fn protein_report(accession) {
+    print(f"\n{'=' * 50}")
+    print(f"Protein Report: {accession}")
+    print(f"{'=' * 50}\n")
+
+    let entry = uniprot_entry(accession)
+    print(f"Name: {entry.name}")
+    print(f"Gene: {entry.gene_names}")
+    print(f"Organism: {entry.organism}")
+    print(f"Length: {entry.sequence_length} aa")
+
+    let fasta = uniprot_fasta(accession)
+    let residues = split(fasta, "")
+    let total = len(residues)
+    let groups = residues |> map(|aa| classify_aa(aa)) |> frequencies()
+    print(f"\nComposition:")
+    for group in ["hydrophobic", "polar", "negative", "positive"] {
+        let count = groups[group]
+        let pct = round(count / total * 100, 1)
+        print(f"  {group}: {pct}%")
+    }
+
+    let features = uniprot_features(accession)
+    let domains = features |> filter(|f| f.type == "Domain")
+    print(f"\nDomains ({len(domains)}):")
+    for d in domains {
+        print(f"  {d.description}: {d.location}")
+    }
+
+    let go = uniprot_go(accession)
+    let bp = go |> filter(|t| t.aspect == "biological_process") |> len()
+    let mf = go |> filter(|t| t.aspect == "molecular_function") |> len()
+    let cc = go |> filter(|t| t.aspect == "cellular_component") |> len()
+    print(f"\nGO annotations: {len(go)} total")
+    print(f"  Biological Process: {bp}")
+    print(f"  Molecular Function: {mf}")
+    print(f"  Cellular Component: {cc}")
+
+    let structures = pdb_search(first(entry.gene_names))
+    print(f"\nPDB structures: {len(structures)}")
+    if len(structures) > 0 {
+        let top = pdb_entry(first(structures))
+        print(f"  Best: {top.id} - {top.method}, {top.resolution} angstrom")
+    }
+}
+
+let targets = ["P04637", "P00533", "P01116"]  # TP53, EGFR, KRAS
+for acc in targets {
+    protein_report(acc)
+}
+
+print("\n=== Done ===")

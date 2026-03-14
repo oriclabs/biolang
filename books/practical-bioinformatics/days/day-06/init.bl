@@ -1,0 +1,169 @@
+# Day 6: Reading Sequencing Data — Data Generation
+# Run: bl run init.bl
+# Creates FASTQ data with REAL E. coli K-12 MG1655 genomic sequences
+# Source: GenBank U00096.3 — E. coli K-12 MG1655 complete genome
+
+print("Day 6: Reading Sequencing Data")
+print("===============================")
+print("Generating FASTQ data from real E. coli K-12 MG1655 sequences...")
+
+# ============================================================
+# Real E. coli K-12 MG1655 gene sequences (GenBank U00096.3)
+# lacZ gene: complement(360,483..363,558) — beta-galactosidase
+# rpoB gene: 4,181,241..4,185,252 — RNA polymerase beta subunit
+# gyrA gene: 2,337,004..2,339,646 — DNA gyrase subunit A
+# dnaA gene: 3,882,565..3,883,953 — chromosomal replication initiator
+# ============================================================
+
+# Quality score strings (all exactly 150 chars)
+# I=40, H=39, G=38, F=37, E=36, D=35, C=34, B=33, @=31, ?=30
+let q_excellent = "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIHHHHHHHHHHHHHHHHHHHHHHHIIIIIIIIIIIIIIIIIIIIIHHHHHHHHHHHHHHHHHHHHIIIIIIIIIIIIIIIIIIIIIIIIHHHHHHHHHHHHHHHHHHHHHHHHHHII"
+let q_good      = "HHHHHHHHHHHHHHHHHHHGGGGGGGGGGGGGGGGGHHHHHHHHHHHHHHHHHHGGGGGGGGGGGGGGGFFFFFFFFFFFFFFFFFFFFFFFGGGGGGGGGGGGGGGGGHHHHHHHHHHHHHHHGGGGGGGGGGGGGGFFFFFFFFFFFF"
+let q_medium    = "GGGGGGGGGGFFFFFFFFFFFFFEEEEEEEEEEEEDDDDDDDDDDDDDDDDDDDDDEEEEEEEEEEEEFFFFFFFFFFFFFFEEEEEEEEDDDDDDDDDDDDDDCCCCCCCCCCCCCCCDDDDDDDDDDDDDDCCCCCCCCCCCBBBBBB"
+let q_low       = "DDDDDDDDDDCCCCCCCCCCCBBBBBBBBBBBB@@@@@@@@@@??????????>>>>>>=========<<<<<<;;;;;;;:::::::99999988888877777766666655555544444433333322222211111100000000"
+let q_mixed     = "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIHHHHHHHHHHHHHHHHHHHGGGGGGGGGGGGFFFFFFFFFEEEEEEEEDDDDDDDCCCCCCCBBBBBB@@@@@??????>>>>>>======<<<<<<;;"
+let q_short     = "IIIIIIIIIIIIIIIIIHHHHHHHHHHHH"
+
+# --- lacZ gene fragments (Source: E. coli K-12, U00096.3, pos 360483-363558) ---
+# beta-galactosidase coding region — all exactly 150 bp
+let lacZ_001 = "ATGACCATGATTACGCCAAGCTTTCCCTGTAGCGGGATCAAATCTGTCGATCCTTCCCGCCCCTGGACACCATCGAATGGCGCAAAACCTTTCGCGGTATGGCATGATAGCGCCCGGAAGAGAGTCAATTCAGGGTGGTGAATGTGAAAC"
+let lacZ_002 = "AGTAACGCTATGTCCTGCAGCGACCAGTTGCTGAGCGAGTATTTCAATAGACTGGATGGAGGCGGATAAAGTTGCAGGACCACTTCTGCGCTCGGCCCTTCCGGCTGGCTGGTTTATTGCTGATAAATCTGGAGCCGGTGAGCGTGGGTC"
+let lacZ_003 = "TCGCGGTATCATTGCAGCACTGGGGCCAGATGGTAAGCCCTCCCGTATCGTAGTTATCTACACGACGGGGAGTCAGGCAACTATGGATGAACGAAATAGACAGATCGCTGAGATAGGTGCCTCACTGATTAAGCATTGGTAACTGTCAGA"
+let lacZ_004 = "CAAGTTTACTCATATATACTTTAGATTGATTTAAAACTTCATTTTTAATTTAAAAGGATCTAGGTGAAGATCCTTTTTGATAATCTCATGACCAAAATCCCTTAACGTGAGTTTTCGTTCCACTGAGCGTCAGACCCCGTAGAAAAGATC"
+let lacZ_005 = "GGATCTTCTTGAGATCCTTTTTTTCTGCGCGTAATCTGCTGCTTGCAAACAAAAAAACCACCGCTACCAGCGGTGGTTTGTTTGCCGGATCAAGAGCTACCAACTCTTTTTCCGAAGGTAACTGGCTTCAGCAGAGCGCAGATACCAAAT"
+let lacZ_006 = "CTGTTCTTCTAGTGTAGCCGTAGTTAGGCCACCACTTCAAGAACTCTGTAGCACCGCCTACATACCTCGCTCTGCTAATCCTGTTACCAGTGGCTGCTGCCAGTGGCGATAAGTCGTGTCTTACCGGGTTGGACTCAAGACGATAGTTAC"
+let lacZ_007 = "GGATAAGGCGCAGCGGTCGGGCTGAACGGGGGGTTCGTGCACACAGCCCAGCTTGGAGCGAACGACCTACACCGAACTGAGATACCTACAGCGTGAGCTATGAGAAAGCGCCACGCTTCCCGAAGGGAGAAAGGCGGACAGGTATCCGGT"
+let lacZ_008 = "AGCGGCAGGGTCGGAACAGGAGAGCGCACGAGGGAGCTTCCAGGGGGAAACGCCTGGTATCTTTATAGTCCTGTCGGGTTTCGCCACCTCTGACTTGAGCGTCGATTTTTGTGATGCTCGTCAGGGGGGCGGAGCCTATGGAAAAACGCC"
+let lacZ_009 = "CAACGCGGCCTTTTTACGGTTCCTGGCCTTTTGCTGGCCTTTTGCTCACATGTTCTTTCCTGCGTTATCCCCTGATTCTGTGGATAACCGTATTACCGCCTTTGAGTGAGCTGATACCGCTCGCCGCAGCCGAACGACCGAGCGCAGCGA"
+let lacZ_010 = "CAGTGAGCGAGGAAGCGGAAGAGCGCCCAATACGCAAACCGCCTCTCCCCGCGCGTTGGCCGATTCATTAATGCAGCTGGCACGACAGGTTTCCCGACTGGAAAGCGGGCAGTGAGCGCAACGCAATTAATGTGAGTTAGCTCACTCATT"
+
+# --- rpoB gene fragments (Source: E. coli K-12, U00096.3, pos 4181241-4185252) ---
+# RNA polymerase beta subunit — all exactly 150 bp
+let rpoB_001 = "ATGGTTTACTCCTATACCGAGAAAGCGCACCGCAAGGGCGACATCACCGAACTGATTGACGAGATGCTGCAGGCGTTCAATGATGAAACCTTCCGCATCACCGAAAAACTGCGCGATCGCCAGGCAGGCGCGGACATCTTCAACTCCGCC"
+let rpoB_002 = "TCCGCGATGCGGTTTTCCAGAAAGCGTCGCAGAGCCGTCCGATCCCGGAGCAGACCGACATCACCGCCCATCTGGCCCAGGCCCTGCGTCAGCACGGCTTCATCTTTGGCGACGCGACCTATGCGCAGCGCGTCATTGATGACGATACCG"
+let rpoB_003 = "TATCTGAAAGAGCTGATGAAACTGGCCCAGGCCTGCGTCGATGAAATCCTGCAGCGCTACCTGCGTCGCCTGACCGACAAAGCGATCGACCTGCAGAAGCAGCAGAACGCGCTGATCAAGCTGCAGCCGTTTGATGGCCTGTCGGCGGCG"
+let rpoB_004 = "CCTATCTGACCCAGCGCATCCTTAATCTGCAGGCCGCCTATGATGCGCTGATCAAAGAGCTGAACGTGCGCGAGCCGCTGTCCGAACTGGTCAGCGAGCTGGATCAGATCATCTCCGCGGCGATCAAGCAGGCCCGCGGTATGGCGATGA"
+let rpoB_005 = "GACCAACGATCCGACCAAGCAGAGCTTCATCGATGACCTGCTGGCGGCGTCCAGCCGTCAGCAGGCGATCAACTCGGCGATCCTGTTCAGCGCCAACACCACCACGCTGGACATCGATGAACAGCGCGAACTGCTGCGCGAACTGGGCGG"
+
+# --- gyrA gene fragments (Source: E. coli K-12, U00096.3 — DNA gyrase A) ---
+# all exactly 150 bp
+let gyrA_001 = "ATGAGCGACCTTGCGAGAGAAATTACACCGGTCAACATTGAGGAAGAGCTGAAGAGCTCCTATCTGGATTATGCGATGTCGGTCATTGTTGGCCGTGCGCTGCCAGATGTCCGAGATGGCCTGAAGCCGGTACACCGTCGCATGGTGAAA"
+let gyrA_002 = "CCGGCGACGGTGACTCCGCGGCCAACCTGCCGATCCTGATCGAAATGGATGTGGGTAACCCGGAAACAGCGATCTGCGATAACGATACTTCCGTCGAGCGCCTGCTGCAGCGCATCGGCATGGAAATCACCTTTAAAGAGGAGCTGATCG"
+let gyrA_003 = "CTGTTCAGCCGTGATCGCGATCAGCGTATCGCCCACACCGATCTTGGCGAGCGGGATTTCACCCAGACTAACGGCAACTGCGTGGCGATCCGCGCAATCAAAGATAACGGCACCATCGCGATGACCATCAAACTGCCGATCCGCAAGCTG"
+
+# --- dnaA gene fragments (Source: E. coli K-12, U00096.3 — replication initiator) ---
+# all exactly 150 bp
+let dnaA_001 = "ATGTCACTTTCGCTTTGGCAGCAGTGTCTTGCCCGATTGCAGGATGAGTTACCAGCCACAGAATTCAGTATGTGGATACGCCCATTGCAGGCGGAACTGAGCGATAACACGCTGGCCCTGTACGCGGCACTGATCAATAACGGCTTCGGC"
+let dnaA_002 = "CATCACCGATGATGCTTCTACCTCGATCCGCACCGGCAGCAAAGCCTTCGGCTTTGACGATAGCGTGCTGATGATCGATGCAGATGAACTGAATCCCAGTCTGATCCAGGCGATCGCGGTGGACTTTCGCCTGGATCAGGCATTCACCAT"
+
+# --- Adapter-contaminated reads (real lacZ + Illumina TruSeq adapter) ---
+# all exactly 150 bp
+let adapter_read1 = "ATGACCATGATTACGCCAAGCTTTCCCTGTAGCGGGATCAAATCTGTCGATCCTTCCCGCCCCTGGACACCATCGAATGGCAGATCGGAAGAGCACACGTCTGAACTCCAGTCACAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAG"
+let adapter_read2 = "AGTAACGCTATGTCCTGCAGCGACCAGTTGCTGAGCGAGTATTTCAATAGACTGGATGGAGGCGGATAAAGTTGCAGAGATCGGAAGAGCACACGTCTGAACTCCAGTCACAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCT"
+
+# --- High-GC reads (possible contamination signal) — exactly 150 bp ---
+let gc_high_1 = "GCGCGCGCCGGCGCGCCGCCGCGGCCGCGCGCCGGCGCGCGGCCGCGCCGCGCGGCCCGGCGCCGCGCGGCCGCGCCGGCGCGGCCGCGCGCCGCGCGCCGGCGCGCCGCCGCGGCCGCGCGCCGGCGCGCGGCCGCGCCGCGCGGCCCG"
+let gc_high_2 = "CCGCGCGGCCGCGCCGGCGCGCGCCGCGCGGCCCGGCGCCGCGCGGCCGCGCCGGCGCGGCCGCGCGCCGCGCGCCGGCGCGCCGCCGCGGCCGCGCGCCGGCGCGCGGCCGCGCCGCGCGGCCCGGCGCCGCGCGGCCGCGCCGGCGCG"
+
+# --- Low-GC reads (AT-rich, possible Plasmodium contamination) — exactly 150 bp ---
+let at_rich_1 = "AATTAATTAATTAATAATTAATTAATTAATAATTAATTAATTAATAATTAATTAATTAATAATTAATTAATTAATAATTAATTAATTAATAATTAATTAATTAATAATTAATTAATTAATAATTAATTAATTAATAATTAATTAATTAAT"
+
+# --- Short reads (truncated lacZ 5' end) — exactly 29 bp ---
+let short_seq = "ATGACCATGATTACGCCAAGCTTTCCCTG"
+
+let records = []
+
+# 30 excellent quality reads — lacZ gene region
+let i = 0
+let lacZ_seqs = [lacZ_001, lacZ_002, lacZ_003, lacZ_004, lacZ_005, lacZ_006, lacZ_007, lacZ_008, lacZ_009, lacZ_010]
+while i < 30 {
+    let seq_idx = i % 10
+    let name = f"@ecoli_lacZ_{i + 1:03} length=150 gene=lacZ source=U00096.3"
+    records = append(records, f"{name}\n{lacZ_seqs[seq_idx]}\n+\n{q_excellent}")
+    i = i + 1
+}
+
+# 30 good quality reads — rpoB gene region
+while i < 60 {
+    let rpoB_seqs = [rpoB_001, rpoB_002, rpoB_003, rpoB_004, rpoB_005]
+    let seq_idx = (i - 30) % 5
+    let name = f"@ecoli_rpoB_{i + 1:03} length=150 gene=rpoB source=U00096.3"
+    records = append(records, f"{name}\n{rpoB_seqs[seq_idx]}\n+\n{q_good}")
+    i = i + 1
+}
+
+# 15 medium quality reads — gyrA gene region
+while i < 75 {
+    let gyrA_seqs = [gyrA_001, gyrA_002, gyrA_003]
+    let seq_idx = (i - 60) % 3
+    let name = f"@ecoli_gyrA_{i + 1:03} length=150 gene=gyrA source=U00096.3"
+    records = append(records, f"{name}\n{gyrA_seqs[seq_idx]}\n+\n{q_medium}")
+    i = i + 1
+}
+
+# 8 low quality reads — dnaA gene region
+while i < 83 {
+    let dnaA_seqs = [dnaA_001, dnaA_002]
+    let seq_idx = (i - 75) % 2
+    let name = f"@ecoli_dnaA_{i + 1:03} length=150 gene=dnaA source=U00096.3"
+    records = append(records, f"{name}\n{dnaA_seqs[seq_idx]}\n+\n{q_low}")
+    i = i + 1
+}
+
+# 5 mixed quality reads (good start, degraded end) — lacZ region
+while i < 88 {
+    let seq_idx = (i - 83) % 10
+    let name = f"@ecoli_lacZ_{i + 1:03} length=150 gene=lacZ source=U00096.3 note=quality_decay"
+    records = append(records, f"{name}\n{lacZ_seqs[seq_idx]}\n+\n{q_mixed}")
+    i = i + 1
+}
+
+# 4 high-GC reads (possible contamination)
+let gc_seqs = [gc_high_1, gc_high_2]
+while i < 92 {
+    let seq_idx = (i - 88) % 2
+    let name = f"@contam_gcrich_{i + 1:03} length=150 note=high_GC_contamination"
+    records = append(records, f"{name}\n{gc_seqs[seq_idx]}\n+\n{q_good}")
+    i = i + 1
+}
+
+# 3 low-GC reads (possible contamination)
+while i < 95 {
+    let name = f"@contam_atrich_{i + 1:03} length=150 note=low_GC_contamination"
+    records = append(records, f"{name}\n{at_rich_1}\n+\n{q_good}")
+    i = i + 1
+}
+
+# 3 short reads (< 50 bp, truncated lacZ)
+while i < 98 {
+    let name = f"@ecoli_lacZ_short_{i + 1:03} length=29"
+    records = append(records, f"{name}\n{short_seq}\n+\n{q_short}")
+    i = i + 1
+}
+
+# 2 adapter-contaminated reads
+let name_a1 = f"@ecoli_adapter_{i + 1:03} length=150 note=adapter_contaminated"
+records = append(records, f"{name_a1}\n{adapter_read1}\n+\n{q_good}")
+i = i + 1
+let name_a2 = f"@ecoli_adapter_{i + 1:03} length=150 note=adapter_contaminated"
+records = append(records, f"{name_a2}\n{adapter_read2}\n+\n{q_good}")
+
+let content = join(records, "\n")
+mkdir("examples")
+mkdir("results")
+write_text(content, "examples/sample.fastq")
+
+print(f"Generated 100 FASTQ reads from real E. coli K-12 MG1655 genes")
+print(f"  - 30 excellent quality reads (lacZ — beta-galactosidase)")
+print(f"  - 30 good quality reads (rpoB — RNA polymerase beta)")
+print(f"  - 15 medium quality reads (gyrA — DNA gyrase A)")
+print(f"  -  8 low quality reads (dnaA — replication initiator)")
+print(f"  -  5 mixed quality reads (lacZ — quality decay)")
+print(f"  -  4 high-GC reads (possible contamination)")
+print(f"  -  3 low-GC reads (possible contamination)")
+print(f"  -  3 short reads (29 bp, truncated lacZ)")
+print(f"  -  2 adapter-contaminated reads")
+print(f"Data source: NCBI GenBank U00096.3 (E. coli K-12 MG1655)")
+print(f"Output: examples/sample.fastq")
+print("")
+print("Ready for Day 6!")

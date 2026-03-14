@@ -1,0 +1,10 @@
+Pipeline fastq_qc v1.0.0 started
+  Input: data/sample_A.fastq → <sha256>
+  Input: data/sample_B.fastq → <sha256>
+Processing: data/sample_A.fastq
+  387/500 reads passed (77%)
+Processing: data/sample_B.fastq
+  392/500 reads passed (78%)
+Summary written to: results/qc_summary.csv
+Provenance saved to: logs/provenance_<timestamp>.json
+Pipeline completed successfully.

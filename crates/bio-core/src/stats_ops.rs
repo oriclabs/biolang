@@ -283,6 +283,12 @@ pub fn normal_quantile(p: f64) -> f64 {
 }
 
 pub fn students_t_cdf(t: f64, df: f64) -> f64 {
+    if t.is_nan() || df.is_nan() || df <= 0.0 {
+        return f64::NAN;
+    }
+    if t.is_infinite() {
+        return if t > 0.0 { 1.0 } else { 0.0 };
+    }
     if df > 100.0 {
         return normal_cdf(t);
     }
@@ -307,29 +313,60 @@ pub fn chi_square_cdf(chi2: f64, df: usize) -> f64 {
 }
 
 pub fn regularized_incomplete_beta(x: f64, a: f64, b: f64) -> f64 {
+    if x.is_nan() || a.is_nan() || b.is_nan() { return f64::NAN; }
     if x <= 0.0 { return 0.0; }
     if x >= 1.0 { return 1.0; }
 
-    if x < (a + 1.0) / (a + b + 2.0) {
-        let mut result = 0.0;
-        let mut term = 1.0;
-        let mut k = 0;
-        while k < 100 {
-            if k == 0 {
-                term = 1.0;
-            } else {
-                term *= (a + b + k as f64 - 1.0) * x / (a + k as f64);
-            }
-            result += term;
-            if term.abs() < 1e-12 { break; }
-            k += 1;
-        }
-        result *= x.powf(a) / a;
-        result.min(1.0)
-    } else {
-        1.0 - regularized_incomplete_beta(1.0 - x, b, a)
+    // Use the symmetry relation for numerical stability
+    if x > (a + 1.0) / (a + b + 2.0) {
+        return 1.0 - regularized_incomplete_beta(1.0 - x, b, a);
     }
+
+    // Compute ln(Beta(a,b)) = ln(Gamma(a)) + ln(Gamma(b)) - ln(Gamma(a+b))
+    let ln_beta = ln_gamma(a) + ln_gamma(b) - ln_gamma(a + b);
+
+    // Front factor: x^a * (1-x)^b / (a * Beta(a,b))
+    let front = (a * x.ln() + b * (1.0 - x).ln() - ln_beta).exp() / a;
+
+    // Evaluate continued fraction using modified Lentz's algorithm
+    // cf = 1 + d1/(1+ d2/(1+ d3/(1+ ...)))
+    // where d_{2m+1} = -(a+m)(a+b+m) x / ((a+2m)(a+2m+1))
+    //       d_{2m}   =  m(b-m) x / ((a+2m-1)(a+2m))
+    let tiny = 1e-30_f64;
+    let eps = 1e-14_f64;
+    let mut c = 1.0_f64;
+    let mut d = 1.0 - (a + b) * x / (a + 1.0);
+    if d.abs() < tiny { d = tiny; }
+    d = 1.0 / d;
+    let mut result = d;
+
+    for m in 1..=200 {
+        let mf = m as f64;
+        // Even step: d_{2m}
+        let num_even = mf * (b - mf) * x / ((a + 2.0 * mf - 1.0) * (a + 2.0 * mf));
+        d = 1.0 + num_even * d;
+        if d.abs() < tiny { d = tiny; }
+        c = 1.0 + num_even / c;
+        if c.abs() < tiny { c = tiny; }
+        d = 1.0 / d;
+        result *= d * c;
+
+        // Odd step: d_{2m+1}
+        let num_odd = -((a + mf) * (a + b + mf) * x) / ((a + 2.0 * mf) * (a + 2.0 * mf + 1.0));
+        d = 1.0 + num_odd * d;
+        if d.abs() < tiny { d = tiny; }
+        c = 1.0 + num_odd / c;
+        if c.abs() < tiny { c = tiny; }
+        d = 1.0 / d;
+        let delta = d * c;
+        result *= delta;
+
+        if (delta - 1.0).abs() < eps { break; }
+    }
+
+    (front * result).clamp(0.0, 1.0)
 }
+
 
 fn gamma_cdf(x: f64, shape: f64, scale: f64) -> f64 {
     if x <= 0.0 { return 0.0; }
@@ -431,8 +468,14 @@ pub fn t_test(group_a: &[f64], group_b: &[f64], alternative: &str) -> Result<TTe
 
     let pooled_var = ((n_a - 1.0) * var_a + (n_b - 1.0) * var_b) / (n_a + n_b - 2.0);
     let se = (pooled_var / n_a + pooled_var / n_b).sqrt();
-    let t_stat = (mean_a - mean_b) / se;
     let df = n_a + n_b - 2.0;
+    // When both groups have zero variance, se=0 and t is undefined.
+    // If means are equal → t=0, p=1; if means differ → t=±inf, p=0.
+    let t_stat = if se == 0.0 {
+        if (mean_a - mean_b).abs() < f64::EPSILON { 0.0 } else { f64::INFINITY * (mean_a - mean_b).signum() }
+    } else {
+        (mean_a - mean_b) / se
+    };
 
     let p_value = match alternative {
         "two_sided" => 2.0 * (1.0 - students_t_cdf(t_stat.abs(), df)),

@@ -1,0 +1,117 @@
+NOTE: Output is approximate. Biological databases are updated regularly,
+so exact counts, descriptions, and scores will vary over time. The
+structure of the output (field names, record types) is stable.
+
+============================================================
+Day 9: Biological Databases and APIs
+============================================================
+
+--- 1. NCBI Gene Lookup ---
+Symbol: BRCA1
+Name: BRCA1 DNA repair associated
+Description: BRCA1 DNA repair associated
+Chromosome: 17
+Location: 17q21.31
+
+--- 2. NCBI PubMed Search ---
+PubMed articles found: 5
+  PMID: 39856107
+  PMID: 39853221
+  PMID: 39851004
+  PMID: 39848329
+  PMID: 39845552
+
+--- 3. Ensembl Gene Model ---
+Ensembl ID: ENSG00000012048
+Biotype: protein_coding
+Position: chr17:43044295-43170245
+Strand: -1
+
+--- 4. Ensembl Protein Sequence ---
+Protein length: 1863 amino acids
+First 60 aa: MDLSALRVEEVQNVINAMQKILECPICLELIKEPVSTKCDHIFCKFCMLKLL
+Estimated MW: ~204930 Da (204 kDa)
+
+--- 5. UniProt Protein Function ---
+Name: BRCA1_HUMAN
+Organism: Homo sapiens (Human)
+Length: 1863 aa
+Gene names: ["BRCA1", "RNF53"]
+Function: E3 ubiquitin-protein ligase that specifically mediates the formation of 'Lys-6'-linked polyubiquitin ch...
+
+--- 6. UniProt Features ---
+Total features: ~85
+Domains: 2
+  RING-type (24..65)
+  BRCT 1 (1646..1736)
+
+--- 7. KEGG Pathways ---
+KEGG gene hits: ~15
+Pathways involving BRCA1: ~7
+  path:hsa03440
+  path:hsa04110
+  path:hsa04120
+  path:hsa05200
+  path:hsa05212
+
+--- 8. PDB Structures ---
+Title: Crystal structure of the BRCT repeat region from the breast cancer associated protein BRCA1
+Method: X-RAY DIFFRACTION
+Resolution: 2.5
+Total BRCA1 structures in PDB: ~50
+
+--- 9. STRING Interactions ---
+Interaction partners: ~10
+Top 5 interactors:
+  9606.ENSP00000350283 <-> 9606.ENSP00000261584: score=0.999
+  9606.ENSP00000350283 <-> 9606.ENSP00000369497: score=0.999
+  9606.ENSP00000350283 <-> 9606.ENSP00000325527: score=0.999
+  9606.ENSP00000350283 <-> 9606.ENSP00000418960: score=0.998
+  9606.ENSP00000350283 <-> 9606.ENSP00000267163: score=0.997
+
+--- 10. Gene Ontology ---
+GO term: DNA repair (GO:0006281)
+Aspect: biological_process
+GO annotations for BRCA1: 10
+  GO:0006281: DNA repair (biological_process)
+  GO:0006974: DNA damage response (biological_process)
+  GO:0005634: nucleus (cellular_component)
+  GO:0003677: DNA binding (molecular_function)
+  GO:0004842: ubiquitin-protein transferase activity (molecular_function)
+
+--- 11. Reactome Pathways ---
+Reactome pathways: ~25
+  R-HSA-5685942: HDR through Homologous Recombination (Homo sapiens)
+  R-HSA-5693532: DNA Double-Strand Break Repair (Homo sapiens)
+  R-HSA-73894: DNA Repair (Homo sapiens)
+  R-HSA-6796648: TP53 Regulates Transcription of DNA Repair Genes (Homo sapiens)
+  R-HSA-3700989: Transcriptional Regulation by TP53 (Homo sapiens)
+
+--- 12. Combined Gene Profile ---
+
+  === TP53 ===
+  Chromosome: 17
+  Description: tumor protein p53
+  Protein: 393 aa
+  STRING partners: ~10
+  Reactome pathways: ~18
+
+  === EGFR ===
+  Chromosome: 7
+  Description: epidermal growth factor receptor
+  Protein: 1210 aa
+  STRING partners: ~10
+  Reactome pathways: ~30
+
+--- 13. Batch Gene Table ---
+gene   | chrom | desc
+-------|-------|-------------------------------
+BRCA1  | 17    | BRCA1 DNA repair associated
+TP53   | 17    | tumor protein p53
+EGFR   | 7     | epidermal growth factor receptor
+KRAS   | 12    | KRAS proto-oncogene, GTPase
+MYC    | 8     | MYC proto-oncogene, bHLH transcription factor
+
+============================================================
+Day 9 complete!
+============================================================

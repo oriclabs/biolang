@@ -533,6 +533,284 @@ fn test_quality_plot_wrong_type() {
 
 // ── Unknown builtin ─────────────────────────────────────────────
 
+// ── Quality plot with PHRED string ─────────────────────────────
+
+#[test]
+fn test_quality_plot_phred_string() {
+    // PHRED+33 encoded quality string
+    let qual_str = Value::Str("IIIIIHHHGGFFE".into());
+    let result = call_viz_builtin("quality_plot", vec![qual_str]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+#[test]
+fn test_quality_plot_phred_string_svg() {
+    let qual_str = Value::Str("IIIIIHHHGGFFE".into());
+    let opts = Value::Record(HashMap::from([("format".into(), Value::Str("svg".into()))]));
+    let result = call_viz_builtin("quality_plot", vec![qual_str, opts]).unwrap();
+    if let Value::Str(s) = result {
+        assert!(s.contains("<svg"));
+    } else {
+        panic!("expected SVG string");
+    }
+}
+
+// ── Dotplot with protein sequences ────────────────────────────
+
+#[test]
+fn test_dotplot_protein() {
+    let s1 = Value::Protein(BioSequence {
+        data: "MVLSPADKTNVKAAWGKVGAHAG".to_string(),
+    });
+    let s2 = Value::Protein(BioSequence {
+        data: "MVLSPADKTNVKAAWGKVGAHAG".to_string(),
+    });
+    let result = call_viz_builtin("dotplot", vec![s1, s2]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+#[test]
+fn test_dotplot_protein_svg() {
+    let s1 = Value::Protein(BioSequence {
+        data: "MVLSPADKTNVKAAWGKVGAHAG".to_string(),
+    });
+    let s2 = Value::Protein(BioSequence {
+        data: "MVLSAADKTNVKAAWGKVGAHAG".to_string(),
+    });
+    let opts = Value::Record(HashMap::from([("format".into(), Value::Str("svg".into()))]));
+    let result = call_viz_builtin("dotplot", vec![s1, s2, opts]).unwrap();
+    if let Value::Str(s) = result {
+        assert!(s.contains("<svg"));
+    } else {
+        panic!("expected SVG");
+    }
+}
+
+// ── Dotplot with custom options ───────────────────────────────
+
+#[test]
+fn test_dotplot_custom_window() {
+    let s1 = Value::DNA(BioSequence {
+        data: "ATCGATCGATCGATCGATCGATCGATCG".to_string(),
+    });
+    let s2 = Value::DNA(BioSequence {
+        data: "ATCGATCGATCGATCGATCGATCGATCG".to_string(),
+    });
+    let opts = Value::Record(HashMap::from([
+        ("window".into(), Value::Int(3)),
+        ("threshold".into(), Value::Int(2)),
+    ]));
+    let result = call_viz_builtin("dotplot", vec![s1, s2, opts]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+// ── Alignment view MSA input ──────────────────────────────────
+
+#[test]
+fn test_alignment_view_msa_list() {
+    // MSA as list of aligned strings
+    let msa = Value::List(vec![
+        Value::Str("ATCG-ATCG".into()),
+        Value::Str("ATCGAATCG".into()),
+        Value::Str("AT-GAATCG".into()),
+    ]);
+    let result = call_viz_builtin("alignment_view", vec![msa]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+#[test]
+fn test_alignment_view_msa_many() {
+    // MSA with more sequences
+    let msa = Value::List(vec![
+        Value::Str("ATCG-ATCG".into()),
+        Value::Str("ATCGAATCG".into()),
+        Value::Str("AT-GAATCG".into()),
+        Value::Str("ATCG-ATCG".into()),
+    ]);
+    let result = call_viz_builtin("alignment_view", vec![msa]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+// ── Alignment view with complex CIGAR ─────────────────────────
+
+#[test]
+fn test_alignment_view_complex_cigar() {
+    let table = make_table(
+        vec!["qname", "flag", "rname", "pos", "mapq", "cigar"],
+        vec![
+            vec![
+                Value::Str("read1".into()),
+                Value::Int(0),
+                Value::Str("chr1".into()),
+                Value::Int(100),
+                Value::Int(60),
+                Value::Str("10M2I20M3D15M".into()),
+            ],
+            vec![
+                Value::Str("read2".into()),
+                Value::Int(0),
+                Value::Str("chr1".into()),
+                Value::Int(110),
+                Value::Int(40),
+                Value::Str("25M5S".into()),
+            ],
+            vec![
+                Value::Str("read3".into()),
+                Value::Int(16),
+                Value::Str("chr1".into()),
+                Value::Int(95),
+                Value::Int(60),
+                Value::Str("60M".into()),
+            ],
+        ],
+    );
+    let result = call_viz_builtin("alignment_view", vec![table]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+// ── Bar chart with options ────────────────────────────────────
+
+#[test]
+fn test_bar_chart_with_sort() {
+    let rec = Value::Record(HashMap::from([
+        ("alpha".into(), Value::Int(30)),
+        ("beta".into(), Value::Int(10)),
+        ("gamma".into(), Value::Int(50)),
+        ("delta".into(), Value::Int(20)),
+    ]));
+    let opts = Value::Record(HashMap::from([
+        ("sort".into(), Value::Bool(true)),
+    ]));
+    let result = call_viz_builtin("bar_chart", vec![rec, opts]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+#[test]
+fn test_bar_chart_with_limit() {
+    let mut map = HashMap::new();
+    for i in 0..50 {
+        map.insert(format!("item_{i}"), Value::Int(i));
+    }
+    let rec = Value::Record(map);
+    let opts = Value::Record(HashMap::from([
+        ("limit".into(), Value::Int(10)),
+    ]));
+    let result = call_viz_builtin("bar_chart", vec![rec, opts]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+#[test]
+fn test_bar_chart_list_input() {
+    let list = Value::List(vec![
+        Value::Float(10.0),
+        Value::Float(25.0),
+        Value::Float(15.0),
+        Value::Float(30.0),
+    ]);
+    let result = call_viz_builtin("bar_chart", vec![list]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+// ── Boxplot with options ──────────────────────────────────────
+
+#[test]
+fn test_boxplot_many_values() {
+    let list = Value::List(
+        (0..1000).map(|i| Value::Float((i as f64 * 0.7).sin())).collect(),
+    );
+    let result = call_viz_builtin("boxplot", vec![list]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+#[test]
+fn test_boxplot_two_values() {
+    let list = Value::List(vec![Value::Float(1.0), Value::Float(10.0)]);
+    let result = call_viz_builtin("boxplot", vec![list]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+// ── Heatmap ASCII with options ────────────────────────────────
+
+#[test]
+fn test_heatmap_ascii_large_table() {
+    let mut rows = Vec::new();
+    for i in 0..10 {
+        let mut row = Vec::new();
+        for j in 0..10 {
+            row.push(Value::Float((i * 10 + j) as f64));
+        }
+        rows.push(row);
+    }
+    let cols: Vec<&str> = vec!["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"];
+    let table = make_table(cols, rows);
+    let result = call_viz_builtin("heatmap_ascii", vec![table]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+#[test]
+fn test_heatmap_ascii_negative_and_positive() {
+    let table = make_table(
+        vec!["a", "b"],
+        vec![
+            vec![Value::Float(-10.0), Value::Float(10.0)],
+            vec![Value::Float(0.0), Value::Float(-5.0)],
+        ],
+    );
+    let result = call_viz_builtin("heatmap_ascii", vec![table]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+// ── Coverage with interval pairs ──────────────────────────────
+
+#[test]
+fn test_coverage_interval_pairs() {
+    // List of [start, end] pairs
+    let list = Value::List(vec![
+        Value::List(vec![Value::Int(0), Value::Int(100)]),
+        Value::List(vec![Value::Int(50), Value::Int(150)]),
+        Value::List(vec![Value::Int(200), Value::Int(300)]),
+    ]);
+    let result = call_viz_builtin("coverage", vec![list]).unwrap();
+    assert!(matches!(result, Value::Nil));
+}
+
+// ── Sparkline edge cases ──────────────────────────────────────
+
+#[test]
+fn test_sparkline_with_integers() {
+    let list = Value::List(vec![
+        Value::Int(1),
+        Value::Int(5),
+        Value::Int(3),
+        Value::Int(8),
+        Value::Int(2),
+    ]);
+    let result = call_viz_builtin("sparkline", vec![list]).unwrap();
+    if let Value::Str(s) = result {
+        assert_eq!(s.chars().count(), 5);
+    } else {
+        panic!("expected Str");
+    }
+}
+
+#[test]
+fn test_sparkline_mixed_int_float() {
+    let list = Value::List(vec![
+        Value::Int(1),
+        Value::Float(2.5),
+        Value::Int(4),
+        Value::Float(0.5),
+    ]);
+    let result = call_viz_builtin("sparkline", vec![list]).unwrap();
+    if let Value::Str(s) = result {
+        assert_eq!(s.chars().count(), 4);
+    } else {
+        panic!("expected Str");
+    }
+}
+
+// ── Unknown builtin ─────────────────────────────────────────────
+
 #[test]
 fn test_unknown_viz_builtin() {
     let result = call_viz_builtin("nonexistent", vec![]);

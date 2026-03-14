@@ -1,0 +1,51 @@
+=== Base Composition Analysis ===
+E. coli: GC=61.1%, A=2, T=2, G=5, C=6
+Human: GC=27.8%, A=7, T=7, G=2, C=3
+Thermus: GC=100.0%, A=0, T=0, G=9, C=9
+
+=== K-mer Analysis ===
+Sequence: ATCGATCGATCG
+3-mers: [ATC, TCG, CGA, GAT, ATC, TCG, CGA, GAT, ATC, TCG]
+
+3-mer frequencies: {ATC: 3, TCG: 3, CGA: 2, GAT: 2}
+
+=== K-mer Similarity (Jaccard) ===
+Seq1: ATCGATCGATCGATCG
+Seq2: ATCGATCGTTTTGATCG
+Shared 5-mers: 6
+Total unique 5-mers: 17
+K-mer similarity: 35.3%
+
+=== Motif Finding ===
+Sequence: ATGATCGATGATCGATGATCG
+ATG positions: [0, 9, 18]
+Restriction site sequence: ATCGGAATTCGATCGGGATCCATCG
+EcoRI sites: [4]
+BamHI sites: [14]
+
+=== Reverse Complement ===
+Forward:  5'-ATGCGATCGATCG-3'
+RevComp:  5'-CGATCGATCGCAT-3'
+Forward strand GAATTC hits: [4]
+Reverse strand GAATTC hits: [1]
+
+=== Codon Usage ===
+Human codons: {ATG: 1, GCT: 1, GCT: 1, TCT: 1, GAT: 1, AAA: 1, TGA: 1}
+E. coli codons: {ATG: 1, GCA: 1, GCG: 1, AGC: 1, GAT: 1, AAA: 1, TGA: 1}
+
+=== Pairwise Similarity Matrix ===
+seq1 | seq2 | similarity
+seq1 | seq1 | 1.0
+seq1 | seq2 | 0.353
+seq1 | seq3 | 0.0
+seq2 | seq1 | 0.353
+seq2 | seq2 | 1.0
+seq2 | seq3 | 0.0
+seq3 | seq1 | 0.0
+seq3 | seq2 | 0.0
+seq3 | seq3 | 1.0
+
+=== Dotplot ===
+Dotplot generated (SVG output)
+
+=== Analysis Complete ===

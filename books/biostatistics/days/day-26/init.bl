@@ -1,0 +1,71 @@
+# Day 26: Meta-Analysis
+# Data sources:
+#   PCSK9 loss-of-function variants and LDL cholesterol reduction
+#   Cohen et al. 2006 NEJM — PCSK9 variants and CHD risk in Dallas Heart Study
+#   Benn et al. 2010 JACC — PCSK9 R46L and ischemic heart disease
+#   Kathiresan et al. 2008 Nature Genetics — Common variants at 30 lipid loci
+#   Willer et al. 2013 Nature Genetics — Global Lipids Genetics Consortium
+#   Ference et al. 2016 JACC — Mendelian randomization PCSK9 and CHD
+#   Effect sizes approximate published beta coefficients for LDL reduction (mg/dL)
+
+println("Setting up Day 26: Meta-Analysis")
+mkdir("data")
+
+# ── File 1: Published GWAS/genetic studies of PCSK9 and LDL cholesterol ──
+# Beta = effect on LDL-C per copy of loss-of-function allele (mg/dL reduction)
+# Negative beta = LDL lowering (beneficial direction)
+let gwas_lines = ["study,first_author,year,journal,n_cases,n_controls,beta,se,p_value"]
+let gwas_data = [
+    # Cohen et al. 2006 — Dallas Heart Study + ARIC, PCSK9 Y142X/C679X
+    # 2.6% carriers had 28% lower LDL, 88% lower CHD risk
+    "DHS_ARIC,Cohen,2006,NEJM,3363,9524,-15.4,4.8,0.0013",
+
+    # Benn et al. 2010 — Copenhagen General Population Study, PCSK9 R46L
+    # ~12 mg/dL lower LDL in heterozygotes
+    "Copenhagen,Benn,2010,JACC,10474,45238,-12.2,1.9,0.0000001",
+
+    # Kathiresan et al. 2008 — GWAS meta-analysis, PCSK9 locus rs11591147
+    # Effect on LDL per allele
+    "GWAS_meta,Kathiresan,2008,NatGenet,19840,20861,-14.8,2.1,0.00000002",
+
+    # Global Lipids Genetics Consortium 2013 — largest GWAS meta
+    # PCSK9 locus effect from 188,577 individuals
+    "GLGC,Willer,2013,NatGenet,94595,93982,-13.5,0.8,0.0000000001",
+
+    # Ference et al. 2016 — Mendelian randomization, 26 studies
+    # Combined genetic score at PCSK9 locus
+    "MR_pooled,Ference,2016,JACC,62240,127299,-13.1,1.2,0.00000001"
+]
+for d in gwas_data {
+    gwas_lines = append(gwas_lines, d)
+}
+write_lines(gwas_lines, "data/gwas_studies.csv")
+
+# ── File 2: Same 5 studies + 3 small unpublished studies with null results ──
+# Demonstrates publication bias / funnel plot asymmetry
+let bias_lines = ["study,first_author,year,journal,n_cases,n_controls,beta,se,p_value"]
+# Include the 5 published studies
+for d in gwas_data {
+    bias_lines = append(bias_lines, d)
+}
+# Add 3 small unpublished studies with null / weak results (file-drawer problem)
+let unpublished = [
+    # Small hospital cohort — underpowered, null result
+    "Hospital_A,Unpub_A,2015,unpublished,120,380,-2.1,8.5,0.81",
+    # Small pilot study — weak trend, not significant
+    "Pilot_B,Unpub_B,2017,unpublished,85,255,-4.8,9.2,0.60",
+    # Student dissertation — very small sample, null
+    "Thesis_C,Unpub_C,2019,unpublished,45,135,1.2,12.8,0.93"
+]
+for u in unpublished {
+    bias_lines = append(bias_lines, u)
+}
+write_lines(bias_lines, "data/publication_bias_demo.csv")
+
+println("Created data/gwas_studies.csv")
+println("  5 published studies of PCSK9 variants and LDL cholesterol")
+println("  Cohen 2006, Benn 2010, Kathiresan 2008, Willer/GLGC 2013, Ference 2016")
+println("  Beta = LDL reduction in mg/dL per loss-of-function allele")
+println("Created data/publication_bias_demo.csv")
+println("  Same 5 studies + 3 small unpublished null results")
+println("  Demonstrates funnel plot asymmetry / publication bias")

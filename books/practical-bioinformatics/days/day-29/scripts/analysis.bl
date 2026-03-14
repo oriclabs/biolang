@@ -1,0 +1,153 @@
+let counts = read_tsv("data/counts.tsv")
+let samples = read_tsv("data/samples.tsv")
+let gene_info = read_tsv("data/gene_info.tsv")
+
+let sample_ids = samples |> map(|s| s.sample_id)
+let ctrl_ids = samples |> filter(|s| s.condition == "control") |> map(|s| s.sample_id)
+let treat_ids = samples |> filter(|s| s.condition == "treated") |> map(|s| s.sample_id)
+
+let min_total = 10
+let filtered = counts |> where(|row| {
+    let total = sample_ids |> map(|sid| int(row[sid])) |> sum()
+    total >= min_total
+})
+
+let lib_sizes = sample_ids |> map(|sid| {
+    counts |> map(|row| int(row[sid])) |> sum()
+})
+
+let cpm = filtered |> map(|row| {
+    let result = { gene: row.gene }
+    range(0, len(sample_ids)) |> each(|i| {
+        let sid = sample_ids[i]
+        result[sid] = round(float(int(row[sid])) / float(lib_sizes[i]) * 1000000.0, 2)
+    })
+    result
+})
+
+let de_results = cpm |> map(|row| {
+    let ctrl_vals = ctrl_ids |> map(|sid| row[sid])
+    let treat_vals = treat_ids |> map(|sid| row[sid])
+    let ctrl_mean = mean(ctrl_vals)
+    let treat_mean = mean(treat_vals)
+    let pseudocount = 0.01
+    let log2fc = log2((treat_mean + pseudocount) / (ctrl_mean + pseudocount))
+    let pval = try { t_test(ctrl_vals, treat_vals) } catch err { 1.0 }
+    {
+        gene: row.gene,
+        ctrl_mean: round(ctrl_mean, 2),
+        treat_mean: round(treat_mean, 2),
+        log2fc: round(log2fc, 4),
+        pvalue: pval,
+        direction: if log2fc > 0 { "up" } else { "down" }
+    }
+})
+
+let sorted_de = de_results |> sort_by(|a, b| {
+    if a.pvalue < b.pvalue { -1 }
+    else if a.pvalue > b.pvalue { 1 }
+    else { 0 }
+})
+
+let m = len(sorted_de)
+let padj_raw = range(0, m) |> map(|i| {
+    let adj = sorted_de[i].pvalue * float(m) / float(i + 1)
+    if adj > 1.0 { 1.0 } else { adj }
+})
+
+let padj = range(0, m) |> map(|_| 1.0)
+let running_min = 1.0
+range(0, m) |> each(|j| {
+    let i = m - 1 - j
+    if padj_raw[i] < running_min {
+        running_min = padj_raw[i]
+    }
+    padj[i] = running_min
+})
+
+let corrected = range(0, m) |> map(|i| {
+    let row = sorted_de[i]
+    {
+        gene: row.gene,
+        ctrl_mean: row.ctrl_mean,
+        treat_mean: row.treat_mean,
+        log2fc: row.log2fc,
+        pvalue: row.pvalue,
+        padj: round(padj[i], 6),
+        direction: row.direction
+    }
+})
+
+let fc_threshold = 1.0
+let fdr_threshold = 0.05
+
+let significant = corrected |> filter(|row| {
+    abs(row.log2fc) > fc_threshold and row.padj < fdr_threshold
+})
+
+let up_genes = significant |> filter(|row| row.direction == "up")
+let down_genes = significant |> filter(|row| row.direction == "down")
+
+let volcano_data = corrected |> map(|row| {
+    let neg_log10_p = if row.padj > 0.0 { -1.0 * log10(row.padj) } else { 10.0 }
+    { log2fc: row.log2fc, neg_log10_padj: round(neg_log10_p, 4) }
+})
+
+let volcano_svg = volcano(
+    volcano_data |> map(|r| r.log2fc),
+    volcano_data |> map(|r| r.neg_log10_padj),
+    "Drug Treatment: Volcano Plot",
+    "log2 Fold Change",
+    "-log10(adjusted p-value)"
+)
+write_lines([volcano_svg], "data/output/volcano.svg")
+
+let top_n = 20
+let top_genes = significant |> sort_by(|a, b| {
+    if a.padj < b.padj { -1 } else if a.padj > b.padj { 1 } else { 0 }
+})
+let top_genes = if len(top_genes) > top_n {
+    range(0, top_n) |> map(|i| top_genes[i])
+} else {
+    top_genes
+}
+let top_gene_names = top_genes |> map(|g| g.gene)
+
+let heatmap_data = cpm |> filter(|row| {
+    top_gene_names |> filter(|g| g == row.gene) |> len() > 0
+})
+let heatmap_matrix = heatmap_data |> map(|row| {
+    sample_ids |> map(|sid| row[sid])
+})
+let hm_svg = heatmap(
+    heatmap_matrix,
+    "Top DE Genes: Expression Heatmap",
+    heatmap_data |> map(|row| row.gene),
+    sample_ids
+)
+write_lines([hm_svg], "data/output/heatmap.svg")
+
+let de_table = significant |> to_table()
+write_tsv(de_table, "data/output/de_genes.tsv")
+
+let fc_values = significant |> map(|g| abs(g.log2fc))
+let summary_lines = [
+    "=== RNA-seq Differential Expression Summary ===",
+    "",
+    f"Total genes in count matrix: {len(counts)}",
+    f"Genes after low-count filter: {len(filtered)}",
+    f"Significant DE genes (|log2FC| > {fc_threshold}, FDR < {fdr_threshold}): {len(significant)}",
+    f"  Up-regulated: {len(up_genes)}",
+    f"  Down-regulated: {len(down_genes)}",
+    "",
+    f"Mean |log2FC| of DE genes: {round(mean(fc_values), 2)}",
+    f"Median |log2FC| of DE genes: {round(median(fc_values), 2)}",
+    f"Max |log2FC|: {round(max(fc_values), 2)}",
+    "",
+    "Output files:",
+    "  data/output/de_genes.tsv       - Significant DE gene table",
+    "  data/output/volcano.svg        - Volcano plot",
+    "  data/output/heatmap.svg        - Top gene heatmap",
+    "  data/output/summary.txt        - This summary"
+]
+write_lines(summary_lines, "data/output/summary.txt")

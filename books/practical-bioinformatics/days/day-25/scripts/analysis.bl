@@ -1,0 +1,155 @@
+let classify_error = |err_msg| {
+    if contains(err_msg, "not found") { "missing" }
+    else if contains(err_msg, "permission") { "access" }
+    else if contains(err_msg, "timeout") { "transient" }
+    else if contains(err_msg, "parse") { "data_corrupt" }
+    else if contains(err_msg, "disk") { "resource" }
+    else { "unknown" }
+}
+
+let create_error_log = || { [] }
+
+let log_error = |log, timestamp, source, severity, message| {
+    log + [{
+        timestamp: timestamp,
+        source: source,
+        severity: severity,
+        message: message
+    }]
+}
+
+let save_error_log = |log, path| {
+    if len(log) > 0 {
+        let table = log |> to_table()
+        write_csv(table, path)
+    } else {
+        write_lines(["timestamp,source,severity,message"], path)
+    }
+}
+
+let ensure_dir = |path| {
+    try {
+        mkdir(path)
+    } catch err {
+        if contains(str(err), "exists") == false {
+            error(f"Cannot create directory {path}: {err}")
+        }
+    }
+}
+
+let retry = |f, max_attempts| {
+    let last_error = ""
+    let result = nil
+    let succeeded = false
+
+    range(0, max_attempts) |> each(|i| {
+        if succeeded == false {
+            try {
+                result = f()
+                succeeded = true
+            } catch err {
+                last_error = err
+                sleep(500)
+            }
+        }
+    })
+
+    if succeeded { result }
+    else { error(f"Failed after {max_attempts} attempts: {last_error}") }
+}
+
+let summarize_run = |total, successes, failures, errors| {
+    let success_rate = if total > 0 { (successes * 100) / total } else { 0 }
+    {
+        total_samples: total,
+        succeeded: successes,
+        failed: failures,
+        success_rate_pct: success_rate,
+        error_count: len(errors),
+        status: if failures == 0 { "COMPLETE" }
+                else if success_rate > 90 { "PARTIAL_SUCCESS" }
+                else { "FAILED" }
+    }
+}
+
+let input_dir = "data/fastq"
+let output_dir = "data/output"
+
+ensure_dir(output_dir)
+
+let errors = create_error_log()
+let results = []
+
+let files = try {
+    list_dir(input_dir) |> filter(|f| ends_with(f, ".fastq"))
+} catch err {
+    let ts = format_date(now(), "%Y-%m-%d %H:%M:%S")
+    errors = log_error(errors, ts, input_dir, "FATAL", f"Cannot list directory: {err}")
+    save_error_log(errors, output_dir + "/error_log.csv")
+    error(f"Cannot access input directory: {err}")
+}
+
+files |> each(|file| {
+    let path = input_dir + "/" + file
+    let ts = format_date(now(), "%Y-%m-%d %H:%M:%S")
+
+    try {
+        let lines = read_lines(path)
+
+        if len(lines) == 0 {
+            errors = log_error(errors, ts, file, "WARN", "Empty file, skipping")
+        } else {
+            let records = try { read_fastq(path) } catch err {
+                errors = log_error(errors, ts, file, "ERROR", f"FASTQ parse failed: {err}")
+                error(err)
+            }
+
+            if len(records) == 0 {
+                errors = log_error(errors, ts, file, "WARN", "No records found, skipping")
+            } else {
+                let valid = records |> filter(|r| {
+                    try { len(r.sequence) == len(r.quality) } catch err { false }
+                })
+
+                let filtered = try { valid |> quality_filter(20) } catch err { valid }
+
+                let stats = {
+                    file: file,
+                    total_records: len(records),
+                    valid_records: len(valid),
+                    passed_qc: len(filtered),
+                    pct_passed: if len(valid) > 0 { (len(filtered) * 100) / len(valid) } else { 0 },
+                    mean_gc: if len(filtered) > 0 {
+                        filtered |> map(|r| gc_content(r.sequence)) |> mean()
+                    } else { 0.0 }
+                }
+
+                results = results + [stats]
+
+                if len(valid) < len(records) {
+                    let dropped = len(records) - len(valid)
+                    errors = log_error(errors, ts, file, "WARN",
+                        f"{dropped} records had seq/qual length mismatch")
+                }
+
+                if len(filtered) == 0 {
+                    errors = log_error(errors, ts, file, "WARN",
+                        "All records filtered out by quality threshold")
+                }
+            }
+        }
+    } catch err {
+        let ts2 = format_date(now(), "%Y-%m-%d %H:%M:%S")
+        errors = log_error(errors, ts2, file, "ERROR", f"Processing failed: {err}")
+    }
+})
+
+let summary = summarize_run(len(files), len(results), len(files) - len(results), errors)
+
+if len(results) > 0 {
+    let table = results |> to_table()
+    write_csv(table, output_dir + "/qc_results.csv")
+}
+
+save_error_log(errors, output_dir + "/error_log.csv")
+write_lines([json_encode(summary)], output_dir + "/summary.json")

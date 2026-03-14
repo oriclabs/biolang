@@ -37,6 +37,7 @@ Thumbs.db
 
 # Other books — under review, ignore entirely
 /website/books/biostatistics/
+/website/books/biostatisticsold/
 /website/biostatistics/
 /website/clinical-genomics/
 /website/data-wrangling/
@@ -53,6 +54,8 @@ Thumbs.db
 # Benchmark generated data, environments, and timestamped results
 /benchmarks/data/
 /benchmarks/data_real/
+/benchmarks/data_large/
+/benchmarks/data_large_real/
 /benchmarks/correctness/real_data/
 /benchmarks/.venv/
 /benchmarks/.RData
@@ -61,6 +64,17 @@ Thumbs.db
 # Keep latest results, ignore timestamped runs
 /benchmarks/results/*
 !/benchmarks/results/latest/
+
+# Books — ignore all except biostatistics, language, practical-bioinformatics
+/books/*
+!/books/biostatistics/
+!/books/language/
+!/books/practical-bioinformatics/
+
+# Test artifacts
+/website/tests/
+playwright-report/
+test-results/
 
 # Node modules (website build)
 node_modules/

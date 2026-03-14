@@ -1,0 +1,69 @@
+============================================================
+Day 6: FASTQ Quality Control Pipeline
+============================================================
+
+--- 1. Raw Data Summary ---
+Total reads: 100
+Total bases: 15000
+Mean length: 150.0
+Mean quality: 28.4
+GC content: 48.2%
+
+--- 2. Per-Read Quality Analysis ---
+Quality range: 12.3 - 38.7
+Mean quality: 28.4
+Quality Distribution
+  Q10-15: ####          (8)
+  Q15-20: ########      (15)
+  Q20-25: ##########    (22)
+  Q25-30: ############  (28)
+  Q30-35: ##########    (19)
+  Q35-40: ######        (8)
+
+--- 3. Length Distribution ---
+Length range: 30 - 150
+Mean length: 146.4
+Short reads (< 50 bp): 3
+
+--- 4. Standard Filtering ---
+Before: 100 reads
+After:  82 reads
+Kept:   82.0%
+
+--- 5. Custom Filtering (length + quality + GC) ---
+After all filters: 78 reads
+
+--- 6. Quality Trimming ---
+Mean length before: 146.4
+Mean length after:  138.6
+
+--- 7. Adapter Detection ---
+Detected adapters: [AGATCGGAAGAGC, CTGTCTCTTATACACATCT]
+
+--- 8. K-mer Analysis ---
+5-mers found in first read: 146
+Top 10 most frequent 5-mers:
+ kmer  | count
+ ATCGA | 3
+ TCGAT | 3
+ CGATC | 2
+ GATCG | 2
+ GCTAG | 2
+ TAGCA | 2
+ ACGTA | 1
+ CGTAC | 1
+ GTACG | 1
+ TACGT | 1
+
+--- 9. Clean Read Quality Summary ---
+Clean read mean quality: 30.6
+Clean read min quality:  20.3
+Clean read mean GC: 49.1%
+
+--- 10. Write Clean Reads ---
+Wrote 82 clean reads to results/clean_reads.fastq
+Q30 reads: 27/100 (27.0%)
+
+============================================================
+Day 6 complete! Your first sequencing QC pipeline.
+============================================================

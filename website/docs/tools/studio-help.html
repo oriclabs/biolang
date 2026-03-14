@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="tools/studio"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="cli.html" class="hover:text-violet-400">Tools</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Studio</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>BioLang Studio</h1>
+        <p>
+          BioLang Studio is a bioinformatics IDE that runs in your browser. Search
+          NCBI, UniProt, and PDB databases directly, open local files, write code in a full
+          editor with variable inspector, and analyze everything with BioLang — all in one interface.
+        </p>
+
+        <h2>Tabs</h2>
+        <ul>
+          <li><strong>NCBI</strong> — Search NCBI E-utilities (Gene, Nucleotide, Protein, PubMed databases). Filter by database type. Click a result to see full details. "Send to Editor" loads the accession into BioLang. "Fetch FASTA" downloads the sequence.</li>
+          <li><strong>UniProt</strong> — Search the UniProt protein knowledge base. Filter by Reviewed (Swiss-Prot) or Human organism. View protein details, function, GO terms, and fetch FASTA sequences.</li>
+          <li><strong>PDB</strong> — Search the RCSB Protein Data Bank for 3D structures. View resolution, method, organism, chain details. Fetch FASTA sequences for structural analysis.</li>
+          <li><strong>Files</strong> — Open local bioinformatics files via drag-and-drop or file picker. Files are stored in browser memory and available to the Editor via <code>read_csv()</code>, <code>read_fasta()</code>, etc.</li>
+          <li><strong>Editor</strong> — Full BioLang code editor with output panel, variable inspector, and REPL bar. Run code with <kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Ctrl</kbd>+<kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Enter</kbd>. Data fetched from databases or loaded from files is available as variables.</li>
+        </ul>
+
+        <h2>Local File Access</h2>
+        <ul>
+          <li>Files opened via the Files tab are registered in an in-memory map</li>
+          <li>Use <code>read_csv("filename.csv")</code> or <code>read_fasta("sequences.fa")</code> to access them by name in the Editor</li>
+          <li>Clicking a file auto-inserts the appropriate read statement</li>
+          <li>Files never leave your browser — they're read via the File API and stored in JavaScript memory</li>
+        </ul>
+
+        <h2>Resizable Panels</h2>
+        <ul>
+          <li>Drag the divider between search results and detail panel to resize the split</li>
+          <li>In the Editor tab, drag dividers between code, output, and variables panels</li>
+          <li>All resizers support touch on mobile devices</li>
+        </ul>
+
+        <h2>Keyboard Shortcuts</h2>
+        <div class="not-prose overflow-x-auto my-4">
+          <table class="w-full text-sm text-left">
+            <thead class="text-violet-400 border-b border-slate-700">
+              <tr>
+                <th class="py-3 px-4">Shortcut</th>
+                <th class="py-3 px-4">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Tab</kbd> / <kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Shift</kbd>+<kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Tab</kbd></td>
+                <td class="py-3 px-4">Switch tabs</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">/</kbd></td>
+                <td class="py-3 px-4">Focus search</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Escape</kbd></td>
+                <td class="py-3 px-4">Close detail panel</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Ctrl</kbd>+<kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Enter</kbd></td>
+                <td class="py-3 px-4">Run code</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">j</kbd> / <kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">k</kbd></td>
+                <td class="py-3 px-4">Navigate results (when not in input)</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">Enter</kbd></td>
+                <td class="py-3 px-4">Select result</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">e</kbd></td>
+                <td class="py-3 px-4">Send to editor</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4"><kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">&uarr;</kbd> / <kbd class="px-2 py-1 bg-slate-800 rounded text-xs font-mono">&darr;</kbd> in REPL bar</td>
+                <td class="py-3 px-4">History navigation</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Database APIs</h2>
+        <p>
+          All searches use browser <code>fetch()</code> directly to CORS-enabled public APIs:
+        </p>
+        <ul>
+          <li>NCBI E-utilities: <code>eutils.ncbi.nlm.nih.gov</code></li>
+          <li>UniProt REST: <code>rest.uniprot.org</code></li>
+          <li>RCSB PDB: <code>search.rcsb.org</code> and <code>data.rcsb.org</code></li>
+        </ul>
+        <p>
+          No proxy server needed — queries go directly from your browser to the database.
+        </p>
+
+        <h2>PWA &amp; Offline</h2>
+        <ul>
+          <li>Installable as a PWA. Database searches require internet, but the editor and local file analysis work offline.</li>
+          <li>Theme toggle (dark/light) preserved across sessions.</li>
+        </ul>
+
+        <p class="mt-8">
+          <a href="../../studio.html" class="text-violet-400 hover:text-violet-300">Open BioLang Studio &rarr;</a>
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <div></div>
+        <div></div>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

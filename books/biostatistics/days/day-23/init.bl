@@ -1,0 +1,69 @@
+# Day 23: Resampling Methods (Bootstrap and Permutation)
+# Data sources:
+#   Tumor xenograft data patterns from typical preclinical oncology studies
+#   IC50 values from Garnett et al. 2012 Nature — Genomics of Drug Sensitivity in Cancer (GDSC)
+#   Cell line names from Cancer Cell Line Encyclopedia (CCLE, Barretina et al. 2012 Nature)
+
+println("Setting up Day 23: Resampling Methods")
+mkdir("data")
+
+# ── File 1: Small xenograft study — 6 treatment + 6 control mice ──
+# Typical subcutaneous xenograft tumor volumes (mm³) at day 21
+# Control: vehicle-treated, mean ~800 mm³ with high variance
+# Treatment: drug X at 50 mg/kg BID, mean ~500 mm³
+let small_lines = ["mouse_id,group,tumor_volume_mm3"]
+# Control mice — vehicle-treated MCF7 xenografts
+let ctrl_vols = [923.4, 712.8, 845.1, 1087.2, 658.3, 789.6]
+for i in range(0, 6) {
+    small_lines = append(small_lines, f"CTRL_{i + 1},control,{ctrl_vols[i]}")
+}
+# Treatment mice — drug X (CDK4/6 inhibitor pattern like palbociclib)
+let trt_vols = [412.5, 567.3, 489.1, 378.2, 621.8, 445.9]
+for i in range(0, 6) {
+    small_lines = append(small_lines, f"TRT_{i + 1},treatment,{trt_vols[i]}")
+}
+write_lines(small_lines, "data/small_sample.csv")
+
+# ── File 2: Drug response IC50 data with outliers ──
+# IC50 values (micromolar) for lapatinib across 20 breast cancer cell lines
+# Based on GDSC screening patterns — most sensitive, few resistant outliers
+let ic50_lines = ["cell_line,ic50_um,subtype,erbb2_status"]
+let cell_lines = [
+    "BT474", "SKBR3", "AU565", "HCC1954", "MDA-MB-361",
+    "HCC1419", "EFM192A", "SUM190PT", "UACC812", "HCC202",
+    "ZR75_1", "T47D", "MCF7", "MDA-MB-231", "SUM159PT",
+    "HCC1937", "BT549", "HS578T", "MDA-MB-468", "CAL51"
+]
+# IC50 values: HER2+ lines sensitive (0.02-0.5 uM), TNBC lines resistant
+# Two extreme outliers: MDA-MB-468 and CAL51 (resistant, IC50 > 20 uM)
+let ic50_vals = [
+    0.028, 0.041, 0.065, 0.12, 0.18,
+    0.22, 0.35, 0.48, 0.55, 0.72,
+    1.85, 2.41, 3.12, 4.58, 5.23,
+    6.89, 8.15, 9.72, 28.5, 42.3
+]
+# Molecular subtypes from CCLE annotations
+let subtypes = [
+    "HER2+", "HER2+", "HER2+", "HER2+", "Luminal_HER2+",
+    "HER2+", "HER2+", "HER2+", "HER2+", "HER2+",
+    "Luminal_A", "Luminal_A", "Luminal_A", "TNBC_mesenchymal", "TNBC_mesenchymal",
+    "TNBC_basal", "TNBC_mesenchymal", "TNBC_mesenchymal", "TNBC_basal", "TNBC_mesenchymal"
+]
+let erbb2 = [
+    "amplified", "amplified", "amplified", "amplified", "amplified",
+    "amplified", "amplified", "amplified", "amplified", "amplified",
+    "normal", "normal", "normal", "normal", "normal",
+    "normal", "normal", "normal", "normal", "normal"
+]
+for i in range(0, 20) {
+    ic50_lines = append(ic50_lines, f"{cell_lines[i]},{ic50_vals[i]},{subtypes[i]},{erbb2[i]}")
+}
+write_lines(ic50_lines, "data/drug_response_outlier.csv")
+
+println("Created data/small_sample.csv")
+println("  12 mice (6 control, 6 treatment), tumor volumes in mm3")
+println("  Control mean: ~836 mm3, Treatment mean: ~486 mm3")
+println("Created data/drug_response_outlier.csv")
+println("  20 cell lines with lapatinib IC50 values (uM)")
+println("  Includes 2 extreme outliers (MDA-MB-468: 28.5, CAL51: 42.3)")
+println("  Source: GDSC/CCLE drug sensitivity patterns")

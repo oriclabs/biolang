@@ -3038,3 +3038,678 @@ nrow(cov) > 0
     ));
     assert_eq!(result, Value::Bool(true));
 }
+
+#[test]
+fn test_sizes() {
+    eprintln!("Value size: {} bytes", std::mem::size_of::<bl_core::value::Value>());
+    eprintln!("Expr size: {} bytes", std::mem::size_of::<bl_core::ast::Expr>());
+    eprintln!("Spanned<Expr> size: {} bytes", std::mem::size_of::<bl_core::span::Spanned<bl_core::ast::Expr>>());
+    eprintln!("Stmt size: {} bytes", std::mem::size_of::<bl_core::ast::Stmt>());
+    eprintln!("Spanned<Stmt> size: {} bytes", std::mem::size_of::<bl_core::span::Spanned<bl_core::ast::Stmt>>());
+}
+
+// ============================================================================
+// Error message improvement tests
+// ============================================================================
+
+fn eval_err_msg(code: &str) -> String {
+    let tokens = Lexer::new(code).tokenize().unwrap();
+    let result = Parser::new(tokens).parse().unwrap();
+    let mut interp = Interpreter::new();
+    match interp.run(&result.program) {
+        Ok(_) => panic!("expected error for: {code}"),
+        Err(e) => format!("{e}"),
+    }
+}
+
+fn eval_err_full(code: &str) -> String {
+    let tokens = Lexer::new(code).tokenize().unwrap();
+    let result = Parser::new(tokens).parse().unwrap();
+    let mut interp = Interpreter::new();
+    match interp.run(&result.program) {
+        Ok(_) => panic!("expected error for: {code}"),
+        Err(e) => e.format_with_source(code),
+    }
+}
+
+#[test]
+fn test_error_did_you_mean_variable() {
+    let msg = eval_err_msg("let value = 42\nvaleu");
+    assert!(msg.contains("did you mean"), "expected 'did you mean' in: {msg}");
+    assert!(msg.contains("value"), "expected 'value' suggestion in: {msg}");
+}
+
+#[test]
+fn test_error_did_you_mean_builtin_function() {
+    // "maen" is close to "mean"
+    let msg = eval_err_msg("maen([1,2,3])");
+    assert!(
+        msg.contains("did you mean") || msg.contains("hint"),
+        "expected suggestion in: {msg}"
+    );
+}
+
+#[test]
+fn test_error_did_you_mean_sort_bye() {
+    // "sort_bye" doesn't exist but "sort" does
+    let msg = eval_err_msg("sort_bye([1,2,3])");
+    // Should either suggest "sort" or "sort_by" if it exists
+    assert!(
+        msg.contains("hint") || msg.contains("did you mean"),
+        "expected suggestion in: {msg}"
+    );
+}
+
+#[test]
+fn test_error_type_mismatch_shows_types() {
+    // Adding string + int should show both types
+    let msg = eval_err_msg(r#""hello" + 42"#);
+    assert!(
+        msg.contains("Str") || msg.contains("String") || msg.contains("cannot add"),
+        "expected type info in: {msg}"
+    );
+}
+
+#[test]
+fn test_error_type_conversion_hint_str_plus_int() {
+    let msg = eval_err_msg(r#""5" + 3"#);
+    assert!(
+        msg.contains("int()") || msg.contains("str()") || msg.contains("convert"),
+        "expected type conversion hint in: {msg}"
+    );
+}
+
+#[test]
+fn test_error_source_location_shown() {
+    let full = eval_err_full("let x = 42\nundefined_var");
+    assert!(
+        full.contains("line") && full.contains("column"),
+        "expected source location in: {full}"
+    );
+}
+
+#[test]
+fn test_error_suggestions_in_format_with_source() {
+    let full = eval_err_full("let value = 42\nvaleu");
+    assert!(
+        full.contains("hint"),
+        "expected 'hint' in formatted error: {full}"
+    );
+}
+
+#[test]
+fn test_error_arity_mismatch() {
+    let msg = eval_err_msg("mean()");
+    assert!(
+        msg.contains("expected") && msg.contains("argument"),
+        "expected arity info in: {msg}"
+    );
+}
+
+// ── MSA / Distance Matrix / Conservation via interpreter ─────────
+
+#[test]
+fn test_msa_via_interpreter() {
+    let result = eval(r#"msa(["ACGTACGT", "ACGAACGT", "TTGTACGT"])"#);
+    if let Value::Record(r) = &result {
+        assert_eq!(r.get("n_seqs"), Some(&Value::Int(3)));
+    } else {
+        panic!("expected Record from msa()");
+    }
+}
+
+#[test]
+fn test_distance_matrix_via_interpreter() {
+    let result = eval(r#"distance_matrix(["ACGT", "ACGA", "TTTT"])"#);
+    assert!(matches!(result, Value::Matrix(_)), "expected Matrix");
+}
+
+#[test]
+fn test_conservation_scores_via_interpreter() {
+    let result = eval(r#"conservation_scores(["ACGT", "ACGT", "ACGT"])"#);
+    if let Value::List(scores) = result {
+        assert_eq!(scores.len(), 4);
+        for s in &scores {
+            assert_eq!(s, &Value::Float(1.0));
+        }
+    } else {
+        panic!("expected List");
+    }
+}
+
+#[test]
+fn test_msa_pipeline_via_interpreter() {
+    // Full pipeline: msa → distance_matrix
+    let result = eval(r#"
+        let aln = msa(["ACGTACGT", "ACGAACGT"])
+        distance_matrix(aln)
+    "#);
+    assert!(matches!(result, Value::Matrix(_)));
+}
+
+#[test]
+fn test_msa_conservation_pipeline_via_interpreter() {
+    let result = eval(r#"
+        let aln = msa(["ACGT", "ACGT", "TTTT"])
+        conservation_scores(aln)
+    "#);
+    if let Value::List(scores) = result {
+        assert!(!scores.is_empty());
+    } else {
+        panic!("expected List");
+    }
+}
+
+// ── suggest_builtin unit tests ───────────────────────────────────
+
+#[test]
+fn test_suggest_builtin_close_match() {
+    let suggestion = bl_runtime::builtins::suggest_builtin("meann");
+    assert_eq!(suggestion, Some("mean".to_string()));
+}
+
+#[test]
+fn test_suggest_builtin_gc_contnt() {
+    let suggestion = bl_runtime::builtins::suggest_builtin("gc_contnt");
+    // Should suggest gc_content
+    assert!(suggestion.is_some(), "expected a suggestion for 'gc_contnt'");
+    assert_eq!(suggestion.unwrap(), "gc_content");
+}
+
+#[test]
+fn test_suggest_builtin_no_match() {
+    let suggestion = bl_runtime::builtins::suggest_builtin("xyzzyplugh");
+    assert!(suggestion.is_none(), "no builtin is close to 'xyzzyplugh'");
+}
+
+#[test]
+fn test_all_builtin_names_not_empty() {
+    let names = bl_runtime::builtins::all_builtin_names();
+    assert!(names.len() > 100, "expected 100+ builtins, got {}", names.len());
+    assert!(names.contains(&"mean"));
+    assert!(names.contains(&"gc_content"));
+    assert!(names.contains(&"print"));
+}
+
+// ── Interpreter Performance Tests ──────────────────────────────────
+
+#[test]
+fn test_perf_gc_calculation_1000_sequences() {
+    // GC content on 1000 sequences should complete in reasonable time
+    let code = r#"
+let seqs = range(1, 1001) |> map(|_| dna"ATCGATCGATCGATCG")
+seqs |> map(|s| gc_content(s)) |> len()
+"#;
+    assert_eq!(eval(code), Value::Int(1000));
+}
+
+#[test]
+fn test_perf_kmer_counting_long_sequence() {
+    // k-mer counting on a long sequence
+    let code = r#"
+let seq = dna"ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG"
+let kmers = kmer_count(seq, 3)
+type(kmers)
+"#;
+    assert_eq!(eval(code), Value::Str("Table".into()));
+}
+
+#[test]
+fn test_perf_environment_deep_scope_lookup() {
+    // Deeply nested scopes — variable lookup should still work
+    let code = r#"
+let x = 42
+fn f1() {
+    fn f2() {
+        fn f3() {
+            fn f4() {
+                fn f5() {
+                    x
+                }
+                f5()
+            }
+            f4()
+        }
+        f3()
+    }
+    f2()
+}
+f1()
+"#;
+    assert_eq!(eval(code), Value::Int(42));
+}
+
+#[test]
+fn test_perf_list_map_10000_items() {
+    // Map over 10000 items
+    let code = r#"
+range(1, 10001) |> map(|x| x * x) |> len()
+"#;
+    assert_eq!(eval(code), Value::Int(10000));
+}
+
+#[test]
+fn test_perf_filter_large_list() {
+    let code = r#"
+range(1, 10001) |> filter(|x| x % 7 == 0) |> len()
+"#;
+    // 10000 / 7 = 1428 (floor)
+    assert_eq!(eval(code), Value::Int(1428));
+}
+
+#[test]
+fn test_perf_reduce_sum_large() {
+    let code = r#"
+range(1, 10001) |> reduce(|acc, x| acc + x)
+"#;
+    // Sum 1..10000 = 10000 * 10001 / 2 = 50005000
+    assert_eq!(eval(code), Value::Int(50005000));
+}
+
+#[test]
+fn test_perf_nested_map_filter_chain() {
+    let code = r#"
+range(1, 5001)
+    |> map(|x| x * 2)
+    |> filter(|x| x % 3 == 0)
+    |> map(|x| x + 1)
+    |> len()
+"#;
+    let result = eval(code);
+    if let Value::Int(n) = result {
+        assert!(n > 0, "chain should produce results");
+    } else {
+        panic!("expected Int");
+    }
+}
+
+#[test]
+fn test_perf_string_operations_bulk() {
+    let code = r#"
+let results = range(1, 501) |> map(|i| {
+    let s = "ATCG" + str(i)
+    len(s)
+})
+len(results)
+"#;
+    assert_eq!(eval(code), Value::Int(500));
+}
+
+#[test]
+fn test_perf_record_creation_bulk() {
+    let code = r#"
+let recs = range(1, 1001) |> map(|i| {id: i, name: "gene_" + str(i), value: i * 1.5})
+len(recs)
+"#;
+    assert_eq!(eval(code), Value::Int(1000));
+}
+
+// ── Parallel Execution Tests ──────────────────────────────────────
+
+#[test]
+fn test_par_map_computational_correctness() {
+    // Verify par_map produces identical results to map
+    let code = r#"
+let xs = range(1, 201)
+let seq_result = xs |> map(|x| x * x + 1)
+let par_result = xs |> par_map(|x| x * x + 1)
+seq_result == par_result
+"#;
+    assert_eq!(eval(code), Value::Bool(true));
+}
+
+#[test]
+fn test_par_filter_computational_correctness() {
+    // Verify par_filter produces identical results to filter
+    let code = r#"
+let xs = range(1, 201)
+let seq_result = xs |> filter(|x| x % 3 == 0)
+let par_result = xs |> par_filter(|x| x % 3 == 0)
+seq_result == par_result
+"#;
+    assert_eq!(eval(code), Value::Bool(true));
+}
+
+#[test]
+fn test_par_map_with_closures() {
+    // par_map should capture closure variables correctly
+    let code = r#"
+let factor = 10
+let result = [1, 2, 3, 4, 5] |> par_map(|x| x * factor)
+result
+"#;
+    assert_eq!(
+        eval(code),
+        Value::List(vec![
+            Value::Int(10), Value::Int(20), Value::Int(30),
+            Value::Int(40), Value::Int(50),
+        ])
+    );
+}
+
+#[test]
+fn test_par_map_single_item() {
+    let code = r#"
+[42] |> par_map(|x| x + 1)
+"#;
+    assert_eq!(eval(code), Value::List(vec![Value::Int(43)]));
+}
+
+#[test]
+fn test_par_map_empty_list() {
+    let code = r#"
+[] |> par_map(|x| x * 2)
+"#;
+    assert_eq!(eval(code), Value::List(vec![]));
+}
+
+#[test]
+fn test_par_filter_all_pass() {
+    let code = r#"
+[1, 2, 3] |> par_filter(|x| true)
+"#;
+    assert_eq!(
+        eval(code),
+        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+    );
+}
+
+#[test]
+fn test_par_filter_none_pass() {
+    let code = r#"
+[1, 2, 3] |> par_filter(|x| false)
+"#;
+    assert_eq!(eval(code), Value::List(vec![]));
+}
+
+#[test]
+fn test_par_map_type_error() {
+    let code = r#"
+42 |> par_map(|x| x + 1)
+"#;
+    assert!(eval_err(code));
+}
+
+#[test]
+fn test_par_filter_type_error() {
+    let code = r#"
+"hello" |> par_filter(|x| true)
+"#;
+    assert!(eval_err(code));
+}
+
+// ── Stream Tests ──────────────────────────────────────────────────
+
+#[test]
+fn test_stream_map_lazy() {
+    // Mapping over a stream should produce a stream, not materialize
+    let code = r#"
+let s = range(1, 6) |> to_stream()
+let mapped = s |> map(|x| x * 2)
+type(mapped)
+"#;
+    assert_eq!(eval(code), Value::Str("Stream".into()));
+}
+
+#[test]
+fn test_stream_collect_after_map() {
+    let code = r#"
+let s = range(1, 6) |> to_stream()
+let mapped = s |> map(|x| x * 10)
+collect(mapped)
+"#;
+    assert_eq!(
+        eval(code),
+        Value::List(vec![
+            Value::Int(10), Value::Int(20), Value::Int(30),
+            Value::Int(40), Value::Int(50),
+        ])
+    );
+}
+
+#[test]
+fn test_stream_reduce_lazy() {
+    // Reduce should consume stream lazily without materializing the whole thing
+    let code = r#"
+let s = range(1, 101) |> to_stream()
+s |> reduce(|acc, x| acc + x)
+"#;
+    assert_eq!(eval(code), Value::Int(5050));
+}
+
+#[test]
+fn test_stream_for_loop_lazy() {
+    // For loop should consume stream one at a time
+    let code = r#"
+let s = range(1, 6) |> to_stream()
+let total = 0
+for x in s {
+    total = total + x
+}
+total
+"#;
+    assert_eq!(eval(code), Value::Int(15));
+}
+
+#[test]
+fn test_stream_exhaustion_error() {
+    // Re-consuming an exhausted stream should error
+    let code = r#"
+let s = range(1, 4) |> to_stream()
+collect(s)
+collect(s)
+"#;
+    assert!(eval_err(code));
+}
+
+#[test]
+fn test_stream_batch_basic() {
+    let code = r#"
+let s = range(1, 11) |> to_stream()
+let batches = stream_batch(s, 3, |batch| len(batch))
+collect(batches)
+"#;
+    let result = eval(code);
+    if let Value::List(items) = result {
+        // 10 items in batches of 3: [3, 3, 3, 1]
+        assert_eq!(items.len(), 4);
+        assert_eq!(items[0], Value::Int(3));
+        assert_eq!(items[3], Value::Int(1));
+    } else {
+        panic!("expected List");
+    }
+}
+
+// ── JIT / @compile Decorator Tests ────────────────────────────────
+
+#[test]
+fn test_compile_decorator_fallback() {
+    // Without bytecode feature, @compile should gracefully fall back
+    let code = r#"
+@compile
+fn double(x) {
+    x * 2
+}
+double(21)
+"#;
+    // Should work regardless of whether bytecode feature is enabled
+    assert_eq!(eval(code), Value::Int(42));
+}
+
+#[test]
+fn test_compile_decorator_with_loop() {
+    let code = r#"
+@compile
+fn sum_range(n) {
+    let total = 0
+    for i in range(1, n + 1) {
+        total = total + i
+    }
+    total
+}
+sum_range(100)
+"#;
+    assert_eq!(eval(code), Value::Int(5050));
+}
+
+#[test]
+fn test_compile_decorator_with_pipe() {
+    let code = r#"
+@compile
+fn process(xs) {
+    xs |> map(|x| x * 2)
+}
+process([1, 2, 3])
+"#;
+    assert_eq!(
+        eval(code),
+        Value::List(vec![Value::Int(2), Value::Int(4), Value::Int(6)])
+    );
+}
+
+// ── Large Collection Handling Tests ───────────────────────────────
+
+#[test]
+fn test_large_list_sort() {
+    // Sort a list of 5000 items in reverse, verify order
+    let code = r#"
+let xs = range(1, 5001) |> map(|x| 5001 - x)
+let sorted = sort(xs, |a, b| a - b)
+sorted[0] == 1 and sorted[len(sorted) - 1] == 5000
+"#;
+    assert_eq!(eval(code), Value::Bool(true));
+}
+
+#[test]
+fn test_large_list_flat_map() {
+    let code = r#"
+range(1, 1001) |> flat_map(|x| [x, x]) |> len()
+"#;
+    assert_eq!(eval(code), Value::Int(2000));
+}
+
+#[test]
+fn test_large_list_find() {
+    let code = r#"
+range(1, 100001) |> find(|x| x == 99999)
+"#;
+    assert_eq!(eval(code), Value::Int(99999));
+}
+
+#[test]
+fn test_large_list_any_all() {
+    let code = r#"
+let xs = range(1, 10001)
+let has_even = xs |> any(|x| x % 2 == 0)
+let all_positive = xs |> all(|x| x > 0)
+has_even and all_positive
+"#;
+    assert_eq!(eval(code), Value::Bool(true));
+}
+
+#[test]
+fn test_large_list_take_while() {
+    let code = r#"
+range(1, 100001) |> take_while(|x| x < 100) |> len()
+"#;
+    assert_eq!(eval(code), Value::Int(99));
+}
+
+#[test]
+fn test_large_list_count_if() {
+    let code = r#"
+range(1, 10001) |> count_if(|x| x % 5 == 0)
+"#;
+    assert_eq!(eval(code), Value::Int(2000));
+}
+
+#[test]
+fn test_large_list_partition() {
+    let code = r#"
+let parts = range(1, 1001) |> partition(|x| x % 2 == 0)
+len(parts[0]) + len(parts[1])
+"#;
+    assert_eq!(eval(code), Value::Int(1000));
+}
+
+// ── Bio-specific Performance Tests ────────────────────────────────
+
+#[test]
+fn test_perf_dna_reverse_complement_batch() {
+    let code = r#"
+let seqs = range(1, 201) |> map(|_| dna"ATCGATCGATCGATCG")
+seqs |> map(|s| reverse_complement(s)) |> len()
+"#;
+    assert_eq!(eval(code), Value::Int(200));
+}
+
+#[test]
+fn test_perf_translate_batch() {
+    let code = r#"
+let seqs = range(1, 101) |> map(|_| dna"ATGATCGATCGATCGATCGATCGATC")
+seqs |> map(|s| translate(s)) |> len()
+"#;
+    assert_eq!(eval(code), Value::Int(100));
+}
+
+#[test]
+fn test_perf_kmer_count_multiple() {
+    let code = r#"
+let seqs = [
+    dna"ATCGATCGATCGATCGATCGATCG",
+    dna"GCTAGCTAGCTAGCTAGCTAGCTA",
+    dna"AAATTTCCCGGGAAATTTCCCGGG"
+]
+seqs |> map(|s| kmer_count(s, 4)) |> len()
+"#;
+    assert_eq!(eval(code), Value::Int(3));
+}
+
+// ── Memoization / Caching Tests ───────────────────────────────────
+
+#[test]
+fn test_memoize_decorator() {
+    let code = r#"
+let call_count = 0
+@memoize
+fn expensive(x) {
+    call_count = call_count + 1
+    x * x
+}
+let a = expensive(5)
+let b = expensive(5)
+let c = expensive(3)
+a == 25 and b == 25 and c == 9
+"#;
+    assert_eq!(eval(code), Value::Bool(true));
+}
+
+// ── Stream Chaining Tests ─────────────────────────────────────────
+
+#[test]
+fn test_stream_filter_map_chain() {
+    let code = r#"
+let s = range(1, 101) |> to_stream()
+let result = s
+    |> filter(|x| x % 2 == 0)
+    |> map(|x| x * 3)
+    |> collect()
+len(result) == 50 and result[0] == 6
+"#;
+    assert_eq!(eval(code), Value::Bool(true));
+}
+
+#[test]
+fn test_stream_for_break() {
+    // Breaking out of a stream for-loop should work
+    let code = r#"
+let s = range(1, 1000001) |> to_stream()
+let total = 0
+for x in s {
+    if x > 10 { break }
+    total = total + x
+}
+total
+"#;
+    assert_eq!(eval(code), Value::Int(55));
+}

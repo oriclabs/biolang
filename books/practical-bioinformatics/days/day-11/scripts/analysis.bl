@@ -1,0 +1,145 @@
+# Day 11: Sequence Comparison Pipeline
+# No data files needed — all sequences defined inline
+#
+# Demonstrates: gc_content, base_counts, kmers, kmer_count, find_motif,
+# reverse_complement, codon_usage, dotplot, set, intersection, union,
+# to_table, push, range
+
+# ── Step 1: Base Composition Analysis ─────────────────────────────────
+
+print("=== Base Composition Analysis ===")
+
+let seqs = [
+    {name: "E. coli",   seq: dna"GCGCATCGATCGATCGCG"},
+    {name: "Human",     seq: dna"ATATCGATCGATATATAT"},
+    {name: "Thermus",   seq: dna"GCGCGCGCGCGCGCGCGC"},
+]
+for s in seqs {
+    let gc = round(gc_content(s.seq) * 100, 1)
+    let counts = base_counts(s.seq)
+    print(f"{s.name}: GC={gc}%, A={counts.A}, T={counts.T}, G={counts.G}, C={counts.C}")
+}
+print("")
+
+# ── Step 2: K-mer Extraction ──────────────────────────────────────────
+
+print("=== K-mer Analysis ===")
+
+let seq = dna"ATCGATCGATCG"
+let kmers_list = kmers(seq, 3)
+print(f"Sequence: {seq}")
+print(f"3-mers: {kmers_list}")
+print("")
+
+# K-mer frequency
+let freq = kmer_count(seq, 3)
+print(f"3-mer frequencies: {freq}")
+print("")
+
+# ── Step 3: Alignment-Free Similarity ─────────────────────────────────
+
+print("=== K-mer Similarity (Jaccard) ===")
+
+let seq1 = dna"ATCGATCGATCGATCG"
+let seq2 = dna"ATCGATCGTTTTGATCG"
+
+let k1 = set(kmers(seq1, 5))
+let k2 = set(kmers(seq2, 5))
+
+let shared = intersection(k1, k2)
+let total = union(k1, k2)
+let jaccard = len(shared) / len(total)
+print(f"Seq1: {seq1}")
+print(f"Seq2: {seq2}")
+print(f"Shared 5-mers: {len(shared)}")
+print(f"Total unique 5-mers: {len(total)}")
+print(f"K-mer similarity: {round(jaccard * 100, 1)}%")
+print("")
+
+# ── Step 4: Motif Finding ─────────────────────────────────────────────
+
+print("=== Motif Finding ===")
+
+let motif_seq = dna"ATGATCGATGATCGATGATCG"
+let atg_sites = find_motif(motif_seq, "ATG")
+print(f"Sequence: {motif_seq}")
+print(f"ATG positions: {atg_sites}")
+
+# Restriction enzyme sites
+let re_seq = dna"ATCGGAATTCGATCGGGATCCATCG"
+let ecori = find_motif(re_seq, "GAATTC")
+let bamhi = find_motif(re_seq, "GGATCC")
+print(f"Restriction site sequence: {re_seq}")
+print(f"EcoRI sites: {ecori}")
+print(f"BamHI sites: {bamhi}")
+print("")
+
+# ── Step 5: Reverse Complement ────────────────────────────────────────
+
+print("=== Reverse Complement ===")
+
+let forward = dna"ATGCGATCGATCG"
+let revcomp = reverse_complement(forward)
+print(f"Forward:  5'-{forward}-3'")
+print(f"RevComp:  5'-{revcomp}-3'")
+
+# Search both strands
+let strand_seq = dna"ATCGGAATTCGATCG"
+let motif = "GAATTC"
+let fwd_hits = find_motif(strand_seq, motif)
+let rev_hits = find_motif(reverse_complement(strand_seq), motif)
+print(f"Forward strand GAATTC hits: {fwd_hits}")
+print(f"Reverse strand GAATTC hits: {rev_hits}")
+print("")
+
+# ── Step 6: Codon Analysis ────────────────────────────────────────────
+
+print("=== Codon Usage ===")
+
+let human_gene = dna"ATGGCTGCTTCTGATAAATGA"
+let ecoli_gene = dna"ATGGCAGCGAGCGATAAATGA"
+let human_usage = codon_usage(human_gene)
+let ecoli_usage = codon_usage(ecoli_gene)
+print(f"Human codons: {human_usage}")
+print(f"E. coli codons: {ecoli_usage}")
+print("")
+
+# ── Step 7: Similarity Matrix ─────────────────────────────────────────
+
+print("=== Pairwise Similarity Matrix ===")
+
+let sequences = [
+    {name: "seq1", seq: dna"ATCGATCGATCGATCG"},
+    {name: "seq2", seq: dna"ATCGATCGTTTTGATCG"},
+    {name: "seq3", seq: dna"GCGCGCGCGCGCGCGC"},
+]
+
+let results = []
+for i in range(0, len(sequences)) {
+    for j in range(0, len(sequences)) {
+        let k1 = set(kmers(sequences[i].seq, 5))
+        let k2 = set(kmers(sequences[j].seq, 5))
+        let shared = len(intersection(k1, k2))
+        let total = len(union(k1, k2))
+        let sim = if total > 0 { round(shared / total, 3) } else { 0.0 }
+        results = push(results, {
+            seq1: sequences[i].name,
+            seq2: sequences[j].name,
+            similarity: sim
+        })
+    }
+}
+let matrix = results |> to_table()
+print(matrix)
+print("")
+
+# ── Step 8: Dotplot ───────────────────────────────────────────────────
+
+print("=== Dotplot ===")
+let dot_seq1 = dna"ATCGATCGATCG"
+let dot_seq2 = dna"ATCGTTGATCG"
+dotplot(dot_seq1, dot_seq2, window: 3, title: "Pairwise comparison")
+print("Dotplot generated (SVG output)")
+print("")
+
+print("=== Analysis Complete ===")

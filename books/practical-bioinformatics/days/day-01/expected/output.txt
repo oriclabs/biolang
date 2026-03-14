@@ -1,0 +1,16 @@
+# Expected output from: bl run scripts/analysis.bl
+# Note: Record/map field order may vary between runs (HashMap-based).
+
+Sequence: DNA(ATGCGATCGATCGATCG)
+Length: 17
+Type: DNA
+DNA:     DNA(ATGAAACCCGGGTTTTAA)
+RNA:     RNA(AUGAAACCCGGGUUUUAA)
+Protein: Protein(MKPGF)
+Base composition: {A: 6, T: 6, G: 6, C: 5, N: 0, GC: 0.4782608695652174, total: 23}
+GC content: 0.4782608695652174
+EcoRI sites: [7]
+Piped result: RNA(AUGCGAUCGAUCG)
+Ex2: Protein(MDP)
+Ex3: {A: 5, T: 5, G: 5, C: 5, N: 0, GC: 0.5, total: 20}
+Ex4: [0, 3, 6, 9]

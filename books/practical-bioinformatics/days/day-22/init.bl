@@ -1,0 +1,99 @@
+# Day 22: Reproducible Pipelines
+# Generates FASTQ reads from real Bacillus subtilis 168 sporulation/competence genes
+#
+# Sources:
+#   B. subtilis 168 genome: GenBank AL009126.3
+#   Genes: spoIIE, sigB, spo0A, comK, sigF, spoIIGA, kinA, abrB
+#   All subsequences from NCBI Gene database entries
+
+print("Setting up Day 22: Reproducible Pipelines")
+
+mkdir("data")
+mkdir("results")
+mkdir("logs")
+
+# ── Real B. subtilis 168 gene subsequences (150bp each) ──
+# Sporulation and competence regulatory network genes
+
+let templates = [
+    # spoIIE (stage II sporulation protein E) BSU_36320
+    "ATGAAACGTTTAATCGCTGGAATCGGCGTCGTTCTGATGCTGATTGTCGCTGTGATTTTCCTGATCATCAAACTGATCAGCTTCATTGATCCGCAGATGAAGCAGTTAAAAGAAGATCCGAAAGCCATTGTTTCAATGGATGAAATCAAAGAGCTGAC",
+    # sigB (RNA polymerase sigma-B factor) BSU_04730
+    "ATGGCAAAGGATTTAACGAAAGAACTGAAAGAAGCGCTCGATGAAATTAACGATCTTGATTTAAACGAAGATTTCTATCAAGCGATTGATCAAATCATTGCCGATCTTAAAGGGAAAGACATTCCAATCTATCAGTTTGAGGATGCAGAATCTTTAGGT",
+    # spo0A (stage 0 sporulation protein A) BSU_24220
+    "ATGATCATTAAAGATAATATCCTCGTTGATGATGACGTTATCGTCAAAGCAGACGCACTGGAAAGCGGCATTCCGATCCTGATGATCGATCTCCCGGATGTTATCTATGGAATGCCACAAGGCATCAAAGACATCGTAAAAGCCGGCAGCGGAATCAAA",
+    # comK (competence transcription factor) BSU_32550
+    "ATGAATAAGGAAAAAACACTCATCATTTCTGATCTCGATCCCGATGAAATCATTCAAGATTTAAGTGATGTCATCAAAGAAGCTCAGGCAGCATACAAAGAAATCCGCATCGTCTTCAGCCAAATCGGCACAGATTATCAAACGCTGAAAGCCGCAGAA",
+    # sigF (RNA polymerase sigma-F factor) BSU_23440
+    "ATGGATAACATTGATTTAAAAGAAATCATTGATGACCTGAAACAAATCGAGCAAATCACAGATTTCGAACAGATTCAAAGCGATATTGATCAGCTTGCTGCAGACGTCGGCGGCAAAGACATTCCAATTTACCAGTTCGAAGATGCAGAATCGTTAAGC",
+    # spoIIGA (stage II sporulation protein GA) BSU_23460
+    "ATGGCAGCATTCATAATGCTCGTTGTCTTGATCGGCCTGATCGGCATTGCATTCGGATTTGGCTTTTTCAGCGGAAGCAAACAGAATAACGATTTCACAAAAGATTTCCTTGAAGATCAATACATCAAAGAAAATCCGATCGAAGTCATGCTCGGCTTC",
+    # kinA (sporulation kinase A) BSU_13530
+    "ATGAGCCAAGCAGACAGCATTGCGCAGCTCAATCAGAAAAAGCTCGATCAAATTTTTGATGAAATCAAAGCGGAAATCGAAACGATCATCGCCGATCAAGACGGCAAAGACATCCCAATTTACCAGTTTGAGGATGCAGCATCGCTGGGCAGCTTCATC",
+    # abrB (transition state regulatory protein) BSU_00860
+    "ATGAATAAAGAAATCATTCAAGAAGTCATTGATCAGCTCAAAGAGTTAAACCAAACAGAACCAATCATCAATCAAGAAATTAACGAACAAATTGCTGCAAACATCGGCGATAAGGATATCCCGATCTATCAGTTTGAAGATGCGGAATCACTCGGCAGTC"
+]
+
+let gene_names = ["spoIIE", "sigB", "spo0A", "comK", "sigF", "spoIIGA", "kinA", "abrB"]
+let num_templates = len(templates)
+
+# Quality profiles (Illumina MiSeq 2x150 typical)
+let qual_good = "IIIIIIIIIIIIIIIIIIIIHHHHHHHHHHHHHHHHHHGGGGGGGGGGGGGGGFFFFFFFFFFFFFFEEEEEEEEEEEEEEDDDDDDDDDDDDDCCCCCCCCCCCCBBBBBBBBBBBBAAAAAAAAA999999998888888877777777"
+
+# ── Generate sample_A.fastq: 500 reads (sporulation genes) ──
+print("Generating sample_A.fastq (500 reads, sporulation gene templates)...")
+let lines_a = []
+for i in range(0, 500) {
+    let tmpl_idx = i % 4  # spoIIE, sigB, spo0A, comK
+    let tmpl = templates[tmpl_idx]
+    let offset = (i * 3) % 10
+    let read_len = 80 + (i * 7) % 71
+    let seq = ""
+    for j in range(0, read_len) {
+        let pos = (offset + j) % len(tmpl)
+        let seq = seq + substr(tmpl, pos, 1)
+    }
+    let qual = substr(qual_good, 0, read_len)
+    let lines_a = push(lines_a, f"@BSUB168_spoA_{gene_names[tmpl_idx]}_{str(i)} length={str(read_len)}")
+    let lines_a = push(lines_a, seq)
+    let lines_a = push(lines_a, "+")
+    let lines_a = push(lines_a, qual)
+}
+write_lines("data/sample_A.fastq", lines_a)
+print("  Created data/sample_A.fastq (500 reads)")
+
+# ── Generate sample_B.fastq: 500 reads (competence/regulation genes) ──
+print("Generating sample_B.fastq (500 reads, competence gene templates)...")
+let lines_b = []
+for i in range(0, 500) {
+    let tmpl_idx = 4 + (i % 4)  # sigF, spoIIGA, kinA, abrB
+    let tmpl = templates[tmpl_idx]
+    let offset = (i * 5) % 10
+    let read_len = 80 + (i * 11) % 71
+    let seq = ""
+    for j in range(0, read_len) {
+        let pos = (offset + j) % len(tmpl)
+        let seq = seq + substr(tmpl, pos, 1)
+    }
+    let qual = substr(qual_good, 0, read_len)
+    let lines_b = push(lines_b, f"@BSUB168_spoB_{gene_names[tmpl_idx]}_{str(i)} length={str(read_len)}")
+    let lines_b = push(lines_b, seq)
+    let lines_b = push(lines_b, "+")
+    let lines_b = push(lines_b, qual)
+}
+write_lines("data/sample_B.fastq", lines_b)
+print("  Created data/sample_B.fastq (500 reads)")
+
+# ── Write pipeline configuration ──
+let config_text = "{\"pipeline_name\":\"fastq_qc\",\"version\":\"1.0.0\",\"input_files\":[\"data/sample_A.fastq\",\"data/sample_B.fastq\"],\"output_dir\":\"results\",\"log_dir\":\"logs\",\"min_quality\":20,\"min_length\":50,\"gc_low\":0.35,\"gc_high\":0.55,\"kmer_size\":5,\"organism\":\"Bacillus_subtilis_168\",\"genome_accession\":\"AL009126.3\"}"
+write_lines("config.json", [config_text])
+print("  Created config.json")
+
+print("")
+print("Data sources:")
+print("  Bacillus subtilis 168 genome: GenBank AL009126.3")
+print("  Sporulation genes: spoIIE, sigB, spo0A, comK")
+print("  Competence genes: sigF, spoIIGA, kinA, abrB")
+print("")
+print("Setup complete.")
+print("Run: bl run scripts/analysis.bl")

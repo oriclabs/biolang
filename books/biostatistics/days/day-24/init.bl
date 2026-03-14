@@ -1,0 +1,71 @@
+# Day 24: Bayesian Statistics
+# Data sources:
+#   gnomAD v4.0 allele frequencies for rare pathogenic variants
+#   ClinVar/ACMG clinical genetic testing performance data
+#   BRCA testing: Easton et al. 2007 Am J Hum Genet; Antoniou et al. 2003 Am J Hum Genet
+#   CF screening: Watson et al. 2004 Genet Med (ACMG 23-mutation panel)
+#   Lynch syndrome: Hampel et al. 2005 NEJM; Evaluation of Genomic Applications in Practice
+
+println("Setting up Day 24: Bayesian Statistics")
+mkdir("data")
+
+# ── File 1: Rare variant observations across population studies ──
+# BRCA2 c.5946delT (rs80359550) frequency in different populations
+# A known pathogenic variant with variable frequency across studies
+let var_lines = ["study,carriers,total,frequency"]
+let studies = [
+    "gnomAD_NFE,8,64600,0.000124",
+    "gnomAD_AFR,1,20740,0.000048",
+    "gnomAD_EAS,0,19940,0.000000",
+    "FLOSSIES_EUR,2,9884,0.000202",
+    "BioMe_multi,3,28338,0.000106",
+    "UK_Biobank_EUR,12,94118,0.000127",
+    "TopMed_multi,5,62784,0.000080"
+]
+for s in studies {
+    var_lines = append(var_lines, s)
+}
+write_lines(var_lines, "data/variant_observations.csv")
+
+# ── File 2: Diagnostic performance of clinical genetic tests ──
+# Published sensitivity, specificity, and prevalence for 5 genetic conditions
+# PPV and NPV calculated from Bayes' theorem for demonstration
+let diag_lines = ["condition,gene_panel,prevalence,sensitivity,specificity,ppv,npv"]
+let diag_data = [
+    # BRCA1/2 testing in general population
+    # Prev ~1/400 (0.0025), Sens 99%, Spec 99.9%
+    # PPV = (0.99*0.0025)/(0.99*0.0025 + 0.001*0.9975) = 0.713
+    "BRCA_hereditary_breast_cancer,BRCA1/BRCA2,0.0025,0.990,0.999,0.713,0.999",
+
+    # Cystic fibrosis carrier screening (ACMG 23-mutation panel)
+    # Prev ~1/2500 (0.0004), Sens 90%, Spec 99.5%
+    # PPV = (0.90*0.0004)/(0.90*0.0004 + 0.005*0.9996) = 0.067
+    "cystic_fibrosis_carrier,CFTR_23panel,0.0004,0.900,0.995,0.067,0.999",
+
+    # Lynch syndrome screening (MLH1/MSH2/MSH6/PMS2)
+    # Prev ~1/280 (0.00357), Sens 95%, Spec 98%
+    # PPV = (0.95*0.00357)/(0.95*0.00357 + 0.02*0.99643) = 0.145
+    "lynch_syndrome,MMR_4gene,0.00357,0.950,0.980,0.145,0.999",
+
+    # Hereditary hemochromatosis (HFE C282Y homozygosity)
+    # Prev ~1/200 (0.005), Sens 98%, Spec 99.8%
+    # PPV = (0.98*0.005)/(0.98*0.005 + 0.002*0.995) = 0.711
+    "hereditary_hemochromatosis,HFE_C282Y,0.005,0.980,0.998,0.711,0.999",
+
+    # Familial hypercholesterolemia (LDLR/APOB/PCSK9)
+    # Prev ~1/250 (0.004), Sens 80%, Spec 96%
+    # PPV = (0.80*0.004)/(0.80*0.004 + 0.04*0.996) = 0.074
+    "familial_hypercholesterolemia,LDLR/APOB/PCSK9,0.004,0.800,0.960,0.074,0.999"
+]
+for d in diag_data {
+    diag_lines = append(diag_lines, d)
+}
+write_lines(diag_lines, "data/diagnostic_performance.csv")
+
+println("Created data/variant_observations.csv")
+println("  7 population studies for BRCA2 c.5946delT (rs80359550)")
+println("  Carrier frequencies from gnomAD v4, FLOSSIES, BioMe, UK Biobank, TopMed")
+println("Created data/diagnostic_performance.csv")
+println("  5 genetic conditions with published test performance")
+println("  BRCA, CF, Lynch, hemochromatosis, familial hypercholesterolemia")
+println("  PPV/NPV calculated via Bayes' theorem for classroom demonstration")

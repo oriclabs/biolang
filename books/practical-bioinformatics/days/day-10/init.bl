@@ -1,0 +1,121 @@
+# Day 10: Working with Tables — Data Setup
+# Run: bl run init.bl
+# Creates expression and gene info CSVs with real biological data.
+#
+# Source: GTEx Consortium (Lonsdale et al., Nat Genet, 2013)
+#         Expression values are representative TPM from GTEx v8 portal.
+# Source: NCBI Gene database for gene coordinates and types.
+# Coordinates: GRCh38/hg38
+
+print("Setting up Day 10: Working with Tables")
+print("Generating data files with real gene expression data...")
+
+mkdir("data")
+
+# ============================================================
+# 1. Expression data: 35 genes x 6 tissue samples
+#    TPM values representative of GTEx v8 median values.
+#    Tissues: liver, heart, brain (cortex), lung, kidney, skeletal muscle
+# ============================================================
+
+let expr_header = "gene,liver,heart,lung,brain_cortex,kidney,skeletal_muscle"
+let expr_rows = [
+    # Housekeeping genes — high expression across all tissues
+    "GAPDH,1842.5,2105.3,1567.8,1923.4,1789.2,2456.1",
+    "ACTB,2134.7,1876.2,2456.3,1654.8,2012.5,1543.9",
+    "RPL13A,3215.4,2987.6,2876.3,3456.7,3102.8,2765.4",
+    "EEF1A1,4567.2,3892.1,3456.7,4123.5,3987.6,4234.8",
+    "B2M,1234.5,987.3,1876.2,1023.4,1456.7,654.3",
+    "UBC,1567.8,1432.1,1345.6,1678.9,1523.4,1298.7",
+    "RPS27A,2876.3,2654.8,2543.2,2987.6,2765.4,2432.1",
+    # Liver-specific genes — high in liver, low elsewhere
+    "ALB,28456.7,2.3,1.8,0.4,5.7,0.1",
+    "APOB,5678.3,1.2,0.8,0.1,2.3,0.0",
+    "CYP3A4,2345.6,0.1,0.3,0.0,0.2,0.0",
+    "FGA,4123.8,0.5,0.2,0.0,0.8,0.0",
+    "SERPINA1,8765.4,3.2,12.4,0.1,2.1,0.3",
+    # Heart/muscle-specific genes
+    "MYH7,0.2,12345.6,0.1,0.0,0.1,234.5",
+    "TNNT2,0.3,8765.4,0.2,0.0,0.1,45.6",
+    "MYL2,0.1,6543.2,0.0,0.0,0.0,123.4",
+    "ACTA1,0.5,234.5,1.2,0.1,0.3,15678.9",
+    "CKM,0.1,1234.5,0.0,0.0,0.1,9876.5",
+    # Brain-specific genes
+    "SYP,0.3,0.1,0.2,4567.8,0.1,0.0",
+    "GFAP,0.1,0.0,0.1,3456.7,0.0,0.0",
+    "NEFL,0.0,0.1,0.0,2345.6,0.0,0.0",
+    "SLC17A7,0.0,0.0,0.0,1876.5,0.0,0.0",
+    # Lung-specific genes
+    "SFTPB,0.1,0.0,9876.5,0.0,0.2,0.0",
+    "SFTPC,0.0,0.0,15432.1,0.0,0.0,0.0",
+    "SCGB1A1,0.0,0.0,6789.3,0.0,0.0,0.0",
+    # Kidney-specific genes
+    "SLC12A1,0.0,0.0,0.0,0.0,5678.3,0.0",
+    "AQP2,0.0,0.0,0.0,0.0,3456.7,0.0",
+    "UMOD,0.0,0.0,0.0,0.0,8765.4,0.0",
+    # Cancer/signaling genes — moderate expression, some tissue variation
+    "TP53,45.6,32.1,56.7,28.9,52.3,18.7",
+    "EGFR,12.3,5.6,34.5,8.9,67.8,2.1",
+    "KRAS,23.4,18.7,34.5,12.3,28.9,15.6",
+    "MYC,8.9,3.4,12.3,5.6,10.1,2.3",
+    "BRCA1,5.6,3.2,7.8,4.5,6.7,2.1",
+    "PTEN,34.5,28.9,45.6,56.7,38.9,22.3",
+    "VEGFA,23.4,12.3,67.8,8.9,34.5,5.6",
+    "CDH1,45.6,2.3,34.5,1.2,56.7,0.5"
+]
+
+let expr_lines = [expr_header] + expr_rows
+write_lines(expr_lines, "data/expression.csv")
+print(f"  Created data/expression.csv ({len(expr_rows)} genes x 6 tissues)")
+
+# ============================================================
+# 2. Gene info: annotations for the same 35 genes
+#    Real chromosome locations and gene types from NCBI Gene
+# ============================================================
+
+let info_header = "gene,full_name,chromosome,gene_type,pathway"
+let info_rows = [
+    "GAPDH,Glyceraldehyde-3-phosphate dehydrogenase,12,protein_coding,Glycolysis",
+    "ACTB,Actin beta,7,protein_coding,Cytoskeleton",
+    "RPL13A,Ribosomal protein L13a,19,protein_coding,Translation",
+    "EEF1A1,Eukaryotic translation elongation factor 1 alpha 1,6,protein_coding,Translation",
+    "B2M,Beta-2-microglobulin,15,protein_coding,Immune system",
+    "UBC,Ubiquitin C,12,protein_coding,Protein degradation",
+    "RPS27A,Ribosomal protein S27a,2,protein_coding,Translation",
+    "ALB,Albumin,4,protein_coding,Transport",
+    "APOB,Apolipoprotein B,2,protein_coding,Lipid metabolism",
+    "CYP3A4,Cytochrome P450 3A4,7,protein_coding,Drug metabolism",
+    "FGA,Fibrinogen alpha chain,4,protein_coding,Blood coagulation",
+    "SERPINA1,Serpin family A member 1 (alpha-1 antitrypsin),14,protein_coding,Protease inhibition",
+    "MYH7,Myosin heavy chain 7 (cardiac beta),14,protein_coding,Muscle contraction",
+    "TNNT2,Troponin T2 cardiac type,1,protein_coding,Muscle contraction",
+    "MYL2,Myosin light chain 2,12,protein_coding,Muscle contraction",
+    "ACTA1,Actin alpha skeletal muscle,1,protein_coding,Muscle contraction",
+    "CKM,Creatine kinase M-type,19,protein_coding,Energy metabolism",
+    "SYP,Synaptophysin,X,protein_coding,Synaptic vesicle",
+    "GFAP,Glial fibrillary acidic protein,17,protein_coding,Intermediate filament",
+    "NEFL,Neurofilament light chain,8,protein_coding,Neurofilament",
+    "SLC17A7,Vesicular glutamate transporter 1,19,protein_coding,Neurotransmitter transport",
+    "SFTPB,Surfactant protein B,2,protein_coding,Lung surfactant",
+    "SFTPC,Surfactant protein C,8,protein_coding,Lung surfactant",
+    "SCGB1A1,Secretoglobin family 1A member 1 (Clara cell),11,protein_coding,Airway secretion",
+    "SLC12A1,Solute carrier family 12 member 1 (NKCC2),15,protein_coding,Ion transport",
+    "AQP2,Aquaporin 2,12,protein_coding,Water transport",
+    "UMOD,Uromodulin (Tamm-Horsfall protein),16,protein_coding,Kidney defense",
+    "TP53,Tumor protein p53,17,protein_coding,Apoptosis",
+    "EGFR,Epidermal growth factor receptor,7,protein_coding,RTK signaling",
+    "KRAS,KRAS proto-oncogene GTPase,12,protein_coding,RAS/MAPK signaling",
+    "MYC,MYC proto-oncogene bHLH transcription factor,8,protein_coding,Cell cycle",
+    "BRCA1,BRCA1 DNA repair associated,17,protein_coding,DNA repair",
+    "PTEN,Phosphatase and tensin homolog,10,protein_coding,PI3K/AKT signaling",
+    "VEGFA,Vascular endothelial growth factor A,6,protein_coding,Angiogenesis",
+    "CDH1,Cadherin 1 (E-cadherin),16,protein_coding,Cell adhesion"
+]
+
+let info_lines = [info_header] + info_rows
+write_lines(info_lines, "data/gene_info.csv")
+print(f"  Created data/gene_info.csv ({len(info_rows)} genes)")
+
+print("")
+print("Ready for Day 10 exercises!")
+print("Run: bl run scripts/analysis.bl")

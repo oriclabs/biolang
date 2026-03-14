@@ -186,6 +186,7 @@ impl Interpreter {
         Ok(last)
     }
 
+    #[inline(never)]
     pub fn exec_stmt(&mut self, stmt: &Spanned<Stmt>) -> Result<Value> {
         match &stmt.node {
             Stmt::Let { name, value, .. } => {
@@ -1181,6 +1182,7 @@ impl Interpreter {
         Ok(exports)
     }
 
+    #[inline(never)]
     pub fn eval_expr(&mut self, expr: &Spanned<Expr>) -> Result<Value> {
         match &expr.node {
             Expr::Nil => Ok(Value::Nil),
@@ -1560,6 +1562,17 @@ impl Interpreter {
                                 format!("index {i} out of bounds (table has {} rows)", t.num_rows()),
                                 Some(expr.span),
                             ))
+                        }
+                    }
+                    (Value::Table(t), Value::Str(col_name)) => {
+                        match t.col_index(col_name) {
+                            Some(ci) => Ok(Value::List(
+                                t.rows.iter().map(|row| row[ci].clone()).collect(),
+                            )),
+                            None => Err(BioLangError::name_error(
+                                format!("no column '{col_name}' in table"),
+                                Some(expr.span),
+                            )),
                         }
                     }
                     (Value::Str(s), Value::Int(i)) => {
@@ -2311,6 +2324,7 @@ impl Interpreter {
         }
     }
 
+    #[inline(never)]
     fn eval_call(
         &mut self,
         callee: &Spanned<Expr>,
@@ -2518,6 +2532,7 @@ impl Interpreter {
         }
     }
 
+    #[inline(never)]
     fn call_value(
         &mut self,
         func: &Value,
@@ -2669,6 +2684,7 @@ impl Interpreter {
     }
 
     /// Handle HOF builtins with already-evaluated arguments.
+    #[inline(never)]
     fn call_hof_with_values(
         &mut self,
         name: &str,
@@ -4225,6 +4241,7 @@ impl Interpreter {
         }
     }
 
+    #[inline(never)]
     fn call_function(
         &mut self,
         params: &[Param],
@@ -4603,10 +4620,23 @@ impl Interpreter {
                     result.extend(b.iter().cloned());
                     Ok(Value::List(result))
                 }
-                _ => Err(BioLangError::type_error(
-                    format!("cannot add {} and {}", lhs.type_of(), rhs.type_of()),
-                    Some(span),
-                )),
+                _ => {
+                    let mut err = BioLangError::type_error(
+                        format!("cannot add {} and {}", lhs.type_of(), rhs.type_of()),
+                        Some(span),
+                    );
+                    // Suggest type conversion for common Str + number mismatches
+                    match (lhs, rhs) {
+                        (Value::Str(_), Value::Int(_) | Value::Float(_))
+                        | (Value::Int(_) | Value::Float(_), Value::Str(_)) => {
+                            err = err.with_suggestion(
+                                "use int() or float() to convert strings to numbers, or str() to convert numbers to strings",
+                            );
+                        }
+                        _ => {}
+                    }
+                    Err(err)
+                }
             },
             BinaryOp::Sub => numeric_op(lhs, rhs, |a, b| a - b, |a, b| a - b, "-", span),
             BinaryOp::Mul => match (lhs, rhs) {

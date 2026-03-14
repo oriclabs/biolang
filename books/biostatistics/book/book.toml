@@ -1,0 +1,27 @@
+[book]
+title = "Practical Biostatistics in 30 Days"
+authors = ["Bioras"]
+language = "en"
+description = "From zero to biostatistician — statistics for genomics with BioLang, Python, and R"
+src = "src"
+
+[build]
+build-dir = "../../../website/books/biostatistics"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/oriclabs/biolang"
+additional-css = ["theme/print.css"]
+additional-js = ["theme/toolbar-buttons.js", "theme/book-runner.js"]
+
+[output.html.search]
+enable = true
+
+[output.html.playground]
+editable = false
+
+[output.pdf]
+title = "Practical Biostatistics in 30 Days"
+authors = "Bioras"
+output-file = "practical-biostatistics-in-30-days.pdf"

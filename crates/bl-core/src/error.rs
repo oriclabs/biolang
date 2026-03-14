@@ -147,6 +147,13 @@ impl BioLangError {
             }
         }
 
+        // Print suggestions/hints
+        if !self.suggestions.is_empty() {
+            for s in &self.suggestions {
+                result.push_str(&format!("\n  hint: {s}"));
+            }
+        }
+
         result
     }
 }
@@ -174,7 +181,11 @@ impl fmt::Display for BioLangError {
             ErrorKind::ImportError => "ImportError",
             ErrorKind::PluginError => "PluginError",
         };
-        write!(f, "{kind}: {}", self.message)
+        write!(f, "{kind}: {}", self.message)?;
+        for s in &self.suggestions {
+            write!(f, "\n  hint: {s}")?;
+        }
+        Ok(())
     }
 }
 

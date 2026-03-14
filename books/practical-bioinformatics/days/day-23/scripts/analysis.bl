@@ -1,0 +1,132 @@
+let config_text = read_lines("config.json") |> reduce(|a, b| a + b)
+let config = json_decode(config_text)
+
+let sheet = read_csv(config.sample_sheet)
+
+fn validate_sample_sheet(sheet) {
+    let files = sheet |> select("fastq_file") |> flatten()
+    files |> filter(|f| !file_exists(f))
+}
+
+fn sheet_to_samples(sheet) {
+    let ids = sheet |> select("sample_id") |> flatten()
+    let files = sheet |> select("fastq_file") |> flatten()
+    let tissues = sheet |> select("tissue") |> flatten()
+    let groups = sheet |> select("group") |> flatten()
+    range(0, len(ids)) |> map(|i| {
+        id: ids[i],
+        fastq: files[i],
+        tissue: tissues[i],
+        group: groups[i]
+    })
+}
+
+fn process_sample(sample, config) {
+    let t = timer_start()
+    let reads = read_fastq(sample.fastq)
+    let total = len(reads)
+    let filtered = reads |> quality_filter(config.min_quality)
+    let passed = filtered |> filter(|r| len(r.seq) >= config.min_length)
+    let pass_count = len(passed)
+    let gc_values = passed |> map(|r| gc_content(r.seq))
+    let lengths = passed |> map(|r| len(r.seq))
+    {
+        sample_id: sample.id,
+        tissue: sample.tissue,
+        group: sample.group,
+        total_reads: total,
+        passed_reads: pass_count,
+        pass_rate: pass_count / total,
+        gc_mean: mean(gc_values),
+        gc_stdev: stdev(gc_values),
+        length_mean: mean(lengths),
+        length_min: min(lengths),
+        length_max: max(lengths),
+        elapsed: timer_elapsed(t)
+    }
+}
+
+fn run_batch(samples, config) {
+    let total = len(samples)
+    let t_batch = timer_start()
+    let results = []
+    let errors = []
+    samples |> each(|s| {
+        let idx = len(results) + len(errors) + 1
+        try {
+            let result = process_sample(s, config)
+            results = results + [result]
+        } catch err {
+            errors = errors + [{sample_id: s.id, error: str(err)}]
+        }
+    })
+    {results: results, errors: errors, total_time: timer_elapsed(t_batch)}
+}
+
+fn flag_outliers(results, field) {
+    let values = results |> map(|r| {
+        if field == "pass_rate" then r.pass_rate
+        else if field == "gc_mean" then r.gc_mean
+        else r.length_mean
+    })
+    let m = mean(values)
+    let s = stdev(values)
+    let lower = m - 2.0 * s
+    let upper = m + 2.0 * s
+    results |> filter(|r| {
+        let v = if field == "pass_rate" then r.pass_rate
+                else if field == "gc_mean" then r.gc_mean
+                else r.length_mean
+        v < lower or v > upper
+    }) |> map(|r| r.sample_id)
+}
+
+let missing = validate_sample_sheet(sheet)
+if len(missing) > 0 then {
+    error("Missing input files: " + str(missing))
+}
+
+mkdir(config.output_dir)
+mkdir(config.log_dir)
+
+let samples = sheet_to_samples(sheet)
+let batch = run_batch(samples, config)
+
+let summary = batch.results |> map(|r| {
+    sample_id: r.sample_id,
+    tissue: r.tissue,
+    group: r.group,
+    total_reads: r.total_reads,
+    passed_reads: r.passed_reads,
+    pass_rate: r.pass_rate,
+    gc_mean: r.gc_mean,
+    length_mean: r.length_mean
+}) |> to_table()
+summary |> write_csv(config.output_dir + "/batch_summary.csv")
+
+let group_stats = batch.results |> group_by("group") |> map(|entry| {
+    let gr = entry.values
+    {
+        group: entry.key,
+        n_samples: len(gr),
+        mean_pass_rate: gr |> map(|r| r.pass_rate) |> mean(),
+        mean_gc: gr |> map(|r| r.gc_mean) |> mean(),
+        mean_reads: gr |> map(|r| r.total_reads) |> mean()
+    }
+}) |> to_table()
+group_stats |> write_csv(config.output_dir + "/group_summary.csv")
+
+let gc_outliers = flag_outliers(batch.results, "gc_mean")
+let rate_outliers = flag_outliers(batch.results, "pass_rate")
+
+let report = {
+    timestamp: now() |> format_date("%Y-%m-%d %H:%M:%S"),
+    total_samples: len(samples),
+    succeeded: len(batch.results),
+    failed: len(batch.errors),
+    total_time: batch.total_time,
+    gc_outliers: gc_outliers,
+    rate_outliers: rate_outliers,
+    errors: batch.errors
+}
+write_lines(config.log_dir + "/batch_report.json", [json_encode(report)])

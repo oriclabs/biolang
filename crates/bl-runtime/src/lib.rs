@@ -19,6 +19,7 @@ pub mod viz;
 pub mod bio_plots;
 pub mod graph;
 pub mod markdown;
+pub mod seq;
 pub mod tempfiles;
 
 // Native-only (require filesystem, network, or subprocess)

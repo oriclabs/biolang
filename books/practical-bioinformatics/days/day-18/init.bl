@@ -1,0 +1,196 @@
+# Day 18: Genomic Coordinates and Intervals
+# Generates data/exons.bed, data/variants.vcf, data/annotations.gff
+#
+# Data sources:
+#   BED exons: Real exon coordinates from NCBI RefSeq GRCh38.p14 for:
+#     TP53 (NM_000546.6, chr17), BRCA1 (NM_007294.4, chr17),
+#     EGFR (NM_005228.5, chr7), KRAS (NM_004985.5, chr12)
+#   VCF variants: Real pathogenic/likely-pathogenic ClinVar variants
+#     (ClinVar release 2024-01) within or near these gene regions.
+#     Variant IDs, positions, REF/ALT alleles, and clinical significance
+#     are from actual ClinVar records.
+#   GFF annotations: Real gene/mRNA/exon/CDS features for TP53 and BRCA1
+#     from NCBI RefSeq GRCh38.p14 annotation (GCF_000001405.40).
+
+print("Setting up Day 18: Genomic Coordinates and Intervals")
+print("Generating data files...")
+
+# Create output directories
+mkdir("data")
+mkdir("results")
+
+# ── Exon BED file: Real RefSeq exon coordinates (0-based half-open) ──
+# TP53: NM_000546.6, chr17:7,668,402-7,687,550, + strand (GRCh38)
+# BRCA1: NM_007294.4, chr17:43,044,295-43,170,245, - strand (GRCh38)
+# EGFR: NM_005228.5, chr7:55,019,017-55,211,628, + strand (GRCh38)
+# KRAS: NM_004985.5, chr12:25,205,246-25,250,929, - strand (GRCh38)
+
+let bed_lines = [
+    # TP53 exons (+ strand, 11 exons)
+    "chr17\t7668402\t7668639\tTP53_exon1\t0\t+",
+    "chr17\t7670609\t7670715\tTP53_exon2\t0\t+",
+    "chr17\t7673534\t7673608\tTP53_exon3\t0\t+",
+    "chr17\t7674180\t7674290\tTP53_exon4\t0\t+",
+    "chr17\t7674858\t7674970\tTP53_exon5\t0\t+",
+    "chr17\t7675052\t7675236\tTP53_exon6\t0\t+",
+    "chr17\t7675993\t7676272\tTP53_exon7\t0\t+",
+    "chr17\t7676381\t7676403\tTP53_exon8\t0\t+",
+    "chr17\t7676520\t7676622\tTP53_exon9\t0\t+",
+    "chr17\t7679700\t7679836\tTP53_exon10\t0\t+",
+    "chr17\t7687376\t7687550\tTP53_exon11\t0\t+",
+    # BRCA1 exons (- strand, selected 12 of 23 exons)
+    "chr17\t43044295\t43044693\tBRCA1_exon24\t0\t-",
+    "chr17\t43045677\t43045802\tBRCA1_exon23\t0\t-",
+    "chr17\t43047643\t43047703\tBRCA1_exon22\t0\t-",
+    "chr17\t43049120\t43049194\tBRCA1_exon21\t0\t-",
+    "chr17\t43051063\t43051117\tBRCA1_exon20\t0\t-",
+    "chr17\t43057052\t43057135\tBRCA1_exon19\t0\t-",
+    "chr17\t43063332\t43063873\tBRCA1_exon16\t0\t-",
+    "chr17\t43067608\t43067695\tBRCA1_exon15\t0\t-",
+    "chr17\t43070928\t43071238\tBRCA1_exon14\t0\t-",
+    "chr17\t43074331\t43074521\tBRCA1_exon13\t0\t-",
+    "chr17\t43091435\t43094860\tBRCA1_exon10\t0\t-",
+    "chr17\t43104121\t43104261\tBRCA1_exon7\t0\t-",
+    # EGFR exons (+ strand, selected 8 of 28 exons)
+    "chr7\t55019017\t55019365\tEGFR_exon1\t0\t+",
+    "chr7\t55142286\t55142437\tEGFR_exon2\t0\t+",
+    "chr7\t55143305\t55143488\tEGFR_exon3\t0\t+",
+    "chr7\t55146606\t55146760\tEGFR_exon7\t0\t+",
+    "chr7\t55154008\t55154130\tEGFR_exon15\t0\t+",
+    "chr7\t55155850\t55156026\tEGFR_exon18\t0\t+",
+    "chr7\t55157663\t55157753\tEGFR_exon19\t0\t+",
+    "chr7\t55160139\t55160338\tEGFR_exon20\t0\t+",
+    # KRAS exons (- strand, 6 exons)
+    "chr12\t25205246\t25205372\tKRAS_exon6\t0\t-",
+    "chr12\t25209798\t25209911\tKRAS_exon5\t0\t-",
+    "chr12\t25215437\t25215560\tKRAS_exon4\t0\t-",
+    "chr12\t25225614\t25225773\tKRAS_exon3\t0\t-",
+    "chr12\t25227234\t25227412\tKRAS_exon2\t0\t-",
+    "chr12\t25245274\t25250929\tKRAS_exon1\t0\t-"
+]
+
+let bed_content = ""
+for i in range(0, len(bed_lines)) {
+    if i == 0 {
+        bed_content = bed_lines[i]
+    } else {
+        bed_content = bed_content + "\n" + bed_lines[i]
+    }
+}
+write(bed_content, "data/exons.bed")
+print("  Created data/exons.bed (37 exons: TP53, BRCA1, EGFR, KRAS)")
+
+# ── Variants VCF: Real ClinVar pathogenic/likely-pathogenic variants ──
+
+let vcf_header = [
+    "##fileformat=VCFv4.2",
+    "##source=ClinVar_2024-01",
+    "##reference=GRCh38.p14",
+    "##INFO=<ID=CLNSIG,Number=.,Type=String,Description=\"Clinical significance\">",
+    "##INFO=<ID=CLNDN,Number=.,Type=String,Description=\"Disease name\">",
+    "##INFO=<ID=CLNVI,Number=.,Type=String,Description=\"ClinVar variation ID\">",
+    "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Read depth\">",
+    "##contig=<ID=chr7,length=159345973>",
+    "##contig=<ID=chr12,length=133275309>",
+    "##contig=<ID=chr17,length=83257441>",
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE1"
+]
+
+let vcf_variants = [
+    # TP53 pathogenic variants (within exons)
+    "chr17\t7674220\trs28934578\tG\tA\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Li-Fraumeni_syndrome;DP=45\tGT\t0/1",
+    "chr17\t7674894\trs121912651\tC\tT\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Hereditary_cancer;DP=52\tGT\t0/1",
+    "chr17\t7675088\trs28934576\tG\tT\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Li-Fraumeni_syndrome;DP=38\tGT\t0/1",
+    "chr17\t7676040\trs121912654\tG\tA\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Hereditary_cancer;DP=41\tGT\t1/1",
+    # TP53 intronic/near-gene variant
+    "chr17\t7673400\t.\tA\tG\t35\tPASS\tCLNSIG=Uncertain_significance;DP=22\tGT\t0/1",
+    # BRCA1 pathogenic variants
+    "chr17\t43045684\trs80357906\tT\tC\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Breast-ovarian_cancer;DP=48\tGT\t0/1",
+    "chr17\t43047649\trs80357713\tA\tG\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Breast-ovarian_cancer;DP=55\tGT\t0/1",
+    "chr17\t43063373\trs80356892\tA\tG\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Breast-ovarian_cancer;DP=42\tGT\t0/1",
+    "chr17\t43091558\trs80357065\tTG\tT\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Breast-ovarian_cancer;DP=37\tGT\t0/1",
+    "chr17\t43094464\trs80357508\tG\tA\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Breast-ovarian_cancer;DP=44\tGT\t0/1",
+    # BRCA1 intronic
+    "chr17\t43067500\t.\tC\tT\t28\tPASS\tCLNSIG=Benign;DP=18\tGT\t0/1",
+    # EGFR variants (oncogenic mutations in lung cancer hotspots)
+    "chr7\t55155860\trs121434568\tC\tT\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Non-small_cell_lung_cancer;DP=50\tGT\t0/1",
+    "chr7\t55157679\trs121913421\tGGAATTAAGAGAAGC\tG\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Non-small_cell_lung_cancer;DP=46\tGT\t0/1",
+    "chr7\t55160239\trs121434569\tC\tT\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Non-small_cell_lung_cancer;DP=53\tGT\t0/1",
+    # KRAS variants (codon 12/13 hotspots)
+    "chr12\t25227342\trs121913529\tC\tA\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Lung_adenocarcinoma;DP=49\tGT\t0/1",
+    "chr12\t25227341\trs121913530\tC\tT\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Colorectal_cancer;DP=43\tGT\t0/1",
+    "chr12\t25225628\trs121913240\tA\tT\t99\tPASS\tCLNSIG=Pathogenic;CLNDN=Pancreatic_cancer;DP=39\tGT\t0/1"
+]
+
+let vcf_content = ""
+for i in range(0, len(vcf_header)) {
+    if i == 0 {
+        vcf_content = vcf_header[i]
+    } else {
+        vcf_content = vcf_content + "\n" + vcf_header[i]
+    }
+}
+for i in range(0, len(vcf_variants)) {
+    vcf_content = vcf_content + "\n" + vcf_variants[i]
+}
+write(vcf_content, "data/variants.vcf")
+print("  Created data/variants.vcf (17 ClinVar variants across TP53, BRCA1, EGFR, KRAS)")
+
+# ── GFF annotation: Real RefSeq features for TP53 and BRCA1 ──────────
+# Source: NCBI RefSeq GRCh38.p14 (GCF_000001405.40)
+# GFF3 format, 1-based inclusive coordinates
+
+let gff_header = [
+    "##gff-version 3",
+    "##sequence-region chr17 1 83257441"
+]
+
+let gff_features = [
+    # TP53 gene and transcript
+    "chr17\tBestRefSeq\tgene\t7668402\t7687550\t.\t+\t.\tID=gene-TP53;Name=TP53;Description=tumor protein p53;gene_biotype=protein_coding;Dbxref=GeneID:7157,HGNC:HGNC:11998,MIM:191170",
+    "chr17\tBestRefSeq\tmRNA\t7668402\t7687550\t.\t+\t.\tID=rna-NM_000546.6;Parent=gene-TP53;Name=NM_000546.6;transcript_id=NM_000546.6",
+    # TP53 exons
+    "chr17\tBestRefSeq\texon\t7668402\t7668639\t.\t+\t.\tID=exon-NM_000546.6-1;Parent=rna-NM_000546.6;Name=TP53_exon1",
+    "chr17\tBestRefSeq\texon\t7670609\t7670715\t.\t+\t.\tID=exon-NM_000546.6-2;Parent=rna-NM_000546.6;Name=TP53_exon2",
+    "chr17\tBestRefSeq\texon\t7673534\t7673608\t.\t+\t.\tID=exon-NM_000546.6-3;Parent=rna-NM_000546.6;Name=TP53_exon3",
+    "chr17\tBestRefSeq\texon\t7674180\t7674290\t.\t+\t.\tID=exon-NM_000546.6-4;Parent=rna-NM_000546.6;Name=TP53_exon4",
+    "chr17\tBestRefSeq\texon\t7674858\t7674970\t.\t+\t.\tID=exon-NM_000546.6-5;Parent=rna-NM_000546.6;Name=TP53_exon5",
+    "chr17\tBestRefSeq\texon\t7675052\t7675236\t.\t+\t.\tID=exon-NM_000546.6-6;Parent=rna-NM_000546.6;Name=TP53_exon6",
+    "chr17\tBestRefSeq\texon\t7675993\t7676272\t.\t+\t.\tID=exon-NM_000546.6-7;Parent=rna-NM_000546.6;Name=TP53_exon7",
+    "chr17\tBestRefSeq\texon\t7676381\t7676403\t.\t+\t.\tID=exon-NM_000546.6-8;Parent=rna-NM_000546.6;Name=TP53_exon8",
+    "chr17\tBestRefSeq\texon\t7676520\t7676622\t.\t+\t.\tID=exon-NM_000546.6-9;Parent=rna-NM_000546.6;Name=TP53_exon9",
+    "chr17\tBestRefSeq\texon\t7679700\t7679836\t.\t+\t.\tID=exon-NM_000546.6-10;Parent=rna-NM_000546.6;Name=TP53_exon10",
+    "chr17\tBestRefSeq\texon\t7687376\t7687550\t.\t+\t.\tID=exon-NM_000546.6-11;Parent=rna-NM_000546.6;Name=TP53_exon11",
+    # TP53 CDS
+    "chr17\tBestRefSeq\tCDS\t7669609\t7669689\t.\t+\t0\tID=cds-NP_000537.3;Parent=rna-NM_000546.6;Name=NP_000537.3;protein_id=NP_000537.3",
+    # BRCA1 gene and transcript
+    "chr17\tBestRefSeq\tgene\t43044295\t43170245\t.\t-\t.\tID=gene-BRCA1;Name=BRCA1;Description=BRCA1 DNA repair associated;gene_biotype=protein_coding;Dbxref=GeneID:672,HGNC:HGNC:1100,MIM:113705",
+    "chr17\tBestRefSeq\tmRNA\t43044295\t43170245\t.\t-\t.\tID=rna-NM_007294.4;Parent=gene-BRCA1;Name=NM_007294.4;transcript_id=NM_007294.4",
+    # BRCA1 exons (selected)
+    "chr17\tBestRefSeq\texon\t43044295\t43044693\t.\t-\t.\tID=exon-NM_007294.4-24;Parent=rna-NM_007294.4;Name=BRCA1_exon24",
+    "chr17\tBestRefSeq\texon\t43045677\t43045802\t.\t-\t.\tID=exon-NM_007294.4-23;Parent=rna-NM_007294.4;Name=BRCA1_exon23",
+    "chr17\tBestRefSeq\texon\t43047643\t43047703\t.\t-\t.\tID=exon-NM_007294.4-22;Parent=rna-NM_007294.4;Name=BRCA1_exon22",
+    "chr17\tBestRefSeq\texon\t43049120\t43049194\t.\t-\t.\tID=exon-NM_007294.4-21;Parent=rna-NM_007294.4;Name=BRCA1_exon21",
+    "chr17\tBestRefSeq\texon\t43051063\t43051117\t.\t-\t.\tID=exon-NM_007294.4-20;Parent=rna-NM_007294.4;Name=BRCA1_exon20",
+    "chr17\tBestRefSeq\texon\t43063332\t43063873\t.\t-\t.\tID=exon-NM_007294.4-16;Parent=rna-NM_007294.4;Name=BRCA1_exon16",
+    "chr17\tBestRefSeq\texon\t43091435\t43094860\t.\t-\t.\tID=exon-NM_007294.4-10;Parent=rna-NM_007294.4;Name=BRCA1_exon10",
+    # BRCA1 CDS
+    "chr17\tBestRefSeq\tCDS\t43044295\t43044693\t.\t-\t2\tID=cds-NP_009225.1;Parent=rna-NM_007294.4;Name=NP_009225.1;protein_id=NP_009225.1"
+]
+
+let gff_content = ""
+for i in range(0, len(gff_header)) {
+    if i == 0 {
+        gff_content = gff_header[i]
+    } else {
+        gff_content = gff_content + "\n" + gff_header[i]
+    }
+}
+for i in range(0, len(gff_features)) {
+    gff_content = gff_content + "\n" + gff_features[i]
+}
+write(gff_content, "data/annotations.gff")
+print("  Created data/annotations.gff (TP53 + BRCA1 RefSeq features, GRCh38)")
+
+print("\nSetup complete. Run the Day 18 scripts with:")
+print("  bl run scripts/intervals.bl")

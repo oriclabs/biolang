@@ -1,0 +1,45 @@
+Created data/fastq/ with 10 test files:
+  good_001.fastq through good_005.fastq (well-formed)
+  truncated.fastq (cut off mid-record)
+  empty.fastq (zero content)
+  bad_quality.fastq (all low-quality bases)
+  mismatched.fastq (seq/qual length mismatch)
+Created data/sample_sheet.csv
+
+Run scripts/analysis.bl next.
+
+--- After running scripts/analysis.bl ---
+
+data/output/qc_results.csv contains rows for successfully processed files:
+file,total_records,valid_records,passed_qc,pct_passed,mean_gc
+good_001.fastq,4,4,4,100,(varies)
+good_002.fastq,4,4,4,100,(varies)
+good_003.fastq,4,4,4,100,(varies)
+good_004.fastq,4,4,4,100,(varies)
+good_005.fastq,4,4,4,100,(varies)
+mismatched.fastq,3,2,(varies),(varies),(varies)
+
+data/output/error_log.csv contains entries for problem files:
+timestamp,source,severity,message
+(timestamp),empty.fastq,WARN,Empty file skipping OR No records found skipping
+(timestamp),bad_quality.fastq,WARN,All records filtered out by quality threshold
+(timestamp),mismatched.fastq,WARN,1 records had seq/qual length mismatch
+(timestamp),truncated.fastq,ERROR,FASTQ parse failed: (parse error details)
+
+data/output/summary.json contains:
+{
+  "total_samples": 9,
+  "succeeded": 6,
+  "failed": 3,
+  "success_rate_pct": 66,
+  "error_count": (varies),
+  "status": "FAILED"
+}
+
+NOTE: Exact counts depend on how the BioLang FASTQ parser handles
+truncated and empty files. The key verification points are:
+- All 5 good_*.fastq files appear in qc_results.csv
+- empty.fastq, truncated.fastq, and bad_quality.fastq are logged in error_log.csv
+- mismatched.fastq may appear in results (with reduced valid count) AND in error log
+- The pipeline does NOT crash --- it processes all files and produces all output files
+- summary.json exists and contains correct total_samples count

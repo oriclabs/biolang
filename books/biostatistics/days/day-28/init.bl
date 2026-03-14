@@ -1,0 +1,136 @@
+# Day 28: Capstone — Clinical Trial Analysis
+# Data sources:
+#   Trial design based on KEYNOTE-024 (Reck et al. 2016 NEJM) and
+#   CheckMate-227 (Hellmann et al. 2018 NEJM) Phase III immunotherapy trials
+#   Response rates, survival, and AE profiles modeled on published outcomes
+#   Drug X = PD-1 inhibitor pattern, Control = platinum-doublet chemotherapy
+#   Demographics reflect typical NSCLC trial enrollment patterns
+
+println("Setting up Day 28: Capstone — Clinical Trial Analysis")
+mkdir("data")
+
+# ── Shared patient IDs and arm assignments ──
+let n = 300
+let n_per_arm = 150
+
+# ── File 1: Demographics (300 patients) ──
+# Age 45-75, 60% female, ECOG 0-2, stage IIIB-IV, 0-2 prior lines
+let demo_lines = ["patient_id,arm,age,sex,ecog_status,tumor_stage,prior_lines"]
+
+for i in range(0, n) {
+    let arm = if i < n_per_arm { "Drug_X" } else { "Chemo" }
+    # Deterministic pseudo-random demographics
+    let seed1 = (i * 2654435761) % 10000
+    let seed2 = (i * 1664525 + 1013904223) % 10000
+    let seed3 = (i * 214013 + 2531011) % 10000
+    let seed4 = (i * 1103515245 + 12345) % 10000
+
+    let age = 45 + (seed1 % 31)
+    let sex = if seed2 % 100 < 60 { "F" } else { "M" }
+    let ecog_r = seed3 % 100
+    let ecog = if ecog_r < 40 { 0 } else if ecog_r < 80 { 1 } else { 2 }
+    let stage = if seed4 % 100 < 35 { "IIIB" } else { "IV" }
+    let prior = seed1 % 3
+
+    demo_lines = append(demo_lines, f"PT_{i + 1},{arm},{age},{sex},{ecog},{stage},{prior}")
+}
+write_lines(demo_lines, "data/demographics.csv")
+
+# ── File 2: RECIST Response ──
+# Drug X: 8% CR, 32% PR, 35% SD, 25% PD  (ORR 40%)
+# Chemo:  3% CR, 22% PR, 38% SD, 37% PD  (ORR 25%)
+let resp_lines = ["patient_id,best_response"]
+
+for i in range(0, n) {
+    let seed = ((i + 7) * 2654435761) % 10000
+    let r = seed % 100
+    let response = ""
+    if i < n_per_arm {
+        # Drug X arm
+        response = if r < 8 { "CR" } else if r < 40 { "PR" } else if r < 75 { "SD" } else { "PD" }
+    } else {
+        # Chemo arm
+        response = if r < 3 { "CR" } else if r < 25 { "PR" } else if r < 63 { "SD" } else { "PD" }
+    }
+    resp_lines = append(resp_lines, f"PT_{i + 1},{response}")
+}
+write_lines(resp_lines, "data/response.csv")
+
+# ── File 3: Survival Data (PFS and OS) ──
+# Drug X: median PFS ~8.5 months, median OS ~22 months
+# Chemo:  median PFS ~5.5 months, median OS ~16 months
+# ~25% PFS censored, ~35% OS censored
+let surv_lines = ["patient_id,pfs_months,pfs_event,os_months,os_event"]
+
+for i in range(0, n) {
+    let seed_pfs = ((i + 13) * 2654435761) % 10000
+    let seed_os = ((i + 29) * 1664525 + 1013904223) % 10000
+    let seed_cens1 = ((i + 37) * 214013 + 2531011) % 10000
+    let seed_cens2 = ((i + 43) * 1103515245 + 12345) % 10000
+
+    # PFS: exponential-like distribution via deterministic mapping
+    let pfs_base = if i < n_per_arm { 8.5 } else { 5.5 }
+    let pfs_frac = (seed_pfs % 10000) / 10000.0
+    # Map uniform to exponential-like: -ln(1-u) * median / ln(2)
+    let pfs_raw = pfs_base * (0.2 + pfs_frac * 2.5) / 1.45
+    let pfs = round(pfs_raw, 1)
+    if pfs < 0.5 then pfs = 0.5
+    if pfs > 36.0 then pfs = 36.0
+    let pfs_cens = if seed_cens1 % 100 < 25 { 0 } else { 1 }
+    # If censored, observe at shorter time
+    let pfs_obs = if pfs_cens == 0 { round(pfs * (0.3 + (seed_cens1 % 70) / 100.0), 1) } else { pfs }
+
+    # OS: always >= PFS
+    let os_base = if i < n_per_arm { 22.0 } else { 16.0 }
+    let os_frac = (seed_os % 10000) / 10000.0
+    let os_raw = os_base * (0.3 + os_frac * 2.2) / 1.4
+    let os = round(os_raw, 1)
+    if os < pfs_obs + 1.0 then os = round(pfs_obs + 1.0 + (seed_os % 50) / 10.0, 1)
+    if os > 60.0 then os = 60.0
+    let os_cens = if seed_cens2 % 100 < 35 { 0 } else { 1 }
+    let os_obs = if os_cens == 0 { round(os * (0.4 + (seed_cens2 % 60) / 100.0), 1) } else { os }
+
+    surv_lines = append(surv_lines, f"PT_{i + 1},{pfs_obs},{pfs_cens},{os_obs},{os_cens}")
+}
+write_lines(surv_lines, "data/survival.csv")
+
+# ── File 4: Adverse Events ──
+# 10 common AEs per arm with realistic grade distributions
+# Drug X (immunotherapy): rash, colitis, hepatitis, pneumonitis, thyroid, fatigue
+# Chemo: neutropenia, anemia, nausea, neuropathy, fatigue, alopecia
+let ae_lines = ["patient_id,ae_term,grade"]
+
+# AE definitions: [name, drug_x_rate, chemo_rate]
+let ae_terms = [
+    "fatigue", "nausea", "diarrhea", "rash",
+    "pruritus", "neutropenia", "anemia",
+    "neuropathy", "arthralgia", "hypothyroidism"
+]
+# Rates per 100 patients: [Drug_X, Chemo]
+let ae_rates_drugx = [35, 18, 22, 28, 20, 5, 8, 5, 18, 15]
+let ae_rates_chemo = [42, 55, 15, 5, 3, 45, 35, 22, 8, 2]
+
+for i in range(0, n) {
+    let arm_idx = if i < n_per_arm { 0 } else { 1 }
+    for a in range(0, 10) {
+        let rate = if arm_idx == 0 { ae_rates_drugx[a] } else { ae_rates_chemo[a] }
+        let seed = ((i * 10 + a) * 2654435761 + 999) % 10000
+        if seed % 100 < rate {
+            # Assign grade (1-4): mostly 1-2, some grade 3-4
+            let g_seed = ((i * 10 + a) * 1664525 + 5555) % 100
+            let grade = if g_seed < 40 { 1 } else if g_seed < 75 { 2 } else if g_seed < 92 { 3 } else { 4 }
+            ae_lines = append(ae_lines, f"PT_{i + 1},{ae_terms[a]},{grade}")
+        }
+    }
+}
+write_lines(ae_lines, "data/adverse_events.csv")
+
+println("Created 4 clinical trial datasets:")
+println("  data/demographics.csv  — 300 patients, age/sex/ECOG/stage/prior lines")
+println("  data/response.csv      — RECIST best response (CR/PR/SD/PD)")
+println("  data/survival.csv      — PFS and OS with censoring indicators")
+println("  data/adverse_events.csv — 10 AE terms with CTCAE grades")
+println("")
+println("  Drug X arm (n=150): ORR ~40%, mPFS ~8.5mo, mOS ~22mo")
+println("  Chemo arm  (n=150): ORR ~25%, mPFS ~5.5mo, mOS ~16mo")
+println("  Based on KEYNOTE-024 / CheckMate-227 outcome patterns")

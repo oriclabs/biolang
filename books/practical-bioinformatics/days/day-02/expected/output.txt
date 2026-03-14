@@ -1,0 +1,46 @@
+# Expected output from: bl run scripts/analysis.bl
+# Note: Record/map field order may vary between runs (HashMap-based).
+
+=== Variables and Types ===
+Gene: BRCA1, Length: 81189, GC: 0.423
+Types: name=Str, length=Int, gc=Float, seq=DNA
+=== Pipe Operator ===
+Nested: 0.5
+Piped:  0.5
+Central dogma:
+Protein(MKPG)
+Start codon positions: [0, 3, 9]
+Found 3 start codons
+=== Lists and Records ===
+Genes: [BRCA1, TP53, EGFR, KRAS]
+Count: 4
+First: BRCA1
+Last:  KRAS
+Gene record: TP53 on chr17
+=== Functions ===
+GCGCGCGCATGC is GC-rich: true
+AAAATTTT is GC-rich: false
+double(5) = 10
+=== Control Flow ===
+GC-rich region
+Codon: ATG
+Codon: GCT
+Codon: TAA
+A is a Purine
+=== Higher-Order Functions ===
+GC values: [0.5, 1.0, 0.0]
+GC-rich count: 2
+All genes:
+  Gene: BRCA1
+  Gene: TP53
+  Gene: EGFR
+Total bases: 16
+=== Mini-Analysis ===
+GC-rich exons: [exon1]
+GC contents: [0.538, 0.5, 0.333]
+Mean GC: 0.457
+exon1: GC=0.538 (balanced)
+exon2: GC=0.5 (balanced)
+exon3: GC=0.333 (AT-rich)
+=== BioLang vs Python vs R (same task) ===
+DNA(GCGCGCGC): 1.0

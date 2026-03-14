@@ -1,0 +1,115 @@
+# Day 27: Reproducible Analysis
+# Data sources:
+#   Gene names from TCGA COAD (colon adenocarcinoma) top-expressed genes
+#   Expression counts modeled on typical RNA-seq count distributions
+#   Config parameters reflect standard bioinformatics analysis thresholds
+
+println("Setting up Day 27: Reproducible Analysis")
+mkdir("data")
+
+# ── File 1: Analysis parameter configuration ──
+let config_lines = ["parameter,value"]
+let config_data = [
+    "alpha_level,0.05",
+    "fdr_threshold,0.05",
+    "min_expression,1.0",
+    "log2fc_threshold,1.0",
+    "random_seed,42",
+    "n_bootstrap,10000",
+    "normalization,TMM",
+    "test_method,quasi-likelihood",
+    "min_samples_expressing,3",
+    "outlier_removal,IQR_3x"
+]
+for c in config_data {
+    config_lines = append(config_lines, c)
+}
+write_lines(config_lines, "data/config.csv")
+
+# ── File 2: Small RNA-seq count matrix (50 genes x 6 samples) ──
+# 3 control + 3 treated, matched pairs for reproducibility exercise
+# Uses real gene names from TCGA COAD frequently expressed genes
+let gene_names = [
+    # Housekeeping / stable genes (no fold change expected)
+    "ACTB", "GAPDH", "B2M", "RPL13A", "PPIA",
+    "RPS18", "RPL10", "EEF1A1", "UBC", "RPLP0",
+    # Known upregulated in colon tumor vs normal
+    "MYC", "VEGFA", "MMP7", "REG4", "CDH17",
+    "CLDN1", "LGR5", "ASCL2", "SP5", "SOX9",
+    # Known downregulated in colon tumor vs normal
+    "MUC2", "AQP8", "CA1", "SLC26A3", "CLCA4",
+    "ZG16", "MS4A12", "BEST4", "SCIN", "CEACAM7",
+    # Moderate expression, mixed changes
+    "TP53", "APC", "KRAS", "BRAF", "PIK3CA",
+    "SMAD4", "TGFBR2", "MLH1", "MSH2", "PTEN",
+    # Immune / stroma genes
+    "CD3D", "CD8A", "FOXP3", "CD68", "CD163",
+    "COL1A1", "FAP", "ACTA2", "VIM", "PDGFRB"
+]
+
+# Base expression counts (control) and fold changes for treated
+# Counts represent typical RNA-seq depth (~20M reads, TMM-normalized)
+let base_counts = [
+    12500, 15800, 9200, 8500, 6200,
+    7800, 7100, 11200, 5600, 6900,
+    450, 280, 85, 35, 320,
+    180, 95, 120, 65, 210,
+    2800, 1950, 1200, 1650, 890,
+    1400, 750, 520, 380, 620,
+    1800, 950, 2200, 180, 1100,
+    720, 480, 1350, 1100, 850,
+    350, 180, 45, 420, 280,
+    1500, 220, 380, 650, 190
+]
+
+# Fold changes (treated/control): 1.0 = no change
+let fold_changes = [
+    1.0, 1.0, 1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0, 1.0,
+    3.2, 2.5, 8.5, 15.0, 5.2,
+    4.1, 6.8, 5.5, 7.2, 3.8,
+    0.3, 0.1, 0.2, 0.15, 0.12,
+    0.25, 0.18, 0.22, 0.28, 0.2,
+    0.85, 0.7, 1.3, 1.1, 1.2,
+    0.75, 0.6, 0.9, 0.95, 0.65,
+    1.5, 1.3, 0.8, 1.4, 1.6,
+    2.1, 1.8, 2.5, 1.9, 1.7
+]
+
+let header = "gene,control_1,control_2,control_3,treated_1,treated_2,treated_3"
+let lines = [header]
+
+for g in range(0, 50) {
+    let base = base_counts[g]
+    let fc = fold_changes[g]
+    let vals = []
+
+    # 3 control replicates with deterministic noise
+    for r in range(0, 3) {
+        let noise_seed = g * 137 + r * 59
+        let noise_frac = ((noise_seed * 2654435761) % 10000) / 10000.0 - 0.5
+        let count = round(base * (1.0 + noise_frac * 0.3), 0)
+        if count < 0.0 then count = 0.0
+        vals = append(vals, f"{count}")
+    }
+
+    # 3 treated replicates with fold change + noise
+    for r in range(0, 3) {
+        let noise_seed = g * 211 + r * 73 + 1000
+        let noise_frac = ((noise_seed * 2654435761) % 10000) / 10000.0 - 0.5
+        let count = round(base * fc * (1.0 + noise_frac * 0.3), 0)
+        if count < 0.0 then count = 0.0
+        vals = append(vals, f"{count}")
+    }
+
+    lines = append(lines, f"{gene_names[g]},{join(vals, \",\")}")
+}
+
+write_lines(lines, "data/raw_counts.csv")
+
+println("Created data/config.csv")
+println("  10 analysis parameters (alpha, FDR, thresholds, seed, method)")
+println("Created data/raw_counts.csv")
+println("  50 genes x 6 samples (3 control, 3 treated)")
+println("  Real gene names from TCGA COAD expression profiles")
+println("  Includes housekeeping, DE, and immune/stroma genes")

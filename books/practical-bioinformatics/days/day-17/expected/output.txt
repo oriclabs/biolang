@@ -1,0 +1,185 @@
+=== Step 1: Protein Sequence Basics ===
+
+Length: 120 amino acids
+Type: Protein
+
+=== Step 2: UniProt Lookup ===
+
+Protein: Cellular tumor antigen p53
+Gene: [TP53, P53]
+Organism: Homo sapiens (Human)
+Length: 393 aa
+Function: Acts as a tumor suppressor in many tumor types; induces growth arrest or apop...
+
+First 60 residues: MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGP
+Full length: 393 aa
+
+=== Step 3: Protein Features and Domains ===
+
+Total features: 68
+Feature types: {Chain: 1, Domain: 3, DNA binding: 1, Region: 4, ...}
+  Domain: Transactivation domain 1 (1..43)
+  Domain: Proline-rich region (63..97)
+  Domain: Tetramerization domain (323..356)
+
+Binding sites: 4
+  Zinc (176)
+  Zinc (179)
+  Zinc (238)
+  Zinc (242)
+
+=== Step 4: GO Terms ===
+
+GO annotations: 142
+Biological Process: 98
+Molecular Function: 24
+Cellular Component: 20
+
+Molecular functions:
+  GO:0003700: DNA-binding transcription factor activity
+  GO:0003677: DNA binding
+  GO:0005515: protein binding
+  GO:0046982: protein heterodimerization activity
+  GO:0042802: identical protein binding
+
+=== Step 5: PDB Structures ===
+
+Title: CRYSTAL STRUCTURE OF THE TETRAMERIZATION DOMAIN OF THE TUMOR SUPPRESSOR P53
+Resolution: 1.7 angstrom
+Method: X-RAY DIFFRACTION
+Release date: 1995-10-15
+Organism: Homo sapiens
+
+TP53 structures in PDB: 385
+First 5 IDs: [1TUP, 1TSR, 1UOL, 2AC0, 2AHI]
+
+PDB sequence type: Protein
+PDB sequence length: 60 residues
+
+=== Step 6: Amino Acid Composition ===
+
+Amino acid counts: {A: 2, D: 5, E: 4, F: 1, K: 1, L: 7, M: 2, N: 2, P: 7, Q: 3, S: 4, T: 1, V: 2, W: 1}
+Property distribution: {hydrophobic: 20, polar: 10, negative: 9, positive: 1}
+  hydrophobic: 20/48 (41.7%)
+  polar: 10/48 (20.8%)
+  negative: 9/48 (18.8%)
+  positive: 1/48 (2.1%)
+
+=== Step 7: K-mer Analysis ===
+
+Protein 3-mers: 24
+First 5 trimers: [MEE, EEP, EPQ, PQS, QSD]
+
+Dipeptide counts (top 10):
+EP: 2
+PL: 2
+PS: 2
+SD: 2
+SQ: 1
+...
+
+=== Step 8: Cross-Species Comparison ===
+
+TP53 Orthologs:
+species   accession  name                       organism                length
+Human     P04637     Cellular tumor antigen p53  Homo sapiens (Human)    393
+Chicken   Q00366     Cellular tumor antigen p53  Gallus gallus (Chicken) 367
+Mouse     O09185     Cellular tumor antigen p53  Mus musculus (Mouse)    387
+
+=== Step 9: Mutation Impact ===
+
+Position 16: Q -> R
+Property: polar -> positive
+WARNING: Property change detected --- likely functional impact
+
+EGFR variant VEP:
+Consequence: missense_variant
+Gene: EGFR
+Impact: MODERATE
+
+=== Step 10: Complete Protein Reports ===
+
+
+==================================================
+Protein Report: P04637
+==================================================
+
+Name: Cellular tumor antigen p53
+Gene: [TP53, P53]
+Organism: Homo sapiens (Human)
+Length: 393 aa
+
+Composition:
+  hydrophobic: 35.4%
+  polar: 28.2%
+  negative: 10.7%
+  positive: 14.2%
+
+Domains (3):
+  Transactivation domain 1: 1..43
+  Proline-rich region: 63..97
+  Tetramerization domain: 323..356
+
+GO annotations: 142 total
+  Biological Process: 98
+  Molecular Function: 24
+  Cellular Component: 20
+
+PDB structures: 385
+  Best: 1TUP - X-RAY DIFFRACTION, 1.7 angstrom
+
+==================================================
+Protein Report: P00533
+==================================================
+
+Name: Epidermal growth factor receptor
+Gene: [EGFR, ERBB1, HER1]
+Organism: Homo sapiens (Human)
+Length: 1210 aa
+
+Composition:
+  hydrophobic: 38.1%
+  polar: 24.5%
+  negative: 11.3%
+  positive: 13.8%
+
+Domains (4):
+  Furin-like cysteine rich domain: 177..338
+  Furin-like cysteine rich domain: 481..621
+  Protein kinase domain: 712..979
+  Receptor L domain: 57..167
+
+GO annotations: 96 total
+  Biological Process: 62
+  Molecular Function: 18
+  Cellular Component: 16
+
+PDB structures: 290
+  Best: 1NQL - X-RAY DIFFRACTION, 2.5 angstrom
+
+==================================================
+Protein Report: P01116
+==================================================
+
+Name: GTPase KRas
+Gene: [KRAS]
+Organism: Homo sapiens (Human)
+Length: 189 aa
+
+Composition:
+  hydrophobic: 34.9%
+  polar: 25.9%
+  negative: 14.8%
+  positive: 13.2%
+
+Domains (0):
+
+GO annotations: 78 total
+  Biological Process: 52
+  Molecular Function: 14
+  Cellular Component: 12
+
+PDB structures: 620
+  Best: 4OBE - X-RAY DIFFRACTION, 1.2 angstrom
+
+=== Done ===

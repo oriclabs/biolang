@@ -10,6 +10,7 @@ pub fn plot_builtin_list() -> Vec<(&'static str, Arity)> {
         ("volcano", Arity::Range(1, 2)),
         ("ma_plot", Arity::Range(1, 2)),
         ("save_svg", Arity::Exact(2)),
+        ("save_plot", Arity::Exact(2)),
         ("genome_track", Arity::Range(1, 2)),
     ]
 }
@@ -17,7 +18,7 @@ pub fn plot_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_plot_builtin(name: &str) -> bool {
     matches!(
         name,
-        "plot" | "heatmap" | "histogram" | "volcano" | "ma_plot" | "save_svg" | "genome_track"
+        "plot" | "heatmap" | "histogram" | "volcano" | "ma_plot" | "save_svg" | "save_plot" | "genome_track"
     )
 }
 
@@ -51,7 +52,7 @@ pub fn call_plot_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "histogram" => builtin_histogram(args),
         "volcano" => builtin_volcano(args),
         "ma_plot" => builtin_ma_plot(args),
-        "save_svg" => builtin_save_svg(args),
+        "save_svg" | "save_plot" => builtin_save_svg(args),
         "genome_track" => builtin_genome_track(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
@@ -232,6 +233,7 @@ pub(crate) fn extract_table_col(table: &Table, col: &str) -> Result<Vec<f64>> {
         match &row[idx] {
             Value::Int(n) => vals.push(*n as f64),
             Value::Float(f) => vals.push(*f),
+            Value::Str(s) => vals.push(s.parse::<f64>().unwrap_or(f64::NAN)),
             _ => vals.push(f64::NAN),
         }
     }
@@ -458,6 +460,11 @@ fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
                 match item {
                     Value::Int(n) => v.push(*n as f64),
                     Value::Float(f) => v.push(*f),
+                    Value::Str(s) => {
+                        if let Ok(f) = s.parse::<f64>() {
+                            v.push(f);
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -467,7 +474,7 @@ fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
     };
 
     if nums.is_empty() {
-        return Err(BioLangError::runtime(ErrorKind::TypeError, "histogram() empty list", None));
+        return Err(BioLangError::runtime(ErrorKind::TypeError, "histogram() received no numeric values — check that your data contains numbers, not strings", None));
     }
 
     let (lo, hi) = col_range(&nums);
@@ -590,6 +597,9 @@ fn builtin_ma_plot(args: Vec<Value>) -> Result<Value> {
 fn builtin_save_svg(args: Vec<Value>) -> Result<Value> {
     let svg = match &args[0] {
         Value::Str(s) => s,
+        Value::Nil => return Err(BioLangError::type_error(
+            "save_svg()/save_plot() received Nil — the plot function before the pipe likely failed or returned nothing".to_string(), None,
+        )),
         other => return Err(BioLangError::type_error(
             format!("save_svg() requires Str (SVG), got {}", other.type_of()), None,
         )),

@@ -1,0 +1,87 @@
+============================================================
+Day 7: Bioinformatics File Formats
+============================================================
+
+--- 1. FASTA: Reference Sequences ---
+Sequences: 5
+  chr1_fragment: 200 bp, GC=49.0%
+  chr17_brca1: 150 bp, GC=52.0%
+  chrX_region: 180 bp, GC=41.1%
+  ecoli_16s: 120 bp, GC=54.2%
+  insulin_mrna: 100 bp, GC=47.0%
+Total bases: 750
+Mean length: 150.0
+Total bases (streaming): 750
+
+--- 2. VCF: Variant Calls ---
+Total variants: 10
+First variant: chr1:100 A>G
+PASS variants: 8
+SNPs: 7
+Indels: 3
+
+ chrom | count
+ chr1  | 3
+ chr17 | 3
+ chrX  | 2
+SNPs (streaming): 7
+
+--- 3. BED: Genomic Regions ---
+Regions: 10
+Total bases covered: 92500
+Chr17 regions: 3
+Region sizes:
+  Min: 500
+  Max: 81189
+  Mean: 9250.0
+
+--- 4. GFF: Gene Annotations ---
+Features: 15
+Genes: 3
+Exons: 8
+CDS:   4
+Gene names: [DDX11L1, BRCA1, TP53]
+
+ type | count
+ CDS  | 4
+ exon | 8
+ gene | 3
+Exons (streaming): 8
+
+--- 5. BAM: Alignments ---
+Total alignments: 20
+Mapped: 17
+Unmapped: 3
+Mean MAPQ: 48.2
+High quality (MAPQ >= 30): 14
+Mapped reads (streaming): 17
+
+--- 6. Format Conversions ---
+VCF -> BED: 10 variant intervals
+  First: chr1:99-100
+GFF -> BED: 3 gene regions
+
+--- 7. Writing Output ---
+Wrote 2 sequences to results/output.fasta
+Wrote 2 regions to results/output.bed
+Wrote 3 rows to results/output.csv
+
+--- 8. Summary ---
+
+ metric              | value
+ Reference sequences | 5
+ Total ref bases     | 750
+ Total variants      | 10
+ PASS variants       | 8
+ SNPs                | 7
+ Indels              | 3
+ BED regions         | 10
+ Target bases        | 92500
+ GFF features        | 15
+ Genes               | 3
+ Total alignments    | 20
+ Mapped reads        | 17
+
+============================================================
+Day 7 complete! You can now read every major bio format.
+============================================================

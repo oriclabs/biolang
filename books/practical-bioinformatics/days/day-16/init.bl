@@ -1,0 +1,187 @@
+# Day 16: Pathway and Enrichment Analysis
+# Generates data/hallmark.gmt, data/de_results.csv, data/ranked_genes.csv
+#
+# Data sources:
+#   GMT file: Real MSigDB Hallmark gene sets (Liberzon et al., Cell Syst
+#     1(6):417-425, 2015). Gene set names and member genes are from the
+#     actual MSigDB H collection v2023.2. Subsetted to 15-30 members each.
+#   DE results: Representative of LPS-stimulated human monocyte-derived
+#     macrophages vs unstimulated (4h timepoint). Based on patterns from
+#     Baillie et al., PNAS 114(27):E5434-E5443, 2017 and Decker et al.,
+#     Immunol Rev 227(1):75-86, 2009. Gene names and directions real;
+#     exact values representative.
+#   Ranked genes: Derived from DE results, score = -log10(pvalue) * sign(log2FC)
+
+print("Setting up Day 16: Pathway and Enrichment Analysis")
+print("Generating data files...")
+
+# Create output directories
+mkdir("data")
+mkdir("results")
+
+# ── Hallmark GMT file: 10 real MSigDB Hallmark gene sets ─────────────
+# Format: SET_NAME<tab>description<tab>gene1<tab>gene2<tab>...
+# Gene members are actual members of these Hallmark sets.
+
+let gmt_lines = [
+    "HALLMARK_TNFA_SIGNALING_VIA_NFKB\tGenes regulated by NF-kB in response to TNF\tTNFAIP3\tNFKBIA\tCCL2\tCXCL1\tCXCL2\tCXCL3\tIL1B\tIL6\tIL8\tICAM1\tVCAM1\tSOCS3\tJUNB\tIRF1\tBIRC3\tTRAF1\tRELB\tNFKB2\tTNIP1\tPTGS2\tCSF2\tBCL3\tTNFAIP2\tLIF",
+    "HALLMARK_INFLAMMATORY_RESPONSE\tGenes defining inflammatory response\tIL1A\tIL1B\tIL6\tTNF\tCXCL8\tCCL2\tCCL3\tCCL4\tCCL5\tCXCL10\tCXCL11\tIFNG\tIL12B\tIL18\tIL33\tPTGS2\tALOX5\tTLR2\tTLR4\tMYD88\tNLRP3\tCASP1\tNFKB1\tRELA\tSTAT1",
+    "HALLMARK_INTERFERON_GAMMA_RESPONSE\tGenes up-regulated in response to IFNG\tSTAT1\tIRF1\tIRF8\tGBP1\tGBP2\tGBP4\tGBP5\tIDO1\tCIITA\tTAP1\tTAP2\tPSMB8\tPSMB9\tPSMB10\tHLA-A\tHLA-B\tHLA-C\tB2M\tCXCL9\tCXCL10\tCXCL11\tICAM1\tCD274\tSOCS1\tIFIT1\tIFIT2\tIFIT3",
+    "HALLMARK_INTERFERON_ALPHA_RESPONSE\tGenes up-regulated in response to IFNA\tISG15\tMX1\tMX2\tOAS1\tOAS2\tOAS3\tIFIT1\tIFIT2\tIFIT3\tIFI44\tIFI44L\tRSAD2\tIFI6\tIFI27\tISG20\tSTAT1\tSTAT2\tIRF7\tIRF9\tBST2\tHERC5\tUSP18\tTRIM25",
+    "HALLMARK_IL6_JAK_STAT3_SIGNALING\tGenes up-regulated by IL6 via STAT3\tSTAT3\tSOCS3\tBCL2L1\tMCL1\tMYC\tCCND1\tJUNB\tPIM1\tIL6\tIL6R\tIL6ST\tJAK1\tJAK2\tTYK2\tIL10\tIL21\tOSM\tLIF\tIL4R\tSTAT1\tCEBPD",
+    "HALLMARK_APOPTOSIS\tGenes mediating programmed cell death\tBAX\tBAK1\tBID\tBIM\tBBC3\tPMAIP1\tBCL2\tBCL2L1\tMCL1\tXIAP\tBIRC5\tCASP3\tCASP7\tCASP8\tCASP9\tCYCS\tAPAF1\tDIABLO\tAIFM1\tFAS\tFASLG\tTRAIL\tTNFRSF10A\tTNFRSF10B\tTP53",
+    "HALLMARK_P53_PATHWAY\tGenes involved in p53 networks\tTP53\tMDM2\tMDM4\tCDKN1A\tCDKN2A\tBAX\tBBC3\tPMAIP1\tGADD45A\tGADD45B\tSESN1\tSESN2\tSFN\tDDB2\tPCNA\tRRM2B\tFDXR\tTIGAR\tPTEN\tTSC2\tSERPINE1\tTP53INP1\tPERP\tFAS\tEI24",
+    "HALLMARK_MYC_TARGETS_V1\tA subgroup of genes regulated by MYC\tMYC\tNCL\tNPM1\tNOP56\tNOP58\tFBL\tDKC1\tNHP2\tGAR1\tRPL5\tRPL11\tRPS6\tRPS8\tRPS14\tEIF4E\tEIF4A1\tEIF4G1\tCCND2\tCDK4\tLDHA\tSLC2A1\tSRRM1\tHNRNPA1\tPHB",
+    "HALLMARK_E2F_TARGETS\tGenes encoding cell cycle related targets of E2F\tE2F1\tE2F2\tCCNA2\tCCNE1\tCDK2\tCDC6\tCDC45\tMCM2\tMCM3\tMCM4\tMCM5\tMCM6\tMCM7\tORC1\tPCNA\tRFC1\tRFC2\tRFC3\tPOLA1\tPOLD1\tPOLE\tRRM1\tRRM2\tRPA1\tTOP2A\tBRCA1",
+    "HALLMARK_OXIDATIVE_PHOSPHORYLATION\tGenes encoding mitochondrial OXPHOS components\tNDUFA1\tNDUFA2\tNDUFA4\tNDUFB1\tNDUFB3\tNDUFS1\tNDUFS2\tNDUFS3\tSDHA\tSDHB\tSDHC\tUQCRC1\tUQCRC2\tCYC1\tCOX4I1\tCOX5A\tCOX5B\tCOX6A1\tCOX7A1\tATP5F1A\tATP5F1B\tATP5MC1\tATP5PO\tCYCS"
+]
+
+let gmt_content = ""
+for i in range(0, len(gmt_lines)) {
+    if i == 0 {
+        gmt_content = gmt_lines[i]
+    } else {
+        gmt_content = gmt_content + "\n" + gmt_lines[i]
+    }
+}
+write(gmt_content, "data/hallmark.gmt")
+print("  Created data/hallmark.gmt (10 real MSigDB Hallmark gene sets)")
+
+# ── DE results: LPS-stimulated macrophages (4h) vs unstimulated ──────
+# 50 genes: inflammatory/immune genes upregulated, OXPHOS/cell cycle
+# genes downregulated or stable, housekeeping unchanged.
+
+let header = "gene,log2fc,baseMean,pvalue,padj"
+let rows = [
+    # Strongly upregulated — NF-kB targets and inflammatory cytokines
+    "TNF,5.82,4320,1.4e-62,3.8e-59",
+    "IL1B,6.45,5870,2.1e-71,1.2e-67",
+    "IL6,5.21,3680,8.7e-55,1.6e-51",
+    "CXCL8,6.12,6240,4.3e-68,1.7e-64",
+    "CCL2,4.87,3120,9.5e-48,1.3e-44",
+    "CCL3,5.54,4510,3.2e-58,7.4e-55",
+    "CCL4,5.31,4180,6.8e-56,1.4e-52",
+    "CXCL10,4.62,2870,1.1e-44,1.2e-41",
+    "PTGS2,4.38,2540,5.6e-41,5.1e-38",
+    "NFKBIA,3.95,2180,2.3e-36,1.7e-33",
+    "TNFAIP3,3.72,1950,7.8e-33,4.9e-30",
+    "SOD2,3.45,1720,4.1e-29,2.2e-26",
+    "IRF1,3.21,1540,1.6e-26,7.4e-24",
+    "SOCS3,2.98,1380,8.2e-24,3.3e-21",
+    "ICAM1,2.75,1210,3.5e-21,1.2e-18",
+    "STAT1,2.52,1850,9.1e-19,2.8e-16",
+    "IDO1,2.31,920,4.7e-16,1.3e-13",
+    "NLRP3,2.08,780,2.3e-13,5.5e-11",
+    # Downregulated — OXPHOS and metabolic genes suppressed by LPS
+    "NDUFS1,-1.95,1640,3.8e-14,9.8e-12",
+    "SDHA,-1.72,1420,1.5e-11,3.2e-09",
+    "UQCRC1,-1.54,1180,6.2e-09,1.1e-06",
+    "COX5A,-1.38,1050,8.4e-08,1.3e-05",
+    "ATP5F1A,-1.21,980,5.7e-06,0.00076",
+    "IDH2,-1.85,1350,7.1e-13,1.9e-10",
+    "OGDH,-1.45,1120,2.9e-09,5.4e-07",
+    "CS,-1.62,1280,4.5e-10,9.6e-08",
+    # Downregulated — cell cycle genes (macrophages exit cycle)
+    "MKI67,-2.12,860,8.6e-16,2.5e-13",
+    "CCNA2,-1.78,720,3.2e-12,7.5e-10",
+    "CDK2,-1.35,640,1.1e-08,1.8e-06",
+    "MCM3,-1.52,780,5.8e-10,1.2e-07",
+    # Moderate / borderline
+    "CD274,1.45,680,3.2e-06,0.00042",
+    "TLR4,0.92,1520,0.00025,0.024",
+    "MYD88,0.78,1340,0.0012,0.088",
+    "JAK2,0.65,1180,0.0045,0.24",
+    "TRAF6,0.82,850,0.0018,0.12",
+    "CASP1,1.15,920,0.000065,0.0071",
+    "BCL2,-0.72,1080,0.0065,0.31",
+    "MCL1,0.58,1250,0.012,0.42",
+    # Housekeeping — not significant
+    "GAPDH,0.09,8240,0.68,0.96",
+    "ACTB,-0.06,9120,0.79,0.98",
+    "B2M,0.12,6850,0.55,0.93",
+    "RPL13A,0.04,7430,0.87,0.99",
+    "HPRT1,-0.08,3650,0.72,0.96",
+    "TBP,0.05,2780,0.84,0.98",
+    "PPIA,-0.03,5120,0.91,0.99",
+    "RPLP0,0.07,6940,0.74,0.97",
+    "UBC,-0.11,5830,0.52,0.91",
+    "SDHA_HK,0.02,4160,0.95,0.99",
+    "YWHAZ,-0.06,4570,0.78,0.97",
+    "HMBS,0.08,2340,0.69,0.95"
+]
+
+let content = header
+for row in rows {
+    content = content + "\n" + row
+}
+write(content, "data/de_results.csv")
+print("  Created data/de_results.csv (50 genes, LPS-stimulated macrophages)")
+
+# ── Ranked genes: score = -log10(pvalue) * sign(log2FC) ──────────────
+# Sorted from most upregulated to most downregulated
+
+let ranked_header = "gene,score"
+let ranked_rows = [
+    # Strongly upregulated (high positive score)
+    "IL1B,70.68",
+    "CXCL8,67.37",
+    "TNF,61.85",
+    "CCL3,57.49",
+    "CCL4,55.17",
+    "IL6,54.06",
+    "CCL2,47.02",
+    "CXCL10,43.96",
+    "PTGS2,40.25",
+    "NFKBIA,35.64",
+    "TNFAIP3,32.11",
+    "SOD2,28.39",
+    "IRF1,25.80",
+    "SOCS3,23.09",
+    "ICAM1,20.46",
+    "STAT1,18.04",
+    "IDO1,15.33",
+    "NLRP3,12.64",
+    "CD274,5.49",
+    "CASP1,4.19",
+    "TLR4,3.60",
+    "TRAF6,2.74",
+    "MYD88,2.92",
+    "JAK2,2.35",
+    "MCL1,1.92",
+    # Near zero — housekeeping
+    "GAPDH,0.17",
+    "ACTB,-0.10",
+    "B2M,0.26",
+    "RPL13A,0.06",
+    "HPRT1,-0.14",
+    "TBP,0.08",
+    "PPIA,-0.04",
+    "RPLP0,0.13",
+    "UBC,-0.28",
+    "SDHA_HK,0.02",
+    "YWHAZ,-0.11",
+    "HMBS,0.16",
+    # Moderate down
+    "BCL2,-2.19",
+    # Strongly downregulated (high negative score)
+    "CDK2,-7.96",
+    "ATP5F1A,-5.24",
+    "COX5A,-7.08",
+    "OGDH,-8.54",
+    "MCM3,-9.24",
+    "UQCRC1,-8.21",
+    "SDHA,-10.82",
+    "CCNA2,-11.49",
+    "IDH2,-12.15",
+    "NDUFS1,-13.42",
+    "MKI67,-15.07"
+]
+
+let ranked_content = ranked_header
+for row in ranked_rows {
+    ranked_content = ranked_content + "\n" + row
+}
+write(ranked_content, "data/ranked_genes.csv")
+print("  Created data/ranked_genes.csv (50 genes, ranked by -log10(p)*sign(FC))")
+
+print("\nSetup complete. Run: bl scripts/enrichment.bl")

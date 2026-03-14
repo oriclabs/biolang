@@ -1,0 +1,161 @@
+# Day 2: Your First Language — BioLang
+# Complete analysis script covering all chapter concepts
+
+# --- Variables and Types ---
+print("=== Variables and Types ===")
+let name = "BRCA1"
+let length = 81189
+let gc = 0.423
+let is_oncogene = false
+let seq = dna"ATGCGATCG"
+
+print(f"Gene: {name}, Length: {length}, GC: {gc}")
+print(f"Types: name={type(name)}, length={type(length)}, gc={type(gc)}, seq={type(seq)}")
+
+# --- The Pipe Operator ---
+print("")
+print("=== Pipe Operator ===")
+
+# Without pipes (nested)
+let gc_nested = round(gc_content(dna"ATCGATCGATCG"), 3)
+print(f"Nested: {gc_nested}")
+
+# With pipes (readable)
+let gc_piped = dna"ATCGATCGATCG" |> gc_content() |> round(3)
+print(f"Piped:  {gc_piped}")
+
+# Central dogma pipeline
+print("Central dogma:")
+dna"ATGAAACCCGGG"
+    |> transcribe()
+    |> translate()
+    |> print()
+
+# Motif search
+let positions = find_motif(dna"ATGATGCCGATG", "ATG")
+print(f"Start codon positions: {positions}")
+print(f"Found {len(positions)} start codons")
+
+# --- Lists and Records ---
+print("")
+print("=== Lists and Records ===")
+
+let genes = ["BRCA1", "TP53", "EGFR", "KRAS"]
+print(f"Genes: {genes}")
+print(f"Count: {len(genes)}")
+print(f"First: {genes[0]}")
+print(f"Last:  {genes[-1]}")
+
+let gene = {
+    name: "TP53",
+    chromosome: "17",
+    length: 19149,
+    is_tumor_suppressor: true
+}
+print(f"Gene record: {gene.name} on chr{gene.chromosome}")
+
+# --- Functions ---
+print("")
+print("=== Functions ===")
+
+fn gc_rich(seq) {
+    gc_content(seq) > 0.6
+}
+
+print(f"GCGCGCGCATGC is GC-rich: {gc_rich(dna\"GCGCGCGCATGC\")}")
+print(f"AAAATTTT is GC-rich: {gc_rich(dna\"AAAATTTT\")}")
+
+# Lambdas
+let double = |x| x * 2
+print(f"double(5) = {double(5)}")
+
+# --- Control Flow ---
+print("")
+print("=== Control Flow ===")
+
+let gc_val = 0.65
+if gc_val > 0.6 {
+    print("GC-rich region")
+} else if gc_val < 0.4 {
+    print("AT-rich region")
+} else {
+    print("Balanced composition")
+}
+
+let codons = ["ATG", "GCT", "TAA"]
+for codon in codons {
+    print(f"Codon: {codon}")
+}
+
+let base = "A"
+match base {
+    "A" | "G" => print(f"{base} is a Purine"),
+    "C" | "T" => print(f"{base} is a Pyrimidine"),
+    _ => print("Unknown base"),
+}
+
+# --- Higher-Order Functions ---
+print("")
+print("=== Higher-Order Functions ===")
+
+let sequences = [dna"ATCG", dna"GCGCGC", dna"ATATAT"]
+
+# map
+let gc_values = sequences |> map(|s| gc_content(s))
+print(f"GC values: {gc_values}")
+
+# filter
+let gc_rich_seqs = sequences |> filter(|s| gc_content(s) > 0.4)
+print(f"GC-rich count: {len(gc_rich_seqs)}")
+
+# each
+print("All genes:")
+["BRCA1", "TP53", "EGFR"] |> each(|g| print(f"  Gene: {g}"))
+
+# reduce
+let total_length = sequences
+    |> map(|s| len(s))
+    |> reduce(|a, b| a + b)
+print(f"Total bases: {total_length}")
+
+# --- Putting It All Together ---
+print("")
+print("=== Mini-Analysis ===")
+
+let fragments = [
+    {name: "exon1", seq: dna"ATGCGATCGATCG"},
+    {name: "exon2", seq: dna"GCGCGCATATAT"},
+    {name: "exon3", seq: dna"TTTTAAAACCCC"},
+]
+
+# Find GC-rich exons
+let gc_rich_exons = fragments
+    |> filter(|f| gc_content(f.seq) > 0.5)
+    |> map(|f| f.name)
+print(f"GC-rich exons: {gc_rich_exons}")
+
+# Summary statistics
+let frag_gc = fragments |> map(|f| round(gc_content(f.seq), 3))
+print(f"GC contents: {frag_gc}")
+print(f"Mean GC: {round(mean(frag_gc), 3)}")
+
+# Classify each fragment
+fn classify_gc(gc_val) {
+    if gc_val > 0.6 { "GC-rich" }
+    else if gc_val < 0.4 { "AT-rich" }
+    else { "balanced" }
+}
+
+fragments |> each(|f| {
+    let gc_f = round(gc_content(f.seq), 3)
+    print(f"{f.name}: GC={gc_f} ({classify_gc(gc_f)})")
+})
+
+# --- Language Comparison Task ---
+print("")
+print("=== BioLang vs Python vs R (same task) ===")
+let seqs = [dna"ATCGATCG", dna"GCGCGCGC", dna"ATATATAT"]
+seqs
+    |> filter(|s| gc_content(s) > 0.5)
+    |> map(|s| {seq: s, gc: round(gc_content(s), 3)})
+    |> each(|r| print(f"{r.seq}: {r.gc}"))

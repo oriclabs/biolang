@@ -1,0 +1,77 @@
+import "lib/seq_utils.bl" as seq
+import "lib/qc.bl" as qc
+
+let sequences = read_fasta("data/sequences.fasta")
+let qc_reads = read_fasta("data/qc_reads.fasta")
+
+let summary = seq.sequence_summary(sequences)
+
+let classified = seq.batch_gc(sequences)
+let gc_table = classified |> to_table()
+
+let tata_hits = sequences |> map(|s| seq.find_all_motifs(s.sequence, "TATAAA"))
+let ecori_hits = sequences |> map(|s| seq.find_all_motifs(s.sequence, "GAATTC"))
+
+let qc_result = qc.qc_summary(qc_reads)
+let qc_report = qc.format_qc_report(qc_result)
+
+let flagged = qc.flag_outliers(qc_reads, 50, 10000, 0.2, 0.8)
+let passing = flagged |> filter(|f| f.pass) |> map(|f| f.id)
+let failing = flagged |> filter(|f| f.pass == false)
+
+let passing_seqs = qc_reads |> filter(|s| {
+    passing |> filter(|p| p == s.id) |> len() > 0
+})
+let passing_classified = seq.batch_gc(passing_seqs)
+
+let report_lines = [
+    "# Module-Based Analysis Report",
+    "",
+    "## Sequence Summary (seq_utils module)",
+    f"Total sequences: {summary.total}",
+    f"High GC: {summary.high_gc}",
+    f"Low GC: {summary.low_gc}",
+    f"Moderate GC: {summary.moderate_gc}",
+    f"Mean GC: {summary.mean_gc}",
+    f"GC stdev: {summary.stdev_gc}",
+    "",
+    "## GC Classification"
+]
+
+classified |> each(|c| {
+    report_lines = report_lines + [f"  {c.id}: {c.class} (GC={c.gc})"]
+})
+
+report_lines = report_lines + [
+    "",
+    "## Motif Search",
+    f"TATAAA hits: {tata_hits |> map(|h| h.count) |> sum()}",
+    f"GAATTC (EcoRI) hits: {ecori_hits |> map(|h| h.count) |> sum()}",
+    "",
+    "## QC Report (qc module)"
+]
+
+qc_report |> each(|line| {
+    report_lines = report_lines + [line]
+})
+
+report_lines = report_lines + [
+    "",
+    "## Failing Sequences"
+]
+
+failing |> each(|f| {
+    report_lines = report_lines + [f"  {f.id}: flags={join(f.flags, \", \")}"]
+})
+
+report_lines = report_lines + [
+    "",
+    "## Passing Sequences - GC Classification"
+]
+
+passing_classified |> each(|c| {
+    report_lines = report_lines + [f"  {c.id}: {c.class} (GC={c.gc})"]
+})
+
+write_lines(report_lines, "data/output/report.txt")
+write_csv(gc_table, "data/output/gc_classification.csv")

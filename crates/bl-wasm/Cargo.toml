@@ -1,0 +1,24 @@
+[package]
+name = "bl-wasm"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+bl-core = { workspace = true }
+bl-lexer = { workspace = true }
+bl-parser = { workspace = true }
+bl-runtime = { workspace = true, default-features = false }
+bl-bio = { workspace = true }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dependencies.console_error_panic_hook]
+version = "0.1"
+optional = true
+
+[features]
+default = ["console_error_panic_hook"]

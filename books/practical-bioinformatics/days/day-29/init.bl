@@ -1,0 +1,231 @@
+# Day 29 Init: Capstone — RNA-seq Differential Expression — Real Biological Data
+# Source: Modeled on doxorubicin-treated MCF-7 breast cancer cells
+#   Reference: Troester et al., Cancer Res 2004; Taymaz-Nikerel et al., PLoS ONE 2018
+#   Gene names/lengths from NCBI RefSeq (GRCh38). Counts reflect known doxorubicin response:
+#     - DNA damage response genes strongly upregulated (CDKN1A, BAX, BBC3, GADD45A, MDM2)
+#     - Cell cycle genes strongly downregulated (CCNA2, CCNB1, CDK1, TOP2A, MKI67)
+#     - Apoptosis/drug efflux genes moderately upregulated
+#     - Housekeeping genes stable with biological noise (±20%)
+
+mkdir("data")
+mkdir("data/output")
+
+# GO term pairs for pathway annotation
+let go_sets = [
+    "GO:0006915|GO:0012501",
+    "GO:0006915|GO:0008219",
+    "GO:0006281|GO:0006974",
+    "GO:0006281|GO:0000723",
+    "GO:0007049|GO:0051301",
+    "GO:0007049|GO:0000278",
+    "GO:0006955|GO:0002376",
+    "GO:0006955|GO:0045087",
+    "GO:0007165|GO:0023052",
+    "GO:0007165|GO:0035556",
+    "GO:0006351|GO:0006355",
+    "GO:0006351|GO:0006357",
+    "GO:0016310|GO:0006468",
+    "GO:0016310|GO:0007169",
+    "GO:0006412|GO:0006414",
+    "GO:0006412|GO:0002181",
+    "GO:0055114|GO:0006091",
+    "GO:0055114|GO:0045333",
+    "GO:0006810|GO:0015031",
+    "GO:0006810|GO:0006886"
+]
+
+# 100 real gene names grouped by biological response to doxorubicin
+let gene_names = [
+    # DNA damage response — strongly upregulated (genes 0-9)
+    "CDKN1A", "BAX", "BBC3", "GADD45A", "MDM2", "GADD45B", "PMAIP1", "SESN1", "FDXR", "DDB2",
+    # Apoptosis — moderately upregulated (genes 10-19)
+    "CASP3", "CASP9", "DIABLO", "APAF1", "TNFRSF10B", "FAS", "BID", "PERP", "PIDD1", "PHLDA3",
+    # Drug efflux / metabolism — upregulated (genes 20-24)
+    "ABCB1", "ABCC1", "ABCG2", "CYP1B1", "NQO1",
+    # Cell cycle — strongly downregulated (genes 25-39)
+    "CCNA2", "CCNB1", "CDK1", "TOP2A", "MKI67", "CCNB2", "CDK2", "AURKA", "AURKB", "PLK1",
+    "BUB1", "BUB1B", "CDC20", "MAD2L1", "CENPE",
+    # DNA replication — downregulated (genes 40-49)
+    "MCM2", "MCM4", "MCM6", "PCNA", "RFC4", "POLD1", "PRIM1", "ORC1", "CDT1", "GMNN",
+    # Mitotic spindle — downregulated (genes 50-54)
+    "TPX2", "KIF11", "KNTC1", "NDC80", "NUF2",
+    # p53 pathway — upregulated (genes 55-59)
+    "TP53INP1", "ZMAT3", "TIGAR", "RRM2B", "POLH",
+    # Stress response — upregulated (genes 60-64)
+    "HMOX1", "HSPA1A", "DDIT3", "ATF3", "TRIB3",
+    # NF-kB / inflammation — moderately upregulated (genes 65-69)
+    "IL6", "CXCL8", "CCL2", "TNFAIP3", "NFKBIA",
+    # Antioxidant defense — moderately upregulated (genes 70-74)
+    "SOD2", "GPX1", "CAT", "TXNRD1", "GCLM",
+    # Autophagy — upregulated (genes 75-79)
+    "ATG5", "BECN1", "MAP1LC3B", "BNIP3", "SQSTM1",
+    # Survival signaling — variable (genes 80-84)
+    "AKT1", "MTOR", "PIK3CA", "MAPK1", "MAPK3",
+    # Transcription factors — variable (genes 85-89)
+    "MYC", "E2F1", "FOXO3", "JUN", "FOS",
+    # Housekeeping — stable (genes 90-99)
+    "GAPDH", "ACTB", "B2M", "HPRT1", "TBP", "RPLP0", "GUSB", "PPIA", "YWHAZ", "SDHA"
+]
+
+# Real gene lengths from NCBI RefSeq (GRCh38), transcript length in bp
+let gene_lengths = [
+    # DNA damage response
+    2101, 1921, 1156, 1654, 1890, 1341, 876, 2835, 1542, 1314,
+    # Apoptosis
+    1785, 1872, 867, 3921, 2304, 2536, 1461, 1344, 2679, 1287,
+    # Drug efflux
+    4646, 4596, 2388, 3249, 1320,
+    # Cell cycle
+    2112, 1953, 1794, 4824, 3252, 1503, 1191, 1230, 1170, 1803,
+    1087, 3387, 1578, 1244, 8847,
+    # DNA replication
+    2736, 2706, 2403, 786, 1092, 3222, 1410, 2709, 1746, 645,
+    # Mitotic spindle
+    2385, 3348, 6168, 2097, 1431,
+    # p53 pathway
+    2811, 2376, 1572, 1080, 2145,
+    # Stress response
+    1437, 2433, 936, 1128, 1098,
+    # NF-kB / inflammation
+    1089, 1599, 1501, 2397, 1050,
+    # Antioxidant
+    669, 603, 1581, 1668, 1032,
+    # Autophagy
+    1062, 1509, 1395, 957, 2583,
+    # Survival signaling
+    1443, 7644, 3207, 1083, 1077,
+    # Transcription factors
+    1354, 1406, 2028, 993, 1107,
+    # Housekeeping
+    1128, 999, 360, 654, 1002, 1065, 1953, 498, 753, 1995
+]
+
+let go_assignments = range(0, 100) |> map(|i| {
+    let idx = i % len(go_sets)
+    go_sets[idx]
+})
+
+# Base expression levels (untreated MCF-7 cells, counts per gene)
+let base_expression = [
+    # DNA damage response — moderate baseline, will be strongly upregulated
+    3200, 1800, 850, 1200, 2800, 980, 620, 1450, 780, 920,
+    # Apoptosis — moderate baseline
+    1650, 1280, 890, 1120, 940, 780, 1050, 860, 540, 680,
+    # Drug efflux — low baseline
+    320, 1450, 580, 280, 1680,
+    # Cell cycle — high baseline in proliferating cells, will be downregulated
+    8200, 6800, 7500, 9200, 5400, 5100, 4800, 6200, 3900, 5600,
+    4200, 3800, 4500, 3200, 2800,
+    # DNA replication — high baseline
+    5800, 5200, 4600, 8900, 3200, 2100, 1800, 3400, 2600, 4100,
+    # Mitotic spindle — moderate-high baseline
+    4200, 3800, 2200, 2800, 2400,
+    # p53 pathway — low-moderate baseline
+    580, 420, 1200, 680, 340,
+    # Stress response — low baseline
+    890, 420, 580, 720, 380,
+    # NF-kB / inflammation — low baseline in cancer cells
+    180, 240, 120, 1200, 2400,
+    # Antioxidant
+    1650, 1420, 3200, 1100, 680,
+    # Autophagy
+    1800, 2200, 3400, 450, 2800,
+    # Survival signaling — moderate
+    3900, 2100, 1600, 2700, 2500,
+    # Transcription factors — variable
+    8500, 1900, 1500, 1100, 1300,
+    # Housekeeping — high, stable
+    28000, 22000, 18000, 1200, 1400, 24000, 1100, 9500, 7200, 3200
+]
+
+# Fold changes after 24h doxorubicin treatment (treated / control)
+# Based on published doxorubicin response data in MCF-7 cells
+let fold_changes = [
+    # DNA damage response — strongly upregulated 5-15x
+    12.5, 8.2, 14.8, 9.6, 6.4, 7.1, 11.3, 5.8, 7.9, 6.2,
+    # Apoptosis — moderately upregulated 2-4x
+    3.1, 2.8, 3.5, 2.2, 3.8, 2.6, 2.4, 2.9, 2.1, 3.3,
+    # Drug efflux — upregulated 3-8x
+    7.2, 3.4, 4.8, 5.1, 2.9,
+    # Cell cycle — strongly downregulated (0.12-0.33 = 3-8x down)
+    0.15, 0.12, 0.18, 0.13, 0.16, 0.14, 0.22, 0.19, 0.21, 0.17,
+    0.25, 0.23, 0.20, 0.28, 0.30,
+    # DNA replication — downregulated (0.2-0.4)
+    0.22, 0.25, 0.28, 0.35, 0.30, 0.38, 0.32, 0.24, 0.27, 0.42,
+    # Mitotic spindle — downregulated
+    0.18, 0.20, 0.32, 0.26, 0.24,
+    # p53 pathway — upregulated 4-8x
+    6.8, 5.2, 4.5, 7.1, 4.2,
+    # Stress response — upregulated 3-6x
+    5.4, 4.8, 5.9, 3.6, 4.1,
+    # NF-kB / inflammation — moderately upregulated 2-5x
+    4.2, 3.8, 3.1, 2.4, 1.8,
+    # Antioxidant — moderately upregulated 2-3x
+    2.8, 2.1, 1.5, 2.6, 3.2,
+    # Autophagy — upregulated 2-4x
+    2.4, 1.9, 2.1, 3.6, 2.8,
+    # Survival signaling — slightly downregulated
+    0.75, 0.65, 0.82, 0.88, 0.85,
+    # Transcription factors — MYC down, FOXO3/JUN up
+    0.18, 0.35, 3.2, 2.8, 2.4,
+    # Housekeeping — stable (0.85-1.15, biological noise)
+    1.03, 0.97, 1.05, 0.98, 1.02, 1.04, 0.96, 1.01, 0.99, 1.03
+]
+
+fn make_count(base, fc, noise_pct) {
+    let shifted = float(base) * fc
+    let noise = shifted * noise_pct
+    let val = round(shifted + noise, 0)
+    if val < 0 { 0 } else { int(val) }
+}
+
+let header = "gene\tctrl_1\tctrl_2\tctrl_3\ttreat_1\ttreat_2\ttreat_3"
+let count_lines = [header]
+
+# Noise values for biological replicates (±20% range)
+let noise_values = [
+    0.08, -0.05, 0.12, -0.10, 0.06, -0.03,
+    -0.07, 0.11, -0.04, 0.09, -0.08, 0.05,
+    0.03, -0.09, 0.07, -0.06, 0.10, -0.02,
+    0.15, -0.12, 0.04, -0.14, 0.09, -0.07
+]
+
+range(0, 100) |> each(|i| {
+    let gene = gene_names[i]
+    let base = base_expression[i]
+    let fc = fold_changes[i]
+    let n1 = noise_values[i % 24]
+    let n2 = noise_values[(i + 3) % 24]
+    let n3 = noise_values[(i + 7) % 24]
+    let n4 = noise_values[(i + 1) % 24]
+    let n5 = noise_values[(i + 5) % 24]
+    let n6 = noise_values[(i + 11) % 24]
+    let c1 = make_count(base, 1.0, n1)
+    let c2 = make_count(base, 1.0, n2)
+    let c3 = make_count(base, 1.0, n3)
+    let t1 = make_count(base, fc, n4)
+    let t2 = make_count(base, fc, n5)
+    let t3 = make_count(base, fc, n6)
+    count_lines = count_lines + [f"{gene}\t{c1}\t{c2}\t{c3}\t{t1}\t{t2}\t{t3}"]
+})
+
+write_lines(count_lines, "data/counts.tsv")
+
+let sample_lines = [
+    "sample_id\tcondition\treplicate\tcell_line\ttreatment\tduration",
+    "ctrl_1\tcontrol\t1\tMCF-7\tDMSO vehicle\t24h",
+    "ctrl_2\tcontrol\t2\tMCF-7\tDMSO vehicle\t24h",
+    "ctrl_3\tcontrol\t3\tMCF-7\tDMSO vehicle\t24h",
+    "treat_1\ttreated\t1\tMCF-7\tDoxorubicin 1uM\t24h",
+    "treat_2\ttreated\t2\tMCF-7\tDoxorubicin 1uM\t24h",
+    "treat_3\ttreated\t3\tMCF-7\tDoxorubicin 1uM\t24h"
+]
+write_lines(sample_lines, "data/samples.tsv")
+
+let gene_info_lines = ["gene\tlength\tgo_terms"]
+range(0, 100) |> each(|i| {
+    gene_info_lines = gene_info_lines + [f"{gene_names[i]}\t{gene_lengths[i]}\t{go_assignments[i]}"]
+})
+write_lines(gene_info_lines, "data/gene_info.tsv")
+
+print("Day 29 data initialized: MCF-7 doxorubicin RNA-seq counts (100 genes, 6 samples)")

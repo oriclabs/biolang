@@ -138,17 +138,17 @@
       var btn = document.createElement('button');
       btn.className = 'bl-run-btn';
       if (cliRequired) {
-        btn.style.cssText = 'position:absolute;top:8px;right:52px;padding:4px 12px;font-size:12px;border-radius:4px;background:rgba(71,85,105,0.85);color:#94a3b8;border:none;cursor:not-allowed;opacity:0;transition:opacity 0.2s;z-index:10;font-family:system-ui,sans-serif;font-weight:600;';
+        btn.style.cssText = 'position:absolute;top:8px;right:52px;padding:4px 12px;font-size:12px;border-radius:4px;background:rgba(71,85,105,0.85);color:#94a3b8;border:none;cursor:not-allowed;opacity:0.6;transition:opacity 0.2s;z-index:10;font-family:system-ui,sans-serif;font-weight:600;';
         btn.innerHTML = '&#9654; CLI Only';
         btn.title = 'This example requires file I/O or network APIs — run with: bl run';
         btn.disabled = true;
       } else {
-        btn.style.cssText = 'position:absolute;top:8px;right:52px;padding:4px 12px;font-size:12px;border-radius:4px;background:rgba(124,58,237,0.85);color:#fff;border:none;cursor:pointer;opacity:0;transition:opacity 0.2s;z-index:10;font-family:system-ui,sans-serif;font-weight:600;';
+        btn.style.cssText = 'position:absolute;top:8px;right:52px;padding:4px 12px;font-size:12px;border-radius:4px;background:rgba(124,58,237,0.85);color:#fff;border:none;cursor:pointer;opacity:0.6;transition:opacity 0.2s;z-index:10;font-family:system-ui,sans-serif;font-weight:600;';
         btn.innerHTML = '&#9654; Run';
         btn.title = 'Run this code (loads BioLang WASM on first click)';
       }
       wrapper.addEventListener('mouseenter', function(){ btn.style.opacity = '1'; });
-      wrapper.addEventListener('mouseleave', function(){ if (!btn.disabled) btn.style.opacity = '0'; });
+      wrapper.addEventListener('mouseleave', function(){ if (!btn.disabled) btn.style.opacity = '0.6'; });
       wrapper.appendChild(btn);
 
       // Output panel (hidden initially)

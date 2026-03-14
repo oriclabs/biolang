@@ -1,0 +1,67 @@
+# Expected output structure from: bl init.bl && bl scripts/analysis.bl
+# Note: AI-generated text varies between runs. This shows the structure only.
+# Requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
+
+# --- After init.bl ---
+# data/de_genes.tsv         25 genes with log2fc, pvalue, padj, basemean
+# data/variants.tsv         10 variants with gene, chrom, pos, ref, alt, consequence
+# data/sequences.fasta      5 sequences with varying GC content
+# data/output/              empty directory
+# data/cache/               empty directory
+
+# --- After analysis.bl ---
+# data/output/ai_report.txt containing:
+
+# AI-Assisted Analysis Report
+# Generated: <date>
+# NOTE: AI interpretations require expert verification
+#
+# ## Differential Expression Summary
+# Total genes tested: 25
+# Significant (padj < 0.05): 21
+# Upregulated (log2FC > 1): 11
+# Downregulated (log2FC < -1): 10
+# Mean absolute fold change: ~1.8 (varies by rounding)
+#
+# ## Top Upregulated Genes
+# MYC, CCND1, EGFR, PIK3CA, VEGFA, CDK4, SNHG14, AURKA, TOP2A, MKI67, BIRC5
+#
+# ## Top Downregulated Genes
+# TP53, BRCA1, RB1, PTEN, CDH1, APC, BRCA2, ATM, CHEK2, MLH1
+#
+# ## AI Interpretation (DE Analysis)
+# <LLM-generated paragraph about breast cancer DE results>
+#
+# ## Variant Annotations
+#   TP53 (chr17:7577120C>T) - missense_variant - severity:moderate
+#     AI: <LLM interpretation>
+#   BRCA1 (chr17:43094464A>G) - missense_variant - severity:moderate
+#     AI: <LLM interpretation>
+#   KRAS (chr12:25245350C>A) - missense_variant - severity:moderate
+#     AI: <LLM interpretation>
+#   EGFR (chr7:55259515T>G) - missense_variant - severity:moderate
+#     AI: <LLM interpretation>
+#   PIK3CA (chr3:178936091G>A) - missense_variant - severity:moderate
+#     AI: <LLM interpretation>
+#   PTEN (chr10:89692905CAGT>C) - frameshift_variant - severity:high
+#     AI: <LLM interpretation>
+#   RB1 (chr13:48367556C>T) - stop_gained - severity:high
+#     AI: <LLM interpretation>
+#   BRAF (chr7:140453136A>T) - missense_variant - severity:moderate
+#     AI: <LLM interpretation>
+#   CDH1 (chr16:68842399G>T) - splice_donor_variant - severity:high
+#     AI: <LLM interpretation>
+#
+# ## Sequence Composition Analysis
+# Sequences analyzed: 5
+# Mean GC content: ~0.47 (varies by calculation)
+# AT-rich regions: 2
+# GC-rich regions: 1
+#
+# ## AI Interpretation (Sequence Composition)
+# <LLM-generated paragraph about GC content distribution>
+#
+# ## Disclaimer
+# All AI-generated interpretations in this report were produced by a large
+# language model and have NOT been verified against primary databases.
+# Do not use for clinical decision-making without expert review.

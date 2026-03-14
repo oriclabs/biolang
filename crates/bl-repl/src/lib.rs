@@ -10,9 +10,12 @@ use rustyline::hint::Hinter;
 use rustyline::validate::Validator;
 use rustyline::history::{History, SearchDirection};
 use rustyline::{Config, Context, Editor, Helper};
+use sha2::{Sha256, Digest};
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::time::Instant;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::time::{Duration, Instant, SystemTime};
 
 const PROMPT: &str = "bl> ";
 const CONTINUATION: &str = "+   ";
@@ -31,7 +34,7 @@ const RESET: &str = "\x1b[0m";
 
 const REPL_COMMANDS: &[&str] = &[
     ":builtins", ":clear", ":cls", ":env", ":exit", ":fns", ":h", ":help", ":history", ":load",
-    ":plugins", ":profile", ":q", ":quit", ":reset", ":save", ":time", ":type",
+    ":plot", ":plugins", ":profile", ":q", ":quit", ":reset", ":save", ":time", ":type",
 ];
 
 /// (command, description) — used for auto-hints when typing `:` commands
@@ -53,7 +56,8 @@ const REPL_COMMAND_HINTS: &[(&str, &str)] = &[
     (":profile", "Profile expression <expr>"),
     (":clear", "Clear the screen"),
     (":cls", "Clear the screen"),
-    (":history", "Show command history [n]"),
+    (":history", "Show command history [n] or search [text]"),
+    (":plot", "ASCII plot of last result [bins]"),
 ];
 
 const KEYWORDS: &[&str] = &[
@@ -71,8 +75,16 @@ struct BioHelper {
 
 impl BioHelper {
     fn new() -> Self {
+        let mut words: Vec<String> = KEYWORDS.iter().map(|s| s.to_string()).collect();
+        // Add all builtin function names for tab completion
+        for (name, _, _) in BUILTIN_CATALOG {
+            if !words.contains(&name.to_string()) {
+                words.push(name.to_string());
+            }
+        }
+        words.sort();
         Self {
-            words: KEYWORDS.iter().map(|s| s.to_string()).collect(),
+            words,
             hint_desc: RefCell::new(String::new()),
         }
     }
@@ -80,12 +92,17 @@ impl BioHelper {
     /// Rebuild the completion word list from the interpreter's environment.
     fn refresh_from(&mut self, interp: &Interpreter) {
         let mut words: Vec<String> = KEYWORDS.iter().map(|s| s.to_string()).collect();
+        // Include all builtin names
+        for (name, _, _) in BUILTIN_CATALOG {
+            words.push(name.to_string());
+        }
         for (name, _) in interp.env().list_global_vars() {
             if !words.contains(&name.to_string()) {
                 words.push(name.to_string());
             }
         }
         words.sort();
+        words.dedup();
         self.words = words;
     }
 }
@@ -210,12 +227,14 @@ impl Helper for BioHelper {}
 
 pub struct Repl {
     interpreter: Interpreter,
+    api_cache: ApiCache,
 }
 
 impl Repl {
     pub fn new() -> Self {
         Self {
             interpreter: Interpreter::new(),
+            api_cache: ApiCache::new(),
         }
     }
 
@@ -289,7 +308,13 @@ impl Repl {
 
                         match cmd {
                             ":quit" | ":q" | ":exit" => break,
-                            ":help" | ":h" => self.cmd_help(),
+                            ":help" | ":h" => {
+                                if arg.is_empty() {
+                                    self.cmd_help();
+                                } else {
+                                    cmd_fn_help_extended(arg);
+                                }
+                            }
                             ":env" => self.cmd_env(),
                             ":builtins" | ":fns" => cmd_builtins(arg),
                             ":reset" => {
@@ -310,9 +335,9 @@ impl Repl {
                             }
                             ":save" => {
                                 if arg.is_empty() {
-                                    eprintln!("{RED}Usage: :save <file.bl>{RESET}");
+                                    eprintln!("{RED}Usage: :save <file>{RESET}");
                                 } else {
-                                    cmd_save(arg, &session_inputs);
+                                    self.cmd_save(arg, &session_inputs);
                                 }
                             }
                             ":time" => {
@@ -337,16 +362,16 @@ impl Repl {
                                 let _ = std::io::stdout().flush();
                             }
                             ":history" => {
-                                let n: usize = arg.parse().unwrap_or(20);
-                                let len = rl.history().len();
-                                let start = len.saturating_sub(n);
-                                for i in start..len {
-                                    if let Ok(Some(result)) =
-                                        rl.history().get(i, SearchDirection::Forward)
-                                    {
-                                        println!("{DIM}{:>4}{RESET}  {}", i + 1, result.entry);
-                                    }
-                                }
+                                cmd_history(arg, rl.history());
+                            }
+                            ":plot" => {
+                                let bins = arg.parse::<usize>().ok();
+                                let expr = if let Some(b) = bins {
+                                    format!("_ |> hist({b})")
+                                } else {
+                                    "_ |> hist()".to_string()
+                                };
+                                self.eval_and_print(&expr);
                             }
                             ":profile" => {
                                 if arg.is_empty() {
@@ -446,6 +471,9 @@ impl Repl {
                         last_let_var = Some(var);
                     }
 
+                    // ── Auto-detection (Phase B/C) ──
+                    let input = detect_and_rewrite(input, &self.api_cache);
+
                     self.eval_and_print(&input);
                     if let Some(helper) = rl.helper_mut() {
                         helper.refresh_from(&self.interpreter);
@@ -474,6 +502,13 @@ impl Repl {
     }
 
     fn eval_and_print(&mut self, input: &str) {
+        let is_api_call = is_api_shorthand(input);
+        let cache_key = if is_api_call {
+            Some(self.api_cache.hash_key(input))
+        } else {
+            None
+        };
+
         let tokens = match Lexer::new(input).tokenize() {
             Ok(tokens) => tokens,
             Err(e) => {
@@ -502,6 +537,10 @@ impl Repl {
             Ok(value) => {
                 flush_trailing_newline();
                 if !matches!(value, Value::Nil) {
+                    // Cache API results
+                    if let Some(ref key) = cache_key {
+                        self.api_cache.store(key, &value);
+                    }
                     // Store last result as `_` for pipe continuation
                     self.interpreter
                         .env_mut()
@@ -511,6 +550,17 @@ impl Repl {
             }
             Err(e) => {
                 flush_trailing_newline();
+                // Offline fallback: try cache (ignoring TTL)
+                if let Some(ref key) = cache_key {
+                    if let Some((val, date)) = self.api_cache.load_any(key) {
+                        eprintln!("{YELLOW}(offline: using cached result from {date}){RESET}");
+                        self.interpreter
+                            .env_mut()
+                            .define("_".to_string(), val.clone());
+                        print_colored_value(&val);
+                        return;
+                    }
+                }
                 eprintln!("{RED}{}{RESET}", e.format_with_source(input));
             }
         }
@@ -520,20 +570,28 @@ impl Repl {
 
     fn cmd_help(&self) {
         println!("{BOLD}Commands:{RESET}");
-        println!("  {CYAN}:help{RESET}  :h            Show this help");
+        println!("  {CYAN}:help{RESET}  :h [fn]       Show this help, or details for a function");
         println!("  {CYAN}:quit{RESET}  :q            Exit the REPL (or Ctrl+D)");
         println!("  {CYAN}:env{RESET}                 Show user-defined variables");
         println!("  {CYAN}:type{RESET}  <expr>        Show the type of an expression");
         println!("  {CYAN}:builtins{RESET} [category]  List built-in functions (:fns alias)");
         println!("  {CYAN}:load{RESET}  <file>        Load and execute a .bl script");
-        println!("  {CYAN}:save{RESET}  <file>        Save session inputs to a .bl file");
+        println!("  {CYAN}:save{RESET}  <file>        Export last result (.csv/.tsv/.fasta/.json/.bl)");
         println!("  {CYAN}:time{RESET}  <expr>        Evaluate and show elapsed time");
+        println!("  {CYAN}:plot{RESET}  [bins]        ASCII histogram of last result");
         println!("  {CYAN}:reset{RESET}               Clear all user-defined state");
         println!("  {CYAN}:plugins{RESET}             List installed plugins");
         println!("  {CYAN}:profile{RESET} <expr>       Profile function calls in expression");
         println!("  {CYAN}:clear{RESET}  :cls          Clear the screen");
-        println!("  {CYAN}:history{RESET} [n]          Show last n commands (default 20)");
+        println!("  {CYAN}:history{RESET} [n|text]     Show last n commands or fuzzy search");
         println!("  {CYAN}?{RESET}name                Show function signature (e.g. ?mean)");
+        println!();
+        println!("{BOLD}Auto-detection:{RESET}");
+        println!("  Paste raw DNA ({CYAN}ATCGATCG{RESET})  → auto-wraps as {CYAN}dna\"...\"{RESET}");
+        println!("  Paste FASTA ({CYAN}>header{RESET})     → parses into record");
+        println!("  Type {CYAN}P53_HUMAN{RESET}            → calls {CYAN}uniprot_entry(){RESET}");
+        println!("  Type {CYAN}6LU7{RESET}                 → calls {CYAN}pdb_entry(){RESET}");
+        println!("  Type {CYAN}ncbi \"BRCA1\"{RESET}         → calls {CYAN}ncbi_gene(){RESET}");
         println!();
         println!("{BOLD}Syntax:{RESET}");
         println!("  {CYAN}let{RESET} x = 42           Bind a variable");
@@ -547,6 +605,67 @@ impl Repl {
         println!("  |> to_string()               {DIM}# pipe from last result{RESET}");
         println!("  dna\"ATCG\" |> rev_comp()      {DIM}# → CGAT{RESET}");
         println!("  :builtins stats              {DIM}# list stats functions{RESET}");
+    }
+
+    /// :save with format-aware export
+    fn cmd_save(&mut self, path: &str, session_inputs: &[String]) {
+        let ext = path.rsplit('.').next().unwrap_or("").to_lowercase();
+        match ext.as_str() {
+            "bl" => {
+                // Save session inputs
+                if session_inputs.is_empty() {
+                    eprintln!("{DIM}No inputs to save.{RESET}");
+                    return;
+                }
+                let content = session_inputs.join("\n");
+                match std::fs::write(path, content) {
+                    Ok(()) => println!("{DIM}Saved {} inputs to '{path}'.{RESET}", session_inputs.len()),
+                    Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
+                }
+            }
+            "csv" => {
+                let expr = format!("_ |> write_csv(\"{path}\")");
+                self.eval_and_print(&expr);
+            }
+            "tsv" => {
+                let expr = format!("_ |> write_tsv(\"{path}\")");
+                self.eval_and_print(&expr);
+            }
+            "fasta" | "fa" => {
+                let expr = format!("_ |> write_fasta(\"{path}\")");
+                self.eval_and_print(&expr);
+            }
+            "json" => {
+                // Direct serialize via serde_json
+                let last = self.interpreter.env().get("_", None);
+                match last {
+                    Ok(val) => {
+                        if matches!(val, Value::Nil) {
+                            eprintln!("{DIM}No result to save.{RESET}");
+                        } else {
+                            let json = value_to_json(val);
+                            match std::fs::write(path, serde_json::to_string_pretty(&json).unwrap_or_default()) {
+                                Ok(()) => println!("{DIM}Saved to '{path}'.{RESET}"),
+                                Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
+                            }
+                        }
+                    }
+                    Err(_) => eprintln!("{DIM}No result to save.{RESET}"),
+                }
+            }
+            _ => {
+                // Default: save session inputs
+                if session_inputs.is_empty() {
+                    eprintln!("{DIM}No inputs to save.{RESET}");
+                    return;
+                }
+                let content = session_inputs.join("\n");
+                match std::fs::write(path, content) {
+                    Ok(()) => println!("{DIM}Saved {} inputs to '{path}'.{RESET}", session_inputs.len()),
+                    Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
+                }
+            }
+        }
     }
 
     fn cmd_env(&self) {
@@ -716,8 +835,6 @@ impl Repl {
     }
 
     fn cmd_profile(&mut self, expr: &str) {
-        use std::collections::HashMap;
-
         let tokens = match Lexer::new(expr).tokenize() {
             Ok(t) => t,
             Err(e) => {
@@ -820,6 +937,18 @@ impl Default for Repl {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn print_banner() {
+    let builtin_count = BUILTIN_CATALOG.len();
+    let ncbi_status = if std::env::var("NCBI_API_KEY").is_ok() { "+" } else { "-" };
+    let llm_status = if std::env::var("ANTHROPIC_API_KEY").is_ok()
+        || std::env::var("OPENAI_API_KEY").is_ok()
+        || std::env::var("OLLAMA_MODEL").is_ok()
+    { "+" } else { "-" };
+    let cache_info = cache_dir_path()
+        .filter(|p| p.exists())
+        .and_then(|p| dir_size(&p).ok())
+        .map(|sz| format!("  Cache: {}", format_cache_size(sz)))
+        .unwrap_or_default();
+
     println!(
         r#"
 {BOLD}{CYAN}  ____  _       _
@@ -829,22 +958,516 @@ fn print_banner() {
  |____/|_|\___/|_____\__,_|_| |_|\__, |
                                   |___/{RESET}
  {DIM}BioLang — pipe-first bioinformatics DSL{RESET}
- {DIM}v{VERSION}{RESET}
+ {DIM}v{VERSION}  •  {builtin_count} builtins  •  NCBI[{ncbi_status}] LLM[{llm_status}]{cache_info}{RESET}
 
- {BOLD}Commands:{RESET}  {CYAN}:help{RESET}  {CYAN}:builtins{RESET}  {CYAN}:quit{RESET}  {CYAN}?{RESET}name  {CYAN}:load{RESET} <file>  {DIM}Tab for completion{RESET}
+ {BOLD}Commands:{RESET}  {CYAN}:help{RESET}  {CYAN}:builtins{RESET}  {CYAN}:quit{RESET}  {CYAN}?{RESET}name  {DIM}Tab for completion  •  Paste DNA/FASTA auto-detected{RESET}
 "#
     );
 }
 
-fn cmd_save(path: &str, inputs: &[String]) {
-    if inputs.is_empty() {
-        eprintln!("{DIM}No inputs to save.{RESET}");
+fn cache_dir_path() -> Option<PathBuf> {
+    std::env::var("USERPROFILE")
+        .or_else(|_| std::env::var("HOME"))
+        .ok()
+        .map(|h| PathBuf::from(h).join(".biolang").join("cache"))
+}
+
+fn dir_size(path: &std::path::Path) -> std::io::Result<u64> {
+    let mut total = 0u64;
+    if path.is_dir() {
+        for entry in std::fs::read_dir(path)? {
+            let entry = entry?;
+            let meta = entry.metadata()?;
+            if meta.is_file() {
+                total += meta.len();
+            }
+        }
+    }
+    Ok(total)
+}
+
+fn format_cache_size(bytes: u64) -> String {
+    if bytes >= 1_048_576 {
+        format!("{:.1}MB", bytes as f64 / 1_048_576.0)
+    } else if bytes >= 1024 {
+        format!("{:.0}KB", bytes as f64 / 1024.0)
+    } else {
+        format!("{bytes}B")
+    }
+}
+
+// ── History search ───────────────────────────────────────────────
+
+fn cmd_history(arg: &str, history: &dyn History) {
+    let len = history.len();
+    if arg.is_empty() || arg.parse::<usize>().is_ok() {
+        // Numeric: show last N entries
+        let n: usize = arg.parse().unwrap_or(20);
+        let start = len.saturating_sub(n);
+        for i in start..len {
+            if let Ok(Some(result)) = history.get(i, SearchDirection::Forward) {
+                println!("{DIM}{:>4}{RESET}  {}", i + 1, result.entry);
+            }
+        }
+    } else {
+        // Fuzzy search: case-insensitive substring match
+        let query = arg.to_lowercase();
+        let mut count = 0;
+        for i in 0..len {
+            if let Ok(Some(result)) = history.get(i, SearchDirection::Forward) {
+                let entry = &result.entry;
+                if let Some(pos) = entry.to_lowercase().find(&query) {
+                    let before = &entry[..pos];
+                    let matched = &entry[pos..pos + arg.len()];
+                    let after = &entry[pos + arg.len()..];
+                    println!("{DIM}{:>4}{RESET}  {before}{BOLD}{YELLOW}{matched}{RESET}{after}", i + 1);
+                    count += 1;
+                }
+            }
+        }
+        if count == 0 {
+            println!("{DIM}No history entries matching '{arg}'.{RESET}");
+        }
+    }
+}
+
+// ── Extended function help ──────────────────────────────────────
+
+/// Curated examples for common builtins
+const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
+    ("gc_content", "dna\"ATCGCG\" |> gc_content()  # → 0.667", "Float"),
+    ("rev_comp", "dna\"ATCG\" |> rev_comp()  # → DNA(CGAT)", "DNA"),
+    ("transcribe", "dna\"ATCG\" |> transcribe()  # → RNA(AUCG)", "RNA"),
+    ("translate", "dna\"ATGCCC\" |> translate()  # → Protein(MP)", "Protein"),
+    ("mean", "[1, 2, 3, 4] |> mean()  # → 2.5", "Float"),
+    ("median", "[1, 2, 3, 4, 5] |> median()  # → 3.0", "Float"),
+    ("stdev", "[2, 4, 4, 4, 5, 5, 7, 9] |> stdev()  # → 2.0", "Float"),
+    ("sum", "[1, 2, 3] |> sum()  # → 6", "Float"),
+    ("summary", "[1,2,3,4,5] |> summary()  # → {min, q1, median, mean, q3, max}", "Record"),
+    ("map", "[1,2,3] |> map(|x| x * 2)  # → [2, 4, 6]", "List"),
+    ("filter", "[1,2,3,4] |> filter(|x| x > 2)  # → [3, 4]", "List"),
+    ("reduce", "[1,2,3] |> reduce(|a,b| a + b)  # → 6", "Value"),
+    ("sort", "[3,1,2] |> sort()  # → [1, 2, 3]", "List"),
+    ("unique", "[1,1,2,2,3] |> unique()  # → [1, 2, 3]", "List"),
+    ("len", "[1,2,3] |> len()  # → 3", "Int"),
+    ("join", "[\"a\",\"b\",\"c\"] |> join(\",\")  # → \"a,b,c\"", "Str"),
+    ("split", "\"a,b,c\" |> split(\",\")  # → [\"a\", \"b\", \"c\"]", "List"),
+    ("read_fasta", "read_fasta(\"seqs.fa\")  # → [{id, desc, seq}, ...]", "List[Record]"),
+    ("read_fastq", "read_fastq(\"reads.fq\")  # → [{id, seq, qual}, ...]", "List[Record]"),
+    ("read_vcf", "read_vcf(\"variants.vcf\")  # → Table", "Table"),
+    ("read_bed", "read_bed(\"regions.bed\")  # → Table", "Table"),
+    ("table", "table([{a: 1, b: 2}, {a: 3, b: 4}])  # → Table", "Table"),
+    ("hist", "[1,2,2,3,3,3] |> hist()  # → ASCII histogram", "Str"),
+    ("scatter", "scatter([1,2,3], [4,5,6])  # → ASCII scatter plot", "Str"),
+    ("ncbi_gene", "ncbi_gene(\"BRCA1\")  # → gene info record", "Record"),
+    ("ncbi_search", "ncbi_search(\"gene\", \"TP53\")  # → search results", "Record"),
+    ("ensembl_gene", "ensembl_gene(\"ENSG00000141510\")  # → gene info", "Record"),
+    ("uniprot_entry", "uniprot_entry(\"P04637\")  # → protein entry", "Record"),
+    ("uniprot_search", "uniprot_search(\"kinase AND organism_id:9606\")  # → results", "Record"),
+    ("pdb_entry", "pdb_entry(\"6LU7\")  # → structure info", "Record"),
+    ("kegg_get", "kegg_get(\"hsa:7157\")  # → KEGG entry text", "Str"),
+    ("go_term", "go_term(\"GO:0006915\")  # → GO term info", "Record"),
+    ("align", "align(dna\"ATCG\", dna\"ATGG\")  # → alignment record", "Record"),
+    ("kmer_count", "dna\"ATCGATCG\" |> kmer_count(3)  # → k-mer frequency table", "Table"),
+    ("lm", "lm([1,2,3], [2,4,6])  # → {slope: 2.0, r2: 1.0, ...}", "Record"),
+    ("ttest", "ttest([1,2,3], [4,5,6])  # → {t, p, df}", "Record"),
+    ("cor", "cor([1,2,3], [1,2,3])  # → 1.0", "Float"),
+    ("p_adjust", "p_adjust([0.01, 0.04, 0.5], \"bh\")  # → adjusted p-values", "List"),
+    ("matrix", "matrix([[1,2],[3,4]])  # → 2x2 Matrix", "Matrix"),
+    ("dot", "dot(matrix([[1,0],[0,1]]), matrix([[5],[6]]))  # → matmul", "Matrix"),
+    ("pca", "pca(matrix([[1,2],[3,4],[5,6]]), 2)  # → PCA result", "Record"),
+    ("glob", "glob(\"*.fasta\")  # → list of matching files", "List[Str]"),
+    ("shell", "shell(\"echo hello\")  # → {stdout, stderr, exit_code}", "Record"),
+    ("md5", "md5(\"hello\")  # → hex digest", "Str"),
+    ("now", "now()  # → \"2024-01-15T10:30:00Z\"", "Str"),
+    ("chat", "chat(\"explain GC content\")  # → LLM response", "Str"),
+    ("doctor", "doctor()  # → environment check table", "Table"),
+    ("enrich", "enrich(genes, gene_sets, background)  # → enrichment table", "Table"),
+    ("diff_expr", "diff_expr(counts, [\"A\",\"A\",\"B\",\"B\"])  # → DE results", "Table"),
+];
+
+fn cmd_fn_help_extended(name: &str) {
+    let name = name.trim();
+    // Find in catalog
+    let entry = BUILTIN_CATALOG.iter().find(|(n, _, _)| *n == name);
+    if entry.is_none() {
+        println!("{DIM}Unknown function: {name}. Try :builtins to browse.{RESET}");
         return;
     }
-    let content = inputs.join("\n");
-    match std::fs::write(path, content) {
-        Ok(()) => println!("{DIM}Saved {} inputs to '{path}'.{RESET}", inputs.len()),
-        Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
+    let (_, sig, cat) = entry.unwrap();
+    let label = CATEGORIES
+        .iter()
+        .find(|(k, _)| k == cat)
+        .map(|(_, l)| *l)
+        .unwrap_or(cat);
+
+    println!("{BOLD}{CYAN}{sig}{RESET}");
+    println!("  {DIM}Category:{RESET} {label}");
+
+    // Show example if available
+    if let Some((_, example, ret)) = BUILTIN_EXAMPLES.iter().find(|(n, _, _)| *n == name) {
+        println!("  {DIM}Returns:{RESET}  {ret}");
+        println!();
+        println!("  {BOLD}Example:{RESET}");
+        println!("    {GREEN}{example}{RESET}");
+    }
+}
+
+// ── Auto-detection (Phase B) ────────────────────────────────────
+
+/// DB shorthand mappings: word → builtin function name
+const DB_SHORTHANDS: &[(&str, &str)] = &[
+    ("ncbi", "ncbi_gene"),
+    ("gene", "ncbi_gene"),
+    ("pdb", "pdb_entry"),
+    ("uniprot", "uniprot_entry"),
+    ("ensembl", "ensembl_gene"),
+    ("kegg", "kegg_get"),
+    ("go", "go_term"),
+];
+
+fn looks_like_raw_dna(s: &str) -> bool {
+    s.len() > 10
+        && !s.contains(' ')
+        && !s.contains('"')
+        && s.chars()
+            .all(|c| matches!(c.to_ascii_uppercase(), 'A' | 'T' | 'C' | 'G' | 'N'))
+}
+
+fn looks_like_fasta(s: &str) -> bool {
+    let first_line = s.lines().next().unwrap_or("");
+    first_line.starts_with('>')
+        && first_line.len() > 1
+        // Exclude `>=` operator
+        && !first_line.starts_with(">=")
+        && s.lines().count() >= 2
+}
+
+fn parse_fasta_input(s: &str) -> Option<String> {
+    let mut lines = s.lines();
+    let header = lines.next()?.strip_prefix('>')?;
+    let mut seq = String::new();
+    for line in lines {
+        let t = line.trim();
+        if t.is_empty() {
+            break;
+        }
+        seq.push_str(t);
+    }
+    if seq.is_empty() {
+        return None;
+    }
+    // Detect if it's protein or DNA
+    let is_dna = seq
+        .chars()
+        .all(|c| matches!(c.to_ascii_uppercase(), 'A' | 'T' | 'C' | 'G' | 'N'));
+    let seq_expr = if is_dna {
+        format!("dna\"{seq}\"")
+    } else {
+        format!("protein\"{seq}\"")
+    };
+    let id = header.split_whitespace().next().unwrap_or(header);
+    Some(format!("{{id: \"{id}\", seq: {seq_expr}}}"))
+}
+
+fn looks_like_uniprot_id(s: &str) -> bool {
+    // UniProt accession: [OPQ][0-9][A-Z0-9]{3}[0-9] or [A-NR-Z][0-9][A-Z][A-Z0-9]{2}[0-9]
+    // Or entry name with underscore: P53_HUMAN
+    let bytes = s.as_bytes();
+    if s.contains('_') && s.len() >= 3 && s.len() <= 20 {
+        return s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+    }
+    if bytes.len() == 6 || bytes.len() == 10 {
+        let first = bytes[0] as char;
+        let second = (bytes[1] as char).is_ascii_digit();
+        if matches!(first, 'O' | 'P' | 'Q' | 'A'..='N' | 'R'..='Z') && second {
+            return s[2..].chars().all(|c| c.is_ascii_alphanumeric());
+        }
+    }
+    false
+}
+
+fn looks_like_pdb_id(s: &str) -> bool {
+    // PDB ID: 4 characters, first is digit, rest alphanumeric
+    s.len() == 4
+        && s.as_bytes().first().map_or(false, |c| c.is_ascii_digit())
+        && s.chars().all(|c| c.is_ascii_alphanumeric())
+}
+
+fn detect_db_shorthand(input: &str) -> Option<String> {
+    // Pattern: `word "string"` or `word 'string'`
+    let trimmed = input.trim();
+    let parts: Vec<&str> = trimmed.splitn(2, ' ').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let word = parts[0].to_lowercase();
+    let arg = parts[1].trim();
+
+    // Check if arg is a quoted string
+    let is_quoted = (arg.starts_with('"') && arg.ends_with('"'))
+        || (arg.starts_with('\'') && arg.ends_with('\''));
+    if !is_quoted {
+        return None;
+    }
+
+    for (shorthand, func) in DB_SHORTHANDS {
+        if word == *shorthand {
+            let inner = &arg[1..arg.len() - 1];
+            return Some(format!("{func}(\"{inner}\")"));
+        }
+    }
+    None
+}
+
+fn detect_and_rewrite(input: String, _cache: &ApiCache) -> String {
+    let trimmed = input.trim();
+
+    // Skip if it contains assignment, pipe, or looks like normal code
+    if trimmed.contains('=') && !trimmed.contains("==")
+        || trimmed.starts_with("let ")
+        || trimmed.starts_with("fn ")
+        || trimmed.starts_with("for ")
+        || trimmed.starts_with("while ")
+        || trimmed.starts_with("if ")
+        || trimmed.starts_with("import ")
+        || trimmed.starts_with("match ")
+        || trimmed.contains("|>")
+        || trimmed.contains('(')
+        || trimmed.contains('[')
+        || trimmed.contains('{')
+    {
+        return input;
+    }
+
+    // DB shorthand: `ncbi "BRCA1"`, `pdb "6LU7"`, etc.
+    if let Some(rewritten) = detect_db_shorthand(trimmed) {
+        println!("{DIM}→ {rewritten}{RESET}");
+        return rewritten;
+    }
+
+    // Single word checks (no spaces, no quotes)
+    if !trimmed.contains(' ') && !trimmed.contains('"') {
+        // Raw DNA paste
+        if looks_like_raw_dna(trimmed) {
+            let rewritten = format!("dna\"{trimmed}\"");
+            println!("{DIM}→ {rewritten}{RESET}");
+            return rewritten;
+        }
+
+        // PDB ID: 4 chars starting with digit
+        if looks_like_pdb_id(trimmed) {
+            let upper = trimmed.to_uppercase();
+            let rewritten = format!("pdb_entry(\"{upper}\")");
+            println!("{DIM}→ {rewritten}{RESET}");
+            return rewritten;
+        }
+
+        // UniProt ID
+        if looks_like_uniprot_id(trimmed) {
+            let rewritten = format!("uniprot_entry(\"{trimmed}\")");
+            println!("{DIM}→ {rewritten}{RESET}");
+            return rewritten;
+        }
+    }
+
+    // FASTA paste
+    if looks_like_fasta(trimmed) {
+        if let Some(rewritten) = parse_fasta_input(trimmed) {
+            println!("{DIM}→ (parsed FASTA){RESET}");
+            return rewritten;
+        }
+    }
+
+    input
+}
+
+/// Check if an expression is an API shorthand call (used for caching decisions)
+fn is_api_shorthand(input: &str) -> bool {
+    let trimmed = input.trim();
+    let api_prefixes = [
+        "ncbi_gene(", "ncbi_search(", "ncbi_sequence(",
+        "ensembl_gene(", "ensembl_vep(",
+        "uniprot_search(", "uniprot_entry(",
+        "pdb_entry(",
+        "kegg_get(", "kegg_find(",
+        "go_term(", "go_annotations(",
+        "string_network(",
+        "reactome_pathways(",
+        "cosmic_gene(",
+        "datasets_gene(",
+    ];
+    api_prefixes.iter().any(|p| trimmed.starts_with(p))
+}
+
+// ── API Cache (Phase C) ─────────────────────────────────────────
+
+struct ApiCache {
+    cache_dir: Option<PathBuf>,
+    ttl: Duration,
+}
+
+impl ApiCache {
+    fn new() -> Self {
+        let cache_dir = std::env::var("USERPROFILE")
+            .or_else(|_| std::env::var("HOME"))
+            .ok()
+            .map(|h| {
+                let dir = PathBuf::from(h).join(".biolang").join("cache");
+                let _ = std::fs::create_dir_all(&dir);
+                dir
+            });
+
+        let ttl_secs: u64 = std::env::var("BIOLANG_CACHE_TTL")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(86400); // 24h
+
+        Self {
+            cache_dir,
+            ttl: Duration::from_secs(ttl_secs),
+        }
+    }
+
+    fn hash_key(&self, expr: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(expr.trim().as_bytes());
+        format!("{:x}", hasher.finalize())
+    }
+
+    fn store(&self, key: &str, value: &Value) {
+        let Some(ref dir) = self.cache_dir else { return };
+        let json = value_to_json(value);
+        let data_path = dir.join(format!("{key}.json"));
+        let meta_path = dir.join(format!("{key}.meta"));
+        let _ = std::fs::write(&data_path, serde_json::to_string(&json).unwrap_or_default());
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let _ = std::fs::write(&meta_path, now.to_string());
+    }
+
+    #[allow(dead_code)]
+    fn load(&self, key: &str) -> Option<Value> {
+        let dir = self.cache_dir.as_ref()?;
+        let meta_path = dir.join(format!("{key}.meta"));
+        let data_path = dir.join(format!("{key}.json"));
+
+        let ts: u64 = std::fs::read_to_string(&meta_path).ok()?.trim().parse().ok()?;
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        if now.saturating_sub(ts) > self.ttl.as_secs() {
+            return None; // expired
+        }
+
+        let data = std::fs::read_to_string(&data_path).ok()?;
+        let json: serde_json::Value = serde_json::from_str(&data).ok()?;
+        Some(json_to_value(&json))
+    }
+
+    /// Load from cache ignoring TTL (for offline fallback)
+    fn load_any(&self, key: &str) -> Option<(Value, String)> {
+        let dir = self.cache_dir.as_ref()?;
+        let meta_path = dir.join(format!("{key}.meta"));
+        let data_path = dir.join(format!("{key}.json"));
+
+        let ts: u64 = std::fs::read_to_string(&meta_path).ok()?.trim().parse().ok()?;
+        let data = std::fs::read_to_string(&data_path).ok()?;
+        let json: serde_json::Value = serde_json::from_str(&data).ok()?;
+
+        // Format date from timestamp
+        let date = format_unix_ts(ts);
+        Some((json_to_value(&json), date))
+    }
+}
+
+fn format_unix_ts(ts: u64) -> String {
+    // Simple date formatting without chrono
+    let secs_per_day: u64 = 86400;
+    let days = ts / secs_per_day;
+    // Approximate: days since 1970-01-01
+    let year = 1970 + (days as f64 / 365.25) as u64;
+    let day_of_year = days - ((year - 1970) as f64 * 365.25) as u64;
+    let month = (day_of_year / 30).min(11) + 1;
+    let day = (day_of_year % 30) + 1;
+    format!("{year}-{month:02}-{day:02}")
+}
+
+fn value_to_json(val: &Value) -> serde_json::Value {
+    match val {
+        Value::Nil => serde_json::Value::Null,
+        Value::Bool(b) => serde_json::Value::Bool(*b),
+        Value::Int(n) => serde_json::json!(*n),
+        Value::Float(f) => serde_json::json!(*f),
+        Value::Str(s) => serde_json::Value::String(s.clone()),
+        Value::List(items) => {
+            serde_json::Value::Array(items.iter().map(value_to_json).collect())
+        }
+        Value::Record(fields) => {
+            let map: serde_json::Map<String, serde_json::Value> = fields
+                .iter()
+                .map(|(k, v)| (k.clone(), value_to_json(v)))
+                .collect();
+            serde_json::Value::Object(map)
+        }
+        Value::Map(m) => {
+            let map: serde_json::Map<String, serde_json::Value> = m
+                .iter()
+                .map(|(k, v)| (k.clone(), value_to_json(v)))
+                .collect();
+            serde_json::Value::Object(map)
+        }
+        Value::Table(t) => {
+            let rows: Vec<serde_json::Value> = t
+                .rows
+                .iter()
+                .map(|row| {
+                    let map: serde_json::Map<String, serde_json::Value> = t
+                        .columns
+                        .iter()
+                        .enumerate()
+                        .map(|(i, col)| {
+                            let v = row.get(i).cloned().unwrap_or(Value::Nil);
+                            (col.clone(), value_to_json(&v))
+                        })
+                        .collect();
+                    serde_json::Value::Object(map)
+                })
+                .collect();
+            serde_json::Value::Array(rows)
+        }
+        Value::DNA(seq) => serde_json::Value::String(seq.data.clone()),
+        Value::RNA(seq) => serde_json::Value::String(seq.data.clone()),
+        Value::Protein(seq) => serde_json::Value::String(seq.data.clone()),
+        _ => serde_json::Value::String(format!("{val}")),
+    }
+}
+
+fn json_to_value(json: &serde_json::Value) -> Value {
+    match json {
+        serde_json::Value::Null => Value::Nil,
+        serde_json::Value::Bool(b) => Value::Bool(*b),
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Value::Int(i)
+            } else {
+                Value::Float(n.as_f64().unwrap_or(0.0))
+            }
+        }
+        serde_json::Value::String(s) => Value::Str(s.clone()),
+        serde_json::Value::Array(arr) => {
+            Value::List(arr.iter().map(json_to_value).collect())
+        }
+        serde_json::Value::Object(map) => {
+            let fields: HashMap<String, Value> = map
+                .iter()
+                .map(|(k, v)| (k.clone(), json_to_value(v)))
+                .collect();
+            Value::Record(fields)
+        }
     }
 }
 
@@ -1104,6 +1727,9 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("align", "align(seq1, seq2, opts?) → Record", "bio"),
     ("edit_distance", "edit_distance(s1, s2) → Int", "bio"),
     ("hamming_distance", "hamming_distance(s1, s2) → Int", "bio"),
+    ("msa", "msa(sequences, opts?) → Record{sequences, names, n_seqs, length}", "bio"),
+    ("distance_matrix", "distance_matrix(alignment, opts?) → Matrix (pairwise distances)", "bio"),
+    ("conservation_scores", "conservation_scores(alignment) → List[Float] (per-column 0-1)", "bio"),
     ("interval", "interval(chrom, start, end, strand?) → Interval", "bio"),
     // API
     ("ncbi_search", "ncbi_search(db, query) → Record", "api"),
@@ -1582,7 +2208,10 @@ fn colorize_value(value: &Value) -> String {
             let colored_bases = colorize_bases(&seq.data, true);
             format!("{BOLD}RNA({RESET}{colored_bases}{BOLD}){RESET}")
         }
-        Value::Protein(seq) => format!("{BOLD}{MAGENTA}Protein({}{RESET}{BOLD}{MAGENTA}){RESET}", &seq.data),
+        Value::Protein(seq) => {
+            let colored_aa = colorize_protein(&seq.data);
+            format!("{BOLD}Protein({RESET}{colored_aa}{BOLD}){RESET}")
+        }
         Value::Interval(iv) => format!("{BLUE}{iv}{RESET}"),
         Value::List(items) => {
             if items.is_empty() {
@@ -1597,11 +2226,21 @@ fn colorize_value(value: &Value) -> String {
             }
         }
         Value::Record(fields) => {
-            let parts: Vec<String> = fields
-                .iter()
-                .map(|(k, v)| format!("{BOLD}{k}{RESET}: {}", colorize_value(v)))
-                .collect();
-            format!("{{{}}}", parts.join(", "))
+            if fields.len() > 3 {
+                // Pretty-print with indentation
+                let mut out = String::from("{\n");
+                for (k, v) in fields {
+                    out.push_str(&format!("  {BOLD}{k}{RESET}: {},\n", colorize_value(v)));
+                }
+                out.push('}');
+                out
+            } else {
+                let parts: Vec<String> = fields
+                    .iter()
+                    .map(|(k, v)| format!("{BOLD}{k}{RESET}: {}", colorize_value(v)))
+                    .collect();
+                format!("{{{}}}", parts.join(", "))
+            }
         }
         Value::Map(m) => {
             let parts: Vec<String> = m
@@ -1861,6 +2500,40 @@ fn colorize_bases(seq: &str, is_rna: bool) -> String {
             'C' => { out.push_str(C_COLOR); out.push(ch); out.push_str(RESET); }
             _ => { out.push_str(DIM); out.push(ch); out.push_str(RESET); }
         }
+    }
+    if truncated {
+        out.push_str(&format!("{DIM}…({} more){RESET}", seq.len() - max_display));
+    }
+    out
+}
+
+/// Colorize protein residues by biochemical property:
+/// Hydrophobic (AILMFWV) = yellow, Positive charge (RHK) = red,
+/// Negative charge (DE) = blue, Polar (STNQYC) = green, Special (GP) = magenta
+fn colorize_protein(seq: &str) -> String {
+    const HYDROPHOBIC: &str = "\x1b[33m"; // yellow
+    const POS_CHARGE: &str = "\x1b[31m";  // red
+    const NEG_CHARGE: &str = "\x1b[34m";  // blue
+    const POLAR: &str = "\x1b[32m";       // green
+    const SPECIAL: &str = "\x1b[35m";     // magenta
+
+    let max_display = 80;
+    let truncated = seq.len() > max_display;
+    let display_seq = if truncated { &seq[..max_display] } else { seq };
+
+    let mut out = String::with_capacity(display_seq.len() * 10);
+    for ch in display_seq.chars() {
+        let color = match ch.to_ascii_uppercase() {
+            'A' | 'I' | 'L' | 'M' | 'F' | 'W' | 'V' => HYDROPHOBIC,
+            'R' | 'H' | 'K' => POS_CHARGE,
+            'D' | 'E' => NEG_CHARGE,
+            'S' | 'T' | 'N' | 'Q' | 'Y' | 'C' => POLAR,
+            'G' | 'P' => SPECIAL,
+            _ => DIM,
+        };
+        out.push_str(color);
+        out.push(ch);
+        out.push_str(RESET);
     }
     if truncated {
         out.push_str(&format!("{DIM}…({} more){RESET}", seq.len() - max_display));

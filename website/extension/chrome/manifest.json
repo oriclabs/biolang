@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "BLViewer",
+  "short_name": "BLViewer",
+  "version": "1.0.0",
+  "description": "View FASTA, FASTQ, VCF, BED, GFF, SAM, CSV files instantly. Right-click any bio file link to open. 100% client-side.",
+  "author": {
+    "email": "oriclabsau@gmail.com"
+  },
+  "homepage_url": "https://lang.bio/viewer",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "BLViewer — Open bioinformatics files"
+  },
+  "permissions": [
+    "contextMenus",
+    "downloads",
+    "storage",
+    "activeTab"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["viewer.html", "viewer.js", "viewer.css", "help.html", "theme-init.js", "ext-loader.js", "wasm-loader.js", "wasm/*", "screenshots/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

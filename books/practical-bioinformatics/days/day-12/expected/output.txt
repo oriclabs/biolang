@@ -1,0 +1,81 @@
+=== Step 1: Loading VCF ===
+Total variants loaded: 48
+First variant:
+  Chrom: chr1
+  Position: 14907
+  ID: rs6682375
+  Ref: A, Alt: G
+  Quality: 45.3
+  Filter: PASS
+
+=== Step 2: Variant Classification ===
+SNPs: 38
+Indels: 10
+First 10 variants with types:
+  chr1:14907 A>G (Snp)
+  chr1:69511 A>G (Snp)
+  chr1:817186 G>A (Snp)
+  chr1:949654 C>T (Snp)
+  chr1:984971 G>A (Snp)
+  chr1:1018704 T>C (Snp)
+  chr1:1110294 G>A (Snp)
+  chr1:1234567 ATG>A (Indel)
+  chr1:1567890 C>CTAG (Indel)
+  chr1:2045678 A>T (Snp)
+
+=== Step 3: Ts/Tv Ratio ===
+Ts/Tv ratio: 1.92
+Expected ~2.0 for whole genome sequencing
+Transitions: 25
+Transversions: 13
+
+=== Step 4: Quality Filtering ===
+PASS variants: 41 / 48
+PASS + quality >= 30: 41
+Filtered out (non-PASS): 7
+  chr1:984971 G>A qual=12.5 filter=LowQual
+  chr1:2045678 A>T qual=8.1 filter=LowQual
+  chr2:6123456 T>C qual=15.2 filter=LowDP
+  chr3:4567890 T>A qual=10.4 filter=LowQual
+  chr7:5678901 A>C qual=9.7 filter=LowQual
+  chr11:5678901 G>T qual=14.3 filter=LowDP
+  chrX:5678901 C>A qual=11.8 filter=LowQual
+
+=== Step 5: Variant Summary ===
+Total alleles: 48
+  SNPs: 38
+  Indels: 10
+  MNPs: 0
+  Transitions: 25
+  Transversions: 13
+  Ts/Tv ratio: 1.92
+  Multiallelic: 0
+
+=== Step 6: Chromosome Distribution ===
+chrom | count
+chr1  | 10
+chr11 | 5
+chr17 | 5
+chr2  | 7
+chr3  | 6
+chr5  | 5
+chr7  | 5
+chrX  | 5
+
+=== Step 7: Het/Hom Ratio ===
+Het/Hom ratio: 4.33
+Expected ~1.5-2.0 for diploid organisms
+Heterozygous: 39
+Homozygous alt: 9
+
+=== Step 8: VEP Annotation (requires internet) ===
+Annotating: 17:7577120:G:A
+  (output depends on internet connectivity and Ensembl API)
+
+=== Step 9: Complete Filtering Pipeline ===
+Variants after filtering: 41
+  Filtered SNPs: 31
+  Filtered Indels: 10
+Results saved to results/classified_variants.csv
+
+=== Analysis Complete ===

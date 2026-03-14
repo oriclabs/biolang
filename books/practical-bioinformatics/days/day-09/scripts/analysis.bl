@@ -1,0 +1,238 @@
+# Day 9: Biological Databases and APIs — Multi-Database Analysis
+# Run: bl run scripts/analysis.bl
+# Requires: internet connection
+# Optional: NCBI_API_KEY environment variable for higher rate limits
+
+print("============================================================")
+print("Day 9: Biological Databases and APIs")
+print("============================================================")
+
+# ----------------------------------------------------------
+# 1. NCBI — Gene Lookup
+# ----------------------------------------------------------
+print("")
+print("--- 1. NCBI Gene Lookup ---")
+
+let gene = ncbi_gene("BRCA1")
+print(f"Symbol: {gene.symbol}")
+print(f"Name: {gene.name}")
+print(f"Description: {gene.description}")
+print(f"Chromosome: {gene.chromosome}")
+print(f"Location: {gene.location}")
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 2. NCBI — PubMed Search
+# ----------------------------------------------------------
+print("")
+print("--- 2. NCBI PubMed Search ---")
+
+let pubmed_ids = ncbi_search("pubmed", "BRCA1 breast cancer", 5)
+print(f"PubMed articles found: {len(pubmed_ids)}")
+for id in pubmed_ids {
+    print(f"  PMID: {id}")
+}
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 3. Ensembl — Gene Model
+# ----------------------------------------------------------
+print("")
+print("--- 3. Ensembl Gene Model ---")
+
+let ens = ensembl_symbol("homo_sapiens", "BRCA1")
+print(f"Ensembl ID: {ens.id}")
+print(f"Biotype: {ens.biotype}")
+print(f"Position: chr{ens.chromosome}:{ens.start}-{ens.end}")
+print(f"Strand: {ens.strand}")
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 4. Ensembl — Protein Sequence
+# ----------------------------------------------------------
+print("")
+print("--- 4. Ensembl Protein Sequence ---")
+
+let protein = ensembl_sequence(ens.id, "protein")
+print(f"Protein length: {len(protein.seq)} amino acids")
+print(f"First 60 aa: {protein.seq |> take(60)}")
+
+# Estimate molecular weight (~110 Da per amino acid average)
+let est_mw = len(protein.seq) * 110
+print(f"Estimated MW: ~{est_mw} Da ({est_mw / 1000} kDa)")
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 5. UniProt — Protein Function
+# ----------------------------------------------------------
+print("")
+print("--- 5. UniProt Protein Function ---")
+
+let entry = uniprot_entry("P38398")
+print(f"Name: {entry.name}")
+print(f"Organism: {entry.organism}")
+print(f"Length: {entry.sequence_length} aa")
+print(f"Gene names: {entry.gene_names}")
+print(f"Function: {entry.function |> take(120)}...")
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 6. UniProt — Features and Domains
+# ----------------------------------------------------------
+print("")
+print("--- 6. UniProt Features ---")
+
+let features = uniprot_features("P38398")
+print(f"Total features: {len(features)}")
+
+let domains = features |> filter(|f| f.type == "Domain")
+print(f"Domains: {len(domains)}")
+for d in domains {
+    print(f"  {d.description} ({d.location})")
+}
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 7. KEGG — Pathway Links
+# ----------------------------------------------------------
+print("")
+print("--- 7. KEGG Pathways ---")
+
+let kegg_results = kegg_find("genes", "BRCA1")
+print(f"KEGG gene hits: {len(kegg_results)}")
+
+let links = kegg_link("pathway", "hsa:672")
+print(f"Pathways involving BRCA1: {len(links)}")
+for link in links |> take(5) {
+    print(f"  {link.target}")
+}
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 8. PDB — 3D Structures
+# ----------------------------------------------------------
+print("")
+print("--- 8. PDB Structures ---")
+
+let structure = pdb_entry("1JM7")
+print(f"Title: {structure.title}")
+print(f"Method: {structure.method}")
+print(f"Resolution: {structure.resolution}")
+
+let pdb_ids = pdb_search("BRCA1")
+print(f"Total BRCA1 structures in PDB: {len(pdb_ids)}")
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 9. STRING — Protein Interactions
+# ----------------------------------------------------------
+print("")
+print("--- 9. STRING Interactions ---")
+
+let network = string_network(["BRCA1"], 9606)
+print(f"Interaction partners: {len(network)}")
+
+let top = network
+    |> sort_by(|n| n.score)
+    |> reverse()
+    |> take(5)
+
+print("Top 5 interactors:")
+for partner in top {
+    print(f"  {partner.protein_a} <-> {partner.protein_b}: score={partner.score}")
+}
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 10. Gene Ontology
+# ----------------------------------------------------------
+print("")
+print("--- 10. Gene Ontology ---")
+
+let term = go_term("GO:0006281")
+print(f"GO term: {term.name} ({term.id})")
+print(f"Aspect: {term.aspect}")
+
+let annotations = go_annotations("P38398", 10)
+print(f"GO annotations for BRCA1: {len(annotations)}")
+for a in annotations |> take(5) {
+    print(f"  {a.go_id}: {a.go_name} ({a.aspect})")
+}
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 11. Reactome Pathways
+# ----------------------------------------------------------
+print("")
+print("--- 11. Reactome Pathways ---")
+
+let pathways = reactome_pathways("BRCA1")
+print(f"Reactome pathways: {len(pathways)}")
+for p in pathways |> take(5) {
+    print(f"  {p.id}: {p.name}")
+}
+
+sleep(0.5)
+
+# ----------------------------------------------------------
+# 12. Combined Gene Profile
+# ----------------------------------------------------------
+print("")
+print("--- 12. Combined Gene Profile ---")
+
+fn gene_profile(symbol) {
+    print(f"\n  === {symbol} ===")
+
+    let gene = ncbi_gene(symbol)
+    print(f"  Chromosome: {gene.chromosome}")
+    print(f"  Description: {gene.description}")
+
+    let ens = ensembl_symbol("homo_sapiens", symbol)
+    let protein = ensembl_sequence(ens.id, "protein")
+    print(f"  Protein: {len(protein.seq)} aa")
+
+    let network = string_network([symbol], 9606)
+    print(f"  STRING partners: {len(network)}")
+
+    let pathways = reactome_pathways(symbol)
+    print(f"  Reactome pathways: {len(pathways)}")
+
+    sleep(1)
+}
+
+let targets = ["TP53", "EGFR"]
+for gene in targets {
+    gene_profile(gene)
+}
+
+# ----------------------------------------------------------
+# 13. Batch Query with Rate Limiting
+# ----------------------------------------------------------
+print("")
+print("--- 13. Batch Gene Table ---")
+
+let genes = ["BRCA1", "TP53", "EGFR", "KRAS", "MYC"]
+let rows = []
+for symbol in genes {
+    let info = ncbi_gene(symbol)
+    rows = push(rows, {gene: symbol, chrom: info.chromosome, desc: info.description})
+    sleep(0.5)
+}
+
+let table = rows |> to_table()
+print(table)
+
+print("")
+print("============================================================")
+print("Day 9 complete!")
+print("============================================================")

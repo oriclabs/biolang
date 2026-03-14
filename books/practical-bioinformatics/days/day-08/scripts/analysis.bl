@@ -1,0 +1,171 @@
+# Day 8: Processing Large Files — Streaming Analysis
+# Run: bl run scripts/analysis.bl
+# Requires: bl run init.bl first
+
+print("============================================================")
+print("Day 8: Processing Large Files — Streaming Analysis")
+print("============================================================")
+
+# ----------------------------------------------------------
+# 1. Stream Basics: eager vs streaming
+# ----------------------------------------------------------
+print("")
+print("--- 1. Eager vs Streaming ---")
+
+let all_reads = read_fastq("data/reads.fastq")
+print(f"Eager: loaded {len(all_reads)} reads (type: {type(all_reads)})")
+
+let stream = fastq("data/reads.fastq")
+print(f"Stream type: {type(stream)}")
+let stream_count = stream |> count()
+print(f"Stream count: {stream_count}")
+
+# ----------------------------------------------------------
+# 2. Constant-Memory Patterns
+# ----------------------------------------------------------
+print("")
+print("--- 2. Constant-Memory Patterns ---")
+
+# Pattern 1: Count without loading
+let total = fastq("data/reads.fastq") |> count()
+print(f"Total reads: {total}")
+
+# Pattern 2: Filter and count
+let passed_q20 = fastq("data/reads.fastq")
+    |> filter(|r| mean_phred(r.qual) >= 20)
+    |> count()
+print(f"Passed Q20: {passed_q20}")
+
+# Pattern 3: Reduce to a single value
+let gc_result = fastq("data/reads.fastq")
+    |> map(|r| {gc: gc_content(r.seq), n: 1})
+    |> reduce(|a, b| {gc: a.gc + b.gc, n: a.n + b.n})
+let mean_gc = gc_result.gc / gc_result.n
+print(f"Mean GC: {round(mean_gc * 100, 1)}%")
+
+# Pattern 4: Take a sample
+print("")
+print("First 5 reads:")
+let sample = fastq("data/reads.fastq") |> take(5) |> collect()
+for r in sample {
+    print(f"  {r.id}: {len(r.seq)} bp, Q={round(mean_phred(r.qual), 1)}")
+}
+
+# ----------------------------------------------------------
+# 3. Lazy Pipeline
+# ----------------------------------------------------------
+print("")
+print("--- 3. Lazy Pipeline ---")
+
+let hq_reads = fastq("data/reads.fastq")
+    |> filter(|r| mean_phred(r.qual) >= 30)
+    |> map(|r| {id: r.id, gc: gc_content(r.seq), length: len(r.seq)})
+    |> take(1000)
+    |> collect()
+print(f"High-quality reads (Q>=30): {len(hq_reads)}")
+
+# ----------------------------------------------------------
+# 4. Chunked Processing
+# ----------------------------------------------------------
+print("")
+print("--- 4. Chunked Processing ---")
+
+let chunk_stream = fastq("data/reads.fastq")
+let chunks = stream_chunks(chunk_stream, 100)
+
+let batch_num = 0
+for chunk in chunks {
+    batch_num = batch_num + 1
+    let gc_vals = chunk |> map(|r| gc_content(r.seq))
+    let mean_gc_chunk = mean(gc_vals)
+    print(f"  Batch {batch_num}: {len(chunk)} reads, mean GC: {round(mean_gc_chunk * 100, 1)}%")
+}
+
+# ----------------------------------------------------------
+# 5. Streaming All Formats
+# ----------------------------------------------------------
+print("")
+print("--- 5. Streaming All Formats ---")
+
+# FASTA: highest GC
+let gc_stats = fasta("data/sequences.fasta")
+    |> map(|s| {id: s.id, gc: gc_content(s.seq)})
+    |> collect()
+let gc_sorted = gc_stats |> sort_by(|s| s.gc)
+let highest = gc_sorted |> last()
+print(f"FASTA highest GC: {highest.id} at {round(highest.gc * 100, 1)}%")
+
+# VCF: PASS variant counts by chromosome
+let chr_counts = vcf("data/variants.vcf")
+    |> filter(|v| v.filter == "PASS")
+    |> map(|v| v.chrom)
+    |> frequencies()
+print(f"VCF PASS by chrom: {chr_counts}")
+
+# BED: total covered bases
+let total_bp = bed("data/regions.bed")
+    |> map(|r| r.end - r.start)
+    |> reduce(|a, b| a + b)
+print(f"BED total covered: {total_bp} bp")
+
+# ----------------------------------------------------------
+# 6. Tee Pattern
+# ----------------------------------------------------------
+print("")
+print("--- 6. Tee Pattern ---")
+
+let tee_count = fastq("data/reads.fastq")
+    |> tee(|r| print(f"  Checking: {r.id}"))
+    |> filter(|r| mean_phred(r.qual) >= 35)
+    |> take(3)
+    |> count()
+print(f"Kept {tee_count} reads with Q>=35")
+
+# ----------------------------------------------------------
+# 7. QC Report (multiple passes)
+# ----------------------------------------------------------
+print("")
+print("--- 7. Streaming QC Report ---")
+
+let stats = read_stats("data/reads.fastq")
+print(f"Total reads: {stats.total_reads}")
+print(f"Total bases: {stats.total_bases}")
+
+let quality_bins = fastq("data/reads.fastq")
+    |> map(|r| {
+        q: mean_phred(r.qual),
+        category: if mean_phred(r.qual) >= 30 { "excellent" }
+                  else if mean_phred(r.qual) >= 20 { "good" }
+                  else { "poor" }
+    })
+    |> map(|r| r.category)
+    |> frequencies()
+
+print("Quality distribution:")
+for category in keys(quality_bins) {
+    print(f"  {category}: {quality_bins[category]}")
+}
+
+let lengths = fastq("data/reads.fastq")
+    |> map(|r| len(r.seq))
+    |> collect()
+
+print(f"Length mean: {round(mean(lengths), 1)}")
+print(f"Length min: {min(lengths)}, max: {max(lengths)}")
+
+# ----------------------------------------------------------
+# 8. Write filtered output
+# ----------------------------------------------------------
+print("")
+print("--- 8. Write Filtered Output ---")
+
+let filtered = fastq("data/reads.fastq")
+    |> filter(|r| len(r.seq) >= 100 and mean_phred(r.qual) >= 25)
+    |> collect()
+write_fastq(filtered, "results/filtered.fastq")
+print(f"Wrote {len(filtered)} filtered reads to results/filtered.fastq")
+
+print("")
+print("============================================================")
+print("Day 8 complete! You can now process files of any size.")
+print("============================================================")

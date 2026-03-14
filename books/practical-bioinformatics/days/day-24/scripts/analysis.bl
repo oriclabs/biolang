@@ -1,0 +1,73 @@
+let genes = read_csv("data/gene_list.csv")
+let symbols = genes |> map(|row| row.symbol)
+
+let annotate_gene = |symbol| {
+    let ncbi = try { ncbi_gene(symbol) } catch err { nil }
+    sleep(200)
+
+    let ensembl = try { ensembl_symbol("homo_sapiens", symbol) } catch err { nil }
+    sleep(200)
+
+    let uniprot = try { uniprot_search(f"gene:{symbol} AND organism_id:9606") } catch err { nil }
+    sleep(200)
+
+    let pathways = try { reactome_pathways(symbol) } catch err { nil }
+    sleep(200)
+
+    let go = try { go_annotations(symbol) } catch err { nil }
+    sleep(200)
+
+    {
+        symbol: symbol,
+        ncbi_found: ncbi != nil,
+        ensembl_id: if ensembl != nil { str(ensembl) } else { "N/A" },
+        uniprot_found: uniprot != nil,
+        pathway_count: if pathways != nil { len(pathways) } else { 0 },
+        go_term_count: if go != nil { len(go) } else { 0 }
+    }
+}
+
+let annotations = symbols |> map(|s| annotate_gene(s))
+
+let annotation_table = annotations |> to_table()
+
+write_tsv(annotation_table, "data/annotations.tsv")
+
+let up_genes = genes
+    |> filter(|row| row.direction == "up")
+    |> map(|row| row.symbol)
+
+let down_genes = genes
+    |> filter(|row| row.direction == "down")
+    |> map(|row| row.symbol)
+
+let get_pathways = |symbol| {
+    let p = try { reactome_pathways(symbol) } catch err { [] }
+    sleep(200)
+    p
+}
+
+let up_pathways = up_genes |> map(|g| get_pathways(g)) |> flatten()
+let down_pathways = down_genes |> map(|g| get_pathways(g)) |> flatten()
+
+let interaction_genes = symbols |> filter(|s| {
+    let row = genes |> filter(|r| r.symbol == s) |> map(|r| r)
+    len(row) > 0
+})
+
+let top5 = interaction_genes |> sort(|a, b| a < b) |> map(|s| s)
+let top5_slice = [top5(0), top5(1), top5(2), top5(3), top5(4)]
+
+let network = try { string_network(top5_slice) } catch err { nil }
+
+let summary = {
+    total_genes: len(symbols),
+    upregulated: len(up_genes),
+    downregulated: len(down_genes),
+    annotations_complete: len(annotations),
+    up_pathway_hits: len(up_pathways),
+    down_pathway_hits: len(down_pathways),
+    network_found: network != nil
+}
+
+write("data/summary.json", json_encode(summary))

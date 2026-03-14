@@ -1,0 +1,155 @@
+# Day 25: Error Handling in Production
+# Generates 10 FASTQ files (5 good, 5 corrupted) with real human gene templates
+# and a clinical sample sheet for error-handling exercises
+#
+# Sources:
+#   TP53: NM_000546.6, exons 5-8 (GRCh38 chr17:7668402-7687538)
+#   BRCA1: NM_007294.4, exon 11 (GRCh38 chr17:43044295-43170245)
+#   EGFR: NM_005228.5, exons 19-21 (GRCh38 chr7:55019017-55211628)
+
+print("Setting up Day 25: Error Handling in Production")
+
+mkdir("data")
+mkdir("data/fastq")
+mkdir("data/output")
+
+# ── Real human gene subsequences for "good" FASTQ files ──
+let templates = [
+    # TP53 exon 5-6 junction (NM_000546.6 c.376-525)
+    "TACTTCCTGAAAACAACGTTCTGTCCCCCTTGCCGTCTGGGCTTCTTGCATTCTGGGACAGCCAAGTCTGTGACTTGCACGTACTCCCCTGCCCTCAACAAGATGTTTTGCCAACTGGCCAAGACCTGCCCTGTGCAGCTGTGGGTTGATTCCACACCC",
+    # TP53 exon 7 (NM_000546.6 c.701-850)
+    "CTTGGGCCTGTGTTATCTCCTAGGTTGGCTCTGACTGTACCACCATCCACTACAACTACATGTGTAACAGTTCCTGCATGGGCGGCATGAACCGGAGGCCCATCCTCACCATCATCACACTGGAAGACTCCAGTGGTAATCTACTGGGACGGAACAGCT",
+    # BRCA1 exon 11 (NM_007294.4 c.1016-1165)
+    "GATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAATTTTGCATGCTGAAACTTCTCAACCAG",
+    # EGFR exon 19 (NM_005228.5 c.2101-2250)
+    "GCTGGCCAAACTGCTGGGTGCGGAAGAGAAAGAATACCATGCAGAAGGAGGCAAAGTGCCTATCAAGTGGATGGCATTGGAATCAATTTTACACAGAATCTATACCCACCAGAGTGATGTCTGGAGCTACGGTGAGTCATAATCCTGATGATAATCATG",
+    # EGFR exon 21 L858R region (NM_005228.5 c.2501-2650)
+    "AACACCGCAGCATGTCAAGATCACAGATTTTGGGCTGGCCAAACTGCTGGGTGCGGAAGAGAAAGAATACCATGCAGAAGGAGGCAAAGTGCCTATCAAGTGGATGGCATTGGAATCAATTTTACACAGAATCTATACCCACCAGAGTGATGTCTGGAG"
+]
+
+let gene_labels = ["TP53_ex5", "TP53_ex7", "BRCA1_ex11", "EGFR_ex19", "EGFR_ex21"]
+
+let qual_good = "IIIIIIIIIIIIIIIIIIIIHHHHHHHHHHHHHHHHHHGGGGGGGGGGGGGGGGFFFFFFFFFFFFFFEEEEEEEEEEEEEEEDDDDDDDDDDDDDCCCCCCCCCCCCCBBBBBBBBBBBBAAAAAAAAAA99999999988888888"
+
+let make_fastq_record = |id, seq, qual| {
+    f"@{id}\n{seq}\n+\n{qual}"
+}
+
+# ── Generate 5 good FASTQ files ──
+# Each contains 20 reads from a different real gene region
+
+range(0, 5) |> each(|i| {
+    let tmpl = templates[i]
+    let gene = gene_labels[i]
+    let content = ""
+    range(0, 20) |> each(|r| {
+        let offset = (r * 3) % 10
+        let read_len = 100 + (r * 7) % 51
+        let seq = ""
+        for j in range(0, read_len) {
+            let pos = (offset + j) % len(tmpl)
+            let seq = seq + substr(tmpl, pos, 1)
+        }
+        let qual = substr(qual_good, 0, read_len)
+        let rec = make_fastq_record(f"CLIN{str(i + 1)}_{gene}_read{str(r)}", seq, qual)
+        if r == 0 {
+            content = rec
+        } else {
+            content = content + "\n" + rec
+        }
+    })
+    let padded = if i + 1 < 10 then f"00{str(i + 1)}" else f"0{str(i + 1)}"
+    write_lines(f"data/fastq/good_{padded}.fastq", [content])
+})
+print("  Created 5 good FASTQ files (data/fastq/good_001-005.fastq)")
+print("    good_001: TP53 exon 5 reads")
+print("    good_002: TP53 exon 7 reads")
+print("    good_003: BRCA1 exon 11 reads")
+print("    good_004: EGFR exon 19 reads")
+print("    good_005: EGFR exon 21 reads")
+
+# ── Generate 5 corrupted FASTQ files ──
+
+# 1. Truncated file: valid first record, second record cut off mid-sequence
+let trunc_seq1 = substr(templates[0], 0, 100)
+let trunc_qual1 = substr(qual_good, 0, 100)
+let truncated_content = make_fastq_record("CLIN6_TP53_read0", trunc_seq1, trunc_qual1)
+truncated_content = truncated_content + "\n@CLIN6_TP53_read1\nTACTTCCTGAAAACAACGTTCTGTCCCCCT"
+write_lines("data/fastq/truncated.fastq", [truncated_content])
+print("  Created data/fastq/truncated.fastq (cut off mid-record)")
+
+# 2. Empty file
+write_lines("data/fastq/empty.fastq", [""])
+print("  Created data/fastq/empty.fastq (zero content)")
+
+# 3. All low-quality reads (Q2 = '!' in Phred+33)
+let bad_qual_content = ""
+range(0, 10) |> each(|r| {
+    let seq = substr(templates[1], 0, 100)
+    let awful_qual = ""
+    for q in range(0, 100) {
+        let awful_qual = awful_qual + "!"
+    }
+    let rec = make_fastq_record(f"CLIN7_lowqual_read{str(r)}", seq, awful_qual)
+    if r == 0 {
+        bad_qual_content = rec
+    } else {
+        bad_qual_content = bad_qual_content + "\n" + rec
+    }
+})
+write_lines("data/fastq/bad_quality.fastq", [bad_qual_content])
+print("  Created data/fastq/bad_quality.fastq (all Q2 bases)")
+
+# 4. Sequence/quality length mismatch
+let mm_seq1 = substr(templates[2], 0, 100)
+let mm_qual1 = substr(qual_good, 0, 100)
+let mm_seq2 = substr(templates[2], 10, 120)
+let mm_qual_short = substr(qual_good, 0, 50)  # 50 qual chars for 120bp seq
+let mm_seq3 = substr(templates[3], 0, 80)
+let mm_qual3 = substr(qual_good, 0, 80)
+let mismatch_content = make_fastq_record("CLIN8_BRCA1_read0", mm_seq1, mm_qual1)
+mismatch_content = mismatch_content + "\n" + make_fastq_record("CLIN8_BRCA1_read1_MISMATCH", mm_seq2, mm_qual_short)
+mismatch_content = mismatch_content + "\n" + make_fastq_record("CLIN8_EGFR_read2", mm_seq3, mm_qual3)
+write_lines("data/fastq/mismatched.fastq", [mismatch_content])
+print("  Created data/fastq/mismatched.fastq (seq/qual length mismatch)")
+
+# 5. Binary garbage header (simulates file corruption)
+let garbage_content = "PK\x03\x04CORRUPT_BINARY_HEADER_NOT_FASTQ\n"
+garbage_content = garbage_content + "This is not a valid FASTQ file.\n"
+garbage_content = garbage_content + "It might be a truncated .gz or wrong file type.\n"
+garbage_content = garbage_content + "@fake_read_after_garbage\nATCG\n+\nIIII"
+write_lines("data/fastq/binary_garbage.fastq", [garbage_content])
+print("  Created data/fastq/binary_garbage.fastq (corrupt header)")
+
+# ── Clinical sample sheet ──
+let sheet_header = "sample_id,fastq_r1,fastq_r2,condition,patient_id,tissue,expected_status"
+let sheet_rows = [
+    "CLIN-001,data/fastq/good_001.fastq,data/fastq/good_002.fastq,treatment,PAT-2024-001,tumor_biopsy,pass",
+    "CLIN-002,data/fastq/good_003.fastq,data/fastq/good_004.fastq,treatment,PAT-2024-002,tumor_biopsy,pass",
+    "CLIN-003,data/fastq/good_005.fastq,data/fastq/truncated.fastq,control,PAT-2024-003,blood,fail_truncated",
+    "CLIN-004,data/fastq/empty.fastq,data/fastq/bad_quality.fastq,control,PAT-2024-004,blood,fail_empty_and_lowqual",
+    "CLIN-005,data/fastq/mismatched.fastq,data/fastq/binary_garbage.fastq,treatment,PAT-2024-005,tumor_biopsy,fail_corrupt"
+]
+
+let sheet_content = sheet_header
+sheet_rows |> each(|row| {
+    sheet_content = sheet_content + "\n" + row
+})
+write_lines("data/sample_sheet.csv", [sheet_content])
+
+print("")
+print("Created data/fastq/ with 10 test files:")
+print("  good_001-005.fastq  (well-formed, real gene sequences)")
+print("  truncated.fastq     (cut off mid-record)")
+print("  empty.fastq         (zero content)")
+print("  bad_quality.fastq   (all Q2/! quality scores)")
+print("  mismatched.fastq    (seq/qual length mismatch)")
+print("  binary_garbage.fastq (corrupt non-FASTQ header)")
+print("Created data/sample_sheet.csv")
+print("")
+print("Data sources:")
+print("  TP53: NM_000546.6 exons 5,7")
+print("  BRCA1: NM_007294.4 exon 11")
+print("  EGFR: NM_005228.5 exons 19,21")
+print("")
+print("Run scripts/analysis.bl next.")

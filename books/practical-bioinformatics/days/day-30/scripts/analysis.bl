@@ -1,0 +1,207 @@
+let orthologs = read_fasta("data/orthologs.fasta")
+let species_info = read_tsv("data/species_info.tsv")
+let domain_annotations = read_tsv("data/domain_annotations.tsv")
+
+let species_names = orthologs |> map(|s| {
+    let info = species_info |> filter(|sp| sp.seq_id == s.id)
+    info[0].common_name
+})
+let sequences = orthologs |> map(|s| s.sequence)
+let n = len(sequences)
+
+fn kmer_similarity(seq_a, seq_b, k) {
+    let kmers_a = kmers(seq_a, k)
+    let kmers_b = kmers(seq_b, k)
+    let set_a = kmers_a |> sort() |> filter(|x| true)
+    let set_b = kmers_b |> sort() |> filter(|x| true)
+    let shared = set_a |> filter(|kmer| set_b |> filter(|b| b == kmer) |> len() > 0) |> len()
+    let total = len(set_a) + len(set_b) - shared
+    round(float(shared) / float(total), 4)
+}
+
+fn kmer_distance(seq_a, seq_b, k) {
+    round(1.0 - kmer_similarity(seq_a, seq_b, k), 4)
+}
+
+let seq_summary = orthologs |> map(|seq| {
+    let info = species_info |> filter(|s| s.seq_id == seq.id)
+    {
+        species: info[0].common_name,
+        length_aa: len(seq.sequence),
+        divergence_mya: info[0].divergence_mya
+    }
+}) |> to_table()
+
+write_tsv(seq_summary, "data/output/sequence_summary.tsv")
+
+let human_protein = sequences[0]
+let sim_table = orthologs |> map(|seq| {
+    let info = species_info |> filter(|s| s.seq_id == seq.id)
+    {
+        species: info[0].common_name,
+        kmer3_sim: kmer_similarity(human_protein, seq.sequence, 3),
+        kmer5_sim: kmer_similarity(human_protein, seq.sequence, 5)
+    }
+}) |> to_table() |> sort_by("kmer5_sim", "desc")
+
+write_tsv(sim_table, "data/output/similarity_table.tsv")
+
+dotplot(sequences[0], sequences[1], "data/output/dotplot_human_mouse.svg")
+dotplot(sequences[0], sequences[5], "data/output/dotplot_human_fly.svg")
+
+let dist_matrix = range(0, n) |> map(|i| {
+    let row = { species: species_names[i] }
+    range(0, n) |> each(|j| {
+        row[species_names[j]] = kmer_distance(sequences[i], sequences[j], 4)
+    })
+    row
+}) |> to_table()
+
+write_tsv(dist_matrix, "data/output/distance_matrix.tsv")
+
+let labels = species_names
+let matrix = range(0, n) |> map(|i| {
+    range(0, n) |> map(|j| {
+        kmer_distance(sequences[i], sequences[j], 4)
+    })
+})
+
+phylo_tree(labels, matrix, "data/output/phylo_tree.svg")
+
+let domain_regions = [
+    { name: "N-terminal_TAD", start: 0, end_pos: 60 },
+    { name: "Proline-rich", start: 60, end_pos: 95 },
+    { name: "DNA-binding", start: 95, end_pos: 290 },
+    { name: "Tetramerization", start: 320, end_pos: 360 },
+    { name: "C-terminal_reg", start: 360, end_pos: 393 }
+]
+
+fn window_identity(seqs, window_size) {
+    let ref_seq = seqs[0]
+    let ref_len = len(ref_seq)
+    let n_seqs = len(seqs)
+    let n_windows = ref_len - window_size + 1
+    range(0, n_windows) |> map(|start| {
+        let end_val = start + window_size
+        let ref_chars = ref_seq |> split("")
+        let matches = range(start, end_val) |> map(|pos| {
+            let ref_char = ref_chars[pos]
+            let match_count = range(1, n_seqs) |> map(|si| {
+                let other = seqs[si] |> split("")
+                let result = 0
+                if pos < len(other) {
+                    if other[pos] == ref_char {
+                        result = 1
+                    }
+                }
+                result
+            }) |> sum()
+            float(match_count) / float(n_seqs - 1)
+        }) |> mean()
+        { position: start + window_size / 2, conservation: round(matches, 4) }
+    })
+}
+
+let vertebrate_seqs = orthologs
+    |> filter(|s| !contains(s.id, "fly") && !contains(s.id, "worm") && !contains(s.id, "yeast"))
+    |> map(|s| s.sequence)
+
+let conservation = window_identity(vertebrate_seqs, 10)
+let cons_table = conservation |> to_table()
+line(cons_table, "position", "conservation", "data/output/conservation_profile.svg")
+
+let domain_cons = domain_regions |> map(|d| {
+    let region = conservation |> filter(|w| w.position >= d.start && w.position < d.end_pos)
+    let avg = region |> map(|w| w.conservation) |> mean()
+    {
+        domain: d.name,
+        start: d.start,
+        end_pos: d.end_pos,
+        mean_conservation: round(avg, 4)
+    }
+}) |> to_table()
+
+write_tsv(domain_cons, "data/output/domain_conservation.tsv")
+
+let arch_table = species_info |> map(|sp| {
+    let domains = domain_annotations |> filter(|d| d.seq_id == sp.seq_id)
+    {
+        species: sp.common_name,
+        n_domains: len(domains),
+        domains: domains |> map(|d| d.domain_name) |> join(", "),
+        seq_length: sp.seq_length
+    }
+}) |> to_table()
+
+write_tsv(arch_table, "data/output/domain_architecture.tsv")
+
+fn domain_divergence(seqs, sp_info, d_start, d_end) {
+    let ref_seq = seqs[0] |> split("")
+    range(1, len(seqs)) |> map(|i| {
+        let other = seqs[i] |> split("")
+        let positions = range(d_start, min([d_end, len(ref_seq), len(other)]))
+        let mismatches = positions |> filter(|p| ref_seq[p] != other[p]) |> len()
+        let total = len(positions)
+        let info = sp_info |> filter(|s| s.seq_id == (orthologs[i]).id)
+        {
+            species: info[0].common_name,
+            divergence_mya: float(info[0].divergence_mya),
+            sub_rate: round(float(mismatches) / float(total), 4)
+        }
+    })
+}
+
+let dbd = domain_divergence(sequences, species_info, 95, 290)
+let tad = domain_divergence(sequences, species_info, 0, 60)
+
+let evo_rates = range(0, len(dbd)) |> map(|i| {
+    {
+        species: dbd[i].species,
+        divergence_mya: dbd[i].divergence_mya,
+        dbd_rate: dbd[i].sub_rate,
+        tad_rate: tad[i].sub_rate,
+        ratio: round(tad[i].sub_rate / (dbd[i].sub_rate + 0.001), 2)
+    }
+}) |> to_table()
+
+write_tsv(evo_rates, "data/output/evolutionary_rates.tsv")
+scatter(evo_rates, "divergence_mya", "dbd_rate", "data/output/rate_dbd.svg")
+scatter(evo_rates, "divergence_mya", "tad_rate", "data/output/rate_tad.svg")
+
+let summary_lines = [
+    "=== Multi-Species TP53 Gene Family Analysis ===",
+    "",
+    "Species analyzed: " + str(n),
+    "Vertebrate orthologs: " + str(len(vertebrate_seqs)),
+    "",
+    "Sequence lengths (aa):",
+    "  Min: " + str(seq_summary |> select("length_aa") |> map(|r| r.length_aa) |> min()),
+    "  Max: " + str(seq_summary |> select("length_aa") |> map(|r| r.length_aa) |> max()),
+    "  Mean: " + str(round(seq_summary |> select("length_aa") |> map(|r| float(r.length_aa)) |> mean(), 1)),
+    "",
+    "Domain conservation (vertebrates):",
+    "  DNA-binding domain: " + str((domain_cons |> filter(|r| r.domain == "DNA-binding"))[0].mean_conservation),
+    "  Tetramerization: " + str((domain_cons |> filter(|r| r.domain == "Tetramerization"))[0].mean_conservation),
+    "  N-terminal TAD: " + str((domain_cons |> filter(|r| r.domain == "N-terminal_TAD"))[0].mean_conservation),
+    "",
+    "Evolutionary rate ratio (TAD/DBD):",
+    "  Mean: " + str(round(evo_rates |> map(|r| float(r.ratio)) |> mean(), 2)),
+    "  (>1.0 means TAD evolves faster than DBD)",
+    "",
+    "Output files:",
+    "  data/output/sequence_summary.tsv",
+    "  data/output/similarity_table.tsv",
+    "  data/output/distance_matrix.tsv",
+    "  data/output/domain_conservation.tsv",
+    "  data/output/domain_architecture.tsv",
+    "  data/output/evolutionary_rates.tsv",
+    "  data/output/dotplot_human_mouse.svg",
+    "  data/output/dotplot_human_fly.svg",
+    "  data/output/conservation_profile.svg",
+    "  data/output/phylo_tree.svg",
+    "  data/output/rate_dbd.svg",
+    "  data/output/rate_tad.svg",
+    "  data/output/summary.txt"
+]
+
+write_lines(summary_lines, "data/output/summary.txt")

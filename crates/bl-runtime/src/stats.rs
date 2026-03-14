@@ -8,6 +8,7 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         // Statistics
         ("mean", Arity::Exact(1)),
         ("median", Arity::Exact(1)),
+        ("mode", Arity::Exact(1)),
         ("stdev", Arity::Exact(1)),
         ("variance", Arity::Exact(1)),
         ("sum", Arity::Exact(1)),
@@ -61,6 +62,8 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("euler", Arity::Exact(0)),
         ("random", Arity::Exact(0)),
         ("random_int", Arity::Exact(2)),
+        ("set_seed", Arity::Exact(1)),
+        ("power_t_test", Arity::Range(1, 3)),
         // ASCII plotting
         ("hist", Arity::Range(1, 2)),
         ("scatter", Arity::Exact(2)),
@@ -113,6 +116,7 @@ pub fn is_stats_builtin(name: &str) -> bool {
         name,
         "mean"
             | "median"
+            | "mode"
             | "stdev"
             | "variance"
             | "sum"
@@ -162,6 +166,8 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "euler"
             | "random"
             | "random_int"
+            | "set_seed"
+            | "power_t_test"
             | "hist"
             | "scatter"
             | "ttest"
@@ -208,6 +214,7 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
     match name {
         "mean" => builtin_mean(args),
         "median" => builtin_median(args),
+        "mode" => builtin_mode(args),
         "stdev" => builtin_stdev(args),
         "variance" => builtin_variance(args),
         "sum" => builtin_sum(args),
@@ -257,6 +264,8 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "euler" => Ok(Value::Float(std::f64::consts::E)),
         "random" => builtin_random(),
         "random_int" => builtin_random_int(args),
+        "set_seed" => builtin_set_seed(args),
+        "power_t_test" => builtin_power_t_test(args),
         "hist" => builtin_hist(args),
         "scatter" => builtin_scatter(args),
         "ttest" => builtin_ttest(args),
@@ -416,6 +425,30 @@ fn builtin_median(args: Vec<Value>) -> Result<Value> {
         nums[len / 2]
     };
     Ok(Value::Float(med))
+}
+
+fn builtin_mode(args: Vec<Value>) -> Result<Value> {
+    let nums = require_num_list(&args[0], "mode")?;
+    if nums.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "mode() requires a non-empty list",
+            None,
+        ));
+    }
+    // Round to nearest integer for frequency counting (standard for continuous data)
+    let mut freq: HashMap<i64, usize> = HashMap::new();
+    for &v in &nums {
+        *freq.entry(v.round() as i64).or_insert(0) += 1;
+    }
+    let max_count = freq.values().copied().max().unwrap_or(0);
+    let mode_val = freq
+        .into_iter()
+        .filter(|&(_, c)| c == max_count)
+        .map(|(v, _)| v)
+        .min()
+        .unwrap_or(0);
+    Ok(Value::Int(mode_val))
 }
 
 fn builtin_variance(args: Vec<Value>) -> Result<Value> {
@@ -656,11 +689,42 @@ fn builtin_cumsum(args: Vec<Value>) -> Result<Value> {
 // ── summary(table) ──────────────────────────────────────────────
 
 fn builtin_summary(args: Vec<Value>) -> Result<Value> {
+    // Handle List input: return a record with basic numeric stats
+    if let Value::List(items) = &args[0] {
+        let nums: Vec<f64> = items.iter().filter_map(|v| to_f64(v)).collect();
+        if nums.is_empty() {
+            let mut m = std::collections::HashMap::new();
+            m.insert("count".to_string(), Value::Int(items.len() as i64));
+            m.insert("numeric".to_string(), Value::Int(0));
+            return Ok(Value::Record(m));
+        }
+        let count = nums.len();
+        let sum: f64 = nums.iter().sum();
+        let mean_val = sum / count as f64;
+        let mut sorted = nums.clone();
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        let median_val = if count % 2 == 0 {
+            (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0
+        } else {
+            sorted[count / 2]
+        };
+        let variance: f64 = nums.iter().map(|x| (x - mean_val).powi(2)).sum::<f64>() / (count as f64 - 1.0).max(1.0);
+        let sd_val = variance.sqrt();
+        let mut m = std::collections::HashMap::new();
+        m.insert("count".to_string(), Value::Int(count as i64));
+        m.insert("min".to_string(), Value::Float(sorted[0]));
+        m.insert("max".to_string(), Value::Float(sorted[count - 1]));
+        m.insert("mean".to_string(), Value::Float(mean_val));
+        m.insert("median".to_string(), Value::Float(median_val));
+        m.insert("sd".to_string(), Value::Float(sd_val));
+        return Ok(Value::Record(m));
+    }
+
     let table = match &args[0] {
         Value::Table(t) => t,
         other => {
             return Err(BioLangError::type_error(
-                format!("summary() requires Table, got {}", other.type_of()),
+                format!("summary() requires Table or List, got {}", other.type_of()),
                 None,
             ))
         }
@@ -900,69 +964,24 @@ fn builtin_scatter(args: Vec<Value>) -> Result<Value> {
     }
 
     if xs.is_empty() {
-        println!("(empty)");
-        return Ok(Value::Nil);
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "scatter() received empty lists",
+            None,
+        ));
     }
 
-    let width = 60usize;
-    let height = 20usize;
-
-    let x_min = xs.iter().cloned().fold(f64::INFINITY, f64::min);
-    let x_max = xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    let y_min = ys.iter().cloned().fold(f64::INFINITY, f64::min);
-    let y_max = ys.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-
-    let x_range = if (x_max - x_min).abs() < f64::EPSILON {
-        1.0
-    } else {
-        x_max - x_min
-    };
-    let y_range = if (y_max - y_min).abs() < f64::EPSILON {
-        1.0
-    } else {
-        y_max - y_min
-    };
-
-    // Create grid
-    let mut grid = vec![vec![' '; width]; height];
-
-    // Plot points
-    for i in 0..xs.len() {
-        let gx = ((xs[i] - x_min) / x_range * (width - 1) as f64) as usize;
-        let gy = ((ys[i] - y_min) / y_range * (height - 1) as f64) as usize;
-        let gy = (height - 1).saturating_sub(gy); // Invert Y axis
-        let gx = gx.min(width - 1);
-        let gy = gy.min(height - 1);
-        grid[gy][gx] = '*';
-    }
-
-    // Render
-    let y_w = format!("{:.0}", y_max)
-        .len()
-        .max(format!("{:.0}", y_min).len());
-
-    println!("Scatter plot (n={}):", xs.len());
-    for (row_idx, row) in grid.iter().enumerate() {
-        let label = if row_idx == 0 {
-            format!("{:>w$}", y_max as i64, w = y_w)
-        } else if row_idx == height - 1 {
-            format!("{:>w$}", y_min as i64, w = y_w)
-        } else {
-            " ".repeat(y_w)
-        };
-        let line: String = row.iter().collect();
-        println!("  {label}|{line}");
-    }
-    let pad = " ".repeat(y_w);
-    println!("  {pad}+{}", "-".repeat(width));
-    println!(
-        "  {pad} {:<1}{:>w$}",
-        x_min as i64,
-        x_max as i64,
-        w = width - 1
-    );
-
-    Ok(Value::Nil)
+    // Build a 2-column table and delegate to the SVG plot function
+    let rows: Vec<Vec<Value>> = xs
+        .iter()
+        .zip(ys.iter())
+        .map(|(x, y)| vec![Value::Float(*x), Value::Float(*y)])
+        .collect();
+    let table = Value::Table(bl_core::value::Table::new(
+        vec!["x".into(), "y".into()],
+        rows,
+    ));
+    crate::plot::call_plot_builtin("plot", vec![table])
 }
 
 // ── Statistical Testing (wraps bio_core::stats_ops) ─────────────
@@ -1179,7 +1198,9 @@ fn builtin_ttest(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(make_record(vec![
         ("t_statistic", Value::Float(res.statistic)),
+        ("statistic", Value::Float(res.statistic)),
         ("p_value", Value::Float(res.p_value)),
+        ("pvalue", Value::Float(res.p_value)),
         ("df", Value::Float(res.df)),
         ("mean_diff", Value::Float(res.mean_a - res.mean_b)),
     ]))
@@ -1205,7 +1226,9 @@ fn builtin_ttest_paired(args: Vec<Value>) -> Result<Value> {
     let p = 2.0 * (1.0 - bl_core::bio_core::stats_ops::students_t_cdf(t.abs(), df));
     Ok(make_record(vec![
         ("t_statistic", Value::Float(t)),
+        ("statistic", Value::Float(t)),
         ("p_value", Value::Float(p)),
+        ("pvalue", Value::Float(p)),
         ("df", Value::Float(df)),
         ("mean_diff", Value::Float(mean_d)),
     ]))
@@ -1223,7 +1246,9 @@ fn builtin_ttest_one(args: Vec<Value>) -> Result<Value> {
     let p = 2.0 * (1.0 - bl_core::bio_core::stats_ops::students_t_cdf(t.abs(), df));
     Ok(make_record(vec![
         ("t_statistic", Value::Float(t)),
+        ("statistic", Value::Float(t)),
         ("p_value", Value::Float(p)),
+        ("pvalue", Value::Float(p)),
         ("df", Value::Float(df)),
     ]))
 }
@@ -1268,7 +1293,9 @@ fn builtin_anova(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(make_record(vec![
         ("f_statistic", Value::Float(res.f_statistic)),
+        ("statistic", Value::Float(res.f_statistic)),
         ("p_value", Value::Float(res.p_value)),
+        ("pvalue", Value::Float(res.p_value)),
         ("df_between", Value::Float(res.df_between)),
         ("df_within", Value::Float(res.df_within)),
     ]))
@@ -1296,7 +1323,9 @@ fn builtin_chi_square(args: Vec<Value>) -> Result<Value> {
     let p_value = 1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(chi2, df);
     Ok(make_record(vec![
         ("chi2", Value::Float(chi2)),
+        ("statistic", Value::Float(chi2)),
         ("p_value", Value::Float(p_value)),
+        ("pvalue", Value::Float(p_value)),
         ("df", Value::Int(df as i64)),
     ]))
 }
@@ -1311,6 +1340,7 @@ fn builtin_fisher_exact(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(make_record(vec![
         ("p_value", Value::Float(res.p_value)),
+        ("pvalue", Value::Float(res.p_value)),
         ("odds_ratio", Value::Float(res.odds_ratio)),
     ]))
 }
@@ -1322,7 +1352,9 @@ fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(make_record(vec![
         ("u_statistic", Value::Float(res.statistic)),
+        ("statistic", Value::Float(res.statistic)),
         ("p_value", Value::Float(res.p_value)),
+        ("pvalue", Value::Float(res.p_value)),
     ]))
 }
 
@@ -1413,6 +1445,7 @@ fn builtin_lm(args: Vec<Value>) -> Result<Value> {
                     ("intercept", Value::Float(res.intercept)),
                     ("r_squared", Value::Float(res.r_squared)),
                     ("p_value", Value::Float(res.p_value)),
+                    ("pvalue", Value::Float(res.p_value)),
                     ("std_error", Value::Float(res.std_error)),
                 ]))
             } else {
@@ -1449,6 +1482,7 @@ fn builtin_lm(args: Vec<Value>) -> Result<Value> {
                 ("intercept", Value::Float(res.intercept)),
                 ("r_squared", Value::Float(res.r_squared)),
                 ("p_value", Value::Float(res.p_value)),
+                ("pvalue", Value::Float(res.p_value)),
                 ("std_error", Value::Float(res.std_error)),
             ]))
         }
@@ -1537,6 +1571,7 @@ fn builtin_ks_test(args: Vec<Value>) -> Result<Value> {
     Ok(make_record(vec![
         ("statistic", Value::Float(res.statistic)),
         ("pvalue", Value::Float(res.p_value)),
+        ("p_value", Value::Float(res.p_value)),
         ("n1", Value::Int(res.n1 as i64)),
         ("n2", Value::Int(res.n2 as i64)),
     ]))
@@ -1549,7 +1584,9 @@ fn builtin_spearman(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(make_record(vec![
         ("coefficient", Value::Float(res.correlation)),
+        ("statistic", Value::Float(res.correlation)),
         ("pvalue", Value::Float(res.p_value)),
+        ("p_value", Value::Float(res.p_value)),
         ("n", Value::Int(res.n as i64)),
     ]))
 }
@@ -1561,7 +1598,9 @@ fn builtin_kendall(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(make_record(vec![
         ("coefficient", Value::Float(res.correlation)),
+        ("statistic", Value::Float(res.correlation)),
         ("pvalue", Value::Float(res.p_value)),
+        ("p_value", Value::Float(res.p_value)),
         ("n", Value::Int(res.n as i64)),
     ]))
 }
@@ -2185,13 +2224,14 @@ fn builtin_rpois(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List(result))
 }
 
+/// Thread-local xorshift64 PRNG state, accessible by set_seed().
+thread_local! {
+    static XORSHIFT_STATE: std::cell::Cell<u64> = const { std::cell::Cell::new(0x12345678_9abcdef0) };
+}
+
 /// Thread-local xorshift64 PRNG (same as used in random() builtin).
 fn xorshift_f64() -> f64 {
-    use std::cell::Cell;
-    thread_local! {
-        static STATE: Cell<u64> = Cell::new(0x12345678_9abcdef0);
-    }
-    STATE.with(|s| {
+    XORSHIFT_STATE.with(|s| {
         let mut x = s.get();
         x ^= x << 13;
         x ^= x >> 7;
@@ -2199,5 +2239,52 @@ fn xorshift_f64() -> f64 {
         s.set(x);
         (x >> 11) as f64 / (1u64 << 53) as f64
     })
+}
+
+/// set_seed(n) — set the PRNG state for reproducible random sequences.
+fn builtin_set_seed(args: Vec<Value>) -> Result<Value> {
+    let seed = require_int(&args[0], "set_seed")? as u64;
+    // Mix the seed through splitmix64 to avoid bad initial states
+    let mut s = seed;
+    s = s.wrapping_add(0x9E3779B97F4A7C15);
+    s = (s ^ (s >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+    s = (s ^ (s >> 27)).wrapping_mul(0x94D049BB133111EB);
+    s ^= s >> 31;
+    if s == 0 { s = 1; } // xorshift must not be zero
+    XORSHIFT_STATE.with(|state| state.set(s));
+    Ok(Value::Nil)
+}
+
+/// power_t_test(effect_size, alpha?, power?) — compute required sample size per group.
+/// Returns a record with {n, effect_size, alpha, power}.
+/// Default alpha=0.05, power=0.80.
+fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
+    let d = require_num(&args[0], "power_t_test")?;
+    let alpha = opt_float(&args, 1, 0.05);
+    let power = opt_float(&args, 2, 0.80);
+
+    if d <= 0.0 {
+        return Err(BioLangError::type_error("power_t_test() effect_size must be positive", None));
+    }
+    if alpha <= 0.0 || alpha >= 1.0 {
+        return Err(BioLangError::type_error("power_t_test() alpha must be in (0, 1)", None));
+    }
+    if power <= 0.0 || power >= 1.0 {
+        return Err(BioLangError::type_error("power_t_test() power must be in (0, 1)", None));
+    }
+
+    // Use the formula: n = ((z_alpha/2 + z_beta) / d)^2
+    // where z_alpha/2 and z_beta are normal quantiles
+    let z_alpha = bl_core::bio_core::stats_ops::normal_quantile(1.0 - alpha / 2.0);
+    let z_beta = bl_core::bio_core::stats_ops::normal_quantile(power);
+    let n_raw = ((z_alpha + z_beta) / d).powi(2);
+    let n = n_raw.ceil() as i64;
+
+    let mut m = std::collections::HashMap::new();
+    m.insert("n".to_string(), Value::Int(n));
+    m.insert("effect_size".to_string(), Value::Float(d));
+    m.insert("alpha".to_string(), Value::Float(alpha));
+    m.insert("power".to_string(), Value::Float(power));
+    Ok(Value::Record(m))
 }
 

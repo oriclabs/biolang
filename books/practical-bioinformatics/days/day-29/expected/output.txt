@@ -1,0 +1,107 @@
+# Expected output structure from: bl init.bl && bl scripts/analysis.bl
+
+# --- After init.bl ---
+# data/counts.tsv             205 genes (200 real + 5 zero-count), 6 samples
+# data/samples.tsv            6 sample rows (3 control, 3 treated)
+# data/gene_info.tsv          205 gene annotation rows (gene, length, go_terms)
+# data/output/                empty directory
+
+# --- After analysis.bl ---
+# data/output/de_genes.tsv    Significant DE genes
+# data/output/volcano.svg     Volcano plot
+# data/output/heatmap.svg     Heatmap of top 20 DE genes
+# data/output/summary.txt     Summary statistics
+
+# --- Pipeline flow ---
+# Input: 205 genes (200 + 5 zero-count placeholders)
+# Low-count filter (total >= 10): removes 5 zero-count genes + any with < 10 total
+#   Zero-count genes removed: GENE_NULL1..5
+#   Remaining after filter: ~180-195 genes (depends on noise)
+#
+# CPM normalization: divide each count by library size, multiply by 1,000,000
+# DE analysis: log2 fold change + t-test for each gene
+# BH correction: Benjamini-Hochberg FDR adjustment
+#
+# Significance thresholds:
+#   |log2FC| > 1.0 (at least 2-fold change)
+#   FDR (adjusted p-value) < 0.05
+
+# Expected DE gene categories (based on simulated fold changes):
+#
+# STRONGLY UP-REGULATED (FC >= 2.5, should be significant):
+#   TP53     (FC=3.2, apoptosis regulator)
+#   CDKN1A   (FC=4.5, cell cycle arrest)
+#   BAX      (FC=5.1, pro-apoptotic)
+#   CASP3    (FC=6.2, executioner caspase)
+#   CASP8    (FC=3.8, initiator caspase)
+#   CASP9    (FC=4.4, intrinsic apoptosis)
+#   FAS      (FC=2.8, death receptor)
+#   GADD45A  (FC=3.6, DNA damage response)
+#   IL6      (FC=2.5, inflammatory cytokine)
+#   TNF      (FC=3.1, inflammatory cytokine)
+#   IFNG     (FC=2.8, immune response)
+#   CYP1A1   (FC=3.5, drug metabolism)
+#   CYP3A4   (FC=2.8, drug metabolism)
+#   NQO1     (FC=3.2, detoxification)
+#   GSTP1    (FC=2.5, glutathione transferase)
+#   SOD2     (FC=3.8, antioxidant)
+#   GPX1     (FC=2.6, peroxidase)
+#   HMOX1    (FC=3.0, oxidative stress)
+#   NFE2L2   (FC=2.4, Nrf2 master regulator)
+#   H2AX     (FC=2.5, DNA damage marker)
+#   PARP1    (FC=2.2, DNA repair)
+#   MMP9     (FC=2.3, matrix metalloproteinase)
+#   BNIP3    (FC=3.0, mitophagy)
+#
+# STRONGLY DOWN-REGULATED (FC <= 0.5, should be significant):
+#   BCL2     (FC=0.3, anti-apoptotic suppressed)
+#   BIRC5    (FC=0.25, survivin suppressed)
+#   MDM2     (FC=0.35, p53 negative regulator suppressed)
+#   CCND1    (FC=0.4, cyclin D1 suppressed)
+#   CDK4     (FC=0.35, cell cycle kinase suppressed)
+#   CDK6     (FC=0.45, cell cycle kinase suppressed)
+#   CCNE1    (FC=0.5, cyclin E suppressed)
+#   PLK1     (FC=0.42, mitotic kinase suppressed)
+#   AURKA    (FC=0.38, mitotic kinase suppressed)
+#   IL10     (FC=0.4, anti-inflammatory suppressed)
+#   MYC      (FC=0.3, oncogene suppressed)
+#   EGFR     (FC=0.55, growth receptor suppressed)
+#   AKT1     (FC=0.5, survival kinase suppressed)
+#   KEAP1    (FC=0.45, Nrf2 inhibitor suppressed)
+#   HDAC1    (FC=0.5, histone deacetylase suppressed)
+#   HDAC2    (FC=0.55, histone deacetylase suppressed)
+#   DNMT1    (FC=0.65, DNA methyltransferase suppressed)
+#   E2F1     (FC=0.4, cell cycle transcription factor suppressed)
+#   CDH1     (FC=0.5, E-cadherin suppressed)
+#
+# NOT SIGNIFICANT (FC near 1.0, should not appear):
+#   KRAS     (FC=1.1)
+#   ACTB     (FC=1.02, housekeeping)
+#   GAPDH    (FC=1.01, housekeeping)
+#   B2M      (FC=0.99, housekeeping)
+#   HPRT1    (FC=0.98, housekeeping)
+#   RPL5     (FC=1.05, ribosomal)
+#   RPS6     (FC=1.08, ribosomal)
+
+# summary.txt structure:
+#
+# === RNA-seq Differential Expression Summary ===
+#
+# Total genes in count matrix: 205
+# Genes after low-count filter: ~195-200
+# Significant DE genes (|log2FC| > 1.0, FDR < 0.05): ~40-50
+#   Up-regulated: ~20-28
+#   Down-regulated: ~15-25
+#
+# Mean |log2FC| of DE genes: ~1.5-2.5
+# Median |log2FC| of DE genes: ~1.3-2.0
+# Max |log2FC|: ~2.5-3.0
+#
+# Output files:
+#   data/output/de_genes.tsv       - Significant DE gene table
+#   data/output/volcano.svg        - Volcano plot
+#   data/output/heatmap.svg        - Top gene heatmap
+#   data/output/summary.txt        - This summary
+
+# de_genes.tsv columns:
+# gene  ctrl_mean  treat_mean  log2fc  pvalue  padj  direction

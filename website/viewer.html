@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>BLViewer — Bioinformatics File Viewer</title>
+  <meta name="description" content="View FASTA, FASTQ, VCF, BED, GFF, CSV files in your browser. No upload, no server. Runs entirely offline with BioLang WASM.">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --vw-bg: #0a0e1a;
+      --vw-panel: #0d1117;
+      --vw-border: #1e293b;
+      --vw-border-active: #7c3aed;
+      --vw-tab-bg: #151b2b;
+      --vw-tab-active: #1e293b;
+      --vw-accent: #a78bfa;
+      --vw-cyan: #22d3ee;
+      --vw-green: #34d399;
+      --vw-amber: #fbbf24;
+      --vw-red: #f87171;
+      --vw-text: #e2e8f0;
+      --vw-text-dim: #64748b;
+      --vw-text-muted: #475569;
+      --vw-row-hover: rgba(124, 58, 237, 0.06);
+      --vw-row-alt: rgba(15, 23, 42, 0.4);
+      --vw-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --vw-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    html:not(.dark) {
+      --vw-bg: #f8fafc;
+      --vw-panel: #ffffff;
+      --vw-border: #e2e8f0;
+      --vw-border-active: #7c3aed;
+      --vw-tab-bg: #f1f5f9;
+      --vw-tab-active: #ffffff;
+      --vw-accent: #7c3aed;
+      --vw-cyan: #0891b2;
+      --vw-green: #059669;
+      --vw-amber: #d97706;
+      --vw-red: #dc2626;
+      --vw-text: #1e293b;
+      --vw-text-dim: #64748b;
+      --vw-text-muted: #94a3b8;
+      --vw-row-hover: rgba(124, 58, 237, 0.04);
+      --vw-row-alt: rgba(241, 245, 249, 0.5);
+    }
+
+    /* Layout */
+    .vw-app { display: flex; flex-direction: column; flex: 1; min-height: 0; background: var(--vw-bg); overflow: hidden; }
+    .vw-drop-zone { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 40px; transition: background 0.2s; }
+    .vw-drop-zone.drag-over { background: rgba(124, 58, 237, 0.08); }
+    .vw-drop-icon { width: 80px; height: 80px; color: var(--vw-text-muted); transition: color 0.2s, transform 0.2s; }
+    .vw-drop-zone.drag-over .vw-drop-icon { color: var(--vw-accent); transform: scale(1.1); }
+    .vw-drop-title { font-family: var(--vw-sans); font-size: 22px; font-weight: 700; color: var(--vw-text); }
+    .vw-drop-sub { font-family: var(--vw-sans); font-size: 14px; color: var(--vw-text-dim); max-width: 500px; text-align: center; line-height: 1.6; }
+    .vw-drop-formats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .vw-format-tag { font-family: var(--vw-mono); font-size: 11px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--vw-border); color: var(--vw-text-dim); background: var(--vw-panel); }
+    .vw-drop-btn { font-family: var(--vw-sans); font-size: 14px; font-weight: 600; padding: 10px 28px; border-radius: 8px; border: none; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+    .vw-drop-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3); }
+
+    /* Workspace (visible after files are loaded) */
+    .vw-workspace { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+    .vw-workspace.active { display: flex; }
+
+    /* Tab bar */
+    .vw-tabs { display: flex; align-items: center; gap: 0; background: var(--vw-tab-bg); border-bottom: 1px solid var(--vw-border); padding: 0 8px; overflow-x: auto; flex-shrink: 0; }
+    .vw-tab { display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-family: var(--vw-sans); font-size: 12px; font-weight: 500; color: var(--vw-text-dim); cursor: pointer; border-bottom: 2px solid transparent; border-top: 2px solid transparent; white-space: nowrap; transition: color 0.15s, background 0.15s; user-select: none; }
+    .vw-tab:hover { color: var(--vw-text); background: var(--vw-row-hover); }
+    .vw-tab.active { color: var(--vw-accent); border-bottom-color: var(--vw-accent); background: var(--vw-tab-active); }
+    .vw-tab-icon { font-size: 14px; }
+    .vw-tab-close { font-size: 14px; margin-left: 4px; opacity: 0.4; cursor: pointer; line-height: 1; padding: 2px; border-radius: 3px; }
+    .vw-tab-close:hover { opacity: 1; background: rgba(248, 113, 113, 0.2); color: var(--vw-red); }
+    .vw-tab-add { padding: 8px 12px; font-size: 16px; color: var(--vw-text-muted); cursor: pointer; border: none; background: none; }
+    .vw-tab-add:hover { color: var(--vw-accent); }
+
+    /* Toolbar */
+    .vw-toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--vw-panel); border-bottom: 1px solid var(--vw-border); flex-shrink: 0; flex-wrap: wrap; }
+    .vw-toolbar-group { display: flex; align-items: center; gap: 6px; }
+    .vw-toolbar-sep { width: 1px; height: 20px; background: var(--vw-border); margin: 0 4px; }
+    .vw-chip { font-family: var(--vw-mono); font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--vw-tab-bg); color: var(--vw-text-dim); border: 1px solid var(--vw-border); }
+    .vw-chip-format { color: var(--vw-cyan); border-color: rgba(34, 211, 238, 0.3); background: rgba(34, 211, 238, 0.08); }
+    .vw-chip-count { color: var(--vw-green); border-color: rgba(52, 211, 153, 0.3); background: rgba(52, 211, 153, 0.08); }
+    .vw-chip-size { color: var(--vw-amber); border-color: rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.08); }
+    .vw-search { font-family: var(--vw-mono); font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--vw-border); background: var(--vw-tab-bg); color: var(--vw-text); outline: none; width: 200px; }
+    .vw-search:focus { border-color: var(--vw-accent); box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15); }
+    .vw-tbtn { font-family: var(--vw-sans); font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--vw-border); background: var(--vw-panel); color: var(--vw-text-dim); cursor: pointer; transition: all 0.15s; }
+    .vw-tbtn:hover { background: var(--vw-tab-bg); color: var(--vw-text); border-color: var(--vw-accent); }
+    .vw-tbtn.active { background: rgba(124, 58, 237, 0.15); color: var(--vw-accent); border-color: var(--vw-accent); }
+    .vw-detail-toggle { color: var(--vw-amber); border-color: rgba(251, 191, 36, 0.3); }
+    .vw-detail-toggle:hover { background: rgba(251, 191, 36, 0.1); border-color: var(--vw-amber); }
+    .vw-detail-toggle.active { background: rgba(251, 191, 36, 0.15); color: var(--vw-amber); border-color: var(--vw-amber); }
+    .vw-export-btn { color: var(--vw-cyan); border-color: rgba(34, 211, 238, 0.3); }
+    .vw-export-btn:hover { background: rgba(34, 211, 238, 0.1); border-color: var(--vw-cyan); }
+    .vw-browser-btn { color: var(--vw-green) !important; border-color: rgba(52, 211, 153, 0.3) !important; }
+    .vw-browser-btn:hover { background: rgba(52, 211, 153, 0.1) !important; border-color: var(--vw-green) !important; }
+    .vw-theme-btn { color: var(--vw-amber); border-color: rgba(251, 191, 36, 0.2); }
+    .vw-theme-btn:hover { background: rgba(251, 191, 36, 0.1); border-color: var(--vw-amber); }
+    .vw-bookmark-btn { color: var(--vw-amber); border-color: rgba(251, 191, 36, 0.2); }
+    .vw-bookmark-btn:hover { background: rgba(251, 191, 36, 0.1); border-color: var(--vw-amber); }
+    .vw-bookmark-btn.active { background: rgba(251, 191, 36, 0.15); color: var(--vw-amber); border-color: var(--vw-amber); }
+
+    /* View modes */
+    .vw-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+
+    /* Table view */
+    .vw-table-wrap { flex: 1; overflow: auto; }
+    .vw-table { width: 100%; border-collapse: collapse; font-family: var(--vw-mono); font-size: 12px; }
+    .vw-table th { position: sticky; top: 0; background: var(--vw-tab-bg); color: var(--vw-text-dim); font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--vw-border); white-space: nowrap; z-index: 1; cursor: pointer; user-select: none; }
+    .vw-table th:hover { color: var(--vw-accent); }
+    .vw-table th .sort-arrow { font-size: 10px; margin-left: 4px; opacity: 0.4; }
+    .vw-table th.sorted .sort-arrow { opacity: 1; color: var(--vw-accent); }
+    .vw-table th.num-col { text-align: right; }
+    .vw-table th .col-resizer { position: absolute; top: 0; right: 0; width: 5px; height: 100%; cursor: col-resize; background: transparent; z-index: 2; }
+    .vw-table th .col-resizer:hover, .vw-table th .col-resizer.resizing { background: var(--vw-accent); opacity: 0.6; }
+    .vw-table td { padding: 5px 12px; border-bottom: 1px solid var(--vw-border); color: var(--vw-text); white-space: nowrap; max-width: 400px; overflow: hidden; text-overflow: ellipsis; }
+    .vw-table tr:nth-child(even) { background: var(--vw-row-alt); }
+    .vw-table tr:hover { background: var(--vw-row-hover); }
+    .vw-table .seq-cell { font-family: var(--vw-mono); letter-spacing: 0.5px; }
+    .vw-table .qual-cell { font-size: 10px; color: var(--vw-text-dim); }
+    .vw-table .num-cell { color: var(--vw-cyan); text-align: right; font-variant-numeric: tabular-nums; }
+    /* Sticky row-number column */
+    .vw-table td:first-child, .vw-table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--vw-bg); }
+    .vw-table thead th:first-child { z-index: 3; }
+
+    /* Sequence coloring */
+    .nt-A { color: #34d399; } .nt-T { color: #f87171; } .nt-C { color: #60a5fa; } .nt-G { color: #fbbf24; } .nt-N { color: #94a3b8; }
+
+    /* Quality score coloring (Phred) */
+    .q-hi { color: #34d399; }           /* Q30+ green */
+    .q-md { color: #fbbf24; }           /* Q20-29 amber */
+    .q-lo { color: #f87171; }           /* Q10-19 red */
+    .q-bad { color: #ef4444; font-weight: 700; } /* Q<10 bold red */
+
+    /* Row anomaly highlighting */
+    .vw-table tr.row-unmapped { background: rgba(248, 113, 113, 0.08); }
+    .vw-table tr.row-unmapped:hover { background: rgba(248, 113, 113, 0.14); }
+    .vw-table tr.row-lowmapq { background: rgba(251, 191, 36, 0.06); }
+    .vw-table tr.row-lowmapq:hover { background: rgba(251, 191, 36, 0.10); }
+    .vw-table tr.row-fail-filter { background: rgba(248, 113, 113, 0.06); }
+    .vw-table tr.row-anomaly { background: rgba(251, 191, 36, 0.06); border-left: 3px solid var(--vw-amber); }
+    .vw-table tr.row-anomaly:hover { background: rgba(251, 191, 36, 0.12); }
+    .vw-table td .flag-unmapped { color: #f87171; font-weight: 600; }
+    .vw-table td .flag-paired { color: #34d399; }
+    .vw-table td .flag-secondary { color: #fbbf24; }
+    .vw-table td .filter-pass { color: #34d399; font-weight: 600; }
+    .vw-table td .filter-fail { color: #f87171; }
+
+    /* CIGAR mini blocks */
+    .cigar-M { color: var(--vw-text-dim); }
+    .cigar-I { color: #34d399; font-weight: 600; }
+    .cigar-D { color: #f87171; font-weight: 600; }
+    .cigar-S { color: #fbbf24; }
+    .cigar-H { color: #94a3b8; }
+    .cigar-N { color: #a78bfa; }
+
+    /* Row detail panel */
+    .vw-detail-panel { position: fixed; bottom: 0; left: 0; right: 0; max-height: 45vh; background: var(--vw-panel); border-top: 2px solid var(--vw-accent); z-index: 100; display: flex; flex-direction: column; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); font-family: var(--vw-mono); font-size: 12px; }
+    .vw-detail-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: var(--vw-tab-bg); border-bottom: 1px solid var(--vw-border); flex-shrink: 0; }
+    .vw-detail-header span { color: var(--vw-accent); font-weight: 600; font-family: var(--vw-sans); font-size: 13px; }
+    .vw-detail-close { background: none; border: none; color: var(--vw-text-muted); cursor: pointer; font-size: 18px; padding: 2px 8px; border-radius: 4px; }
+    .vw-detail-close:hover { color: var(--vw-red); background: rgba(248,113,113,0.1); }
+    .vw-detail-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+    .vw-detail-row { display: flex; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--vw-border); }
+    .vw-detail-label { color: var(--vw-text-dim); width: 120px; flex-shrink: 0; font-weight: 600; }
+    .vw-detail-value { color: var(--vw-text); word-break: break-all; white-space: pre-wrap; }
+    .vw-detail-seq { letter-spacing: 0.3px; line-height: 1.8; }
+
+    /* Stats panel */
+    .vw-stats-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--vw-border); background: var(--vw-tab-bg); flex-shrink: 0; }
+    .vw-stats-bar-label { font-family: var(--vw-sans); font-size: 11px; font-weight: 600; color: var(--vw-text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-right: auto; }
+    .vw-stats-btn { font-family: var(--vw-sans); font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 5px; border: 1px solid var(--vw-border); background: var(--vw-panel); color: var(--vw-text-dim); cursor: pointer; transition: all 0.15s; }
+    .vw-stats-btn:hover { color: var(--vw-text); border-color: var(--vw-accent); }
+    .vw-stats-btn.copied { color: var(--vw-green); border-color: var(--vw-green); }
+    .vw-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 16px; overflow-y: auto; }
+    .vw-stat-card { background: var(--vw-panel); border: 1px solid var(--vw-border); border-radius: 8px; padding: 12px 16px; }
+    .vw-stat-card svg { max-width: 100%; height: auto; display: block; margin-top: 8px; }
+    .vw-stat-label { font-family: var(--vw-sans); font-size: 11px; color: var(--vw-text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .vw-stat-value { font-family: var(--vw-mono); font-size: 20px; font-weight: 700; color: var(--vw-text); }
+    .vw-stat-sub { font-family: var(--vw-mono); font-size: 11px; color: var(--vw-text-muted); margin-top: 2px; }
+    .vw-stat-card { position: relative; }
+    .vw-chart-save { position: absolute; top: 8px; right: 8px; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(124, 58, 237, 0.4); border-radius: 5px; padding: 4px 10px; cursor: pointer; color: var(--vw-accent); font-size: 11px; font-family: var(--vw-sans); font-weight: 600; opacity: 0.85; transition: all 0.15s; z-index: 5; line-height: 1; }
+    .vw-chart-save:hover { opacity: 1; background: rgba(124, 58, 237, 0.25); border-color: var(--vw-accent); }
+    .vw-table tr.bookmarked { background: rgba(251, 191, 36, 0.08) !important; }
+    .vw-table td .bookmark-star { cursor: pointer; color: var(--vw-text-muted); font-size: 13px; user-select: none; }
+    .vw-table td .bookmark-star.active { color: var(--vw-amber); }
+    .vw-goto-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 300; background: var(--vw-panel); border: 1px solid var(--vw-accent); border-radius: 10px; padding: 16px 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); font-family: var(--vw-sans); }
+    .vw-goto-overlay input { font-family: var(--vw-mono); font-size: 16px; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--vw-border); background: var(--vw-tab-bg); color: var(--vw-text); outline: none; width: 180px; }
+    .vw-goto-overlay input:focus { border-color: var(--vw-accent); }
+    .vw-motif-input { font-family: var(--vw-mono); font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--vw-border); background: var(--vw-tab-bg); color: var(--vw-text); outline: none; width: 160px; }
+    .vw-motif-input:focus { border-color: var(--vw-green); box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.15); }
+    .vw-motif-input::placeholder { color: var(--vw-text-muted); }
+
+    /* View transition */
+    .vw-content.view-fade { opacity: 0; transition: opacity 0.12s ease-out; }
+    .vw-content.view-show { opacity: 1; transition: opacity 0.12s ease-in; }
+
+    /* Sparkline in stat card */
+    .vw-sparkline { display: inline-block; vertical-align: middle; margin-left: 8px; }
+
+    /* QC verdict badge */
+    .vw-qc-badge { display: inline-block; font-family: var(--vw-sans); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .vw-qc-pass { background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+    .vw-qc-warn { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .vw-qc-fail { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+    /* Help overlay */
+    .vw-help-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 400; background: var(--vw-panel); border: 1px solid var(--vw-border); border-radius: 12px; padding: 20px 28px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); font-family: var(--vw-sans); max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; }
+    .vw-help-overlay h3 { font-size: 15px; font-weight: 700; color: var(--vw-text); margin: 0 0 12px; }
+    .vw-help-overlay table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .vw-help-overlay td { padding: 4px 8px; color: var(--vw-text-dim); border-bottom: 1px solid var(--vw-border); }
+    .vw-help-overlay td:first-child { color: var(--vw-accent); font-family: var(--vw-mono); font-weight: 600; white-space: nowrap; width: 100px; }
+    .vw-help-overlay .vw-help-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--vw-text-muted); cursor: pointer; font-size: 18px; }
+    .vw-help-overlay .vw-help-close:hover { color: var(--vw-text); }
+    .vw-help-backdrop { position: fixed; inset: 0; z-index: 399; background: rgba(0,0,0,0.4); }
+
+    /* Context menu */
+    .vw-ctx-menu { position: fixed; z-index: 300; background: var(--vw-panel); border: 1px solid var(--vw-border); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: var(--vw-sans); font-size: 12px; min-width: 160px; }
+    .vw-ctx-item { padding: 6px 14px; cursor: pointer; border-radius: 4px; color: var(--vw-text); display: flex; align-items: center; gap: 8px; }
+    .vw-ctx-item:hover { background: var(--vw-row-hover); }
+    .vw-ctx-item .ctx-key { margin-left: auto; color: var(--vw-text-muted); font-size: 10px; font-family: var(--vw-mono); }
+
+    /* Chrom distribution strip */
+    .vw-chrom-strip { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-bottom: 1px solid var(--vw-border); background: var(--vw-tab-bg); flex-shrink: 0; overflow-x: auto; }
+    .vw-chrom-tag { font-family: var(--vw-mono); font-size: 10px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--vw-border); color: var(--vw-text-dim); background: var(--vw-panel); white-space: nowrap; cursor: pointer; transition: all 0.15s; }
+    .vw-chrom-tag:hover { border-color: var(--vw-accent); color: var(--vw-accent); }
+    .vw-chrom-tag .chrom-count { color: var(--vw-text-muted); margin-left: 3px; }
+
+    /* Stats comparison table */
+    .vw-compare-table { width: 100%; border-collapse: collapse; font-family: var(--vw-mono); font-size: 12px; margin-top: 8px; }
+    .vw-compare-table th { text-align: left; padding: 6px 12px; color: var(--vw-text-dim); border-bottom: 2px solid var(--vw-border); font-weight: 600; font-family: var(--vw-sans); font-size: 11px; text-transform: uppercase; }
+    .vw-compare-table td { padding: 5px 12px; border-bottom: 1px solid var(--vw-border); color: var(--vw-text); }
+    .vw-compare-table tr:nth-child(even) { background: var(--vw-row-alt); }
+
+    /* Column drag ghost */
+    .vw-table th.dragging { opacity: 0.4; }
+    .vw-table th.drag-over-left { box-shadow: inset 3px 0 0 var(--vw-accent); }
+    .vw-table th.drag-over-right { box-shadow: inset -3px 0 0 var(--vw-accent); }
+
+    /* Pinned columns */
+    .vw-table th.pinned, .vw-table td.pinned { position: sticky; left: 0; z-index: 3; background: var(--vw-tab-bg); }
+    .vw-table td.pinned { background: var(--vw-panel); }
+    .vw-table tr:nth-child(even) td.pinned { background: var(--vw-row-alt); }
+    .vw-table th.pinned-border, .vw-table td.pinned-border { border-right: 1px solid var(--vw-border) !important; }
+
+    /* Selection summary */
+    .vw-sel-summary { color: var(--vw-cyan); font-weight: 500; }
+
+    /* Raw view */
+    .vw-raw { flex: 1; overflow: auto; padding: 16px; font-family: var(--vw-mono); font-size: 12px; line-height: 1.7; color: var(--vw-text); white-space: pre; tab-size: 4; }
+    .vw-raw .line-num { display: inline-block; width: 50px; text-align: right; padding-right: 16px; color: var(--vw-text-muted); user-select: none; }
+
+    /* BioLang console */
+    .vw-console { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .vw-console-output { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; font-family: var(--vw-mono); font-size: 12px; line-height: 1.6; color: var(--vw-text); white-space: pre-wrap; background: var(--vw-bg); }
+    .vw-console-input { display: flex; gap: 8px; padding: 8px 12px 16px; border-top: 1px solid var(--vw-border); background: var(--vw-panel); flex-shrink: 0; }
+    .vw-console-input input { flex: 1; font-family: var(--vw-mono); font-size: 13px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--vw-border); background: var(--vw-tab-bg); color: var(--vw-text); outline: none; }
+    .vw-console-input input:focus { border-color: var(--vw-accent); }
+    .vw-console-input button { font-family: var(--vw-sans); font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 6px; border: none; background: #7c3aed; color: #fff; cursor: pointer; }
+
+    /* Footer status */
+    .vw-footer { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px; background: var(--vw-tab-bg); border-top: 1px solid var(--vw-border); font-family: var(--vw-mono); font-size: 11px; color: var(--vw-text-muted); flex-shrink: 0; }
+    .vw-footer-left, .vw-footer-right { display: flex; align-items: center; gap: 12px; }
+
+    /* Experimental banner */
+    .vw-experimental-banner { display: flex; align-items: center; gap: 8px; padding: 6px 16px; background: linear-gradient(90deg, rgba(251, 191, 36, 0.15), rgba(251, 146, 60, 0.10)); border-bottom: 1px solid rgba(251, 191, 36, 0.25); font-family: var(--vw-sans); font-size: 12px; color: var(--vw-amber); flex-shrink: 0; }
+    .vw-experimental-badge { font-family: var(--vw-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 4px; background: rgba(251, 191, 36, 0.2); border: 1px solid rgba(251, 191, 36, 0.3); text-transform: uppercase; }
+    .vw-experimental-banner a { color: var(--vw-amber); text-decoration: underline; text-underline-offset: 2px; }
+    .vw-experimental-dismiss { background: none; border: none; color: var(--vw-text-muted); cursor: pointer; font-size: 16px; padding: 0 4px; margin-left: auto; line-height: 1; }
+    .vw-experimental-dismiss:hover { color: var(--vw-text); }
+
+    /* PWA install banner */
+    .vw-install-banner { display: none; align-items: center; gap: 12px; padding: 8px 16px; background: linear-gradient(90deg, rgba(124, 58, 237, 0.12), rgba(34, 211, 238, 0.08)); border-bottom: 1px solid var(--vw-border); font-family: var(--vw-sans); font-size: 13px; color: var(--vw-text); }
+    .vw-install-banner button { font-family: var(--vw-sans); font-size: 12px; font-weight: 600; padding: 4px 14px; border-radius: 6px; border: none; cursor: pointer; }
+    .vw-install-btn { background: #7c3aed; color: #fff; }
+    .vw-install-dismiss { background: transparent; color: var(--vw-text-dim); }
+
+    /* Recent files panel */
+    .vw-recent-panel { width: 100%; max-width: 600px; margin-top: 20px; }
+    .vw-recent-header { font-family: var(--vw-sans); font-size: 13px; font-weight: 600; color: var(--vw-text-dim); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .vw-recent-clear { font-size: 11px; color: var(--vw-text-muted); background: none; border: none; cursor: pointer; font-family: var(--vw-sans); }
+    .vw-recent-clear:hover { color: var(--vw-accent); }
+    .vw-recent-list { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+    .vw-recent-item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--vw-border); background: var(--vw-panel); cursor: pointer; transition: border-color 0.15s, background 0.15s; font-family: var(--vw-sans); }
+    .vw-recent-item:hover { border-color: var(--vw-accent); background: rgba(124,58,237,0.06); }
+    .vw-recent-badge { font-family: var(--vw-mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: rgba(124,58,237,0.15); color: var(--vw-accent); text-transform: uppercase; font-weight: 600; }
+    .vw-recent-name { font-family: var(--vw-mono); font-size: 12px; color: var(--vw-text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+    .vw-recent-meta { font-family: var(--vw-mono); font-size: 11px; color: var(--vw-text-muted); white-space: nowrap; }
+    .vw-recent-cached { width: 6px; height: 6px; border-radius: 50%; background: var(--vw-green); flex-shrink: 0; title: "Cached — instant restore"; }
+    .vw-recent-remove { background: none; border: none; color: var(--vw-text-muted); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; opacity: 0; transition: opacity 0.15s; }
+    .vw-recent-item:hover .vw-recent-remove { opacity: 1; }
+    .vw-recent-remove:hover { color: var(--vw-red, #f87171); }
+
+    /* Sequence tools popup (Feature 2) */
+    .vw-seq-popup { position: fixed; z-index: 350; background: var(--vw-panel); border: 1px solid var(--vw-accent); border-radius: 10px; padding: 10px 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); font-family: var(--vw-mono); font-size: 11px; max-width: 420px; }
+    .vw-seq-popup-row { display: flex; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--vw-border); }
+    .vw-seq-popup-row:last-child { border-bottom: none; }
+    .vw-seq-popup-label { color: var(--vw-text-dim); font-weight: 600; width: 80px; flex-shrink: 0; font-family: var(--vw-sans); font-size: 10px; text-transform: uppercase; }
+    .vw-seq-popup-value { color: var(--vw-text); word-break: break-all; }
+    .vw-seq-popup-copy { background: none; border: none; color: var(--vw-text-muted); cursor: pointer; font-size: 12px; margin-left: auto; padding: 0 4px; }
+    .vw-seq-popup-copy:hover { color: var(--vw-accent); }
+
+    /* Column histogram sidebar (Feature 3) */
+    .vw-col-sidebar { position: fixed; top: 0; right: 0; bottom: 0; width: 320px; background: var(--vw-panel); border-left: 2px solid var(--vw-accent); z-index: 200; display: flex; flex-direction: column; box-shadow: -4px 0 20px rgba(0,0,0,0.3); transform: translateX(100%); transition: transform 0.2s ease; }
+    .vw-col-sidebar.open { transform: translateX(0); }
+    .vw-col-sidebar-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--vw-tab-bg); border-bottom: 1px solid var(--vw-border); flex-shrink: 0; }
+    .vw-col-sidebar-header h3 { font-family: var(--vw-sans); font-size: 14px; font-weight: 700; color: var(--vw-text); margin: 0; }
+    .vw-col-sidebar-close { background: none; border: none; color: var(--vw-text-muted); cursor: pointer; font-size: 18px; }
+    .vw-col-sidebar-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+    .vw-col-stat-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--vw-border); font-family: var(--vw-mono); font-size: 11px; }
+    .vw-col-stat-label { color: var(--vw-text-dim); }
+    .vw-col-stat-value { color: var(--vw-text); font-weight: 600; }
+    .vw-col-top-val { display: flex; justify-content: space-between; padding: 3px 0; font-family: var(--vw-mono); font-size: 11px; }
+    .vw-col-top-val span:first-child { color: var(--vw-text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vw-col-top-val span:last-child { color: var(--vw-text-muted); }
+
+    /* Split view (Feature 5) */
+    .vw-split-container { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    .vw-split-left { flex: 2; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+    .vw-split-right { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
+    .vw-split-left { border-right: 2px solid var(--vw-border); }
+    .vw-split-label { font-family: var(--vw-sans); font-size: 10px; font-weight: 700; color: var(--vw-text-muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 12px; background: var(--vw-tab-bg); border-bottom: 1px solid var(--vw-border); }
+
+    /* Anomaly highlight (Feature 7) */
+    .vw-table tr.row-anomaly { background: rgba(251, 191, 36, 0.06) !important; }
+    .vw-table tr.row-anomaly-severe { background: rgba(248, 113, 113, 0.08) !important; }
+    .vw-anomaly-badge { font-family: var(--vw-mono); font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+    .vw-anomaly-warn { background: rgba(251,191,36,0.15); color: var(--vw-amber); }
+    .vw-anomaly-err { background: rgba(248,113,113,0.15); color: var(--vw-red); }
+
+    /* Validation report panel (Feature 8) */
+    .vw-validation-panel { position: fixed; bottom: 0; left: 0; right: 0; max-height: 200px; background: var(--vw-panel); border-top: 2px solid var(--vw-amber); z-index: 150; display: flex; flex-direction: column; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); font-family: var(--vw-mono); font-size: 12px; }
+    .vw-validation-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: rgba(251,191,36,0.08); border-bottom: 1px solid var(--vw-border); flex-shrink: 0; }
+    .vw-validation-header span { color: var(--vw-amber); font-weight: 600; font-family: var(--vw-sans); font-size: 12px; }
+    .vw-validation-body { overflow-y: auto; padding: 8px 16px; }
+    .vw-validation-item { padding: 3px 0; color: var(--vw-text-dim); font-size: 11px; }
+    .vw-validation-item .v-warn { color: var(--vw-amber); }
+    .vw-validation-item .v-err { color: var(--vw-red); }
+
+    /* Share link overlay (Feature 10) */
+    .vw-share-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 400; background: var(--vw-panel); border: 1px solid var(--vw-accent); border-radius: 10px; padding: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); font-family: var(--vw-sans); max-width: 500px; width: 90%; }
+    .vw-share-overlay textarea { width: 100%; height: 60px; font-family: var(--vw-mono); font-size: 11px; padding: 8px; border-radius: 6px; border: 1px solid var(--vw-border); background: var(--vw-tab-bg); color: var(--vw-text); resize: none; outline: none; }
+
+    /* Diff view (Feature 11) */
+    .vw-diff-panel { padding: 16px; overflow-y: auto; flex: 1; }
+    .vw-diff-summary { font-family: var(--vw-sans); font-size: 13px; color: var(--vw-text-dim); margin-bottom: 12px; }
+    .vw-diff-added { background: rgba(52,211,153,0.08); }
+    .vw-diff-removed { background: rgba(248,113,113,0.08); }
+    .vw-diff-badge-add { color: var(--vw-green); font-size: 10px; font-weight: 700; }
+    .vw-diff-badge-rm { color: var(--vw-red); font-size: 10px; font-weight: 700; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .vw-stats { grid-template-columns: repeat(2, 1fr); }
+      .vw-toolbar { padding: 4px 8px; }
+      .vw-search { width: 120px; }
+    }
+
+    /* Print stylesheet */
+    @media print {
+      body { background: white !important; color: black !important; overflow: visible !important; height: auto !important; }
+      .vw-toolbar, .vw-footer, .vw-tabs, .vw-drop-zone, .vw-install-banner,
+      .vw-experimental-banner, .vw-pagination, .vw-split-right,
+      #vw-col-filter, #vw-export-menu, #vw-ctx-menu, #vw-colsearch,
+      button, [data-component="header"] { display: none !important; }
+      .vw-workspace { margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+      .vw-content { overflow: visible !important; max-height: none !important; height: auto !important; }
+      .vw-table-wrap { overflow: visible !important; max-height: none !important; }
+      .vw-table { font-size: 9px !important; border-collapse: collapse !important; }
+      .vw-table th, .vw-table td { border: 1px solid #ccc !important; padding: 2px 4px !important; color: black !important; background: white !important; }
+      .vw-table thead { background: #f0f0f0 !important; }
+      .vw-table thead th { background: #e0e0e0 !important; font-weight: bold !important; }
+      .vw-summary-row td { background: #f5f5f5 !important; }
+      .seq-cell span { color: black !important; }
+      .vw-stat-card { border: 1px solid #ccc !important; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-300" style="margin:0;overflow:hidden;height:100vh;display:flex;flex-direction:column">
+  <noscript><style>body>*{opacity:1!important}</style></noscript>
+  <div data-component="header" data-base-path="."></div>
+
+  <!-- Experimental banner -->
+  <div class="vw-experimental-banner" id="vw-experimental-banner">
+    <span class="vw-experimental-badge">Experimental</span>
+    <span>BLViewer is in early development — features may change or break. <a href="https://github.com/oriclabs/biolang/issues" target="_blank">Report issues</a></span>
+    <button class="vw-experimental-dismiss" id="vw-experimental-dismiss" title="Dismiss">&times;</button>
+  </div>
+
+  <!-- PWA install banner -->
+  <div class="vw-install-banner" id="vw-install-banner">
+    <span>Install BLViewer for offline use — view files without internet</span>
+    <button class="vw-install-btn" id="vw-install-btn">Install</button>
+    <button class="vw-install-dismiss" id="vw-install-dismiss">Dismiss</button>
+  </div>
+
+  <!-- Session restore banner -->
+  <div class="vw-install-banner" id="vw-restore-banner" style="display:none">
+    <span id="vw-restore-text">Restore previous session?</span>
+    <button class="vw-install-btn" id="vw-restore-btn">Restore</button>
+    <button class="vw-install-dismiss" id="vw-restore-dismiss">Dismiss</button>
+  </div>
+
+  <!-- Drop zone (shown when no files open) -->
+  <div class="vw-app" id="vw-app">
+    <div class="vw-drop-zone" id="vw-drop-zone">
+      <svg class="vw-drop-icon" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="8" y="16" width="64" height="52" rx="4" stroke-dasharray="4 3"/>
+        <path d="M40 28v20M30 38l10-10 10 10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 56h40" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+      </svg>
+      <div class="vw-drop-title">Drop bioinformatics files here</div>
+      <div class="vw-drop-sub">
+        View FASTA, FASTQ, VCF, BED, GFF, CSV, and more — right in your browser.
+        No uploads, no server. Your data never leaves your machine.
+      </div>
+      <div class="vw-drop-formats">
+        <span class="vw-format-tag">.fasta</span>
+        <span class="vw-format-tag">.fastq</span>
+        <span class="vw-format-tag">.vcf</span>
+        <span class="vw-format-tag">.bed</span>
+        <span class="vw-format-tag">.gff</span>
+        <span class="vw-format-tag">.csv</span>
+        <span class="vw-format-tag">.tsv</span>
+        <span class="vw-format-tag">.sam</span>
+        <span class="vw-format-tag">.txt</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <button class="vw-drop-btn" id="vw-open-btn">Open Files</button>
+        <span style="font-size:12px;color:var(--vw-text-muted)">or drag &amp; drop</span>
+      </div>
+      <input type="file" id="vw-file-input" multiple accept=".fasta,.fa,.fna,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.csv,.tsv,.sam,.txt,.bam" style="display:none">
+      <!-- Recent files (populated from IndexedDB) -->
+      <div class="vw-recent-panel" id="vw-recent-panel" style="display:none">
+        <div class="vw-recent-header">
+          <span>Recent Files</span>
+          <button class="vw-recent-clear" id="vw-clear-history">Clear history</button>
+        </div>
+        <div class="vw-recent-list" id="vw-recent-list"></div>
+      </div>
+    </div>
+
+    <!-- Workspace (shown when files are open) -->
+    <div class="vw-workspace" id="vw-workspace">
+      <div class="vw-tabs" id="vw-tabs">
+        <button class="vw-tab-add" id="vw-add-tab" title="Open more files">+</button>
+      </div>
+      <div class="vw-toolbar" id="vw-toolbar">
+        <div class="vw-toolbar-group">
+          <span class="vw-chip vw-chip-format" id="vw-format-chip">FASTA</span>
+          <span class="vw-chip vw-chip-count" id="vw-count-chip">0 records</span>
+          <span class="vw-chip vw-chip-size" id="vw-size-chip">0 B</span>
+        </div>
+        <div class="vw-toolbar-sep"></div>
+        <div class="vw-toolbar-group">
+          <button class="vw-tbtn active" data-view="table" id="vw-view-table">Table</button>
+          <button class="vw-tbtn" data-view="stats" id="vw-view-stats">Stats</button>
+          <button class="vw-tbtn" data-view="raw" id="vw-view-raw">Raw</button>
+          <button class="vw-tbtn" data-view="console" id="vw-view-console">BioLang</button>
+        </div>
+        <div class="vw-toolbar-sep"></div>
+        <input class="vw-search" id="vw-search" type="text" placeholder="Search / filter...">
+        <input class="vw-motif-input" id="vw-motif-input" type="text" placeholder="Motif regex..." title="Sequence motif search (e.g. ATG[CG]{3})" style="display:none">
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+          <button class="vw-tbtn vw-bookmark-btn" id="vw-bookmark-toggle" title="Toggle bookmark column (star rows)">&#9734; Bookmarks</button>
+          <button class="vw-tbtn" id="vw-pin-toggle" title="Pin first 2 columns (wide tables with 6+ columns)">&#128204; Pin Cols</button>
+          <button class="vw-tbtn vw-detail-toggle" id="vw-detail-toggle" title="Toggle row click detail panel">&#8597; Detail</button>
+          <button class="vw-tbtn vw-theme-btn" id="vw-theme-toggle" title="Toggle light/dark theme">&#9788; Theme</button>
+          <button class="vw-tbtn" id="vw-split-toggle" title="Split view: table + stats side by side">&#9707; Split</button>
+          <button class="vw-tbtn" id="vw-diff-btn" title="Compare rows between two open tabs" style="display:none">&#8800; Diff</button>
+          <button class="vw-tbtn" id="vw-merge-btn" title="Merge all same-format tabs into one" style="display:none">&#8853; Merge</button>
+          <button class="vw-tbtn" id="vw-transpose-btn" title="Transpose view: swap rows and columns (Ctrl+T)">&#8633; Transpose</button>
+          <button class="vw-tbtn" id="vw-highlight-btn" title="Conditional row highlighting">&#9733; Highlight</button>
+          <button class="vw-tbtn" id="vw-screenshot-btn" title="Screenshot current view as PNG">&#128247; Screenshot</button>
+          <button class="vw-tbtn" id="vw-share-btn" title="Generate shareable link (small files only)">&#128279; Share</button>
+          <button class="vw-tbtn vw-browser-btn" id="vw-browser-btn" style="display:none" title="Open in BioBrowser for coordinate view">&#127758; Browser</button>
+          <button class="vw-tbtn vw-export-btn" id="vw-export-btn">Export ▾</button>
+        </div>
+      </div>
+      <div class="vw-content" id="vw-content"></div>
+      <div class="vw-footer">
+        <div class="vw-footer-left">
+          <span id="vw-footer-rows">0 rows</span>
+          <span id="vw-footer-filter" style="display:none"></span>
+          <span id="vw-footer-selection" class="vw-sel-summary" style="display:none"></span>
+        </div>
+        <div class="vw-footer-right">
+          <span id="vw-footer-parse-time"></span>
+          <span>BLViewer PWA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column histogram sidebar -->
+  <div class="vw-col-sidebar" id="vw-col-sidebar">
+    <div class="vw-col-sidebar-header">
+      <h3 id="vw-col-sidebar-title">Column</h3>
+      <button class="vw-col-sidebar-close" id="vw-col-sidebar-close">&times;</button>
+    </div>
+    <div class="vw-col-sidebar-body" id="vw-col-sidebar-body"></div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/viewer.js"></script>
+</body>
+</html>

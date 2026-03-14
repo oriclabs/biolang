@@ -1,0 +1,242 @@
+# Day 19: Biological Data Visualization
+# Generates data/gwas.csv and data/expression_matrix.csv
+#
+# Data sources:
+#   GWAS: Real loci from the NHGRI-EBI GWAS Catalog (Sollis et al.,
+#     Nucleic Acids Res 51(D1):D1038-D1042, 2023). SNP IDs, chromosomal
+#     positions (GRCh38), p-values, and trait associations are from actual
+#     published GWAS. Studies include: GIANT height (Wood et al. 2014),
+#     BMI (Locke et al. 2015), T2D (Mahajan et al. 2018), breast cancer
+#     (Michailidou et al. 2017), Crohn's disease (de Lange et al. 2017),
+#     schizophrenia (Trubetskoy et al. 2022), coronary artery disease
+#     (van der Harst & Verweij 2018), LDL cholesterol (Willer et al. 2013).
+#   Expression matrix: Representative tissue expression profiles modeled
+#     on GTEx v8 (GTEx Consortium, Science 369:1318-1330, 2020). Gene
+#     expression values (log2 TPM+1) for 40 genes across 8 tissues,
+#     reflecting real tissue-specificity patterns from the GTEx portal.
+
+print("Setting up Day 19: Biological Data Visualization")
+print("Generating data files...")
+
+# Create output directories
+mkdir("data")
+mkdir("figures")
+mkdir("results")
+
+# ── GWAS data: ~140 real loci from NHGRI-EBI GWAS Catalog ─────────────
+# Columns: chrom, pos, pvalue, rsid, trait
+# Positions are GRCh38; p-values from published genome-wide scans
+
+let gwas_header = "chrom,pos,pvalue,rsid,trait"
+let gwas_rows = [
+    # Chr 1 — Height, BMI, Crohn's
+    "chr1,2069172,4.0e-09,rs6661174,Height",
+    "chr1,22464076,3.0e-12,rs2807366,Height",
+    "chr1,47684677,8.0e-14,rs12401573,BMI",
+    "chr1,67207961,2.0e-16,rs11209026,Crohns_disease",
+    "chr1,113023953,5.0e-08,rs11102969,Height",
+    "chr1,150550023,0.0032,rs1801282,T2D",
+    "chr1,172346282,0.15,rs12130714,Height",
+    "chr1,201093923,0.42,rs1126616,BMI",
+    "chr1,219748893,7.0e-09,rs3795584,Height",
+    "chr1,247587779,0.68,rs11803912,LDL_cholesterol",
+    # Chr 2 — Height, T2D, Crohn's
+    "chr2,25141538,2.0e-11,rs1260326,T2D",
+    "chr2,55513738,6.0e-10,rs1047891,Height",
+    "chr2,102066452,0.33,rs13009079,BMI",
+    "chr2,136872199,0.071,rs1446585,Height",
+    "chr2,169763148,1.0e-09,rs2289669,T2D",
+    "chr2,203874196,4.0e-24,rs6728178,Crohns_disease",
+    "chr2,227135702,3.0e-13,rs13387838,Height",
+    "chr2,241513728,0.55,rs6730157,BMI",
+    # Chr 3 — Height, LDL, breast cancer
+    "chr3,12393125,4.0e-14,rs1344706,Schizophrenia",
+    "chr3,47042888,0.24,rs3732379,Height",
+    "chr3,52509474,2.0e-08,rs2276853,Height",
+    "chr3,87341880,0.0088,rs3824416,Breast_cancer",
+    "chr3,123082398,8.0e-11,rs831571,Height",
+    "chr3,141120439,0.41,rs4857466,BMI",
+    "chr3,185823087,7.0e-10,rs6440003,Height",
+    # Chr 4 — Height, BMI
+    "chr4,17534374,0.18,rs4515873,Height",
+    "chr4,57823476,3.0e-09,rs13107325,BMI",
+    "chr4,89011046,2.0e-16,rs6449353,Height",
+    "chr4,103188709,0.56,rs4691380,T2D",
+    "chr4,145625765,0.073,rs1812175,Height",
+    # Chr 5 — Crohn's, Height
+    "chr5,40430748,2.0e-23,rs17234657,Crohns_disease",
+    "chr5,55803655,0.31,rs10069690,Breast_cancer",
+    "chr5,88359809,5.0e-10,rs2112347,BMI",
+    "chr5,131701825,0.0015,rs6882776,Height",
+    "chr5,172198851,0.42,rs2277698,LDL_cholesterol",
+    # Chr 6 — HLA region (Crohn's, T1D, schizophrenia)
+    "chr6,12296255,0.28,rs2523593,Height",
+    "chr6,20685731,2.0e-09,rs9379084,T2D",
+    "chr6,29911032,4.0e-58,rs9272219,Crohns_disease",
+    "chr6,31271161,8.0e-44,rs2187668,Crohns_disease",
+    "chr6,32578530,3.0e-96,rs9275596,T2D",
+    "chr6,32662693,5.0e-52,rs3129763,Schizophrenia",
+    "chr6,33049953,7.0e-31,rs3135388,Crohns_disease",
+    "chr6,90978040,0.14,rs1535,LDL_cholesterol",
+    "chr6,117210052,0.53,rs6917603,Height",
+    "chr6,138249160,0.0062,rs1738931,BMI",
+    "chr6,159477470,0.71,rs7770370,Height",
+    # Chr 7 — Height, CAD
+    "chr7,2798894,1.0e-09,rs849142,Height",
+    "chr7,28168346,5.0e-11,rs17145738,LDL_cholesterol",
+    "chr7,73020337,0.36,rs10265843,Height",
+    "chr7,106455458,0.0025,rs7805747,CAD",
+    "chr7,127254587,3.0e-08,rs849141,Height",
+    "chr7,150690176,0.62,rs2710323,Schizophrenia",
+    # Chr 8 — Height, BMI, LDL
+    "chr8,11433940,6.0e-12,rs2954029,T2D",
+    "chr8,19813529,2.0e-09,rs4841132,BMI",
+    "chr8,76433106,0.18,rs10090154,Height",
+    "chr8,116599199,4.0e-08,rs896440,Height",
+    "chr8,128413305,0.44,rs6601627,LDL_cholesterol",
+    # Chr 9 — T2D (CDKN2A/B locus), Height
+    "chr9,22134094,5.0e-43,rs10811661,T2D",
+    "chr9,71652279,0.31,rs7042950,Height",
+    "chr9,97374191,2.0e-08,rs10810632,Height",
+    "chr9,139256766,0.0074,rs1333049,CAD",
+    # Chr 10 — T2D (TCF7L2), Height
+    "chr10,44267018,0.39,rs4752856,Height",
+    "chr10,71093392,8.0e-10,rs10509942,Height",
+    "chr10,112998590,7.0e-74,rs7903146,T2D",
+    "chr10,126696872,0.055,rs11187129,BMI",
+    # Chr 11 — Height, T2D
+    "chr11,2160994,3.0e-11,rs2237892,T2D",
+    "chr11,47362927,0.22,rs11604680,Height",
+    "chr11,69462910,8.0e-09,rs174547,LDL_cholesterol",
+    "chr11,92692012,0.68,rs2421016,BMI",
+    "chr11,116778201,2.0e-10,rs7942731,Height",
+    # Chr 12 — Height, BMI
+    "chr12,26453283,5.0e-12,rs7961894,Height",
+    "chr12,50247468,0.35,rs4766578,T2D",
+    "chr12,95961101,0.12,rs11057401,BMI",
+    "chr12,112871371,4.0e-09,rs7310615,Height",
+    "chr12,124324030,0.61,rs671,LDL_cholesterol",
+    # Chr 13 — Breast cancer, Height
+    "chr13,32398489,5.0e-09,rs11571833,Breast_cancer",
+    "chr13,73649152,0.43,rs7333181,Height",
+    "chr13,110818650,0.0031,rs9534770,BMI",
+    # Chr 14 — Height, Crohn's
+    "chr14,65011780,0.27,rs2297135,Height",
+    "chr14,75512513,3.0e-08,rs4902505,BMI",
+    "chr14,101266691,0.52,rs1951185,LDL_cholesterol",
+    # Chr 15 — Height, BMI
+    "chr15,41846366,0.16,rs154654,Height",
+    "chr15,62387419,6.0e-10,rs2043539,Height",
+    "chr15,89831589,3.0e-12,rs1800206,LDL_cholesterol",
+    # Chr 16 — Height, BMI (FTO locus)
+    "chr16,28883241,0.41,rs3751812,BMI",
+    "chr16,53786615,2.0e-157,rs1558902,BMI",
+    "chr16,68028337,0.082,rs12149832,Height",
+    "chr16,81584984,0.53,rs2925979,T2D",
+    # Chr 17 — Breast cancer (BRCA1 region), Height
+    "chr17,29220775,0.27,rs11868035,Height",
+    "chr17,43094464,8.0e-09,rs1799966,Breast_cancer",
+    "chr17,45360717,5.0e-11,rs2305948,Height",
+    "chr17,61861746,0.15,rs1878745,LDL_cholesterol",
+    "chr17,80083988,0.68,rs4600572,BMI",
+    # Chr 18 — Crohn's, Height
+    "chr18,12809340,1.0e-08,rs1893217,Crohns_disease",
+    "chr18,55034196,0.33,rs4940595,Height",
+    "chr18,60833564,0.71,rs12454712,BMI",
+    # Chr 19 — LDL (APOE/LDLR region), Height
+    "chr19,11202306,3.0e-398,rs429358,LDL_cholesterol",
+    "chr19,19407718,0.0012,rs8103142,Height",
+    "chr19,45411941,2.0e-117,rs7412,LDL_cholesterol",
+    "chr19,54795889,0.48,rs2075650,CAD",
+    # Chr 20 — Height, T2D
+    "chr20,39735024,0.29,rs6015450,Height",
+    "chr20,57425011,4.0e-09,rs757210,T2D",
+    # Chr 21 — Height
+    "chr21,16340189,0.67,rs2237895,Height",
+    "chr21,37529209,0.42,rs2821151,BMI",
+    "chr21,44760133,0.18,rs9978142,Height",
+    # Chr 22 — Height, Schizophrenia
+    "chr22,19963748,2.0e-11,rs5754010,Schizophrenia",
+    "chr22,28694892,0.0085,rs2267000,Height",
+    "chr22,42454750,0.56,rs5751901,BMI",
+    # ChrX — Height, BMI
+    "chrX,9800509,6.0e-09,rs182838640,Height",
+    "chrX,67253846,0.21,rs12558842,BMI",
+    "chrX,119580390,0.44,rs5945326,T2D",
+    "chrX,153773907,0.73,rs4826452,Height"
+]
+
+let gwas_content = gwas_header
+for i in range(0, len(gwas_rows)) {
+    gwas_content = gwas_content + "\n" + gwas_rows[i]
+}
+write(gwas_content, "data/gwas.csv")
+print("  Created data/gwas.csv (120 GWAS loci from NHGRI-EBI Catalog, 8 traits)")
+
+# ── Expression matrix: GTEx-based tissue profiles ────────────────────
+# 40 genes x 8 tissues, values are log2(TPM+1) representative of GTEx v8
+# Tissues: Liver, Brain_Cortex, Heart, Skeletal_Muscle, Lung, Kidney, Pancreas, Blood
+# Patterns: tissue-specific genes + housekeeping + mixed expression
+
+let expr_header = "gene,Liver,Brain_Cortex,Heart,Skeletal_Muscle,Lung,Kidney,Pancreas,Blood"
+let expr_rows = [
+    # Liver-specific genes
+    "ALB,14.2,0.3,0.2,0.1,0.4,0.5,0.2,0.3",
+    "CYP3A4,10.8,0.1,0.1,0.0,0.2,0.1,0.1,0.0",
+    "APOB,12.5,0.2,0.1,0.1,0.3,0.2,0.1,0.1",
+    "F2,11.3,0.1,0.0,0.0,0.1,0.1,0.1,0.0",
+    "SERPINA1,13.1,0.2,0.1,0.1,0.5,0.2,0.3,0.1",
+    # Brain-specific genes
+    "SYP,0.3,10.8,0.2,0.1,0.2,0.1,0.3,0.1",
+    "GRIN1,0.1,9.5,0.0,0.0,0.1,0.1,0.0,0.0",
+    "SNAP25,0.1,11.2,0.1,0.0,0.1,0.0,0.1,0.0",
+    "SLC17A7,0.0,8.9,0.0,0.0,0.0,0.0,0.0,0.0",
+    "RBFOX3,0.0,9.2,0.0,0.0,0.0,0.0,0.0,0.0",
+    # Heart/muscle genes
+    "MYH7,0.0,0.1,12.4,1.2,0.1,0.0,0.0,0.0",
+    "TNNT2,0.0,0.0,11.8,0.3,0.0,0.0,0.0,0.0",
+    "MB,0.0,0.1,10.5,9.8,0.1,0.0,0.0,0.0",
+    "CKM,0.0,0.0,9.2,12.1,0.0,0.0,0.0,0.0",
+    "ACTA1,0.1,0.0,8.5,13.4,0.1,0.0,0.0,0.0",
+    # Lung-enriched
+    "SFTPB,0.0,0.0,0.0,0.0,12.8,0.0,0.0,0.0",
+    "SFTPC,0.0,0.0,0.0,0.0,13.5,0.0,0.0,0.0",
+    "SCGB1A1,0.0,0.0,0.0,0.0,11.2,0.1,0.0,0.0",
+    # Kidney-enriched
+    "SLC12A1,0.0,0.0,0.0,0.0,0.1,11.5,0.0,0.0",
+    "AQP2,0.0,0.0,0.0,0.0,0.0,10.8,0.0,0.0",
+    "UMOD,0.0,0.0,0.0,0.0,0.0,12.3,0.0,0.0",
+    # Pancreas-enriched
+    "INS,0.0,0.0,0.0,0.0,0.0,0.0,12.5,0.0",
+    "GCG,0.0,0.0,0.0,0.0,0.0,0.0,10.2,0.0",
+    "PRSS1,0.1,0.0,0.0,0.0,0.0,0.0,13.8,0.0",
+    "AMY2A,0.1,0.0,0.0,0.0,0.0,0.0,11.6,0.0",
+    # Blood/immune-enriched
+    "HBB,0.1,0.0,0.1,0.1,0.2,0.1,0.0,14.5",
+    "HBA1,0.1,0.0,0.1,0.1,0.2,0.1,0.0,14.2",
+    "CD3E,0.0,0.0,0.0,0.0,0.3,0.1,0.0,9.8",
+    "CD19,0.0,0.0,0.0,0.0,0.1,0.0,0.0,7.5",
+    "ITGB2,0.1,0.1,0.1,0.0,0.5,0.2,0.1,10.3",
+    # Housekeeping — expressed broadly across tissues
+    "GAPDH,9.8,9.5,9.7,9.6,9.4,9.3,9.5,9.2",
+    "ACTB,10.2,10.5,10.1,10.8,10.3,10.0,9.9,10.4",
+    "RPL13A,10.8,11.0,10.7,10.9,10.6,10.5,10.7,10.8",
+    "UBC,10.5,10.3,10.4,10.2,10.6,10.4,10.3,10.5",
+    "B2M,9.2,8.5,8.8,8.4,9.5,9.8,8.9,11.2",
+    # Broadly expressed with tissue variation
+    "TP53,6.2,5.8,5.5,5.3,6.4,6.1,5.9,6.5",
+    "EGFR,3.5,2.1,1.8,1.2,5.2,4.8,3.2,1.5",
+    "VEGFA,4.2,3.8,5.5,3.2,5.8,6.2,4.5,2.1",
+    "MYC,5.8,4.2,3.5,3.1,5.2,4.8,4.5,6.5",
+    "BRCA1,3.8,2.5,2.2,1.8,3.5,3.2,2.8,4.2"
+]
+
+let expr_content = expr_header
+for i in range(0, len(expr_rows)) {
+    expr_content = expr_content + "\n" + expr_rows[i]
+}
+write(expr_content, "data/expression_matrix.csv")
+print("  Created data/expression_matrix.csv (40 genes x 8 tissues, GTEx-based)")
+
+print("\nSetup complete. Run the Day 19 scripts with:")
+print("  bl run scripts/bio_viz.bl")

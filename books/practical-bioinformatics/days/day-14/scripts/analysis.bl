@@ -1,0 +1,246 @@
+# Day 14: Statistics for Bioinformatics — Complete Analysis Script
+# Requires: data/experiment.csv (run init.bl first)
+#
+# Demonstrates: mean, median, stdev, variance, min, max, quantile, describe,
+# ttest, ttest_paired, ttest_one, wilcoxon, anova, cor, spearman, kendall,
+# lm, p_adjust, chi_square, fisher_exact, round, abs, log2, csv, to_table,
+# col, map, len, range, print, nrow, sum
+
+# ── Step 1: Descriptive Statistics ──────────────────────────────────────────
+
+print("=== Step 1: Descriptive Statistics ===\n")
+
+let expression = [5.2, 8.1, 3.4, 6.7, 4.1, 9.3, 7.5, 2.8]
+
+print(f"Mean:     {round(mean(expression), 2)}")
+print(f"Median:   {round(median(expression), 2)}")
+print(f"Stdev:    {round(stdev(expression), 2)}")
+print(f"Variance: {round(variance(expression), 2)}")
+print(f"Min:      {min(expression)}")
+print(f"Max:      {max(expression)}")
+print(f"Range:    {max(expression) - min(expression)}")
+print(f"Q25:      {round(quantile(expression, 0.25), 2)}")
+print(f"Q75:      {round(quantile(expression, 0.75), 2)}")
+print("")
+
+# Table summary
+let data = csv("data/experiment.csv")
+print("Experiment data summary:")
+print(describe(data))
+print("")
+
+# ── Step 2: t-tests ────────────────────────────────────────────────────────
+
+print("=== Step 2: t-tests ===\n")
+
+# Independent two-sample t-test
+let normal = [5.2, 4.8, 5.1, 4.9, 5.3]
+let tumor = [8.1, 7.9, 8.5, 7.6, 8.3]
+
+let result = ttest(normal, tumor)
+print(f"Two-sample t-test:")
+print(f"  t-statistic: {round(result.statistic, 3)}")
+print(f"  p-value: {result.pvalue}")
+print(f"  Significant: {result.pvalue < 0.05}")
+print("")
+
+# Paired t-test
+let before = [10.2, 8.5, 12.1, 9.8, 11.3]
+let after = [7.1, 6.2, 8.5, 7.0, 8.8]
+
+let result = ttest_paired(before, after)
+print(f"Paired t-test p-value: {result.pvalue}")
+print("")
+
+# One-sample t-test
+let observed = [2.1, 1.9, 2.3, 2.0, 2.2]
+let result = ttest_one(observed, 2.0)
+print(f"One-sample t-test p-value: {result.pvalue}")
+print("")
+
+# ── Step 3: Non-parametric Test ─────────────────────────────────────────────
+
+print("=== Step 3: Wilcoxon Rank-Sum Test ===\n")
+
+let control = [1.2, 3.5, 2.1, 4.8, 1.5]
+let treated = [5.2, 8.1, 6.3, 9.5, 7.2]
+
+let result = wilcoxon(control, treated)
+print(f"Wilcoxon p-value: {result.pvalue}")
+print("")
+
+# ── Step 4: ANOVA ───────────────────────────────────────────────────────────
+
+print("=== Step 4: ANOVA ===\n")
+
+let ctrl = [5.0, 4.8, 5.2, 4.9]
+let low_dose = [6.5, 7.1, 6.8, 6.3]
+let high_dose = [9.2, 8.8, 9.5, 9.0]
+
+let result = anova([ctrl, low_dose, high_dose])
+print(f"ANOVA F-statistic: {round(result.statistic, 2)}")
+print(f"ANOVA p-value: {result.pvalue}")
+print("")
+
+# Follow-up pairwise comparisons
+let pairs = [
+    {name: "control vs low", result: ttest(ctrl, low_dose)},
+    {name: "control vs high", result: ttest(ctrl, high_dose)},
+    {name: "low vs high", result: ttest(low_dose, high_dose)},
+]
+
+let raw_ps = pairs |> map(|p| p.result.pvalue)
+let adj_ps = p_adjust(raw_ps, "BH")
+
+print("Pairwise comparisons (BH-adjusted):")
+for i in range(0, len(pairs)) {
+    print(f"  {pairs[i].name}: p = {round(adj_ps[i], 4)}")
+}
+print("")
+
+# ── Step 5: Correlation ────────────────────────────────────────────────────
+
+print("=== Step 5: Correlation ===\n")
+
+let gene_a = [2.1, 3.5, 4.2, 5.8, 6.1, 7.3]
+let gene_b = [1.8, 3.2, 3.9, 5.5, 6.4, 7.0]
+
+let r = cor(gene_a, gene_b)
+print(f"Pearson r: {round(r, 3)}")
+
+let rho = spearman(gene_a, gene_b)
+print(f"Spearman rho: {round(rho.statistic, 3)}")
+
+let tau = kendall(gene_a, gene_b)
+print(f"Kendall tau: {round(tau.statistic, 3)}")
+print("")
+
+# ── Step 6: Linear Regression ──────────────────────────────────────────────
+
+print("=== Step 6: Linear Regression ===\n")
+
+let x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+let y = [2.1, 3.9, 6.2, 7.8, 10.1, 12.3]
+
+let model = lm(x, y)
+print(f"Slope: {round(model.slope, 3)}")
+print(f"Intercept: {round(model.intercept, 3)}")
+print(f"R-squared: {round(model.r_squared, 3)}")
+print(f"p-value: {model.pvalue}")
+print("")
+
+# ── Step 7: Multiple Testing Correction ────────────────────────────────────
+
+print("=== Step 7: Multiple Testing Correction ===\n")
+
+let raw_pvals = [0.001, 0.005, 0.01, 0.03, 0.04, 0.049, 0.06, 0.1, 0.5, 0.9]
+
+let bh = p_adjust(raw_pvals, "BH")
+let bonf = p_adjust(raw_pvals, "bonferroni")
+
+print("Raw       | BH        | Bonferroni")
+print("----------|-----------|----------")
+for i in range(0, len(raw_pvals)) {
+    print(f"{raw_pvals[i]}    | {round(bh[i], 4)}   | {round(bonf[i], 4)}")
+}
+print("")
+
+# ── Step 8: Categorical Tests ──────────────────────────────────────────────
+
+print("=== Step 8: Categorical Tests ===\n")
+
+let result = chi_square([30, 10], [15, 25])
+print(f"Chi-square statistic: {round(result.statistic, 2)}")
+print(f"Chi-square p-value: {result.pvalue}")
+
+let result = fisher_exact(8, 2, 1, 9)
+print(f"Fisher's exact p-value: {result.pvalue}")
+print("")
+
+# ── Step 9: Complete Experiment Analysis ───────────────────────────────────
+
+print("=== Step 9: Complete Experiment Analysis ===\n")
+
+let control_cols = ["control_1", "control_2", "control_3"]
+let treated_cols = ["treated_1", "treated_2", "treated_3"]
+
+let gene_stats = []
+for i in range(0, nrow(data)) {
+    let gene = col(data, "gene")[i]
+    let ctrl_vals = control_cols |> map(|c| col(data, c)[i])
+    let trt_vals = treated_cols |> map(|c| col(data, c)[i])
+
+    let ctrl_mean = mean(ctrl_vals)
+    let trt_mean = mean(trt_vals)
+    let fc = trt_mean / ctrl_mean
+    let log2fc = log2(fc)
+
+    let test = ttest(ctrl_vals, trt_vals)
+
+    gene_stats = gene_stats + [{
+        gene: gene,
+        ctrl_mean: round(ctrl_mean, 1),
+        trt_mean: round(trt_mean, 1),
+        log2fc: round(log2fc, 2),
+        pvalue: test.pvalue,
+    }]
+}
+
+let results = to_table(gene_stats)
+
+let raw_ps = col(results, "pvalue")
+let adj_ps = p_adjust(raw_ps, "BH")
+
+print("Per-gene test results:")
+print("gene       | ctrl_mean | trt_mean | log2fc | raw_p    | adj_p")
+print("-----------|-----------|----------|--------|----------|------")
+for i in range(0, nrow(results)) {
+    let g = col(results, "gene")[i]
+    let cm = col(results, "ctrl_mean")[i]
+    let tm = col(results, "trt_mean")[i]
+    let lfc = col(results, "log2fc")[i]
+    let rp = round(raw_ps[i], 4)
+    let ap = round(adj_ps[i], 4)
+    print(f"{g}  | {cm}  | {tm}  | {lfc}  | {rp}  | {ap}")
+}
+
+let sig_count = 0
+let up_count = 0
+let down_count = 0
+for i in range(0, len(adj_ps)) {
+    if adj_ps[i] < 0.05 {
+        sig_count = sig_count + 1
+        if col(results, "log2fc")[i] > 0 {
+            up_count = up_count + 1
+        } else {
+            down_count = down_count + 1
+        }
+    }
+}
+
+print(f"\nSignificant genes (FDR < 0.05): {sig_count}")
+print(f"  Upregulated: {up_count}")
+print(f"  Downregulated: {down_count}")
+
+# Replicate correlation
+let ctrl1 = col(data, "control_1")
+let ctrl2 = col(data, "control_2")
+let r = cor(ctrl1, ctrl2)
+print(f"\nReplicate correlation (control_1 vs control_2): r = {round(r, 3)}")
+
+# Linear model
+let ctrl_means = []
+let trt_means = []
+for i in range(0, nrow(data)) {
+    let cv = control_cols |> map(|c| col(data, c)[i])
+    let tv = treated_cols |> map(|c| col(data, c)[i])
+    ctrl_means = ctrl_means + [mean(cv)]
+    trt_means = trt_means + [mean(tv)]
+}
+
+let model = lm(ctrl_means, trt_means)
+print(f"\nLinear model (control -> treated):")
+print(f"  Slope: {round(model.slope, 3)}")
+print(f"  R-squared: {round(model.r_squared, 3)}")
+
+print("\n=== Analysis complete ===")

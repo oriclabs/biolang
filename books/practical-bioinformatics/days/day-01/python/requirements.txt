@@ -1,0 +1,9 @@
+# Python packages for "Practical Bioinformatics in 30 Days"
+# Install all at once: pip install -r requirements.txt
+biopython>=1.81
+scipy>=1.10
+pandas>=2.0
+matplotlib>=3.7
+requests>=2.28
+openai>=1.0
+tenacity>=8.0

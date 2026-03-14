@@ -50,6 +50,8 @@ pub fn register_builtins(env: &mut Environment) {
         ("print", Arity::AtLeast(0)),
         ("println", Arity::AtLeast(0)),
         ("len", Arity::Exact(1)),
+        ("ncols", Arity::Exact(1)),
+        ("columns", Arity::Exact(1)),
         ("type", Arity::Exact(1)),
         ("typeof", Arity::Exact(1)),
         ("range", Arity::Range(1, 3)),
@@ -377,6 +379,11 @@ pub fn register_builtins(env: &mut Environment) {
         builtins.push((name, arity));
     }
 
+    // Add core sequence builtins (WASM-safe — pure string transforms via bio_core)
+    for (name, arity) in crate::seq::seq_builtin_list() {
+        builtins.push((name, arity));
+    }
+
     // GAP 1: Coordinate system builtins
     builtins.extend_from_slice(&[
         ("coord_bed", Arity::Exact(1)),
@@ -486,6 +493,128 @@ pub fn register_builtins(env: &mut Environment) {
     }
 }
 
+/// Collect all known builtin function names (for "did you mean?" suggestions).
+pub fn all_builtin_names() -> Vec<&'static str> {
+    let mut names: Vec<&'static str> = vec![
+        "print", "println", "len", "ncols", "columns", "type", "typeof",
+        "range", "map", "each", "filter", "flat_map", "scan", "reduce",
+        "sort", "abs", "min", "max", "int", "float", "str", "bool",
+        "push", "pop", "contains", "keys", "values", "reverse", "join", "split",
+        "head", "tail", "collect", "next", "count", "take", "to_stream",
+        "table", "to_table", "interval", "mutate", "summarize",
+        "zip", "enumerate", "flatten", "chunk", "slice", "concat",
+        "first", "last", "drop", "window", "frequencies", "repeat",
+        "count_if", "col", "jaccard",
+        "any", "all", "none", "find", "find_index", "take_while",
+        "ascii", "chr", "substr", "replace", "trim", "upper", "lower",
+        "starts_with", "ends_with",
+        "merge", "has_key", "remove_key", "to_string", "parse_json",
+        "compare", "exit", "try_call", "error", "help",
+        "bp", "kb", "mb", "gb",
+        "par_map", "par_filter",
+        "prop_test", "gen_int", "gen_float", "gen_str",
+        "is_range", "is_enum",
+        "set", "union", "intersection", "difference", "symmetric_difference",
+        "is_subset", "is_superset",
+        "is_set", "is_regex", "is_future", "await_all", "into",
+        "memoize", "time_it", "once",
+        "interval_tree", "query_overlaps", "count_overlaps", "bulk_overlaps",
+        "query_nearest", "coverage",
+        "motif_find", "motif_count", "consensus", "pwm", "pwm_scan",
+        "pipeline_steps",
+        "where", "case_when", "tee", "tap", "inspect", "group_apply",
+        "gene", "variant", "genome",
+        "is_gene", "is_variant", "is_genome", "is_quality", "is_aligned_read",
+        "aligned_read", "flagstat",
+        "is_snp", "is_indel", "is_transition", "is_transversion",
+        "is_het", "is_hom_ref", "is_hom_alt", "is_multiallelic",
+        "variant_type", "variant_summary", "tstv_ratio", "het_hom_ratio",
+        "parse_vcf_info", "partition", "sort_by",
+        "coord_bed", "coord_vcf", "coord_gff", "coord_sam",
+        "coord_convert", "coord_system", "coord_check",
+        "strip_chr", "add_chr", "normalize_chrom",
+        "kmer_encode", "kmer_decode", "kmer_rc", "kmer_canonical",
+        "kmer_count", "kmer_distinct", "kmer_spectrum", "minimizers",
+        "stream_chunks", "stream_take", "stream_skip", "stream_batch", "memory_usage",
+        "scatter_by", "bench",
+        "table_col_types", "table_set_col_type", "table_validate", "table_schema", "table_cast",
+        "pipe_fuse",
+        "with_provenance", "provenance", "provenance_chain", "checkpoint", "resume_checkpoint",
+        "is_nil", "is_int", "is_float", "is_num", "is_str", "is_bool",
+        "is_list", "is_map", "is_record", "is_table", "is_function",
+        "is_dna", "is_rna", "is_protein", "is_interval", "is_matrix",
+        "is_stream", "is_kmer", "is_sparse",
+        "env", "cwd", "assert", "debug",
+    ];
+    // Add names from sub-module builtin lists
+    for (n, _) in crate::table_ops::table_builtin_list() { names.push(n); }
+    for (n, _) in crate::stats::stats_builtin_list() { names.push(n); }
+    for (n, _) in crate::json::json_builtin_list() { names.push(n); }
+    for (n, _) in crate::regex_ops::regex_builtin_list() { names.push(n); }
+    for (n, _) in crate::csv::csv_builtin_list() { names.push(n); }
+    for (n, _) in crate::plot::plot_builtin_list() { names.push(n); }
+    for (n, _) in crate::viz::viz_builtin_list() { names.push(n); }
+    for (n, _) in crate::bio_plots::bio_plots_builtin_list() { names.push(n); }
+    for (n, _) in crate::matrix::matrix_builtin_list() { names.push(n); }
+    #[cfg(feature = "native")]
+    for (n, _) in crate::enrich::enrich_builtin_list() { names.push(n); }
+    for (n, _) in crate::graph::graph_builtin_list() { names.push(n); }
+    for (n, _) in crate::bio_ops::bio_ops_builtin_list() { names.push(n); }
+    for (n, _) in crate::markdown::markdown_builtin_list() { names.push(n); }
+    for (n, _) in crate::hash::hash_builtin_list() { names.push(n); }
+    for (n, _) in crate::datetime::datetime_builtin_list() { names.push(n); }
+    for (n, _) in crate::text_ops::text_builtin_list() { names.push(n); }
+    for (n, _) in crate::sparse::sparse_builtin_list() { names.push(n); }
+    for (n, _) in crate::seq::seq_builtin_list() { names.push(n); }
+    #[cfg(feature = "native")]
+    {
+        for (n, _) in crate::fs::fs_builtin_list() { names.push(n); }
+        for (n, _) in crate::http::http_builtin_list() { names.push(n); }
+        for (n, _) in crate::container::container_builtin_list() { names.push(n); }
+        for (n, _) in crate::llm::llm_builtin_list() { names.push(n); }
+        for (n, _) in crate::transfer::transfer_builtin_list() { names.push(n); }
+        for (n, _) in crate::nf_parse::nf_parse_builtin_list() { names.push(n); }
+        for (n, _) in crate::notify::notify_builtin_list() { names.push(n); }
+        for (n, _) in crate::sqlite::sqlite_builtin_list() { names.push(n); }
+        for (n, _) in bl_bio::bio_builtin_list() { names.push(n); }
+        for (n, _) in crate::apis::apis_builtin_list() { names.push(n); }
+    }
+    names
+}
+
+/// Levenshtein edit distance between two strings.
+fn levenshtein(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let (m, n) = (a.len(), b.len());
+    let mut prev = (0..=n).collect::<Vec<_>>();
+    let mut curr = vec![0; n + 1];
+    for i in 1..=m {
+        curr[0] = i;
+        for j in 1..=n {
+            let cost = if a[i - 1] == b[j - 1] { 0 } else { 1 };
+            curr[j] = (prev[j] + 1).min(curr[j - 1] + 1).min(prev[j - 1] + cost);
+        }
+        std::mem::swap(&mut prev, &mut curr);
+    }
+    prev[n]
+}
+
+/// Find the most similar builtin name using Levenshtein distance.
+pub fn suggest_builtin(name: &str) -> Option<String> {
+    let max_dist = (name.len() / 3).max(2);
+    let mut best: Option<(String, usize)> = None;
+    for builtin_name in all_builtin_names() {
+        let dist = levenshtein(name, builtin_name);
+        if dist > 0 && dist <= max_dist {
+            if best.as_ref().map_or(true, |(_, d)| dist < *d) {
+                best = Some((builtin_name.to_string(), dist));
+            }
+        }
+    }
+    best.map(|(s, _)| s)
+}
+
 /// Format a value for print/println — human-readable, unwrapped bio types, truncated long data.
 fn format_for_print(val: &Value) -> String {
     const MAX_SEQ: usize = 80;
@@ -553,6 +682,27 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             }
             other => Err(BioLangError::type_error(
                 format!("len() not supported for {}", other.type_of()),
+                None,
+            )),
+        },
+        "ncols" => match &args[0] {
+            Value::Table(t) => Ok(Value::Int(t.num_cols() as i64)),
+            Value::Matrix(m) => Ok(Value::Int(m.ncol as i64)),
+            Value::SparseMatrix(sm) => Ok(Value::Int(sm.ncol as i64)),
+            other => Err(BioLangError::type_error(
+                format!("ncols() requires Table or Matrix, got {}", other.type_of()),
+                None,
+            )),
+        },
+        "columns" => match &args[0] {
+            Value::Table(t) => Ok(Value::List(
+                t.columns.iter().map(|c| Value::Str(c.clone())).collect(),
+            )),
+            Value::Record(m) | Value::Map(m) => Ok(Value::List(
+                m.keys().map(|k| Value::Str(k.clone())).collect(),
+            )),
+            other => Err(BioLangError::type_error(
+                format!("columns() requires Table or Record, got {}", other.type_of()),
                 None,
             )),
         },
@@ -2200,14 +2350,38 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::graph::is_graph_builtin(name) => {
             crate::graph::call_graph_builtin(name, args)
         }
+        // Core sequence builtins (WASM-safe — transcribe, translate, gc_content, etc.)
+        _ if crate::seq::is_seq_builtin(name) => {
+            crate::seq::call_seq_builtin(name, args)
+        }
         #[cfg(feature = "native")]
-        _ => bl_bio::call_bio_builtin(name, args),
+        _ => {
+            let result = bl_bio::call_bio_builtin(name, args);
+            if result.is_err() {
+                // If bl-bio didn't recognize it either, add a "did you mean?" suggestion
+                let mut err = result.unwrap_err();
+                if err.kind == ErrorKind::NameError {
+                    if let Some(suggestion) = suggest_builtin(name) {
+                        err = err.with_suggestion(format!("did you mean '{suggestion}'?"));
+                    }
+                }
+                Err(err)
+            } else {
+                result
+            }
+        }
         #[cfg(not(feature = "native"))]
-        _ => Err(BioLangError::runtime(
-            ErrorKind::TypeError,
-            format!("unknown function: {name}"),
-            None,
-        )),
+        _ => {
+            let mut err = BioLangError::runtime(
+                ErrorKind::NameError,
+                format!("unknown function: {name}"),
+                None,
+            );
+            if let Some(suggestion) = suggest_builtin(name) {
+                err = err.with_suggestion(format!("did you mean '{suggestion}'?"));
+            }
+            Err(err)
+        }
     }
 }
 

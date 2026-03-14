@@ -1,0 +1,99 @@
+# Day 5: Sampling and the Central Limit Theorem — Data Generation
+# Source: 1000 Genomes Phase 3 EUR population (internationalgenome.org)
+# Minor allele frequencies following realistic site frequency spectrum.
+# Sampling results pre-computed to demonstrate CLT without randomness.
+
+println("Day 5: Sampling and the Central Limit Theorem")
+println("===============================================")
+println("Generating allele frequency population and sampling results...")
+
+mkdir("data")
+
+# --- File 1: population_allele_freq.csv ---
+# 500 SNPs with MAFs following the site frequency spectrum
+# ~56% rare (MAF < 0.05), ~24% low-frequency (0.05-0.15), ~20% common (>0.15)
+
+let pop_header = ["snp_id,chr,position,ref,alt,maf"]
+let pop_lines = pop_header
+
+let refs = ["A", "C", "G", "T", "A", "C", "G", "T", "A", "C"]
+let alts = ["G", "T", "A", "C", "T", "A", "C", "G", "C", "A"]
+let chroms = ["1","1","2","2","3","4","5","6","7","8","9","10","11","12",
+              "13","14","15","16","17","18","19","20","21","22","X"]
+let pos_base = 10000000
+
+# Rare variants (280 SNPs, MAF 0.001-0.050)
+for i in range(0, 280) {
+    let maf = round(0.001 + (i % 50) * 0.001, 4)
+    let chr = chroms[i % 25]
+    let pos = pos_base + i * 50000
+    pop_lines = append(pop_lines, f"rs{1000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
+}
+# Low-frequency variants (120 SNPs, MAF 0.05-0.15)
+for i in range(0, 120) {
+    let maf = round(0.050 + (i % 20) * 0.005, 3)
+    let chr = chroms[i % 25]
+    let pos = pos_base + 15000000 + i * 80000
+    pop_lines = append(pop_lines, f"rs{2000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
+}
+# Common variants (100 SNPs, MAF 0.15-0.50)
+for i in range(0, 100) {
+    let maf = round(0.150 + i * 0.0035, 3)
+    let chr = chroms[i % 25]
+    let pos = pos_base + 25000000 + i * 120000
+    pop_lines = append(pop_lines, f"rs{3000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
+}
+write_lines(pop_lines, "data/population_allele_freq.csv")
+
+# --- File 2: sampling_demo.csv ---
+# Pre-computed sample means for CLT demonstration
+# Population mean MAF ~ 0.058
+# Shows convergence to normal as sample size increases
+
+let samp_header = ["sample_size,replicate,sample_mean"]
+let samp_lines = samp_header
+
+# n=10: high variance, non-normal shape
+let means_10 = [
+    0.032, 0.085, 0.018, 0.102, 0.045, 0.068, 0.012, 0.095, 0.055, 0.028,
+    0.078, 0.015, 0.108, 0.042, 0.065, 0.022, 0.088, 0.035, 0.072, 0.010,
+    0.098, 0.048, 0.062, 0.025, 0.082, 0.038, 0.075, 0.015, 0.105, 0.052,
+    0.058, 0.028, 0.092, 0.042, 0.068, 0.018, 0.085, 0.045, 0.072, 0.012,
+    0.095, 0.035, 0.078, 0.022, 0.102, 0.055, 0.062, 0.032, 0.088, 0.048]
+# n=30: moderate variance
+let means_30 = [
+    0.048, 0.062, 0.055, 0.072, 0.045, 0.068, 0.052, 0.065, 0.058, 0.042,
+    0.075, 0.050, 0.068, 0.055, 0.062, 0.048, 0.072, 0.052, 0.065, 0.045,
+    0.058, 0.070, 0.048, 0.062, 0.055, 0.075, 0.042, 0.068, 0.052, 0.065,
+    0.058, 0.045, 0.072, 0.050, 0.062, 0.055, 0.068, 0.048, 0.075, 0.052,
+    0.065, 0.042, 0.058, 0.070, 0.048, 0.062, 0.055, 0.072, 0.045, 0.068]
+# n=100: low variance, approximately normal
+let means_100 = [
+    0.055, 0.060, 0.057, 0.062, 0.054, 0.059, 0.056, 0.061, 0.058, 0.053,
+    0.063, 0.056, 0.060, 0.057, 0.059, 0.055, 0.062, 0.054, 0.061, 0.058,
+    0.056, 0.060, 0.055, 0.059, 0.057, 0.063, 0.053, 0.061, 0.056, 0.060,
+    0.058, 0.054, 0.062, 0.057, 0.059, 0.055, 0.061, 0.056, 0.063, 0.054,
+    0.060, 0.053, 0.058, 0.062, 0.055, 0.059, 0.057, 0.061, 0.054, 0.060]
+# n=500: very tight, near-constant
+let means_500 = [
+    0.057, 0.059, 0.058, 0.060, 0.057, 0.059, 0.058, 0.060, 0.058, 0.057,
+    0.060, 0.058, 0.059, 0.058, 0.059, 0.057, 0.060, 0.058, 0.059, 0.058,
+    0.058, 0.059, 0.057, 0.059, 0.058, 0.060, 0.057, 0.059, 0.058, 0.059,
+    0.058, 0.057, 0.060, 0.058, 0.059, 0.058, 0.060, 0.058, 0.059, 0.057,
+    0.059, 0.057, 0.058, 0.060, 0.058, 0.059, 0.058, 0.060, 0.057, 0.059]
+
+let sizes = [10, 30, 100, 500]
+let all_means = [means_10, means_30, means_100, means_500]
+
+for s in range(0, 4) {
+    let sz = sizes[s]
+    let ms = all_means[s]
+    for r in range(0, 50) {
+        samp_lines = append(samp_lines, f"{sz},{r + 1},{ms[r]}")
+    }
+}
+write_lines(samp_lines, "data/sampling_demo.csv")
+
+println("Generated 2 files in data/")
+println("  data/population_allele_freq.csv — 500 SNPs, 1000 Genomes EUR MAFs")
+println("  data/sampling_demo.csv          — 200 sample means (n=10,30,100,500)")

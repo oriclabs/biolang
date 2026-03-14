@@ -593,6 +593,350 @@ fn test_vm_destruct_let() {
     run_program(&program).unwrap();
 }
 
+// ── JIT Performance / Hot Loop Tests ──────────────────────────────
+
+#[test]
+fn test_vm_loop_sum() {
+    // Sum 1..100 in a while loop — tests hot loop execution
+    let program = Program {
+        stmts: vec![
+            s(Stmt::Let {
+                name: "sum".to_string(),
+                type_ann: None,
+                value: s(Expr::Int(0)),
+            }),
+            s(Stmt::Let {
+                name: "i".to_string(),
+                type_ann: None,
+                value: s(Expr::Int(1)),
+            }),
+            s(Stmt::While {
+                condition: s(Expr::Binary {
+                    op: BinaryOp::Le,
+                    left: Box::new(s(Expr::Ident("i".to_string()))),
+                    right: Box::new(s(Expr::Int(100))),
+                }),
+                body: vec![
+                    s(Stmt::Assign {
+                        name: "sum".to_string(),
+                        value: s(Expr::Binary {
+                            op: BinaryOp::Add,
+                            left: Box::new(s(Expr::Ident("sum".to_string()))),
+                            right: Box::new(s(Expr::Ident("i".to_string()))),
+                        }),
+                    }),
+                    s(Stmt::Assign {
+                        name: "i".to_string(),
+                        value: s(Expr::Binary {
+                            op: BinaryOp::Add,
+                            left: Box::new(s(Expr::Ident("i".to_string()))),
+                            right: Box::new(s(Expr::Int(1))),
+                        }),
+                    }),
+                ],
+            }),
+        ],
+    };
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_nested_loop() {
+    // Nested for loops
+    let program = Program {
+        stmts: vec![
+            s(Stmt::Let {
+                name: "count".to_string(),
+                type_ann: None,
+                value: s(Expr::Int(0)),
+            }),
+            s(Stmt::For {
+                pattern: ForPattern::Single("i".to_string()),
+                iter: s(Expr::Range {
+                    start: Box::new(s(Expr::Int(0))),
+                    end: Box::new(s(Expr::Int(10))),
+                    inclusive: false,
+                }),
+                body: vec![s(Stmt::For {
+                    pattern: ForPattern::Single("j".to_string()),
+                    iter: s(Expr::Range {
+                        start: Box::new(s(Expr::Int(0))),
+                        end: Box::new(s(Expr::Int(10))),
+                        inclusive: false,
+                    }),
+                    body: vec![s(Stmt::Assign {
+                        name: "count".to_string(),
+                        value: s(Expr::Binary {
+                            op: BinaryOp::Add,
+                            left: Box::new(s(Expr::Ident("count".to_string()))),
+                            right: Box::new(s(Expr::Int(1))),
+                        }),
+                    })],
+                    when_guard: None,
+                    else_body: None,
+                })],
+                when_guard: None,
+                else_body: None,
+            }),
+        ],
+    };
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_recursive_function() {
+    let program = Program {
+        stmts: vec![
+            s(Stmt::Fn {
+                name: "fib".to_string(),
+                params: vec![Param {
+                    name: "n".to_string(),
+                    type_ann: None,
+                    default: None,
+                    rest: false,
+                }],
+                return_type: None,
+                body: vec![s(Stmt::Expr(s(Expr::If {
+                    condition: Box::new(s(Expr::Binary {
+                        op: BinaryOp::Le,
+                        left: Box::new(s(Expr::Ident("n".to_string()))),
+                        right: Box::new(s(Expr::Int(1))),
+                    })),
+                    then_body: vec![s(Stmt::Return(Some(s(Expr::Ident("n".to_string())))))],
+                    else_body: Some(vec![s(Stmt::Return(Some(s(Expr::Binary {
+                        op: BinaryOp::Add,
+                        left: Box::new(s(Expr::Call {
+                            callee: Box::new(s(Expr::Ident("fib".to_string()))),
+                            args: vec![Arg {
+                                name: None,
+                                value: s(Expr::Binary {
+                                    op: BinaryOp::Sub,
+                                    left: Box::new(s(Expr::Ident("n".to_string()))),
+                                    right: Box::new(s(Expr::Int(1))),
+                                }),
+                                spread: false,
+                            }],
+                        })),
+                        right: Box::new(s(Expr::Call {
+                            callee: Box::new(s(Expr::Ident("fib".to_string()))),
+                            args: vec![Arg {
+                                name: None,
+                                value: s(Expr::Binary {
+                                    op: BinaryOp::Sub,
+                                    left: Box::new(s(Expr::Ident("n".to_string()))),
+                                    right: Box::new(s(Expr::Int(2))),
+                                }),
+                                spread: false,
+                            }],
+                        })),
+                    }))))]),
+                })))],
+                doc: None,
+                is_generator: false,
+                decorators: vec![],
+                is_async: false,
+                named_returns: vec![],
+                where_clause: None,
+            }),
+            s(Stmt::Expr(s(Expr::Call {
+                callee: Box::new(s(Expr::Ident("fib".to_string()))),
+                args: vec![Arg {
+                    name: None,
+                    value: s(Expr::Int(10)),
+                    spread: false,
+                }],
+            }))),
+        ],
+    };
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_multiple_functions() {
+    let program = Program {
+        stmts: vec![
+            s(Stmt::Fn {
+                name: "add".to_string(),
+                params: vec![
+                    Param { name: "a".to_string(), type_ann: None, default: None, rest: false },
+                    Param { name: "b".to_string(), type_ann: None, default: None, rest: false },
+                ],
+                return_type: None,
+                body: vec![s(Stmt::Return(Some(s(Expr::Binary {
+                    op: BinaryOp::Add,
+                    left: Box::new(s(Expr::Ident("a".to_string()))),
+                    right: Box::new(s(Expr::Ident("b".to_string()))),
+                }))))],
+                doc: None,
+                is_generator: false,
+                decorators: vec![],
+                is_async: false,
+                named_returns: vec![],
+                where_clause: None,
+            }),
+            s(Stmt::Fn {
+                name: "mul".to_string(),
+                params: vec![
+                    Param { name: "a".to_string(), type_ann: None, default: None, rest: false },
+                    Param { name: "b".to_string(), type_ann: None, default: None, rest: false },
+                ],
+                return_type: None,
+                body: vec![s(Stmt::Return(Some(s(Expr::Binary {
+                    op: BinaryOp::Mul,
+                    left: Box::new(s(Expr::Ident("a".to_string()))),
+                    right: Box::new(s(Expr::Ident("b".to_string()))),
+                }))))],
+                doc: None,
+                is_generator: false,
+                decorators: vec![],
+                is_async: false,
+                named_returns: vec![],
+                where_clause: None,
+            }),
+            // add(mul(3, 4), 5) = 17
+            s(Stmt::Expr(s(Expr::Call {
+                callee: Box::new(s(Expr::Ident("add".to_string()))),
+                args: vec![
+                    Arg {
+                        name: None,
+                        value: s(Expr::Call {
+                            callee: Box::new(s(Expr::Ident("mul".to_string()))),
+                            args: vec![
+                                Arg { name: None, value: s(Expr::Int(3)), spread: false },
+                                Arg { name: None, value: s(Expr::Int(4)), spread: false },
+                            ],
+                        }),
+                        spread: false,
+                    },
+                    Arg { name: None, value: s(Expr::Int(5)), spread: false },
+                ],
+            }))),
+        ],
+    };
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_try_catch_error() {
+    // Division by zero caught by try-catch
+    let program = Program {
+        stmts: vec![s(Stmt::Expr(s(Expr::TryCatch {
+            body: vec![s(Stmt::Expr(s(Expr::Binary {
+                op: BinaryOp::Div,
+                left: Box::new(s(Expr::Int(1))),
+                right: Box::new(s(Expr::Int(0))),
+            })))],
+            error_var: Some("e".to_string()),
+            catch_body: vec![s(Stmt::Expr(s(Expr::Int(999))))],
+        })))],
+    };
+    // Should not error — catch handles it
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_list_operations() {
+    // Build and index a list
+    let program = Program {
+        stmts: vec![
+            s(Stmt::Let {
+                name: "xs".to_string(),
+                type_ann: None,
+                value: s(Expr::List(vec![
+                    s(Expr::Int(10)),
+                    s(Expr::Int(20)),
+                    s(Expr::Int(30)),
+                ])),
+            }),
+            // xs[0] + xs[2]
+            s(Stmt::Expr(s(Expr::Binary {
+                op: BinaryOp::Add,
+                left: Box::new(s(Expr::Index {
+                    object: Box::new(s(Expr::Ident("xs".to_string()))),
+                    index: Box::new(s(Expr::Int(0))),
+                })),
+                right: Box::new(s(Expr::Index {
+                    object: Box::new(s(Expr::Ident("xs".to_string()))),
+                    index: Box::new(s(Expr::Int(2))),
+                })),
+            }))),
+        ],
+    };
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_conditional_chain() {
+    // if false { 1 } else { if true { 2 } else { 3 } }
+    let program = Program {
+        stmts: vec![s(Stmt::Expr(s(Expr::If {
+            condition: Box::new(s(Expr::Bool(false))),
+            then_body: vec![s(Stmt::Expr(s(Expr::Int(1))))],
+            else_body: Some(vec![s(Stmt::Expr(s(Expr::If {
+                condition: Box::new(s(Expr::Bool(true))),
+                then_body: vec![s(Stmt::Expr(s(Expr::Int(2))))],
+                else_body: Some(vec![s(Stmt::Expr(s(Expr::Int(3))))]),
+            })))]),
+        })))],
+    };
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_float_arithmetic() {
+    let program = Program {
+        stmts: vec![s(Stmt::Expr(s(Expr::Binary {
+            op: BinaryOp::Add,
+            left: Box::new(s(Expr::Float(1.5))),
+            right: Box::new(s(Expr::Float(2.5))),
+        })))],
+    };
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_mixed_int_float() {
+    let program = Program {
+        stmts: vec![s(Stmt::Expr(s(Expr::Binary {
+            op: BinaryOp::Mul,
+            left: Box::new(s(Expr::Int(3))),
+            right: Box::new(s(Expr::Float(1.5))),
+        })))],
+    };
+    run_program(&program).unwrap();
+}
+
+#[test]
+fn test_vm_upvalue_capture() {
+    // Closure that captures a variable from outer scope
+    let program = Program {
+        stmts: vec![
+            s(Stmt::Let {
+                name: "x".to_string(),
+                type_ann: None,
+                value: s(Expr::Int(100)),
+            }),
+            s(Stmt::Fn {
+                name: "get_x".to_string(),
+                params: vec![],
+                return_type: None,
+                body: vec![s(Stmt::Return(Some(s(Expr::Ident("x".to_string())))))],
+                doc: None,
+                is_generator: false,
+                decorators: vec![],
+                is_async: false,
+                named_returns: vec![],
+                where_clause: None,
+            }),
+            s(Stmt::Expr(s(Expr::Call {
+                callee: Box::new(s(Expr::Ident("get_x".to_string()))),
+                args: vec![],
+            }))),
+        ],
+    };
+    run_program(&program).unwrap();
+}
+
 #[test]
 fn test_vm_formula() {
     let program = Program {

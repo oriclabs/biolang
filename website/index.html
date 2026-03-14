@@ -44,8 +44,8 @@
               Get Started
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </a>
-            <a href="docs/getting-started/repl-tour.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-slate-700 hover:border-violet-500/50 text-slate-300 hover:text-white font-semibold transition-colors">
-              Try the REPL
+            <a href="studio.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-slate-700 hover:border-violet-500/50 text-slate-300 hover:text-white font-semibold transition-colors">
+              Open Studio
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             </a>
           </div>
@@ -79,15 +79,50 @@ ncbi_gene("BRCA1")
     </div>
   </section>
 
+  <!-- Tools Ribbon -->
+  <section class="py-6 bg-slate-950 border-b border-slate-800/50">
+    <div class="max-w-5xl mx-auto px-6">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        <div class="rounded-xl bg-emerald-500/5 border border-emerald-500/25 hover:border-emerald-400/50 hover:bg-emerald-500/10 transition-all" style="padding:16px 20px">
+          <a href="playground.html" target="_blank" class="group flex items-center gap-4" style="text-decoration:none;color:inherit">
+            <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500/15 text-emerald-400 text-xl shrink-0">&#9654;</span>
+            <div style="min-width:0">
+              <div class="text-sm font-semibold text-emerald-400 group-hover:text-emerald-300 transition-colors">Playground</div>
+              <div class="text-xs text-slate-500">Run code in browser</div>
+            </div>
+          </a>
+        </div>
+        <div class="rounded-xl bg-cyan-500/5 border border-cyan-500/25 hover:border-cyan-400/50 hover:bg-cyan-500/10 transition-all" style="padding:16px 20px">
+          <a href="viewer.html" target="_blank" class="group flex items-center gap-4" style="text-decoration:none;color:inherit">
+            <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/15 text-cyan-400 text-xl shrink-0">&#128269;</span>
+            <div style="min-width:0">
+              <div class="text-sm font-semibold text-cyan-400 group-hover:text-cyan-300 transition-colors">Viewer</div>
+              <div class="text-xs text-slate-500">FASTA/VCF/BED files</div>
+            </div>
+          </a>
+        </div>
+        <div class="rounded-xl bg-amber-500/5 border border-amber-500/25 hover:border-amber-400/50 hover:bg-amber-500/10 transition-all" style="padding:16px 20px">
+          <a href="studio.html" target="_blank" class="group flex items-center gap-4" style="text-decoration:none;color:inherit">
+            <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-500/15 text-amber-400 text-xl shrink-0">&#128300;</span>
+            <div style="min-width:0">
+              <div class="text-sm font-semibold text-amber-400 group-hover:text-amber-300 transition-colors">Studio</div>
+              <div class="text-xs text-slate-500">IDE + database search</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Early Preview Banner -->
-  <div class="max-w-4xl mx-auto px-6 py-4 mb-8">
+  <div class="max-w-4xl mx-auto px-6 pt-6 pb-2">
     <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-sm text-amber-200">
       <strong>Early Preview:</strong> BioLang is a new experimental language under active development. While we strive for stability, you may encounter rough edges. If you find issues, please <a href="https://github.com/oriclabs/biolang/issues" class="text-amber-400 underline hover:text-amber-300">report them on GitHub</a> &mdash; your feedback shapes the language.
     </div>
   </div>
 
   <!-- Why a DSL? -->
-  <section class="py-16 bg-slate-900/20 border-b border-slate-800/50">
+  <section class="py-12 bg-slate-900/20 border-b border-slate-800/50">
     <div class="max-w-4xl mx-auto px-6">
       <h2 class="text-2xl font-bold text-white mb-6 text-center">Why a domain-specific language?</h2>
       <p class="text-slate-400 mb-8 text-center max-w-3xl mx-auto">
@@ -396,7 +431,7 @@ print(df.describe())</code></pre>
   <!-- Benchmarks (at a glance) -->
   <section class="py-20 bg-slate-900/30">
     <div class="max-w-5xl mx-auto px-6">
-      <h2 class="text-3xl font-bold text-white text-center mb-4">Benchmarked against Python &amp; R</h2>
+      <h2 class="text-3xl font-bold text-white text-center mb-4">Benchmarked against BioPython &amp; Bioconductor</h2>
       <p class="text-slate-400 text-center mb-8">30 bioinformatics tasks on real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E. coli, yeast, ClinVar) against BioPython and Bioconductor.</p>
 
       <!-- Top wins highlight cards -->
@@ -475,6 +510,100 @@ print(df.describe())</code></pre>
       <div>
         <div class="text-3xl font-bold text-orange-400">Rust</div>
         <div class="text-sm text-slate-500 mt-1">Pure Performance</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Browser Tools -->
+  <section class="py-16 bg-gradient-to-b from-slate-900 to-slate-950">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-4">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Browser Tools &mdash; Installable PWAs
+        </div>
+        <h2 class="text-3xl font-bold text-white mb-3">Everything runs in your browser</h2>
+        <p class="text-slate-400 max-w-2xl mx-auto">No installation, no server, no uploads. BioLang compiles to WebAssembly so you can analyze bioinformatics data entirely client-side. All tools work offline as installable PWAs.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-5">
+        <!-- Playground -->
+        <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 flex flex-col">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500/15 text-emerald-400 text-xl shrink-0">&#9654;</span>
+            <div>
+              <h3 class="text-lg font-bold text-emerald-400">Playground</h3>
+              <span class="text-xs text-slate-500">Run code instantly</span>
+            </div>
+          </div>
+          <p class="text-sm text-slate-400 mb-4 flex-1">Write and execute BioLang code blocks with persistent state, inline SVG charts, and syntax highlighting. Great for experimenting and learning.</p>
+          <div class="flex items-center gap-3">
+            <a href="playground.html" class="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Open &rarr;</a>
+            <a href="docs/tools/playground.html" class="text-xs text-slate-500 hover:text-slate-400 transition-colors">Help</a>
+          </div>
+        </div>
+
+        <!-- Viewer -->
+        <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 flex flex-col">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/15 text-cyan-400 text-xl shrink-0">&#128269;</span>
+            <div>
+              <h3 class="text-lg font-bold text-cyan-400">Viewer</h3>
+              <span class="text-xs text-slate-500">Inspect bio files</span>
+            </div>
+          </div>
+          <p class="text-sm text-slate-400 mb-4 flex-1">Drop FASTA, FASTQ, VCF, BED, GFF, CSV files for instant parsing, statistics (N50, GC%, Q30, Ti/Tv), sortable tables, column filters, multi-format export, URL loading, and BioLang analysis. Data never leaves your machine.</p>
+          <div class="flex items-center gap-3">
+            <a href="viewer.html" class="text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors">Open &rarr;</a>
+            <a href="docs/tools/viewer-help.html" class="text-xs text-slate-500 hover:text-slate-400 transition-colors">Help</a>
+          </div>
+        </div>
+
+        <!-- Studio -->
+        <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 flex flex-col">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-500/15 text-amber-400 text-xl shrink-0">&#128300;</span>
+            <div>
+              <h3 class="text-lg font-bold text-amber-400">Studio</h3>
+              <span class="text-xs text-slate-500">IDE + database search</span>
+            </div>
+          </div>
+          <p class="text-sm text-slate-400 mb-4 flex-1">Full bioinformatics IDE with NCBI, UniProt, and PDB search. Code editor with variable inspector, local file access via <code class="text-xs bg-slate-700/50 px-1 rounded">read_csv()</code> and <code class="text-xs bg-slate-700/50 px-1 rounded">read_fasta()</code>, SVG rendering, and REPL bar.</p>
+          <div class="flex items-center gap-3">
+            <a href="studio.html" class="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors">Open &rarr;</a>
+            <a href="docs/tools/studio-help.html" class="text-xs text-slate-500 hover:text-slate-400 transition-colors">Help</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Books -->
+  <section class="py-16 bg-slate-950 border-b border-slate-800/50">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold text-white mb-3">Free books</h2>
+        <p class="text-slate-400">Open-source books covering the language and applied bioinformatics. Read online or download the PDF.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-5">
+        <a href="books/practical-bioinformatics/html/index.html" class="group bg-slate-800/30 border border-cyan-500/20 hover:border-cyan-400/40 rounded-xl p-6 transition-all">
+          <div class="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">30-day course</div>
+          <h3 class="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors mb-2">Practical Bioinformatics</h3>
+          <p class="text-sm text-slate-400">From zero to bioinformatician. Biology + BioLang + Python + R taught together with real datasets from NCBI, ClinVar, TCGA, and UniProt.</p>
+        </a>
+        <a href="books/biostatistics/html/index.html" class="group bg-slate-800/30 border border-purple-500/20 hover:border-purple-400/40 rounded-xl p-6 transition-all">
+          <div class="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-2">30-day course</div>
+          <h3 class="text-lg font-bold text-white group-hover:text-purple-300 transition-colors mb-2">Practical Biostatistics</h3>
+          <p class="text-sm text-slate-400">From zero to biostatistician. t-tests, ANOVA, regression, survival analysis, PCA, clustering, Bayesian, and GWAS with BioLang, Python, and R.</p>
+        </a>
+        <a href="book/html/index.html" class="group bg-slate-800/30 border border-violet-500/20 hover:border-violet-400/40 rounded-xl p-6 transition-all">
+          <div class="text-xs font-semibold text-violet-400 uppercase tracking-wider mb-2">Reference</div>
+          <h3 class="text-lg font-bold text-white group-hover:text-violet-300 transition-colors mb-2">The BioLang Language</h3>
+          <p class="text-sm text-slate-400">Comprehensive reference for every language feature: syntax, types, pipes, tables, streams, file I/O, bio APIs, statistics, and visualization.</p>
+        </a>
+      </div>
+      <div class="text-center mt-6">
+        <a href="books.html" class="text-sm text-slate-500 hover:text-violet-400 transition-colors">View all books &rarr;</a>
       </div>
     </div>
   </section>

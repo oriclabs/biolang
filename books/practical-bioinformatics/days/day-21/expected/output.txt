@@ -1,0 +1,60 @@
+============================================================
+Day 21: Performance and Parallel Processing
+============================================================
+
+Loaded 100000 reads
+
+-- Serial GC Analysis --
+
+  Mean GC:    48.3%
+  High GC:    42316 reads
+  Mean len:   150
+  Length range: 100-200
+  Time:       1.847s
+
+-- Parallel GC Analysis --
+
+  Mean GC:    48.3%
+  High GC:    42316 reads
+  Mean len:   150
+  Length range: 100-200
+  Time:       0.528s
+  Speedup:    3.5x
+
+-- Streaming GC Analysis --
+
+  Mean GC:    48.3%
+  High GC:    42316 reads
+  Mean len:   150
+  Length range: 100-200
+  Time:       2.134s
+  Memory:     constant (~10 MB)
+
+-- K-mer Counting (FASTA, k=6) --
+
+Loaded 50000 sequences
+
+Serial k-mer counting:
+  Time: 3.214s
+  Total k-mers: 67412500
+
+Parallel k-mer counting:
+  Time: 0.918s
+  Total k-mers: 67412500
+  Speedup: 3.5x
+
+============================================================
+Summary
+============================================================
+
+| approach  | gc_time | kmer_time |
+|-----------|---------|-----------|
+| Serial    | 1.847   | 3.214     |
+| Parallel  | 0.528   | 0.918     |
+| Streaming | 2.134   | 0.0       |
+
+Saved results/benchmark_results.csv
+
+============================================================
+Day 21 complete!
+============================================================

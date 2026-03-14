@@ -1,0 +1,56 @@
+=== Step 1: Load Gene Sets ===
+
+Gene sets loaded: 8
+DNA repair genes: 15
+First 5: [BRCA1, BRCA2, RAD51, ATM, ATR]
+
+=== Step 2: Over-Representation Analysis ===
+
+Total genes in DE results: 50
+Significant DE genes (|log2FC| > 1, padj < 0.05): 20
+Genes: [BRCA1, EGFR, MYC, KRAS, PIK3CA, ERBB2, BRAF, CDK4, MDM2, CCND1, TP53, RB1, PTEN, APC, BRCA2, ATM, CDKN2A, VHL, NF1, FLT3]
+
+ORA results (8 terms tested):
+Significant terms (FDR < 0.05): 3
+term                     overlap  p_value   fdr       genes
+HALLMARK_P53_PATHWAY     5        0.00003   0.00024   TP53,MDM2,CDKN2A,RB1,PTEN
+HALLMARK_DNA_REPAIR      4        0.00018   0.00072   BRCA1,BRCA2,ATM,RAD51
+HALLMARK_RAS_SIGNALING   4        0.00018   0.00072   KRAS,BRAF,EGFR,ERBB2,NF1
+
+=== Step 3: Gene Set Enrichment Analysis ===
+
+Ranked genes loaded: 100
+Top 5 genes:
+gene    score
+EGFR    3.12
+ERBB2   2.91
+KRAS    2.67
+BRCA1   2.45
+MDM2    2.08
+
+GSEA results (8 terms tested):
+Significant terms (FDR < 0.25): 4
+term                       es      nes     p_value  fdr     leading_edge
+HALLMARK_P53_PATHWAY       0.71    1.82    0.001    0.005   TP53,MDM2,CDKN2A,RB1,PTEN
+HALLMARK_DNA_REPAIR        0.65    1.68    0.004    0.011   BRCA1,BRCA2,ATM,RAD51,ATR
+HALLMARK_RAS_SIGNALING     0.58    1.49    0.009    0.024   KRAS,BRAF,EGFR,ERBB2,NF1
+HALLMARK_CELL_CYCLE       -0.45   -1.18    0.048    0.13    CDK4,E2F1,CCND1,CDK2
+
+=== Step 4: Comparison ===
+
+ORA significant: [HALLMARK_P53_PATHWAY, HALLMARK_DNA_REPAIR, HALLMARK_RAS_SIGNALING]
+GSEA significant: [HALLMARK_P53_PATHWAY, HALLMARK_DNA_REPAIR, HALLMARK_RAS_SIGNALING, HALLMARK_CELL_CYCLE]
+
+=== Step 5: Visualization ===
+
+Top enriched terms (ORA):
+HALLMARK_P53_PATHWAY   █████████████████████████ 5
+HALLMARK_DNA_REPAIR    ████████████████████ 4
+HALLMARK_RAS_SIGNALING ████████████████████ 4
+
+=== Step 6: Export ===
+
+Saved results/ora_results.csv
+Saved results/gsea_results.csv
+
+=== Analysis complete ===

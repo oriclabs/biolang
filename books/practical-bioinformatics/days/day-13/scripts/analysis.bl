@@ -1,0 +1,135 @@
+# Day 13: Gene Expression and RNA-seq — Complete Analysis Pipeline
+# Requires: data/counts.csv, data/gene_lengths.csv (run init.bl first)
+#
+# Demonstrates: csv, to_table, nrow, ncol, colnames, head, select, mutate,
+# filter, arrange, col, sum, mean, round, abs, log2, cpm, tpm, diff_expr,
+# p_adjust, volcano, ma_plot, write_csv, print, map, len, range
+
+# ── Step 1: Load and Explore Count Matrix ─────────────────────────────────
+
+print("=== Step 1: Loading Count Matrix ===")
+
+let counts = csv("data/counts.csv")
+print(f"Genes: {nrow(counts)}")
+print(f"Columns: {colnames(counts)}")
+print(counts |> head(5))
+print("")
+
+# ── Step 2: Library Sizes ─────────────────────────────────────────────────
+
+print("=== Step 2: Library Sizes ===")
+
+let samples = ["normal_1", "normal_2", "normal_3", "tumor_1", "tumor_2", "tumor_3"]
+let sample_sums = samples
+    |> map(|s| {sample: s, total: col(counts, s) |> sum()})
+    |> to_table()
+print(sample_sums)
+print("")
+
+# ── Step 3: CPM Normalization ─────────────────────────────────────────────
+
+print("=== Step 3: CPM Normalization ===")
+
+let normalized_cpm = cpm(counts)
+print("CPM normalized (first 5 genes):")
+print(normalized_cpm |> head(5))
+print("")
+
+# ── Step 4: TPM Normalization ─────────────────────────────────────────────
+
+print("=== Step 4: TPM Normalization ===")
+
+let gene_lengths = csv("data/gene_lengths.csv")
+let normalized_tpm = tpm(counts, gene_lengths)
+print("TPM normalized (first 5 genes):")
+print(normalized_tpm |> head(5))
+print("")
+
+# ── Step 5: Mean Expression per Condition ─────────────────────────────────
+
+print("=== Step 5: Mean Expression per Condition ===")
+
+let gene_means = counts
+    |> mutate("normal_mean", |r| round((r.normal_1 + r.normal_2 + r.normal_3) / 3.0, 1))
+    |> mutate("tumor_mean", |r| round((r.tumor_1 + r.tumor_2 + r.tumor_3) / 3.0, 1))
+    |> select("gene", "normal_mean", "tumor_mean")
+print(gene_means)
+print("")
+
+# ── Step 6: Manual Fold Change ────────────────────────────────────────────
+
+print("=== Step 6: Fold Change ===")
+
+let fc_table = counts
+    |> mutate("normal_mean", |r| (r.normal_1 + r.normal_2 + r.normal_3) / 3.0)
+    |> mutate("tumor_mean", |r| (r.tumor_1 + r.tumor_2 + r.tumor_3) / 3.0)
+    |> mutate("log2fc", |r| log2(r.tumor_mean / r.normal_mean))
+    |> select("gene", "normal_mean", "tumor_mean", "log2fc")
+
+print("Fold changes (first 10):")
+print(fc_table |> head(10))
+print("")
+
+# ── Step 7: Differential Expression ──────────────────────────────────────
+
+print("=== Step 7: Differential Expression ===")
+
+let de_results = diff_expr(counts,
+    control: ["normal_1", "normal_2", "normal_3"],
+    treatment: ["tumor_1", "tumor_2", "tumor_3"]
+)
+print(f"DE results: {nrow(de_results)} genes")
+print(de_results |> head(5))
+print("")
+
+# ── Step 8: Filter Significant Results ───────────────────────────────────
+
+print("=== Step 8: Significant DE Genes ===")
+
+let significant = de_results
+    |> filter(|r| r.padj < 0.05 and abs(r.log2fc) > 1.0)
+    |> arrange("padj")
+
+print(f"Significant DE genes (|log2FC| > 1, padj < 0.05): {nrow(significant)}")
+print(significant)
+
+let up = significant |> filter(|r| r.log2fc > 0) |> nrow()
+let down = significant |> filter(|r| r.log2fc < 0) |> nrow()
+print(f"Upregulated in tumor: {up}")
+print(f"Downregulated in tumor: {down}")
+print("")
+
+# ── Step 9: Multiple Testing Correction ──────────────────────────────────
+
+print("=== Step 9: Multiple Testing Correction ===")
+
+let raw_pvals = [0.001, 0.01, 0.03, 0.04, 0.049, 0.06, 0.1]
+let adjusted = p_adjust(raw_pvals, "BH")
+print("Raw vs Adjusted p-values:")
+for i in range(0, len(raw_pvals)) {
+    print(f"  {raw_pvals[i]} -> {round(adjusted[i], 4)}")
+}
+print("")
+
+# ── Step 10: Visualization ───────────────────────────────────────────────
+
+print("=== Step 10: Visualization ===")
+
+print("Generating volcano plot...")
+volcano(de_results, fc_threshold: 1.0, p_threshold: 0.05, title: "Tumor vs Normal DE")
+
+print("Generating MA plot...")
+ma_plot(de_results)
+print("")
+
+# ── Step 11: Export Results ──────────────────────────────────────────────
+
+print("=== Step 11: Export Results ===")
+
+write_csv(significant, "results/significant_genes.csv")
+print(f"Saved {nrow(significant)} significant genes to results/significant_genes.csv")
+
+write_csv(fc_table, "results/fold_changes.csv")
+print(f"Saved fold changes for {nrow(fc_table)} genes to results/fold_changes.csv")
+
+print("\n=== Pipeline complete ===")

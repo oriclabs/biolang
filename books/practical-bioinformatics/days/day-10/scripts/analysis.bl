@@ -1,0 +1,150 @@
+# Day 10: Table Analysis Pipeline
+# Run init.bl first to generate data files
+#
+# Demonstrates: csv, nrow, ncol, colnames, head, filter, mutate, arrange,
+# count_by, group_by, summarize, left_join, inner_join, anti_join,
+# select, pivot_wider, pivot_longer, row_number, rank, write_csv
+
+# ── Step 1: Load data ───────────────────────────────────────────────
+
+let expr = csv("data/expression.csv")
+let gene_info = csv("data/gene_info.csv")
+
+print(f"Expression data: {nrow(expr)} genes x {ncol(expr)} columns")
+print(f"Columns: {colnames(expr)}")
+print(f"Gene info: {nrow(gene_info)} annotations")
+print("")
+
+# ── Step 2: Explore ─────────────────────────────────────────────────
+
+print("=== First 5 rows ===")
+print(expr |> head(5))
+print("")
+
+print("=== Summary statistics ===")
+print(expr |> describe())
+print("")
+
+# ── Step 3: Add derived columns ─────────────────────────────────────
+
+let analyzed = expr
+    |> mutate("significant", |r| r.padj < 0.05)
+    |> mutate("direction", |r| if r.log2fc > 0 { "up" } else { "down" })
+    |> mutate("neg_log_p", |r| -1.0 * log10(r.pval))
+
+print("=== With derived columns (first 5) ===")
+print(analyzed |> head(5))
+print("")
+
+# ── Step 4: Filter significant genes ────────────────────────────────
+
+let sig_genes = analyzed |> filter(|r| r.significant)
+print(f"Significant genes: {nrow(sig_genes)} of {nrow(analyzed)}")
+
+let sig_up = analyzed |> filter(|r| r.significant and r.direction == "up")
+let sig_down = analyzed |> filter(|r| r.significant and r.direction == "down")
+print(f"  Upregulated: {nrow(sig_up)}")
+print(f"  Downregulated: {nrow(sig_down)}")
+print("")
+
+# ── Step 5: Count by category ──────────────────────────────────────
+
+print("=== Genes per chromosome ===")
+let chr_counts = analyzed |> count_by("chr")
+print(chr_counts)
+print("")
+
+print("=== Genes by biotype ===")
+let biotype_counts = analyzed |> count_by("biotype")
+print(biotype_counts)
+print("")
+
+# ── Step 6: Group and summarize ─────────────────────────────────────
+
+print("=== Significant genes by direction ===")
+let direction_summary = sig_genes
+    |> group_by("direction")
+    |> summarize(|key, subtable| {
+        direction: key,
+        count: nrow(subtable),
+        mean_fc: col_mean(subtable, "log2fc"),
+        min_padj: col_min(subtable, "padj")
+    })
+print(direction_summary)
+print("")
+
+# ── Step 7: Join with annotations ───────────────────────────────────
+
+let annotated = left_join(analyzed, gene_info, "gene")
+print(f"Annotated table: {nrow(annotated)} rows x {ncol(annotated)} columns")
+
+# Check for missing annotations
+let missing = anti_join(analyzed, gene_info, "gene")
+print(f"Genes without annotations: {nrow(missing)}")
+print("")
+
+# ── Step 8: Top 10 most significant ─────────────────────────────────
+
+print("=== Top 10 most significant genes ===")
+let top10 = annotated
+    |> filter(|r| r.significant)
+    |> arrange("padj")
+    |> head(10)
+    |> select("gene", "log2fc", "padj", "direction", "pathway")
+print(top10)
+print("")
+
+# ── Step 9: Pathway summary ─────────────────────────────────────────
+
+print("=== Pathway summary (significant genes only) ===")
+let pathway_summary = annotated
+    |> filter(|r| r.significant)
+    |> group_by("pathway")
+    |> summarize(|key, subtable| {
+        pathway: key,
+        n_genes: nrow(subtable),
+        mean_fc: col_mean(subtable, "log2fc")
+    })
+print(pathway_summary)
+print("")
+
+# ── Step 10: Pivot demonstration ────────────────────────────────────
+
+print("=== Pivot: long to wide ===")
+let long_data = [
+    {gene: "BRCA1", sample: "Control", expression: 5.2},
+    {gene: "BRCA1", sample: "Treated", expression: 8.1},
+    {gene: "TP53", sample: "Control", expression: 3.4},
+    {gene: "TP53", sample: "Treated", expression: 7.6},
+    {gene: "EGFR", sample: "Control", expression: 2.1},
+    {gene: "EGFR", sample: "Treated", expression: 9.3},
+] |> to_table()
+
+print("Long format:")
+print(long_data)
+
+let wide_data = long_data |> pivot_wider("sample", "expression")
+print("Wide format:")
+print(wide_data)
+
+let back_to_long = wide_data |> pivot_longer(["Control", "Treated"], "sample", "expression")
+print("Back to long:")
+print(back_to_long)
+print("")
+
+# ── Step 11: Window functions ───────────────────────────────────────
+
+print("=== Ranked by significance ===")
+let ranked = sig_genes
+    |> arrange("padj")
+    |> row_number()
+    |> select("gene", "log2fc", "padj", "row_number")
+    |> head(5)
+print(ranked)
+print("")
+
+# ── Step 12: Export results ─────────────────────────────────────────
+
+write_csv(annotated, "results/annotated_results.csv")
+print("Saved: results/annotated_results.csv")
+print("Done!")

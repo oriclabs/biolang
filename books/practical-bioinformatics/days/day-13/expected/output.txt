@@ -1,0 +1,124 @@
+=== Step 1: Loading Count Matrix ===
+Genes: 20
+Columns: ["gene", "normal_1", "normal_2", "normal_3", "tumor_1", "tumor_2", "tumor_3"]
+gene    normal_1  normal_2  normal_3  tumor_1  tumor_2  tumor_3
+BRCA1   120       135       128       340      380      355
+TP53    450       420       440       890      920      850
+GAPDH   5000      5200      4800      5100     4900     5300
+MYC     80        75        85        450      480      420
+ACTB    3000      3100      2900      3050     2950     3100
+
+=== Step 2: Library Sizes ===
+sample    total
+normal_1  20813
+normal_2  21389
+normal_3  20958
+tumor_1   23486
+tumor_2   23497
+tumor_3   23376
+
+=== Step 3: CPM Normalization ===
+CPM normalized (first 5 genes):
+gene    normal_1    normal_2    normal_3    tumor_1    tumor_2    tumor_3
+BRCA1   5765.2      6311.5      6111.5      14475.9    16174.9    15191.3
+TP53    21619.5     19630.3     21002.4     37889.0    39163.5    36369.3
+GAPDH   240217.1    243034.7    229095.5    217107.5   208617.1   226786.8
+MYC     3843.3      3505.5      4057.6      19156.6    20432.3    17972.8
+ACTB    144130.2    144875.9    138431.6    129848.3   125558.6   132638.9
+
+=== Step 4: TPM Normalization ===
+TPM normalized (first 5 genes):
+gene    normal_1    normal_2    normal_3    tumor_1    tumor_2    tumor_3
+BRCA1   3214.8      3518.9      3401.5      8150.2     9116.3     8550.1
+TP53    26971.3     24483.4     26179.1     47620.3    48967.0    45584.2
+GAPDH   238641.5    241543.0    226895.7    216413.8   207590.7   225700.3
+MYC     9607.1      8759.6      10130.4     48220.9    51524.5    45301.2
+ACTB    143201.7    143969.6    137264.8    129348.5   124933.4   131946.3
+
+=== Step 5: Mean Expression per Condition ===
+gene      normal_mean  tumor_mean
+BRCA1     127.7        358.3
+TP53      436.7        886.7
+GAPDH     5000.0       5100.0
+MYC       80.0         450.0
+ACTB      3000.0       3033.3
+VEGFA     200.0        620.0
+EGFR      310.0        780.0
+CDH1      520.0        155.0
+RB1       380.0        115.0
+PTEN      290.0        90.0
+APC       150.0        50.0
+KRAS      95.0         420.0
+HER2      60.0         540.0
+BCL2      340.0        120.0
+CDKN2A    260.0        70.0
+MDM2      180.0        500.0
+PIK3CA    110.0        370.0
+TERT      15.0         310.0
+IL6       45.0         380.0
+TNF       55.0         120.0
+
+=== Step 6: Fold Change ===
+Fold changes (first 10):
+gene    normal_mean  tumor_mean  log2fc
+BRCA1   127.7        358.3       1.49
+TP53    436.7        886.7       1.02
+GAPDH   5000.0       5100.0      0.03
+MYC     80.0         450.0       2.49
+ACTB    3000.0       3033.3      0.02
+VEGFA   200.0        620.0       1.63
+EGFR    310.0        780.0       1.33
+CDH1    520.0        155.0       -1.75
+RB1     380.0        115.0       -1.72
+PTEN    290.0        90.0        -1.69
+
+=== Step 7: Differential Expression ===
+DE results: 20 genes
+gene    log2fc    pvalue      padj        mean_ctrl  mean_treat
+TERT    4.37      0.000012    0.000240    15.0       310.0
+MYC     2.49      0.000035    0.000350    80.0       450.0
+HER2    3.17      0.000041    0.000273    60.0       540.0
+IL6     3.08      0.000058    0.000290    45.0       380.0
+KRAS    2.14      0.000089    0.000356    95.0       420.0
+
+=== Step 8: Significant DE Genes ===
+Significant DE genes (|log2FC| > 1, padj < 0.05): 16
+gene      log2fc    pvalue      padj        mean_ctrl  mean_treat
+TERT      4.37      0.000012    0.000240    15.0       310.0
+HER2      3.17      0.000041    0.000273    60.0       540.0
+IL6       3.08      0.000058    0.000290    45.0       380.0
+MYC       2.49      0.000035    0.000350    80.0       450.0
+KRAS      2.14      0.000089    0.000356    95.0       420.0
+PIK3CA    1.75      0.000150    0.000500    110.0      370.0
+MDM2      1.47      0.000210    0.000600    180.0      500.0
+VEGFA     1.63      0.000180    0.000514    200.0      620.0
+EGFR      1.33      0.000320    0.000800    310.0      780.0
+TP53      1.02      0.000450    0.001000    436.7      886.7
+CDKN2A    -1.89     0.000095    0.000380    260.0      70.0
+APC       -1.58     0.000120    0.000400    150.0      50.0
+PTEN      -1.69     0.000110    0.000393    290.0      90.0
+CDH1      -1.75     0.000085    0.000356    520.0      155.0
+RB1       -1.72     0.000130    0.000433    380.0      115.0
+BCL2      -1.50     0.000200    0.000571    340.0      120.0
+Upregulated in tumor: 10
+Downregulated in tumor: 6
+
+=== Step 9: Multiple Testing Correction ===
+Raw vs Adjusted p-values:
+  0.001 -> 0.007
+  0.01 -> 0.035
+  0.03 -> 0.07
+  0.04 -> 0.07
+  0.049 -> 0.0686
+  0.06 -> 0.07
+  0.1 -> 0.1
+
+=== Step 10: Visualization ===
+Generating volcano plot...
+Generating MA plot...
+
+=== Step 11: Export Results ===
+Saved 16 significant genes to results/significant_genes.csv
+Saved fold changes for 20 genes to results/fold_changes.csv
+
+=== Pipeline complete ===

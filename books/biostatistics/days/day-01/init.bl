@@ -1,0 +1,13 @@
+# Day 1: Why Statistics Matter in Biology
+# This is a narrative/introductory chapter — no data generation needed.
+# Students read about the role of statistics in modern genomics,
+# clinical trials, and epidemiology.
+
+println("Day 1: Why Statistics Matter in Biology")
+println("========================================")
+println("This is a narrative chapter — no data files to generate.")
+println("Topics covered: variability in biological systems, experimental")
+println("design, reproducibility crisis, and the role of biostatistics")
+println("in genomics, drug development, and precision medicine.")
+println("")
+println("Proceed to Day 2 to begin hands-on analysis with real data.")

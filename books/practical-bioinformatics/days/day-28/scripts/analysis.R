@@ -1,0 +1,255 @@
+library(dplyr)
+
+read_vcf <- function(path) {
+  lines <- readLines(path)
+  lines <- lines[!grepl("^##", lines)]
+  header_line <- lines[grepl("^#CHROM", lines)]
+  headers <- tolower(strsplit(sub("^#", "", header_line), "\t")[[1]])
+  data_lines <- lines[!grepl("^#", lines)]
+  if (length(data_lines) == 0) return(data.frame())
+  df <- read.delim(textConnection(paste(data_lines, collapse = "\n")),
+                   header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+  colnames(df) <- headers
+  df
+}
+
+extract_info_field <- function(info_str, field_name) {
+  parts <- strsplit(info_str, ";")[[1]]
+  prefix <- paste0(field_name, "=")
+  matched <- parts[startsWith(parts, prefix)]
+  if (length(matched) > 0) {
+    sub(prefix, "", matched[1])
+  } else {
+    ""
+  }
+}
+
+validate_vcf <- function(variants) {
+  if (nrow(variants) == 0) stop("VCF file contains no variants")
+  required <- c("chrom", "pos", "ref", "alt", "qual")
+  missing <- required[!required %in% colnames(variants)]
+  if (length(missing) > 0) {
+    stop(paste("Missing required VCF columns:", paste(missing, collapse = ", ")))
+  }
+  list(variant_count = nrow(variants), status = "valid")
+}
+
+quality_filter <- function(variants, min_qual, min_dp) {
+  variants %>%
+    mutate(
+      qual_num = as.numeric(qual),
+      dp = sapply(info, function(x) {
+        val <- extract_info_field(x, "DP")
+        if (val == "") 0L else as.integer(val)
+      })
+    ) %>%
+    filter(qual_num >= min_qual, dp >= min_dp) %>%
+    select(-qual_num)
+}
+
+make_variant_key <- function(chrom, pos, ref, alt) {
+  paste(chrom, pos, ref, alt, sep = ":")
+}
+
+frequency_filter <- function(variants, max_af) {
+  variants %>%
+    mutate(af = sapply(info, function(x) {
+      val <- extract_info_field(x, "AF")
+      if (val == "") 0.0 else as.numeric(val)
+    })) %>%
+    filter(af <= max_af)
+}
+
+panel_filter <- function(variants, panel) {
+  panel_genes <- panel$gene
+  variants %>% filter(gene %in% panel_genes)
+}
+
+clinvar_score <- function(cls) {
+  scores <- c(pathogenic = 3, likely_pathogenic = 2, uncertain = 0,
+              likely_benign = -1, benign = -2)
+  ifelse(cls %in% names(scores), scores[cls], 0)
+}
+
+frequency_score <- function(af) {
+  ifelse(af == 0.0, 1, ifelse(af < 0.001, 0, -1))
+}
+
+impact_score <- function(impact) {
+  scores <- c(frameshift = 2, nonsense = 2, splice = 2,
+              missense = 1, synonymous = -1)
+  ifelse(impact %in% names(scores), scores[impact], 0)
+}
+
+gene_disease_score <- function(strength) {
+  ifelse(strength == "definitive", 1, 0)
+}
+
+classify_variant <- function(score) {
+  case_when(
+    score >= 4 ~ "Pathogenic",
+    score == 3 ~ "Likely Pathogenic",
+    score >= 1 ~ "VUS",
+    score == 0 ~ "Likely Benign",
+    TRUE ~ "Benign"
+  )
+}
+
+score_variants <- function(variants) {
+  variants %>%
+    mutate(
+      clinvar_class = ifelse(is.na(clinvar_class), "unknown", clinvar_class),
+      af = sapply(info, function(x) {
+        val <- extract_info_field(x, "AF")
+        if (val == "") 0.0 else as.numeric(val)
+      }),
+      gene_disease = ifelse(is.na(gene_disease), "unknown", gene_disease),
+      impact = ifelse(is.na(impact), sapply(info, function(x) extract_info_field(x, "IMPACT")), impact),
+      s1 = clinvar_score(clinvar_class),
+      s2 = frequency_score(af),
+      s3 = impact_score(impact),
+      s4 = gene_disease_score(gene_disease),
+      score = s1 + s2 + s3 + s4,
+      classification = classify_variant(score)
+    ) %>%
+    select(variant_key, gene, chrom, pos, ref, alt, impact,
+           clinvar_class, af, score, classification)
+}
+
+format_variant_line <- function(row) {
+  sprintf("  %s | %s:%s | %s>%s | %s | %s | Score:%d",
+          row$gene, row$chrom, row$pos, row$ref, row$alt,
+          row$impact, row$clinvar_class, row$score)
+}
+
+compute_qc_stats <- function(all_variants, qc_passed, rare, panel_matched) {
+  quals <- as.numeric(all_variants$qual)
+  depths <- sapply(all_variants$info, function(x) {
+    val <- extract_info_field(x, "DP")
+    if (val == "") 0L else as.integer(val)
+  })
+  list(
+    total_input = nrow(all_variants),
+    passed_qc = nrow(qc_passed),
+    rare_count = nrow(rare),
+    panel_count = nrow(panel_matched),
+    mean_qual = mean(quals),
+    mean_dp = mean(depths)
+  )
+}
+
+build_report <- function(patient_info, classified, qc_stats) {
+  path_v <- classified %>% filter(classification == "Pathogenic")
+  lp_v <- classified %>% filter(classification == "Likely Pathogenic")
+  vus_v <- classified %>% filter(classification == "VUS")
+  lb_v <- classified %>% filter(classification == "Likely Benign")
+  b_v <- classified %>% filter(classification == "Benign")
+
+  report <- c(
+    "================================================================",
+    "       CLINICAL VARIANT ANALYSIS REPORT (EDUCATIONAL ONLY)",
+    "================================================================",
+    "",
+    "DISCLAIMER: This report is generated by an educational pipeline.",
+    "It must NOT be used for clinical decision-making.",
+    "",
+    "--- PATIENT INFORMATION ---",
+    sprintf("Patient ID: %s", patient_info$patient_id),
+    sprintf("Sample ID: %s", patient_info$sample_id),
+    sprintf("Indication: %s", patient_info$indication),
+    sprintf("Report Date: %s", patient_info$report_date),
+    "",
+    "--- SUMMARY ---",
+    sprintf("Total variants analyzed: %d", qc_stats$total_input),
+    sprintf("Passed quality filter: %d", qc_stats$passed_qc),
+    sprintf("Rare variants (AF <= 1%%): %d", qc_stats$rare_count),
+    sprintf("In gene panel: %d", qc_stats$panel_count),
+    sprintf("Classified: %d", nrow(classified)),
+    "",
+    sprintf("  Pathogenic:        %d", nrow(path_v)),
+    sprintf("  Likely Pathogenic: %d", nrow(lp_v)),
+    sprintf("  VUS:               %d", nrow(vus_v)),
+    sprintf("  Likely Benign:     %d", nrow(lb_v)),
+    sprintf("  Benign:            %d", nrow(b_v)),
+    ""
+  )
+
+  if (nrow(path_v) > 0) {
+    report <- c(report, "--- PATHOGENIC VARIANTS (Reportable) ---")
+    for (i in seq_len(nrow(path_v))) {
+      report <- c(report, format_variant_line(path_v[i, ]))
+    }
+    report <- c(report, "")
+  }
+
+  if (nrow(lp_v) > 0) {
+    report <- c(report, "--- LIKELY PATHOGENIC VARIANTS (Reportable) ---")
+    for (i in seq_len(nrow(lp_v))) {
+      report <- c(report, format_variant_line(lp_v[i, ]))
+    }
+    report <- c(report, "")
+  }
+
+  if (nrow(vus_v) > 0) {
+    report <- c(report, "--- VARIANTS OF UNCERTAIN SIGNIFICANCE ---")
+    for (i in seq_len(nrow(vus_v))) {
+      report <- c(report, format_variant_line(vus_v[i, ]))
+    }
+    report <- c(report, "")
+  }
+
+  report <- c(report,
+    "--- QUALITY METRICS ---",
+    sprintf("Mean QUAL score: %s", qc_stats$mean_qual),
+    sprintf("Mean depth: %s", qc_stats$mean_dp),
+    sprintf("Variants filtered (low quality): %d",
+            qc_stats$total_input - qc_stats$passed_qc),
+    "",
+    "--- LIMITATIONS ---",
+    "- This analysis covers exonic regions only",
+    "- Structural variants and CNVs are not assessed",
+    "- Intronic and regulatory variants may be missed",
+    "- Classification is based on a simplified scoring model",
+    "",
+    "--- END OF REPORT ---"
+  )
+  report
+}
+
+# --- Main pipeline ---
+variants <- read_vcf("data/patient.vcf")
+gene_db <- read.delim("data/gene_db.tsv", stringsAsFactors = FALSE)
+clinvar_db <- read.delim("data/clinvar_db.tsv", stringsAsFactors = FALSE)
+cancer_panel <- read.delim("data/cancer_panel.tsv", stringsAsFactors = FALSE)
+patient_meta <- read.delim("data/patient_info.tsv", stringsAsFactors = FALSE)
+patient_info <- patient_meta[1, ]
+
+validate_vcf(variants)
+
+qc_passed <- quality_filter(variants, 30.0, 10)
+
+qc_passed <- qc_passed %>%
+  mutate(
+    variant_key = make_variant_key(chrom, pos, ref, alt),
+    gene = sapply(info, function(x) extract_info_field(x, "GENE")),
+    impact = sapply(info, function(x) extract_info_field(x, "IMPACT"))
+  )
+
+annotated <- qc_passed %>%
+  left_join(gene_db, by = "gene") %>%
+  left_join(clinvar_db, by = "variant_key")
+
+rare_variants <- frequency_filter(annotated, 0.01)
+
+panel_matched <- panel_filter(rare_variants, cancer_panel)
+
+classified <- score_variants(panel_matched)
+
+qc_stats <- compute_qc_stats(variants, qc_passed, rare_variants, panel_matched)
+
+report_lines <- build_report(patient_info, classified, qc_stats)
+
+dir.create("data/output", recursive = TRUE, showWarnings = FALSE)
+writeLines(report_lines, "data/output/clinical_report.txt")
+write.table(classified, "data/output/classified_variants.tsv",
+            sep = "\t", row.names = FALSE, quote = FALSE)

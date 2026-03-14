@@ -1,0 +1,152 @@
+let config = llm_models()
+if config.configured == false {
+    error("LLM provider required. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL.")
+}
+
+let de_genes = read_tsv("data/de_genes.tsv")
+
+let sig = de_genes |> filter(|g| g.padj < 0.05)
+let up = sig |> filter(|g| g.log2fc > 1.0)
+let down = sig |> filter(|g| g.log2fc < -1.0)
+
+let up_names = up |> sort(|a, b| a.padj < b.padj) |> map(|g| g.gene)
+let down_names = down |> sort(|a, b| a.padj < b.padj) |> map(|g| g.gene)
+
+let stats = {
+    total_genes: len(de_genes),
+    significant: len(sig),
+    upregulated: len(up),
+    downregulated: len(down),
+    mean_abs_fc: sig |> map(|g| if g.log2fc > 0 { g.log2fc } else { -1.0 * g.log2fc }) |> mean(),
+    top_up: up_names |> map(|g| str(g)) |> join(", "),
+    top_down: down_names |> map(|g| str(g)) |> join(", ")
+}
+
+let interpretation = try {
+    chat(
+        "Write a results paragraph for a manuscript describing this differential expression analysis of breast cancer tumor vs normal tissue. Include: (1) overall summary, (2) notable upregulated pathways, (3) notable downregulated pathways, (4) suggested follow-up experiments. Be specific about gene names.",
+        stats
+    )
+} catch err {
+    f"[AI interpretation unavailable: {err}]"
+}
+
+let variants = read_tsv("data/variants.tsv")
+
+let known_oncogenes = ["TP53", "BRCA1", "BRCA2", "KRAS", "EGFR", "PIK3CA", "BRAF", "MYC", "RB1", "PTEN"]
+
+let annotated_variants = variants
+    |> filter(|v| v.consequence != "synonymous_variant")
+    |> map(|v| {
+        let is_cancer_gene = known_oncogenes |> filter(|g| g == v.gene) |> len() > 0
+
+        let severity = if v.consequence == "stop_gained" { "high" }
+            else if contains(v.consequence, "frameshift") { "high" }
+            else if contains(v.consequence, "splice") { "high" }
+            else if v.consequence == "missense_variant" { "moderate" }
+            else { "low" }
+
+        let context = {
+            gene: v.gene,
+            position: f"{v.chrom}:{v.pos}",
+            change: f"{v.ref}>{v.alt}",
+            consequence: v.consequence,
+            cancer_gene: is_cancer_gene,
+            computed_severity: severity
+        }
+
+        let ai_interp = try {
+            chat("Briefly interpret this variant's clinical significance in 2-3 sentences.", context)
+        } catch err {
+            "AI interpretation unavailable"
+        }
+
+        {
+            gene: v.gene,
+            variant: f"{v.chrom}:{v.pos}{v.ref}>{v.alt}",
+            consequence: v.consequence,
+            severity: severity,
+            cancer_gene: is_cancer_gene,
+            ai_interpretation: ai_interp
+        }
+    })
+
+let sequences = read_fasta("data/sequences.fasta")
+
+let seq_features = sequences |> map(|seq| {
+    let gc = gc_content(seq.sequence)
+    {
+        id: seq.id,
+        length: len(seq.sequence),
+        gc_content: gc,
+        at_rich: gc < 0.4,
+        gc_rich: gc > 0.6
+    }
+})
+
+let seq_summary = {
+    num_sequences: len(seq_features),
+    mean_gc: seq_features |> map(|f| f.gc_content) |> mean(),
+    at_rich_count: seq_features |> filter(|f| f.at_rich) |> len(),
+    gc_rich_count: seq_features |> filter(|f| f.gc_rich) |> len()
+}
+
+let seq_interp = try {
+    chat(
+        "These are sequence composition statistics from genomic regions. What biological significance might the GC content distribution suggest? Consider promoter regions, coding vs non-coding, CpG islands. Be brief (3-4 sentences).",
+        seq_summary
+    )
+} catch err {
+    "[Interpretation unavailable]"
+}
+
+let report_lines = [
+    "# AI-Assisted Analysis Report",
+    f"# Generated: {format_date(now(), \"%Y-%m-%d %H:%M\")}",
+    "# NOTE: AI interpretations require expert verification",
+    "",
+    "## Differential Expression Summary",
+    f"Total genes tested: {stats.total_genes}",
+    f"Significant (padj < 0.05): {stats.significant}",
+    f"Upregulated (log2FC > 1): {stats.upregulated}",
+    f"Downregulated (log2FC < -1): {stats.downregulated}",
+    f"Mean absolute fold change: {stats.mean_abs_fc}",
+    "",
+    "## Top Upregulated Genes",
+    stats.top_up,
+    "",
+    "## Top Downregulated Genes",
+    stats.top_down,
+    "",
+    "## AI Interpretation (DE Analysis)",
+    interpretation,
+    "",
+    "## Variant Annotations"
+]
+
+annotated_variants |> each(|v| {
+    report_lines = report_lines + [
+        f"  {v.gene} ({v.variant}) - {v.consequence} - severity:{v.severity}",
+        f"    AI: {v.ai_interpretation}",
+        ""
+    ]
+})
+
+report_lines = report_lines + [
+    "",
+    "## Sequence Composition Analysis",
+    f"Sequences analyzed: {seq_summary.num_sequences}",
+    f"Mean GC content: {seq_summary.mean_gc}",
+    f"AT-rich regions: {seq_summary.at_rich_count}",
+    f"GC-rich regions: {seq_summary.gc_rich_count}",
+    "",
+    "## AI Interpretation (Sequence Composition)",
+    seq_interp,
+    "",
+    "## Disclaimer",
+    "All AI-generated interpretations in this report were produced by a large",
+    "language model and have NOT been verified against primary databases.",
+    "Do not use for clinical decision-making without expert review."
+]
+
+write_lines(report_lines, "data/output/ai_report.txt")

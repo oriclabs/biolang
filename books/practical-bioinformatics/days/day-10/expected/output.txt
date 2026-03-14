@@ -1,0 +1,115 @@
+Expression data: 20 genes x 6 columns
+Columns: [gene, log2fc, pval, padj, chr, biotype]
+Gene info: 20 annotations
+
+=== First 5 rows ===
+gene  | log2fc | pval     | padj    | chr | biotype
+EGFR  | 3.8    | 0.000001 | 0.00001 | 7   | protein_coding
+BRCA1 | 2.4    | 0.001    | 0.005   | 17  | protein_coding
+VEGFA | 2.1    | 0.002    | 0.008   | 6   | protein_coding
+MYC   | 1.9    | 0.003    | 0.01    | 8   | protein_coding
+FOXP3 | 1.7    | 0.005    | 0.015   | X   | protein_coding
+
+=== Summary statistics ===
+(describe output varies by implementation)
+
+=== With derived columns (first 5) ===
+gene  | log2fc | pval     | padj    | chr | biotype        | significant | direction | neg_log_p
+EGFR  | 3.8    | 0.000001 | 0.00001 | 7   | protein_coding | true        | up        | 6.0
+BRCA1 | 2.4    | 0.001    | 0.005   | 17  | protein_coding | true        | up        | 3.0
+VEGFA | 2.1    | 0.002    | 0.008   | 6   | protein_coding | true        | up        | 2.698...
+MYC   | 1.9    | 0.003    | 0.01    | 8   | protein_coding | true        | up        | 2.522...
+FOXP3 | 1.7    | 0.005    | 0.015   | X   | protein_coding | true        | up        | 2.301...
+
+Significant genes: 13 of 20
+  Upregulated: 9
+  Downregulated: 4
+
+=== Genes per chromosome ===
+chr | count
+7   | 2
+17  | 4
+6   | 1
+8   | 1
+X   | 1
+12  | 2
+9   | 1
+3   | 1
+13  | 1
+10  | 1
+5   | 1
+1   | 1
+11  | 2
+
+=== Genes by biotype ===
+biotype        | count
+protein_coding | 17
+lncRNA         | 3
+
+=== Significant genes by direction ===
+direction | count | mean_fc | min_padj
+down      | 4     | -1.25   | 0.012
+up        | 9     | 1.744.. | 0.00001
+
+Annotated table: 20 rows x 12 columns
+Genes without annotations: 0
+
+=== Top 10 most significant genes ===
+gene   | log2fc | padj    | direction | pathway
+EGFR   | 3.8    | 0.00001 | up        | RTK signaling
+BRCA1  | 2.4    | 0.005   | up        | DNA repair
+VEGFA  | 2.1    | 0.008   | up        | Angiogenesis
+MYC    | 1.9    | 0.01    | up        | Cell cycle
+PTEN   | -1.6   | 0.012   | down      | PI3K-AKT signaling
+FOXP3  | 1.7    | 0.015   | up        | Immune regulation
+CDK4   | 1.5    | 0.02    | up        | Cell cycle
+RB1    | -1.4   | 0.02    | down      | Cell cycle
+ERBB2  | 1.3    | 0.025   | up        | RTK signaling
+TP53   | -1.1   | 0.03    | down      | Apoptosis
+
+=== Pathway summary (significant genes only) ===
+pathway           | n_genes | mean_fc
+RTK signaling     | 2       | 2.55
+DNA repair        | 1       | 2.4
+Angiogenesis      | 1       | 2.1
+Cell cycle        | 3       | 0.666...
+PI3K-AKT signaling | 1     | -1.6
+Immune regulation | 1       | 1.7
+Apoptosis         | 1       | -1.1
+JAK-STAT signaling | 1     | 1.1
+MAPK signaling    | 1       | 0.9
+WNT signaling     | 1       | -0.9
+
+=== Pivot: long to wide ===
+Long format:
+gene  | sample  | expression
+BRCA1 | Control | 5.2
+BRCA1 | Treated | 8.1
+TP53  | Control | 3.4
+TP53  | Treated | 7.6
+EGFR  | Control | 2.1
+EGFR  | Treated | 9.3
+Wide format:
+gene  | Control | Treated
+BRCA1 | 5.2     | 8.1
+TP53  | 3.4     | 7.6
+EGFR  | 2.1     | 9.3
+Back to long:
+gene  | sample  | expression
+BRCA1 | Control | 5.2
+BRCA1 | Treated | 8.1
+TP53  | Control | 3.4
+TP53  | Treated | 7.6
+EGFR  | Control | 2.1
+EGFR  | Treated | 9.3
+
+=== Ranked by significance ===
+gene  | log2fc | padj    | row_number
+EGFR  | 3.8    | 0.00001 | 1
+BRCA1 | 2.4    | 0.005   | 2
+VEGFA | 2.1    | 0.008   | 3
+MYC   | 1.9    | 0.01    | 4
+PTEN  | -1.6   | 0.012   | 5
+
+Saved: results/annotated_results.csv
+Done!
