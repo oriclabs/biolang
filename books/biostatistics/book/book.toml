@@ -22,6 +22,7 @@ enable = true
 editable = false
 
 [output.pdf]
+optional = true
 title = "Practical Biostatistics in 30 Days"
 authors = "Bioras"
 output-file = "practical-biostatistics-in-30-days.pdf"

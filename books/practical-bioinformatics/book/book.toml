@@ -25,5 +25,6 @@ optional = true
 
 [output.pdf]
 command = "mdbook-pdf"
+optional = true
 output-file = "practical-bioinformatics-in-30-days.pdf"
 paper-size = "A4"
