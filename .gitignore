@@ -71,10 +71,5 @@ Thumbs.db
 !/books/language/
 !/books/practical-bioinformatics/
 
-# Test artifacts
-/website/tests/
-playwright-report/
-test-results/
-
 # Node modules (website build)
 node_modules/
