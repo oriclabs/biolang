@@ -21,6 +21,7 @@ editable = false
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"
+optional = true
 
 [output.pdf]
 command = "mdbook-pdf"

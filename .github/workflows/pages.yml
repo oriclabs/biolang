@@ -39,6 +39,9 @@ jobs:
           npm ci
           npx tailwindcss -i src/input.css -o assets/styles.css --minify
 
+      - name: Install mdBook preprocessors
+        run: cargo install mdbook-mermaid --no-default-features 2>/dev/null || true
+
       - name: Build books
         run: |
           mdbook build books/practical-bioinformatics/book
