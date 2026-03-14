@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'website/**'
-      - 'book/**'
+      - 'books/**'
   workflow_dispatch:
 
 permissions:
@@ -39,8 +39,10 @@ jobs:
           npm ci
           npx tailwindcss -i src/input.css -o assets/styles.css --minify
 
-      - name: Build book
-        run: mdbook build book --dest-dir ${{ github.workspace }}/website/book
+      - name: Build books
+        run: |
+          mdbook build books/practical-bioinformatics/book
+          mdbook build books/biostatistics/book
 
       - uses: actions/upload-pages-artifact@v3
         with:
