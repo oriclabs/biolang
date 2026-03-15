@@ -17,7 +17,8 @@
     "storage",
     "contextMenus",
     "scripting",
-    "tabs"
+    "tabs",
+    "webNavigation"
   ],
   "side_panel": {
     "default_path": "sidebar.html"

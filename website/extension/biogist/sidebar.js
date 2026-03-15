@@ -176,14 +176,16 @@
 
       for (const item of visibleItems) {
         const name = typeof item === "string" ? item : (item.id || String(item));
+        const count = (typeof item === "object" && item.count) ? item.count : null;
         const li = document.createElement("li");
         li.className = "entity-item" + (activeEntity === `${type}:${name}` ? " active" : "");
         li.innerHTML = `
           <span class="entity-icon">${meta.icon}</span>
           <span class="entity-name">${escapeHtml(name)}</span>
+          ${count && count > 1 ? '<span style="font-size:10px;color:#64748b;margin-left:2px">×' + count + '</span>' : ''}
           <span class="entity-badge ${meta.cls}">${meta.badge}</span>
         `;
-        li.addEventListener("click", () => selectEntity(type, name));
+        li.addEventListener("click", () => selectEntity(type, name, item));
 
         // Inline "Open in BLViewer" button for file entities
         if (type === "file") {
@@ -279,39 +281,62 @@
   }
 
   // --- Entity selection & detail fetch ---
-  async function selectEntity(type, name) {
+  async function selectEntity(type, name, entityObj) {
     activeEntity = `${type}:${name}`;
     render();
     $detailTitle.textContent = name;
     $detailBody.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
-    // Show detail panel (flip view)
     document.getElementById("detail-panel").classList.add("active");
 
     try {
       const info = await fetchEntityInfo(type, name);
-      renderDetail(type, name, info);
+      renderDetail(type, name, info, entityObj);
     } catch (err) {
       $detailBody.innerHTML = `<div class="detail-placeholder">Failed to load details: ${escapeHtml(err.message)}</div>`;
     }
   }
 
-  function renderDetail(type, name, info) {
+  function renderDetail(type, name, info, entityObj) {
     if (!info) {
       $detailBody.innerHTML = '<div class="detail-placeholder">No information found.</div>';
       return;
     }
 
     let html = "";
+
+    // Show snippet context if available
+    if (entityObj && entityObj.snippet) {
+      html += `<div style="background:#020617;border:1px solid #1e293b;border-radius:6px;padding:8px;margin-bottom:10px;font-size:11px;color:#94a3b8;line-height:1.5;font-style:italic">"${escapeHtml(entityObj.snippet)}"</div>`;
+    }
+    // Show occurrence count
+    if (entityObj && entityObj.count && entityObj.count > 1) {
+      html += `<div style="font-size:11px;color:#64748b;margin-bottom:8px">Mentioned <strong style="color:#e2e8f0">${entityObj.count} times</strong> on this page</div>`;
+    }
+
     for (const [label, value] of Object.entries(info)) {
       if (value === null || value === undefined || value === "") continue;
+      if (label === "Link") continue; // We'll add source links separately at the bottom
       const displayVal = typeof value === "string" && value.startsWith("http")
-        ? `<a href="${escapeHtml(value)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`
+        ? `<a href="${escapeHtml(value)}" target="_blank" rel="noopener" style="word-break:break-all">${escapeHtml(value)}</a>`
         : escapeHtml(String(value));
       html += `<div class="detail-row">
         <span class="detail-label">${escapeHtml(label)}</span>
         <span class="detail-value">${displayVal}</span>
       </div>`;
     }
+
+    // Source links section
+    const links = buildSourceLinks(type, name, info);
+    if (links.length > 0) {
+      html += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid #1e293b">';
+      html += '<div style="font-size:10px;color:#475569;text-transform:uppercase;font-weight:600;margin-bottom:6px">View on</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      links.forEach(l => {
+        html += `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" style="font-size:11px;color:#06b6d4;background:#0f172a;border:1px solid #1e293b;padding:3px 8px;border-radius:4px;text-decoration:none">${escapeHtml(l.label)}</a>`;
+      });
+      html += '</div></div>';
+    }
+
     $detailBody.innerHTML = html || '<div class="detail-placeholder">No additional details available.</div>';
 
     // SRA download command for SRR accessions
@@ -330,6 +355,44 @@
       cmdDiv.appendChild(copyBtn);
       $detailBody.appendChild(cmdDiv);
     }
+  }
+
+  // --- Source links builder ---
+  function buildSourceLinks(type, name, info) {
+    const links = [];
+    const geneId = info && info["Gene ID"];
+    const taxid = info && info["Taxonomy ID"];
+
+    if (type === "gene") {
+      if (geneId) links.push({ label: "NCBI Gene", url: `https://www.ncbi.nlm.nih.gov/gene/${geneId}` });
+      links.push({ label: "Ensembl", url: `https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${name}` });
+      if (info && info["UniProt"]) links.push({ label: "UniProt", url: `https://www.uniprot.org/uniprot/${info["UniProt"]}` });
+      links.push({ label: "GeneCards", url: `https://www.genecards.org/cgi-bin/carddisp.pl?gene=${name}` });
+    } else if (type === "variant") {
+      if (/^rs\d+$/i.test(name)) {
+        links.push({ label: "dbSNP", url: `https://www.ncbi.nlm.nih.gov/snp/${name}` });
+        links.push({ label: "gnomAD", url: `https://gnomad.broadinstitute.org/variant/${name}` });
+        links.push({ label: "ClinVar", url: `https://www.ncbi.nlm.nih.gov/clinvar/?term=${name}` });
+      } else if (/^VCV/i.test(name)) {
+        links.push({ label: "ClinVar", url: `https://www.ncbi.nlm.nih.gov/clinvar/variation/${name.replace("VCV", "")}` });
+      } else if (/^COSM/i.test(name)) {
+        links.push({ label: "COSMIC", url: `https://cancer.sanger.ac.uk/cosmic/mutation/overview?id=${name.replace("COSM", "")}` });
+      }
+    } else if (type === "accession") {
+      if (/^GSE\d+$/i.test(name)) links.push({ label: "GEO", url: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${name}` });
+      if (/^SRR\d+$/i.test(name)) links.push({ label: "SRA", url: `https://www.ncbi.nlm.nih.gov/sra/${name}` });
+      if (/^SRP\d+$/i.test(name)) links.push({ label: "SRA Project", url: `https://www.ncbi.nlm.nih.gov/sra/?term=${name}` });
+      if (/^PRJNA\d+$/i.test(name)) links.push({ label: "BioProject", url: `https://www.ncbi.nlm.nih.gov/bioproject/${name}` });
+      if (/^PRJEB\d+$/i.test(name)) links.push({ label: "ENA", url: `https://www.ebi.ac.uk/ena/browser/view/${name}` });
+      if (/^ENSG\d+$/i.test(name)) links.push({ label: "Ensembl", url: `https://www.ensembl.org/id/${name}` });
+      if (/^ENST\d+$/i.test(name)) links.push({ label: "Ensembl", url: `https://www.ensembl.org/id/${name}` });
+      if (/^NM_/i.test(name)) links.push({ label: "RefSeq", url: `https://www.ncbi.nlm.nih.gov/nuccore/${name}` });
+      if (/^10\.\d{4}/.test(name)) links.push({ label: "DOI", url: `https://doi.org/${name}` });
+    } else if (type === "species") {
+      if (taxid) links.push({ label: "NCBI Taxonomy", url: `https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=${taxid}` });
+      if (taxid) links.push({ label: "Ensembl", url: `https://www.ensembl.org/id/${taxid}` });
+    }
+    return links;
   }
 
   // --- API fetches ---

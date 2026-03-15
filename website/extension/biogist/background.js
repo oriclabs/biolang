@@ -123,6 +123,14 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   delete tabEntities[tabId];
 });
 
+// Clean up highlights when page navigates (new URL in same tab)
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId === 0) {
+    // Main frame navigation — clear stored entities for this tab
+    delete tabEntities[details.tabId];
+  }
+});
+
 // When user switches tabs, send that tab's stored entities to sidebar
 chrome.tabs.onActivated.addListener((activeInfo) => {
   const entities = tabEntities[activeInfo.tabId] || [];

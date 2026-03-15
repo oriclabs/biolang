@@ -129,72 +129,66 @@
 
   // ── Detection Functions ──────────────────────────────────────────────────
 
+  // Extract a snippet of text around a position
+  function getSnippet(text, pos, radius) {
+    radius = radius || 40;
+    var start = Math.max(0, pos - radius);
+    var end = Math.min(text.length, pos + radius);
+    var s = text.substring(start, end).replace(/\s+/g, " ").trim();
+    return (start > 0 ? "..." : "") + s + (end < text.length ? "..." : "");
+  }
+
   function detectGenes(text) {
     var results = [];
-    var seen = new Set();
+    var seen = {};
     var re = /\b([A-Z][A-Z0-9]{1,9})\b/g;
     var match;
     while ((match = re.exec(text)) !== null) {
       var symbol = match[1];
-      if (!seen.has(symbol) && !EXCLUDE.has(symbol) && GENE_SYMBOLS.has(symbol)) {
-        seen.add(symbol);
-        results.push({ type: "gene", id: symbol, position: match.index });
+      if (!EXCLUDE.has(symbol) && GENE_SYMBOLS.has(symbol)) {
+        if (!seen[symbol]) {
+          seen[symbol] = { type: "gene", id: symbol, position: match.index, count: 1, snippet: getSnippet(text, match.index) };
+        } else {
+          seen[symbol].count++;
+        }
       }
     }
     // Also catch gene names with hyphens (e.g. HLA-A, HLA-B)
     var hyphenRe = /\b([A-Z][A-Z0-9]+-[A-Z0-9]+)\b/g;
     while ((match = hyphenRe.exec(text)) !== null) {
-      if (GENE_SYMBOLS.has(match[1]) && !seen.has(match[1])) {
-        seen.add(match[1]);
-        results.push({ type: "gene", id: match[1], position: match.index });
+      if (GENE_SYMBOLS.has(match[1]) && !seen[match[1]]) {
+        seen[match[1]] = { type: "gene", id: match[1], position: match.index, count: 1, snippet: getSnippet(text, match.index) };
       }
     }
-    return results;
+    return Object.values(seen);
   }
 
   function detectVariants(text) {
     var results = [];
-    var seen = new Set();
+    var seen = {};
     var match;
 
-    // rsIDs: rs followed by digits
+    function addVariant(id, subtype, pos) {
+      if (!seen[id]) {
+        seen[id] = { type: "variant", id: id, subtype: subtype, position: pos, count: 1, snippet: getSnippet(text, pos) };
+      } else {
+        seen[id].count++;
+      }
+    }
+
     var rsRe = /\b(rs\d{3,12})\b/gi;
-    while ((match = rsRe.exec(text)) !== null) {
-      var id = match[1].toLowerCase();
-      if (!seen.has(id)) {
-        seen.add(id);
-        results.push({ type: "variant", id: id, subtype: "rsid", position: match.index });
-      }
-    }
+    while ((match = rsRe.exec(text)) !== null) addVariant(match[1].toLowerCase(), "rsid", match.index);
 
-    // HGVS notation: NM_007294.4:c.5266dupC, p.Arg1699Trp, etc.
     var hgvsRe = /\b((?:NM_|NP_|NC_)\d+(?:\.\d+)?:[cpg]\.\S+?)(?=[\s,;)\]]|$)/g;
-    while ((match = hgvsRe.exec(text)) !== null) {
-      if (!seen.has(match[1])) {
-        seen.add(match[1]);
-        results.push({ type: "variant", id: match[1], subtype: "hgvs", position: match.index });
-      }
-    }
+    while ((match = hgvsRe.exec(text)) !== null) addVariant(match[1], "hgvs", match.index);
 
-    // ClinVar variation IDs
     var clinvarRe = /\b(VCV\d{9,12})\b/g;
-    while ((match = clinvarRe.exec(text)) !== null) {
-      if (!seen.has(match[1])) {
-        seen.add(match[1]);
-        results.push({ type: "variant", id: match[1], subtype: "clinvar", position: match.index });
-      }
-    }
+    while ((match = clinvarRe.exec(text)) !== null) addVariant(match[1], "clinvar", match.index);
 
-    // COSMIC mutation IDs
     var cosmicRe = /\b(COSM\d{3,10})\b/g;
-    while ((match = cosmicRe.exec(text)) !== null) {
-      if (!seen.has(match[1])) {
-        seen.add(match[1]);
-        results.push({ type: "variant", id: match[1], subtype: "cosmic", position: match.index });
-      }
-    }
+    while ((match = cosmicRe.exec(text)) !== null) addVariant(match[1], "cosmic", match.index);
 
-    return results;
+    return Object.values(seen);
   }
 
   function detectAccessions(text) {
