@@ -9,6 +9,9 @@
   let currentEntities = []; // flat list of {type, id, subtype} for Copy IDs
   let activeEntity = null;
   let searchFilter = "";
+  let mergedMode = false;
+  let mergedSources = []; // [{tabId, title, count}] when in merged mode
+  let currentTabId = null;
   const collapsed = {};
   const expandedSections = {}; // tracks "Show all" state per type
   const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -142,6 +145,15 @@
     $empty.style.display = total === 0 ? "block" : "none";
     $sections.innerHTML = "";
 
+    // Show merged sources header
+    if (mergedMode && mergedSources.length > 0) {
+      const srcDiv = document.createElement("div");
+      srcDiv.style.cssText = "padding:8px 14px;background:#0f172a;border-bottom:1px solid #1e293b;font-size:11px;color:#64748b;";
+      srcDiv.innerHTML = '<span style="color:#06b6d4;font-weight:600">Merged from ' + mergedSources.length + ' tabs:</span><br>' +
+        mergedSources.map(s => '<span style="color:#94a3b8">' + escapeHtml(s.title.substring(0, 50)) + ' (' + s.count + ')</span>').join('<br>');
+      $sections.appendChild(srcDiv);
+    }
+
     for (const [type, items] of Object.entries(entities)) {
       if (items.length === 0) continue;
 
@@ -177,14 +189,15 @@
       for (const item of visibleItems) {
         const name = typeof item === "string" ? item : (item.id || String(item));
         const count = (typeof item === "object" && item.count) ? item.count : null;
+        const source = (mergedMode && typeof item === "object" && item.source) ? item.source : null;
         const li = document.createElement("li");
         li.className = "entity-item" + (activeEntity === `${type}:${name}` ? " active" : "");
         li.innerHTML = `
           <span class="entity-icon">${meta.icon}</span>
           <span class="entity-name">${escapeHtml(name)}</span>
-          ${count && count > 1 ? '<span style="font-size:10px;color:#64748b;margin-left:2px">×' + count + '</span>' : ''}
+          ${count && count > 1 ? '<span style="font-size:10px;color:#64748b;margin-left:2px">\u00d7' + count + '</span>' : ''}
           <span class="entity-badge ${meta.cls}">${meta.badge}</span>
-        `;
+        ` + (source ? `<div style="font-size:9px;color:#475569;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%">${escapeHtml(source.substring(0, 60))}</div>` : '');
         li.addEventListener("click", () => selectEntity(type, name, item));
 
         // Inline "Open in BLViewer" button for file entities
@@ -292,7 +305,19 @@
       const info = await fetchEntityInfo(type, name);
       renderDetail(type, name, info, entityObj);
     } catch (err) {
-      $detailBody.innerHTML = `<div class="detail-placeholder">Failed to load details: ${escapeHtml(err.message)}</div>`;
+      // Show error with retry button
+      $detailBody.innerHTML = `
+        <div class="detail-placeholder" style="text-align:center">
+          <div style="color:#f87171;margin-bottom:8px">Failed to load details</div>
+          <div style="font-size:11px;color:#64748b;margin-bottom:12px">${escapeHtml(err.message)}</div>
+          <button id="retry-fetch" style="padding:5px 14px;border-radius:6px;border:none;background:#06b6d4;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Retry</button>
+        </div>`;
+      document.getElementById("retry-fetch").addEventListener("click", () => {
+        // Clear cache for this entity and retry
+        const cacheKey = `biogist:v${CACHE_VERSION}:${type}:${name}`;
+        chrome.storage.local.remove(cacheKey);
+        selectEntity(type, name, entityObj);
+      });
     }
   }
 
@@ -355,6 +380,26 @@
       cmdDiv.appendChild(copyBtn);
       $detailBody.appendChild(cmdDiv);
     }
+
+    // Copy Details button — copies all info as text
+    if (info && Object.keys(info).length > 0) {
+      const copyDiv = document.createElement("div");
+      copyDiv.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid #1e293b;display:flex;gap:6px;";
+      const copyTextBtn = document.createElement("button");
+      copyTextBtn.textContent = "Copy Details";
+      copyTextBtn.style.cssText = "flex:1;padding:5px;border-radius:6px;border:none;background:#334155;color:#e2e8f0;font-size:11px;font-weight:600;cursor:pointer;";
+      copyTextBtn.addEventListener("click", () => {
+        let text = name + " (" + type + ")\n";
+        if (entityObj && entityObj.count > 1) text += "Mentioned " + entityObj.count + " times\n";
+        for (const [k, v] of Object.entries(info)) {
+          if (v && k !== "Link") text += k + ": " + v + "\n";
+        }
+        navigator.clipboard.writeText(text.trim());
+        showToast("Details copied");
+      });
+      copyDiv.appendChild(copyTextBtn);
+      $detailBody.appendChild(copyDiv);
+    }
   }
 
   // --- Source links builder ---
@@ -398,6 +443,23 @@
   // --- API fetches ---
   const NCBI_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
+  // Fetch with timeout (10s default)
+  async function fetchWithTimeout(url, timeoutMs) {
+    timeoutMs = timeoutMs || 10000;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const resp = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      return await resp.json();
+    } catch (e) {
+      clearTimeout(timer);
+      if (e.name === "AbortError") throw new Error("Request timed out");
+      throw e;
+    }
+  }
+
   async function fetchEntityInfo(type, name) {
     const cacheKey = `biogist:v${CACHE_VERSION}:${type}:${name}`;
     const cached = await cacheGet(cacheKey);
@@ -418,13 +480,13 @@
 
   async function fetchGeneInfo(symbol) {
     const searchUrl = `${NCBI_BASE}/esearch.fcgi?db=gene&term=${encodeURIComponent(symbol)}[sym]+AND+human[orgn]&retmode=json`;
-    const searchRes = await fetch(searchUrl).then((r) => r.json());
+    const searchRes = await fetchWithTimeout(searchUrl);
     const ids = searchRes?.esearchresult?.idlist;
     if (!ids || ids.length === 0) return { Symbol: symbol, Status: "Not found in NCBI Gene" };
 
     const geneId = ids[0];
     const sumUrl = `${NCBI_BASE}/esummary.fcgi?db=gene&id=${geneId}&retmode=json`;
-    const sumRes = await fetch(sumUrl).then((r) => r.json());
+    const sumRes = await fetchWithTimeout(sumUrl);
     const doc = sumRes?.result?.[geneId];
     if (!doc) return { Symbol: symbol, "Gene ID": geneId };
 
@@ -479,7 +541,7 @@
   async function fetchVariantInfo(rsid) {
     const cleanId = rsid.replace(/^rs/i, "");
     const searchUrl = `${NCBI_BASE}/esearch.fcgi?db=snp&term=${encodeURIComponent(rsid)}&retmode=json`;
-    const searchRes = await fetch(searchUrl).then((r) => r.json());
+    const searchRes = await fetchWithTimeout(searchUrl);
     const ids = searchRes?.esearchresult?.idlist;
     if (!ids || ids.length === 0) return { rsID: rsid, Status: "Not found in dbSNP" };
 
@@ -494,7 +556,7 @@
     // Fetch gnomAD allele frequency and ClinVar significance via myvariant.info
     try {
       const mvUrl = `https://myvariant.info/v1/query?q=${encodeURIComponent(rsid)}&fields=gnomad_genome.af,clinvar.rcv,dbsnp.gene&size=1`;
-      const mvRes = await fetch(mvUrl).then((r) => r.json());
+      const mvRes = await fetchWithTimeout(mvUrl);
       if (mvRes.hits && mvRes.hits.length > 0) {
         const hit = mvRes.hits[0];
         // gnomAD allele frequency
@@ -538,7 +600,7 @@
 
     const db = dbMap[prefix] || "nuccore";
     const searchUrl = `${NCBI_BASE}/esearch.fcgi?db=${db}&term=${encodeURIComponent(accession)}&retmode=json`;
-    const searchRes = await fetch(searchUrl).then((r) => r.json());
+    const searchRes = await fetchWithTimeout(searchUrl);
     const ids = searchRes?.esearchresult?.idlist;
 
     const info = { Accession: accession, Database: db.toUpperCase() };
@@ -549,7 +611,7 @@
 
       try {
         const sumUrl = `${NCBI_BASE}/esummary.fcgi?db=${db}&id=${uid}&retmode=json`;
-        const sumRes = await fetch(sumUrl).then((r) => r.json());
+        const sumRes = await fetchWithTimeout(sumUrl);
         const doc = sumRes?.result?.[uid];
         if (doc) {
           if (doc.title) info.Title = truncate(doc.title, 200);
@@ -625,8 +687,7 @@
     // Try to fetch additional info from NCBI taxonomy
     try {
       const url = `${NCBI_BASE}/esummary.fcgi?db=taxonomy&id=${data.taxid}&retmode=json`;
-      const resp = await fetch(url);
-      const json = await resp.json();
+      const json = await fetchWithTimeout(url);
       const doc = json?.result?.[data.taxid];
       if (doc) {
         if (doc.division) info["Division"] = doc.division;
@@ -795,16 +856,66 @@
   });
 
   // --- Scan button ---
-  document.getElementById("btn-scan").addEventListener("click", () => {
+  // --- Helper: send scan to tab, then pull results ---
+  function scanTab(tabId) {
     $loading.style.display = "flex";
     $empty.style.display = "none";
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.runtime.sendMessage({ type: "scan-page", tabId: tabs[0].id });
+
+    function pullResults() {
+      let attempts = 0;
+      const poll = setInterval(() => {
+        attempts++;
+        chrome.runtime.sendMessage({ type: "get-tab-entities" }, (resp) => {
+          if (chrome.runtime.lastError) return;
+          if (resp && resp.tabId === tabId && resp.entities && resp.entities.length > 0) {
+            clearInterval(poll);
+            $loading.style.display = "none";
+            loadEntitiesFromArray(resp.entities);
+            render();
+          } else if (attempts >= 12) {
+            clearInterval(poll);
+            $loading.style.display = "none";
+            loadEntitiesFromArray([]);
+            render();
+            showToast("No entities found");
+          }
+        });
+      }, 500);
+    }
+
+    // Try sending scan
+    chrome.tabs.sendMessage(tabId, { type: "scan" }, (resp) => {
+      if (chrome.runtime.lastError) {
+        // Content script not connected — page was open before extension loaded
+        $loading.style.display = "none";
+        $empty.style.display = "block";
+        $empty.querySelector("strong").textContent = "Page needs reload";
+        $empty.querySelector("p").innerHTML = 'This page was opened before BioGist. <button id="btn-reload-tab" style="background:#06b6d4;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;margin-top:6px">Reload & Scan</button>';
+        document.getElementById("btn-reload-tab").addEventListener("click", () => {
+          chrome.tabs.reload(tabId, {}, () => {
+            $empty.style.display = "none";
+            $loading.style.display = "flex";
+            // Wait for page reload + content script init, then scan
+            setTimeout(() => scanTab(tabId), 3000);
+          });
+        });
+        return;
       }
+      // Content script responded — poll for results
+      pullResults();
     });
-    // Hide loading after timeout in case no response
-    setTimeout(() => { $loading.style.display = "none"; }, 5000);
+  }
+
+  document.getElementById("btn-scan").addEventListener("click", () => {
+    mergedMode = false;
+    $empty.querySelector("strong").textContent = "No entities detected";
+    $empty.querySelector("p").innerHTML = 'Click <b>Scan</b> to analyze the current page.';
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs[0]) return;
+      currentTabId = tabs[0].id;
+      scanTab(tabs[0].id);
+    });
   });
 
   // --- Close detail (back to list) ---
@@ -814,8 +925,37 @@
     render();
   });
 
+  // --- Merge from all tabs ---
+  document.getElementById("btn-merge").addEventListener("click", () => {
+    chrome.runtime.sendMessage({ type: "get-all-tab-entities" }, (resp) => {
+      if (chrome.runtime.lastError || !resp) {
+        showToast("Could not merge tabs");
+        return;
+      }
+      if (!resp.entities || resp.entities.length === 0) {
+        showToast("No entities found across tabs — scan some pages first");
+        return;
+      }
+      loadEntitiesFromArray(resp.entities);
+      document.getElementById("detail-panel").classList.remove("active");
+      mergedMode = true;
+
+      // Show source summary at top
+      let summary = "Merged from " + resp.tabCount + " tabs:";
+      if (resp.sources) {
+        resp.sources.forEach(s => { summary += "\n• " + s.title + " (" + s.count + ")"; });
+      }
+      showToast("Merged " + resp.entities.length + " entities from " + resp.tabCount + " tabs");
+
+      // Store sources for display
+      mergedSources = resp.sources || [];
+      render();
+    });
+  });
+
   // --- Clear button ---
   document.getElementById("btn-clear").addEventListener("click", () => {
+    mergedMode = false;
     allEntities = { gene: [], variant: [], accession: [], file: [], species: [] };
     currentEntities = [];
     activeEntity = null;
@@ -870,28 +1010,24 @@
     });
     el.addEventListener("click", () => {
       el.classList.toggle("on");
-      chrome.storage.local.set({ [`setting:${key}`]: el.classList.contains("on") });
+      const isOn = el.classList.contains("on");
+      chrome.storage.local.set({ [`setting:${key}`]: isOn });
+      // Wire highlight toggle to content script
+      if (key === "highlight") {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: isOn ? "highlight" : "clear-highlights"
+            }).catch(() => {});
+          }
+        });
+        showToast(isOn ? "Highlights enabled" : "Highlights disabled");
+      }
     });
   });
 
-  // --- Message listener ---
+  // --- Message listener (pull model — only handles lookup, scan-text, tab-switched) ---
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === "entities-detected") {
-      $loading.style.display = "none";
-      if (msg.error) {
-        showToast(msg.error);
-        return;
-      }
-      loadEntitiesFromArray(msg.entities || []);
-
-      // Only reset UI if detail panel is not showing
-      if (!document.getElementById("detail-panel").classList.contains("active")) {
-        activeEntity = null;
-        searchFilter = "";
-        $search.value = "";
-      }
-      render();
-    }
 
     if (msg.type === "lookup") {
       // Direct lookup from context menu or BioGist link click
@@ -923,18 +1059,39 @@
       selectEntity(type, id);
     }
 
-    if (msg.type === "tab-switched") {
-      // Background sends stored entities for the newly active tab
-      // Only update if the new tab has entities — don't clear on empty tabs
-      const newEntities = msg.entities || [];
-      if (newEntities.length > 0) {
+    if (msg.type === "scan-text") {
+      // Scan selected text from context menu
+      const text = (msg.text || "").trim();
+      if (text.length < 5) return;
+      const entities = detectEntitiesFromText(text);
+      if (entities.length > 0) {
+        loadEntitiesFromArray(entities);
+        showToast("Found " + entities.length + " entities in selection");
         document.getElementById("detail-panel").classList.remove("active");
+        render();
+      } else {
+        showToast("No entities found in selection");
+      }
+    }
+
+    if (msg.type === "tab-switched") {
+      if (mergedMode) return;
+      currentTabId = msg.tabId || null;
+      // Pull entities for the new tab from background
+      document.getElementById("detail-panel").classList.remove("active");
+      chrome.runtime.sendMessage({ type: "get-tab-entities" }, (resp) => {
+        if (chrome.runtime.lastError) return;
+        const newEntities = (resp && resp.entities) ? resp.entities : [];
         loadEntitiesFromArray(newEntities);
         activeEntity = null;
         searchFilter = "";
         $search.value = "";
+        if (newEntities.length === 0) {
+          $empty.querySelector("strong").textContent = "Not scanned yet";
+          $empty.querySelector("p").innerHTML = 'Click <b>Scan</b> to analyze this page.';
+        }
         render();
-      }
+      });
     }
   });
 
@@ -960,6 +1117,7 @@
   // Ask background for current tab's entities on init
   chrome.runtime.sendMessage({ type: "get-tab-entities" }, (resp) => {
     if (chrome.runtime.lastError) return;
+    if (resp && resp.tabId) currentTabId = resp.tabId;
     if (resp && resp.entities && resp.entities.length > 0) {
       loadEntitiesFromArray(resp.entities);
       render();

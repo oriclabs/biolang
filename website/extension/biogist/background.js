@@ -1,142 +1,142 @@
-// BioGist — Background Service Worker
-// Opens sidebar, manages context menu, relays messages between content script and sidebar.
-
+// BioGist — Background Service Worker (Pull Model)
+// Stores entities per tab. Sidebar pulls data — no unsolicited pushes.
 
 // Open sidebar when extension icon is clicked
 chrome.action.onClicked.addListener(async (tab) => {
   await chrome.sidePanel.open({ tabId: tab.id });
 });
 
-// Context menu for selected text
+// Context menu
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "biogist-lookup",
-    title: "Look up in BioGist",
-    contexts: ["selection"]
-  });
+  chrome.contextMenus.create({ id: "biogist-lookup", title: "Look up in BioGist", contexts: ["selection"] });
+  chrome.contextMenus.create({ id: "biogist-scan-selection", title: "Scan selection in BioGist", contexts: ["selection"] });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "biogist-lookup") {
     chrome.sidePanel.open({ tabId: tab.id });
-    // Give sidebar time to initialize before sending the lookup
     setTimeout(() => {
-      chrome.runtime.sendMessage({
-        type: "lookup",
-        text: info.selectionText,
-        tabId: tab.id
-      });
+      chrome.runtime.sendMessage({ type: "lookup", text: info.selectionText, tabId: tab.id });
+    }, 500);
+  }
+  if (info.menuItemId === "biogist-scan-selection") {
+    chrome.sidePanel.open({ tabId: tab.id });
+    setTimeout(() => {
+      chrome.runtime.sendMessage({ type: "scan-text", text: info.selectionText, tabId: tab.id });
     }, 500);
   }
 });
 
-// Per-tab entity storage
+// ── Per-tab entity storage ──────────────────────────────────────────
+
 const tabEntities = {};
 
-// Relay messages between content script and sidebar
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+
+  // Content script reports detected entities — store silently, don't forward
   if (msg.type === "entities-detected") {
-    // Store per-tab
-    if (sender.tab) {
-      tabEntities[sender.tab.id] = msg.entities || [];
+    const tabId = sender.tab ? sender.tab.id : (msg.tabId || null);
+    if (tabId) {
+      tabEntities[tabId] = {
+        entities: msg.entities || [],
+        title: (sender.tab ? sender.tab.title : msg.title) || "Unknown page",
+        url: (sender.tab ? sender.tab.url : msg.url) || ""
+      };
     }
-    // Forward to sidebar with tab ID
-    chrome.runtime.sendMessage({
-      ...msg,
-      tabId: sender.tab ? sender.tab.id : null
-    }).catch(() => {});
   }
+
+  // Badge updates
   if (msg.type === "badge-count") {
-    if (msg.count > 0 && sender.tab) {
-      chrome.action.setBadgeText({ text: String(msg.count), tabId: sender.tab.id });
-      chrome.action.setBadgeBackgroundColor({ color: "#0891b2", tabId: sender.tab.id });
+    if (sender.tab) {
+      const count = msg.count || 0;
+      chrome.action.setBadgeText({ text: count > 0 ? String(count) : "", tabId: sender.tab.id });
+      chrome.action.setBadgeBackgroundColor({
+        color: count > 10 ? "#059669" : count > 0 ? "#0891b2" : "#475569",
+        tabId: sender.tab.id
+      });
     }
   }
+
+  if (msg.type === "scanning" && sender.tab) {
+    chrome.action.setBadgeText({ text: "...", tabId: sender.tab.id });
+    chrome.action.setBadgeBackgroundColor({ color: "#7c3aed", tabId: sender.tab.id });
+  }
+
+  // Sidebar requests: get entities for current tab
   if (msg.type === "get-tab-entities") {
-    // Sidebar asks for current tab's entities
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0] ? tabs[0].id : null;
-      const entities = tabId && tabEntities[tabId] ? tabEntities[tabId] : [];
-      sendResponse({ entities: entities, tabId: tabId });
-    });
-    return true; // async sendResponse
-  }
-  if (msg.type === "clear-tab-entities") {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) delete tabEntities[tabs[0].id];
-    });
-  }
-  if (msg.type === "scan-page") {
-    const tabId = msg.tabId;
-    // Check if tab is a PDF — handle in background (content scripts can't run on Chrome PDF viewer)
-    chrome.tabs.get(tabId, (tab) => {
-      if (!tab) return;
-      // Detect PDF: direct .pdf URL, or Chrome PDF viewer with embedded URL
-      let pdfUrl = null;
-      if (/\.pdf(\?|#|$)/i.test(tab.url || "")) {
-        pdfUrl = tab.url;
-      } else if (tab.url && tab.url.includes("mhjfbmdgcfjbbpaeojofohoefgiehjai")) {
-        // Chrome's built-in PDF viewer — extract the actual PDF URL
-        try { pdfUrl = new URL(tab.url).searchParams.get("url") || new URL(tab.url).hash.slice(1); } catch(e) {}
-      } else if ((tab.title || "").endsWith(".pdf")) {
-        pdfUrl = tab.url;
-      }
-      if (pdfUrl) {
-        console.log("[BioGist] PDF detected:", pdfUrl);
-        scanPdfInBackground(pdfUrl, tabId);
-        return;
-      }
-      // Normal page — inject content script if needed, then scan
-      chrome.tabs.sendMessage(tabId, { type: "scan" }).catch(() => {
-        chrome.scripting.executeScript({
-          target: { tabId: tabId },
-          files: ["content.js"]
-        }).then(() => {
-          setTimeout(() => {
-            chrome.tabs.sendMessage(tabId, { type: "scan" }).catch(() => {
-              chrome.runtime.sendMessage({ type: "entities-detected", entities: [] }).catch(() => {});
-            });
-          }, 500);
-        }).catch(() => {
-          chrome.runtime.sendMessage({ type: "entities-detected", entities: [] }).catch(() => {});
-        });
+      const stored = tabId && tabEntities[tabId] ? tabEntities[tabId] : null;
+      sendResponse({
+        entities: stored ? stored.entities : [],
+        title: stored ? stored.title : "",
+        url: stored ? stored.url : "",
+        tabId
       });
     });
+    return true;
+  }
+
+  // Sidebar requests: store entities for a specific tab (after sidebar-initiated scan)
+  if (msg.type === "store-tab-entities") {
+    if (msg.tabId) {
+      tabEntities[msg.tabId] = msg.entities || [];
+    }
+  }
+
+  // Sidebar requests: get all tabs merged
+  if (msg.type === "get-all-tab-entities") {
+    const all = [];
+    const seen = new Set();
+    const sources = [];
+    for (const [tabId, stored] of Object.entries(tabEntities)) {
+      if (!stored || !Array.isArray(stored.entities)) continue;
+      const title = stored.title || "Tab " + tabId;
+      sources.push({ tabId, title: title, count: stored.entities.length });
+      stored.entities.forEach(e => {
+        const key = (e.type || "") + ":" + (e.id || "");
+        if (!seen.has(key)) {
+          seen.add(key);
+          all.push({ ...e, source: title });
+        }
+      });
+    }
+    sendResponse({ entities: all, sources, tabCount: sources.length });
+    return true;
+  }
+
+  // Clear current tab's entities
+  if (msg.type === "clear-tab-entities") {
+    if (msg.tabId) {
+      delete tabEntities[msg.tabId];
+    } else {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) delete tabEntities[tabs[0].id];
+      });
+    }
+  }
+
+  // PDF detection for scan-page (kept for compatibility)
+  if (msg.type === "check-pdf") {
+    chrome.tabs.get(msg.tabId, (tab) => {
+      if (!tab) { sendResponse({ isPdf: false }); return; }
+      let isPdf = false;
+      if (/\.pdf(\?|#|$)/i.test(tab.url || "")) isPdf = true;
+      else if (tab.url && tab.url.includes("mhjfbmdgcfjbbpaeojofohoefgiehjai")) isPdf = true;
+      else if ((tab.title || "").endsWith(".pdf")) isPdf = true;
+      sendResponse({ isPdf, url: tab.url, title: tab.title });
+    });
+    return true;
   }
 });
 
-// ── PDF detection ──────────────────────────────────────────────────
-// PDFs can't be scanned by content scripts. Tell user to use Paste button.
-
-function scanPdfInBackground(url, tabId) {
-  // PDFs can't be scanned automatically — tell user to use Paste button
-  chrome.runtime.sendMessage({
-    type: "entities-detected",
-    entities: [],
-    tabId,
-    error: "PDF detected — use the Paste button in the sidebar to scan copied text, or use: bl -e 'read_pdf(\"file.pdf\") |> scan_bio()'"
-  }).catch(() => {});
-}
-
-// Clean up when tabs close
-chrome.tabs.onRemoved.addListener((tabId) => {
-  delete tabEntities[tabId];
-});
-
-// Clean up highlights when page navigates (new URL in same tab)
+// Clean up
+chrome.tabs.onRemoved.addListener((tabId) => { delete tabEntities[tabId]; });
 chrome.webNavigation.onCommitted.addListener((details) => {
-  if (details.frameId === 0) {
-    // Main frame navigation — clear stored entities for this tab
-    delete tabEntities[details.tabId];
-  }
+  if (details.frameId === 0) delete tabEntities[details.tabId];
 });
 
-// When user switches tabs, send that tab's stored entities to sidebar
+// Tab switch — just notify sidebar to pull new data (no entity payload)
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  const entities = tabEntities[activeInfo.tabId] || [];
-  chrome.runtime.sendMessage({
-    type: "tab-switched",
-    entities: entities,
-    tabId: activeInfo.tabId
-  }).catch(() => {});
+  chrome.runtime.sendMessage({ type: "tab-switched", tabId: activeInfo.tabId }).catch(() => {});
 });

@@ -497,10 +497,45 @@
     highlighted = false;
   }
 
+  // ── SPA Navigation Detection ─────────────────────────────────────────────
+  // Detect URL changes in SPAs (pushState/popstate) and clear stale highlights
+  var lastKnownUrl = location.href;
+
+  function checkUrlChange() {
+    if (location.href !== lastKnownUrl) {
+      lastKnownUrl = location.href;
+      clearHighlights();
+      detected = [];
+      // Re-scan if new page looks bio-relevant
+      if (isBioPage()) {
+        setTimeout(function() {
+          detected = scanPage();
+          if (detected.length > 0) {
+            try {
+              chrome.runtime.sendMessage({ type: "entities-detected", entities: detected, url: location.href, title: document.title });
+              chrome.runtime.sendMessage({ type: "badge-count", count: detected.length });
+            } catch(e) {}
+          } else {
+            try { chrome.runtime.sendMessage({ type: "badge-count", count: 0 }); } catch(e) {}
+          }
+        }, 2000);
+      }
+    }
+  }
+
+  // Listen for SPA navigation events
+  window.addEventListener("popstate", checkUrlChange);
+  // Intercept pushState/replaceState
+  var origPushState = history.pushState;
+  var origReplaceState = history.replaceState;
+  history.pushState = function() { origPushState.apply(this, arguments); setTimeout(checkUrlChange, 100); };
+  history.replaceState = function() { origReplaceState.apply(this, arguments); setTimeout(checkUrlChange, 100); };
+
   // ── Message Handling ─────────────────────────────────────────────────────
 
   chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     if (msg.type === "scan") {
+      try { chrome.runtime.sendMessage({ type: "scanning" }); } catch(e) {}
       if (isPdfPage()) {
         extractPdfText().then(function(pdfText) {
           if (pdfText.length >= 50) {
@@ -652,9 +687,15 @@
     }, 1000);
   }
 
-  // Only auto-scan on pages that look biological; delay to avoid blocking page load
+  // Only auto-scan on pages that look biological; debounce until DOM stabilises
   else if (document.body && isBioPage()) {
-    setTimeout(function() {
+    var scanTimeout = null;
+    var hasScanned = false;
+
+    function debouncedScan() {
+      if (hasScanned) return;
+      hasScanned = true;
+      try { chrome.runtime.sendMessage({ type: "scanning" }); } catch(e) {}
       detected = scanPage();
       if (detected.length > 0) {
         try {
@@ -665,11 +706,25 @@
             title: document.title
           });
           chrome.runtime.sendMessage({ type: "badge-count", count: detected.length });
-        } catch (e) {
-          // Extension context may be invalidated; silently ignore
-        }
+        } catch (e) {}
       }
-    }, 1500);
+    }
+
+    // Wait for DOM to stabilise — use MutationObserver with 2s debounce
+    var observer = new MutationObserver(function() {
+      clearTimeout(scanTimeout);
+      scanTimeout = setTimeout(function() {
+        observer.disconnect();
+        debouncedScan();
+      }, 2000);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Fallback: scan after 5s even if DOM keeps changing
+    setTimeout(function() {
+      observer.disconnect();
+      debouncedScan();
+    }, 5000);
   }
 
   // ── Inject file into BLViewer when opened from BioGist ──
