@@ -1,0 +1,785 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 16: Logistic Regression — Binary Outcomes - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-16-logistic-regression--binary-outcomes"><a class="header" href="#day-16-logistic-regression--binary-outcomes">Day 16: Logistic Regression — Binary Outcomes</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. Priya Sharma is an immuno-oncologist analyzing data from 180 melanoma patients who received anti-PD-1 immunotherapy. For each patient, she has three biomarkers — <strong>tumor mutational burden (TMB)</strong>, <strong>PD-L1 expression</strong>, and <strong>microsatellite instability (MSI) status</strong> — and one outcome: <strong>response</strong> (tumor shrank ≥30%) or <strong>non-response</strong>.</p>
+<p>Her first instinct is to use linear regression, predicting response (coded 1/0) from the biomarkers. But the predictions come out as 1.3 for one patient and -0.2 for another. Probabilities can’t be greater than 1 or less than 0.</p>
+<p>She needs a method designed for <strong>binary outcomes</strong> — logistic regression.</p>
+<h2 id="why-linear-regression-fails-for-binary-outcomes"><a class="header" href="#why-linear-regression-fails-for-binary-outcomes">Why Linear Regression Fails for Binary Outcomes</a></h2>
+<p>When Y is binary (0 or 1), linear regression has fundamental problems:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Problem</th><th>Consequence</th></tr>
+</thead>
+<tbody>
+<tr><td>Predictions outside [0, 1]</td><td>Impossible probabilities (negative or &gt; 100%)</td></tr>
+<tr><td>Non-normal residuals</td><td>Residuals are binary, violating normality assumption</td></tr>
+<tr><td>Heteroscedasticity</td><td>Variance depends on the predicted value</td></tr>
+<tr><td>Non-linear relationship</td><td>The true probability follows an S-curve, not a line</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> We need a function that maps any real number to the range [0, 1]. The <strong>logistic (sigmoid) function</strong> does exactly this.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="340" viewbox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Why Linear Regression Fails for Binary Data</text>
+  <!-- Left panel: Linear -->
+  <g transform="translate(30, 40)">
+    <text x="140" y="14" text-anchor="middle" font-size="12" font-weight="bold" fill="#dc2626">Linear Regression (Bad)</text>
+    <!-- Axes -->
+    <line x1="40" y1="240" x2="280" y2="240" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="40" y1="240" x2="40" y2="30" stroke="#6b7280" stroke-width="1.5" />
+    <text x="160" y="268" text-anchor="middle" font-size="11" fill="#6b7280">Predictor (X)</text>
+    <text x="12" y="135" text-anchor="middle" font-size="11" fill="#6b7280" transform="rotate(-90, 12, 135)">P(Y=1)</text>
+    <!-- Y-axis labels -->
+    <text x="34" y="244" text-anchor="end" font-size="10" fill="#6b7280">0</text>
+    <text x="34" y="140" text-anchor="end" font-size="10" fill="#6b7280">0.5</text>
+    <text x="34" y="36" text-anchor="end" font-size="10" fill="#6b7280">1.0</text>
+    <line x1="37" y1="136" x2="43" y2="136" stroke="#9ca3af" stroke-width="1" />
+    <line x1="37" y1="32" x2="43" y2="32" stroke="#9ca3af" stroke-width="1" />
+    <!-- Scatter points (0/1) -->
+    <circle cx="60" cy="238" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="75" cy="238" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="85" cy="32" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="95" cy="238" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="110" cy="238" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="125" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="140" cy="238" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="155" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="165" cy="32" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="180" cy="238" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="195" cy="32" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="210" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="225" cy="32" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="240" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="255" cy="238" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="265" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <!-- Linear fit line (goes below 0 and above 1) -->
+    <line x1="40" y1="260" x2="280" y2="10" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="6,3" />
+    <!-- Problem annotations -->
+    <rect x="220" y="4" width="65" height="18" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="0.5" />
+    <text x="252" y="16" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">P &gt; 1.0 !</text>
+    <rect x="42" y="252" width="65" height="18" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="0.5" />
+    <text x="74" y="264" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">P &lt; 0.0 !</text>
+  </g>
+  <!-- Right panel: Logistic -->
+  <g transform="translate(360, 40)">
+    <text x="140" y="14" text-anchor="middle" font-size="12" font-weight="bold" fill="#16a34a">Logistic Regression (Good)</text>
+    <!-- Axes -->
+    <line x1="40" y1="240" x2="280" y2="240" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="40" y1="240" x2="40" y2="30" stroke="#6b7280" stroke-width="1.5" />
+    <text x="160" y="268" text-anchor="middle" font-size="11" fill="#6b7280">Predictor (X)</text>
+    <text x="34" y="244" text-anchor="end" font-size="10" fill="#6b7280">0</text>
+    <text x="34" y="140" text-anchor="end" font-size="10" fill="#6b7280">0.5</text>
+    <text x="34" y="36" text-anchor="end" font-size="10" fill="#6b7280">1.0</text>
+    <line x1="37" y1="136" x2="43" y2="136" stroke="#9ca3af" stroke-width="1" />
+    <line x1="37" y1="32" x2="43" y2="32" stroke="#9ca3af" stroke-width="1" />
+    <!-- Scatter points (same) -->
+    <circle cx="60" cy="238" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="75" cy="238" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="85" cy="32" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="95" cy="238" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="110" cy="238" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="125" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="140" cy="238" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="155" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="165" cy="32" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="180" cy="238" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="195" cy="32" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="210" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="225" cy="32" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="240" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <circle cx="255" cy="238" r="4" fill="#3b82f6" opacity="0.5" /><circle cx="265" cy="32" r="4" fill="#3b82f6" opacity="0.5" />
+    <!-- Sigmoid curve -->
+    <path d="M 40,236 C 60,236 80,234 100,228 C 120,218 130,200 145,170 C 155,148 160,125 165,136 C 170,120 180,90 200,60 C 220,42 240,36 260,34 C 270,33 275,32 280,32" stroke="#16a34a" stroke-width="2.5" fill="none" />
+    <!-- Bounds -->
+    <line x1="40" y1="32" x2="280" y2="32" stroke="#16a34a" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.5" />
+    <line x1="40" y1="240" x2="280" y2="240" stroke="#16a34a" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.5" />
+    <rect x="195" y="28" width="90" height="18" rx="3" fill="#f0fdf4" stroke="#16a34a" stroke-width="0.5" />
+    <text x="240" y="40" text-anchor="middle" font-size="9" fill="#16a34a" font-weight="bold">Always in [0, 1]</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="the-logistic-function"><a class="header" href="#the-logistic-function">The Logistic Function</a></h2>
+<p>The logistic regression model predicts the <strong>probability</strong> of the outcome being 1:</p>
+<p>$$P(Y=1|X) = \frac{1}{1 + e^{-(\beta_0 + \beta_1 X_1 + \cdots + \beta_p X_p)}}$$</p>
+<p>The sigmoid function transforms the linear predictor (which ranges from -∞ to +∞) into a probability (which ranges from 0 to 1):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Linear predictor (β₀ + β₁X)</th><th>Probability P(Y=1)</th></tr>
+</thead>
+<tbody>
+<tr><td>-5</td><td>0.007</td></tr>
+<tr><td>-2</td><td>0.12</td></tr>
+<tr><td>0</td><td>0.50</td></tr>
+<tr><td>+2</td><td>0.88</td></tr>
+<tr><td>+5</td><td>0.993</td></tr>
+</tbody>
+</table>
+</div>
+<p>The curve is steepest at P = 0.5 (the decision boundary) and flattens at the extremes — exactly how biological responses behave.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="650" height="320" viewbox="0 0 650 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="325" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">The Sigmoid (Logistic) Function</text>
+  <g transform="translate(80, 40)">
+    <!-- Grid lines -->
+    <line x1="60" y1="50" x2="480" y2="50" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="60" y1="125" x2="480" y2="125" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="60" y1="200" x2="480" y2="200" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="270" y1="30" x2="270" y2="250" stroke="#e5e7eb" stroke-width="0.5" />
+    <!-- Axes -->
+    <line x1="60" y1="250" x2="480" y2="250" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="60" y1="250" x2="60" y2="30" stroke="#6b7280" stroke-width="1.5" />
+    <!-- Y-axis labels -->
+    <text x="52" y="254" text-anchor="end" font-size="11" fill="#6b7280">0.0</text>
+    <text x="52" y="204" text-anchor="end" font-size="11" fill="#6b7280">0.25</text>
+    <text x="52" y="129" text-anchor="end" font-size="11" fill="#6b7280">0.50</text>
+    <text x="52" y="54" text-anchor="end" font-size="11" fill="#6b7280">1.0</text>
+    <!-- X-axis labels -->
+    <text x="60" y="270" text-anchor="middle" font-size="11" fill="#6b7280">-6</text>
+    <text x="130" y="270" text-anchor="middle" font-size="11" fill="#6b7280">-4</text>
+    <text x="200" y="270" text-anchor="middle" font-size="11" fill="#6b7280">-2</text>
+    <text x="270" y="270" text-anchor="middle" font-size="11" fill="#6b7280">0</text>
+    <text x="340" y="270" text-anchor="middle" font-size="11" fill="#6b7280">+2</text>
+    <text x="410" y="270" text-anchor="middle" font-size="11" fill="#6b7280">+4</text>
+    <text x="480" y="270" text-anchor="middle" font-size="11" fill="#6b7280">+6</text>
+    <text x="270" y="290" text-anchor="middle" font-size="12" fill="#6b7280">Linear predictor (z = B0 + B1*X)</text>
+    <text x="20" y="140" text-anchor="middle" font-size="12" fill="#6b7280" transform="rotate(-90, 20, 140)">P(Y = 1)</text>
+    <!-- Sigmoid curve -->
+    <path d="M 60,247 C 80,246 100,245 120,242 C 140,237 160,228 180,215 C 200,195 220,170 240,150 C 250,138 260,130 270,125 C 280,120 290,112 300,100 C 320,80 340,65 360,55 C 380,50 400,48 420,47 C 460,46 480,45 480,45" stroke="#2563eb" stroke-width="3" fill="none" />
+    <!-- Inflection point at (0, 0.5) -->
+    <circle cx="270" cy="125" r="6" fill="#2563eb" stroke="white" stroke-width="2" />
+    <line x1="270" y1="125" x2="270" y2="250" stroke="#2563eb" stroke-width="1" stroke-dasharray="4,3" opacity="0.4" />
+    <line x1="60" y1="125" x2="270" y2="125" stroke="#2563eb" stroke-width="1" stroke-dasharray="4,3" opacity="0.4" />
+    <!-- Annotation: inflection point -->
+    <rect x="280" y="110" width="130" height="20" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="0.5" />
+    <text x="345" y="124" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">Inflection at P = 0.5</text>
+    <!-- Asymptote labels -->
+    <line x1="60" y1="50" x2="480" y2="50" stroke="#9ca3af" stroke-width="0.5" stroke-dasharray="3,3" />
+    <line x1="60" y1="250" x2="480" y2="250" stroke="#9ca3af" stroke-width="0.5" stroke-dasharray="3,3" />
+    <text x="488" y="48" font-size="9" fill="#9ca3af">P = 1</text>
+    <text x="488" y="248" font-size="9" fill="#9ca3af">P = 0</text>
+    <!-- Region labels -->
+    <text x="110" y="220" text-anchor="middle" font-size="10" fill="#6b7280" font-style="italic">Low risk</text>
+    <text x="440" y="75" text-anchor="middle" font-size="10" fill="#6b7280" font-style="italic">High risk</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="interpreting-coefficients-log-odds-and-odds-ratios"><a class="header" href="#interpreting-coefficients-log-odds-and-odds-ratios">Interpreting Coefficients: Log-Odds and Odds Ratios</a></h2>
+<p>Logistic regression coefficients are on the <strong>log-odds</strong> scale:</p>
+<p>$$\ln\left(\frac{P}{1-P}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots$$</p>
+<p>This is less intuitive than linear regression. The key transformation:</p>
+<p>$$\text{Odds Ratio} = e^{\beta}$$</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>β (log-odds)</th><th>OR = e^β</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td>1.0</td><td>No effect</td></tr>
+<tr><td>0.5</td><td>1.65</td><td>65% higher odds per unit increase</td></tr>
+<tr><td>1.0</td><td>2.72</td><td>2.7× higher odds</td></tr>
+<tr><td>-0.5</td><td>0.61</td><td>39% lower odds</td></tr>
+<tr><td>-1.0</td><td>0.37</td><td>63% lower odds</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> An odds ratio of 2.0 means the odds of response <strong>double</strong> for each 1-unit increase in the predictor. It does NOT mean the probability doubles — that depends on the baseline probability.</p>
+</blockquote>
+<h3 id="odds-vs-probability"><a class="header" href="#odds-vs-probability">Odds vs. Probability</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Probability</th><th>Odds</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>0.50</td><td>1:1</td><td>Equal chance either way</td></tr>
+<tr><td>0.75</td><td>3:1</td><td>Three times as likely to respond</td></tr>
+<tr><td>0.20</td><td>1:4</td><td>Four times as likely NOT to respond</td></tr>
+<tr><td>0.90</td><td>9:1</td><td>Strong favoring response</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> When the outcome is common (prevalence &gt; 10%), odds ratios substantially overestimate relative risks. An OR of 3.0 for a 50% baseline event means the probability goes from 50% to 75% — a relative risk of only 1.5. Report both OR and absolute probabilities.</p>
+</blockquote>
+<h2 id="roc-curves-and-auc"><a class="header" href="#roc-curves-and-auc">ROC Curves and AUC</a></h2>
+<p>The model outputs probabilities. To make yes/no predictions, you need a <strong>threshold</strong> — above it, predict “responder.” But which threshold?</p>
+<p>A <strong>Receiver Operating Characteristic (ROC) curve</strong> plots sensitivity vs. (1 - specificity) across all possible thresholds:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Metric</th><th>Definition</th><th>Trade-off</th></tr>
+</thead>
+<tbody>
+<tr><td>Sensitivity (TPR)</td><td>True responders correctly identified</td><td>Higher = catch more responders</td></tr>
+<tr><td>Specificity (TNR)</td><td>True non-responders correctly identified</td><td>Higher = fewer false alarms</td></tr>
+<tr><td>PPV (Precision)</td><td>Positive predictions that are correct</td><td>Higher = trust positive results</td></tr>
+<tr><td>NPV</td><td>Negative predictions that are correct</td><td>Higher = trust negative results</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <strong>Area Under the Curve (AUC)</strong> summarizes overall discrimination:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>AUC</th><th>Performance</th></tr>
+</thead>
+<tbody>
+<tr><td>0.50</td><td>Random guessing (useless)</td></tr>
+<tr><td>0.60-0.70</td><td>Poor</td></tr>
+<tr><td>0.70-0.80</td><td>Acceptable</td></tr>
+<tr><td>0.80-0.90</td><td>Good</td></tr>
+<tr><td>0.90-1.00</td><td>Excellent</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Clinical relevance:</strong> In cancer diagnostics, the threshold choice depends on context. Screening tests favor <strong>high sensitivity</strong> (don’t miss cancers), while confirmatory tests favor <strong>high specificity</strong> (don’t cause unnecessary biopsies).</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="650" height="380" viewbox="0 0 650 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="325" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">ROC Curve and AUC</text>
+  <g transform="translate(100, 40)">
+    <!-- Axes -->
+    <line x1="60" y1="290" x2="420" y2="290" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="60" y1="290" x2="60" y2="20" stroke="#6b7280" stroke-width="1.5" />
+    <!-- Grid -->
+    <line x1="60" y1="20" x2="420" y2="20" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="60" y1="155" x2="420" y2="155" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="240" y1="20" x2="240" y2="290" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="420" y1="20" x2="420" y2="290" stroke="#e5e7eb" stroke-width="0.5" />
+    <!-- Axis labels -->
+    <text x="240" y="318" text-anchor="middle" font-size="12" fill="#6b7280">1 - Specificity (False Positive Rate)</text>
+    <text x="15" y="155" text-anchor="middle" font-size="12" fill="#6b7280" transform="rotate(-90, 15, 155)">Sensitivity (True Positive Rate)</text>
+    <!-- Tick labels -->
+    <text x="60" y="306" text-anchor="middle" font-size="10" fill="#6b7280">0.0</text>
+    <text x="150" y="306" text-anchor="middle" font-size="10" fill="#6b7280">0.25</text>
+    <text x="240" y="306" text-anchor="middle" font-size="10" fill="#6b7280">0.50</text>
+    <text x="330" y="306" text-anchor="middle" font-size="10" fill="#6b7280">0.75</text>
+    <text x="420" y="306" text-anchor="middle" font-size="10" fill="#6b7280">1.0</text>
+    <text x="52" y="294" text-anchor="end" font-size="10" fill="#6b7280">0.0</text>
+    <text x="52" y="159" text-anchor="end" font-size="10" fill="#6b7280">0.5</text>
+    <text x="52" y="24" text-anchor="end" font-size="10" fill="#6b7280">1.0</text>
+    <!-- AUC shaded area -->
+    <path d="M 60,290 L 60,260 C 80,220 100,160 130,110 C 160,70 200,45 240,35 C 280,28 340,23 420,20 L 420,290 Z" fill="#2563eb" opacity="0.12" />
+    <!-- Diagonal (random classifier) -->
+    <line x1="60" y1="290" x2="420" y2="20" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,4" />
+    <text x="280" y="185" font-size="10" fill="#9ca3af" transform="rotate(-37, 280, 185)">Random (AUC = 0.50)</text>
+    <!-- ROC curve -->
+    <path d="M 60,290 C 60,260 65,230 75,200 C 85,170 100,140 120,115 C 140,90 165,68 200,50 C 230,38 270,30 310,26 C 350,23 390,21 420,20" stroke="#2563eb" stroke-width="3" fill="none" />
+    <!-- AUC label -->
+    <rect x="200" y="170" width="120" height="40" rx="6" fill="white" stroke="#2563eb" stroke-width="1" />
+    <text x="260" y="188" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">AUC = 0.85</text>
+    <text x="260" y="203" text-anchor="middle" font-size="10" fill="#6b7280">(Good discrimination)</text>
+    <!-- Optimal threshold point -->
+    <circle cx="120" cy="115" r="6" fill="#dc2626" stroke="white" stroke-width="2" />
+    <line x1="128" y1="108" x2="185" y2="80" stroke="#dc2626" stroke-width="0.8" />
+    <rect x="185" y="68" width="108" height="18" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="0.5" />
+    <text x="239" y="80" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">Optimal threshold</text>
+    <!-- Legend -->
+    <line x1="300" y1="250" x2="325" y2="250" stroke="#2563eb" stroke-width="2.5" />
+    <text x="330" y="254" font-size="10" fill="#1e293b">Model ROC</text>
+    <line x1="300" y1="268" x2="325" y2="268" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,4" />
+    <text x="330" y="272" font-size="10" fill="#1e293b">Random</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="the-glm-framework"><a class="header" href="#the-glm-framework">The GLM Framework</a></h2>
+<p>Logistic regression is a special case of the <strong>Generalized Linear Model (GLM)</strong> — a flexible framework for non-normal outcomes:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Outcome Type</th><th>Distribution</th><th>Link Function</th><th>Name</th></tr>
+</thead>
+<tbody>
+<tr><td>Continuous</td><td>Normal</td><td>Identity</td><td>Linear regression</td></tr>
+<tr><td>Binary (0/1)</td><td>Binomial</td><td>Logit</td><td>Logistic regression</td></tr>
+<tr><td>Counts</td><td>Poisson</td><td>Log</td><td>Poisson regression</td></tr>
+<tr><td>Counts (overdispersed)</td><td>Negative binomial</td><td>Log</td><td>NB regression</td></tr>
+<tr><td>Positive continuous</td><td>Gamma</td><td>Inverse</td><td>Gamma regression</td></tr>
+</tbody>
+</table>
+</div>
+<p>The GLM framework unifies these under one interface, letting you choose the appropriate model for your data type.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> RNA-seq read counts follow a negative binomial distribution. Tools like DESeq2 use GLMs with a negative binomial family — the same framework as logistic regression, just with a different distribution assumption.</p>
+</blockquote>
+<h2 id="logistic-regression-in-biolang"><a class="header" href="#logistic-regression-in-biolang">Logistic Regression in BioLang</a></h2>
+<h3 id="fitting-a-logistic-model"><a class="header" href="#fitting-a-logistic-model">Fitting a Logistic Model</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Immunotherapy response prediction
+let n = 180
+
+# Simulate predictors
+let tmb = rnorm(n, 10, 5) |&gt; map(|x| max(x, 0))
+let pdl1 = rnorm(n, 30, 20) |&gt; map(|x| max(min(x, 100), 0))
+let msi = rnorm(n, 0, 1) |&gt; map(|x| if x &gt; 1.0 { 1 } else { 0 })  # ~15% MSI-high
+
+# True response probability (logistic model)
+let log_odds = -3 + 0.15 * tmb + 0.02 * pdl1 + 1.5 * msi
+let prob = log_odds |&gt; map(|x| 1.0 / (1.0 + exp(-x)))
+let response = prob |&gt; map(|p| if rnorm(1, 0, 1)[0] &lt; p { 1 } else { 0 })
+
+print("Response rate: {(response |&gt; sum) / n * 100 |&gt; round(1)}%")
+
+# Fit logistic regression
+let glm_data = table({"response": response, "TMB": tmb, "PDL1": pdl1, "MSI": msi})
+let model = glm("response ~ TMB + PDL1 + MSI", glm_data, "binomial")
+
+print("=== Logistic Regression Results ===")
+print("Intercept: {model.intercept |&gt; round(3)}")
+</code></pre>
+<h3 id="interpreting-odds-ratios"><a class="header" href="#interpreting-odds-ratios">Interpreting Odds Ratios</a></h3>
+<pre><code class="language-bio"># Convert coefficients to odds ratios
+let coef_names = ["TMB", "PD-L1", "MSI"]
+let coefficients = model.coefficients
+
+print("=== Odds Ratios ===")
+for i in 0..3 {
+    let beta = coefficients[i]
+    let or_val = exp(beta)
+    print("{coef_names[i]}: β = {beta |&gt; round(3)}, OR = {or_val |&gt; round(2)}")
+}
+
+# Interpretation:
+# TMB OR = 1.16 means each additional mut/Mb increases odds of response by 16%
+# MSI OR = 4.5 means MSI-high patients have 4.5x the odds of responding
+</code></pre>
+<h3 id="roc-curve-and-auc"><a class="header" href="#roc-curve-and-auc">ROC Curve and AUC</a></h3>
+<pre><code class="language-bio"># Compute predicted probabilities from model
+let pred_prob = []
+for i in 0..n {
+    let lp = model.intercept + model.coefficients[0] * tmb[i]
+        + model.coefficients[1] * pdl1[i] + model.coefficients[2] * msi[i]
+    pred_prob = pred_prob + [1.0 / (1.0 + exp(-lp))]
+}
+
+# ROC curve
+let roc_data = table({"actual": response, "predicted": pred_prob})
+roc_curve(roc_data)
+
+# Compute AUC
+let auc_val = model.auc
+print("AUC: {auc_val |&gt; round(3)}")
+
+# Interpretation
+if auc_val &gt;= 0.80 {
+    print("Good discrimination")
+} else if auc_val &gt;= 0.70 {
+    print("Acceptable discrimination")
+} else {
+    print("Poor discrimination — model needs additional predictors")
+}
+</code></pre>
+<h3 id="finding-the-optimal-threshold"><a class="header" href="#finding-the-optimal-threshold">Finding the Optimal Threshold</a></h3>
+<pre><code class="language-bio"># Sensitivity/specificity at different thresholds
+let thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+
+print("=== Threshold Analysis ===")
+print("Threshold  Sensitivity  Specificity  PPV      NPV")
+
+for t in thresholds {
+    let predicted_class = pred_prob |&gt; map(|p| if p &gt;= t { 1 } else { 0 })
+    let tp = 0
+    let fp = 0
+    let tn = 0
+    let fn = 0
+
+    for i in 0..n {
+        if predicted_class[i] == 1 &amp;&amp; response[i] == 1 { tp = tp + 1 }
+        if predicted_class[i] == 1 &amp;&amp; response[i] == 0 { fp = fp + 1 }
+        if predicted_class[i] == 0 &amp;&amp; response[i] == 0 { tn = tn + 1 }
+        if predicted_class[i] == 0 &amp;&amp; response[i] == 1 { fn = fn + 1 }
+    }
+
+    let sens = tp / (tp + fn)
+    let spec = tn / (tn + fp)
+    let ppv = if tp + fp &gt; 0 { tp / (tp + fp) } else { 0 }
+    let npv = if tn + fn &gt; 0 { tn / (tn + fn) } else { 0 }
+
+    print("{t}        {sens |&gt; round(3)}       {spec |&gt; round(3)}      {ppv |&gt; round(3)}    {npv |&gt; round(3)}")
+}
+
+# Youden's J: optimal balance of sensitivity and specificity
+</code></pre>
+<h3 id="using-the-glm-framework"><a class="header" href="#using-the-glm-framework">Using the GLM Framework</a></h3>
+<pre><code class="language-bio"># Logistic regression via the general GLM interface
+let model_glm = glm("response ~ TMB + PDL1 + MSI", glm_data, "binomial")
+
+# Same results, but now you can swap families:
+
+# Poisson regression for count data (e.g., number of mutations)
+# let count_data = table({"mutations": mutation_count, "exposure": exposure, "age": age})
+# let count_model = glm("mutations ~ exposure + age", count_data, "poisson")
+</code></pre>
+<h3 id="visualizing-predicted-probabilities"><a class="header" href="#visualizing-predicted-probabilities">Visualizing Predicted Probabilities</a></h3>
+<pre><code class="language-bio"># Box plot: predicted probabilities by actual outcome
+let resp_probs = []
+let nonresp_probs = []
+
+for i in 0..n {
+    if response[i] == 1 {
+        resp_probs = resp_probs + [pred_prob[i]]
+    } else {
+        nonresp_probs = nonresp_probs + [pred_prob[i]]
+    }
+}
+
+let bp_table = table({"Non-Responders": nonresp_probs, "Responders": resp_probs})
+boxplot(bp_table, {title: "Predicted Probabilities by Actual Outcome"})
+
+# Good model: minimal overlap between the two boxes
+</code></pre>
+<h3 id="effect-of-individual-predictors"><a class="header" href="#effect-of-individual-predictors">Effect of Individual Predictors</a></h3>
+<pre><code class="language-bio"># Show how each predictor shifts the probability curve
+# Fix other predictors at their means
+let tmb_range = [0, 5, 10, 15, 20, 25, 30]
+let pdl1_mean = 30
+let msi_0 = 0
+
+print("=== TMB Effect on Response Probability ===")
+print("(PD-L1 = {pdl1_mean}, MSI = negative)")
+
+for t in tmb_range {
+    let lp = model.intercept + model.coefficients[0] * t
+        + model.coefficients[1] * pdl1_mean + model.coefficients[2] * msi_0
+    let p = 1.0 / (1.0 + exp(-lp))
+    print("  TMB = {t}: P(response) = {(p * 100) |&gt; round(1)}%")
+}
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_curve, auc, classification_report
+import statsmodels.api as sm
+
+# Statsmodels (full inference)
+X = sm.add_constant(df[['TMB', 'PDL1', 'MSI']])
+model = sm.Logit(response, X).fit()
+print(model.summary())
+
+# Odds ratios
+print(np.exp(model.params))
+print(np.exp(model.conf_int()))
+
+# ROC curve
+fpr, tpr, thresholds = roc_curve(response, model.predict(X))
+roc_auc = auc(fpr, tpr)
+plt.plot(fpr, tpr, label=f'AUC = {roc_auc:.2f}')
+
+# Scikit-learn (prediction-focused)
+clf = LogisticRegression().fit(X_train, y_train)
+y_prob = clf.predict_proba(X_test)[:, 1]
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Logistic regression
+model &lt;- glm(response ~ TMB + PDL1 + MSI, family = binomial)
+summary(model)
+
+# Odds ratios with CI
+exp(cbind(OR = coef(model), confint(model)))
+
+# ROC curve
+library(pROC)
+roc_obj &lt;- roc(response, fitted(model))
+plot(roc_obj, print.auc = TRUE)
+
+# Optimal threshold (Youden's J)
+coords(roc_obj, "best", best.method = "youden")
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-build-and-interpret-a-logistic-model"><a class="header" href="#exercise-1-build-and-interpret-a-logistic-model">Exercise 1: Build and Interpret a Logistic Model</a></h3>
+<p>Predict cancer diagnosis (1 = cancer, 0 = benign) from three biomarkers. Interpret each odds ratio in clinical terms.</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 200
+
+let biomarker_a = rnorm(n, 50, 15)
+let biomarker_b = rnorm(n, 10, 4)
+let age = rnorm(n, 55, 12)
+
+let log_odds = -5 + 0.04 * biomarker_a + 0.2 * biomarker_b + 0.03 * age
+let prob = log_odds |&gt; map(|x| 1.0 / (1.0 + exp(-x)))
+let cancer = prob |&gt; map(|p| if rnorm(1, 0, 1)[0] &lt; p { 1 } else { 0 })
+
+# 1. Fit glm("cancer ~ biomarker_a + biomarker_b + age", data, "binomial")
+# 2. Compute and interpret odds ratios: exp(coefficient) for each predictor
+# 3. Which biomarker has the strongest effect?
+# 4. What does the OR for age mean clinically?
+</code></pre>
+<h3 id="exercise-2-roc-analysis"><a class="header" href="#exercise-2-roc-analysis">Exercise 2: ROC Analysis</a></h3>
+<p>Build a logistic model and evaluate it with an ROC curve. Find the threshold that maximizes Youden’s J index (sensitivity + specificity - 1).</p>
+<pre><code class="language-bio"># Use the model from Exercise 1
+# 1. Generate predicted probabilities from model coefficients
+# 2. Plot ROC curve with roc_curve(table)
+# 3. Compute sensitivity and specificity at thresholds 0.3, 0.5, 0.7
+# 4. Which threshold maximizes Youden's J?
+# 5. If this is a screening test, would you prefer a different threshold? Why?
+</code></pre>
+<h3 id="exercise-3-comparing-two-models"><a class="header" href="#exercise-3-comparing-two-models">Exercise 3: Comparing Two Models</a></h3>
+<p>Build two logistic models: one with TMB alone, another with TMB + PD-L1 + MSI. Compare their AUC values. Does adding predictors improve discrimination?</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 150
+
+# Simulate data where TMB is a moderate predictor and MSI adds substantial value
+# 1. Fit model_simple = glm("response ~ TMB", data, "binomial")
+# 2. Fit model_full = glm("response ~ TMB + PDL1 + MSI", data, "binomial")
+# 3. Compare AUC values
+# 4. Plot both ROC curves
+# 5. Is the improvement worth the added complexity?
+</code></pre>
+<h3 id="exercise-4-the-separation-problem"><a class="header" href="#exercise-4-the-separation-problem">Exercise 4: The Separation Problem</a></h3>
+<p>What happens when a predictor perfectly separates outcomes? Simulate MSI status that perfectly predicts response and observe what logistic regression does.</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 100
+let msi = rnorm(n, 0, 1) |&gt; map(|x| if x &gt; 0.84 { 1 } else { 0 })
+let response = msi  # perfect separation!
+
+# 1. Try fitting glm("response ~ msi", data, "binomial")
+# 2. What happens to the coefficient and its standard error?
+# 3. Why is this a problem? (Hint: the MLE doesn't exist)
+# 4. How would you handle this in practice?
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Logistic regression</strong> models binary outcomes by predicting probabilities via the sigmoid function — use it instead of linear regression when Y is 0/1</li>
+<li>Coefficients are on the <strong>log-odds</strong> scale; exponentiate to get <strong>odds ratios</strong> (OR): e^β</li>
+<li>An OR of 2.0 means the odds double per unit increase — but this is NOT the same as doubling the probability</li>
+<li><strong>ROC curves</strong> show the sensitivity/specificity trade-off across all thresholds; <strong>AUC</strong> summarizes overall discrimination</li>
+<li>The <strong>optimal threshold</strong> depends on clinical context: screening favors sensitivity, confirmation favors specificity</li>
+<li>Logistic regression is a special case of the <strong>GLM framework</strong> — the same approach extends to count data (Poisson), survival data, and more</li>
+<li>Always report odds ratios with <strong>confidence intervals</strong>, not just p-values</li>
+<li>Watch for <strong>separation</strong> (a predictor perfectly predicts the outcome), which causes coefficient inflation</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Sometimes the outcome isn’t just binary — it’s <strong>time-to-event</strong>: how long until a patient relapses, how long a cell line survives treatment. Day 17 introduces <strong>survival analysis</strong>, where censoring makes standard methods fail and Kaplan-Meier curves become essential.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-15.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-17.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-15.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-17.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

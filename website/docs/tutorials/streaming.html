@@ -65,10 +65,10 @@
           records one at a time in constant memory.
         </p>
         <pre><code class="language-biolang"># Table: loads everything into memory (reusable)
-# let reads = read_fastq("huge.fastq.gz")  # BAD: 50 GB in RAM
+# let reads = read_read_fastq("data/reads.fastq")  # BAD: 50 GB in RAM
 
 # Stream: constant memory regardless of file size
-let stream = fastq("huge.fastq.gz")
+let stream = read_fastq("data/reads.fastq")
 
 print(typeof(stream))  # Stream
 
@@ -83,27 +83,27 @@ print(typeof(stream))  # Stream
           <code>length</code> (Int), and <code>quality</code> (String).
         </p>
         <pre><code class="language-biolang"># Count reads without loading them all
-let n = fastq("huge.fastq.gz")
+let n = read_fastq("data/reads.fastq")
   |> count()
 
 print(f"Total reads: {n}")  # counted one by one, constant memory
 
 # Take the first N records
-let first_100 = fastq("huge.fastq.gz")
+let first_100 = read_fastq("data/reads.fastq")
   |> take(100)
   |> collect()  # materializes into a List
 
 print(f"First 100 reads loaded, {len(first_100)} records")
 
 # Drop the first 1000, then take 100
-let slice = fastq("huge.fastq.gz")
+let slice = read_fastq("data/reads.fastq")
   |> drop(1000)
   |> take(100)
   |> collect()
 
 # Iterate manually with for
 let total_bases = 0
-for read in fastq("data/sample.fastq.gz") {
+for read in read_fastq("data/reads.fastq") {
   total_bases = total_bases + read.length
 }
 print(f"Total bases: {total_bases}")</code></pre>
@@ -115,7 +115,7 @@ print(f"Total bases: {total_bases}")</code></pre>
           operations as lists, but they execute lazily.
         </p>
         <pre><code class="language-biolang"># Filter and transform in a single pass through the file
-let gc_values = fastq("huge.fastq.gz")
+let gc_values = read_fastq("data/reads.fastq")
   |> filter(|r| r.length >= 50)
   |> map(|r| gc_content(r.seq))
   |> collect()
@@ -124,7 +124,7 @@ print(f"GC values for long reads: {len(gc_values)}")
 print(f"Mean GC: {round(mean(gc_values), 4)}")
 
 # Chain multiple filters
-let clean = fastq("huge.fastq.gz")
+let clean = read_fastq("data/reads.fastq")
   |> filter(|r| r.length >= 50)             # minimum length
   |> filter(|r| gc_content(r.seq) > 0.2)    # GC content check
   |> filter(|r| gc_content(r.seq) < 0.8)    # not too GC-rich
@@ -144,7 +144,7 @@ print(f"Clean reads: {len(clean)}")
           This is equivalent to a fold — the accumulator is threaded through each record.
         </p>
         <pre><code class="language-biolang"># Compute statistics in a single pass using reduce with initial value
-let stats = fastq("huge.fastq.gz")
+let stats = read_fastq("data/reads.fastq")
   |> reduce(|acc, read| {
     {
       n:           acc.n + 1,
@@ -158,7 +158,7 @@ print(f"Total bases: {stats.total_bases}")
 print(f"Mean GC:     {round(stats.total_gc / stats.n, 4)}")
 
 # Collect GC values and summarize
-let gc_list = fastq("huge.fastq.gz")
+let gc_list = read_fastq("data/reads.fastq")
   |> map(|r| gc_content(r.seq))
   |> collect()
 
@@ -172,7 +172,7 @@ print(f"GC range: {min(gc_list)} - {max(gc_list)}")</code></pre>
           multiple threads while keeping the stream interface.
         </p>
         <pre><code class="language-biolang"># Process reads in parallel (default: number of CPU cores)
-let results = fastq("huge.fastq.gz")
+let results = read_fastq("data/reads.fastq")
   |> par_map(|read| {
     # Each read is processed independently on a worker thread
     let gc = gc_content(read.seq)
@@ -211,7 +211,7 @@ print(f"Mapped: {bam_stats.mapped}, Unmapped: {bam_stats.unmapped}")</code></pre
           periodic reporting or batch operations.
         </p>
         <pre><code class="language-biolang"># Process in chunks of 10,000 records
-let chunks = fastq("huge.fastq.gz")
+let chunks = read_fastq("data/reads.fastq")
   |> stream_chunks(10_000)
   |> collect()
 
@@ -222,7 +222,7 @@ for chunk in chunks {
 
 # Count with periodic progress
 let total = 0
-let chunks = fastq("huge.fastq.gz")
+let chunks = read_fastq("data/reads.fastq")
   |> stream_chunks(50_000)
   |> collect()
 
@@ -239,7 +239,7 @@ print(f"Done. Total: {total} reads")</code></pre>
           while forwarding the original value unchanged.
         </p>
         <pre><code class="language-biolang"># Use tee to log while processing
-let results = fastq("input.fastq.gz")
+let results = read_fastq("data/reads.fastq")
   |> filter(|r| r.length >= 100)
   |> tee(|r| print(f"Processing read {r.id}"))
   |> map(|r| gc_content(r.seq))
@@ -266,14 +266,14 @@ print(f"High-quality mapped reads: {mapped_count}")
 
 # Stream VCF files
 # VCF records have fields: chrom, pos, id, ref, alt, qual, filter, info
-let pass_count = vcf("variants.vcf.gz")
+let pass_count = read_vcf("data/variants.vcf")
   |> filter(|v| v.filter == "PASS")
   |> count()
 
 print(f"PASS variants: {pass_count}")
 
 # Stream FASTA files (for large reference genomes)
-let gc_per_chrom = fasta("genome.fa")
+let gc_per_chrom = read_fasta("data/sequences.fasta")
   |> map(|record| {
     { name: record.id, gc: gc_content(record.seq) }
   })
@@ -285,7 +285,7 @@ for entry in gc_per_chrom {
 
 # Stream a BED file
 # BED records have fields: chrom, start, end, name, score, strand
-let total_bases_covered = bed("regions.bed")
+let total_bases_covered = read_bed("data/regions.bed")
   |> map(|r| r.end - r.start)
   |> sum()
 

@@ -31,7 +31,7 @@
 
         <h3>Zero-length sequences in FASTA</h3>
         <pre><code class="language-biolang"># Some FASTA files contain empty sequences. BioLang reads them as empty strings.
-let records = fasta("assembly.fa")
+let records = read_fasta("data/sequences.fasta")
 
 # This will NOT crash, but may give unexpected results
 let lengths = records |> map(|r| { r.seq |> len })
@@ -48,7 +48,7 @@ print(empty |> gc_content ?? 0.0)  # 0.0 (with default)</code></pre>
 
         <h3>Empty FASTQ records</h3>
         <pre><code class="language-biolang"># FASTQ files with zero-length reads (can happen after trimming)
-let reads = fastq("trimmed.fq")
+let reads = read_fastq("data/reads.fastq")
 
 # mean_qual on an empty quality string returns nil
 let safe_reads = reads |> filter(|r| { r.seq |> len > 0 })
@@ -71,7 +71,7 @@ let x = nil
 let result = x |> to_string |> len  # result is nil, not an error
 
 # This means bugs can hide in long pipe chains
-let data = csv("messy.csv")
+let data = read_csv("data/expression.csv")
 let values = data |> map(|row| {
   # If "score" column is missing or empty, float returns nil
   row["score"] |> float
@@ -106,23 +106,23 @@ print(record.info.gene)   # ERROR: cannot access property on nil</code></pre>
 
         <h3>Streaming vs collecting</h3>
         <pre><code class="language-biolang"># WRONG: loads entire file into memory
-let all_reads = fastq("large_file.fq.gz") |> collect
+let all_reads = read_fastq("data/reads.fastq") |> collect
 # This can exhaust memory for large files!
 
 # RIGHT: stream and process without collecting
-fastq("large_file.fq.gz")
+read_fastq("data/reads.fastq")
   |> filter(|r| { mean_phred(r.quality) >= 30.0 })
   |> write_fastq("filtered.fq.gz")
 # Constant memory usage regardless of file size
 
 # If you need to collect, sample first
-let sample = fastq("large_file.fq.gz") |> take(10000) |> collect
+let sample = read_fastq("data/reads.fastq") |> take(10000) |> collect
 let avg_len = sample |> map(|r| { r.seq |> len }) |> mean
 print(f"Estimated average read length: {avg_len}")</code></pre>
 
         <h3>Memory-safe aggregation</h3>
         <pre><code class="language-biolang"># For large files, use read_stats for streaming aggregations
-let stats = read_stats(fastq("large_file.fq.gz"))
+let stats = read_stats(read_fastq("data/reads.fastq"))
 
 # read_stats computes quality and length metrics in constant memory
 print(f"Total reads: {stats.total_reads}")
@@ -137,16 +137,16 @@ print(f"Mean quality: {stats.mean_quality |> round(1)}")</code></pre>
 # Phred+64 (Illumina 1.3-1.7):    ASCII 64-126
 
 # BioLang auto-detects encoding from quality score ranges
-let reads_33 = fastq("modern.fq")       # Phred+33 auto-detected
-let reads_64 = fastq("old_illumina.fq") # Phred+64 auto-detected
+let reads_33 = read_fastq("data/reads.fastq")       # Phred+33 auto-detected
+let reads_64 = read_fastq("data/reads.fastq") # Phred+64 auto-detected
 
 # Check what encoding was detected
-let reads = fastq("unknown.fq")
+let reads = read_fastq("data/reads.fastq")
 print("Checking first read quality range for encoding detection")
 
 # Common gotcha: mixing encodings in merged files
 # BioLang will warn if quality values seem inconsistent
-let mixed = fastq("merged.fq")  # Warning: inconsistent quality encoding detected</code></pre>
+let mixed = read_fastq("data/reads.fastq")  # Warning: inconsistent quality encoding detected</code></pre>
 
         <h3>Sequence characters</h3>
         <pre><code class="language-biolang"># DNA sequences may contain ambiguity codes (IUPAC)

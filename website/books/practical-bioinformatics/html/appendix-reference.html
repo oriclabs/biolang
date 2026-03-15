@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="rust sidebar-visible" dir="ltr">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -33,9 +33,9 @@
         <!-- Provide site root and default themes to javascript -->
         <script>
             const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a55d6aed.js";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-2b7ec08a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -76,7 +76,7 @@
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
-            html.classList.remove('rust')
+            html.classList.remove('light')
             html.classList.add(theme);
             html.classList.add("js");
         </script>
@@ -596,7 +596,7 @@ bl&gt; my_function("input.fasta")
 </code></pre>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="read-filter-analyze"><a class="header" href="#read-filter-analyze">Read, Filter, Analyze</a></h3>
-<pre><code class="language-bio">read_fastq("data.fastq")
+<pre><code class="language-bio">read_fastq("data/reads.fastq")
   |&gt; filter(|r| r.quality &gt;= 30)
   |&gt; map(|r| gc_content(r.sequence))
   |&gt; mean()
@@ -613,7 +613,7 @@ bl&gt; my_function("input.fasta")
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <h3 id="build-a-summary-table"><a class="header" href="#build-a-summary-table">Build a Summary Table</a></h3>
-<pre><code class="language-bio">let reads = read_fastq("sample.fastq")
+<pre><code class="language-bio">let reads = read_fastq("data/reads.fastq")
 let rows = reads |&gt; map(|r| {
   name: r.name,
   length: len(r.sequence),
@@ -637,7 +637,7 @@ println(f"Found {len(motifs)} TATA boxes in TP53")
 </blockquote>
 <h3 id="multi-step-pipeline-with-error-handling"><a class="header" href="#multi-step-pipeline-with-error-handling">Multi-Step Pipeline with Error Handling</a></h3>
 <pre><code class="language-bio">try
-  let variants = read_vcf("sample.vcf")
+  let variants = read_vcf("data/variants.vcf")
   let filtered = variants
     |&gt; filter(|v| v.quality &gt;= 30)
     |&gt; filter(|v| v.alt != ".")
@@ -713,7 +713,7 @@ to_table(results, ["file", "count", "mean_gc"]) |&gt; write_csv("batch_results.c
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>
         <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-23bba21e.js"></script>
+        <script src="book-runner-ee861d9e.js"></script>
 
 
 

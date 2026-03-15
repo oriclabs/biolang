@@ -1,0 +1,187 @@
+/* Practical Biostatistics in 30 Days — custom styles */
+
+/* Day metadata badges */
+.day-meta {
+    background: #f5f5f5;
+    border-left: 4px solid #7c3aed;
+    padding: 12px 16px;
+    margin: 16px 0 24px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9em;
+}
+
+.day-meta .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.badge-stats { background: #ede9fe; color: #5b21b6; }
+.badge-biology { background: #e8f5e9; color: #2e7d32; }
+.badge-coding { background: #e3f2fd; color: #1565c0; }
+.badge-time { background: #fff3e0; color: #e65100; }
+.badge-capstone { background: #fce4ec; color: #c62828; }
+
+/* Language comparison tables */
+table.lang-compare th { text-align: center; }
+table.lang-compare td:nth-child(2) { color: #5b21b6; font-weight: 600; } /* BioLang column */
+
+/* Concept boxes */
+.concept-box {
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.concept-box h4 {
+    margin-top: 0;
+    color: #5b21b6;
+}
+
+/* Clinical relevance callout */
+.clinical-note {
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Biology note for developers */
+.bio-note {
+    background: #f1f8e9;
+    border-left: 4px solid #7cb342;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Statistics insight */
+.stats-note {
+    background: #f5f3ff;
+    border-left: 4px solid #7c3aed;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Common pitfall warning */
+.pitfall-note {
+    background: #fff8e1;
+    border-left: 4px solid #f59e0b;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Expected output blocks */
+.expected-output {
+    background: #fafafa;
+    border: 1px dashed #ccc;
+    padding: 12px;
+    margin: 8px 0;
+    font-family: monospace;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+}
+
+/* Exercise sections */
+.exercises {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 24px 0;
+}
+
+.exercises h3 {
+    margin-top: 0;
+    color: #f57f17;
+}
+
+/* Key takeaways */
+.takeaways {
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 24px 0;
+}
+
+.takeaways h3 {
+    margin-top: 0;
+    color: #2e7d32;
+}
+
+/* SVG diagrams - responsive */
+.diagram {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Formula display */
+.formula {
+    text-align: center;
+    margin: 16px 0;
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 4px;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1.1em;
+}
+
+/* Decision flowchart tables */
+table.decision-tree th {
+    background: #f5f3ff;
+}
+
+/* Figure captions */
+figure {
+    text-align: center;
+    margin: 2em 0;
+}
+
+figcaption {
+    font-size: 0.9em;
+    font-style: italic;
+    color: #666;
+    margin-top: 0.5em;
+}
+
+/* Hide WASM Run bars and output in print/PDF */
+@media print {
+    .bl-run-bar,
+    .bl-output {
+        display: none !important;
+    }
+    pre {
+        border-radius: 6px !important;
+        margin-top: 8px !important;
+        border-top: 1px solid #334155 !important;
+    }
+    h1 {
+        page-break-before: always;
+    }
+    h1:first-of-type {
+        page-break-before: avoid;
+    }
+    h2, h3 {
+        page-break-after: avoid;
+    }
+    table {
+        page-break-inside: avoid;
+    }
+    .concept-box, .clinical-note, .bio-note, .stats-note, .pitfall-note {
+        page-break-inside: avoid;
+    }
+}

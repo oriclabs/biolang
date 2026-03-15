@@ -269,12 +269,12 @@ let y = 1 + int(1.5)     # 2 (truncates)</code></pre>
           for a reusable table, or <code>collect()</code> the stream:
         </p>
         <pre><code class="language-biolang"># Error: second use fails
-let s = fastq("data.fq")
+let s = read_fastq("data/reads.fastq")
 let count = len(s)
 let avg_q = s |> map(|r| mean_phred(r.quality)) |> mean()  # Error!
 
 # Fix: use read_fastq() for a reusable list
-let records = read_fastq("data.fq")
+let records = read_fastq("data/reads.fastq")
 let count = len(records)
 let avg_q = records |> map(|r| mean_phred(r.quality)) |> mean()</code></pre>
 

@@ -118,7 +118,7 @@ let dist = sketch_dist(s1, s2)
 print("Sketch distance:", dist)
 
 # Compare many sequences pairwise
-let seqs = fasta("genomes.fa") |> collect()
+let seqs = read_fasta("data/sequences.fasta") |> collect()
 seqs |> map(|a| seqs |> map(|b| sketch_dist(sketch(a.seq, 21), sketch(b.seq, 21))))
   |> print()</code></pre>
 
@@ -167,7 +167,7 @@ print(tree)</code></pre>
         <pre><code class="language-biolang"># Complete analysis pipeline: sequences -> k-mers -> clustering -> enrichment
 
 # 1. Load sequences and compute k-mer profiles
-let seqs = fasta("samples.fa") |> collect()
+let seqs = read_fasta("data/sequences.fasta") |> collect()
 # kmer_count returns a Table per sequence — top 50 k-mers each
 let profiles = seqs
   |> map(|r| kmer_count(r.seq, 21, 50))

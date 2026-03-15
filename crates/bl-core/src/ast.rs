@@ -235,8 +235,8 @@ pub enum Expr {
     /// List literal: `[a, b, c]`
     List(Vec<Spanned<Expr>>),
 
-    /// Record literal: `{key: value, ...}`
-    Record(Vec<(String, Spanned<Expr>)>),
+    /// Record literal: `{key: value, ...}` or `{...base, key: value}`
+    Record(Vec<RecordEntry>),
 
     /// Formula: `~expr`
     Formula(Box<Spanned<Expr>>),
@@ -374,11 +374,15 @@ pub enum Expr {
         body: Vec<Spanned<Stmt>>,
     },
 
-    /// Record with spread: `{...base, key: val}`
-    RecordSpread {
-        spreads: Vec<Spanned<Expr>>,
-        fields: Vec<(String, Spanned<Expr>)>,
-    },
+}
+
+/// An entry in a record literal — either a named field or a spread.
+#[derive(Debug, Clone, PartialEq)]
+pub enum RecordEntry {
+    /// `key: value`
+    Field(String, Spanned<Expr>),
+    /// `...expr` — spread another record's fields
+    Spread(Spanned<Expr>),
 }
 
 /// A function/lambda parameter.
@@ -524,6 +528,7 @@ pub enum BinaryOp {
     BitXor,
     Shl,
     Shr,
+    Concat,
 }
 
 impl fmt::Display for UnaryOp {
@@ -556,6 +561,7 @@ impl fmt::Display for BinaryOp {
             BinaryOp::BitXor => write!(f, "^"),
             BinaryOp::Shl => write!(f, "<<"),
             BinaryOp::Shr => write!(f, ">>"),
+            BinaryOp::Concat => write!(f, "++"),
         }
     }
 }

@@ -9,8 +9,8 @@ const ASSETS = [
   "/js/main.js",
   "/assets/styles.css",
   "/assets/favicon.svg",
-  "/wasm/br_wasm.js",
-  "/wasm/br_wasm_bg.wasm"
+  "/wasm/bl_wasm.js",
+  "/wasm/bl_wasm_bg.wasm"
 ];
 
 self.addEventListener("install", function(e) {

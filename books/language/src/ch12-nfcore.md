@@ -19,7 +19,7 @@ fits naturally into pipes, filters, and record operations.
 `nfcore_list()` returns every pipeline in the nf-core organization. Each entry is
 a record with fields like `name`, `description`, `stars`, and `topics`.
 
-```
+```biolang
 # requires: internet connection (all nfcore_* functions query the nf-core GitHub API)
 # List all nf-core pipelines
 nfcore_list()
@@ -27,7 +27,7 @@ nfcore_list()
 
 The result is a list of records. You can pipe it through any BioLang operation:
 
-```
+```biolang
 # Show names and star counts, sorted by popularity
 nfcore_list(sort_by: "stars")
   |> each |p| { name: p.name, stars: p.stars }
@@ -36,7 +36,7 @@ nfcore_list(sort_by: "stars")
 To limit the result set, pass `limit`. This is useful in exploratory sessions
 where you want a quick overview rather than the full catalog:
 
-```
+```biolang
 # Top 10 pipelines by most recent release date
 nfcore_list(sort_by: "release", limit: 10)
   |> each |p| { name: p.name, updated: p.updated }
@@ -53,14 +53,14 @@ Sorting accepts three values:
 When you know what kind of analysis you need but not which pipeline implements it,
 use `nfcore_search`. It matches against pipeline names, descriptions, and topic tags.
 
-```
+```biolang
 # Find RNA-seq related pipelines
 nfcore_search("rnaseq")
 ```
 
 Search accepts an optional `limit` to cap results:
 
-```
+```biolang
 # Find variant-calling pipelines, show top 5
 nfcore_search("variant", 5)
 ```
@@ -68,7 +68,7 @@ nfcore_search("variant", 5)
 The returned records have the same shape as `nfcore_list` entries, so you can
 chain the same downstream operations:
 
-```
+```biolang
 # Search for methylation pipelines and extract their topics
 nfcore_search("methylation")
   |> each |p| { name: p.name, topics: p.topics }
@@ -92,7 +92,7 @@ pipeline. The returned record contains:
 | `created`     | String | Repository creation date             |
 | `updated`     | String | Last push date                       |
 
-```
+```biolang
 # Inspect the Sarek germline/somatic variant calling pipeline
 let sarek = nfcore_info("sarek")
 print("Pipeline: " + sarek.full_name)
@@ -104,7 +104,7 @@ print("Topics:   " + join(sarek.topics, ", "))
 You can use the metadata to make decisions in scripts. For example, checking
 whether a pipeline is actively maintained before committing to it:
 
-```
+```biolang
 # Only proceed if the pipeline has been updated recently
 let info = nfcore_info("taxprofiler")
 if info.open_issues < 50 then
@@ -117,14 +117,14 @@ Production workflows should pin to a specific release rather than tracking the
 development branch. `nfcore_releases` returns the full release history as a list
 of records, each with `tag` and `published_at` fields.
 
-```
+```biolang
 # List all rnaseq releases
 nfcore_releases("rnaseq")
 ```
 
 The list is ordered newest-first, so the head element is the latest stable version:
 
-```
+```biolang
 # Get the latest stable release tag for rnaseq
 let latest = nfcore_releases("rnaseq")
   |> first
@@ -134,13 +134,13 @@ print("Latest release: " + latest.tag + " (" + latest.published_at + ")")
 You can also search for a specific version range or find how many releases a
 pipeline has had -- a rough proxy for maturity:
 
-```
+```biolang
 # Count total releases for sarek
 let release_count = nfcore_releases("sarek") |> len
 print("sarek has " + to_string(release_count) + " releases")
 ```
 
-```
+```biolang
 # Find all 3.x releases of rnaseq
 nfcore_releases("rnaseq")
   |> filter |r| starts_with(r.tag, "3.")
@@ -155,7 +155,7 @@ and more. `nfcore_params` fetches and parses this schema, returning a record
 whose keys are parameter group names and whose values are records of individual
 parameters.
 
-```
+```biolang
 # Fetch the full parameter schema for rnaseq
 let params = nfcore_params("rnaseq")
 ```
@@ -164,13 +164,13 @@ The top-level keys are group names such as `"input_output_options"`,
 `"reference_genome_options"`, or `"trimming_options"`. Each group is a record
 of parameter entries:
 
-```
+```biolang
 # List all parameter groups
 nfcore_params("rnaseq")
   |> keys
 ```
 
-```
+```biolang
 # Inspect the reference genome options
 nfcore_params("rnaseq").reference_genome_options
   |> keys
@@ -179,7 +179,7 @@ nfcore_params("rnaseq").reference_genome_options
 This is particularly useful for validating that your configuration covers the
 required parameters before submitting a long-running pipeline:
 
-```
+```biolang
 # Check whether a specific parameter exists
 let params = nfcore_params("sarek")
 let genome_opts = params.reference_genome_options
@@ -192,7 +192,7 @@ A common task: you need to process single-cell RNA-seq data but are unsure which
 nf-core pipeline to use. Search the catalog, compare candidates, and pick the
 best fit.
 
-```
+```biolang
 # Step 1: Search for single-cell pipelines
 let candidates = nfcore_search("single-cell")
 
@@ -235,7 +235,7 @@ Before launching a whole-genome sequencing analysis with Sarek, you want to
 confirm that your reference genome configuration covers every required parameter
 and that no deprecated options have crept into your config.
 
-```
+```biolang
 # Fetch the Sarek parameter schema
 let params = nfcore_params("sarek")
 
@@ -281,7 +281,7 @@ For a core facility managing dozens of active projects, it helps to maintain a
 catalog of available pipelines organized by topic. This script builds a topic
 index from the full nf-core catalog.
 
-```
+```biolang
 # Fetch all pipelines
 let all_pipelines = nfcore_list(sort_by: "stars")
 
@@ -309,7 +309,7 @@ keys(topics)
 You can extend this to generate a Markdown report, push to a shared wiki, or
 feed into a lab notebook:
 
-```
+```biolang
 # Export the top 20 pipelines as a tab-separated table
 let header = "name\tstars\ttopics\tlatest_release"
 print(header)
@@ -331,7 +331,7 @@ time you run the script -- no manual curation needed.
 BioLang can parse Nextflow `.nf` files directly with `nf_parse()`. This function
 reads the file and extracts its structure without requiring a Nextflow runtime.
 
-```
+```biolang
 # Parse a Nextflow pipeline file
 let parsed = nf_parse("main.nf")
 ```
@@ -348,7 +348,7 @@ The result is a record with five fields:
 
 You can pipe the parsed structure through any BioLang operation:
 
-```
+```biolang
 # List all processes and their containers
 let parsed = nf_parse("variant_calling.nf")
 
@@ -358,7 +358,7 @@ parsed.processes
   }
 ```
 
-```
+```biolang
 # Extract all parameters with their default values
 let parsed = nf_parse("rnaseq.nf")
 
@@ -372,7 +372,7 @@ keys(parsed.params)
 The `nf_to_bl` function takes a parsed Nextflow record and generates BioLang
 pipeline code as a string:
 
-```
+```biolang
 # Parse and convert a Nextflow pipeline
 let parsed = nf_parse("rnaseq.nf")
 let bl_code = nf_to_bl(parsed)
@@ -394,7 +394,7 @@ The generated code maps Nextflow constructs to BioLang equivalents:
 This is a starting point -- edit the generated skeleton to add BioLang-specific
 features like pipe chains, error handling, and parallel execution.
 
-```
+```biolang
 # Full workflow: parse, generate, and review
 let parsed = nf_parse("sarek_main.nf")
 

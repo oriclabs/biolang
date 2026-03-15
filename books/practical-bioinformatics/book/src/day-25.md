@@ -70,7 +70,7 @@ This is fundamentally different from letting the error crash your program. Witho
 In BioLang, `try/catch` returns a value. This means you can use it anywhere you would use an expression --- in variable assignments, function arguments, or pipe chains:
 
 ```bio
-let samples = try { read_csv("samples.csv") } catch err { [] }
+let samples = try { read_csv("data/sample_sheet.csv") } catch err { [] }
 
 let count = len(try { read_lines("data.txt") } catch err { [] })
 
@@ -173,7 +173,7 @@ let safe_read_fastq = |path| {
 The caller can then inspect the `ok` field:
 
 ```bio
-let result = safe_read_fastq("sample_01.fastq")
+let result = safe_read_fastq("data/reads.fastq")
 if result.ok {
     let stats = process(result.data)
 } else {

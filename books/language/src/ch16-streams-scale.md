@@ -12,9 +12,9 @@ A stream is a `StreamValue` -- a lazy sequence of items produced on demand.
 File readers in BioLang return streams by default. Streams are consumed once:
 after you iterate through a stream, it is exhausted.
 
-```
+```biolang
 # read_fastq returns a stream, not a list
-let reads = read_fastq("whole_genome_R1.fastq.gz")
+let reads = read_fastq("data/reads.fastq")
 
 # This processes one record at a time -- constant memory
 let high_quality = reads
@@ -36,8 +36,8 @@ lazily.
 
 Transform each element.
 
-```
-read_vcf("variants.vcf.gz")
+```biolang
+read_vcf("data/variants.vcf")
   |> map(|v| {chrom: v.chrom, pos: v.pos, qual: v.qual, af: v.info.AF})
   |> write_tsv("variant_summary.tsv")
 ```
@@ -46,7 +46,7 @@ read_vcf("variants.vcf.gz")
 
 Keep only elements matching a predicate.
 
-```
+```biolang
 read_bam("aligned.bam")
   |> filter(|r| r.mapping_quality >= 30 and not r.is_duplicate)
   |> count()
@@ -57,9 +57,9 @@ read_bam("aligned.bam")
 
 Consume from a stream while a condition holds, then stop.
 
-```
+```biolang
 # Read the first million reads from a FASTQ for quick QC
-let sample = read_fastq("deep_sequencing.fastq.gz")
+let sample = read_fastq("data/reads.fastq")
   |> take_while(|r, i| i < 1000000)
 
 let quals = sample |> map(|r| mean_phred(r.quality))
@@ -70,9 +70,9 @@ print("Sampled stats: " + str(mean(quals)) + " mean Q")
 
 Execute a side effect for every element (the stream analogue of a for loop).
 
-```
+```biolang
 let bad_count = 0
-read_fastq("sample.fastq.gz")
+read_fastq("data/reads.fastq")
   |> each(|r| {
        if mean_phred(r.quality) < 20 then
          bad_count = bad_count + 1
@@ -84,8 +84,8 @@ print(str(bad_count) + " low-quality reads")
 
 Accumulate a value across the entire stream.
 
-```
-let total_bases = read_fastq("sample.fastq.gz")
+```biolang
+let total_bases = read_fastq("data/reads.fastq")
   |> map(|r| r.length)
   |> sum()
 print("Total bases: " + str(total_bases))
@@ -97,9 +97,9 @@ When you need batch operations on a stream, `chunk` groups elements into
 fixed-size lists. This is useful for writing output in blocks or batching API
 calls.
 
-```
+```biolang
 # Process a FASTQ in chunks of 10,000 reads
-read_fastq("large_sample.fastq.gz")
+read_fastq("data/reads.fastq")
   |> chunk(10000)
   |> each(|batch| {
        let mean_q = batch |> map(|r| mean_phred(r.quality)) |> mean()
@@ -110,10 +110,10 @@ read_fastq("large_sample.fastq.gz")
 
 Chunking is also useful for writing to multiple output files.
 
-```
+```biolang
 # Split a FASTQ into files of 1 million reads each
 let file_num = 0
-read_fastq("huge_sample.fastq.gz")
+read_fastq("data/reads.fastq")
   |> chunk(1000000)
   |> each(|batch| {
        let path = "split/chunk_" + str(file_num) + ".fastq.gz"
@@ -128,9 +128,9 @@ print("Wrote " + str(file_num) + " chunk files")
 `window` creates a sliding window over a list (or materialized portion of a
 stream). This is essential for computing positional statistics across a genome.
 
-```
+```biolang
 # Sliding window GC content
-read_fasta("chr1.fa") |> first() |> |r| r.seq |> into sequence
+read_fasta("data/sequences.fasta") |> first() |> |r| r.seq |> into sequence
 let win_size = 1000
 let step = 500
 
@@ -147,7 +147,7 @@ gc_track |> write_tsv("chr1_gc_content.tsv")
 For windowed operations on streams (where you cannot look back), use
 `window` which maintains a buffer.
 
-```
+```biolang
 # Compute rolling average base quality across a BAM
 read_bam("sample.bam")
   |> filter(|r| r.chrom == "chr17")
@@ -167,7 +167,7 @@ read_bam("sample.bam")
 Apply a function to each element of a list in parallel, distributing work
 across available CPU cores.
 
-```
+```biolang
 let chromosomes = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6",
                    "chr7", "chr8", "chr9", "chr10", "chr11", "chr12",
                    "chr13", "chr14", "chr15", "chr16", "chr17", "chr18",
@@ -188,7 +188,7 @@ per_chrom_stats |> sort_by(|s| s.chrom) |> write_tsv("chrom_stats.tsv")
 
 Filter elements in parallel. Useful when the predicate itself is expensive.
 
-```
+```biolang
 # requires: internet connection
 let variants = tsv("all_variants.tsv")
 
@@ -206,7 +206,7 @@ print(str(len(pathogenic)) + " high-impact variants")
 
 BioLang provides genomic unit helpers that make size comparisons readable.
 
-```
+```biolang
 let region_size = mb(3)          # 3,000,000
 let read_length = bp(150)        # 150
 let window = kb(50)              # 50,000
@@ -217,7 +217,7 @@ let coverage = 1800000000 / genome_size  # ~0.6x
 print("Coverage: " + str(coverage) + "x")
 
 # Filter regions by size
-let large_svs = read_vcf("structural_variants.vcf.gz")
+let large_svs = read_vcf("data/variants.vcf")
   |> filter(|v| v.info.SVLEN != nil and abs(v.info.SVLEN) > mb(1))
 
 print(str(large_svs |> count()) + " SVs larger than 1 Mb")
@@ -231,7 +231,7 @@ that plague genomics scripts.
 Stream 4 billion reads, filter by quality, and compute statistics without
 loading the file into memory.
 
-```
+```biolang
 let input = "novaseq_R1.fastq.gz"  # 100 GB compressed
 
 let stats = {
@@ -272,7 +272,7 @@ constant regardless of file size.
 
 Split variant annotation work by chromosome to use all cores.
 
-```
+```biolang
 # requires: internet connection
 let vcf_path = "cohort.vcf.gz"
 let chromosomes = range(1, 23) |> map(|n| "chr" + str(n))
@@ -310,8 +310,8 @@ print("Annotated " + str(len(annotated)) + " variants across "
 
 Compute GC content in 1 kb windows across an entire chromosome.
 
-```
-let chr_seq = read_fasta("GRCh38_chr22.fa") |> first() |> |r| r.seq
+```biolang
+let chr_seq = read_fasta("data/sequences.fasta") |> first() |> |r| r.seq
 let chr_len = len(chr_seq)
 let win = kb(1)
 let step = bp(500)
@@ -342,7 +342,7 @@ gc_profile |> write_tsv("chr22_gc_profile.tsv")
 Process a large sample cohort using chunked parallelism to avoid overwhelming
 system resources.
 
-```
+```biolang
 let manifest = tsv("sample_manifest.tsv")  # 2,000 samples
 print("Processing " + str(len(manifest)) + " samples")
 

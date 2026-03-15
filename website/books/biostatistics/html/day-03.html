@@ -1,0 +1,821 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 3: Distributions — The Shape of Biological Variation - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-3-distributions--the-shape-of-biological-variation"><a class="header" href="#day-3-distributions--the-shape-of-biological-variation">Day 3: Distributions — The Shape of Biological Variation</a></h1>
+<div class="day-meta">
+<span class="badge">Day 3 of 30</span>
+<span class="badge">Prerequisites: Days 1-2</span>
+<span class="badge">~55 min</span>
+<span class="badge">Hands-on</span>
+</div>
+
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. James Park has RNA-seq data from 12 tumor samples. He needs to identify genes that are differentially expressed between treatment and control groups. He knows the standard approach: run a t-test on each gene. The t-test assumes data is normally distributed, so he checks his data.</p>
+<p>Gene FPKM values range from 0 to 50,000. Most genes sit near zero, with a handful expressed at astronomical levels. The histogram looks nothing like a bell curve — it is a massive spike at zero with a long right tail stretching to infinity. He runs the t-test anyway. Out of 20,000 genes, 4,700 come back “significant” at p &lt; 0.05. That is 23.5% of all genes, far more than seems biologically plausible for this modest treatment.</p>
+<p>Something is deeply wrong. The t-test assumed his data was symmetric and bell-shaped. It was neither. The test produced garbage because the assumption was violated. If Dr. Park had understood distributions — the subject of today’s chapter — he would have known to transform his data or use a different test entirely.</p>
+<h2 id="what-is-a-distribution"><a class="header" href="#what-is-a-distribution">What Is a Distribution?</a></h2>
+<p>A distribution is a recipe that tells you how likely each possible value is. Think of it as a map of a city, where the height at each point represents how many people live there. Downtown is a tall spike (many people). The suburbs are a gentle slope. The surrounding farmland is nearly flat.</p>
+<p>Every dataset has an underlying distribution — the theoretical shape that generated the data you observe. When you draw a histogram of your data, you are estimating this shape from a finite sample. With 10 data points, the histogram is choppy and unreliable. With 10,000, it smooths out and begins to reveal the true underlying curve.</p>
+<p>Why does this matter? Because <strong>every statistical test makes assumptions about the distribution of your data.</strong> The t-test assumes normality. The chi-square test assumes expected counts are large enough. The Poisson regression assumes counts follow a Poisson process. Violate the assumption, and the test’s guarantees evaporate.</p>
+<blockquote>
+<p><strong>Key insight:</strong> A statistical test is a contract. It says: “If your data follows distribution X, then I guarantee my conclusions are reliable with probability Y.” Break the contract, and you get no guarantees.</p>
+</blockquote>
+<h2 id="the-normal-distribution"><a class="header" href="#the-normal-distribution">The Normal Distribution</a></h2>
+<p>The normal distribution — the bell curve — is the most famous distribution in statistics, and for good reason. It arises naturally whenever many small, independent effects add together.</p>
+<h3 id="properties"><a class="header" href="#properties">Properties</a></h3>
+<p>The normal distribution is defined by two parameters:</p>
+<ul>
+<li><strong>μ (mu):</strong> the mean, which determines the center</li>
+<li><strong>σ (sigma):</strong> the standard deviation, which determines the width</li>
+</ul>
+<p>The curve is perfectly symmetric around μ. It extends infinitely in both directions, though values far from the mean are exceedingly unlikely.</p>
+<h3 id="the-68-95-997-rule"><a class="header" href="#the-68-95-997-rule">The 68-95-99.7 Rule</a></h3>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="330" viewbox="0 0 680 330" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="26" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">The 68-95-99.7 Rule (Empirical Rule)</text>
+  <defs>
+    <clippath id="bellClip"><rect x="60" y="40" width="560" height="220" /></clippath>
+  </defs>
+  <!-- Axis -->
+  <line x1="60" y1="250" x2="620" y2="250" stroke="#9ca3af" stroke-width="1.5" />
+  <!-- 99.7% region (3 sigma) -->
+  <path d="M 100,248 Q 130,245 160,235 Q 190,215 220,185 Q 260,130 300,82 Q 320,62 340,55 Q 360,62 380,82 Q 420,130 460,185 Q 490,215 520,235 Q 550,245 580,248 Z" fill="#dbeafe" fill-opacity="0.5" stroke="none" />
+  <!-- 95% region (2 sigma) -->
+  <path d="M 140,248 Q 170,242 200,225 Q 230,195 265,145 Q 290,100 310,72 Q 325,60 340,55 Q 355,60 370,72 Q 390,100 415,145 Q 450,195 480,225 Q 510,242 540,248 Z" fill="#93c5fd" fill-opacity="0.5" stroke="none" />
+  <!-- 68% region (1 sigma) -->
+  <path d="M 220,248 Q 240,240 260,218 Q 285,170 305,120 Q 320,80 330,62 Q 340,55 350,62 Q 360,80 375,120 Q 395,170 420,218 Q 440,240 460,248 Z" fill="#3b82f6" fill-opacity="0.4" stroke="none" />
+  <!-- Bell curve outline -->
+  <path d="M 80,248 Q 110,246 140,240 Q 170,228 200,205 Q 230,170 260,130 Q 290,90 310,68 Q 325,56 340,52 Q 355,56 370,68 Q 390,90 420,130 Q 450,170 480,205 Q 510,228 540,240 Q 570,246 600,248" fill="none" stroke="#1e40af" stroke-width="2.5" />
+  <!-- Sigma markers on axis -->
+  <line x1="340" y1="245" x2="340" y2="255" stroke="#1e293b" stroke-width="2" />
+  <text x="340" y="270" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">mu</text>
+  <line x1="220" y1="245" x2="220" y2="255" stroke="#1e293b" stroke-width="1.5" />
+  <text x="220" y="270" text-anchor="middle" font-size="11" fill="#1e293b">-1sigma</text>
+  <line x1="460" y1="245" x2="460" y2="255" stroke="#1e293b" stroke-width="1.5" />
+  <text x="460" y="270" text-anchor="middle" font-size="11" fill="#1e293b">+1sigma</text>
+  <line x1="140" y1="245" x2="140" y2="255" stroke="#1e293b" stroke-width="1.5" />
+  <text x="140" y="270" text-anchor="middle" font-size="11" fill="#1e293b">-2sigma</text>
+  <line x1="540" y1="245" x2="540" y2="255" stroke="#1e293b" stroke-width="1.5" />
+  <text x="540" y="270" text-anchor="middle" font-size="11" fill="#1e293b">+2sigma</text>
+  <line x1="100" y1="245" x2="100" y2="255" stroke="#1e293b" stroke-width="1.5" />
+  <text x="100" y="270" text-anchor="middle" font-size="11" fill="#1e293b">-3sigma</text>
+  <line x1="580" y1="245" x2="580" y2="255" stroke="#1e293b" stroke-width="1.5" />
+  <text x="580" y="270" text-anchor="middle" font-size="11" fill="#1e293b">+3sigma</text>
+  <!-- Percentage labels with brackets -->
+  <!-- 68% -->
+  <line x1="220" y1="225" x2="220" y2="215" stroke="#1e40af" stroke-width="1.2" />
+  <line x1="220" y1="215" x2="460" y2="215" stroke="#1e40af" stroke-width="1.2" />
+  <line x1="460" y1="225" x2="460" y2="215" stroke="#1e40af" stroke-width="1.2" />
+  <text x="340" y="212" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">68.3%</text>
+  <!-- 95% -->
+  <line x1="140" y1="240" x2="140" y2="290" stroke="#3b82f6" stroke-width="1.2" />
+  <line x1="140" y1="290" x2="540" y2="290" stroke="#3b82f6" stroke-width="1.2" />
+  <line x1="540" y1="240" x2="540" y2="290" stroke="#3b82f6" stroke-width="1.2" />
+  <text x="340" y="304" text-anchor="middle" font-size="13" font-weight="bold" fill="#3b82f6">95.4%</text>
+  <!-- 99.7% -->
+  <line x1="100" y1="248" x2="100" y2="315" stroke="#93c5fd" stroke-width="1.2" />
+  <line x1="100" y1="315" x2="580" y2="315" stroke="#93c5fd" stroke-width="1.2" />
+  <line x1="580" y1="248" x2="580" y2="315" stroke="#93c5fd" stroke-width="1.2" />
+  <text x="340" y="328" text-anchor="middle" font-size="13" font-weight="bold" fill="#6b9bd2">99.7%</text>
+</svg>
+</div>
+
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Range</th><th>Probability</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>μ ± 1σ</td><td>68.3%</td><td>About two-thirds of data</td></tr>
+<tr><td>μ ± 2σ</td><td>95.4%</td><td>Nearly all data</td></tr>
+<tr><td>μ ± 3σ</td><td>99.7%</td><td>Almost everything</td></tr>
+<tr><td>Beyond 3σ</td><td>0.3%</td><td>Extreme outliers</td></tr>
+</tbody>
+</table>
+</div>
+<p>If a measurement falls more than 3 standard deviations from the mean, it is either a genuine outlier or something went wrong.</p>
+<h3 id="biological-examples-of-normality"><a class="header" href="#biological-examples-of-normality">Biological Examples of Normality</a></h3>
+<p>The normal distribution is a good model for:</p>
+<ul>
+<li><strong>Measurement error:</strong> Technical replicates of the same sample tend to be normally distributed.</li>
+<li><strong>Height and weight</strong> in a homogeneous population (though mixtures of populations are not normal).</li>
+<li><strong>Blood pressure</strong> readings in healthy adults.</li>
+<li><strong>Quantitative traits</strong> influenced by many genes of small effect (additive genetic model).</li>
+<li><strong>Log-transformed gene expression</strong> (more on this below).</li>
+</ul>
+<h3 id="when-data-is-not-normal"><a class="header" href="#when-data-is-not-normal">When Data Is NOT Normal</a></h3>
+<p>The normal distribution is a terrible model for:</p>
+<ul>
+<li>Raw gene expression (FPKM, TPM, counts) — heavily right-skewed</li>
+<li>Read counts — discrete, non-negative, often zero-inflated</li>
+<li>Allele frequencies — bounded between 0 and 1</li>
+<li>Survival times — always positive, typically right-skewed</li>
+<li>Any data with a hard boundary (concentrations cannot be negative)</li>
+</ul>
+<pre><code class="language-bio">set_seed(42)
+# Generate and visualize normal data
+let heights = rnorm(5000, 170, 8)
+
+histogram(heights, {bins: 50, title: "Adult Heights (cm) — Normal Distribution"})
+let stats = summary(heights)
+print("Mean: {stats.mean:.1}, Median: {stats.median:.1}, Skewness: {stats.skewness:.3}")
+# Mean and median nearly identical; skewness near zero — hallmarks of normality
+</code></pre>
+<h2 id="the-log-normal-distribution"><a class="header" href="#the-log-normal-distribution">The Log-Normal Distribution</a></h2>
+<p>If gene expression is not normal, what is it? In most cases, it is <strong>log-normal</strong>: the data itself is skewed, but the logarithm of the data is normally distributed.</p>
+<h3 id="why-gene-expression-is-log-normal"><a class="header" href="#why-gene-expression-is-log-normal">Why Gene Expression Is Log-Normal</a></h3>
+<p>Gene regulation is a cascade of multiplicative processes. A transcription factor binds (or doesn’t), an enhancer activates (fold-change), mRNA is stabilized (half-life multiplied), ribosomes translate at varying rates (multiplied efficiency). When effects multiply rather than add, the result is log-normal, not normal.</p>
+<p>This is a mathematical fact: if X = Y₁ × Y₂ × … × Yₙ and the Y values are independent, then log(X) = log(Y₁) + log(Y₂) + … + log(Yₙ). Sums of independent variables tend toward normal (by the Central Limit Theorem), so log(X) is approximately normal, meaning X is log-normal.</p>
+<h3 id="the-log-transform-trick"><a class="header" href="#the-log-transform-trick">The Log-Transform Trick</a></h3>
+<p>This is why bioinformaticians routinely log-transform expression data before analysis:</p>
+<pre><code class="language-bio">set_seed(42)
+# Simulate gene expression (log-normal)
+let log_expr = rnorm(5000, 3.0, 2.0)
+let expression = log_expr |&gt; map(|x| 2.0 ** x)  # 2^x to simulate FPKM
+
+# Raw expression: heavily skewed
+histogram(expression, {bins: 50, title: "Raw FPKM — Right Skewed"})
+let raw_stats = summary(expression)
+print("Raw — Mean: {raw_stats.mean:.1}, Median: {raw_stats.median:.1}, Skew: {raw_stats.skewness:.2}")
+
+# Log2-transformed: approximately normal
+let log2_expr = expression |&gt; map(|x| log2(x + 1))  # +1 to handle zeros
+histogram(log2_expr, {bins: 50, title: "log2(FPKM+1) — Approximately Normal"})
+let log_stats = summary(log2_expr)
+print("Log2 — Mean: {log_stats.mean:.1}, Median: {log_stats.median:.1}, Skew: {log_stats.skewness:.2}")
+</code></pre>
+<p>After log-transformation, the mean and median converge, skewness drops toward zero, and the histogram looks bell-shaped. Now parametric tests are appropriate.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> Differential expression tools like DESeq2 and edgeR work with counts and model them with the negative binomial distribution, but many downstream analyses (clustering, PCA, visualization) require log-transformed data. Understanding why is essential for correct analysis.</p>
+</blockquote>
+<h2 id="the-poisson-distribution"><a class="header" href="#the-poisson-distribution">The Poisson Distribution</a></h2>
+<p>The Poisson distribution models the number of events that occur in a fixed interval, when events happen independently at a constant average rate.</p>
+<h3 id="properties-1"><a class="header" href="#properties-1">Properties</a></h3>
+<ul>
+<li><strong>Parameter:</strong> λ (lambda) — the average rate</li>
+<li><strong>Support:</strong> 0, 1, 2, 3, … (non-negative integers)</li>
+<li><strong>Mean = Variance = λ</strong> (this is the key property)</li>
+</ul>
+<h3 id="biological-examples"><a class="header" href="#biological-examples">Biological Examples</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Application</th><th>What is the “event”?</th><th>What is the “interval”?</th></tr>
+</thead>
+<tbody>
+<tr><td>RNA-seq read counts</td><td>One read mapping to a gene</td><td>One gene in one sample</td></tr>
+<tr><td>Mutations</td><td>One mutation</td><td>Per megabase of genome</td></tr>
+<tr><td>Rare diseases</td><td>One case</td><td>Per 100,000 population per year</td></tr>
+<tr><td>Sequencing errors</td><td>One error</td><td>Per 1000 bases</td></tr>
+</tbody>
+</table>
+</div>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="280" viewbox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="26" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Distribution Shape Comparison</text>
+  <!-- Panel 1: Normal -->
+  <rect x="15" y="38" width="210" height="220" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="120" y="58" text-anchor="middle" font-size="12" font-weight="600" fill="#2563eb">Normal</text>
+  <text x="120" y="72" text-anchor="middle" font-size="10" fill="#6b7280">mu=0, sigma=1</text>
+  <line x1="30" y1="225" x2="210" y2="225" stroke="#9ca3af" stroke-width="1" />
+  <path d="M 35,223 Q 50,222 65,215 Q 80,195 90,165 Q 100,120 110,85 Q 115,65 120,58 Q 125,65 130,85 Q 140,120 150,165 Q 160,195 175,215 Q 190,222 205,223" fill="#93c5fd" fill-opacity="0.3" stroke="#2563eb" stroke-width="2" />
+  <text x="120" y="244" text-anchor="middle" font-size="10" fill="#2563eb">Symmetric bell curve</text>
+  <text x="120" y="256" text-anchor="middle" font-size="9" fill="#6b7280">Heights, measurement error</text>
+  <!-- Panel 2: Log-Normal -->
+  <rect x="235" y="38" width="210" height="220" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="340" y="58" text-anchor="middle" font-size="12" font-weight="600" fill="#16a34a">Log-Normal</text>
+  <text x="340" y="72" text-anchor="middle" font-size="10" fill="#6b7280">mu=0, sigma=1 (of log)</text>
+  <line x1="250" y1="225" x2="430" y2="225" stroke="#9ca3af" stroke-width="1" />
+  <path d="M 260,223 Q 270,218 280,190 Q 288,145 295,95 Q 300,68 308,58 Q 318,62 330,90 Q 345,135 365,175 Q 385,205 410,218 Q 420,222 425,223" fill="#bbf7d0" fill-opacity="0.3" stroke="#16a34a" stroke-width="2" />
+  <text x="340" y="244" text-anchor="middle" font-size="10" fill="#16a34a">Right-skewed, always positive</text>
+  <text x="340" y="256" text-anchor="middle" font-size="9" fill="#6b7280">Gene expression (FPKM/TPM)</text>
+  <!-- Panel 3: Poisson -->
+  <rect x="455" y="38" width="210" height="220" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="560" y="58" text-anchor="middle" font-size="12" font-weight="600" fill="#7c3aed">Poisson</text>
+  <text x="560" y="72" text-anchor="middle" font-size="10" fill="#6b7280">lambda=3</text>
+  <line x1="470" y1="225" x2="650" y2="225" stroke="#9ca3af" stroke-width="1" />
+  <!-- Poisson bars (discrete) -->
+  <rect x="478" y="210" width="16" height="13" fill="#7c3aed" opacity="0.5" rx="1" />
+  <rect x="498" y="175" width="16" height="48" fill="#7c3aed" opacity="0.5" rx="1" />
+  <rect x="518" y="130" width="16" height="93" fill="#7c3aed" opacity="0.5" rx="1" />
+  <rect x="538" y="105" width="16" height="118" fill="#7c3aed" opacity="0.5" rx="1" />
+  <rect x="558" y="130" width="16" height="93" fill="#7c3aed" opacity="0.5" rx="1" />
+  <rect x="578" y="165" width="16" height="58" fill="#7c3aed" opacity="0.5" rx="1" />
+  <rect x="598" y="190" width="16" height="33" fill="#7c3aed" opacity="0.5" rx="1" />
+  <rect x="618" y="210" width="16" height="13" fill="#7c3aed" opacity="0.5" rx="1" />
+  <rect x="638" y="218" width="16" height="5" fill="#7c3aed" opacity="0.5" rx="1" />
+  <!-- x-axis labels -->
+  <text x="486" y="240" text-anchor="middle" font-size="9" fill="#6b7280">0</text>
+  <text x="506" y="240" text-anchor="middle" font-size="9" fill="#6b7280">1</text>
+  <text x="526" y="240" text-anchor="middle" font-size="9" fill="#6b7280">2</text>
+  <text x="546" y="240" text-anchor="middle" font-size="9" fill="#6b7280">3</text>
+  <text x="566" y="240" text-anchor="middle" font-size="9" fill="#6b7280">4</text>
+  <text x="586" y="240" text-anchor="middle" font-size="9" fill="#6b7280">5</text>
+  <text x="606" y="240" text-anchor="middle" font-size="9" fill="#6b7280">6</text>
+  <text x="626" y="240" text-anchor="middle" font-size="9" fill="#6b7280">7</text>
+  <text x="646" y="240" text-anchor="middle" font-size="9" fill="#6b7280">8</text>
+  <text x="560" y="256" text-anchor="middle" font-size="10" fill="#7c3aed">Discrete counts</text>
+  <text x="560" y="268" text-anchor="middle" font-size="9" fill="#6b7280">Read counts, mutations</text>
+</svg>
+</div>
+
+<h3 id="the-overdispersion-problem"><a class="header" href="#the-overdispersion-problem">The Overdispersion Problem</a></h3>
+<p>In theory, RNA-seq counts should be Poisson. In practice, biological replicates show more variability than Poisson predicts — the variance exceeds the mean. This is <strong>overdispersion</strong>, caused by biological variability between samples.</p>
+<p>The solution is the <strong>negative binomial</strong> distribution, which adds a dispersion parameter to allow variance &gt; mean. This is why DESeq2 uses negative binomial, not Poisson.</p>
+<pre><code class="language-bio">set_seed(42)
+# Poisson distribution for mutation counts
+
+# Average 3.5 mutations per megabase in a tumor
+let mutation_counts = rpois(1000, 3.5)
+
+histogram(mutation_counts, {bins: 15, title: "Mutations per Megabase (Poisson, lambda=3.5)"})
+
+# Verify mean ~ variance (Poisson property)
+print("Mean: {mean(mutation_counts):.2}")
+print("Variance: {variance(mutation_counts):.2}")
+# Both should be close to 3.5
+
+# Probability of seeing 10+ mutations in a region (hypermutation?)
+let p_hyper = 1.0 - ppois(9, 3.5)
+print("P(10+ mutations): {p_hyper:.4}")
+# Very low — a region with 10+ mutations is genuinely unusual
+</code></pre>
+<h2 id="the-binomial-distribution"><a class="header" href="#the-binomial-distribution">The Binomial Distribution</a></h2>
+<p>The binomial distribution models the number of successes in a fixed number of independent trials, each with the same probability of success.</p>
+<h3 id="properties-2"><a class="header" href="#properties-2">Properties</a></h3>
+<ul>
+<li><strong>Parameters:</strong> n (number of trials), p (probability of success)</li>
+<li><strong>Support:</strong> 0, 1, 2, …, n</li>
+<li><strong>Mean = np, Variance = np(1-p)</strong></li>
+</ul>
+<h3 id="biological-examples-1"><a class="header" href="#biological-examples-1">Biological Examples</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Application</th><th>What is a “trial”?</th><th>What is “success”?</th><th>What is p?</th></tr>
+</thead>
+<tbody>
+<tr><td>Heterozygous genotype</td><td>One offspring</td><td>Inherits variant allele</td><td>0.5</td></tr>
+<tr><td>SNP calling</td><td>One read at a position</td><td>Carries alt allele</td><td>VAF</td></tr>
+<tr><td>Drug response</td><td>One patient</td><td>Responds</td><td>Response rate</td></tr>
+<tr><td>Hardy-Weinberg</td><td>One individual</td><td>Has genotype AA</td><td>p²</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="hardy-weinberg-equilibrium"><a class="header" href="#hardy-weinberg-equilibrium">Hardy-Weinberg Equilibrium</a></h3>
+<p>For a biallelic locus with allele frequencies p and q = 1-p, Hardy-Weinberg predicts genotype frequencies:</p>
+<ul>
+<li>AA: p²</li>
+<li>Aa: 2pq</li>
+<li>aa: q²</li>
+</ul>
+<p>Deviations from HWE can indicate selection, population structure, or genotyping error.</p>
+<pre><code class="language-bio">set_seed(42)
+# Genotype frequencies under Hardy-Weinberg
+let p = 0.3  # frequency of allele A
+let q = 1.0 - p
+
+let freq_AA = p * p         # 0.09
+let freq_Aa = 2.0 * p * q   # 0.42
+let freq_aa = q * q         # 0.49
+
+print("Expected genotype frequencies:")
+print("  AA: {freq_AA:.3}")
+print("  Aa: {freq_Aa:.3}")
+print("  aa: {freq_aa:.3}")
+
+# Simulate genotyping 500 individuals
+let n_individuals = 500
+let AA_count = rbinom(1, n_individuals, freq_AA) |&gt; sum()
+
+# Probability of observing exactly k heterozygotes
+let k = 200
+let p_exact = dbinom(k, n_individuals, freq_Aa)
+print("P(exactly {k} heterozygotes in {n_individuals}): {p_exact:.6}")
+
+# Probability of 230+ heterozygotes (possible HWE violation?)
+let p_excess = 1.0 - pbinom(229, n_individuals, freq_Aa)
+print("P(230+ heterozygotes): {p_excess:.4}")
+</code></pre>
+<h2 id="checking-your-distribution-diagnostic-tools"><a class="header" href="#checking-your-distribution-diagnostic-tools">Checking Your Distribution: Diagnostic Tools</a></h2>
+<p>Before running any parametric test, verify that your data matches its assumptions. Here are the essential tools.</p>
+<h3 id="q-q-plots"><a class="header" href="#q-q-plots">Q-Q Plots</a></h3>
+<p>A Q-Q (quantile-quantile) plot compares your data’s quantiles against the theoretical quantiles of a reference distribution (usually normal). If data follows the reference distribution, points fall on a straight diagonal line. Deviations reveal departures from the assumed shape.</p>
+<pre><code class="language-bio">set_seed(42)
+# Q-Q plot for normal data (should be a straight line)
+let normal_data = rnorm(500, 0, 1)
+qq_plot(normal_data, {title: "Q-Q Plot: Normal Data"})
+
+# Q-Q plot for log-normal data (curved — not normal!)
+let lognormal_data = normal_data |&gt; map(|x| exp(x))
+qq_plot(lognormal_data, {title: "Q-Q Plot: Log-Normal Data (Raw)"})
+
+# Q-Q plot after log-transform (straight again)
+let transformed = lognormal_data |&gt; map(|x| log(x))
+qq_plot(transformed, {title: "Q-Q Plot: Log-Normal Data (After Log Transform)"})
+</code></pre>
+<p><strong>Reading a Q-Q plot:</strong></p>
+<ul>
+<li>Points on the line: data matches the assumed distribution</li>
+<li>Upward curve at the right end: right skew (heavy right tail)</li>
+<li>Downward curve at the left end: left skew (heavy left tail)</li>
+<li>S-shape: heavy tails on both sides (high kurtosis)</li>
+</ul>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="270" viewbox="0 0 680 270" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="26" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Q-Q Plot Interpretation Guide</text>
+  <!-- Panel 1: Good fit -->
+  <rect x="15" y="40" width="210" height="210" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="120" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#16a34a">Good Fit (Normal)</text>
+  <line x1="40" y1="220" x2="200" y2="220" stroke="#9ca3af" stroke-width="1" />
+  <line x1="40" y1="220" x2="40" y2="70" stroke="#9ca3af" stroke-width="1" />
+  <text x="120" y="240" text-anchor="middle" font-size="9" fill="#6b7280">Theoretical Quantiles</text>
+  <text x="22" y="148" text-anchor="middle" font-size="9" fill="#6b7280" transform="rotate(-90,22,148)">Sample</text>
+  <!-- Reference line -->
+  <line x1="50" y1="210" x2="195" y2="78" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5,3" />
+  <!-- Points along the line -->
+  <circle cx="58" cy="206" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="70" cy="196" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="82" cy="185" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="92" cy="175" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="102" cy="165" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="112" cy="152" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="122" cy="142" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="132" cy="132" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="143" cy="121" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="155" cy="110" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="166" cy="100" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="178" cy="90" r="3" fill="#16a34a" opacity="0.7" />
+  <circle cx="190" cy="82" r="3" fill="#16a34a" opacity="0.7" />
+  <text x="120" y="256" text-anchor="middle" font-size="10" fill="#16a34a">Points follow the diagonal</text>
+  <!-- Panel 2: Heavy tails (S-curve) -->
+  <rect x="235" y="40" width="210" height="210" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="340" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#7c3aed">Heavy Tails (S-shape)</text>
+  <line x1="260" y1="220" x2="420" y2="220" stroke="#9ca3af" stroke-width="1" />
+  <line x1="260" y1="220" x2="260" y2="70" stroke="#9ca3af" stroke-width="1" />
+  <text x="340" y="240" text-anchor="middle" font-size="9" fill="#6b7280">Theoretical Quantiles</text>
+  <!-- Reference line -->
+  <line x1="270" y1="210" x2="415" y2="78" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5,3" />
+  <!-- S-shaped points -->
+  <circle cx="278" cy="215" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="287" cy="210" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="296" cy="200" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="305" cy="185" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="315" cy="165" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="325" cy="152" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="340" cy="142" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="355" cy="132" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="368" cy="120" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="380" cy="100" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="392" cy="82" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="402" cy="74" r="3" fill="#7c3aed" opacity="0.7" />
+  <circle cx="410" cy="68" r="3" fill="#7c3aed" opacity="0.7" />
+  <text x="340" y="256" text-anchor="middle" font-size="10" fill="#7c3aed">S-curve: more extreme values</text>
+  <!-- Panel 3: Right-skewed (curve up) -->
+  <rect x="455" y="40" width="210" height="210" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="560" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#dc2626">Right Skew (Curves Up)</text>
+  <line x1="480" y1="220" x2="640" y2="220" stroke="#9ca3af" stroke-width="1" />
+  <line x1="480" y1="220" x2="480" y2="70" stroke="#9ca3af" stroke-width="1" />
+  <text x="560" y="240" text-anchor="middle" font-size="9" fill="#6b7280">Theoretical Quantiles</text>
+  <!-- Reference line -->
+  <line x1="490" y1="210" x2="635" y2="78" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5,3" />
+  <!-- Curved-up points (right skew) -->
+  <circle cx="498" cy="208" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="510" cy="198" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="520" cy="188" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="530" cy="175" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="540" cy="162" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="552" cy="148" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="564" cy="132" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="578" cy="112" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="592" cy="95" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="604" cy="82" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="612" cy="74" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="618" cy="68" r="3" fill="#dc2626" opacity="0.7" />
+  <circle cx="623" cy="64" r="3" fill="#dc2626" opacity="0.7" />
+  <text x="560" y="256" text-anchor="middle" font-size="10" fill="#dc2626">Upper tail heavier than normal</text>
+</svg>
+</div>
+
+<h3 id="shapiro-wilk-test"><a class="header" href="#shapiro-wilk-test">Shapiro-Wilk Test</a></h3>
+<p>The Shapiro-Wilk test formally tests whether data is normally distributed. A small p-value (&lt; 0.05) means the data is significantly non-normal.</p>
+<pre><code class="language-bio">set_seed(42)
+# Test normality visually with Q-Q plots and histograms
+let normal_data = rnorm(200, 50, 10)
+let skewed_data = rnorm(200, 3, 1) |&gt; map(|x| exp(x))
+
+# For normal data: Q-Q plot should show points on the diagonal
+qq_plot(normal_data, {title: "Q-Q: Normal Data"})
+let stats_normal = summary(normal_data)
+print("Normal data — Skewness: {stats_normal.skewness:.4}")
+# Skewness near 0: consistent with normality
+
+# For skewed data: Q-Q plot will curve away from the diagonal
+qq_plot(skewed_data, {title: "Q-Q: Skewed Data"})
+let stats_skewed = summary(skewed_data)
+print("Skewed data — Skewness: {stats_skewed.skewness:.4}")
+# High skewness: definitely not normal
+</code></pre>
+<blockquote>
+<p><strong>Common pitfall:</strong> The Shapiro-Wilk test is very sensitive with large samples. With n = 10,000, it will reject normality for data that is “close enough” to normal for practical purposes. For large samples, rely more on Q-Q plots and skewness/kurtosis values than on the Shapiro-Wilk p-value.</p>
+</blockquote>
+<h3 id="histogram-with-density-overlay"><a class="header" href="#histogram-with-density-overlay">Histogram with Density Overlay</a></h3>
+<p>Overlay the theoretical density curve on your histogram to visually assess fit:</p>
+<pre><code class="language-bio">set_seed(42)
+let data = rnorm(2000, 100, 15)
+
+# Histogram with normal density overlay
+histogram(data, {bins: 40, title: "Data with Normal Fit Overlay"})
+density(data, {title: "Kernel Density Estimate"})
+</code></pre>
+<h2 id="distribution-summary-table"><a class="header" href="#distribution-summary-table">Distribution Summary Table</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Distribution</th><th>Shape</th><th>Parameters</th><th>Mean</th><th>Variance</th><th>Biology Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td>Normal</td><td>Symmetric bell</td><td>μ, σ</td><td>μ</td><td>σ²</td><td>Measurement error, heights, log-expression</td></tr>
+<tr><td>Log-Normal</td><td>Right-skewed</td><td>μ, σ (of log)</td><td>exp(μ + σ²/2)</td><td>Complex</td><td>Raw gene expression, protein abundance</td></tr>
+<tr><td>Poisson</td><td>Right-skewed (low λ), symmetric (high λ)</td><td>λ</td><td>λ</td><td>λ</td><td>Read counts, mutation rates</td></tr>
+<tr><td>Binomial</td><td>Varies</td><td>n, p</td><td>np</td><td>np(1-p)</td><td>Genotype counts, allele sampling</td></tr>
+<tr><td>Negative Binomial</td><td>Right-skewed</td><td>r, p</td><td>r(1-p)/p</td><td>r(1-p)/p²</td><td>Overdispersed counts (DESeq2)</td></tr>
+<tr><td>Beta</td><td>Flexible (0,1)</td><td>α, β</td><td>α/(α+β)</td><td>Complex</td><td>Allele frequencies, methylation</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="python-and-r-equivalents"><a class="header" href="#python-and-r-equivalents">Python and R Equivalents</a></h2>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+
+# Normal distribution
+x = np.linspace(-4, 4, 1000)
+plt.plot(x, stats.norm.pdf(x, 0, 1))
+
+# Poisson
+counts = np.random.poisson(lam=3.5, size=1000)
+
+# Binomial
+genotypes = np.random.binomial(n=500, p=0.42, size=1000)
+
+# Q-Q plot
+stats.probplot(data, dist="norm", plot=plt)
+
+# Shapiro-Wilk test
+stat, p = stats.shapiro(data)
+
+# Distribution fitting
+params = stats.norm.fit(data)  # MLE fit
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Normal distribution
+x &lt;- seq(-4, 4, length.out = 1000)
+plot(x, dnorm(x, 0, 1), type = "l")
+
+# Poisson
+counts &lt;- rpois(1000, lambda = 3.5)
+
+# Binomial
+genotypes &lt;- rbinom(1000, size = 500, prob = 0.42)
+
+# Q-Q plot
+qqnorm(data)
+qqline(data)
+
+# Shapiro-Wilk test
+shapiro.test(data)
+
+# Density overlay
+hist(data, freq = FALSE)
+curve(dnorm(x, mean(data), sd(data)), add = TRUE, col = "red")
+</code></pre>
+<h2 id="why-this-matters-for-testing"><a class="header" href="#why-this-matters-for-testing">Why This Matters for Testing</a></h2>
+<p>Here is the critical connection between today’s material and the rest of the book:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>If your data is…</th><th>Then you can use…</th><th>But NOT…</th></tr>
+</thead>
+<tbody>
+<tr><td>Normal</td><td>t-test, ANOVA, Pearson correlation</td><td>—</td></tr>
+<tr><td>Log-normal</td><td>t-test after log-transform</td><td>t-test on raw values</td></tr>
+<tr><td>Poisson counts</td><td>Poisson regression, exact tests</td><td>t-test</td></tr>
+<tr><td>Overdispersed counts</td><td>Negative binomial (DESeq2, edgeR)</td><td>Poisson, t-test</td></tr>
+<tr><td>Non-normal, unknown</td><td>Mann-Whitney, Kruskal-Wallis</td><td>t-test, ANOVA</td></tr>
+<tr><td>Bounded (0,1)</td><td>Beta regression, logit transform</td><td>Linear regression</td></tr>
+</tbody>
+</table>
+</div>
+<p>Choosing the wrong test because you assumed the wrong distribution is one of the most common errors in computational biology. Dr. Park’s mistake from our opening scenario — running a t-test on raw FPKM values — is committed daily in bioinformatics labs around the world.</p>
+<blockquote>
+<p><strong>Key insight:</strong> The distribution is not a detail. It is the foundation. Get it right, and your downstream analysis is trustworthy. Get it wrong, and no amount of sophisticated testing can rescue your conclusions.</p>
+</blockquote>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-identify-the-distribution"><a class="header" href="#exercise-1-identify-the-distribution">Exercise 1: Identify the Distribution</a></h3>
+<p>For each dataset, determine the most appropriate distribution and justify your choice.</p>
+<pre><code class="language-bio">set_seed(42)
+# Dataset A: Sequencing read counts per gene
+let dataset_a = rpois(1000, 25)
+
+# Dataset B: Patient blood pressure
+let dataset_b = rnorm(500, 120, 15)
+
+# Dataset C: Gene expression (raw TPM)
+let log_vals = rnorm(2000, 2.0, 1.5)
+let dataset_c = log_vals |&gt; map(|x| 10.0 ** x)
+
+# TODO: For each dataset, create a histogram and Q-Q plot
+# TODO: Check normality visually with qq_plot() and histogram()
+# TODO: For dataset C, try log-transforming and re-check
+# TODO: State which distribution best describes each and why
+</code></pre>
+<h3 id="exercise-2-the-poisson-check"><a class="header" href="#exercise-2-the-poisson-check">Exercise 2: The Poisson Check</a></h3>
+<p>Verify whether mutation count data follows a Poisson distribution by checking the mean-variance relationship.</p>
+<pre><code class="language-bio">set_seed(42)
+# Scenario 1: Pure Poisson (technical replicates)
+let technical = rpois(500, 8.0)
+
+# Scenario 2: Overdispersed (biological replicates)
+# Simulate by mixing Poisson with varying lambda
+let lambdas = rnorm(500, 8.0, 3.0) |&gt; map(|x| max(x, 0.1))
+
+# TODO: Compute mean and variance for technical replicates
+# TODO: Are they approximately equal? (Poisson property)
+# TODO: For overdispersed data, compute the dispersion ratio (variance/mean)
+# TODO: What does a ratio &gt;&gt; 1 tell you about the data?
+</code></pre>
+<h3 id="exercise-3-transform-and-test"><a class="header" href="#exercise-3-transform-and-test">Exercise 3: Transform and Test</a></h3>
+<p>Take a skewed dataset, find the right transformation, and verify normality.</p>
+<pre><code class="language-bio">set_seed(42)
+let protein_abundance = rnorm(300, 4, 1.2) |&gt; map(|x| exp(x))
+
+# TODO: Plot histogram of raw data
+# TODO: Check normality with qq_plot() — is it normal?
+# TODO: Apply log transform
+# TODO: Plot histogram of transformed data
+# TODO: Check normality of transformed data with qq_plot()
+# TODO: Compare skewness before and after
+</code></pre>
+<h3 id="exercise-4-distribution-detective"><a class="header" href="#exercise-4-distribution-detective">Exercise 4: Distribution Detective</a></h3>
+<p>A collaborator gives you mystery data. Identify its distribution using all tools from today.</p>
+<pre><code class="language-bio">set_seed(42)
+# Mystery data — what distribution is this?
+let mystery = rbinom(1000, 50, 0.15)
+
+# TODO: Compute summary()
+# TODO: Create histogram
+# TODO: Try Q-Q plot against normal
+# TODO: Note: the data is discrete. What distributions produce discrete data?
+# TODO: Estimate the parameters and identify the distribution
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>A <strong>distribution</strong> is the theoretical shape describing how likely each value is. Every dataset has one, and every statistical test assumes one.</li>
+<li>The <strong>normal distribution</strong> arises from additive effects and is defined by mean and standard deviation. It is appropriate for measurement error and many physiological traits.</li>
+<li><strong>Gene expression is NOT normal</strong> — it is log-normal because gene regulation is multiplicative. Always log-transform before using parametric tests.</li>
+<li>The <strong>Poisson distribution</strong> models count data (reads, mutations) with the key property that mean equals variance. When variance exceeds the mean (overdispersion), use the negative binomial instead.</li>
+<li>The <strong>binomial distribution</strong> models fixed trials with a success probability — relevant for genotype frequencies and allele sampling.</li>
+<li><strong>Q-Q plots</strong> are the most informative visual diagnostic for distribution checking. The <strong>Shapiro-Wilk test</strong> provides a formal hypothesis test for normality.</li>
+<li>Choosing the right distribution is not optional — it determines which statistical tests are valid and which will produce misleading results.</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>You now understand the shapes that biological data takes. But distributions describe what values are likely — which is just another way of saying they describe probabilities. Tomorrow, on Day 4, we formalize probability itself. You will learn to compute the chance that a child inherits a BRCA1 mutation, understand why a positive genetic test might mean less than you think (Bayes’ theorem will surprise you), and discover why the prosecutor’s fallacy has sent innocent people to prison. Probability is the language of uncertainty, and uncertainty is the native tongue of biology.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-02.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-04.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-02.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-04.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

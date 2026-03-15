@@ -1,0 +1,967 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 20: Batch Effects and Confounders - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-20-batch-effects-and-confounders"><a class="header" href="#day-20-batch-effects-and-confounders">Day 20: Batch Effects and Confounders</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. David Liu is leading a multi-center study comparing gene expression in 200 breast tumors versus 100 normal breast tissues. Three hospitals contributed samples: Memorial (80 tumors, 40 normals), Hopkins (70 tumors, 30 normals), and Mayo (50 tumors, 30 normals). He runs PCA on the full expression matrix, expecting to see tumor and normal separate.</p>
+<p>Instead, the PCA plot shows <strong>three tight clusters — one per hospital</strong>. The first principal component explains 35% of variance and perfectly separates the centers. Tumor vs. normal? It’s buried in PC4 at 4% of variance.</p>
+<p>The dominant signal in his data is <strong>which hospital processed the sample</strong>, not the biology he’s studying. These are <strong>batch effects</strong>, and they’re one of the most insidious problems in genomics.</p>
+<h2 id="what-are-batch-effects"><a class="header" href="#what-are-batch-effects">What Are Batch Effects?</a></h2>
+<p>Batch effects are <strong>systematic technical differences</strong> between groups of samples that were processed differently. They have nothing to do with biology but can completely dominate a dataset.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Mechanism</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>Processing date</td><td>Reagent lots, temperature, humidity</td><td>Monday vs. Friday RNA extractions</td></tr>
+<tr><td>Technician</td><td>Handling differences</td><td>Technician A vs. B</td></tr>
+<tr><td>Center/site</td><td>Different protocols, equipment</td><td>Hospital A vs. B</td></tr>
+<tr><td>Sequencing lane</td><td>Flow cell chemistry, loading density</td><td>Lane 1 vs. Lane 2</td></tr>
+<tr><td>Plate position</td><td>Edge effects, evaporation</td><td>Well A1 vs. H12</td></tr>
+<tr><td>Reagent lot</td><td>Batch-to-batch kit variation</td><td>Kit lot 2024A vs. 2024B</td></tr>
+<tr><td>Storage time</td><td>RNA degradation over time</td><td>Samples banked in 2020 vs. 2024</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> Batch effects are not random noise — they are systematic biases that affect thousands of genes simultaneously. They shift entire samples in the same direction, which is why PCA detects them so readily.</p>
+</blockquote>
+<h3 id="how-large-are-batch-effects"><a class="header" href="#how-large-are-batch-effects">How Large Are Batch Effects?</a></h3>
+<p>In a landmark 2010 study, Leek et al. analyzed publicly available microarray data and found:</p>
+<ul>
+<li>Batch effects were present in <strong>virtually all</strong> high-throughput datasets</li>
+<li>They often explained <strong>more variance</strong> than the biological signal of interest</li>
+<li>They affected <strong>thousands of genes</strong> per batch, not just a handful</li>
+</ul>
+<p>In RNA-seq, batch effects are typically smaller than in microarrays but still substantial — often explaining 10-30% of total variance.</p>
+<h2 id="identifying-batch-effects"><a class="header" href="#identifying-batch-effects">Identifying Batch Effects</a></h2>
+<h3 id="1-pca-visualization"><a class="header" href="#1-pca-visualization">1. PCA Visualization</a></h3>
+<p>The most powerful diagnostic. Color samples by batch variable and biological variable. If batch dominates PC1/PC2, you have a problem.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="380" viewbox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">PCA Reveals Batch Effects: Samples Cluster by Facility, Not Biology</text>
+  <g transform="translate(50, 40)">
+    <!-- Axes -->
+    <line x1="60" y1="290" x2="560" y2="290" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="60" y1="290" x2="60" y2="30" stroke="#6b7280" stroke-width="1.5" />
+    <text x="310" y="320" text-anchor="middle" font-size="12" fill="#6b7280">PC1 (35% variance) — Dominated by batch!</text>
+    <text x="15" y="160" text-anchor="middle" font-size="12" fill="#6b7280" transform="rotate(-90, 15, 160)">PC2 (18% variance)</text>
+    <!-- Memorial cluster (blue) — left -->
+    <circle cx="130" cy="130" r="30" fill="#2563eb" opacity="0.07" stroke="#2563eb" stroke-width="1" stroke-dasharray="3,2" />
+    <circle cx="120" cy="120" r="5" fill="#2563eb" opacity="0.7" /><circle cx="140" cy="115" r="5" fill="#2563eb" opacity="0.7" />
+    <circle cx="135" cy="135" r="5" fill="#2563eb" opacity="0.7" /><circle cx="115" cy="140" r="5" fill="#2563eb" opacity="0.7" />
+    <circle cx="145" cy="128" r="5" fill="#2563eb" opacity="0.7" /><circle cx="125" cy="110" r="5" fill="#2563eb" opacity="0.7" />
+    <!-- Shapes for condition within Memorial: circles=tumor, triangles=normal -->
+    <polygon points="118,150 122,142 114,142" fill="#2563eb" opacity="0.7" />
+    <polygon points="138,145 142,137 134,137" fill="#2563eb" opacity="0.7" />
+    <polygon points="128,155 132,147 124,147" fill="#2563eb" opacity="0.7" />
+    <!-- Hopkins cluster (red) — middle -->
+    <circle cx="310" cy="180" r="30" fill="#dc2626" opacity="0.07" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2" />
+    <circle cx="300" cy="170" r="5" fill="#dc2626" opacity="0.7" /><circle cx="320" cy="175" r="5" fill="#dc2626" opacity="0.7" />
+    <circle cx="315" cy="190" r="5" fill="#dc2626" opacity="0.7" /><circle cx="295" cy="185" r="5" fill="#dc2626" opacity="0.7" />
+    <circle cx="325" cy="165" r="5" fill="#dc2626" opacity="0.7" /><circle cx="305" cy="195" r="5" fill="#dc2626" opacity="0.7" />
+    <polygon points="298,200 302,192 294,192" fill="#dc2626" opacity="0.7" />
+    <polygon points="318,200 322,192 314,192" fill="#dc2626" opacity="0.7" />
+    <!-- Mayo cluster (green) — right -->
+    <circle cx="470" cy="100" r="30" fill="#16a34a" opacity="0.07" stroke="#16a34a" stroke-width="1" stroke-dasharray="3,2" />
+    <circle cx="460" cy="90" r="5" fill="#16a34a" opacity="0.7" /><circle cx="480" cy="95" r="5" fill="#16a34a" opacity="0.7" />
+    <circle cx="475" cy="110" r="5" fill="#16a34a" opacity="0.7" /><circle cx="455" cy="105" r="5" fill="#16a34a" opacity="0.7" />
+    <circle cx="485" cy="85" r="5" fill="#16a34a" opacity="0.7" /><circle cx="465" cy="115" r="5" fill="#16a34a" opacity="0.7" />
+    <polygon points="478,118 482,110 474,110" fill="#16a34a" opacity="0.7" />
+    <polygon points="458,120 462,112 454,112" fill="#16a34a" opacity="0.7" />
+    <!-- Cluster labels -->
+    <text x="130" y="88" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">Memorial</text>
+    <text x="310" y="145" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">Hopkins</text>
+    <text x="470" y="63" text-anchor="middle" font-size="11" fill="#16a34a" font-weight="bold">Mayo</text>
+    <!-- Legend -->
+    <rect x="350" y="240" width="210" height="48" rx="4" fill="white" stroke="#e5e7eb" stroke-width="1" />
+    <text x="360" y="256" font-size="10" fill="#6b7280" font-weight="bold">Shape = Biology:</text>
+    <circle cx="370" cy="270" r="4" fill="#6b7280" />
+    <text x="380" y="274" font-size="10" fill="#1e293b">= Tumor</text>
+    <polygon points="440,274 444,266 436,266" fill="#6b7280" />
+    <text x="452" y="274" font-size="10" fill="#1e293b">= Normal</text>
+    <!-- Warning annotation -->
+    <rect x="140" y="240" width="180" height="38" rx="4" fill="#fef2f2" stroke="#dc2626" stroke-width="0.8" />
+    <text x="230" y="256" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">Tumor and Normal are</text>
+    <text x="230" y="270" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">mixed within each cluster!</text>
+  </g>
+</svg>
+</div>
+
+<h3 id="2-correlation-heatmap"><a class="header" href="#2-correlation-heatmap">2. Correlation Heatmap</a></h3>
+<p>Compute sample-to-sample correlation. If samples cluster by batch rather than biology, batch effects are present.</p>
+<h3 id="3-box-plots-by-batch"><a class="header" href="#3-box-plots-by-batch">3. Box Plots by Batch</a></h3>
+<p>Plot the distribution of expression values (or a summary statistic) stratified by batch. Systematic shifts indicate batch effects.</p>
+<h3 id="4-anova-for-batch"><a class="header" href="#4-anova-for-batch">4. ANOVA for Batch</a></h3>
+<p>For each gene, test whether expression differs significantly by batch. If hundreds or thousands of genes show batch effects, the problem is pervasive.</p>
+<h2 id="confounders-a-deeper-problem"><a class="header" href="#confounders-a-deeper-problem">Confounders: A Deeper Problem</a></h2>
+<p>A <strong>confounder</strong> is a variable associated with BOTH the predictor and the outcome, creating a spurious association (or masking a real one).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Scenario</th><th>Confounder</th><th>Danger</th></tr>
+</thead>
+<tbody>
+<tr><td>Gene expression differs by sex</td><td>Tumor subtype differs by sex</td><td>Sex drives both</td></tr>
+<tr><td>Drug response varies by ethnicity</td><td>Genetic variant frequency varies by ethnicity</td><td>Population stratification</td></tr>
+<tr><td>Survival differs by TP53 status</td><td>Stage differs by TP53 status</td><td>Stage confounds TP53 effect</td></tr>
+<tr><td>Expression differs by treatment</td><td>Samples processed on different days</td><td>Processing day = treatment</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="simpsons-paradox"><a class="header" href="#simpsons-paradox">Simpson’s Paradox</a></h3>
+<p>The most dramatic form of confounding. A trend that appears in aggregate <strong>reverses</strong> when groups are separated:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Hospital</th><th>Drug A Survival</th><th>Drug B Survival</th><th>Better Drug</th></tr>
+</thead>
+<tbody>
+<tr><td>Hospital 1 (mild cases)</td><td>95%</td><td>90%</td><td>Drug A</td></tr>
+<tr><td>Hospital 2 (severe cases)</td><td>40%</td><td>30%</td><td>Drug A</td></tr>
+<tr><td><strong>Combined</strong></td><td><strong>55%</strong></td><td><strong>70%</strong></td><td><strong>Drug B??</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>Drug A is better at BOTH hospitals, but Drug B appears better overall because Hospital 2 (severe cases, low survival) preferentially used Drug A.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> Simpson’s paradox has real consequences. In the 1970s, Berkeley was accused of sex discrimination in graduate admissions. Overall, women had lower acceptance rates. But department by department, women were accepted at equal or higher rates — they had applied more often to competitive departments with low overall acceptance rates.</p>
+</blockquote>
+<h2 id="the-confounded-design-trap"><a class="header" href="#the-confounded-design-trap">The Confounded Design Trap</a></h2>
+<p>The most dangerous scenario: <strong>when batch perfectly correlates with biology</strong>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Sample</th><th>Center</th><th>Condition</th></tr>
+</thead>
+<tbody>
+<tr><td>1-50</td><td>Center A</td><td>All Tumor</td></tr>
+<tr><td>51-100</td><td>Center B</td><td>All Normal</td></tr>
+</tbody>
+</table>
+</div>
+<p>Here, center and condition are <strong>completely confounded</strong>. Every difference between tumor and normal could equally be a difference between Center A and Center B. No statistical method can separate them. The experiment is fatally flawed.</p>
+<blockquote>
+<p><strong>Common pitfall:</strong> This happens more often than you’d think. A collaborator sends tumor samples from one hospital and normal samples from another. Or samples are processed tumor on Monday, normal on Tuesday. The solution is <strong>balanced design</strong> — ensure batch variables are distributed across biological groups.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="340" viewbox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Confounded vs. Balanced Study Design</text>
+  <!-- Left: Confounded (BAD) -->
+  <g transform="translate(20, 50)">
+    <text x="150" y="16" text-anchor="middle" font-size="13" font-weight="bold" fill="#dc2626">Confounded Design</text>
+    <rect x="20" y="30" width="260" height="220" rx="8" fill="white" stroke="#dc2626" stroke-width="1.5" />
+    <!-- Batch A column -->
+    <rect x="40" y="55" width="100" height="170" rx="4" fill="#2563eb" opacity="0.08" stroke="#2563eb" stroke-width="1" />
+    <text x="90" y="50" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">Batch A</text>
+    <!-- All tumors -->
+    <rect x="55" y="70" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="90" y="83" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <rect x="55" y="92" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="90" y="105" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <rect x="55" y="114" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="90" y="127" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <rect x="55" y="136" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="90" y="149" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <rect x="55" y="158" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="90" y="171" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <text x="90" y="200" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">100% Tumor</text>
+    <!-- Batch B column -->
+    <rect x="160" y="55" width="100" height="170" rx="4" fill="#16a34a" opacity="0.08" stroke="#16a34a" stroke-width="1" />
+    <text x="210" y="50" text-anchor="middle" font-size="11" fill="#16a34a" font-weight="bold">Batch B</text>
+    <!-- All normals -->
+    <rect x="175" y="70" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="210" y="83" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <rect x="175" y="92" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="210" y="105" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <rect x="175" y="114" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="210" y="127" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <rect x="175" y="136" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="210" y="149" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <rect x="175" y="158" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="210" y="171" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <text x="210" y="200" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">100% Normal</text>
+    <!-- Big X -->
+    <line x1="30" y1="35" x2="270" y2="245" stroke="#dc2626" stroke-width="4" opacity="0.3" />
+    <line x1="270" y1="35" x2="30" y2="245" stroke="#dc2626" stroke-width="4" opacity="0.3" />
+    <!-- Verdict -->
+    <text x="150" y="268" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">FATAL: Cannot separate</text>
+    <text x="150" y="282" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">batch from biology!</text>
+  </g>
+  <!-- Right: Balanced (GOOD) -->
+  <g transform="translate(360, 50)">
+    <text x="150" y="16" text-anchor="middle" font-size="13" font-weight="bold" fill="#16a34a">Balanced Design</text>
+    <rect x="20" y="30" width="260" height="220" rx="8" fill="white" stroke="#16a34a" stroke-width="1.5" />
+    <!-- Batch A column -->
+    <rect x="40" y="55" width="100" height="170" rx="4" fill="#2563eb" opacity="0.08" stroke="#2563eb" stroke-width="1" />
+    <text x="90" y="50" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">Batch A</text>
+    <!-- Mixed -->
+    <rect x="55" y="70" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="90" y="83" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <rect x="55" y="92" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="90" y="105" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <rect x="55" y="114" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="90" y="127" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <rect x="55" y="136" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="90" y="149" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <rect x="55" y="158" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="90" y="171" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <text x="90" y="200" text-anchor="middle" font-size="10" fill="#6b7280" font-weight="bold">50/50 mix</text>
+    <!-- Batch B column -->
+    <rect x="160" y="55" width="100" height="170" rx="4" fill="#16a34a" opacity="0.08" stroke="#16a34a" stroke-width="1" />
+    <text x="210" y="50" text-anchor="middle" font-size="11" fill="#16a34a" font-weight="bold">Batch B</text>
+    <rect x="175" y="70" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="210" y="83" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <rect x="175" y="92" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="210" y="105" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <rect x="175" y="114" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="210" y="127" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <rect x="175" y="136" width="70" height="18" rx="3" fill="#dc2626" opacity="0.2" />
+    <text x="210" y="149" text-anchor="middle" font-size="9" fill="#dc2626">Tumor</text>
+    <rect x="175" y="158" width="70" height="18" rx="3" fill="#3b82f6" opacity="0.2" />
+    <text x="210" y="171" text-anchor="middle" font-size="9" fill="#2563eb">Normal</text>
+    <text x="210" y="200" text-anchor="middle" font-size="10" fill="#6b7280" font-weight="bold">50/50 mix</text>
+    <!-- Checkmark -->
+    <path d="M 130,240 L 145,258 L 175,225" stroke="#16a34a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    <text x="150" y="282" text-anchor="middle" font-size="11" fill="#16a34a" font-weight="bold">Batch is correctable!</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="strategies-for-handling-batch-effects"><a class="header" href="#strategies-for-handling-batch-effects">Strategies for Handling Batch Effects</a></h2>
+<h3 id="1-prevention-best-option"><a class="header" href="#1-prevention-best-option">1. Prevention (Best Option)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Strategy</th><th>How</th></tr>
+</thead>
+<tbody>
+<tr><td>Balanced design</td><td>Distribute conditions across batches equally</td></tr>
+<tr><td>Randomization</td><td>Random assignment to processing order/position</td></tr>
+<tr><td>Blocking</td><td>Process one sample from each condition per batch</td></tr>
+<tr><td>Standard protocols</td><td>Minimize technical variation with SOPs</td></tr>
+<tr><td>Single batch</td><td>Process everything together (often impractical)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="2-detection"><a class="header" href="#2-detection">2. Detection</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>What It Reveals</th></tr>
+</thead>
+<tbody>
+<tr><td>PCA colored by batch</td><td>Visual clustering by technical variable</td></tr>
+<tr><td>Correlation heatmap</td><td>Sample similarity by batch</td></tr>
+<tr><td>Box plots by batch</td><td>Distribution shifts</td></tr>
+<tr><td>ANOVA per gene</td><td>Number of genes affected</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="3-correction"><a class="header" href="#3-correction">3. Correction</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Approach</th><th>Caveat</th></tr>
+</thead>
+<tbody>
+<tr><td>Include as covariate</td><td>Add batch to regression/DE model</td><td>Requires balanced design</td></tr>
+<tr><td>ComBat (parametric)</td><td>Empirical Bayes batch correction</td><td>Assumes batch is known</td></tr>
+<tr><td>ComBat-seq</td><td>ComBat for raw RNA-seq counts</td><td>Preserves count nature</td></tr>
+<tr><td>SVA (surrogate variables)</td><td>Discovers unknown batch effects</td><td>May remove biology</td></tr>
+<tr><td>RUVseq</td><td>Uses control genes</td><td>Needs negative controls</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> Do NOT use batch correction methods when batch is perfectly confounded with biology. They will remove both the batch effect AND the biological signal. If all tumors were processed in batch 1 and all normals in batch 2, no correction method can save you — the experiment must be redesigned.</p>
+</blockquote>
+<h2 id="batch-effects-in-biolang"><a class="header" href="#batch-effects-in-biolang">Batch Effects in BioLang</a></h2>
+<h3 id="simulating-batch-contaminated-data"><a class="header" href="#simulating-batch-contaminated-data">Simulating Batch-Contaminated Data</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Simulate a multi-center gene expression study
+let n_samples = 300
+let n_genes = 50
+
+# Assign samples to centers and conditions
+let center = []
+let condition = []
+for i in 0..n_samples {
+    if i &lt; 100 {
+        center = center + ["Memorial"]
+        condition = condition + [if i &lt; 60 { "Tumor" } else { "Normal" }]
+    } else if i &lt; 200 {
+        center = center + ["Hopkins"]
+        condition = condition + [if i &lt; 170 { "Tumor" } else { "Normal" }]
+    } else {
+        center = center + ["Mayo"]
+        condition = condition + [if i &lt; 250 { "Tumor" } else { "Normal" }]
+    }
+}
+
+# Generate expression matrix with batch effects
+let expr_matrix = []
+let batch_effects = {
+    "Memorial": rnorm(n_genes, 2.0, 0.5),
+    "Hopkins": rnorm(n_genes, -1.5, 0.5),
+    "Mayo": rnorm(n_genes, 0.5, 0.5)
+}
+
+# True biological signal (tumor vs normal)
+let bio_signal = rnorm(n_genes, 0, 0.3)
+# Only 10 genes are truly DE
+for g in 0..10 {
+    bio_signal[g] = rnorm(1, 1.5, 0.3)[0]
+}
+
+for i in 0..n_samples {
+    let sample_expr = []
+    for g in 0..n_genes {
+        let base = 10 + rnorm(1, 0, 1)[0]
+        let batch = batch_effects[center[i]][g]
+        let bio = if condition[i] == "Tumor" { bio_signal[g] } else { 0 }
+        sample_expr = sample_expr + [base + batch + bio]
+    }
+    expr_matrix = expr_matrix + [sample_expr]
+}
+
+print("Expression matrix: {n_samples} samples x {n_genes} genes")
+print("Centers: Memorial=100, Hopkins=100, Mayo=100")
+</code></pre>
+<h3 id="detecting-batch-effects-with-pca"><a class="header" href="#detecting-batch-effects-with-pca">Detecting Batch Effects with PCA</a></h3>
+<pre><code class="language-bio"># PCA on the expression matrix
+let pca_result = pca(expr_matrix, 5)
+
+print("=== PCA Variance Explained ===")
+for i in 0..5 {
+    print("PC{i+1}: {(pca_result.variance_explained[i] * 100) |&gt; round(1)}%")
+}
+
+# Plot PC1 vs PC2, colored by center
+let pca_data = table({
+    "PC1": pca_result.scores |&gt; map(|s| s[0]),
+    "PC2": pca_result.scores |&gt; map(|s| s[1]),
+    "center": center,
+    "condition": condition
+})
+
+pca_plot(pca_data)
+
+# If center dominates PC1 and condition is only visible on PC3+,
+# batch effects are overwhelming the biological signal
+</code></pre>
+<h3 id="quantifying-batch-effect-with-anova"><a class="header" href="#quantifying-batch-effect-with-anova">Quantifying Batch Effect with ANOVA</a></h3>
+<pre><code class="language-bio"># For each gene, test how much variance is explained by batch vs biology
+let batch_significant = 0
+let bio_significant = 0
+
+print("=== ANOVA: Batch vs Biology ===")
+
+for g in 0..10 {
+    let gene_expr = expr_matrix |&gt; map(|row| row[g])
+
+    # Group by center
+    let memorial_expr = []
+    let hopkins_expr = []
+    let mayo_expr = []
+    for i in 0..n_samples {
+        if center[i] == "Memorial" { memorial_expr = memorial_expr + [gene_expr[i]] }
+        else if center[i] == "Hopkins" { hopkins_expr = hopkins_expr + [gene_expr[i]] }
+        else { mayo_expr = mayo_expr + [gene_expr[i]] }
+    }
+    let batch_test = anova([memorial_expr, hopkins_expr, mayo_expr])
+
+    # Group by condition
+    let tumor_expr = []
+    let normal_expr = []
+    for i in 0..n_samples {
+        if condition[i] == "Tumor" { tumor_expr = tumor_expr + [gene_expr[i]] }
+        else { normal_expr = normal_expr + [gene_expr[i]] }
+    }
+    let bio_test = ttest(tumor_expr, normal_expr)
+
+    if batch_test.p_value &lt; 0.05 { batch_significant = batch_significant + 1 }
+    if bio_test.p_value &lt; 0.05 { bio_significant = bio_significant + 1 }
+
+    print("Gene {g+1}: batch F={batch_test.f_statistic |&gt; round(2)} p={batch_test.p_value |&gt; round(4)}  bio p={bio_test.p_value |&gt; round(4)}")
+}
+
+print("\nGenes with significant batch effect: {batch_significant} / 10")
+print("Genes with significant biological effect: {bio_significant} / 10")
+</code></pre>
+<h3 id="correlation-heatmap-for-batch-detection"><a class="header" href="#correlation-heatmap-for-batch-detection">Correlation Heatmap for Batch Detection</a></h3>
+<pre><code class="language-bio"># Sample-to-sample correlation: compute a few representative pairs
+# Full matrix would be 300x300; spot-check a few
+let s1 = expr_matrix[0]   # Memorial, Tumor
+let s2 = expr_matrix[50]  # Memorial, Normal
+let s3 = expr_matrix[100] # Hopkins, Tumor
+
+print("=== Sample Correlations ===")
+print("Memorial Tumor vs Memorial Normal: {cor(s1, s2) |&gt; round(3)}")
+print("Memorial Tumor vs Hopkins Tumor:   {cor(s1, s3) |&gt; round(3)}")
+print("If same-center pairs are more correlated than same-condition pairs,")
+print("batch effects dominate")
+</code></pre>
+<h3 id="box-plots-by-batch"><a class="header" href="#box-plots-by-batch">Box Plots by Batch</a></h3>
+<pre><code class="language-bio"># Distribution of a batch-affected gene across centers
+let gene_1_expr = expr_matrix |&gt; map(|row| row[0])
+
+let memorial_g1 = []
+let hopkins_g1 = []
+let mayo_g1 = []
+for i in 0..n_samples {
+    if center[i] == "Memorial" { memorial_g1 = memorial_g1 + [gene_1_expr[i]] }
+    else if center[i] == "Hopkins" { hopkins_g1 = hopkins_g1 + [gene_1_expr[i]] }
+    else { mayo_g1 = mayo_g1 + [gene_1_expr[i]] }
+}
+
+let bp_table = table({"Memorial": memorial_g1, "Hopkins": hopkins_g1, "Mayo": mayo_g1})
+boxplot(bp_table, {title: "Gene 1 Expression by Center"})
+
+# Systematic shifts between centers = batch effect
+</code></pre>
+<h3 id="correcting-batch-effects-include-as-covariate"><a class="header" href="#correcting-batch-effects-include-as-covariate">Correcting Batch Effects: Include as Covariate</a></h3>
+<pre><code class="language-bio"># The simplest and most transparent correction:
+# include batch as a covariate in your statistical model
+
+# For differential expression: multiple regression
+for g in 0..5 {
+    let gene_expr = expr_matrix |&gt; map(|row| row[g])
+
+    # Encode condition: Tumor=1, Normal=0
+    let cond_numeric = condition |&gt; map(|c| if c == "Tumor" { 1.0 } else { 0.0 })
+
+    # Encode center: dummy variables
+    let is_hopkins = center |&gt; map(|c| if c == "Hopkins" { 1.0 } else { 0.0 })
+    let is_mayo = center |&gt; map(|c| if c == "Mayo" { 1.0 } else { 0.0 })
+
+    # Model WITHOUT batch correction
+    let model_naive = lm(gene_expr, cond_numeric)
+
+    # Model WITH batch correction (include center as covariate)
+    let adj_data = table({
+        "expr": gene_expr, "cond": cond_numeric,
+        "hopkins": is_hopkins, "mayo": is_mayo
+    })
+    let model_adjusted = lm("expr ~ cond + hopkins + mayo", adj_data)
+
+    print("Gene {g+1}:")
+    print("  Naive:    slope = {model_naive.slope |&gt; round(3)}, p = {model_naive.p_value |&gt; round(4)}")
+    print("  Adjusted: cond coef = {model_adjusted.coefficients[0] |&gt; round(3)}")
+}
+</code></pre>
+<h3 id="beforeafter-comparison"><a class="header" href="#beforeafter-comparison">Before/After Comparison</a></h3>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="700" height="340" viewbox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="350" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Before and After Batch Correction (PCA)</text>
+  <!-- Arrow between panels -->
+  <polygon points="342,170 358,160 358,165 385,165 385,175 358,175 358,180" fill="#16a34a" opacity="0.6" />
+  <text x="363" y="195" font-size="10" fill="#16a34a" font-weight="bold">Correct</text>
+  <!-- LEFT: Before correction -->
+  <g transform="translate(10, 40)">
+    <text x="160" y="14" text-anchor="middle" font-size="12" font-weight="bold" fill="#dc2626">Before Correction</text>
+    <text x="160" y="28" text-anchor="middle" font-size="9" fill="#6b7280">Samples cluster by batch</text>
+    <rect x="20" y="35" width="280" height="245" rx="6" fill="white" stroke="#e5e7eb" stroke-width="1" />
+    <!-- Axes -->
+    <line x1="40" y1="260" x2="280" y2="260" stroke="#9ca3af" stroke-width="0.5" />
+    <line x1="40" y1="260" x2="40" y2="50" stroke="#9ca3af" stroke-width="0.5" />
+    <text x="160" y="278" text-anchor="middle" font-size="9" fill="#6b7280">PC1 (35% batch)</text>
+    <text x="28" y="155" text-anchor="middle" font-size="9" fill="#6b7280" transform="rotate(-90, 28, 155)">PC2</text>
+    <!-- Cluster: Memorial (blue circles + triangles) -->
+    <circle cx="80" cy="100" r="4" fill="#2563eb" /><circle cx="90" cy="110" r="4" fill="#2563eb" />
+    <circle cx="75" cy="120" r="4" fill="#2563eb" /><circle cx="95" cy="95" r="4" fill="#2563eb" />
+    <polygon points="85,88 89,80 81,80" fill="#2563eb" /><polygon points="100,115 104,107 96,107" fill="#2563eb" />
+    <polygon points="70,108 74,100 66,100" fill="#2563eb" />
+    <!-- Cluster: Hopkins (red) -->
+    <circle cx="170" cy="180" r="4" fill="#dc2626" /><circle cx="180" cy="170" r="4" fill="#dc2626" />
+    <circle cx="165" cy="195" r="4" fill="#dc2626" /><circle cx="185" cy="185" r="4" fill="#dc2626" />
+    <polygon points="175,200 179,192 171,192" fill="#dc2626" /><polygon points="190,175 194,167 186,167" fill="#dc2626" />
+    <polygon points="160,185 164,177 156,177" fill="#dc2626" />
+    <!-- Cluster: Mayo (green) -->
+    <circle cx="245" cy="80" r="4" fill="#16a34a" /><circle cx="255" cy="90" r="4" fill="#16a34a" />
+    <circle cx="240" cy="95" r="4" fill="#16a34a" /><circle cx="260" cy="75" r="4" fill="#16a34a" />
+    <polygon points="250,100 254,92 246,92" fill="#16a34a" /><polygon points="235,82 239,74 231,74" fill="#16a34a" />
+    <!-- Labels -->
+    <text x="85" y="75" text-anchor="middle" font-size="8" fill="#2563eb">Memorial</text>
+    <text x="175" y="155" text-anchor="middle" font-size="8" fill="#dc2626">Hopkins</text>
+    <text x="250" y="62" text-anchor="middle" font-size="8" fill="#16a34a">Mayo</text>
+    <!-- Legend inside -->
+    <circle cx="55" cy="240" r="3" fill="#6b7280" />
+    <text x="62" y="243" font-size="8" fill="#6b7280">Tumor</text>
+    <polygon points="105,243 108,237 102,237" fill="#6b7280" />
+    <text x="115" y="243" font-size="8" fill="#6b7280">Normal</text>
+  </g>
+  <!-- RIGHT: After correction -->
+  <g transform="translate(380, 40)">
+    <text x="160" y="14" text-anchor="middle" font-size="12" font-weight="bold" fill="#16a34a">After Correction</text>
+    <text x="160" y="28" text-anchor="middle" font-size="9" fill="#6b7280">Samples cluster by biology</text>
+    <rect x="20" y="35" width="280" height="245" rx="6" fill="white" stroke="#e5e7eb" stroke-width="1" />
+    <!-- Axes -->
+    <line x1="40" y1="260" x2="280" y2="260" stroke="#9ca3af" stroke-width="0.5" />
+    <line x1="40" y1="260" x2="40" y2="50" stroke="#9ca3af" stroke-width="0.5" />
+    <text x="160" y="278" text-anchor="middle" font-size="9" fill="#6b7280">PC1 (15% biology)</text>
+    <text x="28" y="155" text-anchor="middle" font-size="9" fill="#6b7280" transform="rotate(-90, 28, 155)">PC2</text>
+    <!-- Tumor cluster (left, circles from all centers mixed) -->
+    <circle cx="90" cy="130" r="4" fill="#2563eb" /><circle cx="100" cy="145" r="4" fill="#dc2626" />
+    <circle cx="80" cy="150" r="4" fill="#16a34a" /><circle cx="110" cy="135" r="4" fill="#2563eb" />
+    <circle cx="95" cy="160" r="4" fill="#dc2626" /><circle cx="85" cy="120" r="4" fill="#16a34a" />
+    <circle cx="105" cy="155" r="4" fill="#2563eb" /><circle cx="75" cy="140" r="4" fill="#dc2626" />
+    <circle cx="115" cy="125" r="4" fill="#16a34a" />
+    <!-- Normal cluster (right, triangles from all centers mixed) -->
+    <polygon points="210,110 214,102 206,102" fill="#2563eb" /><polygon points="220,125 224,117 216,117" fill="#dc2626" />
+    <polygon points="200,120 204,112 196,112" fill="#16a34a" /><polygon points="230,105 234,97 226,97" fill="#2563eb" />
+    <polygon points="215,135 219,127 211,127" fill="#dc2626" /><polygon points="205,100 209,92 201,92" fill="#16a34a" />
+    <polygon points="225,115 229,107 221,107" fill="#2563eb" /><polygon points="195,130 199,122 191,122" fill="#16a34a" />
+    <!-- Cluster labels -->
+    <rect x="65" y="170" width="65" height="18" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="0.5" />
+    <text x="97" y="182" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">Tumor</text>
+    <rect x="185" y="75" width="65" height="18" rx="3" fill="#eff6ff" stroke="#2563eb" stroke-width="0.5" />
+    <text x="217" y="87" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">Normal</text>
+    <!-- Legend -->
+    <circle cx="65" cy="240" r="3" fill="#2563eb" />
+    <text x="72" y="243" font-size="8" fill="#2563eb">Mem</text>
+    <circle cx="105" cy="240" r="3" fill="#dc2626" />
+    <text x="112" y="243" font-size="8" fill="#dc2626">Hop</text>
+    <circle cx="145" cy="240" r="3" fill="#16a34a" />
+    <text x="152" y="243" font-size="8" fill="#16a34a">Mayo</text>
+    <text x="200" y="243" font-size="8" fill="#6b7280">(centers now intermixed)</text>
+  </g>
+</svg>
+</div>
+
+<pre><code class="language-bio"># Visualize the effect of batch correction with PCA
+
+# Step 1: PCA on raw data (batch-contaminated)
+let pca_before = pca(expr_matrix, 3)
+print("=== Before Correction ===")
+print("PC1 variance: {(pca_before.variance_explained[0] * 100) |&gt; round(1)}% (likely batch)")
+
+# Step 2: Regress out batch effect from each gene
+let is_hopkins = center |&gt; map(|c| if c == "Hopkins" { 1.0 } else { 0.0 })
+let is_mayo = center |&gt; map(|c| if c == "Mayo" { 1.0 } else { 0.0 })
+
+let corrected_matrix = []
+for i in 0..n_samples {
+    let corrected_sample = []
+    for g in 0..n_genes {
+        let gene_expr = expr_matrix |&gt; map(|row| row[g])
+        let batch_data = table({"expr": gene_expr, "hopkins": is_hopkins, "mayo": is_mayo})
+        let model = lm("expr ~ hopkins + mayo", batch_data)
+
+        let residual = gene_expr[i] - model.coefficients[0] * is_hopkins[i]
+            - model.coefficients[1] * is_mayo[i]
+        corrected_sample = corrected_sample + [residual]
+    }
+    corrected_matrix = corrected_matrix + [corrected_sample]
+}
+
+# Step 3: PCA on corrected data
+let pca_after = pca(corrected_matrix, 3)
+print("\n=== After Correction ===")
+print("PC1 variance: {(pca_after.variance_explained[0] * 100) |&gt; round(1)}% (should be biology now)")
+
+# Compare side by side
+let pca_corrected = table({
+    "PC1": pca_after.scores |&gt; map(|s| s[0]),
+    "PC2": pca_after.scores |&gt; map(|s| s[1]),
+    "condition": condition
+})
+pca_plot(pca_corrected)
+</code></pre>
+<h3 id="detecting-the-confounded-design-trap"><a class="header" href="#detecting-the-confounded-design-trap">Detecting the Confounded Design Trap</a></h3>
+<pre><code class="language-bio"># Check whether batch and condition are confounded
+print("=== Balance Check ===")
+print("Center       Tumor    Normal   % Tumor")
+
+let centers = ["Memorial", "Hopkins", "Mayo"]
+for c in centers {
+    let n_tumor = 0
+    let n_normal = 0
+    for i in 0..n_samples {
+        if center[i] == c {
+            if condition[i] == "Tumor" { n_tumor = n_tumor + 1 }
+            else { n_normal = n_normal + 1 }
+        }
+    }
+    let pct = (n_tumor / (n_tumor + n_normal) * 100) |&gt; round(1)
+    print("{c}       {n_tumor}       {n_normal}      {pct}%")
+}
+
+# If one center is 100% tumor and another is 100% normal,
+# the design is fatally confounded — no statistical fix exists
+print("\nDesign assessment:")
+let balanced = true
+for c in centers {
+    let has_tumor = false
+    let has_normal = false
+    for i in 0..n_samples {
+        if center[i] == c {
+            if condition[i] == "Tumor" { has_tumor = true }
+            else { has_normal = true }
+        }
+    }
+    if !has_tumor || !has_normal {
+        print("FATAL: {c} has only one condition!")
+        balanced = false
+    }
+}
+if balanced {
+    print("Design is balanced — batch correction is possible")
+}
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">import numpy as np
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+
+# PCA for batch detection
+pca = PCA(n_components=5)
+scores = pca.fit_transform(expr_matrix)
+plt.scatter(scores[:, 0], scores[:, 1], c=batch_labels, cmap='Set1')
+plt.title('PCA Colored by Batch')
+
+# ComBat batch correction
+from combat.pycombat import pycombat
+corrected = pycombat(expr_df, batch_series)
+
+# SVA for unknown batches
+# Use the sva package via rpy2 or pydeseq2
+
+# Include batch as covariate in DE analysis
+import statsmodels.api as sm
+X = sm.add_constant(pd.get_dummies(df[['condition', 'center']], drop_first=True))
+model = sm.OLS(gene_expr, X).fit()
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># PCA for batch detection
+pca &lt;- prcomp(t(expr_matrix), scale. = TRUE)
+plot(pca$x[,1], pca$x[,2], col = batch, pch = 19)
+
+# ComBat batch correction
+library(sva)
+corrected &lt;- ComBat(dat = expr_matrix, batch = center)
+
+# ComBat-seq for RNA-seq counts
+corrected &lt;- ComBat_seq(counts = count_matrix, batch = center)
+
+# SVA for unknown batches
+mod &lt;- model.matrix(~ condition)
+mod0 &lt;- model.matrix(~ 1, data = pdata)
+svobj &lt;- sva(expr_matrix, mod, mod0)
+
+# Include in DE model (limma)
+design &lt;- model.matrix(~ condition + center)
+fit &lt;- lmFit(expr_matrix, design)
+fit &lt;- eBayes(fit)
+topTable(fit, coef = "conditionTumor")
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-detect-batch-effects"><a class="header" href="#exercise-1-detect-batch-effects">Exercise 1: Detect Batch Effects</a></h3>
+<p>Given a simulated expression matrix with hidden batch effects, use PCA and ANOVA to identify which technical variable is causing the problem.</p>
+<pre><code class="language-bio">let n = 120
+let n_genes = 30
+
+# Simulate with batch effect on processing_date
+# Biology: treatment vs control
+# Batch: 3 processing dates
+
+# 1. Run pca() and color by treatment, then by processing date
+# 2. Which variable dominates PC1?
+# 3. How many genes show significant batch effects (anova)?
+# 4. How many show significant treatment effects?
+</code></pre>
+<h3 id="exercise-2-balanced-vs-confounded-design"><a class="header" href="#exercise-2-balanced-vs-confounded-design">Exercise 2: Balanced vs. Confounded Design</a></h3>
+<p>Create two study designs: one where batch and condition are balanced, another where they are completely confounded. Show that the confounded design cannot be corrected.</p>
+<pre><code class="language-bio">
+# Design A (balanced): equal tumor/normal at each center
+# Design B (confounded): all tumor at Center 1, all normal at Center 2
+
+# 1. Simulate data for both designs with identical biological effects
+# 2. Apply batch correction (include center as covariate in lm())
+# 3. Compare: does Design A recover the true biological signal?
+# 4. Does Design B? Why or why not?
+</code></pre>
+<h3 id="exercise-3-beforeafter-correction"><a class="header" href="#exercise-3-beforeafter-correction">Exercise 3: Before/After Correction</a></h3>
+<p>Apply batch correction to a multi-center dataset and create a before/after PCA comparison. Quantify how much the batch effect is reduced.</p>
+<pre><code class="language-bio">
+# 1. Simulate 200 samples from 4 centers
+# 2. pca() before correction — measure batch variance (anova on PC1 scores)
+# 3. Correct by regressing out center effects with lm()
+# 4. pca() after correction — measure batch variance again
+# 5. What percentage of the batch effect was removed?
+</code></pre>
+<h3 id="exercise-4-simpsons-paradox"><a class="header" href="#exercise-4-simpsons-paradox">Exercise 4: Simpson’s Paradox</a></h3>
+<p>Simulate a drug trial where Drug A is better within every hospital, but Drug B appears better overall due to confounding. Demonstrate the paradox numerically.</p>
+<pre><code class="language-bio">
+# Hospital 1: treats mild cases (80% survival baseline)
+#   Drug A: 85% survival, Drug B: 75% survival
+# Hospital 2: treats severe cases (30% survival baseline)
+#   Drug A: 35% survival, Drug B: 25% survival
+# Hospital 2 uses Drug A more often
+
+# 1. Show Drug A wins within each hospital
+# 2. Combine data — show Drug B appears better overall
+# 3. Explain why (confounding by disease severity)
+# 4. What analysis would give the correct answer?
+</code></pre>
+<h3 id="exercise-5-designing-a-batch-robust-study"><a class="header" href="#exercise-5-designing-a-batch-robust-study">Exercise 5: Designing a Batch-Robust Study</a></h3>
+<p>You have 60 tumor and 60 normal samples that must be processed across 3 days (40 per day). Design the processing schedule to minimize confounding, and simulate data to verify your design resists batch effects.</p>
+<pre><code class="language-bio"># Good design: 20 tumor + 20 normal per day
+# Bad design: 40 tumor on day 1, 40 tumor on day 2, 60 normal on day 3
+
+# 1. Create the good balanced assignment
+# 2. Create the bad confounded assignment
+# 3. Simulate data with identical batch and biological effects
+# 4. Analyze both designs — which recovers the true biology?
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Batch effects</strong> are systematic technical differences that can dominate biological signals — they are present in virtually all high-throughput datasets</li>
+<li><strong>PCA</strong> is the most powerful tool for detecting batch effects: color by batch and biological variables to see which dominates</li>
+<li><strong>Confounders</strong> create spurious associations (or mask real ones); <strong>Simpson’s paradox</strong> is the extreme case where aggregate trends reverse within subgroups</li>
+<li><strong>Prevention</strong> is the best strategy: use balanced, randomized designs that distribute biological conditions across batches</li>
+<li><strong>Confounded designs</strong> (batch = biology) cannot be rescued by any statistical method — the experiment must be redesigned</li>
+<li><strong>Correction approaches:</strong> include batch as a covariate (simplest), ComBat (empirical Bayes), SVA (discover unknown batches), or RUVseq (negative controls)</li>
+<li>Always perform a <strong>balance check</strong> before analysis: ensure no batch variable is perfectly correlated with the biological variable of interest</li>
+<li><strong>Before/after PCA</strong> is the standard way to demonstrate that batch correction worked</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>With three full weeks of biostatistics under your belt, you’re ready for the advanced topics of Week 4. Day 21 introduces <strong>dimensionality reduction</strong> — PCA, t-SNE, and UMAP — the tools that turn 20,000-dimensional gene expression data into interpretable 2D visualizations.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-19.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-21.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-19.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-21.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

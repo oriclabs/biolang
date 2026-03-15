@@ -10,7 +10,7 @@ solver so these analyses live alongside your data processing code.
 
 All descriptive stats operate on lists of numbers.
 
-```
+```biolang
 let coverage = tsv("sample_depth.tsv") |> col("depth")
 
 let summary = {
@@ -35,7 +35,7 @@ with a warning.
 
 Compare expression levels between two conditions.
 
-```
+```biolang
 let tumor = tsv("expr.tsv") |> filter(|r| r.group == "tumor") |> col("BRCA1")
 let normal = tsv("expr.tsv") |> filter(|r| r.group == "normal") |> col("BRCA1")
 
@@ -50,7 +50,7 @@ if result.pvalue < 0.05 then
 
 For non-normally distributed data such as read counts.
 
-```
+```biolang
 let treated = [1240, 890, 1560, 2100, 780, 1890, 1345]
 let control = [450, 520, 380, 610, 490, 430, 550]
 
@@ -62,7 +62,7 @@ let result = wilcoxon(treated, control)
 
 Test whether observed genotype frequencies match Hardy-Weinberg expectations.
 
-```
+```biolang
 let observed = [210, 480, 310]  # AA, Aa, aa genotypes
 let n = sum(observed)
 let p = (2 * observed[0] + observed[1]) / (2 * n)
@@ -80,7 +80,7 @@ if result.pvalue > 0.05 then
 
 Compare expression across multiple tissue types.
 
-```
+```biolang
 let brain = tsv("expr.tsv") |> filter(|r| r.tissue == "brain") |> col("TP53")
 let liver = tsv("expr.tsv") |> filter(|r| r.tissue == "liver") |> col("TP53")
 let lung = tsv("expr.tsv") |> filter(|r| r.tissue == "lung") |> col("TP53")
@@ -94,7 +94,7 @@ let result = anova([brain, liver, lung, kidney])
 
 Test enrichment of a mutation in cases versus controls.
 
-```
+```biolang
 # Contingency table: mutation+/case, mutation-/case, mutation+/ctrl, mutation-/ctrl
 let result = fisher_exact(45, 155, 12, 188)
 # result => {odds_ratio: 5.48, pvalue: 0.00001}
@@ -106,7 +106,7 @@ When testing thousands of genes, you must correct for multiple comparisons.
 `p_adjust` supports Bonferroni, Benjamini-Hochberg (BH), and
 Benjamini-Yekutieli (BY) methods.
 
-```
+```biolang
 let genes = tsv("gene_expression.tsv")
 let gene_names = genes |> col("gene_name")
 let tumor_cols = columns(genes) |> filter(|c| starts_with(c, "tumor_"))
@@ -133,7 +133,7 @@ print(str(len(significant)) + " genes significant at FDR < 0.05")
 
 Compute Pearson or Spearman correlation between expression profiles.
 
-```
+```biolang
 let expr = tsv("tpm_matrix.tsv")
 let gene_a = expr |> col("EGFR")
 let gene_b = expr |> col("ERBB2")
@@ -149,7 +149,7 @@ let spearman = spearman(gene_a, gene_b)
 
 Fit a linear model to predict expression from covariates.
 
-```
+```biolang
 let data = tsv("sample_metadata.tsv")
 let expression = data |> col("gene_expr")
 let age = data |> col("age")
@@ -171,7 +171,7 @@ let model = lm(expression, [age, batch])
 
 Create matrices from data and perform standard operations.
 
-```
+```biolang
 # Create a 3x3 count matrix (genes x samples)
 let counts = matrix([
   [120, 340, 250],
@@ -198,7 +198,7 @@ print("Frobenius norm: " + str(norm(counts)))
 
 ### Determinant and Inverse
 
-```
+```biolang
 let cov = matrix([
   [1.0, 0.8, 0.3],
   [0.8, 1.0, 0.5],
@@ -213,7 +213,7 @@ let precision = inverse(cov)  # precision matrix
 
 ### Eigenvalues and Eigenvectors
 
-```
+```biolang
 let eigen = eigenvalues(cov)
 # eigen => {values: [2.1, 0.7, 0.2], vectors: [[...], [...], [...]]}
 
@@ -225,14 +225,14 @@ print("PC1 explains " + str(prop[0] * 100) + "% of variance")
 
 ### Singular Value Decomposition
 
-```
+```biolang
 let result = svd(counts)
 # result => {u: matrix, s: [singular values], v: matrix}
 ```
 
 ### Solving Linear Systems
 
-```
+```biolang
 # Solve Ax = b
 let a = matrix([[2, 1], [1, 3]])
 let b = [5, 11]
@@ -244,7 +244,7 @@ let x = solve(a, b)
 
 `ode_solve` uses a 4th-order Runge-Kutta integrator. The signature is:
 
-```
+```biolang
 ode_solve(derivative_fn, initial_state, [t_start, t_end, dt])
 ```
 
@@ -255,7 +255,7 @@ each time point.
 
 Run t-tests across all genes and correct for multiple testing.
 
-```
+```biolang
 let expr = tsv("counts_normalized.tsv")
 let metadata = tsv("sample_info.tsv")
 
@@ -288,7 +288,7 @@ de_genes |> write_tsv("de_results.tsv")
 
 Use the covariance matrix eigendecomposition to project samples into PC space.
 
-```
+```biolang
 let expr = tsv("tpm_matrix.tsv")
 let sample_ids = expr |> columns() |> filter(|n| n != "gene_id")
 let n_genes = len(expr)
@@ -336,7 +336,7 @@ pca_coords |> write_tsv("pca_coordinates.tsv")
 
 Model oral drug absorption and elimination using a two-compartment ODE system.
 
-```
+```biolang
 # Parameters for a typical oral drug
 let ka = 1.0      # absorption rate (1/hr)
 let ke = 0.2      # elimination rate (1/hr)
@@ -376,7 +376,7 @@ print("AUC(0-24h): " + str(auc) + " mg*hr")
 
 Simulate genotype frequencies and test for equilibrium across loci.
 
-```
+```biolang
 # Observed genotype counts at 50 SNP loci
 let loci = tsv("genotype_counts.tsv")
 # columns: locus, AA, Aa, aa

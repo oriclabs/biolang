@@ -8,7 +8,7 @@ operations for filtering, grouping, and summarizing biological datasets.
 
 Lists are ordered, heterogeneous sequences:
 
-```
+```biolang
 let chromosomes = ["chr1", "chr2", "chr3", "chrX", "chrY"]
 let read_lengths = [150, 151, 149, 150, 148, 150]
 let mixed = ["TP53", 42, true, dna"ATCG"]
@@ -16,7 +16,7 @@ let mixed = ["TP53", 42, true, dna"ATCG"]
 
 Lists support standard access and manipulation:
 
-```
+```biolang
 let genes = ["BRCA1", "TP53", "EGFR", "KRAS", "BRAF"]
 
 print(genes[0])        # => "BRCA1"
@@ -39,7 +39,7 @@ print(pairs[0][1])   # => "sample1_R2.fq.gz"
 Sets are unordered collections of unique elements. They are the right tool for
 gene lists, sample IDs, and any membership-testing workload:
 
-```
+```biolang
 let panel_genes = set(["BRCA1", "BRCA2", "TP53", "EGFR", "KRAS", "BRAF"])
 let mutated_genes = set(["TP53", "KRAS", "APC", "PIK3CA"])
 
@@ -60,12 +60,12 @@ print(contains(panel_genes, "TP53"))   # => true
 
 A real use case -- finding shared variants between tumor and normal:
 
-```
-let tumor_variants = read_vcf("tumor.vcf.gz")
+```biolang
+let tumor_variants = read_vcf("data/variants.vcf")
   |> map(|v| f"{v.chrom}:{v.pos}:{v.ref}>{v.alt}")
   |> set()
 
-let normal_variants = read_vcf("normal.vcf.gz")
+let normal_variants = read_vcf("data/variants.vcf")
   |> map(|v| f"{v.chrom}:{v.pos}:{v.ref}>{v.alt}")
   |> set()
 
@@ -79,7 +79,7 @@ print(f"Somatic: {len(somatic)}, Germline: {len(germline)}")
 Tables are the central data structure for tabular bioinformatics data. They are
 created from lists of records:
 
-```
+```biolang
 let samples = table([
   {sample_id: "S001", tissue: "tumor",  reads: 42_000_000, coverage: 35.2},
   {sample_id: "S002", tissue: "normal", reads: 38_000_000, coverage: 31.4},
@@ -90,7 +90,7 @@ let samples = table([
 
 ### Column Access
 
-```
+```biolang
 let coverages = samples |> select("coverage")
 print(coverages)   # => [35.2, 31.4, 42.1, 36.8]
 
@@ -100,7 +100,7 @@ let subset = samples |> select("sample_id", "coverage")
 
 ### Row Iteration
 
-```
+```biolang
 samples |> each(|row| {
   print(f"{row.sample_id}: {row.coverage}x ({row.tissue})")
 })
@@ -110,13 +110,13 @@ samples |> each(|row| {
 
 ### `select` -- Choose Columns
 
-```
+```biolang
 let qc_summary = full_table |> select("sample_id", "total_reads", "pct_mapped", "mean_coverage")
 ```
 
 ### `mutate` -- Add or Transform Columns
 
-```
+```biolang
 let enriched = samples
   |> mutate("reads_millions", |row| row.reads / 1_000_000.0)
   |> mutate("is_high_coverage", |row| row.coverage >= 30.0)
@@ -125,7 +125,7 @@ let enriched = samples
 
 ### `summarize` -- Aggregate Statistics
 
-```
+```biolang
 let coverages = samples |> select("coverage")
 let all_reads = samples |> select("reads")
 
@@ -142,7 +142,7 @@ print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
 
 ### `group_by` -- Split-Apply-Combine
 
-```
+```biolang
 let by_tissue = samples
   |> group_by("tissue")
   |> summarize(|tissue, group| {
@@ -159,7 +159,7 @@ by_tissue |> each(|row|
 
 ### `sort` -- Order Rows
 
-```
+```biolang
 # Sort by coverage descending
 let ranked = samples |> sort_by(|row| -row.coverage)
 
@@ -169,7 +169,7 @@ let ordered = samples |> sort_by(|row| row.tissue)
 
 ### `filter` -- Select Rows by Condition
 
-```
+```biolang
 let high_cov = samples |> filter(|row| row.coverage >= 30.0)
 let tumor_only = samples |> filter(|row| row.tissue == "tumor")
 
@@ -184,7 +184,7 @@ let good_tumor = samples
 
 Table joins are planned for a future release. Currently, use `map` with lookups:
 
-```
+```biolang
 let annotations = table([
   {sample_id: "S001", patient: "P101", stage: "III"},
   {sample_id: "S002", patient: "P101", stage: "III"},
@@ -204,7 +204,7 @@ let joined = samples |> map(|row| {
 
 Ranges generate sequences of integers, useful for genomic coordinate windows:
 
-```
+```biolang
 let indices = 0..10          # [0, 1, 2, ..., 9]
 let inclusive = 0..=10       # [0, 1, 2, ..., 10]
 let stepped = 0..100..10    # [0, 10, 20, ..., 90]
@@ -225,7 +225,7 @@ print(f"Generated {len(windows)} windows for chr1")
 
 Read multiple FASTQ files, compute QC metrics, and build a summary table.
 
-```
+```biolang
 # fastq_qc_summary.bl
 # Build a QC summary table from raw FASTQ files.
 
@@ -295,7 +295,7 @@ qc_flagged |> write_tsv("qc_summary.csv")
 
 Load a counts matrix, filter low-count genes, and apply TPM normalization.
 
-```
+```biolang
 # expression_normalize.bl
 # Filter low-count genes and compute TPM from a raw counts matrix.
 
@@ -368,7 +368,7 @@ tpm_table |> write_tsv("tpm_normalized.csv")
 
 Combine VCF calls from multiple samples into a unified genotype matrix.
 
-```
+```biolang
 # merge_variants.bl
 # Merge variant calls from multiple samples into a unified table.
 

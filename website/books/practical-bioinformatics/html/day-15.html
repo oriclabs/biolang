@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="rust sidebar-visible" dir="ltr">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -33,9 +33,9 @@
         <!-- Provide site root and default themes to javascript -->
         <script>
             const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a55d6aed.js";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-2b7ec08a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -76,7 +76,7 @@
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
-            html.classList.remove('rust')
+            html.classList.remove('light')
             html.classList.add(theme);
             html.classList.add("js");
         </script>
@@ -401,7 +401,7 @@ dotplot(seq1, seq2, {window: 3, title: "Pairwise Comparison"})
 <blockquote>
 <p><strong>Requires CLI:</strong> This example uses file I/O / network APIs not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
-<pre><code class="language-bio">let reads = read_fastq("data/sample.fastq")
+<pre><code class="language-bio">let reads = read_fastq("data/reads.fastq")
 let first_read = reads |&gt; first()
 quality_plot(first_read.qual)
 </code></pre>
@@ -626,7 +626,7 @@ println("All figures saved to figures/")
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>
         <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-23bba21e.js"></script>
+        <script src="book-runner-ee861d9e.js"></script>
 
 
 

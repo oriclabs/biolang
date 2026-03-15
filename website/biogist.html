@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0891b2">
+<title>BioGist — Biological Genomic Intelligence in Situ</title>
+<meta name="description" content="Detect genes, variants, and accessions in scientific text. Paste text or a URL to scan.">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="manifest" href="manifest-biogist.json">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .bg-main{min-height:100vh}
+  .two-panel{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:80rem;margin:0 auto;padding:1.5rem}
+  @media(max-width:768px){.two-panel{grid-template-columns:1fr}}
+  .panel{background:#1e293b;border:1px solid #334155;border-radius:.75rem;display:flex;flex-direction:column;overflow:hidden}
+  .panel-head{padding:.75rem 1rem;border-bottom:1px solid #334155;font-weight:700;font-size:.875rem;color:#f1f5f9;display:flex;align-items:center;gap:.5rem}
+  .panel-body{padding:1rem;flex:1;overflow-y:auto;max-height:calc(100vh - 12rem)}
+  textarea.scan-input{width:100%;min-height:10rem;background:#0f172a;border:1px solid #334155;border-radius:.5rem;color:#e2e8f0;padding:.75rem;font-size:.8125rem;font-family:inherit;resize:vertical;line-height:1.6}
+  textarea.scan-input:focus{outline:none;border-color:#0891b2}
+  .url-row{display:flex;gap:.5rem;margin-top:.75rem}
+  .url-input{flex:1;background:#0f172a;border:1px solid #334155;border-radius:.5rem;color:#e2e8f0;padding:.5rem .75rem;font-size:.8125rem}
+  .url-input:focus{outline:none;border-color:#0891b2}
+  .btn-scan{padding:.5rem 1.25rem;border-radius:.5rem;background:#0891b2;color:#fff;font-weight:600;font-size:.8125rem;border:none;cursor:pointer;transition:background .15s}
+  .btn-scan:hover{background:#0e7490}
+  .btn-scan:disabled{opacity:.5;cursor:not-allowed}
+  .example-row{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap}
+  .btn-example{padding:.375rem .75rem;border-radius:.375rem;background:#0f172a;border:1px solid #334155;color:#94a3b8;font-size:.75rem;cursor:pointer;transition:border-color .15s,color .15s}
+  .btn-example:hover{border-color:#0891b2;color:#e2e8f0}
+  .section{border-bottom:1px solid #334155}
+  .section-header{display:flex;align-items:center;justify-content:space-between;padding:.625rem 1rem;cursor:pointer;user-select:none}
+  .section-header:hover{background:#0f172a33}
+  .section-title{font-weight:600;font-size:.6875rem;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8}
+  .section-count{font-size:.625rem;background:#0f172a;color:#94a3b8;padding:1px 7px;border-radius:10px;font-weight:600}
+  .entity-list{list-style:none;padding:0;margin:0}
+  .entity-item{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;cursor:pointer;transition:background .1s;border-left:3px solid transparent}
+  .entity-item:hover{background:#0f172a66}
+  .entity-item.active{background:#164e63;border-left-color:#0891b2}
+  .entity-name{font-weight:600;font-size:.8125rem;color:#f1f5f9;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .entity-badge{font-size:.625rem;padding:1px 6px;border-radius:4px;font-weight:600;text-transform:uppercase;flex-shrink:0}
+  .badge-gene{background:#1e3a5f;color:#60a5fa}
+  .badge-variant{background:#164e63;color:#22d3ee}
+  .badge-accession{background:#1a3329;color:#4ade80}
+  .badge-species{background:#3b2f1a;color:#fbbf24}
+  .detail-panel{border-top:1px solid #334155;background:#0f172a;min-height:8rem}
+  .detail-head{display:flex;align-items:center;justify-content:space-between;padding:.625rem 1rem;border-bottom:1px solid #334155}
+  .detail-title{font-weight:700;font-size:.875rem;color:#f1f5f9}
+  .detail-body{padding:.75rem 1rem;max-height:24rem;overflow-y:auto}
+  .detail-row{display:flex;padding:.25rem 0;gap:.5rem}
+  .detail-label{font-size:.6875rem;color:#64748b;min-width:5.5rem;text-transform:uppercase;font-weight:600;letter-spacing:.03em;flex-shrink:0}
+  .detail-value{font-size:.75rem;color:#cbd5e1;word-break:break-word}
+  .detail-value a{color:#22d3ee;text-decoration:none}
+  .detail-value a:hover{text-decoration:underline}
+  .detail-placeholder{padding:2rem 1rem;text-align:center;color:#475569;font-size:.75rem}
+  .spinner-wrap{display:flex;align-items:center;justify-content:center;padding:1.5rem}
+  .spinner{width:1.5rem;height:1.5rem;border:3px solid #1e293b;border-top-color:#0891b2;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty-results{padding:2rem 1rem;text-align:center;color:#475569;font-size:.8125rem}
+  .copy-bar{padding:.5rem 1rem;border-top:1px solid #334155;display:flex;gap:.5rem;justify-content:flex-end}
+  .btn-copy{padding:.375rem .75rem;border-radius:.375rem;background:#0f172a;border:1px solid #334155;color:#94a3b8;font-size:.6875rem;cursor:pointer;transition:border-color .15s,color .15s}
+  .btn-copy:hover{border-color:#0891b2;color:#e2e8f0}
+  .filter-row{padding:.5rem 1rem;border-bottom:1px solid #334155}
+  .filter-input{width:100%;background:#0f172a;border:1px solid #334155;border-radius:.375rem;color:#e2e8f0;padding:.375rem .625rem;font-size:.75rem}
+  .filter-input:focus{outline:none;border-color:#0891b2}
+  .hero-bar{background:linear-gradient(135deg,#0f172a 0%,#164e63 100%);border-bottom:1px solid #1e293b;padding:1.5rem;text-align:center}
+  .hero-bar h1{font-size:1.5rem;font-weight:800;color:#fff;margin-bottom:.25rem}
+  .hero-bar h1 span{background:linear-gradient(135deg,#22d3ee,#0891b2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .hero-bar p{color:#94a3b8;font-size:.8125rem}
+  .status-msg{padding:.5rem 1rem;font-size:.75rem;color:#94a3b8;border-bottom:1px solid #334155}
+  .status-msg.error{color:#f87171}
+</style>
+</head>
+<body class="bg-slate-950 text-slate-300 bg-main">
+<noscript><style>body>*{opacity:1!important}</style></noscript>
+<div data-component="header" data-base-path="."></div>
+
+<div class="hero-bar">
+  <h1><span>BioGist</span></h1>
+  <p>Biological Genomic Intelligence in Situ &mdash; detect genes, variants &amp; accessions in scientific text</p>
+</div>
+
+<div class="two-panel">
+  <!-- Left: Input -->
+  <div class="panel">
+    <div class="panel-head">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Input
+    </div>
+    <div class="panel-body">
+      <textarea class="scan-input" id="text-input" placeholder="Paste text from a paper, abstract, or methods section..."></textarea>
+      <div class="url-row">
+        <input type="text" class="url-input" id="url-input" placeholder="Or enter a URL to scan...">
+        <button class="btn-scan" id="btn-scan">Scan</button>
+      </div>
+      <div class="example-row">
+        <button class="btn-example" id="ex-brca1">Try with BRCA1 paper</button>
+        <button class="btn-example" id="ex-geo">Try with GEO dataset</button>
+      </div>
+      <div class="status-msg" id="status-msg" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Right: Results -->
+  <div class="panel" id="results-panel">
+    <div class="panel-head">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Detected Entities
+    </div>
+    <div class="filter-row">
+      <input type="text" class="filter-input" id="filter-input" placeholder="Filter entities...">
+    </div>
+    <div class="panel-body" id="entity-sections" style="padding:0">
+      <div class="empty-results" id="empty-state">Paste text or enter a URL, then click Scan.</div>
+    </div>
+    <div class="copy-bar" id="copy-bar" style="display:none">
+      <button class="btn-copy" id="btn-copy">Copy All IDs</button>
+    </div>
+    <div class="spinner-wrap" id="loading" style="display:none"><div class="spinner"></div></div>
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-head">
+        <span class="detail-title" id="detail-title">Details</span>
+        <button class="btn-copy" id="btn-close-detail" title="Close">&#x2715;</button>
+      </div>
+      <div class="detail-body" id="detail-body">
+        <div class="detail-placeholder">Click an entity above to view details.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+<script>
+(function(){
+"use strict";
+
+var GENE_SYMBOLS = new Set("TP53,BRCA1,BRCA2,PTEN,RB1,APC,VHL,WT1,NF1,NF2,CDKN2A,CDKN2B,SMAD4,FBXW7,BAP1,SMARCB1,STK11,MEN1,TSC1,TSC2,PTCH1,SUFU,MYC,MYCN,MYCL,KRAS,NRAS,HRAS,BRAF,RAF1,PIK3CA,PIK3CB,PIK3R1,AKT1,AKT2,AKT3,MTOR,EGFR,ERBB2,ERBB3,HER2,ALK,RET,MET,ROS1,FGFR1,FGFR2,FGFR3,FGFR4,FLT3,KIT,PDGFRA,PDGFRB,ABL1,BCR,JAK2,JAK1,JAK3,STAT3,STAT5A,STAT5B,CDK4,CDK6,CDK2,CCND1,CCNE1,MDM2,MDM4,MAP2K1,MAP2K2,MAP3K1,MAPK1,CTNNB1,AXIN1,AXIN2,NOTCH1,NOTCH2,NOTCH3,NOTCH4,ATM,ATR,CHEK1,CHEK2,PALB2,RAD51,RAD51C,RAD51D,BRIP1,BARD1,NBN,MRE11,POLE,POLD1,MUTYH,FANCA,FANCC,MLH1,MSH2,MSH6,PMS2,EPCAM,DNMT3A,DNMT3B,DNMT1,TET2,TET1,IDH1,IDH2,EZH2,SUZ12,EED,ARID1A,ARID1B,ARID2,SMARCA4,SMARCA2,KMT2A,KMT2C,KMT2D,SETD2,NSD1,NSD2,NPM1,CEBPA,RUNX1,GATA1,GATA2,FLI1,PAX5,BCL2,BCL6,MCL1,MYD88,BTK,ASXL1,CALR,MPL,SF3B1,SRSF2,U2AF1,VEGFA,KDR,TGFB1,SMAD2,SMAD3,SOX2,POU5F1,NANOG,KLF4,TERT,TERC,DICER1,GAPDH,ACTB,HPRT1,B2M,APP,PSEN1,PSEN2,APOE,MAPT,GRN,C9orf72,SOD1,FUS,TARDBP,SNCA,LRRK2,PARK2,PINK1,GBA,HTT,FMR1,MECP2,LDLR,PCSK9,APOB,MTHFR,F5,F2,SERPINA1,MYBPC3,MYH7,SCN5A,KCNQ1,KCNH2,LMNA,TTN,RYR2,CYP2D6,CYP2C19,CYP2C9,CYP3A4,CYP3A5,CYP1A2,CYP2B6,DPYD,UGT1A1,TPMT,NUDT15,SLCO1B1,ABCB1,VKORC1,CFTR,DMD,SMN1,SMN2,HBB,HBA1,HBA2,G6PD,PKD1,PKD2,COL1A1,COL1A2,GJB2,PAH,GAA,GLA,CD274,PDCD1,CTLA4,LAG3,CD8A,CD4,FOXP3,CD19,CD38,ACE2,TMPRSS2,FURIN,AR,ESR1,ESR2,PGR,GATA3,FOXA1,PARP1,PARP2,AURKA,AURKB,SRC,NTRK1,NTRK2,NTRK3,IGF1R,INSR,ERCC1,MGMT,ATRX,DAXX,H3F3A,PBRM1,KDM5C,KDM6A,STAG2,RAD21".split(","));
+
+var EXCLUDE = new Set("THE,AND,FOR,NOT,ARE,BUT,WAS,HAS,HAD,HIS,HER,ITS,ALL,CAN,DID,GET,GOT,LET,MAY,NEW,NOW,OLD,OUR,OWN,SAY,SHE,TOO,USE,WAY,WHO,SET,TRY,ASK,MEN,RUN,TOP,YES,ADD,AGE,AGO,END,FAR,FEW,URL,PDF,CSV,TSV,TXT,PNG,JPG,SVG,API,AWS,GCP,CPU,GPU,RAM,SSD,USB,MAC,USA,NIH,FDA,CDC,DOI,PMID,NCI,MIT,BSD,GPL,HTTP,HTML,CSS,SQL,GIT,YAML,JSON,TOML,WASM,REST,POST,FROM,WITH,THAT,THIS,HAVE,BEEN,WILL,THAN,EACH,MAKE,LIKE,LONG,MANY,MOST,MUCH,MUST,NAME,NEED,NEXT,ONLY,OPEN,OVER,PART,PLAN,READ,SAME,SAVE,SHOW,SIDE,SIZE,SOME,SORT,STEP,STOP,SUCH,SURE,TAKE,TELL,TEST,TEXT,THEN,THEY,TIME,TRUE,TURN,TYPE,UNIT,UPON,USED,USER,VERY,WANT,WELL,WHAT,WHEN,WIDE,WORD,WORK,YEAR,ALSO,BACK,CALL,COME,DOES,DOWN,EVEN,FIND,GIVE,GOES,GOOD,HELP,HERE,HIGH,HOME,INTO,JUST,KEEP,KIND,KNOW,LAST,LATE,LEFT,LIFE,LINE,LIST,LIVE,LOOK,MADE,MAIN,MEAN,MOVE,NOTE,PAGE,PASS,PATH,PICK,PULL,PUSH,RATE,RULE,SCAN,SELF,SEND,VIEW,WAIT,WALK,WEEK,ZERO,BEST,BOTH,CASE,CITY,COPY,DATA,DATE,DAYS,DONE,DRAW,DROP,EDIT,FAIL,FAST,FILE,FILL,FLAG,FLOW,FORM,FREE,FULL,HEAD,HOLD,HOST,ICON,INFO,ITEM,JOIN,JUMP,KEYS,LACK,LAND,LEAD,LINK,LOAD,LOCK,LOOP,LOSS,MARK,MASK,MASS,MATH,MODE,PLAY".split(","));
+
+// ── Detection ────────────────────────────────────────────────────────────
+function detectGenes(text) {
+  var results = [], seen = new Set(), re = /\b([A-Z][A-Z0-9]{1,9})\b/g, m;
+  while ((m = re.exec(text)) !== null) {
+    var s = m[1];
+    if (!seen.has(s) && !EXCLUDE.has(s) && GENE_SYMBOLS.has(s)) { seen.add(s); results.push({type:"gene",id:s}); }
+  }
+  return results;
+}
+
+function detectVariants(text) {
+  var results = [], seen = new Set(), m;
+  var rsRe = /\b(rs\d{3,12})\b/gi;
+  while ((m = rsRe.exec(text)) !== null) { var id = m[1].toLowerCase(); if (!seen.has(id)) { seen.add(id); results.push({type:"variant",id:id,subtype:"rsid"}); } }
+  var hgvsRe = /\b((?:NM_|NP_|NC_)\d+(?:\.\d+)?:[cpg]\.\S+?)(?=[\s,;)\]]|$)/g;
+  while ((m = hgvsRe.exec(text)) !== null) { if (!seen.has(m[1])) { seen.add(m[1]); results.push({type:"variant",id:m[1],subtype:"hgvs"}); } }
+  var clinvarRe = /\b(VCV\d{9,12})\b/g;
+  while ((m = clinvarRe.exec(text)) !== null) { if (!seen.has(m[1])) { seen.add(m[1]); results.push({type:"variant",id:m[1],subtype:"clinvar"}); } }
+  var cosmicRe = /\b(COSM\d{3,10})\b/g;
+  while ((m = cosmicRe.exec(text)) !== null) { if (!seen.has(m[1])) { seen.add(m[1]); results.push({type:"variant",id:m[1],subtype:"cosmic"}); } }
+  return results;
+}
+
+function detectAccessions(text) {
+  var results = [], seen = new Set(), m;
+  var patterns = [
+    {re:/\b(GSE\d{3,8})\b/g,sub:"geo"},{re:/\b(GSM\d{3,8})\b/g,sub:"geo"},
+    {re:/\b(SRR\d{5,10})\b/g,sub:"sra"},{re:/\b(SRX\d{5,10})\b/g,sub:"sra"},
+    {re:/\b(SRP\d{5,10})\b/g,sub:"sra"},{re:/\b(SRS\d{5,10})\b/g,sub:"sra"},
+    {re:/\b(ERR\d{5,10})\b/g,sub:"ena"},{re:/\b(ERX\d{5,10})\b/g,sub:"ena"},
+    {re:/\b(PRJNA\d{4,8})\b/g,sub:"bioproject"},{re:/\b(PRJEB\d{4,8})\b/g,sub:"bioproject"},
+    {re:/\b(SAMN\d{6,10})\b/g,sub:"biosample"},
+    {re:/\b(ENSG\d{11})\b/g,sub:"ensembl"},{re:/\b(ENST\d{11})\b/g,sub:"ensembl"},
+    {re:/\b(ENSP\d{11})\b/g,sub:"ensembl"},
+    {re:/\b(NM_\d{6,9}(?:\.\d+)?)\b/g,sub:"refseq"},
+    {re:/\b(NP_\d{6,9}(?:\.\d+)?)\b/g,sub:"refseq"},
+    {re:/\b(NC_\d{6,9}(?:\.\d+)?)\b/g,sub:"refseq"},
+    {re:/\b(\d[A-Z][A-Z0-9]{2})\b/g,sub:"pdb"},
+    {re:/PMID:\s*(\d{5,9})/g,sub:"pubmed"},
+    {re:/\b(10\.\d{4,9}\/[^\s,;)}\]]+)/g,sub:"doi"}
+  ];
+  for (var i = 0; i < patterns.length; i++) {
+    var p = patterns[i]; p.re.lastIndex = 0;
+    while ((m = p.re.exec(text)) !== null) {
+      var key = p.sub+":"+m[1];
+      if (!seen.has(key)) { seen.add(key); results.push({type:"accession",id:m[1],subtype:p.sub}); }
+    }
+  }
+  return results;
+}
+
+function detectSpecies(text) {
+  var species = [
+    {pat:/\b(Homo sapiens|human|H\. sapiens)\b/gi,name:"Human",taxid:"9606"},
+    {pat:/\b(Mus musculus|mouse|M\. musculus)\b/gi,name:"Mouse",taxid:"10090"},
+    {pat:/\b(Rattus norvegicus|rat|R\. norvegicus)\b/gi,name:"Rat",taxid:"10116"},
+    {pat:/\b(Drosophila melanogaster|fruit fly|D\. melanogaster)\b/gi,name:"Fruit fly",taxid:"7227"},
+    {pat:/\b(Caenorhabditis elegans|C\. elegans)\b/gi,name:"C. elegans",taxid:"6239"},
+    {pat:/\b(Danio rerio|zebrafish|D\. rerio)\b/gi,name:"Zebrafish",taxid:"7955"},
+    {pat:/\b(Saccharomyces cerevisiae|yeast|S\. cerevisiae)\b/gi,name:"Yeast",taxid:"4932"},
+    {pat:/\b(Escherichia coli|E\. coli)\b/gi,name:"E. coli",taxid:"562"}
+  ];
+  var found = [], seen = new Set();
+  species.forEach(function(sp) {
+    sp.pat.lastIndex = 0;
+    if (sp.pat.test(text) && !seen.has(sp.name)) { seen.add(sp.name); found.push({type:"species",id:sp.name,subtype:sp.taxid}); }
+  });
+  return found;
+}
+
+function scanText(text) {
+  return [].concat(detectGenes(text), detectVariants(text), detectAccessions(text), detectSpecies(text));
+}
+
+// ── State ────────────────────────────────────────────────────────────────
+var allEntities = [];
+var activeKey = null;
+var filterText = "";
+var apiCache = {};
+
+var $sections = document.getElementById("entity-sections");
+var $empty = document.getElementById("empty-state");
+var $loading = document.getElementById("loading");
+var $detailTitle = document.getElementById("detail-title");
+var $detailBody = document.getElementById("detail-body");
+var $copyBar = document.getElementById("copy-bar");
+var $statusMsg = document.getElementById("status-msg");
+var $filterInput = document.getElementById("filter-input");
+
+var TYPE_META = {
+  gene:      {label:"Genes",      cls:"badge-gene"},
+  variant:   {label:"Variants",   cls:"badge-variant"},
+  accession: {label:"Accessions", cls:"badge-accession"},
+  species:   {label:"Species",    cls:"badge-species"}
+};
+
+function escHtml(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function truncate(s, n) { return s.length > n ? s.slice(0, n) + "..." : s; }
+
+// ── Render ───────────────────────────────────────────────────────────────
+function render() {
+  var q = filterText.toLowerCase();
+  var grouped = {};
+  allEntities.forEach(function(e) {
+    if (q && e.id.toLowerCase().indexOf(q) === -1) return;
+    if (!grouped[e.type]) grouped[e.type] = [];
+    grouped[e.type].push(e);
+  });
+
+  var total = Object.values(grouped).reduce(function(s, a) { return s + a.length; }, 0);
+  $empty.style.display = total === 0 ? "block" : "none";
+  $copyBar.style.display = total > 0 ? "flex" : "none";
+  $sections.innerHTML = "";
+
+  ["gene","variant","accession","species"].forEach(function(type) {
+    var items = grouped[type];
+    if (!items || items.length === 0) return;
+    var meta = TYPE_META[type];
+
+    var section = document.createElement("div");
+    section.className = "section";
+
+    var header = document.createElement("div");
+    header.className = "section-header";
+    header.innerHTML = '<span class="section-title">' + meta.label + '</span><span class="section-count">' + items.length + '</span>';
+
+    var ul = document.createElement("ul");
+    ul.className = "entity-list";
+
+    items.forEach(function(e) {
+      var key = e.type + ":" + e.id;
+      var li = document.createElement("li");
+      li.className = "entity-item" + (activeKey === key ? " active" : "");
+      li.innerHTML = '<span class="entity-name">' + escHtml(e.id) + '</span>' +
+        (e.subtype ? '<span class="entity-badge ' + meta.cls + '">' + escHtml(e.subtype) + '</span>' : '<span class="entity-badge ' + meta.cls + '">' + type + '</span>');
+      li.addEventListener("click", function() { selectEntity(e); });
+      ul.appendChild(li);
+    });
+
+    section.appendChild(header);
+    section.appendChild(ul);
+    $sections.appendChild(section);
+  });
+}
+
+// ── Entity detail ────────────────────────────────────────────────────────
+function selectEntity(e) {
+  activeKey = e.type + ":" + e.id;
+  render();
+  $detailTitle.textContent = e.id;
+  $detailBody.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+  fetchEntityInfo(e).then(function(info) { renderDetail(info); }).catch(function(err) {
+    $detailBody.innerHTML = '<div class="detail-placeholder">Failed: ' + escHtml(err.message) + '</div>';
+  });
+}
+
+function renderDetail(info) {
+  if (!info) { $detailBody.innerHTML = '<div class="detail-placeholder">No information found.</div>'; return; }
+  var html = "";
+  Object.keys(info).forEach(function(label) {
+    var v = info[label];
+    if (v === null || v === undefined || v === "") return;
+    var dv = (typeof v === "string" && v.startsWith("http"))
+      ? '<a href="' + escHtml(v) + '" target="_blank" rel="noopener">' + escHtml(v) + '</a>'
+      : escHtml(String(v));
+    html += '<div class="detail-row"><span class="detail-label">' + escHtml(label) + '</span><span class="detail-value">' + dv + '</span></div>';
+  });
+  $detailBody.innerHTML = html || '<div class="detail-placeholder">No additional details.</div>';
+}
+
+// ── API fetches ──────────────────────────────────────────────────────────
+var NCBI = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
+
+function fetchEntityInfo(e) {
+  var key = e.type + ":" + e.id;
+  if (apiCache[key]) return Promise.resolve(apiCache[key]);
+  var p;
+  switch (e.type) {
+    case "gene":     p = fetchGene(e.id); break;
+    case "variant":  p = fetchVariant(e.id); break;
+    case "accession": p = fetchAccession(e.id, e.subtype); break;
+    case "species":  return Promise.resolve({Species:e.id, "Taxonomy ID":e.subtype, Link:"https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id="+e.subtype});
+    default: return Promise.resolve(null);
+  }
+  return p.then(function(info) { apiCache[key] = info; return info; });
+}
+
+function fetchGene(symbol) {
+  return fetch(NCBI + "/esearch.fcgi?db=gene&term=" + encodeURIComponent(symbol) + "[sym]+AND+human[orgn]&retmode=json")
+    .then(function(r) { return r.json(); }).then(function(data) {
+      var ids = data && data.esearchresult && data.esearchresult.idlist;
+      if (!ids || ids.length === 0) return {Symbol:symbol, Status:"Not found in NCBI Gene"};
+      var gid = ids[0];
+      return fetch(NCBI + "/esummary.fcgi?db=gene&id=" + gid + "&retmode=json")
+        .then(function(r) { return r.json(); }).then(function(sum) {
+          var doc = sum && sum.result && sum.result[gid];
+          if (!doc) return {Symbol:symbol,"Gene ID":gid};
+          return {
+            Symbol: doc.name || symbol,
+            Name: doc.description || "",
+            "Gene ID": gid,
+            Organism: (doc.organism && doc.organism.scientificname) || "",
+            Chromosome: doc.chromosome || "",
+            "Map Location": doc.maplocation || "",
+            Summary: truncate(doc.summary || "", 300),
+            Link: "https://www.ncbi.nlm.nih.gov/gene/" + gid
+          };
+        });
+    });
+}
+
+function fetchVariant(rsid) {
+  return fetch(NCBI + "/esearch.fcgi?db=snp&term=" + encodeURIComponent(rsid) + "&retmode=json")
+    .then(function(r) { return r.json(); }).then(function(data) {
+      var ids = data && data.esearchresult && data.esearchresult.idlist;
+      if (!ids || ids.length === 0) return {rsID:rsid, Status:"Not found in dbSNP"};
+      var sid = ids[0];
+      return {rsID:"rs"+sid,"dbSNP ID":sid, Link:"https://www.ncbi.nlm.nih.gov/snp/rs"+sid, ClinVar:"https://www.ncbi.nlm.nih.gov/clinvar/?term=rs"+sid};
+    });
+}
+
+function fetchAccession(acc, subtype) {
+  var dbMap = {geo:"gds",sra:"sra",ena:"sra",bioproject:"bioproject",biosample:"biosample"};
+  var db = dbMap[subtype] || "nuccore";
+  return fetch(NCBI + "/esearch.fcgi?db=" + db + "&term=" + encodeURIComponent(acc) + "&retmode=json")
+    .then(function(r) { return r.json(); }).then(function(data) {
+      var ids = data && data.esearchresult && data.esearchresult.idlist;
+      var info = {Accession:acc, Database:db.toUpperCase()};
+      if (ids && ids.length > 0) { info["NCBI UID"] = ids[0]; }
+      if (subtype === "geo") info.Link = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=" + acc;
+      else if (db === "sra") info.Link = "https://www.ncbi.nlm.nih.gov/sra/" + acc;
+      else if (db === "bioproject") info.Link = "https://www.ncbi.nlm.nih.gov/bioproject/" + acc;
+      else if (subtype === "pdb") info.Link = "https://www.rcsb.org/structure/" + acc;
+      else if (subtype === "ensembl") info.Link = "https://ensembl.org/Homo_sapiens/Gene/Summary?g=" + acc;
+      else if (subtype === "pubmed") info.Link = "https://pubmed.ncbi.nlm.nih.gov/" + acc;
+      else if (subtype === "doi") info.Link = "https://doi.org/" + acc;
+      else if (subtype === "refseq") info.Link = "https://www.ncbi.nlm.nih.gov/nuccore/" + acc;
+      return info;
+    });
+}
+
+// ── URL scanning ─────────────────────────────────────────────────────────
+function fetchUrlText(url) {
+  // Use allorigins.win as a CORS proxy
+  var proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+  return fetch(proxyUrl).then(function(r) {
+    if (!r.ok) throw new Error("Failed to fetch URL (status " + r.status + ")");
+    return r.text();
+  }).then(function(html) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, "text/html");
+    // Remove scripts and styles
+    doc.querySelectorAll("script,style,noscript").forEach(function(el) { el.remove(); });
+    return doc.body ? doc.body.textContent : "";
+  });
+}
+
+// ── Sample text ──────────────────────────────────────────────────────────
+var SAMPLE_BRCA1 = "We investigated the role of BRCA1 and TP53 mutations in hereditary breast cancer. " +
+  "Whole exome sequencing was performed on 150 patients (GEO accession: GSE62944). " +
+  "The rs80357906 variant in BRCA2 was found in 12% of cases. RNA-seq data is available " +
+  "at SRP045636 (SRA). We identified pathogenic variants including NM_007294.4:c.5266dupC " +
+  "in BRCA1 and rs28934576 in TP53. Protein structure analysis used PDB entry 1T29. " +
+  "Additional ChIP-seq data for H3K27ac marks is available at PRJNA289974.";
+
+var SAMPLE_GEO = "This study (GSE153380) analyzed single-cell RNA-seq data from human lung tissue " +
+  "to characterize ACE2 and TMPRSS2 expression patterns during SARS-CoV-2 infection. " +
+  "Samples were processed from BioProject PRJNA639956 (SRA runs: SRR12068042, SRR12068043). " +
+  "Differential expression analysis identified upregulation of IFNG, IL6, and TNF in infected cells. " +
+  "Variant rs2285666 in ACE2 was associated with susceptibility. " +
+  "Reference genome GCF_000001405.39 (GRCh38) was used for alignment with STAR. " +
+  "Protein structures for ACE2 (6M0J) and TMPRSS2 (7MEQ) were retrieved from PDB.";
+
+// ── Event handlers ───────────────────────────────────────────────────────
+document.getElementById("btn-scan").addEventListener("click", function() {
+  var textInput = document.getElementById("text-input").value.trim();
+  var urlInput = document.getElementById("url-input").value.trim();
+
+  if (urlInput && !textInput) {
+    // Fetch URL
+    showStatus("Fetching URL...", false);
+    $loading.style.display = "flex";
+    $empty.style.display = "none";
+    document.getElementById("btn-scan").disabled = true;
+    fetchUrlText(urlInput).then(function(text) {
+      document.getElementById("text-input").value = text.substring(0, 50000);
+      allEntities = scanText(text);
+      activeKey = null; filterText = "";
+      $loading.style.display = "none";
+      document.getElementById("btn-scan").disabled = false;
+      showStatus("Found " + allEntities.length + " entities from URL.", false);
+      render();
+    }).catch(function(err) {
+      $loading.style.display = "none";
+      document.getElementById("btn-scan").disabled = false;
+      showStatus("Error fetching URL: " + err.message, true);
+    });
+    return;
+  }
+
+  if (!textInput) { showStatus("Please paste text or enter a URL.", true); return; }
+  allEntities = scanText(textInput);
+  activeKey = null; filterText = "";
+  showStatus("Found " + allEntities.length + " entities.", false);
+  render();
+});
+
+document.getElementById("ex-brca1").addEventListener("click", function() {
+  document.getElementById("text-input").value = SAMPLE_BRCA1;
+  document.getElementById("url-input").value = "";
+});
+document.getElementById("ex-geo").addEventListener("click", function() {
+  document.getElementById("text-input").value = SAMPLE_GEO;
+  document.getElementById("url-input").value = "";
+});
+
+document.getElementById("btn-close-detail").addEventListener("click", function() {
+  activeKey = null;
+  $detailBody.innerHTML = '<div class="detail-placeholder">Click an entity above to view details.</div>';
+  $detailTitle.textContent = "Details";
+  render();
+});
+
+$filterInput.addEventListener("input", function(e) {
+  filterText = e.target.value.trim();
+  render();
+});
+
+document.getElementById("btn-copy").addEventListener("click", function() {
+  var ids = allEntities.map(function(e) { return e.id; });
+  navigator.clipboard.writeText(ids.join("\n")).then(function() {
+    var btn = document.getElementById("btn-copy");
+    btn.textContent = "Copied!";
+    setTimeout(function() { btn.textContent = "Copy All IDs"; }, 1500);
+  });
+});
+
+function showStatus(msg, isError) {
+  $statusMsg.textContent = msg;
+  $statusMsg.className = "status-msg" + (isError ? " error" : "");
+  $statusMsg.style.display = "block";
+  if (!isError) setTimeout(function() { $statusMsg.style.display = "none"; }, 4000);
+}
+
+// ── PWA service worker ───────────────────────────────────────────────────
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(function() {});
+}
+
+render();
+})();
+</script>
+</body>
+</html>

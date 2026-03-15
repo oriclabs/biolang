@@ -79,7 +79,7 @@ print(shortest[0].seq)</code></pre>
           <h2 class="text-2xl font-bold text-white mb-2">TFSQ &mdash; FASTQ Format Introduction</h2>
           <p class="text-slate-400 mb-4">Convert FASTQ records to FASTA format.</p>
           <pre><code class="language-biolang"># Convert FASTQ to FASTA
-let reads = fastq("input.fq")
+let reads = read_fastq("data/reads.fastq")
 
 for read in reads {
   print(">" + read.id)
@@ -87,7 +87,7 @@ for read in reads {
 }
 
 # Or as a pipeline:
-fastq("input.fq")
+read_fastq("data/reads.fastq")
   |> map(|r| ">" + r.id + "\n" + to_string(r.seq))
   |> each(|line| print(line))</code></pre>
         </section>
@@ -98,7 +98,7 @@ fastq("input.fq")
           <p class="text-slate-400 mb-4">Given a quality threshold, count how many reads have average quality below it.</p>
           <pre><code class="language-biolang"># Count reads with average quality below threshold
 let threshold = 28
-let reads = fastq("input.fq")
+let reads = read_fastq("data/reads.fastq")
 
 let below = reads
   |> filter(|r| mean_phred(r.quality) < threshold)
@@ -127,7 +127,7 @@ print("Standard:", protein)
           <h2 class="text-2xl font-bold text-white mb-2">RVCO &mdash; Complementing a Strand of DNA</h2>
           <p class="text-slate-400 mb-4">Given FASTA records, count how many have a sequence equal to its own reverse complement.</p>
           <pre><code class="language-biolang"># Count sequences that match their own reverse complement
-let records = fasta("input.fa")
+let records = read_fasta("data/sequences.fasta")
 
 let count = records
   |> filter(|r| to_string(r.seq) == to_string(reverse_complement(r.seq)))
@@ -143,7 +143,7 @@ print(count)</code></pre>
           <pre><code class="language-biolang"># Filter reads by per-base quality percentage
 let quality_threshold = 20
 let percentage = 90
-let reads = fastq("input.fq")
+let reads = read_fastq("data/reads.fastq")
 
 let passed = reads |> filter(|r| {
   let scores = r.quality
@@ -161,7 +161,7 @@ print(len(passed))</code></pre>
           <p class="text-slate-400 mb-4">Given FASTQ reads and a quality threshold, count positions where the average quality falls below it.</p>
           <pre><code class="language-biolang"># Count positions with average quality below threshold
 let threshold = 20
-let reads = read_fastq("input.fq")
+let reads = read_read_fastq("data/reads.fastq")
 
 # Collect quality scores per position
 let num_positions = reads |> map(|r| len(r.quality)) |> max
@@ -182,7 +182,7 @@ print(below)</code></pre>
           <p class="text-slate-400 mb-4">Trim each FASTQ read from both ends, removing bases below a quality threshold.</p>
           <pre><code class="language-biolang"># Trim reads from both ends by quality
 let threshold = 20
-let reads = fastq("input.fq")
+let reads = read_fastq("data/reads.fastq")
 
 for read in reads {
   let q = read.quality
@@ -199,7 +199,7 @@ for read in reads {
           <h2 class="text-2xl font-bold text-white mb-2">ORFR &mdash; Finding Genes with ORFs</h2>
           <p class="text-slate-400 mb-4">Given a DNA string, find the longest open reading frame (ORF) in any reading frame on either strand.</p>
           <pre><code class="language-biolang"># Find longest ORF across all reading frames
-let seq = fasta("input.fa")[0].seq
+let seq = read_fasta("data/sequences.fasta")[0].seq
 
 # Check all 6 reading frames (3 forward + 3 reverse complement)
 let frames = [seq, reverse_complement(seq)]
@@ -250,7 +250,7 @@ print(f"Sequence 2 length: {len(fasta2)}")</code></pre>
           <h2 class="text-2xl font-bold text-white mb-2">MEME &mdash; New Motif Discovery</h2>
           <p class="text-slate-400 mb-4">Given a set of DNA sequences, find the shared motif using positional analysis.</p>
           <pre><code class="language-biolang"># Discover shared motifs in a collection of sequences
-let records = fasta("input.fa")
+let records = read_fasta("data/sequences.fasta")
 let sequences = records |> map(|r| r.seq)
 
 # Find shared k-mers across all sequences
@@ -271,7 +271,7 @@ if len(motifs) > 0 { print(motifs[0]) }</code></pre>
           <h2 class="text-2xl font-bold text-white mb-2">SUBO &mdash; Suboptimal Local Alignment</h2>
           <p class="text-slate-400 mb-4">Find the number of suboptimal local alignments between two sequences using Smith-Waterman.</p>
           <pre><code class="language-biolang"># Compare two sequences from a FASTA file
-let records = fasta("input.fa") |> collect
+let records = read_fasta("data/sequences.fasta") |> collect
 let seq1 = records[0].seq
 let seq2 = records[1].seq
 
@@ -290,7 +290,7 @@ print(f"Jaccard similarity: {similarity |> round(4)}")</code></pre>
           <h2 class="text-2xl font-bold text-white mb-2">CLUS &mdash; Global Multiple Alignment</h2>
           <p class="text-slate-400 mb-4">Perform multiple sequence alignment and identify the most conserved column.</p>
           <pre><code class="language-biolang"># Multiple sequence alignment
-let records = fasta("input.fa")
+let records = read_fasta("data/sequences.fasta")
 let sequences = records |> map(|r| to_string(r.seq))
 
 # Find consensus by column analysis

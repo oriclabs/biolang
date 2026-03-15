@@ -31,7 +31,7 @@
 
         <h3>Understand lazy evaluation</h3>
         <pre><code class="language-biolang"># BioLang pipe chains are lazy -- nothing happens until consumption
-let pipeline = fastq("huge.fq.gz")
+let pipeline = read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30.0)
   |> map(|r| len(r.seq))
 # No data has been read yet!
@@ -43,21 +43,21 @@ pipeline |> collect           # Materializes into a list</code></pre>
 
         <h3>Avoid unnecessary collect</h3>
         <pre><code class="language-biolang"># BAD: collects millions of records into memory
-let all_reads = fastq("big.fq.gz") |> collect
+let all_reads = read_fastq("data/reads.fastq") |> collect
 let filtered = all_reads |> filter(|r| mean_phred(r.quality) >= 30.0)
 write_fastq(filtered, "out.fq.gz")
 
 # GOOD: streams everything, constant memory
-fastq("big.fq.gz")
+read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30.0)
   |> write_fastq("out.fq.gz")
 
 # When you MUST collect, limit the data first
-let sample_reads = fastq("big.fq.gz") |> take(100000) |> collect</code></pre>
+let sample_reads = read_fastq("data/reads.fastq") |> take(100000) |> collect</code></pre>
 
         <h3>Streaming aggregations</h3>
         <pre><code class="language-biolang"># Compute stats in a single streaming pass using reduce
-let lengths = fastq("reads.fq.gz")
+let lengths = read_fastq("data/reads.fastq")
   |> map(|r| len(r.seq))
   |> collect
 
@@ -66,7 +66,7 @@ print("Mean length: #{round(mean(lengths), 1)}")
 print("Min: #{min(lengths)}, Max: #{max(lengths)}")
 
 # Multiple aggregations in a single pass using reduce
-let result = fastq("reads.fq.gz")
+let result = read_fastq("data/reads.fastq")
   |> reduce({ total: 0, gc_sum: 0.0, n: 0 }, |acc, r| {
     {
       total: acc.total + len(r.seq),
@@ -82,7 +82,7 @@ print("Mean GC: #{round(result.gc_sum / result.n, 3)}")</code></pre>
 
         <h3>par_map for CPU-bound work</h3>
         <pre><code class="language-biolang"># par_map distributes work across CPU cores
-let proteins = fasta("proteome.fa") |> collect
+let proteins = read_fasta("data/sequences.fasta") |> collect
 
 # Sequential (slow for large datasets)
 let results_seq = map(proteins, |p| len(p.seq))
@@ -114,7 +114,7 @@ print("Processed #{len(stats)} samples")</code></pre>
 
         <h3>Chunked parallel processing</h3>
         <pre><code class="language-biolang"># Process a large file in chunks for controlled parallelism
-fastq("huge.fq.gz")
+read_fastq("data/reads.fastq")
   |> chunk(10000)
   |> par_map(|ch| {
     # Each chunk processed independently
@@ -132,19 +132,19 @@ fastq("huge.fq.gz")
 # but be aware of the cost (~3 GB for human genome)
 
 # Option 1: Stream and process without full load
-fasta("genome.fa")
+read_fasta("data/sequences.fasta")
   |> each(|record| {
     let gc = gc_content(record.seq)
     print("#{record.id}: GC=#{round(gc, 3)}")
   })
 
 # Option 2: Load only what you need
-let seqs = fasta("genome.fa")
+let seqs = read_fasta("data/sequences.fasta")
   |> filter(|r| r.id == "chr1")
   |> collect
 
 # Option 3: Process in chunks to limit memory
-fasta("genome.fa")
+read_fasta("data/sequences.fasta")
   |> chunk(100)
   |> each(|batch| {
     print("Processing batch of #{len(batch)} sequences")
@@ -156,13 +156,13 @@ fasta("genome.fa")
 let counts = kmer_count(dna"ATCGATCGATCG", 4)
 
 # Large FASTQ — stream reads, auto-spill to disk if > 2M unique k-mers
-fastq("huge.fq.gz")
+read_fastq("data/reads.fastq")
   |> kmer_count(21)
   |> head(20)
   |> print()
 
 # Bounded memory — only track top N k-mers (periodic pruning)
-fastq("huge.fq.gz")
+read_fastq("data/reads.fastq")
   |> kmer_count(21, 100)        # top 100 only
   |> bar_chart("Top 21-mers")</code></pre>
         <div class="rounded-xl border border-slate-700 bg-slate-900/40 p-4 my-4">
@@ -179,11 +179,11 @@ fastq("huge.fq.gz")
         <h3>Compressed I/O</h3>
         <pre><code class="language-biolang"># BioLang auto-detects compression from file extension
 # .gz files are handled transparently
-fastq("reads.fq.gz")      # Auto-decompresses
+read_fastq("data/reads.fastq")      # Auto-decompresses
   |> write_fastq("out.fq.gz")  # Auto-compresses
 
 # For explicit compression, use the compress functions
-fastq("reads.fq.gz")
+read_fastq("data/reads.fastq")
   |> write_fastq("out.fq")
 
 # Then compress the output separately if needed
@@ -191,7 +191,7 @@ fastq("reads.fq.gz")
 
         <h3>Buffered output</h3>
         <pre><code class="language-biolang"># Collect results then write in one operation for efficiency
-let results = fasta("sequences.fa")
+let results = read_fasta("data/sequences.fasta")
   |> map(|record| {
     let gc = gc_content(record.seq) ?? 0.0
     { name: record.id, length: len(record.seq), gc: round(gc, 4) }
@@ -205,7 +205,7 @@ write_tsv(from_records(results), "output.tsv")</code></pre>
         <h3>Timing operations</h3>
         <pre><code class="language-biolang"># Time a block of code using time_it
 let result = time_it(|| {
-  fastq("reads.fq.gz")
+  read_fastq("data/reads.fastq")
     |> filter(|r| mean_phred(r.quality) >= 30.0)
     |> count
 })
@@ -213,7 +213,7 @@ print("Filtering took #{result}ms")
 
 # Profile individual stages
 let t1 = now()
-let data = vcf("variants.vcf.gz") |> collect
+let data = read_vcf("data/variants.vcf") |> collect
 let read_time = now() - t1
 
 let t2 = now()
@@ -224,11 +224,11 @@ print("Read: #{read_time}ms, Filter: #{filter_time}ms")</code></pre>
 
         <h3>Memory usage tracking</h3>
         <pre><code class="language-biolang"># Track memory by monitoring data sizes
-let data = fasta("genome.fa") |> collect
+let data = read_fasta("data/sequences.fasta") |> collect
 print("Loaded #{len(data)} sequences")
 
 # For large datasets, use streaming kmer_count (auto-spills to disk)
-let top_kmers = fasta("genome.fa")
+let top_kmers = read_fasta("data/sequences.fasta")
   |> kmer_count(21, 50)     # top 50 k-mers, bounded memory
 
 print("Top 50 21-mers:")
@@ -252,7 +252,7 @@ fn custom_quality_score(qual_string) {
 }
 
 # Apply to all reads
-let scores = fastq("reads.fq.gz")
+let scores = read_fastq("data/reads.fastq")
   |> map(|r| custom_quality_score(r.quality))
   |> collect</code></pre>
 

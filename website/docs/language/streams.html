@@ -22,7 +22,7 @@
         <span class="text-slate-300">Streams</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>Streams</h1>
+        <h1>Lazy Streams</h1>
         <p>
           Streams are lazy iterators that process data one element at a time without loading
           everything into memory. In bioinformatics, where datasets routinely exceed available
@@ -30,220 +30,148 @@
           spanning hundreds of gigabytes, and VCF files with millions of variants.
         </p>
 
-        <h2>Streams vs. Lists</h2>
+        <h2>Streams from File Readers</h2>
         <p>
-          Lists are eager &mdash; all elements exist in memory simultaneously. Streams are lazy &mdash;
-          elements are computed on demand and discarded after use:
+          BioLang's file reader builtins return streams. No data is read from disk until
+          the stream is consumed:
         </p>
-        <pre><code class="language-biolang"># Eager: loads entire file into a Table (dangerous for large files)
-let all_reads = read_fastq("huge.fq.gz")  # Table — may OOM
+        <pre><code class="language-biolang"># Each of these returns a Stream -- nothing is read yet
+let reads = read_fastq("data/reads.fastq")
+let sequences = read_fasta("data/sequences.fasta")
+let variants = read_vcf("data/variants.vcf")
+let intervals = read_bed("data/regions.bed")
+let features = read_gff("data/annotations.gff")</code></pre>
 
-# Lazy: processes one read at a time (constant memory)
-let read_stream = fastq("huge.fq.gz")  # Stream — safe
-let filtered = read_stream
-  |> filter(|r| mean_phred(r.quality) >= 30)
-  |> take(1_000_000)
-  |> collect()   # Only now are reads materialized</code></pre>
+        <h2>Lazy Evaluation</h2>
+        <p>
+          Stream operations are lazy &mdash; they describe a pipeline of transformations
+          but do not execute until a terminal operation (like <code>collect()</code>) is called:
+        </p>
+        <pre><code class="language-biolang"># Build a pipeline -- nothing is read from disk yet
+let pipeline = read_fastq("data/reads.fastq")
+  |> filter(|r| mean_phred(r.quality) >= 20)
+  |> map(|r| r.sequence)
+  |> filter(|s| len(s) >= 50)
+  |> take(1000)
 
-        <h2>Creating Streams</h2>
-
-        <h3>From Files</h3>
-        <pre><code class="language-biolang"># Stream biological file formats
-let reads = fastq("sample.fq.gz")
-let alignments = bam("aligned.bam")
-let variants = vcf("calls.vcf.gz")
-let sequences = fasta("reference.fa")
-let intervals = bed("regions.bed")
-let features = gff("annotations.gff3")</code></pre>
-
-        <h3>From Lists</h3>
-        <pre><code class="language-biolang"># Convert a list to a lazy stream
-let lazy = [1, 2, 3, 4, 5] |> to_stream()
-
-# Useful for testing pipelines with small data
-let test_stream = ["ACGT", "GGCC", "TTAA"] |> to_stream()
-  |> map(|s| len(s))
-  |> collect()   # [4, 4, 4]</code></pre>
-
-        <h3>Streaming Large Files</h3>
-        <pre><code class="language-biolang"># The main use of streams is processing large bio files lazily.
-# Each file builtin returns a Stream that reads one record at a time:
-let hq_reads = fastq("reads.fq.gz")
-  |> filter(|r| mean_phred(r.quality) >= 30)
-  |> head(100)
-
-# Streams compose — chain multiple file operations:
-let read_lengths = fastq("sample.fq.gz")
-  |> map(|r| len(r.sequence))
-  |> collect()   # List of all read lengths</code></pre>
+# Only now are reads actually processed:
+let results = pipeline |> collect()
+println(f"Got {len(results)} sequences")</code></pre>
 
         <h2>Stream Operations</h2>
+
+        <h3>filter</h3>
+        <p>Keep elements that match a predicate:</p>
+        <pre><code class="language-biolang">let hq = read_fastq("data/reads.fastq")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> collect()
+println(f"High quality reads: {len(hq)}")</code></pre>
+
+        <h3>map</h3>
+        <p>Transform each element:</p>
+        <pre><code class="language-biolang">let lengths = read_fastq("data/reads.fastq")
+  |> map(|r| len(r.sequence))
+  |> collect()
+println(f"Read lengths: {lengths}")</code></pre>
+
+        <h3>take and skip</h3>
+        <p>Limit or skip elements in the stream:</p>
+        <pre><code class="language-biolang"># Take the first 100 reads
+let first_100 = read_fastq("data/reads.fastq")
+  |> take(100)
+  |> collect()
+println(f"First 100: {len(first_100)} reads")
+
+# Skip the first 50, then take 10
+let sample = read_fastq("data/reads.fastq")
+  |> skip(50)
+  |> take(10)
+  |> collect()
+println(f"Sample: {len(sample)} reads")</code></pre>
+
+        <h2>Consuming Streams</h2>
         <p>
-          Streams support the same functional operations as lists, but all operations are lazy
-          until a terminal operation is called:
+          Terminal operations consume the stream and produce a final value:
         </p>
 
-        <h3>Lazy (Intermediate) Operations</h3>
-        <pre><code class="language-biolang">let pipeline = fastq("reads.fq.gz")
-  |> filter(|r| mean_phred(r.quality) >= 20)  # Lazy
-  |> map(|r| r.sequence)                      # Lazy
-  |> filter(|r| len(r) >= 50)                 # Lazy
-  |> take(1_000_000)                          # Lazy — limits total
-  |> skip(100)                                # Lazy — skips first 100
+        <h3>collect</h3>
+        <p><code>collect()</code> materializes all elements into a list:</p>
+        <pre><code class="language-biolang">let all_reads = read_fastq("data/reads.fastq")
+  |> collect()
+println(f"Total reads: {len(all_reads)}")</code></pre>
 
-# Nothing has been read from disk yet!
-# The pipeline is just a description of operations.</code></pre>
+        <h3>each</h3>
+        <p><code>each()</code> iterates over each element for side effects:</p>
+        <pre><code class="language-biolang">read_fastq("data/reads.fastq")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> take(5)
+  |> each(|r| println(f"Read: {r.name}, len={len(r.sequence)}"))</code></pre>
 
-        <h3>Terminal (Consuming) Operations</h3>
-        <pre><code class="language-biolang"># collect — materialize into a List
-let reads = pipeline |> collect()
+        <h3>reduce</h3>
+        <p><code>reduce()</code> folds all elements into a single value:</p>
+        <pre><code class="language-biolang">let total_bases = read_fastq("data/reads.fastq")
+  |> map(|r| len(r.sequence))
+  |> reduce(|a, b| a + b)
+println(f"Total bases: {total_bases}")</code></pre>
 
-# count — count elements
-let n = pipeline |> count()
-
-# reduce — fold all elements
-let total_bases = pipeline |> map(|r| len(r)) |> reduce(|a, b| a + b)
-
-# first / last — get single elements
-let first_read = pipeline |> first()
-let last_read = pipeline |> last()
-
-# any / all — short-circuit boolean tests
-let has_long = pipeline |> any(|r| len(r) > 10_000)
-let all_hq = pipeline |> all(|r| mean_phred(r.quality) >= 30)
-
-# to_table — collect into a Table
-let summary = pipeline |> to_table()
-
-# Process each element with a for loop
-for read in fastq("reads.fq.gz") {
-  print(read.name)
-}</code></pre>
-
-        <h2>Stream Consumption</h2>
+        <h2>One-Time Use</h2>
         <p>
-          Streams are consumed exactly once. After a terminal operation, the stream is exhausted
-          and cannot be reused:
+          Streams can only be consumed once. After a terminal operation, the stream
+          is exhausted and cannot be reused:
         </p>
-        <pre><code class="language-biolang">let s = fastq("data.fq")
+        <pre><code class="language-biolang">let s = read_fastq("data/reads.fastq")
 
-let n = s |> count()          # Consumes the stream
-# let data = s |> collect()   # Error: stream already consumed
+# First consumption works
+let data = s |> collect()
+println(f"Got {len(data)} reads")
 
-# To process a stream multiple times, create it again:
-let s1 = fastq("data.fq")
-let n = s1 |> count()
+# To process again, create a new stream
+let s2 = read_fastq("data/reads.fastq")
+let count = s2 |> map(|r| 1) |> reduce(|a, b| a + b)
+println(f"Count: {count}")</code></pre>
 
-let s2 = fastq("data.fq")
-let data = s2 |> collect()</code></pre>
-
-        <h2>Backpressure</h2>
-        <p>
-          BioLang streams implement natural backpressure. The producer only generates the next
-          element when the consumer is ready. This prevents memory buildup in multi-stage
-          pipelines:
-        </p>
-        <pre><code class="language-biolang"># This pipeline uses constant memory regardless of input size.
-# Each stage processes one element at a time:
-let hq_count = bam("whole_genome.bam")  # Read one record
-  |> filter(|r| r.mapq >= 30)           # Check quality
-  |> filter(|r| r.flags.is_mapped)      # Check mapped flag
-  |> count()
-
-# The BAM file is never fully loaded — one record flows through at a time
-print(f"High-quality mapped reads: {hq_count}")</code></pre>
-
-        <h2>File Streaming</h2>
-        <p>
-          Streaming I/O is the primary use case for streams in bioinformatics. BioLang
-          automatically handles compressed formats:
-        </p>
-        <pre><code class="language-biolang"># Stream compressed FASTQ, filter, and collect results
-let hq_reads = fastq("input.fq.gz")
+        <h2>Combining Multiple Streams</h2>
+        <pre><code class="language-biolang"># Process multiple files and combine results
+let lane1 = read_fastq("data/lane1.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30)
   |> collect()
 
-# Stream BAM and count high-quality alignments
-let mapped = bam("aligned.bam")
-  |> filter(|r| r.mapq >= 20)
-  |> count()
+let lane2 = read_fastq("data/lane2.fastq")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> collect()
 
-# Stream VCF and filter variants
-let rare_variants = vcf("calls.vcf.gz")
-  |> filter(|v| v.qual >= 30.0)
-  |> filter(|v| v.filter == "PASS")
-  |> collect()</code></pre>
+# Concatenate the materialized lists
+let all_hq = lane1 ++ lane2
+println(f"Total HQ reads: {len(all_hq)}")</code></pre>
 
-        <h2>Chunked Processing</h2>
+        <h2>Real-World Example</h2>
         <p>
-          Process streams in batches for operations that benefit from batch processing:
+          A complete quality-filtering pipeline using streams:
         </p>
-        <pre><code class="language-biolang"># Process FASTQ reads in chunks of 10,000
-let chunks = fastq("reads.fq.gz")
-  |> chunk(10_000)
+        <pre><code class="language-biolang"># Filter FASTQ reads by quality and length
+let hq = read_fastq("data/reads.fastq")
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> filter(|r| len(r.sequence) >= 50)
   |> collect()
 
-for batch in chunks {
-  let avg_len = batch |> map(|r| len(r.sequence)) |> reduce(|a, b| a + b)
-  let n = len(batch)
-  print(f"Batch: {n} reads, avg length {avg_len / n}")
-}
+println(f"High quality reads: {len(hq)}")
 
-# Chunk FASTA sequences for batch processing
-let batches = fasta("proteins.fa")
-  |> chunk(1000)
-  |> collect()
-
-let total = batches |> map(|b| len(b)) |> reduce(|a, b| a + b)
-print(f"Processed {total} sequences in {len(batches)} batches")</code></pre>
-
-        <h2>Combining Results from Multiple Streams</h2>
-        <pre><code class="language-biolang"># Process multiple lanes and combine results
-let lane1 = fastq("lane1.fq.gz") |> filter(|r| mean_phred(r.quality) >= 30) |> collect()
-let lane2 = fastq("lane2.fq.gz") |> filter(|r| mean_phred(r.quality) >= 30) |> collect()
-let lane3 = fastq("lane3.fq.gz") |> filter(|r| mean_phred(r.quality) >= 30) |> collect()
-
-# Concatenate the collected lists
-let all_reads = lane1 + lane2 + lane3
-print(f"Total HQ reads across lanes: {len(all_reads)}")
-
-# Or count each stream separately
-let counts = [
-  fastq("lane1.fq.gz") |> count(),
-  fastq("lane2.fq.gz") |> count(),
-  fastq("lane3.fq.gz") |> count()
-]
-print(f"Reads per lane: {counts}")</code></pre>
+# Compute statistics on the filtered reads
+let lengths = hq |> map(|r| len(r.sequence))
+let total_bases = lengths |> reduce(|a, b| a + b)
+println(f"Total bases: {total_bases}")
+println(f"Mean read length: {total_bases / len(hq)}")</code></pre>
 
         <h2>Stream Statistics</h2>
-        <pre><code class="language-biolang"># Compute statistics using reduce in a single pass
-let qualities = fastq("sample.fq.gz")
+        <pre><code class="language-biolang"># Collect quality scores from a stream, then compute stats
+let qualities = read_fastq("data/reads.fastq")
   |> map(|r| mean_phred(r.quality))
   |> collect()
 
-let n = len(qualities)
-let total = qualities |> reduce(|a, b| a + b)
-let avg = total / n
-print(f"Count: {n}, Mean quality: {avg}")
-
-# Use first/last on sorted data
-let lengths = fastq("sample.fq.gz")
-  |> map(|r| len(r.sequence))
-  |> collect()
-  |> sort()
-
-print(f"Min length: {first(lengths)}, Max length: {last(lengths)}")</code></pre>
-
-        <h2>Counting with Streams</h2>
-        <pre><code class="language-biolang"># Count is the simplest terminal operation — it consumes the
-# stream without materializing all elements in memory:
-let total = fastq("large.fq.gz") |> count()
-print(f"Total reads: {total}")
-
-let hq = fastq("large.fq.gz")
-  |> filter(|r| mean_phred(r.quality) >= 30)
-  |> count()
-print(f"High-quality reads: {hq} / {total}")</code></pre>
+println(f"Reads: {len(qualities)}")
+println(f"Mean quality: {mean(qualities)}")
+println(f"Min quality: {min(qualities)}")
+println(f"Max quality: {max(qualities)}")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="tables.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

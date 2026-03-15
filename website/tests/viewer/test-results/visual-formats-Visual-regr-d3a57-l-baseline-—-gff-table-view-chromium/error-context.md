@@ -1,0 +1,156 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic "GFF | 355 B | 5 rows | 9 cols | parsed in 0.000s" [ref=e5] [cursor=pointer]:
+        - generic [ref=e6]: 📐
+        - generic [ref=e7]: sample.gff (5)
+        - generic [ref=e8]: ×
+      - button "+" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: GFF
+        - generic [ref=e13]: 5 records
+        - generic [ref=e14]: 355 B
+      - generic [ref=e16]:
+        - button "Table" [ref=e17] [cursor=pointer]
+        - button "Stats" [ref=e18] [cursor=pointer]
+        - button "Raw" [ref=e19] [cursor=pointer]
+        - button "BioLang" [ref=e20] [cursor=pointer]
+      - textbox "Search / filter..." [ref=e22]
+      - textbox "Jump to coordinate (chr1:12345) or filter range (chr1:1000-5000)" [ref=e24]:
+        - /placeholder: chr1:12345 or chr1:1k-5k
+      - button ".*" [ref=e25] [cursor=pointer]
+      - generic [ref=e26]:
+        - 'button "{ } BioLang" [ref=e27] [cursor=pointer]'
+        - button "1,234" [ref=e28] [cursor=pointer]
+        - button "Wrap" [ref=e29] [cursor=pointer]
+        - button "# Rows" [ref=e30] [cursor=pointer]
+        - button "⛶ Fullscreen" [ref=e31] [cursor=pointer]
+        - button "📂 Views" [ref=e32] [cursor=pointer]
+        - button "☆ Bookmarks" [ref=e33] [cursor=pointer]
+        - button "📌 Pin Cols" [ref=e34] [cursor=pointer]
+        - button "↕ Detail" [ref=e35] [cursor=pointer]
+        - button "☼ Theme" [ref=e36] [cursor=pointer]
+        - button "◫ Split" [ref=e37] [cursor=pointer]
+        - button "↹ Transpose" [ref=e38] [cursor=pointer]
+        - button "★ Highlight" [ref=e39] [cursor=pointer]
+        - button "📷 Screenshot" [ref=e40] [cursor=pointer]
+        - button "🔗 Share" [ref=e41] [cursor=pointer]
+        - button "Export ▾" [ref=e42] [cursor=pointer]
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]: Regions
+        - generic [ref=e46] [cursor=pointer]: chr1 4
+        - generic [ref=e47] [cursor=pointer]: chr2 1
+      - table [ref=e49]:
+        - rowgroup [ref=e50]:
+          - row "# seqid▼ source▼ type▼ start▼ end▼ score▼ strand▼ phase▼ attributes▼" [ref=e51]:
+            - columnheader "#" [ref=e52] [cursor=pointer]
+            - columnheader "seqid▼" [ref=e53] [cursor=pointer]:
+              - text: seqid
+              - text: ▼
+            - columnheader "source▼" [ref=e55] [cursor=pointer]:
+              - text: source
+              - text: ▼
+            - columnheader "type▼" [ref=e57] [cursor=pointer]:
+              - text: type
+              - text: ▼
+            - columnheader "start▼" [ref=e59] [cursor=pointer]:
+              - text: start
+              - text: ▼
+              - img [ref=e61]
+            - columnheader "end▼" [ref=e72] [cursor=pointer]:
+              - text: end
+              - text: ▼
+              - img [ref=e74]
+            - columnheader "score▼" [ref=e85] [cursor=pointer]:
+              - text: score
+              - text: ▼
+            - columnheader "strand▼" [ref=e87] [cursor=pointer]:
+              - text: strand
+              - text: ▼
+            - columnheader "phase▼" [ref=e89] [cursor=pointer]:
+              - text: phase
+              - text: ▼
+            - columnheader "attributes▼" [ref=e91] [cursor=pointer]:
+              - text: attributes
+              - text: ▼
+          - row "Σ 2 uniq 2 uniq 4 uniq μ1820.0 μ4680.0 1 uniq 2 uniq 2 uniq 5 uniq" [ref=e93]:
+            - cell "Σ" [ref=e94]
+            - cell "2 uniq" [ref=e95]
+            - cell "2 uniq" [ref=e96]
+            - cell "4 uniq" [ref=e97]
+            - cell "μ1820.0" [ref=e98]
+            - cell "μ4680.0" [ref=e99]
+            - cell "1 uniq" [ref=e100]
+            - cell "2 uniq" [ref=e101]
+            - cell "2 uniq" [ref=e102]
+            - cell "5 uniq" [ref=e103]
+        - rowgroup [ref=e104]:
+          - row "1 chr1 ensembl gene 1,000 5,000 . + . ID=gene1;Name=BRCA1;biotype=protein_coding" [ref=e105]:
+            - cell "1" [ref=e106]
+            - cell "chr1" [ref=e107]
+            - cell "ensembl" [ref=e108]
+            - cell "gene" [ref=e109]
+            - cell "1,000" [ref=e110]
+            - cell "5,000" [ref=e111]
+            - cell "." [ref=e112]
+            - cell "+" [ref=e113]
+            - cell "." [ref=e114]
+            - cell "ID=gene1;Name=BRCA1;biotype=protein_coding" [ref=e115]
+          - row "2 chr1 ensembl mRNA 1,000 5,000 . + . ID=mrna1;Parent=gene1;Name=BRCA1-201" [ref=e116]:
+            - cell "2" [ref=e117]
+            - cell "chr1" [ref=e118]
+            - cell "ensembl" [ref=e119]
+            - cell "mRNA" [ref=e120]
+            - cell "1,000" [ref=e121]
+            - cell "5,000" [ref=e122]
+            - cell "." [ref=e123]
+            - cell "+" [ref=e124]
+            - cell "." [ref=e125]
+            - cell "ID=mrna1;Parent=gene1;Name=BRCA1-201" [ref=e126]
+          - row "3 chr1 ensembl exon 1,000 2,000 . + . ID=exon1;Parent=mrna1" [ref=e127]:
+            - cell "3" [ref=e128]
+            - cell "chr1" [ref=e129]
+            - cell "ensembl" [ref=e130]
+            - cell "exon" [ref=e131]
+            - cell "1,000" [ref=e132]
+            - cell "2,000" [ref=e133]
+            - cell "." [ref=e134]
+            - cell "+" [ref=e135]
+            - cell "." [ref=e136]
+            - cell "ID=exon1;Parent=mrna1" [ref=e137]
+          - row "4 chr1 ensembl CDS 1,100 1,900 . + 0 ID=cds1;Parent=mrna1" [ref=e138]:
+            - cell "4" [ref=e139]
+            - cell "chr1" [ref=e140]
+            - cell "ensembl" [ref=e141]
+            - cell "CDS" [ref=e142]
+            - cell "1,100" [ref=e143]
+            - cell "1,900" [ref=e144]
+            - cell "." [ref=e145]
+            - cell "+" [ref=e146]
+            - cell "0" [ref=e147]
+            - cell "ID=cds1;Parent=mrna1" [ref=e148]
+          - row "5 chr2 havana gene 5,000 9,500 . - . ID=gene2;Name=TP53;biotype=protein_coding" [ref=e149]:
+            - cell "5" [ref=e150]
+            - cell "chr2" [ref=e151]
+            - cell "havana" [ref=e152]
+            - cell "gene" [ref=e153]
+            - cell "5,000" [ref=e154]
+            - cell "9,500" [ref=e155]
+            - cell "." [ref=e156]
+            - cell "-" [ref=e157]
+            - cell "." [ref=e158]
+            - cell "ID=gene2;Name=TP53;biotype=protein_coding" [ref=e159]
+    - generic [ref=e160]:
+      - generic [ref=e162]: 5 rows
+      - generic [ref=e163]:
+        - generic [ref=e164]: parsed in 0.000s
+        - generic [ref=e165]: BLViewer PWA
+  - generic [ref=e167]:
+    - heading "Column" [level=3] [ref=e168]
+    - button "×" [ref=e169] [cursor=pointer]
+```

@@ -81,7 +81,7 @@ bl repl</code></pre>
         <h3>:env — Environment Inspection</h3>
         <pre><code class="language-text">>>> let seq = dna"ATCGATCG"
 >>> let gc = seq |> gc_content()
->>> let reads = fastq("sample.fq.gz")
+>>> let reads = read_fastq("data/reads.fastq")
 
 >>> :env
 Name     Type       Value
@@ -99,7 +99,7 @@ Float
 >>> :type [1, 2, 3] |> map(|x| x * 2)
 List&lt;Int&gt;
 
->>> :type fasta("genome.fa")
+>>> :type read_fasta("data/sequences.fasta")
 Stream&lt;FastaRecord&gt;</code></pre>
 
         <h3>:time — Benchmarking</h3>
@@ -107,12 +107,12 @@ Stream&lt;FastaRecord&gt;</code></pre>
 => 0.5
 Time: 12.3ms
 
->>> :time fastq("big.fq.gz") |> map(|r| r.seq |> gc_content()) |> mean()
+>>> :time read_fastq("data/reads.fastq") |> map(|r| r.seq |> gc_content()) |> mean()
 => 0.423
 Time: 3.41s</code></pre>
 
         <h3>:profile — Profiling</h3>
-        <pre><code class="language-text">>>> :profile fasta("genome.fa") |> map(|r| r.seq |> kmer_count(21)) |> collect()
+        <pre><code class="language-text">>>> :profile read_fasta("data/sequences.fasta") |> map(|r| r.seq |> kmer_count(21)) |> collect()
 
 Profile Results:
   kmer_count      called 24x    total: 890ms   avg: 37.1ms
@@ -140,7 +140,7 @@ gc_content
 ncbi_search    ncbi_fetch    ncbi_gene    ncbi_pubmed    ncbi_sequence
 
 # File path completion (after quotes)
->>> fasta("data/&lt;TAB&gt;
+>>> read_fasta("data/&lt;TAB&gt;
 data/genome.fa    data/reads.fa    data/reference.fa.gz
 
 # Command completion
@@ -196,7 +196,7 @@ Saved 42 inputs to my_analysis.bl</code></pre>
 => dna"ATCGATCG"
 
 # Tables render with borders and alignment
->>> csv("data.csv") |> head(3)
+>>> read_csv("data/expression.csv") |> head(3)
 => ┌────────┬───────┬──────────┐
    │ sample │ gene  │ expr     │
    ├────────┼───────┼──────────┤
@@ -211,7 +211,7 @@ Saved 42 inputs to my_analysis.bl</code></pre>
 => { "AT": 2, "TC": 2, "CG": 2, "GA": 1, "TG": 0, ... }
 
 # Streams show type information
->>> fastq("reads.fq.gz")
+>>> read_fastq("data/reads.fastq")
 => Stream&lt;FastqRecord&gt; (unconsumed)</code></pre>
 
         <h2>Loading Scripts</h2>
@@ -241,7 +241,7 @@ config     Map          { genome: "hg38", ... }</code></pre>
           </li>
           <li>
             Prefix an expression with <code>;</code> to suppress output:
-            <code>;let data = csv("big_file.csv")</code>
+            <code>;let data = read_csv("data/expression.csv")</code>
           </li>
           <li>
             Use <code>:time</code> before committing to a full analysis to estimate

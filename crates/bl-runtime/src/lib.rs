@@ -20,6 +20,8 @@ pub mod bio_plots;
 pub mod graph;
 pub mod markdown;
 pub mod seq;
+pub mod ncbi_wasm;
+pub mod bio_wasm;
 pub mod tempfiles;
 
 // Native-only (require filesystem, network, or subprocess)
@@ -45,6 +47,8 @@ pub mod nf_parse;
 pub mod notify;
 #[cfg(feature = "native")]
 pub mod sqlite;
+#[cfg(feature = "native")]
+pub mod parquet;
 #[cfg(feature = "native")]
 pub mod package;
 

@@ -10,8 +10,8 @@ Bioinformaticians spend most of their time gluing tools together: reading FASTA 
 
 BioLang eliminates that friction. A complete variant filtering workflow:
 
-```
-read_vcf("variants.vcf")
+```biolang
+read_vcf("data/variants.vcf")
     |> filter(|v| v.qual > 30)
     |> filter(|v| is_snp(v))
     |> filter(|v| is_transition(v))
@@ -25,7 +25,7 @@ No imports. No boilerplate. No framework. DNA, RNA, proteins, intervals, variant
 
 **Pipe-first.** The `|>` operator is the backbone of BioLang. Bioinformatics is inherently a series of transformations: raw reads become aligned reads become variant calls become annotated reports. Pipes make this natural:
 
-```
+```biolang
 samples
     |> par_map(|s| read_fastq(s.path))
     |> map(|reads| filter(reads, |r| mean(r.quality) > 20))
@@ -35,7 +35,7 @@ samples
 
 **Biology is built in.** DNA, RNA, protein, and quality score literals are part of the syntax. Genomic intervals and variants have dedicated types with domain-specific methods. You do not need to install a package to reverse-complement a sequence:
 
-```
+```biolang
 let seq = dna"ATCGATCGATCG"
 let rc = reverse_complement(seq)    # dna"CGATCGATCGAT"
 let rna = transcribe(seq)           # rna"AUCGAUCGAUCG"
@@ -44,7 +44,7 @@ let protein = translate(rna)        # protein"IDRS"
 
 **Tables are native.** Bioinformatics lives in tables — sample sheets, count matrices, variant lists, BED files. BioLang tables support column operations, grouping, summarization, and joins without any library:
 
-```
+```biolang
 let counts = csv("gene_counts.csv")
 counts
     |> mutate("log_count", |row| log2(row.count + 1))
@@ -54,7 +54,7 @@ counts
 
 **Fifteen bio databases at your fingertips.** NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, Gene Ontology, COSMIC, BioMart, NCBI Datasets, nf-core, BioContainers, and Galaxy ToolShed are built-in — no API keys required for most (NCBI key optional for higher rate limits, COSMIC key required):
 
-```
+```biolang
 # requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 let gene = ncbi_gene("TP53")
@@ -64,9 +64,9 @@ let interactions = string_network(["TP53"], 9606)
 
 **Pipelines are natural.** Data flows through pipes just like a bioinformatics workflow. No separate workflow engine needed — compose operations with `|>` and use `group_by`, `count_by`, and `filter_by` for efficient data processing:
 
-```
+```biolang
 # Complete QC pipeline in 5 lines
-let reads = read_fastq("sample.fq") |> collect()
+let reads = read_fastq("data/reads.fastq") |> collect()
 let passed = reads |> filter(|r| mean_phred(r.quality) >= 25)
 let gc_vals = passed |> map(|r| gc_content(r.seq))
 println(f"Passed: {len(passed)}/{len(reads)}")
@@ -77,8 +77,8 @@ println(f"Mean GC: {mean(gc_vals)}")
 
 **Streams handle scale.** File readers return lazy streams. Process a 100 GB FASTQ without loading it into memory. Parallel maps distribute work across cores:
 
-```
-read_fastq("massive_file.fq")
+```biolang
+read_fastq("data/reads.fastq")
     |> filter(|r| mean(r.quality) > 25)
     |> par_map(|r| gc_content(r.seq))
     |> summarize(|key, vals| {mean_gc: mean(vals), n_reads: len(vals)})
@@ -153,9 +153,9 @@ To run the quickstart script that exercises all sample data:
 bl run examples/quickstart.bl
 ```
 
-When a book example references a bare filename like `read_fasta("contigs.fa")`,
+When a book example references a bare filename like `read_fasta("data/sequences.fasta")`,
 you can substitute the sample data path:
 
-```
-let sequences = read_fasta("examples/sample-data/contigs.fa")
+```biolang
+let sequences = read_fasta("data/sequences.fasta")
 ```

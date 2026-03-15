@@ -167,7 +167,7 @@ Here is what BioLang looks like in practice. This script reads a FASTQ file, fil
 > **Requires CLI:** This example uses file I/O / network APIs not available in the browser. Run with `bl run`.
 
 ```bio
-let reads = read_fastq("sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 
 reads
   |> filter(|r| r.quality >= 30)
@@ -257,7 +257,7 @@ Multi-language comparisons appear with labeled blocks:
 
 **BioLang:**
 ```bio
-read_fasta("genes.fa") |> filter(|s| len(s.sequence) > 1000)
+read_fasta("data/sequences.fasta") |> filter(|s| len(s.sequence) > 1000)
 ```
 
 **Python:**

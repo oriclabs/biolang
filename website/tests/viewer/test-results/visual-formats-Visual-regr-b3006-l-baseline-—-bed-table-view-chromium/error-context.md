@@ -1,0 +1,130 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic "BED | 147 B | 5 rows | 6 cols | parsed in 0.000s" [ref=e5] [cursor=pointer]:
+        - generic [ref=e6]: 📍
+        - generic [ref=e7]: sample.bed (5)
+        - generic [ref=e8]: ×
+      - button "+" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: BED
+        - generic [ref=e13]: 5 records
+        - generic [ref=e14]: 147 B
+      - generic [ref=e16]:
+        - button "Table" [ref=e17] [cursor=pointer]
+        - button "Stats" [ref=e18] [cursor=pointer]
+        - button "Raw" [ref=e19] [cursor=pointer]
+        - button "BioLang" [ref=e20] [cursor=pointer]
+      - textbox "Search / filter..." [ref=e22]
+      - textbox "Jump to coordinate (chr1:12345) or filter range (chr1:1000-5000)" [ref=e24]:
+        - /placeholder: chr1:12345 or chr1:1k-5k
+      - button ".*" [ref=e25] [cursor=pointer]
+      - generic [ref=e26]:
+        - 'button "{ } BioLang" [ref=e27] [cursor=pointer]'
+        - button "1,234" [ref=e28] [cursor=pointer]
+        - button "Wrap" [ref=e29] [cursor=pointer]
+        - button "# Rows" [ref=e30] [cursor=pointer]
+        - button "⛶ Fullscreen" [ref=e31] [cursor=pointer]
+        - button "📂 Views" [ref=e32] [cursor=pointer]
+        - button "☆ Bookmarks" [ref=e33] [cursor=pointer]
+        - button "📌 Pin Cols" [ref=e34] [cursor=pointer]
+        - button "↕ Detail" [ref=e35] [cursor=pointer]
+        - button "☼ Theme" [ref=e36] [cursor=pointer]
+        - button "◫ Split" [ref=e37] [cursor=pointer]
+        - button "↹ Transpose" [ref=e38] [cursor=pointer]
+        - button "★ Highlight" [ref=e39] [cursor=pointer]
+        - button "📷 Screenshot" [ref=e40] [cursor=pointer]
+        - button "🔗 Share" [ref=e41] [cursor=pointer]
+        - button "Export ▾" [ref=e42] [cursor=pointer]
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]: Regions
+        - generic [ref=e46] [cursor=pointer]: chr1 2
+        - generic [ref=e47] [cursor=pointer]: chr2 2
+        - generic [ref=e48] [cursor=pointer]: chr3 1
+      - table [ref=e50]:
+        - rowgroup [ref=e51]:
+          - row "# chrom▼ start▼ end▼ name▼ score▼ strand▼" [ref=e52]:
+            - columnheader "#" [ref=e53] [cursor=pointer]
+            - columnheader "chrom▼" [ref=e54] [cursor=pointer]:
+              - text: chrom
+              - text: ▼
+            - columnheader "start▼" [ref=e56] [cursor=pointer]:
+              - text: start
+              - text: ▼
+              - img [ref=e58]
+            - columnheader "end▼" [ref=e69] [cursor=pointer]:
+              - text: end
+              - text: ▼
+              - img [ref=e71]
+            - columnheader "name▼" [ref=e82] [cursor=pointer]:
+              - text: name
+              - text: ▼
+            - columnheader "score▼" [ref=e84] [cursor=pointer]:
+              - text: score
+              - text: ▼
+            - columnheader "strand▼" [ref=e86] [cursor=pointer]:
+              - text: strand
+              - text: ▼
+          - row "Σ 3 uniq μ6000.0 μ9900.0 5 uniq 2 uniq" [ref=e88]:
+            - cell "Σ" [ref=e89]
+            - cell "3 uniq" [ref=e90]
+            - cell "μ6000.0" [ref=e91]
+            - cell "μ9900.0" [ref=e92]
+            - cell "5 uniq" [ref=e93]
+            - cell [ref=e94]
+            - cell "2 uniq" [ref=e95]
+        - rowgroup [ref=e96]:
+          - row "1 chr1 1,000 5,000 gene_A 100 +" [ref=e97]:
+            - cell "1" [ref=e98]
+            - cell "chr1" [ref=e99]
+            - cell "1,000" [ref=e100]
+            - cell "5,000" [ref=e101]
+            - cell "gene_A" [ref=e102]
+            - cell "100" [ref=e103]
+            - cell "+" [ref=e104]
+          - row "2 chr1 8,000 12,000 gene_B 200 -" [ref=e105]:
+            - cell "2" [ref=e106]
+            - cell "chr1" [ref=e107]
+            - cell "8,000" [ref=e108]
+            - cell "12,000" [ref=e109]
+            - cell "gene_B" [ref=e110]
+            - cell "200" [ref=e111]
+            - cell "-" [ref=e112]
+          - row "3 chr2 5,000 9,500 gene_C 150 +" [ref=e113]:
+            - cell "3" [ref=e114]
+            - cell "chr2" [ref=e115]
+            - cell "5,000" [ref=e116]
+            - cell "9,500" [ref=e117]
+            - cell "gene_C" [ref=e118]
+            - cell "150" [ref=e119]
+            - cell "+" [ref=e120]
+          - row "4 chr2 15,000 20,000 gene_D 300 -" [ref=e121]:
+            - cell "4" [ref=e122]
+            - cell "chr2" [ref=e123]
+            - cell "15,000" [ref=e124]
+            - cell "20,000" [ref=e125]
+            - cell "gene_D" [ref=e126]
+            - cell "300" [ref=e127]
+            - cell "-" [ref=e128]
+          - row "5 chr3 1,000 3,000 gene_E 50 +" [ref=e129]:
+            - cell "5" [ref=e130]
+            - cell "chr3" [ref=e131]
+            - cell "1,000" [ref=e132]
+            - cell "3,000" [ref=e133]
+            - cell "gene_E" [ref=e134]
+            - cell "50" [ref=e135]
+            - cell "+" [ref=e136]
+    - generic [ref=e137]:
+      - generic [ref=e139]: 5 rows
+      - generic [ref=e140]:
+        - generic [ref=e141]: parsed in 0.000s
+        - generic [ref=e142]: BLViewer PWA
+  - generic [ref=e144]:
+    - heading "Column" [level=3] [ref=e145]
+    - button "×" [ref=e146] [cursor=pointer]
+```

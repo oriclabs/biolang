@@ -25,7 +25,7 @@ Builtins that operate on bio-typed sequences (`dna`, `rna`, `protein`).
 | `tm(seq) -> Float` | Melting temperature estimate for a short oligonucleotide |
 | `slice(seq, start, end) -> Dna \| Rna \| Protein` | Extract a subsequence by 0-based coordinates |
 
-```
+```biolang
 # Example: quick primer analysis
 let primer = dna"ATCGATCGATCG"
 let rc     = reverse_complement(primer)
@@ -68,7 +68,7 @@ General-purpose operations on lists, records, and sets.
 | `group_by(list, fn) -> Record` | Group elements by a key function into a record of lists |
 | `partition(list, fn) -> [List, List]` | Split into elements that pass and fail a predicate |
 
-```
+```biolang
 # Example: enumerate quality-filtered reads
 let good_reads = reads
   |> filter(|r| mean_phred(r.quality) > 30)
@@ -102,7 +102,7 @@ BioLang's pipeline style.
 | `mat_map(matrix, fn) -> Matrix` | Apply `fn` element-wise to a matrix |
 | `try_call(fn, args) -> Result` | Call `fn` with `args`, capturing errors instead of panicking |
 
-```
+```biolang
 # Example: parallel GC content across a genome's chromosomes
 let gc_values = chromosomes
   |> par_map(|chr| {name: chr.name, gc: gc_content(chr.seq)})
@@ -133,7 +133,7 @@ sample sheets, variant tables, and expression matrices.
 | `columns(tbl) -> List[Str]` | Column name list |
 | `row_names(tbl) -> List[Str]` | Row name list (if set) |
 
-```
+```biolang
 # Example: summarize variant counts per chromosome
 tsv("variants.tsv")
   |> group_by("chrom")
@@ -159,9 +159,9 @@ streams that integrate with pipes; writers flush on completion.
 | `write_fastq(records, path) -> Nil` | Write records to FASTQ format |
 | `write_bed(records, path) -> Nil` | Write records to BED format |
 
-```
+```biolang
 # Example: filter FASTQ reads by quality and write survivors
-read_fastq("sample_R1.fastq.gz")
+read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) > 30)
   |> write_fastq("sample_R1.filtered.fq")
 ```
@@ -184,10 +184,10 @@ Interval arithmetic for coordinate-based genomic analysis. Intervals carry
 | `intersect(a, b) -> List[Interval]` | Pairwise intersection of two interval sets |
 | `subtract(a, b) -> List[Interval]` | Regions in `a` not covered by `b` |
 
-```
+```biolang
 # Example: find promoter-peak overlaps
-let promoters = read_bed("examples/sample-data/promoters.bed") |> map(|r| interval(r.chrom, r.start, r.end))
-let peaks     = read_bed("examples/sample-data/chip_peaks.bed") |> map(|r| interval(r.chrom, r.start, r.end))
+let promoters = read_bed("data/regions.bed") |> map(|r| interval(r.chrom, r.start, r.end))
+let peaks     = read_bed("data/exons.bed") |> map(|r| interval(r.chrom, r.start, r.end))
 let tree      = interval_tree(peaks)
 let hits      = promoters |> flat_map(|p| query_overlaps(tree, p))
 print("Found " + str(len(hits)) + " promoter-peak overlaps")
@@ -215,9 +215,9 @@ Builtins for working with genetic variant records. Variant objects carry
 | `parse_vcf_info(info_str) -> Record` | Parse a VCF INFO field string into a record |
 | `variant_summary(variants) -> Record` | Aggregate counts of SNPs, indels, Ti/Tv ratio, het/hom ratio |
 
-```
+```biolang
 # Example: compute Ti/Tv ratio for a VCF
-let vars = read_vcf("examples/sample-data/calls.vcf") |> filter(|v| v.qual > 30)
+let vars = read_vcf("data/variants.vcf") |> filter(|v| v.qual > 30)
 let summary = variant_summary(vars)
 print("Ti/Tv = " + str(summary.ti_tv_ratio) + ", SNPs = " + str(summary.snp_count))
 ```
@@ -250,7 +250,7 @@ hypothesis testing.
 | `ks_test(xs, ys) -> Record` | Kolmogorov-Smirnov test |
 | `mean_phred(quals) -> Float` | Mean Phred quality score from a quality string |
 
-```
+```biolang
 # Example: differential expression significance
 let control   = [5.2, 4.8, 5.1, 4.9]
 let treatment = [8.1, 7.5, 8.3, 7.9]
@@ -284,7 +284,7 @@ numerical biology.
 | `diag(values) -> Matrix` | Diagonal matrix from a list of values |
 | `mat_map(m, fn) -> Matrix` | Apply `fn` element-wise |
 
-```
+```biolang
 # Example: PCA on a gene expression matrix
 let expr = tsv("examples/sample-data/counts.tsv") |> table()
 let m    = matrix(expr |> select("gene_a", "gene_b", "gene_c"))
@@ -316,7 +316,7 @@ modeling.
 | `tan(x) -> Float` | Tangent |
 | `ode_solve(fn, y0, t_span, dt?) -> List[Record]` | Numerical ODE integration (Runge-Kutta) |
 
-```
+```biolang
 # Example: log2 fold-change between conditions
 let control   = 12.5
 let treatment = 50.0
@@ -345,7 +345,7 @@ Text manipulation for parsing identifiers, annotations, and formatted output.
 
 BioLang also supports **f-strings** for inline interpolation:
 
-```
+```biolang
 # Example: parse a FASTA header
 let header = ">sp|P12345|MYG_HUMAN Myoglobin OS=Homo sapiens"
 let parts  = split(header, "|")
@@ -378,9 +378,9 @@ pipelines that handle mixed bio types.
 | `is_bool(val) -> Bool` | True if val is a boolean |
 | `into(val, target_type) -> Any` | Convert between compatible types |
 
-```
+```biolang
 # Example: route processing based on sequence type
-let seq = read_fasta("input.fa") |> first() |> |r| r.seq
+let seq = read_fasta("data/sequences.fasta") |> first() |> |r| r.seq
 if is_dna(seq) then
   print("DNA, GC = " + str(gc_content(seq)))
 else if is_protein(seq) then
@@ -433,7 +433,7 @@ async-aware and return structured records.
 | `galaxy_to_bl(record) -> Str` | Generate BioLang pipeline code from Galaxy workflow |
 | `api_endpoints() -> Record` | Show current API endpoint URLs |
 
-```
+```biolang
 # requires: internet connection
 # Example: annotate a gene list with pathway data
 let genes = ["BRCA1", "TP53", "EGFR"]
@@ -466,10 +466,10 @@ serialization.
 | `env(name) -> Str \| Nil` | Read an environment variable |
 | `exit(code?) -> Never` | Terminate the process with an exit code (default: 0) |
 
-```
+```biolang
 # Example: time a heavy operation
 let t0 = now()
-let result = read_fasta("genome.fa")
+let result = read_fasta("data/sequences.fasta")
   |> flat_map(|r| find_orfs(r.seq, 300))
 print("Found " + str(len(result)) + " ORFs in " + str(now() - t0) + "s")
 ```

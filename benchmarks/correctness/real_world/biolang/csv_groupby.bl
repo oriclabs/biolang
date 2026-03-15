@@ -1,0 +1,16 @@
+let data = csv("real_data/clinvar_variants.csv")
+let groups = {}
+for row in data
+  let sig = row["clnsig"]
+  let vlen = to_float(row["var_len"])
+  if !has_key(groups, sig)
+    groups[sig] = {count: 0, total_len: 0.0}
+  end
+  groups[sig]["count"] = groups[sig]["count"] + 1
+  groups[sig]["total_len"] = groups[sig]["total_len"] + vlen
+end
+let result = {}
+for sig, g in groups
+  result[sig] = {count: g["count"], mean_var_len: g["total_len"] / g["count"]}
+end
+print(to_json({groups: result}))

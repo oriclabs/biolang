@@ -61,7 +61,7 @@
   // ── WASM loading ──
   async function loadWasm() {
     try {
-      var module = await import('../wasm/br_wasm.js');
+      var module = await import('../wasm/bl_wasm.js');
       await module.default();
       module.init();
       wasm = module;

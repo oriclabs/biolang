@@ -1,0 +1,744 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 15: Multiple Regression and Model Selection - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-15-multiple-regression-and-model-selection"><a class="header" href="#day-15-multiple-regression-and-model-selection">Day 15: Multiple Regression and Model Selection</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. Maria Chen is a clinical researcher studying pancreatic cancer. She has tumor samples from 120 patients, each profiled with 10 biomarkers: CA19-9, CEA, MKI67, TP53 status, tumor size, age, albumin, CRP, neutrophil-lymphocyte ratio (NLR), and platelet count. She wants to predict <strong>tumor stage</strong> (a continuous composite score from 1.0 to 4.0) from these biomarkers.</p>
+<p>But there’s a problem. CA19-9 and CEA are highly correlated (r = 0.88) — they measure overlapping biology. Including both inflates standard errors and makes coefficients uninterpretable. And with 10 potential predictors, how does she find the <strong>best subset</strong> without overfitting?</p>
+<p>She needs multiple regression with careful <strong>model selection</strong>.</p>
+<h2 id="what-is-multiple-regression"><a class="header" href="#what-is-multiple-regression">What Is Multiple Regression?</a></h2>
+<p>Multiple regression extends simple regression to multiple predictors:</p>
+<p>$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_p X_p + \varepsilon$$</p>
+<p>Each coefficient βⱼ represents the effect of Xⱼ <strong>holding all other predictors constant</strong>. This is fundamentally different from running p separate simple regressions.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Simple Regression</th><th>Multiple Regression</th></tr>
+</thead>
+<tbody>
+<tr><td>β₁ = total effect of X₁ on Y</td><td>β₁ = effect of X₁ <strong>after accounting for</strong> X₂…Xₚ</td></tr>
+<tr><td>One predictor at a time</td><td>All predictors simultaneously</td></tr>
+<tr><td>Can’t separate correlated effects</td><td>Separates correlated effects (when possible)</td></tr>
+<tr><td>May show spurious associations</td><td>Controls for confounders</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> In simple regression, tumor size might predict stage with β = 0.8. In multiple regression controlling for CA19-9, the tumor size coefficient might drop to β = 0.3 — because CA19-9 captures much of the same information.</p>
+</blockquote>
+<h2 id="multicollinearity-when-predictors-are-too-similar"><a class="header" href="#multicollinearity-when-predictors-are-too-similar">Multicollinearity: When Predictors Are Too Similar</a></h2>
+<p><strong>Multicollinearity</strong> occurs when predictors are highly correlated with each other. It doesn’t bias predictions, but it wreaks havoc on coefficient interpretation:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Effect</th><th>Consequence</th></tr>
+</thead>
+<tbody>
+<tr><td>Inflated standard errors</td><td>Coefficients appear non-significant when they are</td></tr>
+<tr><td>Unstable coefficients</td><td>Small data changes cause wild coefficient swings</td></tr>
+<tr><td>Sign flipping</td><td>A predictor with a positive true effect can get a negative coefficient</td></tr>
+<tr><td>Uninterpretable</td><td>“Effect of X₁ holding X₂ constant” is meaningless if X₁ and X₂ always move together</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="detecting-multicollinearity-vif"><a class="header" href="#detecting-multicollinearity-vif">Detecting Multicollinearity: VIF</a></h3>
+<p>The <strong>Variance Inflation Factor</strong> quantifies how much each predictor is explained by the others:</p>
+<p>$$VIF_j = \frac{1}{1 - R_j^2}$$</p>
+<p>where R²ⱼ is the R² from regressing Xⱼ on all other predictors.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>VIF</th><th>Interpretation</th><th>Action</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>No collinearity</td><td>Good</td></tr>
+<tr><td>1-5</td><td>Moderate</td><td>Usually acceptable</td></tr>
+<tr><td>5-10</td><td>High</td><td>Investigate</td></tr>
+<tr><td>&gt; 10</td><td>Severe</td><td>Remove or combine predictors</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> VIF &gt; 10 doesn’t always mean “drop the variable.” In genomics, biologically meaningful predictors may be correlated. Consider combining them (e.g., principal component) or using regularization instead.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="280" viewbox="0 0 660 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Multicollinearity: Overlapping Explained Variance</text>
+  <text x="330" y="44" text-anchor="middle" font-size="12" fill="#6b7280">When predictors share information, their individual effects become ambiguous</text>
+  <!-- Low collinearity (left) -->
+  <text x="180" y="70" text-anchor="middle" font-size="13" font-weight="bold" fill="#16a34a">Low Collinearity (VIF ~ 1)</text>
+  <circle cx="140" cy="155" r="60" fill="#2563eb" fill-opacity="0.2" stroke="#2563eb" stroke-width="2" />
+  <circle cx="220" cy="155" r="60" fill="#dc2626" fill-opacity="0.2" stroke="#dc2626" stroke-width="2" />
+  <text x="120" y="155" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">CA19-9</text>
+  <text x="240" y="155" text-anchor="middle" font-size="12" font-weight="bold" fill="#dc2626">MKI67</text>
+  <text x="180" y="160" text-anchor="middle" font-size="10" fill="#6b7280">small</text>
+  <text x="180" y="172" text-anchor="middle" font-size="10" fill="#6b7280">overlap</text>
+  <text x="180" y="235" text-anchor="middle" font-size="11" fill="#16a34a">Each predictor contributes</text>
+  <text x="180" y="250" text-anchor="middle" font-size="11" fill="#16a34a">unique information</text>
+  <!-- High collinearity (right) -->
+  <text x="490" y="70" text-anchor="middle" font-size="13" font-weight="bold" fill="#dc2626">High Collinearity (VIF &gt; 10)</text>
+  <circle cx="460" cy="155" r="65" fill="#2563eb" fill-opacity="0.2" stroke="#2563eb" stroke-width="2" />
+  <circle cx="520" cy="155" r="65" fill="#dc2626" fill-opacity="0.2" stroke="#dc2626" stroke-width="2" />
+  <text x="430" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">CA19-9</text>
+  <text x="550" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="#dc2626">CEA</text>
+  <!-- Large overlap shading -->
+  <text x="490" y="160" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c3aed">LARGE</text>
+  <text x="490" y="175" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c3aed">overlap</text>
+  <text x="490" y="235" text-anchor="middle" font-size="11" fill="#dc2626">Hard to separate effects;</text>
+  <text x="490" y="250" text-anchor="middle" font-size="11" fill="#dc2626">coefficients unstable</text>
+  <!-- Divider -->
+  <line x1="330" y1="60" x2="330" y2="260" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,3" />
+</svg>
+</div>
+
+<h2 id="model-selection-finding-the-best-model"><a class="header" href="#model-selection-finding-the-best-model">Model Selection: Finding the Best Model</a></h2>
+<p>With p predictors, there are 2ᵖ possible models. For p = 10, that’s 1024 models. We need principled ways to choose.</p>
+<h3 id="information-criteria"><a class="header" href="#information-criteria">Information Criteria</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Criterion</th><th>Formula</th><th>Preference</th></tr>
+</thead>
+<tbody>
+<tr><td>AIC (Akaike)</td><td>-2·ln(L) + 2k</td><td>Lower = better; balances fit and complexity</td></tr>
+<tr><td>BIC (Bayesian)</td><td>-2·ln(L) + k·ln(n)</td><td>Lower = better; penalizes complexity more than AIC</td></tr>
+<tr><td>Adjusted R²</td><td>1 - (1-R²)·(n-1)/(n-k-1)</td><td>Higher = better; penalizes added predictors</td></tr>
+</tbody>
+</table>
+</div>
+<p>Where L = likelihood, k = number of parameters, n = sample size.</p>
+<p><strong>AIC</strong> tends to select slightly larger models (better prediction). <strong>BIC</strong> tends to select smaller models (better interpretation). When they disagree, consider your goal.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="320" viewbox="0 0 660 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Model Selection: AIC/BIC Tradeoff</text>
+  <text x="330" y="44" text-anchor="middle" font-size="12" fill="#6b7280">Balancing model fit against complexity</text>
+  <!-- Axes -->
+  <line x1="80" y1="260" x2="600" y2="260" stroke="#6b7280" stroke-width="1.5" />
+  <line x1="80" y1="260" x2="80" y2="60" stroke="#6b7280" stroke-width="1.5" />
+  <text x="340" y="295" text-anchor="middle" font-size="13" fill="#6b7280">Number of Predictors (model complexity)</text>
+  <text x="30" y="160" text-anchor="middle" font-size="13" fill="#6b7280" transform="rotate(-90,30,160)">Information Criterion</text>
+  <!-- X-axis ticks -->
+  <text x="130" y="278" text-anchor="middle" font-size="11" fill="#6b7280">1</text>
+  <text x="200" y="278" text-anchor="middle" font-size="11" fill="#6b7280">2</text>
+  <text x="270" y="278" text-anchor="middle" font-size="11" fill="#6b7280">3</text>
+  <text x="340" y="278" text-anchor="middle" font-size="11" fill="#6b7280">4</text>
+  <text x="410" y="278" text-anchor="middle" font-size="11" fill="#6b7280">5</text>
+  <text x="480" y="278" text-anchor="middle" font-size="11" fill="#6b7280">6</text>
+  <text x="550" y="278" text-anchor="middle" font-size="11" fill="#6b7280">7</text>
+  <!-- AIC curve (U-shaped, minimum at 4) -->
+  <path d="M 130,200 Q 180,140 270,105 Q 320,92 340,90 Q 400,95 480,115 Q 540,140 550,150" fill="none" stroke="#2563eb" stroke-width="2.5" />
+  <circle cx="130" cy="200" r="4" fill="#2563eb" /><circle cx="200" cy="140" r="4" fill="#2563eb" />
+  <circle cx="270" cy="105" r="4" fill="#2563eb" /><circle cx="340" cy="90" r="4" fill="#2563eb" />
+  <circle cx="410" cy="98" r="4" fill="#2563eb" /><circle cx="480" cy="115" r="4" fill="#2563eb" />
+  <circle cx="550" cy="150" r="4" fill="#2563eb" />
+  <!-- BIC curve (U-shaped, minimum at 3 - penalizes more) -->
+  <path d="M 130,210 Q 180,155 270,108 Q 300,102 270,100 Q 350,112 410,135 Q 480,165 550,200" fill="none" stroke="#dc2626" stroke-width="2.5" />
+  <circle cx="130" cy="210" r="4" fill="#dc2626" /><circle cx="200" cy="148" r="4" fill="#dc2626" />
+  <circle cx="270" cy="100" r="4" fill="#dc2626" /><circle cx="340" cy="112" r="4" fill="#dc2626" />
+  <circle cx="410" cy="135" r="4" fill="#dc2626" /><circle cx="480" cy="165" r="4" fill="#dc2626" />
+  <circle cx="550" cy="200" r="4" fill="#dc2626" />
+  <!-- Optimal points -->
+  <circle cx="340" cy="90" r="8" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="3,2" />
+  <line x1="340" y1="82" x2="340" y2="68" stroke="#2563eb" stroke-width="1" />
+  <text x="340" y="65" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">AIC min</text>
+  <circle cx="270" cy="100" r="8" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="3,2" />
+  <line x1="270" y1="92" x2="255" y2="75" stroke="#dc2626" stroke-width="1" />
+  <text x="235" y="72" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">BIC min</text>
+  <!-- Zone annotations -->
+  <rect x="90" y="230" width="120" height="22" rx="4" fill="#f97316" fill-opacity="0.1" />
+  <text x="150" y="245" text-anchor="middle" font-size="10" fill="#f97316">Underfitting</text>
+  <rect x="450" y="230" width="130" height="22" rx="4" fill="#f97316" fill-opacity="0.1" />
+  <text x="515" y="245" text-anchor="middle" font-size="10" fill="#f97316">Overfitting</text>
+  <!-- Legend -->
+  <rect x="160" y="300" width="340" height="18" rx="4" fill="#f1f5f9" />
+  <line x1="180" y1="309" x2="210" y2="309" stroke="#2563eb" stroke-width="2.5" />
+  <text x="220" y="313" font-size="11" fill="#2563eb">AIC (favors prediction)</text>
+  <line x1="360" y1="309" x2="390" y2="309" stroke="#dc2626" stroke-width="2.5" />
+  <text x="400" y="313" font-size="11" fill="#dc2626">BIC (favors parsimony)</text>
+</svg>
+</div>
+
+<h3 id="stepwise-regression"><a class="header" href="#stepwise-regression">Stepwise Regression</a></h3>
+<p>Automated search through predictor combinations:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Direction</th><th>Strategy</th><th>Risk</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Forward</strong></td><td>Start empty, add best predictor one at a time</td><td>May miss suppressor effects</td></tr>
+<tr><td><strong>Backward</strong></td><td>Start full, remove worst predictor one at a time</td><td>May keep redundant predictors</td></tr>
+<tr><td><strong>Both</strong></td><td>Add and remove at each step</td><td>Best coverage, slower</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> Stepwise regression is exploratory, not confirmatory. The selected model may not replicate. Always validate on held-out data or use cross-validation.</p>
+</blockquote>
+<h2 id="regularized-regression-handling-many-predictors"><a class="header" href="#regularized-regression-handling-many-predictors">Regularized Regression: Handling Many Predictors</a></h2>
+<p>When you have many predictors (especially in genomics where p &gt;&gt; n), ordinary least squares fails. Regularization adds a penalty term:</p>
+<h3 id="ridge-regression-l2"><a class="header" href="#ridge-regression-l2">Ridge Regression (L2)</a></h3>
+<p>$$\min \sum(y_i - \hat{y}_i)^2 + \lambda \sum \beta_j^2$$</p>
+<ul>
+<li>Shrinks coefficients toward zero but never to exactly zero</li>
+<li>Handles multicollinearity gracefully</li>
+<li>Good when all predictors might be relevant</li>
+</ul>
+<h3 id="lasso-regression-l1"><a class="header" href="#lasso-regression-l1">Lasso Regression (L1)</a></h3>
+<p>$$\min \sum(y_i - \hat{y}_i)^2 + \lambda \sum |\beta_j|$$</p>
+<ul>
+<li>Can shrink coefficients to exactly zero (automatic variable selection)</li>
+<li>Produces sparse models (easy to interpret)</li>
+<li>Preferred when you suspect only a few predictors matter</li>
+</ul>
+<h3 id="elastic-net"><a class="header" href="#elastic-net">Elastic Net</a></h3>
+<p>$$\min \sum(y_i - \hat{y}_i)^2 + \lambda_1 \sum |\beta_j| + \lambda_2 \sum \beta_j^2$$</p>
+<ul>
+<li>Combines L1 and L2 penalties</li>
+<li>Good when predictors are correlated groups (keeps all or drops all from a group)</li>
+<li>Controlled by mixing parameter α (0 = ridge, 1 = lasso)</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Feature Selection</th><th>Correlated Predictors</th><th>Best For</th></tr>
+</thead>
+<tbody>
+<tr><td>Ridge</td><td>No (shrinks all)</td><td>Handles well</td><td>Many weak effects</td></tr>
+<tr><td>Lasso</td><td>Yes (zeros out)</td><td>Picks one arbitrarily</td><td>Few strong effects</td></tr>
+<tr><td>Elastic Net</td><td>Yes (grouped)</td><td>Handles well</td><td>Correlated groups</td></tr>
+</tbody>
+</table>
+</div>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="280" viewbox="0 0 660 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">VIF: Variance Inflation from Redundant Predictors</text>
+  <text x="330" y="44" text-anchor="middle" font-size="12" fill="#6b7280">VIF measures how much each predictor is explained by the others</text>
+  <!-- Response variable (Y) at top -->
+  <rect x="260" y="60" width="140" height="36" rx="18" fill="#1e293b" fill-opacity="0.08" stroke="#1e293b" stroke-width="2" />
+  <text x="330" y="83" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Tumor Stage (Y)</text>
+  <!-- Three predictor circles, overlapping -->
+  <!-- X1: Tumor Size -->
+  <circle cx="190" cy="185" r="55" fill="#2563eb" fill-opacity="0.15" stroke="#2563eb" stroke-width="2" />
+  <text x="155" y="180" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">Tumor</text>
+  <text x="155" y="195" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">Size</text>
+  <text x="155" y="212" text-anchor="middle" font-size="10" fill="#2563eb">VIF = 1.2</text>
+  <!-- X2: CA19-9 -->
+  <circle cx="310" cy="185" r="55" fill="#7c3aed" fill-opacity="0.15" stroke="#7c3aed" stroke-width="2" />
+  <text x="310" y="180" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c3aed">CA19-9</text>
+  <text x="310" y="212" text-anchor="middle" font-size="10" fill="#7c3aed">VIF = 8.5</text>
+  <!-- X3: CEA -->
+  <circle cx="410" cy="185" r="55" fill="#dc2626" fill-opacity="0.15" stroke="#dc2626" stroke-width="2" />
+  <text x="445" y="180" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">CEA</text>
+  <text x="445" y="212" text-anchor="middle" font-size="10" fill="#dc2626">VIF = 9.2</text>
+  <!-- Heavy overlap between CA19-9 and CEA -->
+  <text x="360" y="188" text-anchor="middle" font-size="16" font-weight="bold" fill="#7c3aed" fill-opacity="0.6">||</text>
+  <!-- Arrows to Y -->
+  <line x1="190" y1="130" x2="285" y2="96" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlk)" />
+  <line x1="310" y1="130" x2="315" y2="96" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrowBlk)" />
+  <line x1="410" y1="130" x2="375" y2="96" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arrowBlk)" />
+  <defs>
+    <marker id="arrowBlk" markerwidth="8" markerheight="6" refx="7" refy="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#6b7280" />
+    </marker>
+  </defs>
+  <!-- Annotation -->
+  <rect x="480" y="155" width="165" height="60" rx="6" fill="#fef2f2" stroke="#fca5a5" stroke-width="1" />
+  <text x="562" y="173" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">CA19-9 and CEA</text>
+  <text x="562" y="188" text-anchor="middle" font-size="11" fill="#dc2626">measure overlapping</text>
+  <text x="562" y="203" text-anchor="middle" font-size="11" fill="#dc2626">biology (VIF ~ 9)</text>
+  <!-- VIF scale at bottom -->
+  <rect x="100" y="252" width="460" height="18" rx="3" fill="url(#vifGrad)" />
+  <defs>
+    <lineargradient id="vifGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="40%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </lineargradient>
+  </defs>
+  <text x="100" y="248" font-size="10" fill="#16a34a">VIF = 1</text>
+  <text x="284" y="248" text-anchor="middle" font-size="10" fill="#f59e0b">VIF = 5</text>
+  <text x="560" y="248" text-anchor="end" font-size="10" fill="#dc2626">VIF &gt; 10</text>
+  <text x="100" y="280" font-size="10" fill="#16a34a">No collinearity</text>
+  <text x="284" y="280" text-anchor="middle" font-size="10" fill="#f59e0b">Investigate</text>
+  <text x="560" y="280" text-anchor="end" font-size="10" fill="#dc2626">Remove or combine</text>
+</svg>
+</div>
+
+<h2 id="polynomial-regression"><a class="header" href="#polynomial-regression">Polynomial Regression</a></h2>
+<p>When the relationship is curved but you want to stay in the regression framework:</p>
+<p>$$Y = \beta_0 + \beta_1 X + \beta_2 X^2 + \varepsilon$$</p>
+<p>Useful for dose-response curves, growth curves, and non-linear biomarker relationships. But beware overfitting with high-degree polynomials.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> The relationship between BMI and mortality is U-shaped — both low and high BMI increase risk. A linear model misses this entirely; a quadratic model captures it.</p>
+</blockquote>
+<h2 id="multiple-regression-in-biolang"><a class="header" href="#multiple-regression-in-biolang">Multiple Regression in BioLang</a></h2>
+<h3 id="building-a-multiple-regression-model"><a class="header" href="#building-a-multiple-regression-model">Building a Multiple Regression Model</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Pancreatic cancer: predict tumor stage from biomarkers
+let n = 120
+
+# Simulate correlated biomarkers
+let age = rnorm(n, 65, 10)
+let tumor_size = rnorm(n, 3.5, 1.2)
+let ca19_9 = tumor_size * 50 + rnorm(n, 100, 40)
+let cea = ca19_9 * 0.3 + rnorm(n, 5, 3)  # correlated with CA19-9
+let mki67 = rnorm(n, 30, 15)
+let albumin = rnorm(n, 3.5, 0.5)
+let crp = rnorm(n, 15, 10)
+let nlr = rnorm(n, 4, 2)
+
+# True model: stage depends on tumor_size, ca19_9, mki67, age
+let stage = 1.0 + 0.4 * tumor_size + 0.003 * ca19_9 + 0.01 * mki67
+    + 0.01 * age - 0.3 * albumin
+    + rnorm(n, 0, 0.3)
+
+# Fit multiple regression with all predictors
+let data = table({
+    "stage": stage, "age": age, "tumor_size": tumor_size,
+    "ca19_9": ca19_9, "cea": cea, "mki67": mki67,
+    "albumin": albumin, "crp": crp, "nlr": nlr
+})
+let model_full = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp + nlr", data)
+
+print("=== Full Model ===")
+print("R²: {model_full.r_squared |&gt; round(3)}")
+print("Adjusted R²: {model_full.adj_r_squared |&gt; round(3)}")
+</code></pre>
+<h3 id="checking-multicollinearity"><a class="header" href="#checking-multicollinearity">Checking Multicollinearity</a></h3>
+<pre><code class="language-bio"># Check multicollinearity via pairwise correlations
+let pred_names = ["age", "tumor_size", "ca19_9", "cea", "mki67",
+                  "albumin", "crp", "nlr"]
+let predictors = [age, tumor_size, ca19_9, cea, mki67, albumin, crp, nlr]
+
+print("=== Pairwise Correlations (VIF proxy) ===")
+for i in 0..8 {
+    for j in (i+1)..8 {
+        let r = cor(predictors[i], predictors[j])
+        if abs(r) &gt; 0.7 {
+            print("  {pred_names[i]} vs {pred_names[j]}: r = {r |&gt; round(3)} *** HIGH")
+        }
+    }
+}
+
+# CA19-9 and CEA likely show high correlation
+</code></pre>
+<h3 id="stepwise-model-selection"><a class="header" href="#stepwise-model-selection">Stepwise Model Selection</a></h3>
+<pre><code class="language-bio"># Manual model comparison: fit reduced models and compare R²
+# Drop CEA (collinear with CA19-9) and noise variables (CRP, NLR)
+let data_reduced = table({
+    "stage": stage, "age": age, "tumor_size": tumor_size,
+    "ca19_9": ca19_9, "mki67": mki67, "albumin": albumin
+})
+let model_reduced = lm("stage ~ age + tumor_size + ca19_9 + mki67 + albumin", data_reduced)
+
+print("=== Model Comparison ===")
+print("Full model R²:    {model_full.r_squared |&gt; round(3)}")
+print("Full model Adj R²:    {model_full.adj_r_squared |&gt; round(3)}")
+print("Reduced model R²: {model_reduced.r_squared |&gt; round(3)}")
+print("Reduced model Adj R²: {model_reduced.adj_r_squared |&gt; round(3)}")
+print("If Adj R² is similar, the simpler model is preferred")
+</code></pre>
+<h3 id="regularized-regression"><a class="header" href="#regularized-regression">Regularized Regression</a></h3>
+<pre><code class="language-bio"># Regularized regression concepts
+# Note: Ridge, Lasso, and Elastic Net are advanced methods
+# typically used when p &gt;&gt; n (many predictors, few samples).
+# BioLang provides lm() for standard regression; for regularization,
+# use Python (scikit-learn) or R (glmnet) as shown below.
+
+# Demonstrate the concept: compare full vs sparse models
+# A "lasso-like" approach: fit models dropping one predictor at a time
+# and see which predictors contribute the least
+let predictors_list = ["age", "tumor_size", "ca19_9", "cea", "mki67", "albumin", "crp", "nlr"]
+
+print("=== Variable Importance (drop-one analysis) ===")
+let full_r2 = model_full.r_squared
+print("Full model R²: {full_r2 |&gt; round(4)}")
+
+# Compare by dropping noise predictors
+let model_no_crp = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + nlr", data)
+let model_no_nlr = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp", data)
+print("Without CRP: R² = {model_no_crp.r_squared |&gt; round(4)}")
+print("Without NLR: R² = {model_no_nlr.r_squared |&gt; round(4)}")
+print("Predictors with minimal R² drop are candidates for removal")
+</code></pre>
+<h3 id="polynomial-regression-1"><a class="header" href="#polynomial-regression-1">Polynomial Regression</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Non-linear biomarker relationship
+let bmi = rnorm(100, 29, 5)
+let risk = 0.5 + 0.1 * (bmi - 25) ** 2 + rnorm(100, 0, 2)
+
+# Linear fit — misses the U-shape
+let model_linear = lm(risk, bmi)
+print("Linear R²: {model_linear.r_squared |&gt; round(3)}")
+
+# Polynomial fit — add bmi² term
+let bmi_sq = bmi |&gt; map(|x| x ** 2)
+let poly_data = table({"risk": risk, "bmi": bmi, "bmi_sq": bmi_sq})
+let model_poly = lm("risk ~ bmi + bmi_sq", poly_data)
+print("Quadratic R²: {model_poly.r_squared |&gt; round(3)}")
+
+# Visualize the improvement
+let plot_data = table({"BMI": bmi, "Risk": risk})
+plot(plot_data, {type: "scatter", x: "BMI", y: "Risk",
+    title: "BMI vs Risk: Linear vs Quadratic Fit"})
+</code></pre>
+<h3 id="predicted-vs-actual-plot"><a class="header" href="#predicted-vs-actual-plot">Predicted vs. Actual Plot</a></h3>
+<pre><code class="language-bio"># The ultimate model validation plot
+# Compute predicted values from the reduced model
+let predicted_stage = model_reduced.fitted
+
+let pred_actual = table({"Actual": stage, "Predicted": predicted_stage})
+plot(pred_actual, {type: "scatter", x: "Actual", y: "Predicted",
+    title: "Predicted vs Actual (Reduced Model)"})
+
+# Points along the diagonal = good predictions
+# Systematic deviations = model problems
+let r_pred = cor(stage, predicted_stage)
+print("Correlation (actual vs predicted): {r_pred |&gt; round(3)}")
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">import statsmodels.api as sm
+from sklearn.linear_model import Lasso, Ridge, ElasticNet
+from sklearn.preprocessing import PolynomialFeatures
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+# Multiple regression
+X = sm.add_constant(df[['age', 'tumor_size', 'ca19_9', 'cea', 'mki67']])
+model = sm.OLS(stage, X).fit()
+print(model.summary())
+
+# VIF
+vif = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+
+# Stepwise (manual — no built-in in statsmodels)
+# Use mlxtend: from mlxtend.feature_selection import SequentialFeatureSelector
+
+# Lasso
+from sklearn.linear_model import LassoCV
+lasso = LassoCV(cv=5).fit(X_scaled, y)
+print(f"Non-zero: {(lasso.coef_ != 0).sum()}")
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Multiple regression
+model &lt;- lm(stage ~ age + tumor_size + ca19_9 + cea + mki67 +
+            albumin + crp + nlr)
+summary(model)
+
+# VIF
+library(car)
+vif(model)
+
+# Stepwise
+step_model &lt;- step(model, direction = "both")
+
+# Lasso
+library(glmnet)
+cv_lasso &lt;- cv.glmnet(X_matrix, stage, alpha = 1)
+coef(cv_lasso, s = "lambda.min")
+
+# Ridge
+cv_ridge &lt;- cv.glmnet(X_matrix, stage, alpha = 0)
+
+# Elastic net
+cv_enet &lt;- cv.glmnet(X_matrix, stage, alpha = 0.5)
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-build-and-compare-models"><a class="header" href="#exercise-1-build-and-compare-models">Exercise 1: Build and Compare Models</a></h3>
+<p>Given 150 samples with 6 predictors, build a full model, then use stepwise selection to find a reduced model. Compare using AIC, BIC, and adjusted R².</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 150
+let x1 = rnorm(n, 10, 3)
+let x2 = rnorm(n, 5, 2)
+let x3 = x1 * 0.5 + rnorm(n, 0, 1)  # correlated with x1
+let x4 = rnorm(n, 20, 5)
+let x5 = rnorm(n, 0, 1)  # noise
+let x6 = rnorm(n, 0, 1)  # noise
+
+let y = 5 + 2 * x1 + 1.5 * x2 + 0.5 * x4 + rnorm(n, 0, 3)
+
+# 1. Fit full model with all 6 predictors using lm()
+# 2. Check pairwise cor() — which predictors are collinear?
+# 3. Compare full vs reduced models by adj_r_squared
+# 4. Which predictors matter? Do they match the true model?
+</code></pre>
+<h3 id="exercise-2-ridge-vs-lasso"><a class="header" href="#exercise-2-ridge-vs-lasso">Exercise 2: Ridge vs. Lasso</a></h3>
+<p>Compare ridge and lasso on a dataset where only 3 of 8 predictors truly matter. Which method correctly identifies the true predictors?</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 100
+
+# 8 predictors, only 3 are real
+# Fit lm() with all 8, then with only the true 3
+# Compare R² — does the reduced model perform similarly?
+# Note: for true ridge/lasso, use Python (scikit-learn) or R (glmnet)
+</code></pre>
+<h3 id="exercise-3-polynomial-vs-linear"><a class="header" href="#exercise-3-polynomial-vs-linear">Exercise 3: Polynomial vs. Linear</a></h3>
+<p>Fit linear, quadratic, and cubic models to a dose-response curve. Use AIC to select the best model, and show that adding unnecessary complexity (cubic) hurts.</p>
+<pre><code class="language-bio">set_seed(42)
+let dose = rnorm(80, 25, 12) |&gt; map(|d| max(d, 1))
+let response = 10 + 5 * log2(dose) + rnorm(80, 0, 3)
+
+# 1. Fit lm() with dose, dose + dose², dose + dose² + dose³
+# 2. Compare R² and adj_r_squared for each
+# 3. Which degree gives the best balance of fit and simplicity?
+</code></pre>
+<h3 id="exercise-4-predicted-vs-actual"><a class="header" href="#exercise-4-predicted-vs-actual">Exercise 4: Predicted vs. Actual</a></h3>
+<p>Build a multiple regression model for gene expression prediction. Create a predicted vs. actual scatter plot. Assess where the model succeeds and fails.</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 200
+
+# Simulate: predict gene expression from 4 TF binding signals
+# Build model using lm(), generate predicted vs actual plot
+# Calculate mean absolute error
+# Identify the 5 worst predictions — what makes them outliers?
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>Multiple regression estimates the effect of each predictor <strong>controlling for all others</strong> — fundamentally different from separate simple regressions</li>
+<li><strong>Multicollinearity</strong> (VIF &gt; 10) inflates standard errors and makes coefficients uninterpretable — detect it before interpreting</li>
+<li><strong>Model selection</strong> balances fit and complexity: AIC favors prediction, BIC favors parsimony, adjusted R² penalizes added terms</li>
+<li><strong>Stepwise regression</strong> is useful for exploration but should be validated on held-out data</li>
+<li><strong>Lasso</strong> performs automatic variable selection (zeros out irrelevant predictors); <strong>Ridge</strong> shrinks all coefficients but keeps them; <strong>Elastic net</strong> combines both</li>
+<li><strong>Polynomial regression</strong> captures non-linear relationships within the regression framework but risks overfitting</li>
+<li>Always check residuals, predicted vs. actual plots, and VIF before trusting your model</li>
+<li>With genomics data (p &gt;&gt; n), regularization is not optional — it’s essential</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>What if your outcome isn’t continuous but <strong>binary</strong> — responder vs. non-responder, alive vs. dead, mutant vs. wild-type? Day 16 introduces <strong>logistic regression</strong>, where we predict probabilities of categorical outcomes using ROC curves, odds ratios, and the powerful GLM framework.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-14.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-16.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-14.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-16.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

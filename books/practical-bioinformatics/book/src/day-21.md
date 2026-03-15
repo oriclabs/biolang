@@ -89,7 +89,7 @@ For scripts (not the REPL), use `timer_start()` and `timer_elapsed()`:
 let t = timer_start()
 
 # ... expensive work ...
-let reads = read_fastq("data/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let gc_values = reads |> map(|r| gc_content(r.seq))
 let avg_gc = gc_values |> mean()
 
@@ -113,7 +113,7 @@ You can place multiple timers around different sections to build your own profil
 let t_total = timer_start()
 
 let t_io = timer_start()
-let reads = read_fastq("data/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let io_time = timer_elapsed(t_io)
 
 let t_compute = timer_start()
@@ -338,14 +338,14 @@ GC=52.6% len=5616 unique_6mers=4903
 
 ## Streaming for Memory Efficiency
 
-Parallel processing makes things faster, but it does not solve the memory problem. If you call `read_fastq("huge_file.fastq")`, BioLang loads every read into a list in memory. For 50 million reads, that is 10+ GB of RAM.
+Parallel processing makes things faster, but it does not solve the memory problem. If you call `read_fastq("data/reads.fastq")`, BioLang loads every read into a list in memory. For 50 million reads, that is 10+ GB of RAM.
 
 Streaming processes one record at a time, using constant memory regardless of file size:
 
 ```
 Load all into memory                  Streaming
 ─────────────────────                 ─────────────────────
-read_fastq("file.fq")                stream_fastq("file.fq")
+read_fastq("data/reads.fastq")                stream_fastq("file.fq")
   ↓                                    ↓
 [rec1, rec2, rec3, ..., recN]         rec1 → process → discard
   ↓                                   rec2 → process → discard
@@ -484,7 +484,7 @@ fn analyze_batch(batch) {
 }
 
 # Process in batches of 10,000
-let reads = read_fastq("data/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let batch_size = 10000
 let n_batches = len(reads) / batch_size
 
@@ -531,7 +531,7 @@ Let us build a complete quality-control pipeline and benchmark it three ways: se
 ```bio
 # Full QC pipeline: serial vs parallel vs streaming
 
-let reads = read_fastq("data/large_sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 println("Loaded " + str(len(reads)) + " reads\n")
 
 # ── Serial ────────────────────────────────────────────
@@ -624,7 +624,7 @@ How does BioLang compare to the established bioinformatics languages? Here is th
 ### BioLang (parallel)
 
 ```bio
-let reads = read_fastq("data/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let t = timer_start()
 let gc_values = reads |> par_map(|r| gc_content(r.seq))
 let avg_gc = gc_values |> mean()

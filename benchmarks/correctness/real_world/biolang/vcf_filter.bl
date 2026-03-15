@@ -1,0 +1,26 @@
+let lines = read_lines("real_data/clinvar.vcf") |> filter(|l| !starts_with(l, "#")) |> collect()
+let pathogenic = []
+for line in lines
+  let parts = split(line, "\t")
+  if len(parts) >= 8
+    let info = parts[7]
+    let fields = split(info, ";")
+    for f in fields
+      if starts_with(f, "CLNSIG=")
+        let sig = replace(f, "CLNSIG=", "")
+        if sig == "Pathogenic" or starts_with(sig, "Pathogenic/") or starts_with(sig, "Pathogenic|")
+          pathogenic = append(pathogenic, parts[0])
+        end
+      end
+    end
+  end
+end
+let per_chrom = {}
+for c in pathogenic
+  if has_key(per_chrom, c)
+    per_chrom[c] = per_chrom[c] + 1
+  else
+    per_chrom[c] = 1
+  end
+end
+print(to_json({total_variants: len(lines), pathogenic_count: len(pathogenic), per_chromosome: per_chrom}))

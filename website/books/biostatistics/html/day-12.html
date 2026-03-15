@@ -1,0 +1,809 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 12: The Multiple Testing Crisis — FDR and Correction - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-12-the-multiple-testing-crisis--fdr-and-correction"><a class="header" href="#day-12-the-multiple-testing-crisis--fdr-and-correction">Day 12: The Multiple Testing Crisis — FDR and Correction</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. Rachel Kim is a genomicist analyzing differential gene expression between tumor and normal tissue. She runs a Welch’s t-test on each of 20,000 genes and finds 1,200 with p &lt; 0.05. Exciting — until she does the arithmetic: 20,000 genes multiplied by a 5% false positive rate equals 1,000 genes that would appear “significant” purely by chance, even if not a single gene were truly differentially expressed.</p>
+<p>Her 1,200 “hits” likely contain about 1,000 false positives and perhaps 200 true findings. That is a false discovery rate of over 80%. If she publishes this list and a validation lab tries to confirm the top 50 genes, roughly 40 will fail to replicate. Her scientific reputation — and the lab’s funding — depends on solving this problem.</p>
+<p>This is the <strong>multiple testing crisis</strong>, and it is the single most important statistical concept in genomics. Every differential expression study, every GWAS, every proteomics screen must address it. The solutions — Bonferroni correction, Benjamini-Hochberg FDR, and their relatives — are what make genome-scale analysis possible.</p>
+<h2 id="making-it-visceral-a-simulation"><a class="header" href="#making-it-visceral-a-simulation">Making It Visceral: A Simulation</a></h2>
+<p>Before discussing theory, let us see the problem with our own eyes.</p>
+<pre><code class="language-bio">set_seed(42)
+# Simulate 20,000 genes where NONE are truly different (complete null)
+
+let p_values = []
+for i in 1..20000 {
+  # Both groups drawn from the same distribution — no real differences
+  let group1 = rnorm(10, 0, 1)
+  let group2 = rnorm(10, 0, 1)
+  let result = ttest(group1, group2)
+  p_values = append(p_values, result.p_value)
+}
+
+# Count "discoveries" at various thresholds
+let sig_05 = p_values |&gt; filter(|p| p &lt; 0.05) |&gt; len()
+let sig_01 = p_values |&gt; filter(|p| p &lt; 0.01) |&gt; len()
+let sig_001 = p_values |&gt; filter(|p| p &lt; 0.001) |&gt; len()
+
+print("=== 20,000 Null Genes (No True Differences) ===")
+print("'Significant' at p &lt; 0.05:  {sig_05} (expected: ~1000)")
+print("'Significant' at p &lt; 0.01:  {sig_01} (expected: ~200)")
+print("'Significant' at p &lt; 0.001: {sig_001} (expected: ~20)")
+print("\nEvery single one is a false positive!")
+
+histogram(p_values, {title: "p-Value Distribution Under Complete Null", x_label: "p-value", bins: 50})
+</code></pre>
+<p>Under the null hypothesis, p-values are <strong>uniformly distributed</strong> between 0 and 1. Exactly 5% will fall below 0.05 by definition. With 20,000 tests, that is 1,000 false alarms.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="340" viewbox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">The Multiple Testing Disaster: 20,000 Null Tests</text>
+  <text x="340" y="44" text-anchor="middle" font-size="12" fill="#6b7280">Every "significant" result is a false positive</text>
+  <!-- Grid area -->
+  <rect x="40" y="60" width="600" height="200" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+  <!-- Plot ~200 dots representing genes, some highlighted as false positives -->
+  <!-- Null genes (gray) - scattered across the grid -->
+  <circle cx="65" cy="135" r="3" fill="#d1d5db" /><circle cx="85" cy="180" r="3" fill="#d1d5db" />
+  <circle cx="105" cy="120" r="3" fill="#d1d5db" /><circle cx="125" cy="200" r="3" fill="#d1d5db" />
+  <circle cx="145" cy="155" r="3" fill="#d1d5db" /><circle cx="165" cy="90" r="3" fill="#d1d5db" />
+  <circle cx="185" cy="175" r="3" fill="#d1d5db" /><circle cx="205" cy="110" r="3" fill="#d1d5db" />
+  <circle cx="225" cy="195" r="3" fill="#d1d5db" /><circle cx="245" cy="140" r="3" fill="#d1d5db" />
+  <circle cx="265" cy="165" r="3" fill="#d1d5db" /><circle cx="285" cy="85" r="3" fill="#d1d5db" />
+  <circle cx="305" cy="210" r="3" fill="#d1d5db" /><circle cx="325" cy="130" r="3" fill="#d1d5db" />
+  <circle cx="345" cy="185" r="3" fill="#d1d5db" /><circle cx="365" cy="100" r="3" fill="#d1d5db" />
+  <circle cx="385" cy="150" r="3" fill="#d1d5db" /><circle cx="405" cy="220" r="3" fill="#d1d5db" />
+  <circle cx="425" cy="95" r="3" fill="#d1d5db" /><circle cx="445" cy="170" r="3" fill="#d1d5db" />
+  <circle cx="465" cy="125" r="3" fill="#d1d5db" /><circle cx="485" cy="200" r="3" fill="#d1d5db" />
+  <circle cx="505" cy="145" r="3" fill="#d1d5db" /><circle cx="525" cy="80" r="3" fill="#d1d5db" />
+  <circle cx="545" cy="190" r="3" fill="#d1d5db" /><circle cx="565" cy="115" r="3" fill="#d1d5db" />
+  <circle cx="585" cy="160" r="3" fill="#d1d5db" /><circle cx="605" cy="205" r="3" fill="#d1d5db" />
+  <circle cx="75" cy="105" r="3" fill="#d1d5db" /><circle cx="155" cy="215" r="3" fill="#d1d5db" />
+  <circle cx="235" cy="85" r="3" fill="#d1d5db" /><circle cx="315" cy="175" r="3" fill="#d1d5db" />
+  <circle cx="395" cy="105" r="3" fill="#d1d5db" /><circle cx="475" cy="225" r="3" fill="#d1d5db" />
+  <circle cx="555" cy="95" r="3" fill="#d1d5db" /><circle cx="615" cy="140" r="3" fill="#d1d5db" />
+  <circle cx="95" cy="230" r="3" fill="#d1d5db" /><circle cx="195" cy="75" r="3" fill="#d1d5db" />
+  <circle cx="295" cy="230" r="3" fill="#d1d5db" /><circle cx="435" cy="240" r="3" fill="#d1d5db" />
+  <circle cx="535" cy="235" r="3" fill="#d1d5db" /><circle cx="355" cy="245" r="3" fill="#d1d5db" />
+  <!-- False positives (red) - ~5% highlighted -->
+  <circle cx="72" cy="68" r="4.5" fill="#ef4444" /><circle cx="138" cy="72" r="4.5" fill="#ef4444" />
+  <circle cx="212" cy="65" r="4.5" fill="#ef4444" /><circle cx="278" cy="70" r="4.5" fill="#ef4444" />
+  <circle cx="342" cy="66" r="4.5" fill="#ef4444" /><circle cx="418" cy="73" r="4.5" fill="#ef4444" />
+  <circle cx="488" cy="68" r="4.5" fill="#ef4444" /><circle cx="558" cy="71" r="4.5" fill="#ef4444" />
+  <circle cx="108" cy="75" r="4.5" fill="#ef4444" /><circle cx="382" cy="69" r="4.5" fill="#ef4444" />
+  <circle cx="250" cy="74" r="4.5" fill="#ef4444" /><circle cx="520" cy="66" r="4.5" fill="#ef4444" />
+  <circle cx="600" cy="72" r="4.5" fill="#ef4444" />
+  <!-- Threshold line -->
+  <line x1="40" y1="78" x2="640" y2="78" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,3" />
+  <text x="645" y="82" text-anchor="start" font-size="10" fill="#ef4444">p = 0.05</text>
+  <!-- Labels -->
+  <text x="340" y="290" text-anchor="middle" font-size="13" fill="#1e293b">20,000 genes (all truly null — no real differences)</text>
+  <!-- Legend -->
+  <circle cx="160" cy="315" r="5" fill="#ef4444" />
+  <text x="172" y="319" font-size="12" fill="#dc2626">~1,000 false positives (p &lt; 0.05 by chance)</text>
+  <circle cx="430" cy="315" r="4" fill="#d1d5db" />
+  <text x="440" y="319" font-size="12" fill="#6b7280">~19,000 true negatives</text>
+</svg>
+</div>
+
+<h2 id="family-wise-error-rate-fwer"><a class="header" href="#family-wise-error-rate-fwer">Family-Wise Error Rate (FWER)</a></h2>
+<p>The <strong>family-wise error rate</strong> is the probability of making at least one Type I error across all tests:</p>
+<p><strong>FWER = 1 - (1 - alpha)^m</strong></p>
+<p>Where m is the number of tests.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Number of Tests (m)</th><th>FWER at alpha = 0.05</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>5.0%</td></tr>
+<tr><td>10</td><td>40.1%</td></tr>
+<tr><td>100</td><td>99.4%</td></tr>
+<tr><td>1,000</td><td>~100%</td></tr>
+<tr><td>20,000</td><td>~100%</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="bonferroni-correction"><a class="header" href="#bonferroni-correction">Bonferroni Correction</a></h2>
+<p>The simplest and most conservative approach: divide alpha by the number of tests.</p>
+<p><strong>Adjusted alpha = alpha / m</strong></p>
+<p>For 20,000 tests at alpha = 0.05: adjusted alpha = 0.05 / 20,000 = 2.5 x 10^-6.</p>
+<p>Equivalently, multiply each p-value by m and compare to the original alpha:</p>
+<p><strong>p_adjusted = min(p x m, 1.0)</strong></p>
+<h3 id="strengths-and-weaknesses"><a class="header" href="#strengths-and-weaknesses">Strengths and Weaknesses</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Assessment</th></tr>
+</thead>
+<tbody>
+<tr><td>Controls FWER</td><td>Yes, strongly</td></tr>
+<tr><td>Simple to compute</td><td>Yes</td></tr>
+<tr><td>Power</td><td>Very low — misses many true effects</td></tr>
+<tr><td>Assumes independence</td><td>Works regardless, but overly conservative for correlated tests</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> Bonferroni is often TOO conservative for genomics. With 20,000 correlated gene expression measurements, it throws out far too many true positives. It is appropriate when you need to be extremely cautious (drug safety) or when you have few tests.</p>
+</blockquote>
+<h2 id="holms-step-down-correction"><a class="header" href="#holms-step-down-correction">Holm’s Step-Down Correction</a></h2>
+<p>Holm’s method is uniformly more powerful than Bonferroni while still controlling FWER.</p>
+<p><strong>Procedure:</strong></p>
+<ol>
+<li>Sort p-values from smallest to largest: p(1) &lt;= p(2) &lt;= … &lt;= p(m)</li>
+<li>For the i-th smallest p-value, compute adjusted p: p(i) x (m - i + 1)</li>
+<li>Enforce monotonicity: each adjusted p must be &gt;= the previous</li>
+<li>Reject all hypotheses whose adjusted p &lt; alpha</li>
+</ol>
+<p>Holm’s method is <em>always</em> at least as powerful as Bonferroni, and sometimes substantially more so.</p>
+<h2 id="false-discovery-rate-fdr-the-breakthrough"><a class="header" href="#false-discovery-rate-fdr-the-breakthrough">False Discovery Rate (FDR): The Breakthrough</a></h2>
+<p>In 1995, Benjamini and Hochberg introduced a paradigm shift. Instead of controlling the probability of <em>any</em> false positive (FWER), they controlled the expected <em>proportion</em> of false positives among rejected hypotheses.</p>
+<p><strong>FDR = E[V / R]</strong></p>
+<p>Where V = number of false positives and R = total rejections.</p>
+<p>If you set FDR = 0.05, you accept that about 5% of your “discoveries” may be false — a much more practical threshold for genomics than guaranteeing zero false positives.</p>
+<h3 id="benjamini-hochberg-bh-procedure"><a class="header" href="#benjamini-hochberg-bh-procedure">Benjamini-Hochberg (BH) Procedure</a></h3>
+<p><strong>Procedure:</strong></p>
+<ol>
+<li>Sort p-values from smallest to largest: p(1) &lt;= p(2) &lt;= … &lt;= p(m)</li>
+<li>For each p(i), compute the BH threshold: (i / m) x q, where q is the desired FDR level</li>
+<li>Find the largest i where p(i) &lt;= (i / m) x q</li>
+<li>Reject all hypotheses 1, 2, …, i</li>
+</ol>
+<p>Equivalently, the BH-adjusted p-value (q-value) is:</p>
+<p><strong>q(i) = min(p(i) x m / i, 1.0)</strong> (with monotonicity enforced)</p>
+<h3 id="why-bh-changed-genomics"><a class="header" href="#why-bh-changed-genomics">Why BH Changed Genomics</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Controls</th><th>Typical Threshold</th><th>Power</th></tr>
+</thead>
+<tbody>
+<tr><td>Bonferroni</td><td>FWER</td><td>p &lt; 2.5e-6 (for 20K tests)</td><td>Very low</td></tr>
+<tr><td>Holm</td><td>FWER</td><td>Similar to Bonferroni</td><td>Slightly higher</td></tr>
+<tr><td><strong>BH (FDR)</strong></td><td><strong>FDR</strong></td><td><strong>q &lt; 0.05</strong></td><td><strong>Much higher</strong></td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> BH-FDR is the standard for differential expression, GWAS, proteomics, and almost all high-throughput biology. When a paper reports “genes with FDR &lt; 0.05,” they almost always mean Benjamini-Hochberg adjusted p-values.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="360" viewbox="0 0 680 360" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Sorted p-Values: Bonferroni vs BH Threshold</text>
+  <text x="340" y="44" text-anchor="middle" font-size="12" fill="#6b7280">BH's ascending line finds more true discoveries</text>
+  <!-- Axes -->
+  <line x1="80" y1="300" x2="620" y2="300" stroke="#6b7280" stroke-width="1.5" />
+  <line x1="80" y1="300" x2="80" y2="60" stroke="#6b7280" stroke-width="1.5" />
+  <text x="350" y="340" text-anchor="middle" font-size="13" fill="#6b7280">Rank (sorted by p-value)</text>
+  <text x="30" y="180" text-anchor="middle" font-size="13" fill="#6b7280" transform="rotate(-90,30,180)">p-value</text>
+  <!-- Y-axis ticks -->
+  <text x="72" y="304" text-anchor="end" font-size="11" fill="#6b7280">0</text>
+  <text x="72" y="244" text-anchor="end" font-size="11" fill="#6b7280">0.01</text>
+  <line x1="75" y1="240" x2="85" y2="240" stroke="#d1d5db" stroke-width="1" />
+  <text x="72" y="184" text-anchor="end" font-size="11" fill="#6b7280">0.02</text>
+  <line x1="75" y1="180" x2="85" y2="180" stroke="#d1d5db" stroke-width="1" />
+  <text x="72" y="124" text-anchor="end" font-size="11" fill="#6b7280">0.03</text>
+  <line x1="75" y1="120" x2="85" y2="120" stroke="#d1d5db" stroke-width="1" />
+  <text x="72" y="64" text-anchor="end" font-size="11" fill="#6b7280">0.05</text>
+  <line x1="75" y1="60" x2="620" y2="60" stroke="#d1d5db" stroke-width="1" stroke-dasharray="3,3" />
+  <!-- Bonferroni threshold: flat line at alpha/m (very low) -->
+  <line x1="80" y1="288" x2="620" y2="288" stroke="#dc2626" stroke-width="2.5" />
+  <text x="625" y="292" text-anchor="start" font-size="11" font-weight="bold" fill="#dc2626">Bonferroni</text>
+  <text x="625" y="305" text-anchor="start" font-size="10" fill="#dc2626">(alpha/m)</text>
+  <!-- BH threshold: ascending line from 0 to q -->
+  <line x1="80" y1="300" x2="620" y2="60" stroke="#2563eb" stroke-width="2.5" />
+  <text x="625" y="64" text-anchor="start" font-size="11" font-weight="bold" fill="#2563eb">BH (FDR)</text>
+  <text x="625" y="77" text-anchor="start" font-size="10" fill="#2563eb">(i/m x q)</text>
+  <!-- Sorted p-values (dots rising) -->
+  <circle cx="95" cy="296" r="3" fill="#1e293b" /><circle cx="110" cy="294" r="3" fill="#1e293b" />
+  <circle cx="125" cy="291" r="3" fill="#1e293b" /><circle cx="140" cy="287" r="3" fill="#1e293b" />
+  <circle cx="155" cy="283" r="3" fill="#1e293b" /><circle cx="170" cy="278" r="3" fill="#1e293b" />
+  <circle cx="185" cy="273" r="3" fill="#1e293b" /><circle cx="200" cy="267" r="3" fill="#1e293b" />
+  <circle cx="215" cy="260" r="3" fill="#1e293b" /><circle cx="230" cy="252" r="3" fill="#1e293b" />
+  <circle cx="245" cy="243" r="3" fill="#1e293b" /><circle cx="260" cy="235" r="3" fill="#1e293b" />
+  <circle cx="275" cy="225" r="3" fill="#1e293b" /><circle cx="290" cy="215" r="3" fill="#1e293b" />
+  <circle cx="305" cy="205" r="3" fill="#1e293b" /><circle cx="320" cy="193" r="3" fill="#1e293b" />
+  <circle cx="335" cy="180" r="3" fill="#1e293b" /><circle cx="350" cy="168" r="3" fill="#1e293b" />
+  <circle cx="365" cy="155" r="3" fill="#1e293b" /><circle cx="380" cy="140" r="3" fill="#1e293b" />
+  <circle cx="395" cy="125" r="3" fill="#1e293b" /><circle cx="410" cy="110" r="3" fill="#1e293b" />
+  <circle cx="425" cy="95" r="3" fill="#1e293b" /><circle cx="440" cy="85" r="3" fill="#1e293b" />
+  <circle cx="455" cy="78" r="3" fill="#1e293b" />
+  <!-- BH finds more: bracket -->
+  <line x1="260" y1="232" x2="260" y2="212" stroke="#2563eb" stroke-width="1" stroke-dasharray="3,2" />
+  <text x="265" y="222" font-size="10" fill="#2563eb">BH rejects these</text>
+  <!-- Bonferroni annotation -->
+  <text x="180" y="280" text-anchor="middle" font-size="10" fill="#dc2626">Bonferroni rejects only these few</text>
+  <line x1="95" y1="283" x2="155" y2="283" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2" />
+</svg>
+</div>
+
+<h2 id="other-correction-methods"><a class="header" href="#other-correction-methods">Other Correction Methods</a></h2>
+<h3 id="hochbergs-step-up"><a class="header" href="#hochbergs-step-up">Hochberg’s Step-Up</a></h3>
+<p>Similar to Holm but slightly more powerful; assumes independence or positive dependence among tests.</p>
+<h3 id="benjamini-yekutieli-by"><a class="header" href="#benjamini-yekutieli-by">Benjamini-Yekutieli (BY)</a></h3>
+<p>A conservative FDR procedure that works under <em>any</em> dependency structure between tests. Use when you have strong correlations (e.g., genes in the same pathway).</p>
+<h2 id="choosing-a-method"><a class="header" href="#choosing-a-method">Choosing a Method</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Controls</th><th>Best For</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Bonferroni</strong></td><td>FWER</td><td>Few tests, safety-critical decisions</td></tr>
+<tr><td><strong>Holm</strong></td><td>FWER</td><td>Same as Bonferroni but always more powerful</td></tr>
+<tr><td><strong>BH</strong></td><td>FDR</td><td>Standard genomics, proteomics, any large-scale screen</td></tr>
+<tr><td><strong>Hochberg</strong></td><td>FWER</td><td>Independent or positively dependent tests</td></tr>
+<tr><td><strong>BY</strong></td><td>FDR</td><td>Strongly correlated tests, conservative FDR</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="the-volcano-plot"><a class="header" href="#the-volcano-plot">The Volcano Plot</a></h2>
+<p>The volcano plot is the most iconic visualization in differential expression analysis. It plots:</p>
+<ul>
+<li><strong>x-axis</strong>: log2 fold change (effect size)</li>
+<li><strong>y-axis</strong>: -log10(adjusted p-value) (statistical significance)</li>
+</ul>
+<p>Genes in the upper corners are both statistically significant AND biologically meaningful — the ones you actually care about.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Region</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>Upper-right</td><td>Significantly upregulated (high FC, low p)</td></tr>
+<tr><td>Upper-left</td><td>Significantly downregulated (high FC, low p)</td></tr>
+<tr><td>Bottom center</td><td>Not significant (high p, any FC)</td></tr>
+<tr><td>Upper center</td><td>Significant but small effect (low FC, low p)</td></tr>
+</tbody>
+</table>
+</div>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="420" viewbox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Anatomy of a Volcano Plot</text>
+  <!-- Axes -->
+  <line x1="80" y1="320" x2="600" y2="320" stroke="#6b7280" stroke-width="1.5" />
+  <line x1="340" y1="320" x2="340" y2="50" stroke="#6b7280" stroke-width="1" stroke-dasharray="4,3" />
+  <line x1="80" y1="320" x2="80" y2="50" stroke="#6b7280" stroke-width="1.5" />
+  <!-- Axis labels -->
+  <text x="340" y="355" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">log2 Fold Change</text>
+  <text x="25" y="185" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b" transform="rotate(-90,25,185)">-log10(adj. p-value)</text>
+  <!-- X-axis ticks -->
+  <text x="130" y="338" text-anchor="middle" font-size="11" fill="#6b7280">-3</text>
+  <text x="200" y="338" text-anchor="middle" font-size="11" fill="#6b7280">-2</text>
+  <text x="270" y="338" text-anchor="middle" font-size="11" fill="#6b7280">-1</text>
+  <text x="340" y="338" text-anchor="middle" font-size="11" fill="#6b7280">0</text>
+  <text x="410" y="338" text-anchor="middle" font-size="11" fill="#6b7280">1</text>
+  <text x="480" y="338" text-anchor="middle" font-size="11" fill="#6b7280">2</text>
+  <text x="550" y="338" text-anchor="middle" font-size="11" fill="#6b7280">3</text>
+  <!-- Significance threshold line (horizontal) -->
+  <line x1="80" y1="200" x2="600" y2="200" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,3" />
+  <text x="608" y="204" text-anchor="start" font-size="10" fill="#9ca3af">p = 0.05</text>
+  <!-- FC threshold lines (vertical) -->
+  <line x1="270" y1="50" x2="270" y2="320" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,3" />
+  <line x1="410" y1="50" x2="410" y2="320" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,3" />
+  <text x="270" y="46" text-anchor="middle" font-size="10" fill="#9ca3af">FC = -1</text>
+  <text x="410" y="46" text-anchor="middle" font-size="10" fill="#9ca3af">FC = +1</text>
+  <!-- Not significant dots (gray, center bottom) -->
+  <circle cx="290" cy="280" r="3" fill="#d1d5db" /><circle cx="310" cy="260" r="3" fill="#d1d5db" />
+  <circle cx="330" cy="290" r="3" fill="#d1d5db" /><circle cx="350" cy="270" r="3" fill="#d1d5db" />
+  <circle cx="370" cy="285" r="3" fill="#d1d5db" /><circle cx="300" cy="300" r="3" fill="#d1d5db" />
+  <circle cx="320" cy="240" r="3" fill="#d1d5db" /><circle cx="340" cy="310" r="3" fill="#d1d5db" />
+  <circle cx="360" cy="250" r="3" fill="#d1d5db" /><circle cx="380" cy="295" r="3" fill="#d1d5db" />
+  <circle cx="315" cy="220" r="3" fill="#d1d5db" /><circle cx="355" cy="230" r="3" fill="#d1d5db" />
+  <circle cx="335" cy="215" r="3" fill="#d1d5db" /><circle cx="285" cy="245" r="3" fill="#d1d5db" />
+  <circle cx="395" cy="265" r="3" fill="#d1d5db" /><circle cx="275" cy="275" r="3" fill="#d1d5db" />
+  <circle cx="345" cy="305" r="3" fill="#d1d5db" /><circle cx="325" cy="275" r="3" fill="#d1d5db" />
+  <!-- Significant upregulated (red, upper right) -->
+  <circle cx="430" cy="120" r="4.5" fill="#dc2626" /><circle cx="460" cy="90" r="4.5" fill="#dc2626" />
+  <circle cx="490" cy="75" r="4.5" fill="#dc2626" /><circle cx="445" cy="140" r="4.5" fill="#dc2626" />
+  <circle cx="510" cy="105" r="4.5" fill="#dc2626" /><circle cx="470" cy="155" r="4.5" fill="#dc2626" />
+  <circle cx="530" cy="130" r="4.5" fill="#dc2626" /><circle cx="500" cy="165" r="4.5" fill="#dc2626" />
+  <circle cx="550" cy="95" r="4.5" fill="#dc2626" /><circle cx="420" cy="175" r="4.5" fill="#dc2626" />
+  <circle cx="480" cy="110" r="4.5" fill="#dc2626" />
+  <!-- Significant downregulated (blue, upper left) -->
+  <circle cx="250" cy="115" r="4.5" fill="#2563eb" /><circle cx="220" cy="85" r="4.5" fill="#2563eb" />
+  <circle cx="190" cy="100" r="4.5" fill="#2563eb" /><circle cx="235" cy="145" r="4.5" fill="#2563eb" />
+  <circle cx="170" cy="125" r="4.5" fill="#2563eb" /><circle cx="205" cy="165" r="4.5" fill="#2563eb" />
+  <circle cx="150" cy="90" r="4.5" fill="#2563eb" /><circle cx="260" cy="170" r="4.5" fill="#2563eb" />
+  <circle cx="130" cy="110" r="4.5" fill="#2563eb" /><circle cx="240" cy="180" r="4.5" fill="#2563eb" />
+  <!-- Region labels -->
+  <rect x="102" y="56" width="130" height="24" rx="4" fill="#2563eb" fill-opacity="0.12" />
+  <text x="167" y="73" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Downregulated</text>
+  <rect x="448" y="56" width="120" height="24" rx="4" fill="#dc2626" fill-opacity="0.12" />
+  <text x="508" y="73" text-anchor="middle" font-size="12" font-weight="bold" fill="#dc2626">Upregulated</text>
+  <rect x="290" y="296" width="100" height="20" rx="4" fill="#d1d5db" fill-opacity="0.4" />
+  <text x="340" y="310" text-anchor="middle" font-size="11" fill="#6b7280">Not Significant</text>
+  <!-- Legend -->
+  <rect x="120" y="375" width="440" height="35" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1" />
+  <circle cx="155" cy="393" r="5" fill="#2563eb" />
+  <text x="165" y="397" font-size="11" fill="#1e293b">Sig. down (FC&lt;-1, p&lt;0.05)</text>
+  <circle cx="325" cy="393" r="5" fill="#dc2626" />
+  <text x="335" y="397" font-size="11" fill="#1e293b">Sig. up (FC&gt;1, p&lt;0.05)</text>
+  <circle cx="480" cy="393" r="4" fill="#d1d5db" />
+  <text x="490" y="397" font-size="11" fill="#1e293b">NS</text>
+</svg>
+</div>
+
+<h2 id="multiple-testing-correction-in-biolang"><a class="header" href="#multiple-testing-correction-in-biolang">Multiple Testing Correction in BioLang</a></h2>
+<h3 id="simulating-the-crisis-and-applying-corrections"><a class="header" href="#simulating-the-crisis-and-applying-corrections">Simulating the Crisis and Applying Corrections</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Simulate 20,000 genes: 18,000 null + 2,000 truly differential
+
+let p_values = []
+let is_true = []  # Ground truth: 1 = truly differential, 0 = null
+let fold_changes = []
+
+for i in 1..20000 {
+  let group1 = rnorm(10, 0, 1)
+  if i &lt;= 2000 {
+    # True differential: shifted mean
+    let shift = rnorm(1, 2.0, 0.5)[0]
+    let group2 = rnorm(10, shift, 1)
+    is_true = append(is_true, 1)
+  } else {
+    # Null gene: no difference
+    let group2 = rnorm(10, 0, 1)
+    is_true = append(is_true, 0)
+  }
+  let result = ttest(group1, group2)
+  p_values = append(p_values, result.p_value)
+  fold_changes = append(fold_changes, mean(group2) - mean(group1))
+}
+
+print("Total genes: {len(p_values)}")
+print("True DE genes: {is_true |&gt; filter(|x| x == 1) |&gt; len()}")
+print("Null genes: {is_true |&gt; filter(|x| x == 0) |&gt; len()}")
+</code></pre>
+<h3 id="applying-all-correction-methods"><a class="header" href="#applying-all-correction-methods">Applying All Correction Methods</a></h3>
+<pre><code class="language-bio"># Apply multiple correction methods
+let p_bonf = p_adjust(p_values, "bonferroni")
+let p_holm = p_adjust(p_values, "holm")
+let p_bh   = p_adjust(p_values, "BH")
+let p_hoch = p_adjust(p_values, "hochberg")
+let p_by   = p_adjust(p_values, "BY")
+
+# Count discoveries at adjusted p &lt; 0.05
+let count_sig = |adj_p| adj_p |&gt; filter(|p| p &lt; 0.05) |&gt; len()
+
+print("=== Discoveries at Adjusted p &lt; 0.05 ===")
+print("Method       | Total Discoveries | True Pos | False Pos | FDR")
+print("-------------|-------------------|----------|-----------|--------")
+
+for method_name, adj_p in [
+  ["Unadjusted ", p_values],
+  ["Bonferroni ", p_bonf],
+  ["Holm       ", p_holm],
+  ["BH (FDR)   ", p_bh],
+  ["Hochberg   ", p_hoch],
+  ["BY         ", p_by]
+] {
+  let discoveries = []
+  let true_pos = 0
+  let false_pos = 0
+  for j in 0..len(adj_p) {
+    if adj_p[j] &lt; 0.05 {
+      discoveries = append(discoveries, j)
+      if is_true[j] == 1 { true_pos = true_pos + 1 }
+      else { false_pos = false_pos + 1 }
+    }
+  }
+  let total = len(discoveries)
+  let fdr = if total &gt; 0 then false_pos / total else 0.0
+  print("{method_name} | {total:&gt;17} | {true_pos:&gt;8} | {false_pos:&gt;9} | {fdr:&gt;6.3}")
+}
+</code></pre>
+<h3 id="drawing-a-volcano-plot"><a class="header" href="#drawing-a-volcano-plot">Drawing a Volcano Plot</a></h3>
+<pre><code class="language-bio"># Volcano plot: the most important visualization in DE analysis
+let log2_fc = fold_changes
+let neg_log10_p = p_bh |&gt; map(|p| if p &gt; 0 then -log10(p) else 10)
+
+# Classify genes
+let colors = []
+for i in 0..len(p_bh) {
+  if p_bh[i] &lt; 0.05 and abs(log2_fc[i]) &gt; 1.0 {
+    colors = append(colors, "significant")
+  } else {
+    colors = append(colors, "not_significant")
+  }
+}
+
+volcano(log2_fc, neg_log10_p, {title: "Differential Expression: Tumor vs Normal", x_label: "log2 Fold Change", y_label: "-log10(FDR-adjusted p-value)", fc_threshold: 1.0, p_threshold: 0.05, highlight: colors})
+
+# Count genes in each quadrant
+let sig_up = 0
+let sig_down = 0
+let not_sig = 0
+for i in 0..len(p_bh) {
+  if p_bh[i] &lt; 0.05 and log2_fc[i] &gt; 1.0 { sig_up = sig_up + 1 }
+  else if p_bh[i] &lt; 0.05 and log2_fc[i] &lt; -1.0 { sig_down = sig_down + 1 }
+  else { not_sig = not_sig + 1 }
+}
+print("Significantly upregulated:   {sig_up}")
+print("Significantly downregulated: {sig_down}")
+print("Not significant:             {not_sig}")
+</code></pre>
+<h3 id="visualizing-the-bh-procedure"><a class="header" href="#visualizing-the-bh-procedure">Visualizing the BH Procedure</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Step-by-step BH procedure visualization
+
+# Smaller example for clarity: 100 tests, 10 truly different
+let p_vals = []
+for i in 1..100 {
+  let g1 = rnorm(10, 0, 1)
+  let g2 = if i &lt;= 10 {
+    rnorm(10, 3, 1)
+  } else {
+    rnorm(10, 0, 1)
+  }
+  p_vals = append(p_vals, ttest(g1, g2).p_value)
+}
+
+# Sort p-values
+let sorted_p = sort(p_vals)
+let bh_thresholds = range(1, 101) |&gt; map(|i| i / 100 * 0.05)
+
+# Plot sorted p-values against BH thresholds
+scatter(range(1, 101), sorted_p, {title: "BH Procedure: Sorted p-values vs Threshold Line", x_label: "Rank", y_label: "p-value", overlay_lines: [[range(1, 101), bh_thresholds]]})
+
+let bh_adjusted = p_adjust(p_vals, "BH")
+let n_sig = bh_adjusted |&gt; filter(|p| p &lt; 0.05) |&gt; len()
+print("BH discoveries (FDR &lt; 0.05): {n_sig}")
+</code></pre>
+<h3 id="p-value-histograms-diagnostic-tool"><a class="header" href="#p-value-histograms-diagnostic-tool">p-Value Histograms: Diagnostic Tool</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# A well-behaved p-value histogram tells you a lot
+# Uniform = all null; spike at 0 = true signal exists
+
+
+# Scenario 1: All null (should be uniform)
+let null_ps = []
+for i in 1..5000 {
+  let g1 = rnorm(10, 0, 1)
+  let g2 = rnorm(10, 0, 1)
+  null_ps = append(null_ps, ttest(g1, g2).p_value)
+}
+
+# Scenario 2: 20% true signal (spike near 0 + uniform)
+let mixed_ps = []
+for i in 1..5000 {
+  let g1 = rnorm(10, 0, 1)
+  let g2 = if i &lt;= 1000 {
+    rnorm(10, 2, 1)
+  } else {
+    rnorm(10, 0, 1)
+  }
+  mixed_ps = append(mixed_ps, ttest(g1, g2).p_value)
+}
+
+histogram(null_ps, {title: "All Null: Uniform p-value Distribution", x_label: "p-value", bins: 20})
+
+histogram(mixed_ps, {title: "20% True Signal: Spike Near Zero + Uniform Background", x_label: "p-value", bins: 20})
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">from statsmodels.stats.multitest import multipletests
+import numpy as np
+
+# Simulate p-values (example with 1000 tests)
+np.random.seed(42)
+p_values = np.random.uniform(0, 1, 1000)
+p_values[:100] = np.random.uniform(0, 0.01, 100)  # 100 true signals
+
+# Apply corrections
+reject_bonf, padj_bonf, _, _ = multipletests(p_values, method='bonferroni')
+reject_holm, padj_holm, _, _ = multipletests(p_values, method='holm')
+reject_bh, padj_bh, _, _ = multipletests(p_values, method='fdr_bh')
+
+print(f"Bonferroni: {reject_bonf.sum()} discoveries")
+print(f"Holm:       {reject_holm.sum()} discoveries")
+print(f"BH (FDR):   {reject_bh.sum()} discoveries")
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Simulate p-values
+set.seed(42)
+p_values &lt;- c(runif(100, 0, 0.01), runif(900, 0, 1))
+
+# Apply corrections (all built-in)
+p_bonf &lt;- p.adjust(p_values, method = "bonferroni")
+p_holm &lt;- p.adjust(p_values, method = "holm")
+p_bh   &lt;- p.adjust(p_values, method = "BH")
+p_by   &lt;- p.adjust(p_values, method = "BY")
+
+cat("Bonferroni:", sum(p_bonf &lt; 0.05), "\n")
+cat("Holm:      ", sum(p_holm &lt; 0.05), "\n")
+cat("BH (FDR):  ", sum(p_bh &lt; 0.05), "\n")
+cat("BY:        ", sum(p_by &lt; 0.05), "\n")
+
+# Volcano plot (using EnhancedVolcano)
+library(EnhancedVolcano)
+EnhancedVolcano(results, lab = rownames(results),
+  x = 'log2FoldChange', y = 'padj',
+  pCutoff = 0.05, FCcutoff = 1.0)
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<p><strong>Exercise 1: Simulate and Count</strong></p>
+<p>Simulate 10,000 tests where all genes are null (no true differences). Verify that approximately 500 have p &lt; 0.05, 100 have p &lt; 0.01, and 10 have p &lt; 0.001.</p>
+<pre><code class="language-bio">
+# TODO: Simulate 10,000 null t-tests
+# TODO: Count p &lt; 0.05, p &lt; 0.01, p &lt; 0.001
+# TODO: Plot the p-value histogram (should be uniform)
+</code></pre>
+<p><strong>Exercise 2: Compare Correction Power</strong></p>
+<p>Simulate 5,000 genes (500 truly DE with log2FC = 1.5, 4,500 null). Apply Bonferroni, Holm, and BH. For each, compute: (a) total discoveries, (b) true positives, (c) false positives, (d) actual FDR.</p>
+<pre><code class="language-bio">
+# TODO: Simulate 5,000 genes (500 DE + 4,500 null)
+# TODO: Apply all three corrections
+# TODO: Build a comparison table
+# TODO: Which method gives the best balance of power and error control?
+</code></pre>
+<p><strong>Exercise 3: Build a Volcano Plot</strong></p>
+<p>Using the simulation from Exercise 2, create a volcano plot. Color genes as “significant” (BH-adjusted p &lt; 0.05 AND |log2FC| &gt; 1) versus “not significant.”</p>
+<pre><code class="language-bio"># TODO: Use fold changes and BH-adjusted p-values from Exercise 2
+# TODO: Create a volcano plot with appropriate thresholds
+# TODO: Count genes in each quadrant
+</code></pre>
+<p><strong>Exercise 4: p-Value Histogram Diagnostics</strong></p>
+<p>Generate p-value histograms for three scenarios: (a) 100% null genes, (b) 10% true DE genes, (c) 50% true DE genes. Describe the characteristic shape of each and explain what you would look for in real data.</p>
+<pre><code class="language-bio">
+# TODO: Scenario A — all null
+# TODO: Scenario B — 10% DE
+# TODO: Scenario C — 50% DE
+# TODO: Create histograms for each
+# TODO: Describe the shape and what it tells you
+</code></pre>
+<p><strong>Exercise 5: When Does Bonferroni Make Sense?</strong></p>
+<p>You are testing 5 pre-specified candidate genes (not genome-wide). Apply Bonferroni and BH to these 5 p-values: [0.008, 0.023, 0.041, 0.062, 0.110]. How do the results differ? When would you prefer Bonferroni here?</p>
+<pre><code class="language-bio">let p_vals = [0.008, 0.023, 0.041, 0.062, 0.110]
+
+# TODO: Apply Bonferroni and BH
+# TODO: Which genes are significant under each method?
+# TODO: Argue for which method is more appropriate for 5 candidate genes
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>Testing m hypotheses at alpha = 0.05 yields approximately m x 0.05 false positives — devastating for genomics</li>
+<li><strong>Bonferroni</strong> correction (p x m) controls FWER but is often too conservative for large-scale studies</li>
+<li><strong>Holm’s</strong> step-down method is always at least as powerful as Bonferroni and should be preferred</li>
+<li><strong>Benjamini-Hochberg (BH)</strong> FDR correction is the standard for genomics: it controls the expected proportion of false discoveries rather than the probability of any false discovery</li>
+<li>At FDR = 0.05, you accept that about 5% of discoveries may be false — a practical trade-off for high-throughput biology</li>
+<li><strong>p-value histograms</strong> are essential diagnostics: uniform = all null, spike at zero = true signal present</li>
+<li>The <strong>volcano plot</strong> (-log10 adjusted p vs log2 fold change) is the standard visualization for differential expression: genes in the upper corners are both significant and biologically meaningful</li>
+<li>Always report which correction method you used — “p &lt; 0.05” means very different things with and without adjustment</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>With the multiple testing crisis solved, we have completed the core toolkit of statistical hypothesis testing. Week 3 shifts to modeling and relationships: tomorrow we explore correlation — how to measure and test whether two continuous variables move together, from gene expression co-regulation to dose-response curves. This transition from “are groups different?” to “how are variables related?” opens the door to regression, prediction, and the modeling approaches that power modern biostatistics.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-11.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-13.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-11.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-13.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

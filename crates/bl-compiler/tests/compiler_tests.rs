@@ -230,7 +230,7 @@ fn test_compile_list_literal() {
 fn test_compile_record_literal() {
     let program = Program {
         stmts: vec![s(Stmt::Expr(s(Expr::Record(vec![
-            ("a".to_string(), s(Expr::Int(1))),
+            RecordEntry::Field("a".to_string(), s(Expr::Int(1))),
         ]))))],
     };
     let func = compile(&program);

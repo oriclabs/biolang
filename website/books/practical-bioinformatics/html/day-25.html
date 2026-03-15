@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="rust sidebar-visible" dir="ltr">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -33,9 +33,9 @@
         <!-- Provide site root and default themes to javascript -->
         <script>
             const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a55d6aed.js";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-2b7ec08a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -76,7 +76,7 @@
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
-            html.classList.remove('rust')
+            html.classList.remove('light')
             html.classList.add(theme);
             html.classList.add("js");
         </script>
@@ -231,7 +231,7 @@
 <p>This is fundamentally different from letting the error crash your program. Without <code>try/catch</code>, a missing file terminates everything. With it, you decide what happens next.</p>
 <h3 id="trycatch-is-an-expression"><a class="header" href="#trycatch-is-an-expression">try/catch Is an Expression</a></h3>
 <p>In BioLang, <code>try/catch</code> returns a value. This means you can use it anywhere you would use an expression — in variable assignments, function arguments, or pipe chains:</p>
-<pre><code class="language-bio">let samples = try { read_csv("samples.csv") } catch err { [] }
+<pre><code class="language-bio">let samples = try { read_csv("data/sample_sheet.csv") } catch err { [] }
 
 let count = len(try { read_lines("data.txt") } catch err { [] })
 
@@ -306,7 +306,7 @@ let q = try { validate_quality(-5) } catch err { println(err) }
 }
 </code></pre>
 <p>The caller can then inspect the <code>ok</code> field:</p>
-<pre><code class="language-bio">let result = safe_read_fastq("sample_01.fastq")
+<pre><code class="language-bio">let result = safe_read_fastq("data/reads.fastq")
 if result.ok {
     let stats = process(result.data)
 } else {
@@ -914,7 +914,7 @@ println(f"Pipeline {result.status}: {result.succeeded}/{result.total_samples} sa
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>
         <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-23bba21e.js"></script>
+        <script src="book-runner-ee861d9e.js"></script>
 
 
 

@@ -22,258 +22,115 @@
         <span class="text-slate-300">Modules</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>Modules</h1>
+        <h1>Modules &amp; Imports</h1>
         <p>
-          BioLang's module system lets you organize code into reusable units. Modules are loaded
-          with <code>import</code> statements, support selective imports, and use <code>pub</code>
-          visibility to control what is exported.
+          BioLang's module system lets you split code across <code>.bl</code> files and
+          load them with <code>import</code>. All top-level bindings in a file are
+          exported automatically &mdash; there is no <code>pub</code> keyword.
         </p>
 
-        <h2>Import Syntax</h2>
+        <div class="bg-slate-900 border border-slate-700 rounded-lg p-4 my-4">
+          <p class="text-sm text-slate-400">
+            <strong class="text-violet-400">Note:</strong>
+            Import and file operations require the CLI (<code>bl run</code>).
+            The examples on this page are not runnable in the browser playground.
+          </p>
+        </div>
+
+        <h2>import &ldquo;path&rdquo;</h2>
         <p>
-          The <code>import</code> statement brings names from a module into the current scope:
+          The basic <code>import</code> statement loads and executes a <code>.bl</code> file.
+          The file's top-level bindings become available in the current scope:
         </p>
-        <pre><code class="language-biolang"># Import specific names
-import { fastq } from "bio/io"
-import { align, index_reference } from "bio/alignment"
-import { gc_content, reverse_complement } from "bio/sequence"
+        <pre><code class="language-biolang"># Load a file — all its top-level let/fn bindings are imported
+import "helpers.bl"
 
-# Import the entire module as a namespace
-import "bio/io" as io
-let reads = io.fastq("sample.fq.gz")
+# With an alias — access bindings as qc.check_quality(), qc.VERSION, etc.
+import "lib/qc.bl" as qc
 
-# Import all exported names (use sparingly)
-import * from "bio/stats"
+let result = qc.check_quality(reads)
+println(f"Pass rate: {result.pass_rate}")</code></pre>
 
-# Import from a local file
-import { my_function } from "./helpers.bl"
-import { PipelineConfig } from "../config.bl"</code></pre>
-
-        <h2>Module Resolution</h2>
+        <h2>from &ldquo;path&rdquo; import names</h2>
         <p>
-          BioLang resolves module paths in the following order:
+          To pull specific names into scope without an alias, use the
+          <code>from ... import</code> form:
         </p>
-        <ol>
-          <li>
-            <strong>Relative paths</strong> &mdash; paths starting with <code>./</code> or
-            <code>../</code> are resolved relative to the importing file. The <code>.bl</code>
-            extension is added automatically.
-          </li>
-          <li>
-            <strong>Standard library</strong> &mdash; paths like <code>"bio/io"</code> resolve
-            to the built-in standard library modules.
-          </li>
-          <li>
-            <strong>Installed plugins</strong> &mdash; module names that match installed plugins
-            in <code>~/.biolang/plugins/</code> are loaded from the plugin system.
-          </li>
-          <li>
-            <strong>BIOLANG_PATH</strong> &mdash; directories listed in the <code>BIOLANG_PATH</code>
-            environment variable are searched last.
-          </li>
-        </ol>
-        <pre><code class="language-biolang"># Standard library module
-import { csv } from "io"           # Built-in I/O
+        <pre><code class="language-biolang"># Import only the bindings you need
+from "lib/qc.bl" import check_quality, check_contamination
 
-# Bio-specific standard library
-import { fasta } from "bio/io"      # Bio file I/O
-import { gc_content } from "bio/seq"    # Sequence operations
-
-# Relative import
-import { helper } from "./utils.bl"     # Same directory
-import { config } from "../config.bl"   # Parent directory
-
-# Plugin import
-import { run_blast } from "blast"       # Plugin: ~/.biolang/plugins/blast/</code></pre>
-
-        <h2>Creating Modules</h2>
-        <p>
-          Any <code>.bl</code> file is a module. Use <code>pub</code> to mark functions, types,
-          and variables as part of the module's public API:
-        </p>
-        <pre><code class="language-biolang"># File: qc.bl
-
-# Public — accessible to importers
-pub fn check_quality(reads, min_q = 20) {
-  let passed = reads |> filter(|r| mean_phred(r.quality) >= min_q)
-  let fail_rate = 1.0 - len(passed) / len(reads)
-  {
-    passed: passed,
-    total: len(reads),
-    fail_rate: fail_rate
-  }
-}
-
-pub fn check_contamination(reads, reference) {
-  let unmapped = reads |> filter(|r| !r.is_mapped)
-  let contamination_rate = len(unmapped) / len(reads)
-  {
-    unmapped_count: len(unmapped),
-    rate: contamination_rate
-  }
-}
-
-# Private — internal helper, not exported
-fn compute_threshold(scores) {
-  let mu = mean(scores)
-  let sd = stdev(scores)
-  mu - 2.0 * sd
-}
-
-pub let VERSION = "1.0.0"</code></pre>
-
-        <p>Using the module:</p>
-        <pre><code class="language-biolang"># Import specific exports
-import { check_quality, check_contamination } from "./qc.bl"
-
-let qc = check_quality(reads, min_q = 30)
-print(f"Pass rate: {1.0 - qc.fail_rate}")
-
-# compute_threshold is not accessible — it is private</code></pre>
-
-        <h2>Module Namespacing</h2>
-        <pre><code class="language-biolang"># Import as namespace to avoid name collisions
-import "./qc.bl" as qc
-import "./analysis.bl" as analysis
-
-let quality = qc.check_quality(reads)
-let results = analysis.run_analysis(reads)
-
-# Useful when two modules export the same name
-import "bio/stats" as bio_stats
-import "math/stats" as math_stats
-
-let bio_mean = bio_stats.mean(quality_scores)
-let math_mean = math_stats.mean(test_scores)</code></pre>
-
-        <h2>Re-exports</h2>
-        <p>
-          Modules can re-export items from other modules to create a unified public API:
-        </p>
-        <pre><code class="language-biolang"># File: bio/mod.bl — umbrella module
-
-pub import { fasta, fastq, read_fasta, read_fastq } from "bio/io"
-pub import { gc_content, reverse_complement, translate } from "bio/seq"
-pub import { align, index_reference } from "bio/alignment"
-pub import { call_variants, filter_variants } from "bio/variant"
-
-# Now consumers can import everything from one place:
-# import { read_fasta, gc_content, align } from "bio"</code></pre>
-
-        <h2>Standard Library Modules</h2>
-        <p>
-          BioLang includes a comprehensive standard library organized into namespaces:
-        </p>
-        <table>
-          <thead>
-            <tr><th>Module</th><th>Contents</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><code>io</code></td><td>read_text, write_text, csv, write_csv, tsv, write_tsv, read_json, write_json</td></tr>
-            <tr><td><code>bio/io</code></td><td>fasta, fastq, read_fasta, read_fastq, bam, read_bam, vcf, read_vcf, bed, read_bed, gff, read_gff</td></tr>
-            <tr><td><code>bio/seq</code></td><td>gc_content, reverse_complement, transcribe, translate, kmers, find_motif</td></tr>
-            <tr><td><code>bio/align</code></td><td>align, index_reference, pileup, coverage</td></tr>
-            <tr><td><code>bio/variant</code></td><td>call_variants, filter_variants, annotate, merge_vcf</td></tr>
-            <tr><td><code>bio/interval</code></td><td>interval, overlaps, merge_intervals, intersect, subtract</td></tr>
-            <tr><td><code>math</code></td><td>abs, ceil, floor, round, sqrt, pow, log, log2, log10, exp, sin, cos, pi</td></tr>
-            <tr><td><code>stats</code></td><td>mean, median, stdev, variance, cor, ttest, chi_square, fisher_exact</td></tr>
-            <tr><td><code>string</code></td><td>upper, lower, trim, split, join, replace, contains, starts_with, ends_with</td></tr>
-            <tr><td><code>collections</code></td><td>sort, reverse, unique, flatten, zip, enumerate, chunk, window</td></tr>
-            <tr><td><code>os</code></td><td>env, args, cwd, path_join, file_exists, glob, exec</td></tr>
-            <tr><td><code>http</code></td><td>get, post, put, delete (for API integrations)</td></tr>
-          </tbody>
-        </table>
+let qc = check_quality(reads)
+println(f"Fail rate: {qc.fail_rate}")</code></pre>
 
         <h2>Module Caching</h2>
         <p>
-          Modules are cached by their canonical file path. If the same module is imported from
-          multiple files, it is loaded and evaluated only once. Circular imports are detected
-          and rejected at load time:
+          Each module is loaded and evaluated <strong>once</strong>, then cached by its
+          canonical file path. Subsequent imports of the same file (from any location)
+          reuse the cached result:
         </p>
-        <pre><code class="language-biolang"># File: a.bl
-import { helper } from "./b.bl"   # Loads and caches b.bl
+        <pre><code class="language-biolang"># a.bl
+import "shared.bl"           # loads and caches shared.bl
 
-# File: c.bl
-import { helper } from "./b.bl"   # Uses cached version of b.bl
+# b.bl
+import "shared.bl"           # reuses the cached module — not re-executed
 
-# Circular import — ERROR:
-# File: x.bl
-# import { foo } from "./y.bl"
-# File: y.bl
-# import { bar } from "./x.bl"   # Error: circular import detected</code></pre>
+# Circular imports are detected and rejected at load time.</code></pre>
 
-        <h2>Plugin Modules</h2>
+        <h2>What Gets Exported</h2>
         <p>
-          Plugins installed in <code>~/.biolang/plugins/</code> are automatically available as
-          importable modules:
+          All top-level <code>let</code> and <code>fn</code> bindings in a file are
+          visible to importers. There is no <code>pub</code> / private distinction.
+          To keep something internal, put it inside a function rather than at the top level:
         </p>
-        <pre><code class="language-biolang"># Install a plugin
-# $ bl add blast
+        <pre><code class="language-biolang"># File: qc.bl
 
-# Import from the plugin
-import { blastn, blastp, make_db } from "blast"
+# These are exported (top-level):
+let VERSION = "1.0.0"
 
-let results = blastn(
-  query = "query.fasta",
-  database = "nt",
-  evalue = 1e-10
-)
-
-# List available plugins
-# $ bl plugins</code></pre>
-
-        <h2>Conditional Imports</h2>
-        <pre><code class="language-biolang"># Import only if available
-let plotting = try { import "plot" } catch _ { nil }
-
-if plotting != nil {
-  plotting.scatter(x_values, y_values, title = "Results")
-} else {
-  print("Plotting not available — install with: bl add plot")
-}
-
-# Feature-gated imports
-import { read_bam } from "bio/io"
-let has_samtools = try { import "samtools" } catch _ { nil }
-
-fn sort_bam(path: String) {
-  if has_samtools != nil {
-    has_samtools.sort(path)
-  } else {
-    error("samtools plugin required — run: bl add samtools")
-  }
+fn check_quality(reads, min_q) {
+  # This helper is NOT exported — it's defined inside a function
+  let compute_threshold = |scores| mean(scores) - 2.0 * stdev(scores)
+  let threshold = compute_threshold(reads |> map(|r| r.quality))
+  reads |> filter(|r| r.quality >= threshold)
 }</code></pre>
 
-        <h2>Project Structure</h2>
+        <h2>Plugin System</h2>
         <p>
-          A typical BioLang project organizes modules by domain:
+          When a path does not resolve to a file, BioLang looks for a matching plugin
+          in <code>~/.biolang/plugins/</code>. Plugins follow a subprocess JSON protocol
+          and can be written in Python, R, TypeScript, or as native binaries:
         </p>
+        <pre><code class="language-biolang"># Install a plugin from the CLI:
+#   $ bl add blast
+
+# Then import it like a regular module:
+import "blast" as blast
+
+let hits = blast.blastn(query, db, evalue: 1e-10)</code></pre>
+
+        <h2>Project Structure</h2>
+        <p>A typical BioLang project organizes modules by domain:</p>
         <pre><code class="language-bash">my-analysis/
-  main.bl              # Entry point
-  config.bl            # Configuration
+  main.bl              # Entry point (bl run main.bl)
   lib/
-    qc.bl              # Quality control
-    alignment.bl       # Alignment pipeline
-    variant.bl         # Variant calling
-    report.bl          # Report generation
+    qc.bl              # Quality control functions
+    alignment.bl       # Alignment helpers
+    variant.bl         # Variant calling utilities
   data/
     samples.csv
   results/</code></pre>
         <pre><code class="language-biolang"># main.bl
-import { load_config } from "./config.bl"
-import { run_qc } from "./lib/qc.bl"
-import { run_alignment } from "./lib/alignment.bl"
-import { call_and_filter } from "./lib/variant.bl"
-import { generate_report } from "./lib/report.bl"
+import "lib/qc.bl" as qc
+import "lib/alignment.bl" as align
+from "lib/variant.bl" import call_and_filter
 
-let config = load_config("config.yaml")
-let samples = csv("data/samples.csv")
+let samples = read_csv("data/sample_sheet.csv")
 
 for sample in samples {
-  let qc = run_qc(sample, config.qc)
-  let aligned = run_alignment(sample, config.alignment)
-  let variants = call_and_filter(aligned, config.variant)
-  generate_report(sample, qc, variants, "results/")
+  let quality = qc.check(sample)
+  let bam = align.run(sample)
+  let variants = call_and_filter(bam)
+  println(f"{sample.id}: {len(variants)} variants found")
 }</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

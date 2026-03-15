@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="rust sidebar-visible" dir="ltr">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -33,9 +33,9 @@
         <!-- Provide site root and default themes to javascript -->
         <script>
             const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a55d6aed.js";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-2b7ec08a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -76,7 +76,7 @@
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
-            html.classList.remove('rust')
+            html.classList.remove('light')
             html.classList.add(theme);
             html.classList.add("js");
         </script>
@@ -221,7 +221,7 @@ IIIIIIIHHHHHGGGFFF...           &lt;- Quality scores (ASCII-encoded)
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># Read a FASTQ file (eager --- loads all into memory)
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 println(f"Total reads: {len(reads)}")
 println(f"First read: {first(reads)}")
 </code></pre>
@@ -283,7 +283,7 @@ GC content: 48.2%
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># Per-read quality analysis
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let qualities = reads |&gt; map(|r| mean_phred(r.qual))
 println(f"Quality range: {round(min(qualities), 1)} - {round(max(qualities), 1)}")
 println(f"Mean quality: {round(mean(qualities), 1)}")
@@ -297,7 +297,7 @@ Mean quality: 28.4
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># Quality distribution as ASCII plot
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 reads
     |&gt; map(|r| mean_phred(r.qual))
     |&gt; quality_plot()
@@ -321,7 +321,7 @@ reads
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># Filter reads by quality and length
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 
 let clean = reads |&gt; filter_reads(min_length: 50, min_quality: 20)
 println(f"Before: {len(reads)} reads")
@@ -338,7 +338,7 @@ Kept:   82.0%
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># Custom filtering with pipes
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 
 let clean = reads
     |&gt; filter(|r| len(r.seq) &gt;= 50)
@@ -359,7 +359,7 @@ println(f"Clean reads: {len(clean)}")
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># Quality trimming --- remove low-quality bases from ends
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let trimmed = trim_quality(reads, min_quality: 20)
 
 # Check how trimming affected lengths
@@ -395,7 +395,7 @@ println(f"Detected adapters: {adapters}")
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># Trim adapters
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let trimmed = trim_adapters(reads)
 println(f"Adapter-trimmed reads: {len(trimmed)}")
 </code></pre>
@@ -415,7 +415,7 @@ println(f"Adapter-trimmed reads: {len(trimmed)}")
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># K-mer frequency analysis
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 
 # Count k-mers in the first read
 let first_seq = first(reads).seq
@@ -444,7 +444,7 @@ println(kmer_freq |&gt; head(10))
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
 <pre><code class="language-bio"># Save filtered reads to a new file
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let clean = reads |&gt; filter_reads(min_length: 50, min_quality: 20)
 write_fastq(clean, "results/clean_reads.fastq")
 println(f"Wrote {len(clean)} clean reads")
@@ -470,7 +470,7 @@ println(f"   Bases: {stats.total_bases}")
 println(f"   Mean quality: {round(stats.mean_quality, 1)}")
 
 # Step 2: Load and filter
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let clean = reads
     |&gt; filter(|r| len(r.seq) &gt;= 50)
     |&gt; filter(|r| mean_phred(r.qual) &gt;= 20)
@@ -603,7 +603,7 @@ println("=== Pipeline complete ===")
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>
         <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-23bba21e.js"></script>
+        <script src="book-runner-ee861d9e.js"></script>
 
 
 

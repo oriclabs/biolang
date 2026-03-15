@@ -1,0 +1,624 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Appendix E: BioLang Statistics Quick Reference - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="appendix-e-biolang-statistics-quick-reference"><a class="header" href="#appendix-e-biolang-statistics-quick-reference">Appendix E: BioLang Statistics Quick Reference</a></h1>
+<blockquote>
+<p><em>Every statistical function in BioLang, organized for quick lookup.</em></p>
+</blockquote>
+<p>This appendix lists BioLang’s statistical builtins by category. For each function, you will find the signature, a brief description, and a one-liner example. Functions are listed within each category in roughly the order you would learn them.</p>
+<h2 id="descriptive-statistics"><a class="header" href="#descriptive-statistics">Descriptive Statistics</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>mean(x)</code></td><td>Arithmetic mean</td><td><code>mean([2, 4, 6])</code> → <code>4.0</code></td></tr>
+<tr><td><code>median(x)</code></td><td>Middle value</td><td><code>median([1, 3, 7])</code> → <code>3.0</code></td></tr>
+<tr><td><code>sd(x)</code></td><td>Sample standard deviation</td><td><code>sd([2, 4, 6])</code> → <code>2.0</code></td></tr>
+<tr><td><code>var(x)</code></td><td>Sample variance</td><td><code>var([2, 4, 6])</code> → <code>4.0</code></td></tr>
+<tr><td><code>min(x)</code></td><td>Minimum value</td><td><code>min([3, 1, 4])</code> → <code>1</code></td></tr>
+<tr><td><code>max(x)</code></td><td>Maximum value</td><td><code>max([3, 1, 4])</code> → <code>4</code></td></tr>
+<tr><td><code>sum(x)</code></td><td>Sum of all values</td><td><code>sum([1, 2, 3])</code> → <code>6</code></td></tr>
+<tr><td><code>len(x)</code></td><td>Number of elements</td><td><code>len([1, 2, 3])</code> → <code>3</code></td></tr>
+<tr><td><code>quantile(x, p)</code></td><td>p-th quantile</td><td><code>quantile([1,2,3,4,5], 0.75)</code> → <code>4.0</code></td></tr>
+<tr><td><code>summary(x)</code></td><td>Summary statistics</td><td><code>summary(data)</code> → record with min, Q1, median, Q3, max, mean</td></tr>
+<tr><td><code>round(x, digits)</code></td><td>Round to n decimal places</td><td><code>round(3.14159, 2)</code> → <code>3.14</code></td></tr>
+<tr><td><code>abs(x)</code></td><td>Absolute value</td><td><code>abs(-3.5)</code> → <code>3.5</code></td></tr>
+<tr><td><code>sqrt(x)</code></td><td>Square root</td><td><code>sqrt(16)</code> → <code>4.0</code></td></tr>
+<tr><td><code>log2(x)</code></td><td>Base-2 logarithm</td><td><code>log2(8)</code> → <code>3.0</code></td></tr>
+<tr><td><code>log10(x)</code></td><td>Base-10 logarithm</td><td><code>log10(1000)</code> → <code>3.0</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="probability-distributions"><a class="header" href="#probability-distributions">Probability Distributions</a></h2>
+<p>Each distribution has four functions following the <code>d/p/q/r</code> convention: <code>d</code> (density/mass), <code>p</code> (cumulative probability), <code>q</code> (quantile/inverse CDF), <code>r</code> (random samples). All parameters are positional.</p>
+<h3 id="continuous"><a class="header" href="#continuous">Continuous</a></h3>
+<pre><code class="language-bio"># Normal: dnorm(x, mu, sigma), pnorm(x, mu, sigma), qnorm(p, mu, sigma), rnorm(n, mu, sigma)
+dnorm(0, 0, 1)        # Density at x=0 for standard normal
+pnorm(1.96, 0, 1)     # P(X &lt;= 1.96) ≈ 0.975
+qnorm(0.975, 0, 1)    # Quantile at p=0.975 ≈ 1.96
+rnorm(100, 0, 1)      # Generate 100 standard normal values
+
+# Student's t: dt(x, df), pt(x, df), qt(p, df), rt(n, df)
+dt(0, 10)
+pt(2.228, 10)
+qt(0.975, 10)
+rt(100, 10)
+
+# F: df(x, df1, df2), pf(x, df1, df2), qf(p, df1, df2), rf(n, df1, df2)
+df(1.5, 5, 20)
+pf(3.0, 5, 20)
+qf(0.95, 5, 20)
+rf(100, 5, 20)
+
+# Chi-square: dchisq(x, df), pchisq(x, df), qchisq(p, df), rchisq(n, df)
+dchisq(5.0, 5)
+pchisq(11.07, 5)
+qchisq(0.95, 5)
+rchisq(100, 5)
+
+# Beta: dbeta(x, alpha, beta), pbeta(x, alpha, beta), qbeta(p, alpha, beta), rbeta(n, alpha, beta)
+dbeta(0.3, 2, 5)
+pbeta(0.5, 2, 5)
+qbeta(0.95, 2, 5)
+rbeta(100, 2, 5)
+
+# Gamma: dgamma(x, shape, rate), pgamma(x, shape, rate), qgamma(p, shape, rate), rgamma(n, shape, rate)
+dgamma(1.0, 2, 1)
+pgamma(3.0, 2, 1)
+qgamma(0.95, 2, 1)
+rgamma(100, 2, 1)
+
+# Exponential: dexp(x, rate), pexp(x, rate), qexp(p, rate), rexp(n, rate)
+dexp(1.0, 0.5)
+pexp(2.0, 0.5)
+qexp(0.95, 0.5)
+rexp(100, 0.5)
+
+# Log-Normal: dlnorm(x, mu, sigma), plnorm(x, mu, sigma), qlnorm(p, mu, sigma), rlnorm(n, mu, sigma)
+dlnorm(1.0, 0, 1)
+plnorm(2.0, 0, 1)
+qlnorm(0.95, 0, 1)
+rlnorm(100, 0, 1)
+
+# Uniform: dunif(x, min, max), punif(x, min, max), qunif(p, min, max), runif(n, min, max)
+dunif(0.5, 0, 1)
+punif(0.7, 0, 1)
+qunif(0.5, 0, 1)
+runif(100, 0, 1)
+</code></pre>
+<h3 id="discrete"><a class="header" href="#discrete">Discrete</a></h3>
+<pre><code class="language-bio"># Binomial: dbinom(k, n, p), pbinom(k, n, p), qbinom(q, n, p), rbinom(size, n, p)
+dbinom(10, 20, 0.5)       # P(X = 10)
+pbinom(10, 20, 0.5)       # P(X &lt;= 10)
+qbinom(0.5, 20, 0.5)      # Smallest k with P(X &lt;= k) &gt;= 0.5
+rbinom(100, 20, 0.5)      # Generate 100 random values
+
+# Poisson: dpois(k, lambda), ppois(k, lambda), qpois(q, lambda), rpois(n, lambda)
+dpois(5, 5.0)
+ppois(7, 5.0)
+qpois(0.95, 5.0)
+rpois(100, 5.0)
+
+# Negative Binomial: dnbinom(k, mu, size), pnbinom(k, mu, size), qnbinom(q, mu, size), rnbinom(n, mu, size)
+dnbinom(8, 10, 5)
+pnbinom(15, 10, 5)
+qnbinom(0.95, 10, 5)
+rnbinom(100, 10, 5)
+
+# Hypergeometric: dhyper(k, K, N_minus_K, n), phyper(k, K, N_minus_K, n), qhyper(q, K, N_minus_K, n), rhyper(size, K, N_minus_K, n)
+dhyper(5, 200, 19800, 500)
+phyper(5, 200, 19800, 500)
+qhyper(0.95, 200, 19800, 500)
+rhyper(100, 200, 19800, 500)
+</code></pre>
+<h2 id="hypothesis-tests"><a class="header" href="#hypothesis-tests">Hypothesis Tests</a></h2>
+<h3 id="comparing-two-groups"><a class="header" href="#comparing-two-groups">Comparing Two Groups</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ttest(a, b)</code></td><td>Welch’s two-sample t-test</td><td><code>ttest(ctrl, treat)</code></td></tr>
+<tr><td><code>ttest_paired(a, b)</code></td><td>Paired t-test</td><td><code>ttest_paired(before, after)</code></td></tr>
+<tr><td><code>ttest_one(x, mu)</code></td><td>One-sample t-test</td><td><code>ttest_one(diffs, 0)</code></td></tr>
+<tr><td><code>wilcoxon(a, b)</code></td><td>Wilcoxon rank-sum / signed-rank test</td><td><code>wilcoxon(ctrl, treat)</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="comparing-multiple-groups"><a class="header" href="#comparing-multiple-groups">Comparing Multiple Groups</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>anova(groups)</code></td><td>One-way ANOVA (auto-detects Welch/Kruskal-Wallis)</td><td><code>anova([g1, g2, g3])</code></td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Post-hoc comparisons:</strong> Follow a significant ANOVA with pairwise tests and p-value correction:</p>
+<pre><code class="language-bio"># Pairwise t-tests with Bonferroni correction
+let pvals = []
+for i in 0..len(groups) {
+  for j in (i+1)..len(groups) {
+    let result = ttest(groups[i], groups[j])
+    pvals = pvals + [result.p_value]
+  }
+}
+let adjusted = p_adjust(pvals, "bonferroni")
+</code></pre>
+</blockquote>
+<h3 id="categorical-data"><a class="header" href="#categorical-data">Categorical Data</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>chi_square(observed, expected)</code></td><td>Chi-square test</td><td><code>chi_square(observed, expected)</code></td></tr>
+<tr><td><code>fisher_exact(a, b, c, d)</code></td><td>Fisher’s exact test (2x2)</td><td><code>fisher_exact(10, 5, 3, 12)</code></td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Effect sizes for categorical data</strong> are computed inline:</p>
+<pre><code class="language-bio"># Odds ratio
+let or = (a * d) / (b * c)
+
+# Relative risk
+let rr = (a / (a + b)) / (c / (c + d))
+</code></pre>
+</blockquote>
+<h2 id="correlation"><a class="header" href="#correlation">Correlation</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cor(x, y)</code></td><td>Pearson correlation</td><td><code>cor(expr, meth)</code></td></tr>
+<tr><td><code>spearman(x, y)</code></td><td>Spearman rank correlation</td><td><code>spearman(expr, meth)</code></td></tr>
+<tr><td><code>kendall(x, y)</code></td><td>Kendall tau correlation</td><td><code>kendall(expr, meth)</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="regression"><a class="header" href="#regression">Regression</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>lm(y, x)</code></td><td>Simple linear regression</td><td><code>lm(expression, age)</code></td></tr>
+<tr><td><code>lm(y, [x1, x2, ...])</code></td><td>Multiple linear regression</td><td><code>lm(expression, [age, sex, batch])</code></td></tr>
+<tr><td><code>glm(formula, table, family)</code></td><td>Generalized linear model</td><td><code>glm("y ~ x", data, "binomial")</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Supported GLM families: <code>"binomial"</code> (logistic), <code>"poisson"</code>, <code>"negbin"</code> (negative binomial).</p>
+<p>Access model results:</p>
+<pre><code class="language-bio">let model = lm(expression, [age, sex, batch])
+print("R-squared: " + str(round(model.r_squared, 3)))
+let residuals = model.residuals
+qq_plot(residuals, {title: "Residual Normality Check"})
+</code></pre>
+<h2 id="multiple-testing-correction"><a class="header" href="#multiple-testing-correction">Multiple Testing Correction</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>p_adjust(pvals, method)</code></td><td>Adjust p-values</td><td><code>p_adjust(pvals, "BH")</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Supported methods: <code>"bonferroni"</code>, <code>"holm"</code>, <code>"BH"</code> (Benjamini-Hochberg), <code>"BY"</code> (Benjamini-Yekutieli).</p>
+<pre><code class="language-bio"># Typical genomics workflow: test all genes, then correct
+let pvals = genes |&gt; map(|g| ttest(g.ctrl, g.treat).p_value)
+let padj = p_adjust(pvals, "BH")
+let sig_count = padj |&gt; filter(|p| p &lt; 0.05) |&gt; len()
+print("Significant genes (FDR &lt; 0.05): " + str(sig_count))
+</code></pre>
+<h2 id="dimensionality-reduction-and-clustering"><a class="header" href="#dimensionality-reduction-and-clustering">Dimensionality Reduction and Clustering</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>pca(data)</code></td><td>Principal Component Analysis</td><td><code>pca(expr_matrix)</code></td></tr>
+<tr><td><code>kmeans(data, k)</code></td><td>k-means clustering</td><td><code>kmeans(data, 3)</code></td></tr>
+<tr><td><code>hclust(data, method)</code></td><td>Hierarchical clustering</td><td><code>hclust(data, "ward")</code></td></tr>
+<tr><td><code>dbscan(data, eps, min_pts)</code></td><td>DBSCAN clustering</td><td><code>dbscan(data, 0.5, 5)</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bio"># PCA then clustering
+let result = pca(expr_matrix)
+pca_plot(result, {title: "Sample PCA"})
+
+# Estimate optimal k via silhouette
+let scores = range(2, 10) |&gt; map(|k| {
+  let km = kmeans(data, k)
+  km.silhouette
+})
+</code></pre>
+<h2 id="statistical-visualization"><a class="header" href="#statistical-visualization">Statistical Visualization</a></h2>
+<h3 id="svg-plots-file-output"><a class="header" href="#svg-plots-file-output">SVG Plots (file output)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>histogram(data, options)</code></td><td>Histogram</td><td><code>histogram(data, {bins: 30, title: "Distribution"})</code></td></tr>
+<tr><td><code>density(data, options)</code></td><td>Kernel density estimate</td><td><code>density(data, {title: "Density"})</code></td></tr>
+<tr><td><code>violin(data, options)</code></td><td>Violin plot</td><td><code>violin([g1, g2], {labels: ["A", "B"], title: "Groups"})</code></td></tr>
+<tr><td><code>heatmap(table, options)</code></td><td>Heatmap with optional clustering</td><td><code>heatmap(matrix, {cluster_rows: true, title: "Expression"})</code></td></tr>
+<tr><td><code>volcano(table, options)</code></td><td>Volcano plot for DE results</td><td><code>volcano(de_results, {fc_threshold: 1.0, title: "DE"})</code></td></tr>
+<tr><td><code>manhattan(table, options)</code></td><td>Manhattan plot for GWAS</td><td><code>manhattan(gwas_results, {significance_line: 5e-8, title: "GWAS"})</code></td></tr>
+<tr><td><code>qq_plot(data, options)</code></td><td>Q-Q plot (normality check)</td><td><code>qq_plot(residuals, {title: "Normality Check"})</code></td></tr>
+<tr><td><code>forest_plot(table, options)</code></td><td>Forest plot for meta-analysis</td><td><code>forest_plot(meta_tbl, {null_value: 0, title: "Meta-analysis"})</code></td></tr>
+<tr><td><code>roc_curve(table, options)</code></td><td>ROC curve</td><td><code>roc_curve(roc_tbl, {title: "Classifier ROC"})</code></td></tr>
+<tr><td><code>pca_plot(result, options)</code></td><td>PCA scatter plot</td><td><code>pca_plot(result, {title: "PCA"})</code></td></tr>
+<tr><td><code>plot(table, options)</code></td><td>General line/scatter plot</td><td><code>plot(tbl, {type: "line", title: "Trend"})</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="ascii-plots-terminal-output"><a class="header" href="#ascii-plots-terminal-output">ASCII Plots (terminal output)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>scatter(x, y, options)</code></td><td>ASCII scatter plot</td><td><code>scatter(age, expr, {xlabel: "Age", ylabel: "Expr"})</code></td></tr>
+<tr><td><code>boxplot(data, options)</code></td><td>ASCII box plot</td><td><code>boxplot(table({"Ctrl": g1, "Treat": g2}), {title: "Comparison"})</code></td></tr>
+<tr><td><code>bar_chart(labels, values, options)</code></td><td>ASCII bar chart</td><td><code>bar_chart(names, counts, {title: "Counts"})</code></td></tr>
+<tr><td><code>sparkline(data)</code></td><td>Inline sparkline</td><td><code>sparkline(timeseries)</code></td></tr>
+<tr><td><code>hist(data, options)</code></td><td>ASCII histogram</td><td><code>hist(data, {bins: 20})</code></td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Note:</strong> All visualization options are passed as a record (second argument): <code>fn(data, {key: value, ...})</code>. Options are always optional — you can call any plot function with just the data argument.</p>
+</blockquote>
+<h2 id="resampling-and-simulation"><a class="header" href="#resampling-and-simulation">Resampling and Simulation</a></h2>
+<p>BioLang provides building blocks for resampling methods rather than dedicated functions:</p>
+<pre><code class="language-bio"># Bootstrap confidence interval for the median
+let data = [2.3, 4.1, 3.7, 5.2, 4.8, 3.1, 6.0, 4.4]
+let n_boot = 10000
+let boot_medians = range(0, n_boot) |&gt; map(|i| {
+  let resample = range(0, len(data)) |&gt; map(|j| data[random_int(0, len(data) - 1)])
+  median(resample)
+})
+let sorted = sort(boot_medians)
+let lo = sorted[round(n_boot * 0.025, 0)]
+let hi = sorted[round(n_boot * 0.975, 0)]
+print("95% CI: [" + str(lo) + ", " + str(hi) + "]")
+
+# Permutation test
+let observed_diff = abs(mean(treated) - mean(control))
+let combined = treated + control
+let n_perm = 10000
+let null_diffs = range(0, n_perm) |&gt; map(|i| {
+  let shuffled = shuffle(combined)
+  let perm_a = shuffled[0..len(treated)]
+  let perm_b = shuffled[len(treated)..len(combined)]
+  abs(mean(perm_a) - mean(perm_b))
+})
+let p_value = len(null_diffs |&gt; filter(|d| d &gt;= observed_diff)) / n_perm
+</code></pre>
+<h2 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>shuffle(x)</code></td><td>Random permutation</td><td><code>shuffle(labels)</code></td></tr>
+<tr><td><code>random_int(a, b)</code></td><td>Random integer in [a, b]</td><td><code>random_int(0, 99)</code></td></tr>
+<tr><td><code>sort(x)</code></td><td>Sort values ascending</td><td><code>sort([3, 1, 2])</code> → <code>[1, 2, 3]</code></td></tr>
+<tr><td><code>range(a, b)</code></td><td>Integer sequence [a, b)</td><td><code>range(0, 10)</code> → <code>[0, 1, ..., 9]</code></td></tr>
+<tr><td><code>len(x)</code></td><td>Number of elements</td><td><code>len([1, 2, 3])</code> → <code>3</code></td></tr>
+<tr><td><code>str(x)</code></td><td>Convert to string</td><td><code>str(42)</code> → <code>"42"</code></td></tr>
+<tr><td><code>table(rows, cols, fill)</code></td><td>Create a table</td><td><code>table(10, 3, 0)</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="power-analysis"><a class="header" href="#power-analysis">Power Analysis</a></h2>
+<p>BioLang does not have dedicated power analysis functions. Compute sample sizes using distribution quantiles and effect size formulas:</p>
+<pre><code class="language-bio"># Sample size for two-sample t-test
+# H0: mu1 = mu2, H1: mu1 != mu2
+let effect_size = 0.5     # Cohen's d
+let alpha = 0.05
+let power = 0.80
+let z_alpha = qnorm(1 - alpha / 2, 0, 1)    # 1.96
+let z_beta = qnorm(power, 0, 1)              # 0.842
+let n_per_group = round(2 * ((z_alpha + z_beta) / effect_size) ** 2, 0)
+print("Required n per group: " + str(n_per_group))
+
+# Cohen's d (inline)
+let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * var(a) + (len(b) - 1) * var(b)) / (len(a) + len(b) - 2))
+</code></pre>
+<h2 id="bayesian-methods"><a class="header" href="#bayesian-methods">Bayesian Methods</a></h2>
+<p>BioLang supports Bayesian analysis through conjugate update formulas computed inline:</p>
+<pre><code class="language-bio"># Beta-Binomial conjugate update
+# Prior: Beta(alpha, beta); Data: k successes in n trials
+# Posterior: Beta(alpha + k, beta + n - k)
+let prior_a = 1.0
+let prior_b = 1.0
+let k = 15
+let n = 20
+let post_a = prior_a + k
+let post_b = prior_b + (n - k)
+let post_mean = post_a / (post_a + post_b)
+print("Posterior mean: " + str(round(post_mean, 3)))
+
+# 95% credible interval via Beta quantiles
+let ci_lo = qbeta(0.025, post_a, post_b)
+let ci_hi = qbeta(0.975, post_a, post_b)
+print("95% CI: [" + str(round(ci_lo, 3)) + ", " + str(round(ci_hi, 3)) + "]")
+
+# Normal-Normal conjugate update
+# Prior: N(mu0, sigma0^2); Data: n observations with mean x_bar and known sigma
+let prior_mu = 0.0
+let prior_prec = 1.0 / (10.0 ** 2)   # prior precision = 1/sigma0^2
+let data_prec = len(data) / (sd(data) ** 2)
+let post_prec = prior_prec + data_prec
+let post_mu = (prior_prec * prior_mu + data_prec * mean(data)) / post_prec
+let post_sd = sqrt(1.0 / post_prec)
+</code></pre>
+<h2 id="survival-analysis"><a class="header" href="#survival-analysis">Survival Analysis</a></h2>
+<p>BioLang provides basic building blocks for survival analysis. For simple comparisons:</p>
+<pre><code class="language-bio"># Compare survival times between two groups
+let result = ttest(arm1_times, arm2_times)
+print("p-value: " + str(round(result.p_value, 4)))
+
+# Median survival
+let med_a = sort(arm1_times)[len(arm1_times) / 2]
+let med_b = sort(arm2_times)[len(arm2_times) / 2]
+print("Median survival — Arm A: " + str(med_a) + ", Arm B: " + str(med_b))
+
+# Approximate hazard ratio from median ratio
+let hr = med_b / med_a
+
+# Regression on survival times
+let model = lm(survival_time, [age, stage, treatment])
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="appendix-glossary.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="appendix-glossary.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

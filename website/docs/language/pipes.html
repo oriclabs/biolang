@@ -22,119 +22,83 @@
         <span class="text-slate-300">Pipes</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>Pipes</h1>
+        <h1>Pipes &amp; Transforms</h1>
         <p>
           The pipe operator <code>|&gt;</code> is the defining feature of BioLang. It passes the
           value on the left as the <strong>first argument</strong> to the function on the right,
-          enabling clean, readable data transformation chains that mirror the conceptual flow of
-          bioinformatics pipelines.
+          enabling clean, readable data transformation chains.
         </p>
 
         <h2>Basic Syntax</h2>
         <p>
-          The expression <code>a |&gt; f(b, c)</code> is syntactic sugar for <code>f(a, b, c)</code>.
+          The expression <code>a |&gt; f(b)</code> is syntactic sugar for <code>f(a, b)</code>.
           The left-hand value is always inserted as the first argument:
         </p>
         <pre><code class="language-biolang"># These two lines are equivalent:
-let result = upper("hello")
-let result = "hello" |> upper()
+let r1 = upper("hello")
+let r2 = "hello" |> upper()
+println(r1)   # HELLO
+println(r2)   # HELLO
 
 # With additional arguments:
-let result = slice("hello world", 0, 5)
-let result = "hello world" |> slice(0, 5)</code></pre>
+let s1 = slice("hello world", 0, 5)
+let s2 = "hello world" |> slice(0, 5)
+println(s1)   # hello
+println(s2)   # hello</code></pre>
 
         <h2>Chaining Pipes</h2>
         <p>
           The real power of pipes emerges when chaining multiple transformations. Each step
           feeds its result into the next:
         </p>
-        <pre><code class="language-biolang"># Read a FASTA file, filter by length, compute GC content
-let gc_values = fasta("genome.fa")
-  |> filter(|r| r.length >= 1000)
-  |> map(|r| gc_content(r.seq))
-  |> collect()
+        <pre><code class="language-biolang"># Chain string transforms
+let result = "  Hello, World!  "
+  |> trim()
+  |> lower()
+  |> split(" ")
+  |> join("-")
+println(result)   # hello,-world!
+
+# Chain list transforms
+let nums = [5, 3, 8, 1, 9, 2, 7]
   |> sort()
   |> reverse()
-
-# Variant analysis pipeline
-let high_impact = vcf("calls.vcf")
-  |> filter(|v| v.qual >= 30.0)
-  |> filter(|v| v.chrom == "chr17")
-  |> collect()</code></pre>
+  |> take(3)
+println(nums)   # [9, 8, 7]</code></pre>
 
         <h2>Pipes with Lambdas</h2>
         <p>
           Lambdas are frequently used with pipes to define inline transformation logic:
         </p>
-        <pre><code class="language-biolang"># Transform sample names
-let clean_names = sample_names
-  |> map(|s| s |> lower() |> trim())
-  |> filter(|s| len(s) > 0)
-  |> unique()
+        <pre><code class="language-biolang"># Filter and transform with lambdas
+let scores = [85, 92, 45, 78, 95, 33, 88]
+let high = scores
+  |> filter(|s| s >= 80)
+  |> map(|s| s / 100.0)
+  |> sort()
+println(high)   # [0.85, 0.88, 0.92, 0.95]
 
 # Nested pipes inside a lambda
-let results = genes
-  |> map(|gene| {
-    let seq = fetch_sequence(gene)
-    seq
-      |> transcribe()
-      |> translate()
-      |> len()
-  })</code></pre>
+let words = ["BRCA1", "tp53", "Egfr"]
+let cleaned = words
+  |> map(|w| w |> upper() |> trim())
+println(cleaned)   # [BRCA1, TP53, EGFR]</code></pre>
 
         <h2>Pipe-Friendly Function Design</h2>
         <p>
           BioLang functions are designed pipe-first: the primary data argument is always the
           first parameter. This convention ensures every function works naturally with pipes:
         </p>
-        <pre><code class="language-biolang"># The data argument comes first
-fn normalize(values: List[Float], method: String) -> List[Float] {
-  match method {
-    "zscore" => {
-      let mu = mean(values)
-      let sd = stdev(values)
-      values |> map(|x| (x - mu) / sd)
-    },
-    "minmax" => {
-      let lo = min(values)
-      let hi = max(values)
-      values |> map(|x| (x - lo) / (hi - lo))
-    },
-    _ => values
-  }
+        <pre><code class="language-biolang"># Data argument comes first so pipes work naturally
+fn scale(values, factor) {
+  values |> map(|x| x * factor)
 }
 
-# Now it works naturally with pipes:
-let normed = raw_scores |> normalize("zscore")</code></pre>
-
-        <h2>Partial Application</h2>
-        <p>
-          You can create partially applied functions to use in pipe chains. The underscore
-          <code>_</code> marks the position where the piped value will be inserted:
-        </p>
-        <pre><code class="language-biolang"># Using partial application with _
-let add_ten = _ + 10
-let scores = [1, 2, 3] |> map(add_ten)   # [11, 12, 13]
-
-# Useful for reusable pipeline stages
-let high_quality = filter(_, |r| mean_phred(r.quality) >= 30)
-let long_reads = filter(_, |r| r.length >= 150)
-
-reads |> high_quality |> long_reads</code></pre>
-
-        <h2>Operator Precedence</h2>
-        <p>
-          The pipe operator has the <strong>lowest precedence</strong> of all operators, so
-          expressions on either side are fully evaluated before piping:
-        </p>
-        <pre><code class="language-biolang"># Arithmetic is evaluated before piping
-let result = 2 + 3 |> str()   # str(5), not 2 + str(3)
-
-# Comparison is evaluated before piping
-let x = items |> len() > 0   # (len(items)) > 0
-
-# Use parentheses when you need different grouping
-let y = items |> (filter(|x| x > 0) |> len())</code></pre>
+# Now it chains with pipes:
+let result = [1, 2, 3, 4, 5]
+  |> scale(10)
+  |> filter(|x| x > 20)
+println(result)   # [30, 40, 50]</code></pre>
 
         <h2>Multiline Pipes</h2>
         <p>
@@ -142,164 +106,128 @@ let y = items |> (filter(|x| x > 0) |> len())</code></pre>
           span multiple lines without any special continuation syntax:
         </p>
         <pre><code class="language-biolang"># Each pipe stage on its own line for readability
-let summary = csv("experiment.csv")
-  |> filter(|row| row.p_value < 0.05)
-  |> select("gene", "log2fc", "p_value")
-  |> arrange("-log2fc")
-  |> head(20)
-  |> str()</code></pre>
+let genes = ["BRCA1", "TP53", "EGFR", "MYC", "KRAS"]
+let report = genes
+  |> filter(|g| len(g) <= 4)
+  |> map(|g| f"Gene: {g}")
+  |> join(", ")
+println(report)   # Gene: TP53, Gene: EGFR, Gene: MYC, Gene: KRAS</code></pre>
 
-        <h2>Method-Style Calls</h2>
+        <h2>Higher-Order Functions</h2>
         <p>
-          For functions that take a single argument (the piped value), you can omit the
-          parentheses entirely:
+          BioLang provides a rich set of higher-order functions that work with pipes.
+          Here are the most commonly used:
         </p>
-        <pre><code class="language-biolang"># With parentheses (always works)
-let rc = dna"ATCG" |> reverse_complement()
 
-# Without parentheses (zero-arg pipe target)
-let rc = dna"ATCG" |> reverse_complement
+        <h3>map</h3>
+        <p>Transform each element:</p>
+        <pre><code class="language-biolang">let doubled = [1, 2, 3] |> map(|x| x * 2)
+println(doubled)   # [2, 4, 6]</code></pre>
 
-# Chained
-let result = dna"ATCGATCG"
-  |> reverse_complement
-  |> gc_content
-  |> str</code></pre>
+        <h3>filter</h3>
+        <p>Keep elements matching a predicate:</p>
+        <pre><code class="language-biolang">let evens = [1, 2, 3, 4, 5, 6] |> filter(|x| x % 2 == 0)
+println(evens)   # [2, 4, 6]</code></pre>
 
-        <h2>Pipes with Tables</h2>
+        <h3>reduce</h3>
+        <p>Fold a list into a single value:</p>
+        <pre><code class="language-biolang">let total = [1, 2, 3, 4, 5] |> reduce(|a, b| a + b)
+println(total)   # 15</code></pre>
+
+        <h3>each</h3>
+        <p>Execute a side effect for every element (returns the original list):</p>
+        <pre><code class="language-biolang">[10, 20, 30] |> each(|x| println(f"Value: {x}"))
+# Value: 10
+# Value: 20
+# Value: 30</code></pre>
+
+        <h3>sort_by</h3>
+        <p>Sort with a custom comparator:</p>
+        <pre><code class="language-biolang"># Sort strings by length
+let sorted = ["BRCA1", "TP53", "EGFR", "A", "MYC"]
+  |> sort_by(|a, b| len(a) - len(b))
+println(sorted)   # [A, MYC, TP53, EGFR, BRCA1]</code></pre>
+
+        <h3>flat_map</h3>
+        <p>Map and flatten the results:</p>
+        <pre><code class="language-biolang">let result = ["hello world", "foo bar"]
+  |> flat_map(|s| split(s, " "))
+println(result)   # [hello, world, foo, bar]</code></pre>
+
+        <h3>take and skip</h3>
+        <p>Slice from the front or skip initial elements:</p>
+        <pre><code class="language-biolang">let first_three = [10, 20, 30, 40, 50] |> take(3)
+println(first_three)   # [10, 20, 30]
+
+let rest = [10, 20, 30, 40, 50] |> skip(2)
+println(rest)   # [30, 40, 50]</code></pre>
+
+        <h3>zip</h3>
+        <p>Combine two lists into pairs:</p>
+        <pre><code class="language-biolang">let names = ["BRCA1", "TP53", "EGFR"]
+let scores = [0.95, 0.87, 0.72]
+let paired = zip(names, scores)
+println(paired)   # [[BRCA1, 0.95], [TP53, 0.87], [EGFR, 0.72]]</code></pre>
+
+        <h3>enumerate</h3>
+        <p>Pair each element with its index:</p>
+        <pre><code class="language-biolang">let indexed = ["A", "B", "C"] |> enumerate()
+println(indexed)   # [[0, A], [1, B], [2, C]]</code></pre>
+
+        <h2>Combining Multiple HOFs</h2>
         <p>
-          Table operations are designed specifically for pipe chains, following the
-          select-filter-arrange-summarize pattern:
+          The full power of pipes comes from chaining these functions together into
+          data processing pipelines:
         </p>
-        <pre><code class="language-biolang">let report = csv("variants.csv")
-  |> select("gene", "variant", "impact", "frequency")
-  |> filter(|r| r.impact == "HIGH")
-  |> arrange("-frequency")
-  |> group_by("gene")
-  |> summarize(|key, rows| {
-    gene: key,
-    variant_count: len(rows),
-    max_freq: max(col(rows, "frequency"))
-  })
-  |> filter(|r| r.variant_count >= 3)
-  |> arrange("-variant_count")</code></pre>
+        <pre><code class="language-biolang"># A complete data pipeline
+let data = [
+  {gene: "BRCA1", log2fc: 3.2, pvalue: 0.001},
+  {gene: "TP53", log2fc: -1.5, pvalue: 0.04},
+  {gene: "EGFR", log2fc: 0.3, pvalue: 0.5},
+  {gene: "MYC", log2fc: 2.8, pvalue: 0.01},
+  {gene: "KRAS", log2fc: -0.1, pvalue: 0.8}
+]
 
-        <h2>Pipes with Streams</h2>
+# Filter significant, sort by fold change, report
+data
+  |> filter(|r| r.pvalue < 0.05)
+  |> sort_by(|a, b| b.log2fc - a.log2fc)
+  |> each(|r| println(f"{r.gene}: log2FC={r.log2fc}, p={r.pvalue}"))
+# BRCA1: log2FC=3.2, p=0.001
+# MYC: log2FC=2.8, p=0.01
+# TP53: log2FC=-1.5, p=0.04</code></pre>
+
+        <h2>Bio-Specific Pipe Chains</h2>
         <p>
-          Pipes compose naturally with lazy streams. The stream is only consumed when a terminal
-          operation (like <code>collect</code> or <code>write</code>) is reached:
+          Pipes are especially natural for biological sequence analysis:
         </p>
-        <pre><code class="language-biolang"># Nothing happens until collect() — all lazy
-let results = fastq("huge.fq.gz")
-  |> filter(|r| mean_phred(r.quality) >= 30)
-  |> filter(|r| r.length >= 50)
-  |> take(10_000)
-  |> collect()</code></pre>
+        <pre><code class="language-biolang"># DNA sequence analysis pipeline
+let seq = dna"ATCGATCGATCGATCG"
+let rc = seq |> reverse_complement()
+let gc = seq |> gc_content()
+println(f"Sequence: {seq}")
+println(f"Rev comp: {rc}")
+println(f"GC content: {gc}")
 
-        <h2>Debugging Pipes</h2>
-        <p>
-          Use <code>tap</code> to inspect intermediate values without breaking the chain:
-        </p>
-        <pre><code class="language-biolang">let result = data
-  |> filter(|r| r.score > 0.5)
-  |> tap(|d| print(f"After filter: {len(d)} rows"))
-  |> arrange("-score")
-  |> tap(|d| print(f"Top score: {d[0].score}"))
-  |> head(10)</code></pre>
-
-        <h2>Tap Pipe</h2>
-        <p>
-          The tap-pipe operator <code>|&gt;&gt;</code> evaluates a side effect without
-          breaking the data flow. The original value passes through unchanged &mdash; useful
-          for logging, debugging, or writing intermediate results:
-        </p>
-        <pre><code class="language-biolang"># Log intermediate values without breaking the chain
-let result = fastq("sample.fq")
-    |> filter(|r| mean_phred(r.quality) > 20)
-    |>> print(f"After QC: {len(_)} reads")
-    |> map(|r| gc_content(r.seq))
-    |>> write_csv(_, "gc_values.csv")
-    |> mean()
-
-# _ binds to the piped value inside tap
-let data = [3, 1, 4, 1, 5]
-    |> sort()
-    |>> print(f"Sorted: {_}")
-    |> reverse()</code></pre>
-
-        <h2>Pipe Binding with <code>|&gt; into</code></h2>
-        <p>
-          The <code>|&gt; into</code> operator evaluates the left-hand expression, binds the result
-          to a name, and returns the value. It reads left-to-right, avoiding the need to wrap long
-          pipe chains in <code>let x = ...</code> assignments.
-        </p>
-        <pre><code class="language-biolang"># Instead of wrapping a pipe chain in let:
-let passed = variants |> filter(|v| v.quality >= 30)
-
-# You can write:
-variants |> filter(|v| v.quality >= 30) |> into passed</code></pre>
-        <p>
-          <code>expr |&gt; into name</code> is equivalent to <code>let name = expr</code>. The
-          bound name is available in subsequent expressions, and the value itself is returned so
-          you can continue piping if needed.
-        </p>
-        <pre><code class="language-biolang"># Multi-step workflow with into
-read_fastq("reads.fq")
-  |> filter(|r| mean_phred(r.quality) >= 30)
-  |> into high_quality
-
-high_quality |> map(|r| trim(r, 20)) |> into trimmed
-
-print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")</code></pre>
-        <p>
-          This is especially useful when you need to reference an intermediate result later
-          without breaking the left-to-right reading order of a pipeline.
-        </p>
+# Analyze multiple sequences
+let seqs = [dna"ATCGATCG", dna"GCGCGCGC", dna"AAATTTAA"]
+let gc_values = seqs |> map(|s| gc_content(s))
+println(f"GC values: {gc_values}")</code></pre>
 
         <h2>Common Patterns</h2>
-        <pre><code class="language-biolang"># ETL: Extract, Transform, Load
-let cleaned = csv("raw_data.csv")
-  |> select("old_col")
-  |> mutate("score", |r| r.raw_score / 100.0)
-  |> filter(|r| r.score != nil)
-  |> write_csv("cleaned.csv")
-
-# Pipeline with error handling
-let safe_result = raw_data
-  |> map(|item| try { process(item) } catch _ { nil })
-  |> filter(|r| r != nil)
+        <pre><code class="language-biolang"># Pipeline with error handling
+let raw = [1, 0, 2, 0, 3]
+let safe = raw
+  |> filter(|x| x != 0)
+  |> map(|x| 100 / x)
+println(safe)   # [100, 50, 33]
 
 # Forking a pipeline
-let base = fastq("sample.fq")
-  |> filter(|r| mean_phred(r.quality) >= 20)
-  |> collect()
-let short = base |> filter(|r| r.length < 150)
-let long = base |> filter(|r| r.length >= 150)</code></pre>
-
-        <section id="ufcs" class="mt-12">
-          <h2 class="text-2xl font-bold text-white mb-4">Uniform Function Call Syntax (UFCS)</h2>
-          <p class="text-slate-400 mb-4">When <code class="text-cyan-400">x.f(args)</code> is called and <code class="text-cyan-400">x</code> has no method named <code class="text-cyan-400">f</code>, BioLang automatically rewrites it to <code class="text-cyan-400">f(x, args)</code>. This lets you use dot-call syntax with any function.</p>
-          <pre><code class="language-biolang"># These are equivalent:
-seq |> gc_content()
-gc_content(seq)
-seq.gc_content()
-
-# Chain built-in functions with dot syntax
-let result = dna"ATCGATCG"
-  .reverse_complement()
-  .gc_content()
-
-# Works with any function, including user-defined ones
-fn double(x) { x * 2 }
-let n = 5.double()   # 10
-
-# Mix pipe and dot styles
-reads
-  .filter(|r| mean_phred(r.quality) > 20)
-  .map(|r| r.length)
-  .mean()</code></pre>
-          <p class="text-slate-400 mt-4">UFCS is purely syntactic sugar &mdash; <code class="text-cyan-400">x.f(a, b)</code> becomes <code class="text-cyan-400">f(x, a, b)</code> when no native method exists.</p>
-        </section>
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+let small = numbers |> filter(|x| x <= 5)
+let large = numbers |> filter(|x| x > 5)
+println(f"Small: {small}")
+println(f"Large: {large}")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="variables.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

@@ -9,7 +9,7 @@ description = "Tree-walking interpreter with 750+ builtins for BioLang"
 
 [features]
 default = ["native"]
-native = ["dep:flate2", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite"]
+native = ["dep:flate2", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite", "dep:parquet", "dep:pdf-extract"]
 bytecode = ["dep:bl-compiler", "dep:bl-jit"]
 jit = ["bytecode", "bl-jit/jit"]
 
@@ -40,6 +40,8 @@ rustc-hash = "2"
 toml = { version = "0.8", optional = true }
 dirs = { version = "5", optional = true }
 rusqlite = { version = "0.31", features = ["bundled"], optional = true }
+parquet = { version = "54", optional = true, default-features = false, features = ["snap"] }
+pdf-extract = { version = "0.10", optional = true }
 
 [dev-dependencies]
 tempfile = "3"

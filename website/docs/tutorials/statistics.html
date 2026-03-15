@@ -62,7 +62,7 @@
         <pre><code class="language-biolang"># requires: data/experiment.csv in working directory
 # stats.bio — statistical analysis
 
-let data = csv("data/experiment.csv")
+let data = read_csv("data/expression.csv")
 
 # Extract a column as a list (table field access returns column)
 let values = col(data, "expression")
@@ -236,7 +236,7 @@ plot(data, {
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — PCA Visualization</h2>
         <pre><code class="language-biolang"># requires: data/expression_matrix.csv in working directory
 # Load expression matrix (samples as rows, genes as columns)
-let expr = csv("data/expression_matrix.csv")
+let expr = read_csv("data/expression.csv")
 
 # pca_plot performs PCA and renders a scatter plot of PC1 vs PC2
 # It accepts a table and a config record
@@ -310,7 +310,7 @@ corrected
         <pre><code class="language-biolang"># stats_pipeline.bio — full statistical analysis
 
 fn statistical_analysis(data_file, output_dir) {
-  let data = csv(data_file)
+  let data = read_csv(data_file)
 
   # 1. Descriptive statistics
   let desc = describe(data)

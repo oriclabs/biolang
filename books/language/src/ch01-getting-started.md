@@ -121,7 +121,7 @@ Saved 12 bindings to my_session.bl
 #### `:time` -- Benchmark an expression
 
 ```
-bl> :time read_fastq("sample_R1.fastq.gz") |> filter(|r| mean(r.quality) >= 30) |> len()
+bl> :time read_fastq("data/reads.fastq") |> filter(|r| mean(r.quality) >= 30) |> len()
 Result: 1847293
 Elapsed: 4.38s
 ```
@@ -150,7 +150,7 @@ table      csv, tsv, write_tsv
 #### `:profile` -- Profile an expression
 
 ```
-bl> :profile read_fasta("reference.fa") |> filter(|r| seq_len(r.seq) > 1000) |> len()
+bl> :profile read_fasta("data/sequences.fasta") |> filter(|r| seq_len(r.seq) > 1000) |> len()
 Total:     2.14s
   read:    1.87s (87.4%)
   filter:  0.26s (12.1%)
@@ -174,7 +174,7 @@ bl run qc_report.bl -- --input sample.fastq.gz --min-quality 20
 
 Arguments are available inside the script via the `args` record:
 
-```
+```biolang
 # qc_report.bl
 let input_file = args.input
 let min_qual = into(args.min_quality ?? "20", "Int")
@@ -194,11 +194,11 @@ below uses `examples/sample-data/contigs.fa`.
 
 Create a file called `gc_scan.bl`:
 
-```
+```biolang
 # gc_scan.bl
 # Read a FASTA file, compute per-sequence GC content, report statistics.
 
-let sequences = read_fasta("examples/sample-data/contigs.fa")
+let sequences = read_fasta("data/sequences.fasta")
 
 # Compute GC content for each sequence
 let gc_table = sequences
@@ -292,7 +292,7 @@ defaults:
 
 Access project config values in your scripts:
 
-```
+```biolang
 # src/main.bl
 # Access project paths via import
 import "src/paths.bl" as paths
@@ -308,7 +308,7 @@ read_fastq(f"{paths.data}/sample_R1.fastq.gz")
 
 Use `import` to split your pipeline across files:
 
-```
+```biolang
 # src/main.bl
 import "src/qc.bl" as qc
 import "src/alignment.bl" as align
@@ -323,7 +323,7 @@ samples |> each(|sample| {
 })
 ```
 
-```
+```biolang
 # src/qc.bl
 let run = |r1, r2| {
   let filt_r1 = read_fastq(r1) |> filter(|r| mean(r.quality) >= 30) |> write_fastq(f"{r1}.filtered.fq.gz")
@@ -351,7 +351,7 @@ Resolution order for `import "module.bl"`:
 
 This is useful for sharing utility modules across projects:
 
-```
+```biolang
 # This resolves via BIOLANG_PATH if not found locally
 import "genomics_utils.bl" as gutils
 

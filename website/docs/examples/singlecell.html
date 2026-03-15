@@ -55,8 +55,8 @@ print(f"Sparsity: {(1.0 - (counts |> nnz |> float) / (n_cells * n_genes |> float
 
         <h3>Reading from CSV</h3>
         <pre><code class="language-biolang"># Load a dense count matrix (genes as columns, cells as rows)
-let counts_table = csv("count_matrix.csv")
-let metadata = csv("cell_metadata.csv")
+let counts_table = read_csv("data/counts.csv")
+let metadata = read_csv("data/sample_sheet.csv")
 
 print(f"Count matrix: {counts_table |> len} cells")
 print(f"Metadata fields: {metadata |> head(1) |> keys |> join(", ")}")</code></pre>

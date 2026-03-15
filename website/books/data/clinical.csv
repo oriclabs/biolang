@@ -1,0 +1,11 @@
+patient_id,age,sex,diagnosis,stage,treatment,response,survival_months,status
+P001,54,F,breast_cancer,II,chemo,complete,48,alive
+P002,67,M,lung_cancer,III,immunotherapy,partial,24,alive
+P003,45,F,breast_cancer,I,surgery,complete,60,alive
+P004,72,M,colon_cancer,IV,chemo,none,8,deceased
+P005,58,F,ovarian_cancer,III,chemo+surgery,partial,36,alive
+P006,63,M,lung_cancer,II,radiation,complete,42,alive
+P007,49,F,breast_cancer,II,targeted,complete,54,alive
+P008,71,M,prostate_cancer,I,surgery,complete,72,alive
+P009,55,M,colon_cancer,III,chemo,partial,18,deceased
+P010,61,F,lung_cancer,IV,immunotherapy,none,6,deceased

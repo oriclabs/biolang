@@ -44,6 +44,7 @@ jobs:
 
       - name: Build books
         run: |
+          mdbook build books/language
           mdbook build books/practical-bioinformatics/book
           mdbook build books/biostatistics/book
 

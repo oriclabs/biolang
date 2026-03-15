@@ -317,7 +317,7 @@ Quality plots show per-base quality scores across read positions. They are the f
 > **Requires CLI:** This example uses file I/O / network APIs not available in the browser. Run with `bl run`.
 
 ```bio
-let reads = read_fastq("data/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let first_read = reads |> first()
 quality_plot(first_read.qual)
 ```

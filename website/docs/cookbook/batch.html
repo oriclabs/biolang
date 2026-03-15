@@ -50,7 +50,7 @@ for p in pairs {
 
         <h3>Sample sheet driven</h3>
         <pre><code class="language-biolang"># Load samples from a sample sheet
-let samples = csv("sample_sheet.csv")
+let samples = read_csv("data/sample_sheet.csv")
 
 # Validate all files exist before starting
 let missing = []
@@ -71,7 +71,7 @@ print("All #{len(samples)} samples validated, #{len(samples) * 2} files found")<
 
         <h3>Processing samples one at a time</h3>
         <pre><code class="language-biolang"># Process each sample sequentially with progress tracking
-let samples = csv("sample_sheet.csv") |> collect
+let samples = read_csv("data/sample_sheet.csv") |> collect
 let total = len(samples)
 
 for i, sample in enumerate(samples) {
@@ -82,12 +82,12 @@ for i, sample in enumerate(samples) {
   print("[#{i + 1}/#{total}] Processing #{name}...")
 
   # Quality filtering
-  let in_count = fastq(sample["fastq_r1"]) |> count
-  fastq(sample["fastq_r1"])
+  let in_count = read_fastq(sample["fastq_r1"]) |> count
+  read_fastq(sample["fastq_r1"])
     |> filter(|r| mean_phred(r.quality) >= 30.0 && len(r.seq) >= 50)
-    |> write_fastq("#{out_dir}/filtered_R1.fq.gz")
+    |> write_read_fastq("#{out_dir}/filtered_R1.fq.gz")
 
-  let out_count = fastq("#{out_dir}/filtered_R1.fq.gz") |> count
+  let out_count = read_fastq("#{out_dir}/filtered_R1.fq.gz") |> count
   let pct_pass = round(float(out_count) / float(in_count) * 100.0, 1)
   print("  #{name}: #{in_count} -> #{out_count} reads (#{pct_pass}% passed)")
 }
@@ -98,7 +98,7 @@ print("Batch complete: #{total} samples processed")</code></pre>
 
         <h3>Processing samples in parallel</h3>
         <pre><code class="language-biolang"># Process multiple samples concurrently
-let samples = csv("sample_sheet.csv") |> collect
+let samples = read_csv("data/sample_sheet.csv") |> collect
 
 fn process_sample(sample) {
   let name = sample["sample_id"]
@@ -106,17 +106,17 @@ fn process_sample(sample) {
   mkdir(out_dir)
 
   # Count total reads and compute mean length
-  let reads = read_fastq(sample["fastq_r1"])
+  let reads = read_read_fastq(sample["fastq_r1"])
   let total = len(reads)
   let lengths = map(reads, |r| r.length)
   let avg_len = round(mean(lengths), 1)
 
   # Filter and write
-  fastq(sample["fastq_r1"])
+  read_fastq(sample["fastq_r1"])
     |> filter(|r| mean_phred(r.quality) >= 30.0)
-    |> write_fastq("#{out_dir}/filtered.fq.gz")
+    |> write_read_fastq("#{out_dir}/filtered.fq.gz")
 
-  let filtered_count = fastq("#{out_dir}/filtered.fq.gz") |> count
+  let filtered_count = read_fastq("#{out_dir}/filtered.fq.gz") |> count
 
   {
     sample: name,
@@ -139,12 +139,12 @@ print("  Mean pass rate:    #{round(mean(map(results, |r| r.pass_rate)), 1)}%")<
 
         <h3>Parallel with error handling</h3>
         <pre><code class="language-biolang"># Handle failures gracefully in parallel processing
-let samples = csv("sample_sheet.csv") |> collect
+let samples = read_csv("data/sample_sheet.csv") |> collect
 
 let results = par_map(samples, |sample| {
   try {
     let name = sample["sample_id"]
-    let n_reads = fastq(sample["fastq_r1"]) |> count
+    let n_reads = read_fastq(sample["fastq_r1"]) |> count
     { sample: name, status: "ok", reads: n_reads, error: nil }
   } catch e {
     { sample: sample["sample_id"], status: "failed", reads: 0, error: to_string(e) }
@@ -191,7 +191,7 @@ fn log(msg) {
   print(line)
 }
 
-let samples = csv("sample_sheet.csv") |> collect
+let samples = read_csv("data/sample_sheet.csv") |> collect
 log("Starting batch: #{len(samples)} samples")
 
 for i, sample in enumerate(samples) {
@@ -211,7 +211,7 @@ log("Batch complete")</code></pre>
 
         <h3>Resume-safe batch processing</h3>
         <pre><code class="language-biolang"># Skip already-processed samples on resume
-let samples = csv("sample_sheet.csv") |> collect
+let samples = read_csv("data/sample_sheet.csv") |> collect
 let checkpoint_file = "batch_checkpoint.json"
 
 # Load checkpoint
@@ -229,7 +229,7 @@ for sample in pending {
   print("Processing #{name}...")
 
   # ... do work ...
-  fastq(sample["fastq_r1"])
+  read_fastq(sample["fastq_r1"])
     |> filter(|r| mean_phred(r.quality) >= 30.0)
     |> write_fastq("results/#{name}/filtered.fq.gz")
 

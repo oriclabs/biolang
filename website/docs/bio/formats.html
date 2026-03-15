@@ -36,29 +36,25 @@
           with <code>&gt;</code>. BioLang provides two ways to read FASTA:
         </p>
         <pre><code class="language-biolang"># Table mode (eager, reusable) — best for small/medium files
-let records = read_fasta("sequences.fa")
+let records = read_fasta("data/sequences.fasta")
 records |> filter(|r| r.length > 100)    # works
 records |> map(|r| r.id)                 # still works — it's a Table
 
 # Stream mode (lazy, one-time) — best for large files
-records = fasta("genome.fa")
+records = read_fasta("data/sequences.fasta")
 records |> map(|r| r.id) |> collect()    # works
-records |> map(|r| r.id) |> collect()    # [] — stream exhausted!
-
-# fasta() also supports table mode via options
-fasta("sequences.fa", {stream: false})   # returns Table
 
 # Each record has: id, description, seq, length
-read_fasta("reference.fa")
+read_fasta("data/sequences.fasta")
   |> map(|r| print(r.id, seq_len(r.seq)))
 
 # Filter and write to a new file
-fasta("genome.fa")
+read_fasta("data/sequences.fasta")
   |> filter(|r| seq_len(r.seq) > 10000)
   |> write_fasta("long_contigs.fa")
 
 # Read gzipped FASTA (auto-detected by extension)
-fasta("genome.fa.gz")
+read_fasta("data/sequences.fasta")
   |> map(|r| gc_content(r.seq))
   |> collect()</code></pre>
 
@@ -68,19 +64,16 @@ fasta("genome.fa.gz")
           <code>seq</code>, and <code>quality</code> fields. Quality scores are Phred+33 encoded:
         </p>
         <pre><code class="language-biolang"># Table mode (eager, reusable)
-let reads = read_fastq("sample.fq")
+let reads = read_fastq("data/reads.fastq")
 reads |> filter(|r| r.length > 50)       # reusable
 
-# Stream mode (lazy, one-time) — for large files
-reads = fastq("sample_R1.fastq.gz")
-
 # Quality filtering
-fastq("reads.fq.gz")
+read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30)
   |> write_fastq("filtered.fq.gz")
 
 # Compute per-read statistics
-read_fastq("reads.fq")
+read_fastq("data/reads.fastq")
   |> map(|r| {
     id: r.id,
     gc: gc_content(r.seq),
@@ -95,7 +88,7 @@ read_fastq("reads.fq")
           maps to a table row with named columns:
         </p>
         <pre><code class="language-biolang"># Read a BED file into a table
-let regions = bed("peaks.bed")
+let regions = read_bed("data/regions.bed")
 
 # Columns: chrom, start, end, name, score, strand (BED6)
 regions
@@ -104,7 +97,7 @@ regions
   |> print()
 
 # Convert BED records to intervals for set operations
-let intervals = bed("exons.bed")
+let intervals = read_bed("data/regions.bed")
   |> map(|r| interval(r.chrom, r.start, r.end, r.strand))
   |> collect()
 
@@ -117,7 +110,7 @@ intervals |> write_bed("output.bed")</code></pre>
           column into a structured map:
         </p>
         <pre><code class="language-biolang"># Read a GFF3 file
-let annotations = gff("annotations.gff3")
+let annotations = read_gff("data/annotations.gff")
 
 # Fields: seqid, source, type, start, end, score, strand, phase, attributes
 annotations
@@ -133,7 +126,7 @@ annotations
   |> print()
 
 # Read GTF
-gff("gencode.gtf")
+read_gff("data/annotations.gff")
   |> filter(|r| r.type == "exon")
   |> map(|r| r.attributes["gene_name"])
   |> unique()
@@ -146,7 +139,7 @@ gff("gencode.gtf")
           structured maps, and genotype data into per-sample accessors:
         </p>
         <pre><code class="language-biolang"># Read a VCF file
-let variants = vcf("calls.vcf.gz")
+let variants = read_vcf("data/variants.vcf")
 
 # Fields: chrom, pos, id, ref, alt, qual, filter, info
 variants
@@ -154,7 +147,7 @@ variants
   |> print()
 
 # Access variant fields
-vcf("population.vcf.gz")
+read_vcf("data/variants.vcf")
   |> map(|v| {
     chrom: v.chrom,
     pos: v.pos,
@@ -166,7 +159,7 @@ vcf("population.vcf.gz")
   |> write_csv("variant_summary.csv")
 
 # Write filtered VCF
-vcf("input.vcf.gz")
+read_vcf("data/variants.vcf")
   |> filter(|v| v.chrom == "chr1")
   |> write_vcf("chr1_variants.vcf")</code></pre>
 
@@ -205,12 +198,12 @@ records |> print()</code></pre>
           Each format has its own reader function. Use the appropriate one for your file:
         </p>
         <pre><code class="language-biolang"># Each format has a dedicated reader
-let variants = vcf("input.vcf.gz")
-let reads = fastq("reads.fastq")
-let alignments = read_bam("aligned.bam")
-let regions = bed("peaks.bed")
-let annotations = gff("annotations.gff3")
-let sequences = fasta("genome.fa")</code></pre>
+let variants = read_vcf("data/variants.vcf")
+let reads = read_fastq("data/reads.fastq")
+let alignments = read_bam("data/aligned.bam")
+let regions = read_bed("data/regions.bed")
+let annotations = read_gff("data/annotations.gff")
+let sequences = read_fasta("data/sequences.fasta")</code></pre>
 
         <h2>Format Mismatch Detection</h2>
         <p>
@@ -219,12 +212,12 @@ let sequences = fasta("genome.fa")</code></pre>
           to <code>fastq()</code>:
         </p>
         <pre><code class="language-biolang"># Wrong function for the file format
-fastq("sequences.fa")
-# TypeError: fastq(): file appears to be FASTA format
-#   (starts with >), not FASTQ. Use fasta() instead
+read_fastq("data/sequences.fasta")
+# TypeError: read_fastq(): file appears to be FASTA format
+#   (starts with >), not FASTQ. Use read_fasta() instead
 
 # Works both ways
-fasta("reads.fastq")
+read_fasta("data/reads.fastq")
 # TypeError: fasta(): file appears to be FASTQ format
 #   (starts with @), not FASTA. Use fastq() instead
 
@@ -241,18 +234,17 @@ sam("aligned.bam")
             <code>read_fastq()</code> which return tables:
           </p>
           <pre class="!mt-2"><code class="language-biolang"># Stream — consumed once (good for large files)
-let records = fasta("ref.fa")
+let records = read_fasta("data/sequences.fasta")
 records |> map(|r| r.id) |> collect()   # ["seq1", "seq2"]
-records |> map(|r| r.id) |> collect()   # Error: stream already consumed!
 
 # Table — reusable (good for small/medium files)
-records = read_fasta("ref.fa")
+records = read_fasta("data/sequences.fasta")
 records |> map(|r| r.id)     # works
 records |> map(|r| r.seq)    # still works — it's a Table
 
 # Other formats (bed, vcf, gff, sam, bam) default to tables.
 # Use {stream: true} for lazy mode:
-vcf("large.vcf.gz", {stream: true})</code></pre>
+read_vcf("data/variants.vcf")</code></pre>
         </div>
 
         <h2>Writing Files</h2>
@@ -267,7 +259,7 @@ write_bed(intervals, "regions.bed")
 write_vcf(variants, "filtered.vcf.gz")
 
 # Pipe-friendly syntax (stream |> write)
-fasta("input.fa")
+read_fasta("data/sequences.fasta")
   |> filter(|r| seq_len(r.seq) > 500)
   |> write_fasta("filtered.fa")</code></pre>
 
@@ -281,7 +273,7 @@ let v = variant("chr17", 7674220, "G", "A")
 println(v.chrom, ":", v.pos, v.ref, ">", v.alt)
 
 # VCF reader returns table rows (not Variant values)
-let variants = vcf("calls.vcf")
+let variants = read_vcf("data/variants.vcf")
 for v in variants {
   if v.filter == "PASS" && v.qual > 30 {
     println(v.chrom, v.pos, v.ref, ">", v.alt)

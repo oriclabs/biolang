@@ -16,7 +16,7 @@ pub fn set_fetch_hook(hook: Option<Arc<dyn Fn(&str) -> std::result::Result<Strin
     FETCH_HOOK.with(|h| *h.borrow_mut() = hook);
 }
 
-fn try_fetch_url(url: &str) -> Option<std::result::Result<String, String>> {
+pub fn try_fetch_url(url: &str) -> Option<std::result::Result<String, String>> {
     FETCH_HOOK.with(|h| {
         let hook = h.borrow();
         hook.as_ref().map(|f| f(url))

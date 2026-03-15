@@ -190,7 +190,7 @@ classified |> write_csv("acmg_classifications.csv")</code></pre>
         <pre><code class="language-biolang"># Generate a clinical variant summary
 let tier1 = tsv("tier1_pathogenic.tsv")
 let tier2 = tsv("tier2_likely_pathogenic.tsv")
-let patient = csv("patient_metadata.csv") |> first
+let patient = read_csv("data/sample_sheet.csv") |> first
 
 let report = {
   patient_id: patient["id"],

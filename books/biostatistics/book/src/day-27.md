@@ -489,7 +489,7 @@ Let us take a messy analysis from earlier chapters and restructure it into a rep
 
 ```bio
 # quick analysis
-let d = read_csv("data.csv")
+let d = read_csv("data/expression.csv")
 let a = d |> filter(|r| r.group == "A") |> map(|r| r.value)
 let b = d |> filter(|r| r.group == "B") |> map(|r| r.value)
 print(ttest(a, b))

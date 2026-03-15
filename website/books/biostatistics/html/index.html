@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-28e3bb40.js";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -341,8 +341,8 @@ bl repl
 <h2 id="a-quick-taste"><a class="header" href="#a-quick-taste">A Quick Taste</a></h2>
 <p>Here is what statistical analysis looks like in BioLang. This script loads gene expression data, runs a t-test between two conditions, and generates a volcano plot — all in pipe style:</p>
 <pre><code class="language-bio"># Load expression data for two conditions
-let ctrl = read_csv("control_expression.csv")
-let treat = read_csv("treated_expression.csv")
+let ctrl = read_csv("data/expression.csv")
+let treat = read_csv("data/expression.csv")
 
 # Run t-tests for every gene, correct for multiple testing
 let results = ctrl
@@ -363,7 +363,7 @@ results |&gt; volcano_plot("log2fc", "padj", "gene_id")
 </code></pre>
 <p>Twelve lines. No imports. No boilerplate. The pipe operator makes the analytical logic visible: load, join, test, correct, filter, plot. You will understand every line of this by Day 10.</p>
 <p>Here is another example — survival analysis in three lines:</p>
-<pre><code class="language-bio">let patients = read_csv("clinical_outcomes.csv")
+<pre><code class="language-bio">let patients = read_csv("data/clinical.csv")
 
 patients
   |&gt; kaplan_meier("months", "deceased", "treatment")
@@ -405,7 +405,7 @@ TTestResult { t: 4.12, df: 4, p: 0.0146 }
 <h3 id="python-and-r-comparisons"><a class="header" href="#python-and-r-comparisons">Python and R Comparisons</a></h3>
 <p>Multi-language comparisons appear with labeled blocks:</p>
 <p><strong>BioLang:</strong></p>
-<pre><code class="language-bio">let data = read_csv("expression.csv")
+<pre><code class="language-bio">let data = read_csv("data/expression.csv")
 data |&gt; ttest(ctrl, treated) |&gt; println()
 </code></pre>
 <p><strong>Python:</strong></p>
@@ -505,7 +505,7 @@ t.test(data$ctrl, data$treated)
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-aab19ecd.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
 
 
 

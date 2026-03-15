@@ -1702,10 +1702,28 @@ impl Interpreter {
                 }
                 Ok(Value::List(values))
             }
-            Expr::Record(fields) => {
+            Expr::Record(entries) => {
                 let mut map = std::collections::HashMap::new();
-                for (key, value) in fields {
-                    map.insert(key.clone(), self.eval_expr(value)?);
+                for entry in entries {
+                    match entry {
+                        RecordEntry::Field(key, value) => {
+                            map.insert(key.clone(), self.eval_expr(value)?);
+                        }
+                        RecordEntry::Spread(spread_expr) => {
+                            let val = self.eval_expr(spread_expr)?;
+                            match val {
+                                Value::Record(spread_map) | Value::Map(spread_map) => {
+                                    map.extend(spread_map);
+                                }
+                                other => {
+                                    return Err(BioLangError::type_error(
+                                        format!("spread requires Record, got {}", other.type_of()),
+                                        Some(spread_expr.span),
+                                    ));
+                                }
+                            }
+                        }
+                    }
                 }
                 Ok(Value::Record(map))
             }
@@ -2081,30 +2099,7 @@ impl Interpreter {
                     Some(expr.span),
                 )))
             }
-            Expr::RecordSpread { spreads, fields } => {
-                let mut result: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
-                // First, apply spreads in order
-                for spread_expr in spreads {
-                    let val = self.eval_expr(spread_expr)?;
-                    match val {
-                        Value::Record(map) | Value::Map(map) => {
-                            result.extend(map);
-                        }
-                        other => {
-                            return Err(BioLangError::type_error(
-                                format!("spread requires Record, got {}", other.type_of()),
-                                Some(spread_expr.span),
-                            ));
-                        }
-                    }
-                }
-                // Then, apply explicit fields (override spreads)
-                for (key, value_expr) in fields {
-                    let val = self.eval_expr(value_expr)?;
-                    result.insert(key.clone(), val);
-                }
-                Ok(Value::Record(result))
-            }
+            // RecordSpread is now handled by the unified Expr::Record with RecordEntry::Spread
         }
     }
 
@@ -4732,6 +4727,18 @@ impl Interpreter {
                     Some(span),
                 )),
             },
+            BinaryOp::Concat => match (lhs, rhs) {
+                (Value::List(a), Value::List(b)) => {
+                    let mut result = a.clone();
+                    result.extend(b.iter().cloned());
+                    Ok(Value::List(result))
+                }
+                (Value::Str(a), Value::Str(b)) => Ok(Value::Str(format!("{a}{b}"))),
+                _ => Err(BioLangError::type_error(
+                    format!("cannot concatenate {} and {} (++ requires two lists or two strings)", lhs.type_of(), rhs.type_of()),
+                    Some(span),
+                )),
+            },
             BinaryOp::And | BinaryOp::Or => {
                 unreachable!("short-circuit handled in eval_expr")
             }
@@ -4753,6 +4760,7 @@ impl Interpreter {
                 BinaryOp::BitXor => "bit_xor",
                 BinaryOp::Shl => "shl",
                 BinaryOp::Shr => "shr",
+                BinaryOp::Concat => "concat",
                 _ => return result,
             };
             let type_name = self.runtime_type_name(lhs);

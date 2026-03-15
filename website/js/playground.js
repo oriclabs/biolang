@@ -5,20 +5,54 @@
 (function () {
   'use strict';
 
+  // ── Fetch bridge for WASM file I/O ──
+  // Allows read_csv, read_fasta etc. to fetch data files from the server
+  var _pageBasePath = (function() {
+    var path = window.location.pathname;
+    var idx = path.lastIndexOf("/");
+    return idx >= 0 ? path.substring(0, idx + 1) : "/";
+  })();
+
+  window.__blFiles = window.__blFiles || {};
+
+  if (!window.__blFetch) {
+    window.__blFetch = {
+      sync: function(url) {
+        if (window.__blFiles && window.__blFiles[url]) {
+          return window.__blFiles[url];
+        }
+        var fetchUrl = url;
+        var isRelative = !/^https?:\/\//.test(url) && !/^\//.test(url);
+        var tryPaths = isRelative
+          ? [_pageBasePath + url, "/books/data/" + url.replace(/^data\//, "")]
+          : [fetchUrl];
+
+        for (var pi = 0; pi < tryPaths.length; pi++) {
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", tryPaths[pi], false);
+            xhr.send(null);
+            if (xhr.status >= 200 && xhr.status < 300) {
+              window.__blFiles[url] = xhr.responseText;
+              return xhr.responseText;
+            }
+          } catch (e) {
+            // Try next path
+          }
+        }
+        return "ERROR:404 File not found (" + url + ")";
+      }
+    };
+  }
+
   // ── WASM module state ──
   var wasm = null;
   var wasmLoading = false;
   var wasmQueue = [];
 
   function getWasmBasePath() {
-    // Detect path to /wasm/ from current page location
-    var path = window.location.pathname;
-    // Count depth from site root
-    var segments = path.split('/').filter(function(s) { return s.length > 0; });
-    // Remove the last segment (the HTML file itself)
-    segments.pop();
-    var prefix = segments.map(function() { return '..'; }).join('/');
-    return prefix ? prefix + '/wasm' : './wasm';
+    // Use absolute path to /wasm/ from site root
+    return '/wasm';
   }
 
   function loadWasm(callback) {
@@ -32,8 +66,9 @@
     script.type = 'module';
     script.textContent = [
       'try {',
-      '  var mod = await import("' + basePath + '/br_wasm.js");',
+      '  var mod = await import("' + basePath + '/bl_wasm.js");',
       '  await mod.default();',
+      '  mod.init();',
       '  window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset };',
       '  window.dispatchEvent(new Event("bl-wasm-ready"));',
       '} catch(e) {',
@@ -75,18 +110,21 @@
     // Check code content for CLI-only patterns
     var code = pre.querySelector('code');
     var text = code ? code.textContent : '';
-    // File I/O: FASTA, FASTQ, VCF, BED, GFF, SAM, BAM, CSV, generic open/save
-    if (/\b(read_fasta|read_fastq|read_vcf|read_bed|read_gff|read_sam|read_bam|read_csv|write_csv|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
-    if (/\b(csv|tsv|vcf|fastq|fasta|bam|sam|bed|gff)\s*\(/.test(text)) return true;
-    if (/\b(open|save|write_file|read_file|read_lines)\s*\(/.test(text)) return true;
-    // Network APIs: NCBI, Ensembl, UniProt, KEGG, PDB, etc.
-    if (/\b(ncbi_gene|ncbi_search|ncbi_sequence|ensembl_gene|ensembl_vep|uniprot_search|uniprot_entry|kegg_get|kegg_find|pdb_entry|string_network|go_term|go_annotations|cosmic_gene|datasets_gene|reactome_pathways|ucsc_sequence|fetch|http_get|http_post)\b/.test(text)) return true;
+    // Write operations are always CLI-only
+    if (/\b(write_csv|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
+    if (/\b(open|save|write_file|write_lines|mkdir)\s*\(/.test(text)) return true;
+    if (/\b(save_plot|save_svg|save_png)\s*\(/.test(text)) return true;
+    // Read operations are allowed — fetch bridge loads data from server
+    // BAM/SAM are binary formats that can't be fetched as text
+    if (/\b(read_sam|read_bam)\b/.test(text)) return true;
+    // Network APIs: CLI-only (require API keys or lack CORS support)
+    // Note: ncbi_search, ncbi_gene, ncbi_sequence, ncbi_summary, ncbi_fetch work in WASM
+    // because NCBI E-utilities support CORS and are accessed via the fetch hook.
+    if (/\b(ensembl_gene|ensembl_vep|uniprot_search|uniprot_entry|kegg_get|kegg_find|pdb_entry|string_network|go_term|go_annotations|cosmic_gene|datasets_gene|reactome_pathways|ucsc_sequence|fetch|http_get|http_post)\b/.test(text)) return true;
     // LLM chat
     if (/\b(chat|chat_code|llm|ask_llm)\s*\(/.test(text)) return true;
     // Notebooks and pipelines
     if (/\b(notebook|pipeline|import\s+")\b/.test(text)) return true;
-    // Saving plots to files (save_svg, save_png, save_plot write to disk)
-    if (/\b(save_plot|save_svg|save_png)\s*\(/.test(text)) return true;
     return false;
   }
 
@@ -293,7 +331,17 @@
       if (svgEl) { svgEl.style.maxWidth = '100%'; svgEl.style.height = 'auto'; }
     }
     timingEl.textContent = formatElapsed(t0);
+    saveToHistory(code);
     resetButton(btn);
+  }
+
+  function saveToHistory(code) {
+    try {
+      var history = JSON.parse(localStorage.getItem("bl-playground-history") || "[]");
+      history.unshift({ code: code.trim(), time: Date.now() });
+      if (history.length > 50) history = history.slice(0, 50);
+      localStorage.setItem("bl-playground-history", JSON.stringify(history));
+    } catch (_) { /* localStorage unavailable */ }
   }
 
   function formatElapsed(t0) {
@@ -328,4 +376,128 @@
     // Fallback if components-loaded never fires
     setTimeout(initPlayground, 3000);
   }
+
+  // ── Inline docs — show signature on hover over builtin names ──
+
+  var BUILTIN_DOCS = {
+    "println": "println(value) — Print value with newline",
+    "print": "print(value) — Print value without newline",
+    "len": "len(collection) — Length of list, string, or table",
+    "map": "map(list, fn) — Transform each element",
+    "filter": "filter(list, fn) — Keep elements where fn returns true",
+    "reduce": "reduce(list, fn, init) — Fold list to single value",
+    "each": "each(list, fn) — Execute fn for side effects, returns nil",
+    "sort_by": "sort_by(list, fn) — Sort by comparison function",
+    "mean": "mean(list) — Arithmetic mean",
+    "median": "median(list) — Middle value",
+    "stdev": "stdev(list) — Standard deviation",
+    "sum": "sum(list) — Sum of numeric values",
+    "min": "min(list) — Minimum value",
+    "max": "max(list) — Maximum value",
+    "gc_content": "gc_content(seq) — GC fraction (0.0-1.0)",
+    "reverse_complement": "reverse_complement(seq) — Reverse complement of DNA/RNA",
+    "transcribe": "transcribe(dna) — DNA → RNA (T→U)",
+    "translate": "translate(seq) — DNA/RNA → protein",
+    "kmers": "kmers(seq, k) — All k-mers as list",
+    "find_motif": "find_motif(seq, motif) — Find motif positions",
+    "seq_len": "seq_len(seq) — Sequence length",
+    "tm": "tm(seq) — Melting temperature",
+    "read_csv": "read_csv(path) — Read CSV file as table",
+    "read_fasta": "read_fasta(path) — Read FASTA file as list of records",
+    "read_fastq": "read_fastq(path) — Read FASTQ file as list of records",
+    "read_vcf": "read_vcf(path) — Read VCF file as list of records",
+    "read_bed": "read_bed(path) — Read BED file as list of records",
+    "read_gff": "read_gff(path) — Read GFF file as list of records",
+    "collect": "collect(stream) — Materialize stream into list",
+    "typeof": "typeof(value) — Get type name as string",
+    "range": "range(start, end, [step]) — Generate number sequence",
+    "sort": "sort(list) — Sort ascending",
+    "reverse": "reverse(list) — Reverse list order",
+    "unique": "unique(list) — Remove duplicates",
+    "flatten": "flatten(list) — Flatten nested lists",
+    "zip": "zip(list1, list2) — Pair elements",
+    "enumerate": "enumerate(list) — Add index to each element",
+    "take": "take(list, n) — First n elements",
+    "skip": "skip(list, n) — Skip first n elements",
+    "head": "head(list, n) — First n elements (alias for take)",
+    "join": "join(list, sep) — Join list to string",
+    "split": "split(str, sep) — Split string to list",
+    "contains": "contains(collection, item) — Check membership",
+    "keys": "keys(record) — Get record field names",
+    "values": "values(record) — Get record field values",
+    "round": "round(num, [decimals]) — Round number",
+    "abs": "abs(num) — Absolute value",
+    "str": "str(value) — Convert to string",
+    "int": "int(value) — Convert to integer",
+    "float": "float(value) — Convert to float",
+    "assert": "assert(condition, message) — Assert truth, error if false",
+    "from_records": "from_records(list) — List of records → Table",
+    "to_table": "to_table(list) — List of records → Table",
+    "select": "select(table, cols...) — Pick columns",
+    "group_by": "group_by(table, col) — Group rows by column",
+    "summarize": "summarize(grouped, fn) — Aggregate groups",
+    "mutate": "mutate(table, col, fn) — Add/modify column",
+    "arrange": "arrange(table, col) — Sort table by column",
+    "bio_join": "bio_join(left, right, [key], [type]) — Multi-omics join",
+    "resolve": "resolve(id, [db]) — Cross-database ID resolver",
+    "heatmap": "heatmap(data, [opts]) — SVG heatmap visualization",
+    "volcano_plot": "volcano_plot(data, [opts]) — DE volcano plot",
+    "pca_plot": "pca_plot(data, [opts]) — PCA scatter plot",
+    "bar_chart": "bar_chart(data, [title]) — SVG bar chart",
+    "scatter": "scatter(x, y, [opts]) — SVG scatter plot",
+    "histogram": "histogram(data, [bins]) — SVG histogram",
+    "qc_report": "qc_report(reads) — FASTQ quality metrics",
+    "primer_design": "primer_design(seq, start, end) — PCR primer design",
+    "blast": "blast(query, targets) — Local k-mer similarity search",
+    "diff_table": "diff_table(a, b, [key]) — Compare two tables",
+    "liftover": "liftover(chr, start, end) — Genome coordinate conversion",
+    "ncbi_search": "ncbi_search(db, query) — Search NCBI database",
+    "ncbi_gene": "ncbi_gene(query) — Get NCBI gene info",
+    "ttest": "ttest(group1, group2) — Two-sample t-test",
+    "cor": "cor(x, y) — Pearson correlation",
+    "quantile": "quantile(list, p) — p-th quantile",
+    "variance": "variance(list) — Sample variance",
+    "mean_phred": "mean_phred(quality_str) — Mean Phred quality score"
+  };
+
+  // Create tooltip element
+  var docTooltip = document.createElement("div");
+  docTooltip.id = "bl-doc-tooltip";
+  docTooltip.style.cssText = "display:none;position:fixed;z-index:9999;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-size:12px;font-family:system-ui,sans-serif;pointer-events:none;max-width:350px;box-shadow:0 4px 12px rgba(0,0,0,0.3);white-space:nowrap;";
+  document.body.appendChild(docTooltip);
+
+  // Scan code blocks and wrap builtin names in hoverable spans
+  function addDocHints() {
+    document.querySelectorAll('code.language-biolang, code.language-bio').forEach(function(code) {
+      if (code.dataset.hinted) return;
+      code.dataset.hinted = "1";
+
+      var html = code.innerHTML;
+      Object.keys(BUILTIN_DOCS).forEach(function(name) {
+        // Only match whole words that look like function calls or pipe targets
+        var re = new RegExp("\\b(" + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ")\\b(?=\\s*[\\(|])", "g");
+        html = html.replace(re, '<span class="bl-hint" data-doc="' + name + '">$1</span>');
+      });
+      code.innerHTML = html;
+    });
+
+    document.addEventListener("mouseover", function(e) {
+      var hint = e.target.closest ? e.target.closest(".bl-hint") : null;
+      if (hint) {
+        var doc = BUILTIN_DOCS[hint.dataset.doc];
+        if (doc) {
+          docTooltip.textContent = doc;
+          docTooltip.style.display = "block";
+          var r = hint.getBoundingClientRect();
+          docTooltip.style.left = r.left + "px";
+          docTooltip.style.top = (r.top - 30) + "px";
+        }
+      } else {
+        docTooltip.style.display = "none";
+      }
+    });
+  }
+
+  // Run after playground init
+  setTimeout(addDocHints, 2000);
 })();

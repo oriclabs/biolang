@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User-Defined Types — BioLang</title>
+  <title>Type System — BioLang</title>
   <link rel="icon" href="../../assets/favicon.svg">
   <link rel="stylesheet" href="../../assets/styles.css">
   <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -19,355 +19,248 @@
       <nav class="mb-6 text-sm text-slate-500">
         <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
         <a href="index.html" class="hover:text-violet-400">Language</a><span class="mx-2">/</span>
-        <span class="text-slate-300">User-Defined Types</span>
+        <span class="text-slate-300">Type System</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>User-Defined Types</h1>
+        <h1>Type System</h1>
         <p>
-          BioLang supports user-defined types through <code>struct</code>, <code>enum</code>,
-          <code>trait</code>, and <code>impl</code> blocks. These constructs let you model complex
-          biological data with type safety while keeping the pipe-first ergonomics of the language.
+          BioLang is dynamically typed. Every value carries its type at runtime, and you never
+          write type annotations. Use <code>typeof()</code> to inspect a value's type.
         </p>
 
-        <h2>Structs</h2>
+        <h2>Primitive Types</h2>
+
+        <h3>Int</h3>
+        <p>64-bit signed integers. Underscores can be used as visual separators:</p>
+        <pre><code class="language-biolang">let count = 42
+let big = 1_000_000
+let negative = -17
+
+println(f"count={count}, big={big}, negative={negative}")
+println(f"Type: {typeof(count)}")</code></pre>
+
+        <h3>Float</h3>
+        <p>64-bit IEEE 754 floating-point numbers:</p>
+        <pre><code class="language-biolang">let pi = 3.14159
+let tiny = 1.0e-10
+
+println(f"pi={pi}")
+println(f"tiny={tiny}")
+println(f"Type: {typeof(pi)}")</code></pre>
+
+        <h3>Str</h3>
+        <p>UTF-8 strings with f-string interpolation:</p>
+        <pre><code class="language-biolang">let name = "BioLang"
+let greeting = f"Hello, {name}!"
+println(greeting)
+
+# String operations
+println(upper(name))
+println(substr(name, 0, 3))
+println(split("A,B,C", ","))
+println(f"Type: {typeof(name)}")</code></pre>
+
+        <h3>Bool</h3>
+        <pre><code class="language-biolang">let yes = true
+let no = false
+let result = 5 > 3
+let combined = yes && !no
+
+println(f"yes={yes}, no={no}, 5>3={result}, combined={combined}")
+println(f"Type: {typeof(yes)}")</code></pre>
+
+        <h3>Nil</h3>
         <p>
-          Structs define named records with typed fields:
+          <code>nil</code> represents the absence of a value:
         </p>
-        <pre><code class="language-biolang">struct Gene {
-  symbol: String,
-  entrez_id: Int,
-  chrom: String,
-  start: Int,
-  end: Int,
-  strand: String,
-  biotype: String
-}
+        <pre><code class="language-biolang">let nothing = nil
+println(f"Value: {nothing}")
+println(f"Type: {typeof(nothing)}")
 
-# Create an instance
-let brca1 = Gene {
-  symbol: "BRCA1",
-  entrez_id: 672,
-  chrom: "chr17",
-  start: 43044295,
-  end: 43125364,
-  strand: "-",
-  biotype: "protein_coding"
-}
+# Use ?? for nil coalescing
+let safe = nothing ?? "default"
+println(f"Safe: {safe}")</code></pre>
 
-# Access fields
-print(f"{brca1.symbol} on {brca1.chrom}")
-let length = brca1.end - brca1.start</code></pre>
+        <h2>Biology Types</h2>
 
-        <h3>Default Field Values</h3>
-        <pre><code class="language-biolang">struct AlignmentConfig {
-  min_mapq: Int = 30,
-  max_mismatch: Int = 3,
-  paired_only: Bool = true,
-  reference: String,          # Required — no default
-  output_format: String = "bam"
-}
-
-# Only need to specify required fields and overrides
-let config = AlignmentConfig {
-  reference: "hg38.fa",
-  min_mapq: 20              # Override default
-}
-# config.paired_only is true (default)</code></pre>
-
-        <h3>Struct Update Syntax</h3>
-        <pre><code class="language-biolang"># Create a new struct based on an existing one
-let strict_config = AlignmentConfig {
-  ...config,                 # Copy all fields from config
-  min_mapq: 40,             # Override specific fields
-  max_mismatch: 1
-}
-
-# Useful for configuration variants
-let tumor_config = AlignmentConfig { ...base_config, paired_only: false }
-let normal_config = AlignmentConfig { ...base_config, min_mapq: 20 }</code></pre>
-
-        <h2>Enums</h2>
+        <h3>DNA</h3>
         <p>
-          Enums define types that can be one of several variants. Each variant can optionally
-          carry associated data:
+          DNA sequences with literal syntax. Valid nucleotides: A, T, C, G, N.
         </p>
-        <pre><code class="language-biolang"># Simple enum (no data)
-enum Strand {
-  Plus,
-  Minus,
-  Unknown
-}
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCG"
+println(f"Sequence: {seq}")
+println(f"Type: {typeof(seq)}")
+println(f"Length: {seq_len(seq)} bp")
+println(f"GC content: {gc_content(seq)}")
 
-let s = Strand.Plus
-let symbol = match s {
-  Strand.Plus => "+",
-  Strand.Minus => "-",
-  Strand.Unknown => "."
-}
+let rc = reverse_complement(seq)
+println(f"Reverse complement: {rc}")
 
-# Enum with associated data
-enum VariantType {
-  Snv(String, String),           # ref, alt
-  Insertion(String),              # inserted sequence
-  Deletion(Int),                  # deleted length
-  Complex(String, String),        # ref, alt
-  StructuralVariant(SvType, Int)  # type, size
-}
+let counts = base_counts(seq)
+println(f"Base counts: {counts}")</code></pre>
 
-enum SvType {
-  Deletion,
-  Duplication,
-  Inversion,
-  Translocation
-}</code></pre>
-
-        <h3>Enum Methods</h3>
-        <pre><code class="language-biolang">enum ReadPair {
-  Paired(Read, Read),
-  Single(Read),
-  Orphan(Read)
-}
-
-impl ReadPair {
-  fn is_paired(self) -> Bool {
-    match self {
-      Paired(_, _) => true,
-      _ => false
-    }
-  }
-
-  fn reads(self) -> List[Read] {
-    match self {
-      Paired(r1, r2) => [r1, r2],
-      Single(r) => [r],
-      Orphan(r) => [r]
-    }
-  }
-
-  fn total_bases(self) -> Int {
-    self |> reads() |> map(|r| seq_len(r.seq)) |> sum()
-  }
-}</code></pre>
-
-        <h2>Impl Blocks</h2>
+        <h3>RNA</h3>
         <p>
-          Add methods to structs and enums with <code>impl</code> blocks. The first parameter
-          <code>self</code> refers to the instance:
+          RNA sequences (A, U, C, G, N). Created via <code>rna""</code> literals or by
+          transcribing DNA:
         </p>
-        <pre><code class="language-biolang">struct GenomicInterval {
-  chrom: String,
-  start: Int,
-  end: Int,
-  strand: Strand = Strand.Unknown
-}
+        <pre><code class="language-biolang">let mrna = rna"AUGCGAUUCGAA"
+println(f"RNA: {mrna}")
+println(f"Type: {typeof(mrna)}")
 
-impl GenomicInterval {
-  # Constructor with validation
-  fn new(chrom: String, start: Int, end: Int) {
-    if start < 0 { error("start must be non-negative") }
-    if end <= start { error("end must be greater than start") }
-    GenomicInterval { chrom: chrom, start: start, end: end }
-  }
+let protein = translate(mrna)
+println(f"Protein: {protein}")
 
-  fn width(self) -> Int {
-    self.end - self.start
-  }
+# Transcribe DNA to RNA
+let dna_seq = dna"ATGCGATTCGAA"
+let rna_from_dna = transcribe(dna_seq)
+println(f"Transcribed: {rna_from_dna}")</code></pre>
 
-  fn midpoint(self) -> Int {
-    (self.start + self.end) / 2
-  }
-
-  fn overlaps(self, other: GenomicInterval) -> Bool {
-    self.chrom == other.chrom &&
-    self.start < other.end &&
-    self.end > other.start
-  }
-
-  fn merge(self, other: GenomicInterval) {
-    if !self.overlaps(other) {
-      error("intervals do not overlap")
-    }
-    GenomicInterval {
-      chrom: self.chrom,
-      start: min(self.start, other.start),
-      end: max(self.end, other.end)
-    }
-  }
-
-  fn to_string(self) -> String {
-    f"{self.chrom}:{self.start}-{self.end}"
-  }
-}
-
-# Usage
-let region = GenomicInterval.new("chr1", 1000, 2000)
-print(f"Region: {region.to_string()}, width: {region.width()}")
-
-# Works with pipes
-let merged = regions
-  |> sort_by(|r| (r.chrom, r.start))
-  |> reduce(|acc, r| if acc.overlaps(r) { acc.merge(r) } else { r })</code></pre>
-
-        <h2>Traits</h2>
+        <h3>Protein</h3>
         <p>
-          Traits define shared behavior that multiple types can implement:
+          Amino acid sequences using standard one-letter codes:
         </p>
-        <pre><code class="language-biolang">trait Sequenceable {
-  fn sequence(self) -> DNA
-  fn length(self) -> Int
-  fn gc_content(self) -> Float {
-    # Default implementation
-    let seq = self.sequence()
-    let gc = gc_content(seq)
-    gc
-  }
-}
+        <pre><code class="language-biolang">let prot = protein"MKTLLILAVS"
+println(f"Protein: {prot}")
+println(f"Type: {typeof(prot)}")
+println(f"Length: {seq_len(prot)} aa")</code></pre>
 
-struct FastqRecord {
-  id: String,
-  seq: DNA,
-  quality: List[Int]
-}
+        <h2>Collection Types</h2>
 
-impl Sequenceable for FastqRecord {
-  fn sequence(self) -> DNA { self.seq }
-  fn length(self) -> Int { seq_len(self.seq) }
-}
+        <h3>List</h3>
+        <p>Ordered, heterogeneous collections:</p>
+        <pre><code class="language-biolang">let nums = [1, 2, 3, 4, 5]
+let genes = ["BRCA1", "TP53", "EGFR"]
 
-struct FastaRecord {
-  header: String,
-  seq: DNA
-}
+println(f"First: {nums[0]}")
+println(f"Length: {len(nums)}")
+println(f"Type: {typeof(nums)}")
 
-impl Sequenceable for FastaRecord {
-  fn sequence(self) -> DNA { self.seq }
-  fn length(self) -> Int { seq_len(self.seq) }
-}
+# List operations
+let doubled = nums |> map(|x| x * 2)
+println(f"Doubled: {doubled}")
 
-# Now both types can be used where Sequenceable is expected
-fn analyze_sequence(item: Sequenceable) {
-  print(f"Length: {item.length()}, GC: {item.gc_content()}")
-}</code></pre>
+let evens = nums |> filter(|x| x % 2 == 0)
+println(f"Evens: {evens}")
 
-        <h2>Generics</h2>
+let total = sum(nums)
+println(f"Sum: {total}")</code></pre>
+
+        <h3>Record</h3>
+        <p>Named key-value pairs (like a dictionary with known keys):</p>
+        <pre><code class="language-biolang">let gene = {name: "BRCA1", chrom: "chr17", start: 43044295}
+
+println(f"Gene: {gene.name}")
+println(f"Chrom: {gene.chrom}")
+println(f"Type: {typeof(gene)}")
+
+# Records with string keys
+let lookup = {"BRCA1": 672, "TP53": 7157}
+println(f"BRCA1 ID: {lookup.BRCA1}")
+
+# Spread to create modified copies
+let updated = {...gene, score: 0.95, start: 43044300}
+println(f"Updated: {updated}")</code></pre>
+
+        <h3>Table</h3>
+        <p>Column-oriented tabular data with named columns:</p>
+        <pre><code class="language-biolang">let t = table(
+  gene = ["BRCA1", "TP53", "EGFR"],
+  score = [0.95, 0.87, 0.72],
+  chrom = ["chr17", "chr17", "chr7"]
+)
+
+println(f"Type: {typeof(t)}")
+println(f"Rows: {len(t)}, Cols: {ncols(t)}")
+println(t)</code></pre>
+
+        <h2>Checking Types at Runtime</h2>
         <p>
-          Functions, structs, and traits can be parameterized with type variables:
+          Use <code>typeof()</code> to get the type name as a string:
         </p>
-        <pre><code class="language-biolang"># Generic function
-fn first_or_default[T](items: List[T], default: T) -> T {
-  if len(items) > 0 { items[0] } else { default }
+        <pre><code class="language-biolang">println(typeof(42))                  # Int
+println(typeof(3.14))                # Float
+println(typeof("hello"))             # Str
+println(typeof(true))                # Bool
+println(typeof(nil))                 # Nil
+println(typeof(dna"ATCG"))           # DNA
+println(typeof(rna"AUGC"))           # RNA
+println(typeof(protein"MKT"))        # Protein
+println(typeof([1, 2, 3]))           # List
+println(typeof({x: 1}))             # Record</code></pre>
+
+        <p>
+          Type-checking predicates are also available:
+        </p>
+        <pre><code class="language-biolang">println(f"is_int(42): {is_int(42)}")
+println(f"is_str(42): {is_str(42)}")
+println(f"is_dna(dna\"ATCG\"): {is_dna(dna\"ATCG\")}")
+println(f"is_list([1]): {is_list([1])}")
+println(f"is_nil(nil): {is_nil(nil)}")</code></pre>
+
+        <h2>Type Conversions</h2>
+        <p>
+          BioLang provides explicit conversion functions. There is no implicit coercion:
+        </p>
+        <pre><code class="language-biolang"># String to number
+let n = int("42")
+let f = float("3.14")
+println(f"int('42') = {n} ({typeof(n)})")
+println(f"float('3.14') = {f} ({typeof(f)})")
+
+# Number to string
+let s = str(42)
+println(f"str(42) = {s} ({typeof(s)})")
+
+# Number conversions
+let as_float = float(42)
+let as_int = int(3.7)
+println(f"float(42) = {as_float}")
+println(f"int(3.7) = {as_int}")</code></pre>
+
+        <h3>Bio Conversions</h3>
+        <p>
+          Convert strings to biological sequence types with validation:
+        </p>
+        <pre><code class="language-biolang"># String to bio types
+let seq = dna("ATCGATCG")
+let rna_seq = rna("AUCGAUCG")
+let prot = protein("MKT")
+
+println(f"DNA: {seq} ({typeof(seq)})")
+println(f"RNA: {rna_seq} ({typeof(rna_seq)})")
+println(f"Protein: {prot} ({typeof(prot)})")
+
+# Bio transformations
+let dna_seq = dna"ATGATGATG"
+let as_rna = transcribe(dna_seq)
+let as_protein = translate(as_rna)
+println(f"{dna_seq} -> {as_rna} -> {as_protein}")</code></pre>
+
+        <h2>No Static Typing</h2>
+        <p>
+          BioLang has no static type system, no type annotations on variables or functions,
+          and no generics. Everything is determined at runtime:
+        </p>
+        <pre><code class="language-biolang"># Variables can hold any type
+let x = 42
+println(f"x = {x} ({typeof(x)})")
+
+x = "now a string"
+println(f"x = {x} ({typeof(x)})")
+
+x = dna"ATCG"
+println(f"x = {x} ({typeof(x)})")
+
+# Functions accept any argument types
+fn describe(val) {
+  println(f"Value: {val}, Type: {typeof(val)}")
 }
 
-let gene = first_or_default(gene_list, "UNKNOWN")
-let score = first_or_default(score_list, 0.0)
-
-# Generic struct
-struct Pair[A, B] {
-  first: A,
-  second: B
-}
-
-let gene_score = Pair { first: "BRCA1", second: 0.95 }
-
-# Generic with trait bounds
-fn max_by_score[T: HasScore](items: List[T]) {
-  if len(items) == 0 { return nil }
-  items |> reduce(|best, item|
-    if item.score() > best.score() { item } else { best }
-  )
-}
-
-# Multiple bounds
-fn process[T: Sequenceable + Printable](item: T) {
-  print(f"Processing: {item.to_string()}")
-  let gc = item.gc_content()
-  print(f"GC content: {gc}")
-}</code></pre>
-
-        <h2>Type Aliases</h2>
-        <pre><code class="language-biolang"># Create shorter names for complex types
-type GeneMap = Map[String, Gene]
-type VariantList = List[Variant]
-type ScoredResult = (String, Float, Bool)
-type Pipeline = fn(List[Read]) -> Table
-
-# Usage
-fn build_gene_index(genes: List[Gene]) -> GeneMap {
-  genes |> map(|g| { g.symbol: g }) |> reduce(|a, b| merge(a, b))
-}
-
-let pipeline: Pipeline = |reads| {
-  let filtered = reads |> filter(|r| mean_phred(r.quality) >= 30)
-  to_table(filtered)
-}</code></pre>
-
-        <h2>Implementing Display</h2>
-        <pre><code class="language-biolang"># The Display trait controls string interpolation and print()
-trait Display {
-  fn to_string(self) -> String
-}
-
-struct Variant {
-  chrom: String,
-  pos: Int,
-  ref_allele: String,
-  alt_allele: String,
-  qual: Float
-}
-
-impl Display for Variant {
-  fn to_string(self) -> String {
-    f"{self.chrom}:{self.pos} {self.ref_allele}>{self.alt_allele} (Q={self.qual})"
-  }
-}
-
-let v = Variant { chrom: "chr17", pos: 43044295, ref_allele: "A", alt_allele: "G", qual: 99.0 }
-print(f"Found variant: {v}")
-# Output: Found variant: chr17:43044295 A>G (Q=99)</code></pre>
-
-        <h2>Practical Example: Pipeline Types</h2>
-        <pre><code class="language-biolang">struct SampleManifest {
-  sample_id: String,
-  fastq_r1: String,
-  fastq_r2: String,       # nil if single-end
-  reference: String,
-  panel: String            # nil if no panel
-}
-
-struct PipelineResult {
-  sample_id: String,
-  total_reads: Int,
-  mapped_reads: Int,
-  mean_coverage: Float,
-  variants_found: Int,
-  qc_pass: Bool
-}
-
-impl PipelineResult {
-  fn mapping_rate(self) -> Float {
-    self.mapped_reads / self.total_reads
-  }
-
-  fn summary(self) -> String {
-    let status = if self.qc_pass { "PASS" } else { "FAIL" }
-    f"[{status}] {self.sample_id}: {self.mean_coverage}x coverage, {self.variants_found} variants"
-  }
-}
-
-fn run_pipeline(manifest: SampleManifest) {
-  let reads = read_fastq(manifest.fastq_r1)
-  let filtered = reads |> filter(|r| mean_phred(r.quality) >= 30)
-  let variants = filtered |> filter(|r| len(r.seq) >= 100)
-
-  PipelineResult {
-    sample_id: manifest.sample_id,
-    total_reads: len(reads),
-    mapped_reads: aligned |> filter(|r| r.is_mapped) |> len(),
-    mean_coverage: compute_coverage(aligned),
-    variants_found: len(variants),
-    qc_pass: compute_coverage(aligned) >= 30.0
-  }
-}</code></pre>
+describe(42)
+describe("hello")
+describe([1, 2, 3])
+describe(dna"ATCG")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="modules.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

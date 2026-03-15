@@ -28,7 +28,7 @@ Use standard Markdown fences with `biolang`, `bl`, or no language tag:
 Read the FASTQ file and compute basic stats.
 
 ```biolang
-let reads = read_fastq("sample.fq")
+let reads = read_fastq("data/reads.fastq")
 print(f"Loaded {len(reads)} reads")
 ```
 
@@ -49,7 +49,7 @@ The original `.bln` syntax uses `---` on its own line:
 ```text
 ## Load Data
 ---
-let reads = read_fastq("sample.fq")
+let reads = read_fastq("data/reads.fastq")
 print(f"Loaded {len(reads)} reads")
 ---
 ## Results
@@ -86,7 +86,7 @@ let config = {min_quality: 30, reference: "GRCh38"}
 
 ```biolang
 # @echo
-let reads = read_fastq("sample.fq")
+let reads = read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= config.min_quality)
 print(f"Filtered: {len(reads)} reads")
 ```
@@ -157,7 +157,7 @@ let threshold = 2.0
 ## Load Data
 
 ```biolang
-let seqs = read_fasta("contigs.fa")
+let seqs = read_fasta("data/sequences.fasta")
 print(f"Loaded {len(seqs)} sequences")
 ```
 

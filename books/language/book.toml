@@ -6,7 +6,7 @@ language = "en"
 src = "src"
 
 [build]
-build-dir = "../../website/book"
+build-dir = "../../website/books/language"
 
 [output.html]
 default-theme = "light"
@@ -16,6 +16,7 @@ additional-css = ["theme/print.css"]
 additional-js = ["theme/toolbar-buttons.js", "theme/book-runner.js"]
 
 [output.pdf]
+optional = true
 title = "The BioLang Programming Language"
 authors = "Bioras"
 output-file = "the-biolang-programming-language.pdf"

@@ -22,51 +22,53 @@
         <span class="text-slate-300">Functions</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>Functions</h1>
+        <h1>Functions &amp; Closures</h1>
         <p>
           Functions in BioLang are first-class values. They can be assigned to variables, passed
           as arguments, and returned from other functions. BioLang supports named function
-          declarations, anonymous lambdas, closures, default parameters, and variadic arguments.
+          declarations, anonymous lambdas, and closures that capture their environment.
         </p>
 
         <h2>Function Declarations</h2>
         <p>
-          Functions are declared with the <code>fn</code> keyword. The return type is optional
-          and can be inferred:
+          Functions are declared with the <code>fn</code> keyword. The return value is the
+          last expression in the body &mdash; no explicit <code>return</code> needed:
         </p>
         <pre><code class="language-biolang"># Simple function
-fn greet(name: String) -> String {
-  f"Hello, {name}!"
+fn greet(name) {
+  println(f"Hello, {name}!")
 }
+greet("BRCA1")   # Hello, BRCA1!
 
-# The last expression is the return value (no semicolon needed)
-fn add(a: Int, b: Int) -> Int {
+# The last expression is the return value
+fn add(a, b) {
   a + b
 }
+println(add(3, 4))   # 7
 
 # Multi-statement function
-fn gc_ratio(seq: DNA) -> Float {
-  gc_content(seq)
-}</code></pre>
+fn describe_seq(seq) {
+  let gc = gc_content(seq)
+  let size = len(seq)
+  f"Length={size}, GC={gc}"
+}
+println(describe_seq(dna"ATCGATCG"))</code></pre>
 
-        <h2>Type Inference for Return Types</h2>
+        <h2>Implicit Return</h2>
         <p>
-          When the return type is omitted, BioLang infers it from the function body:
+          The last expression in a function body is its return value. No <code>return</code>
+          keyword is needed unless you want an early exit:
         </p>
-        <pre><code class="language-biolang"># Return type inferred as Float
+        <pre><code class="language-biolang">fn square(x) { x * x }
+fn cube(x) { x * x * x }
+
+println(square(5))   # 25
+println(cube(3))     # 27
+
 fn average(values) {
   sum(values) / len(values)
 }
-
-# Return type inferred as String
-fn format_gene(name, chrom, pos) {
-  f"{name} at {chrom}:{pos}"
-}
-
-# Return type inferred as List[DNA]
-fn extract_codons(seq) {
-  seq |> kmers(3) |> filter(|c| len(c) == 3)
-}</code></pre>
+println(average([10, 20, 30]))   # 20</code></pre>
 
         <h2>Lambda Expressions</h2>
         <p>
@@ -76,260 +78,168 @@ fn extract_codons(seq) {
         </p>
         <pre><code class="language-biolang"># Single-parameter lambda
 let double = |x| x * 2
-print(double(21))   # 42
+println(double(21))   # 42
 
 # Multi-parameter lambda
 let add = |a, b| a + b
-print(add(3, 4))    # 7
-
-# Lambda with block body
-let classify = |score| {
-  if score >= 0.9 { "high" }
-  else if score >= 0.5 { "medium" }
-  else { "low" }
-}
+println(add(3, 4))    # 7
 
 # Lambdas in pipe chains
-let results = scores
-  |> map(|s| s * 100.0)
-  |> filter(|s| s >= 50.0)
-  |> map(|s| round(s, 2))</code></pre>
-
-        <h2>Function Expression Syntax</h2>
-        <p>
-          For inline function definitions with type annotations, use the <code>fn</code> keyword
-          as an expression:
-        </p>
-        <pre><code class="language-biolang"># Lambda with typed parameters
-let normalize = |values: List[Float]| {
-  let mu = mean(values)
-  let sd = stdev(values)
-  values |> map(|x| (x - mu) / sd)
-}
-
-# Short lambda expression
-let square = |x: Int| x * x</code></pre>
-
-        <h2>Closures</h2>
-        <p>
-          Lambdas and function expressions capture variables from their enclosing scope,
-          forming closures:
-        </p>
-        <pre><code class="language-biolang"># Closure captures 'threshold'
-fn make_filter(threshold: Float) {
-  |value| value >= threshold
-}
-
-let high_qual = make_filter(30.0)
-let reads = all_reads |> filter(high_qual)
-
-# Closure captures 'reference'
-fn make_aligner(reference: DNA) {
-  |query| find_motif(query, to_string(reference))
-}
-
-let align_to_hg38 = make_aligner(load_reference("hg38.fa"))
-let alignments = reads |> map(align_to_hg38)</code></pre>
-
-        <h2>Default Parameters</h2>
-        <p>
-          Parameters can have default values. Parameters with defaults must come after required
-          parameters:
-        </p>
-        <pre><code class="language-biolang">fn trim_reads(reads, min_quality = 20, min_length = 50, adapter = "AGATCGGAAGAG") {
-  reads
-    |> map(|r| trim_quality(r, min_quality))
-    |> filter(|r| r.length >= min_length)
-}
-
-# Call with defaults
-let trimmed = trim_reads(raw_reads)
-
-# Override specific defaults
-let trimmed = trim_reads(raw_reads, min_quality = 30)
-let trimmed = trim_reads(raw_reads, min_length = 100, adapter = "CTGTCTCTTAT")</code></pre>
-
-        <h2>Named Arguments</h2>
-        <p>
-          Any function can be called with named arguments for clarity. Named arguments can appear
-          in any order after positional arguments:
-        </p>
-        <pre><code class="language-biolang">fn call_variants(bam, reference, min_depth = 10, min_qual = 20.0, caller = "gatk") {
-  # ...
-}
-
-# Positional
-call_variants("sample.bam", "hg38.fa", 15, 30.0, "bcftools")
-
-# Named — much clearer
-call_variants("sample.bam", "hg38.fa",
-  caller = "bcftools",
-  min_depth = 15,
-  min_qual = 30.0
-)</code></pre>
-
-        <h2>Variadic Functions</h2>
-        <p>
-          Functions can accept a variable number of arguments using the <code>...</code> syntax.
-          The variadic parameter is received as a List:
-        </p>
-        <pre><code class="language-biolang">fn merge_tables(...tables: List[Table]) -> Table {
-  tables |> reduce(|acc, t| concat(acc, t))
-}
-
-let combined = merge_tables(table_a, table_b, table_c)
-
-# Variadic with required params
-fn log(level: String, ...messages: List[String]) {
-  let text = messages |> join(" ")
-  print(f"[{level}] {text}")
-}
-
-log("INFO", "Processing", "sample", "001")</code></pre>
-
-        <h2>Higher-Order Functions</h2>
-        <p>
-          Functions that take or return other functions are a core pattern in BioLang:
-        </p>
-        <pre><code class="language-biolang"># map, filter, reduce — the classic trio
-let lengths = sequences |> map(|s| len(s))
-let long_seqs = sequences |> filter(|s| len(s) > 1000)
-let total_len = sequences |> map(|s| len(s)) |> reduce(|a, b| a + b)
-
-# compose — combine functions
-fn compose(f, g) {
-  |x| f(g(x))
-}
-
-let process = compose(upper, trim)
-let clean = " hello " |> process   # "HELLO"
-
-# apply to each element with index
-let indexed = items |> enumerate() |> map(|(i, item)| f"{i}: {item}")</code></pre>
-
-        <h2>Recursive Functions</h2>
-        <pre><code class="language-biolang"># Fibonacci
-fn fib(n: Int) -> Int {
-  if n <= 1 { n }
-  else { fib(n - 1) + fib(n - 2) }
-}
-
-# Tree traversal
-fn count_leaves(node) -> Int {
-  match node {
-    Leaf(_) => 1,
-    Branch(left, right) => count_leaves(left) + count_leaves(right)
-  }
-}</code></pre>
-
-        <h2>Early Return</h2>
-        <p>
-          Use <code>return</code> for explicit early returns. The last expression is the implicit
-          return value:
-        </p>
-        <pre><code class="language-biolang">fn find_gene(name: String, database: Map[String, Gene]) {
-  if name == "" {
-    return nil
-  }
-
-  let normalized = upper(trim(name))
-
-  if normalized in database {
-    database[normalized]
-  } else {
-    nil
-  }
-}</code></pre>
-
-        <h2>Pipeline Functions</h2>
-        <p>
-          A common pattern is defining reusable pipeline stages as functions:
-        </p>
-        <pre><code class="language-biolang"># Define pipeline stages
-fn quality_filter(reads, min_q = 20) {
-  reads |> filter(|r| mean_phred(r.quality) >= min_q)
-}
-
-fn length_filter(reads, min_len = 50) {
-  reads |> filter(|r| r.length >= min_len)
-}
-
-fn adapter_trim(reads, adapter = "AGATCGGAAGAG") {
-  reads |> map(|r| trim_quality(r, 20))
-}
-
-# Compose into a pipeline
-let processed = raw_reads
-  |> quality_filter(min_q = 30)
-  |> adapter_trim()
-  |> length_filter(min_len = 75)</code></pre>
-
-        <h2>Functions as Values</h2>
-        <pre><code class="language-biolang"># Store functions in a map
-let normalizers = {
-  "zscore": |vals| {
-    let mu = mean(vals)
-    let sd = stdev(vals)
-    vals |> map(|x| (x - mu) / sd)
-  },
-  "minmax": |vals| {
-    let lo = min(vals)
-    let hi = max(vals)
-    vals |> map(|x| (x - lo) / (hi - lo))
-  },
-  "log2": |vals| vals |> map(|x| log2(x + 1.0))
-}
-
-# Select normalizer dynamically
-let method = "zscore"
-let normed = normalizers[method](raw_values)</code></pre>
-
-        <h2>Where Clauses</h2>
-        <p>
-          Functions can declare preconditions using <code>where</code> clauses. If the
-          condition fails at call time, an assertion error is raised:
-        </p>
-        <pre><code class="language-biolang">fn normalize(counts) where len(counts) > 0 {
-    let total = sum(counts)
-    counts |> map(|c| c / total)
-}
-
-fn align_reads(reads, reference) where len(reads) > 0 && len(reference) > 100 {
-    # alignment logic
-}</code></pre>
-
-        <h2>Decorators</h2>
-        <p>
-          BioLang supports decorators that modify function behavior. The <code>@memoize</code>
-          decorator caches results based on arguments &mdash; critical for expensive computations
-          like sequence alignment scores or API calls:
-        </p>
-        <pre><code class="language-biolang"># requires: internet connection
-@memoize
-fn fetch_gene_info(symbol) {
-    ncbi_gene(symbol)
-}
-
-# First call fetches from NCBI, subsequent calls return cached result
-let tp53 = fetch_gene_info("TP53")
-let tp53_again = fetch_gene_info("TP53")  # instant — cached</code></pre>
+let results = [10, 25, 50, 75, 90]
+  |> map(|s| s / 100.0)
+  |> filter(|s| s >= 0.5)
+println(results)   # [0.5, 0.75, 0.9]</code></pre>
 
         <h2>Multi-line Lambdas</h2>
         <p>
-          For lambdas that need more than one expression, use a block body:
+          For lambdas that need more than one expression, use a block body with braces:
         </p>
-        <pre><code class="language-biolang">let process = |reads| {
-    let filtered = reads |> filter(|r| mean_phred(r.quality) > 20)
-    let gc = filtered |> map(|r| gc_content(r.seq))
-    {count: len(filtered), mean_gc: mean(gc)}
+        <pre><code class="language-biolang">let classify = |score| {
+  if score >= 90 { "excellent" }
+  else if score >= 70 { "good" }
+  else { "needs work" }
 }
 
-# Use in pipe chains
-samples |> map(|s| {
-    let data = fastq(s.path)
-    let stats = describe(data)
-    {sample: s.name, ...stats}
-})</code></pre>
+println(classify(95))   # excellent
+println(classify(75))   # good
+println(classify(50))   # needs work
+
+# Multi-line lambda in a pipe
+let data = [1, 2, 3, 4, 5]
+let result = data |> map(|x| {
+  let squared = x * x
+  let label = if squared > 10 then "big" else "small"
+  f"{x}^2={squared} ({label})"
+})
+each(result, |r| println(r))</code></pre>
+
+        <h2>Closures</h2>
+        <p>
+          Lambdas capture variables from their enclosing scope, forming closures:
+        </p>
+        <pre><code class="language-biolang"># Closure captures 'threshold'
+fn make_filter(threshold) {
+  |value| value >= threshold
+}
+
+let above_50 = make_filter(50)
+let above_80 = make_filter(80)
+
+let scores = [30, 55, 72, 88, 95]
+println(scores |> filter(above_50))   # [55, 72, 88, 95]
+println(scores |> filter(above_80))   # [88, 95]
+
+# Closure captures 'multiplier'
+fn make_scaler(multiplier) {
+  |x| x * multiplier
+}
+let triple = make_scaler(3)
+println([1, 2, 3] |> map(triple))   # [3, 6, 9]</code></pre>
+
+        <h2>Recursion</h2>
+        <p>
+          Named functions can call themselves recursively:
+        </p>
+        <pre><code class="language-biolang"># Factorial
+fn factorial(n) {
+  if n <= 1 then 1
+  else n * factorial(n - 1)
+}
+println(factorial(10))   # 3628800
+
+# Fibonacci
+fn fib(n) {
+  if n <= 1 then n
+  else fib(n - 1) + fib(n - 2)
+}
+println(fib(10))   # 55
+
+# GCD (Euclidean algorithm)
+fn gcd(a, b) {
+  if b == 0 then a
+  else gcd(b, a % b)
+}
+println(gcd(48, 18))   # 6</code></pre>
+
+        <h2>Early Return</h2>
+        <p>
+          Use <code>return</code> for explicit early returns when you need to bail out
+          before the end of the function:
+        </p>
+        <pre><code class="language-biolang">fn find_first_long(items, min_len) {
+  for item in items {
+    if len(item) >= min_len {
+      return item
+    }
+  }
+  return "none found"
+}
+
+let genes = ["TP53", "BRCA1", "A", "EGFR"]
+println(find_first_long(genes, 4))   # BRCA1</code></pre>
+
+        <h2>Functions as Values</h2>
+        <p>
+          Functions are first-class: you can store them in variables, lists, and records,
+          and pass them as arguments:
+        </p>
+        <pre><code class="language-biolang"># Store functions in variables
+let ops = [|x| x + 1, |x| x * 2, |x| x * x]
+
+# Apply each operation to a value
+let val = 3
+for op in ops {
+  println(op(val))
+}
+# 4
+# 6
+# 9
+
+# Pass functions as arguments
+fn apply_twice(f, x) {
+  f(f(x))
+}
+println(apply_twice(|x| x + 10, 5))    # 25
+println(apply_twice(|x| x * 2, 3))     # 12</code></pre>
+
+        <h2>Functions with Pipes</h2>
+        <p>
+          Functions work naturally with the pipe operator. The data flows left to right:
+        </p>
+        <pre><code class="language-biolang"># Define reusable pipeline stages
+fn keep_long(items, min_len) {
+  items |> filter(|x| len(x) >= min_len)
+}
+
+fn to_upper_list(items) {
+  items |> map(|x| upper(x))
+}
+
+# Compose into a pipeline
+let genes = ["brca1", "tp53", "a", "egfr", "ab"]
+let result = genes
+  |> keep_long(3)
+  |> to_upper_list()
+  |> sort()
+println(result)   # [BRCA1, EGFR, TP53]</code></pre>
+
+        <h2>Higher-Order Patterns</h2>
+        <pre><code class="language-biolang"># compose: combine two functions into one
+fn compose(f, g) {
+  |x| f(g(x))
+}
+let shout = compose(upper, trim)
+println(shout("  hello  "))   # HELLO
+
+# Apply a function n times
+fn apply_n(f, x, n) {
+  let result = x
+  for i in range(n) {
+    result = f(result)
+  }
+  result
+}
+println(apply_n(|x| x * 2, 1, 10))   # 1024</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="pipes.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

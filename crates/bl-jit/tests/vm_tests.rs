@@ -254,8 +254,8 @@ fn test_vm_list_literal() {
 fn test_vm_record_literal() {
     let program = Program {
         stmts: vec![s(Stmt::Expr(s(Expr::Record(vec![
-            ("x".to_string(), s(Expr::Int(1))),
-            ("y".to_string(), s(Expr::Int(2))),
+            RecordEntry::Field("x".to_string(), s(Expr::Int(1))),
+            RecordEntry::Field("y".to_string(), s(Expr::Int(2))),
         ]))))],
     };
     run_program(&program).unwrap();
@@ -463,7 +463,7 @@ fn test_vm_protein_literal() {
 fn test_vm_field_access() {
     let program = Program {
         stmts: vec![s(Stmt::Expr(s(Expr::Field {
-            object: Box::new(s(Expr::Record(vec![("x".to_string(), s(Expr::Int(42)))]))),
+            object: Box::new(s(Expr::Record(vec![RecordEntry::Field("x".to_string(), s(Expr::Int(42)))]))),
             field: "x".to_string(),
             optional: false,
         })))],

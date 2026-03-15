@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioGist</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    background: #020617;
+    color: #e2e8f0;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  /* --- Header --- */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo { font-size: 18px; }
+  .brand {
+    font-weight: 700;
+    font-size: 15px;
+    background: linear-gradient(135deg, #a78bfa, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-actions { display: flex; gap: 6px; }
+
+  /* --- Buttons --- */
+  button {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: #1e293b;
+    color: #cbd5e1;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn:hover { background: #334155; color: #f1f5f9; }
+  .btn-primary {
+    background: #7c3aed;
+    color: #fff;
+  }
+  .btn-primary:hover { background: #6d28d9; }
+
+  /* --- Search --- */
+  .search-bar {
+    padding: 8px 14px;
+    border-bottom: 1px solid #1e293b;
+  }
+  .search-input {
+    width: 100%;
+    padding: 7px 10px 7px 30px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: #7c3aed; }
+  .search-wrap {
+    position: relative;
+  }
+  .search-icon {
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* --- Sections --- */
+  .section {
+    border-bottom: 1px solid #1e293b;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .section-header:hover { background: #0f172a; }
+  .section-title {
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+  }
+  .section-count {
+    font-size: 10px;
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .section-body {
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+  }
+  .section-body.collapsed { max-height: 0 !important; }
+
+  /* --- Entity list --- */
+  .entity-list { list-style: none; }
+  .entity-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px 7px 20px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-left: 3px solid transparent;
+  }
+  .entity-item:hover { background: #0f172a; }
+  .entity-item.active {
+    background: #1e1b4b;
+    border-left-color: #7c3aed;
+  }
+  .entity-icon { font-size: 14px; flex-shrink: 0; }
+  .entity-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: #f1f5f9;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .entity-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .badge-gene { background: #1e3a5f; color: #60a5fa; }
+  .badge-variant { background: #3b1f47; color: #c084fc; }
+  .badge-accession { background: #1a3329; color: #4ade80; }
+  .badge-file { background: #3b2f1a; color: #fbbf24; }
+  .badge-species { background: #1a3333; color: #5eead4; }
+
+  /* --- Detail panel (full-screen flip) --- */
+  .detail-panel {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #020617;
+    z-index: 20;
+    flex-direction: column;
+  }
+  .detail-panel.active {
+    display: flex;
+  }
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    position: sticky;
+    top: 0;
+  }
+  .detail-back {
+    background: none;
+    border: none;
+    color: #06b6d4;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .detail-back:hover { background: rgba(6,182,212,0.1); }
+  .detail-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #f1f5f9;
+    flex: 1;
+  }
+  .detail-body {
+    padding: 14px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .detail-row {
+    display: flex;
+    padding: 4px 0;
+    gap: 8px;
+  }
+  .detail-label {
+    font-size: 11px;
+    color: #64748b;
+    min-width: 80px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+  }
+  .detail-value {
+    font-size: 12px;
+    color: #cbd5e1;
+    word-break: break-word;
+  }
+  .detail-value a {
+    color: #818cf8;
+    text-decoration: none;
+  }
+  .detail-value a:hover { text-decoration: underline; }
+  .detail-placeholder {
+    padding: 30px 14px;
+    text-align: center;
+    color: #475569;
+    font-size: 12px;
+  }
+
+  /* --- Loading spinner --- */
+  .spinner-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #1e293b;
+    border-top-color: #7c3aed;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* --- Empty state --- */
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: #475569;
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 8px; }
+  .empty-state p { font-size: 12px; margin-top: 4px; }
+
+  /* --- Settings (full-screen flip like detail) --- */
+  .settings-panel {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #020617;
+    z-index: 20;
+    flex-direction: column;
+  }
+  .settings-panel.visible { display: flex; }
+  .settings-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+  }
+  .settings-body {
+    padding: 14px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+  .setting-label { font-size: 12px; color: #94a3b8; }
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: #334155;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle.on { background: #7c3aed; }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(16px); }
+
+  /* --- Scrollbar --- */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+  /* --- Light theme --- */
+  body.light-theme { background: #f8fafc; color: #1e293b; }
+  body.light-theme .header { background: #fff; border-color: #e2e8f0; }
+  body.light-theme .brand { background: linear-gradient(135deg, #7c3aed, #0891b2); -webkit-background-clip: text; }
+  body.light-theme .search-input { background: #f1f5f9; border-color: #e2e8f0; color: #1e293b; }
+  body.light-theme .section-header { background: #f1f5f9; }
+  body.light-theme .section-title { color: #334155; }
+  body.light-theme .entity-item { border-color: #e2e8f0; }
+  body.light-theme .entity-item:hover { background: #f1f5f9; }
+  body.light-theme .entity-name { color: #1e293b; }
+  body.light-theme .detail-panel { background: #f8fafc; }
+  body.light-theme .detail-header { background: #fff; border-color: #e2e8f0; }
+  body.light-theme .detail-title { color: #1e293b; }
+  body.light-theme .detail-back { color: #0891b2; }
+  body.light-theme .detail-label { color: #64748b; }
+  body.light-theme .detail-value { color: #334155; }
+  body.light-theme .settings-panel { background: #f8fafc; }
+  body.light-theme .settings-header { background: #fff; border-color: #e2e8f0; }
+  body.light-theme .setting-label { color: #475569; }
+  body.light-theme .empty-state { color: #64748b; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <span class="logo">&#x1F9EC;</span>
+    <span class="brand">BioGist</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn" id="btn-settings" title="Settings">&#x2699;</button>
+    <button class="btn" id="btn-clear" title="Clear all entities" style="font-size:11px;color:#f87171">Clear</button>
+    <button class="btn" id="btn-paste-text" title="Paste text to scan" style="font-size:11px">Paste</button>
+    <button class="btn btn-primary" id="btn-scan" title="Scan current page">Scan</button>
+  </div>
+</div>
+
+<!-- Search -->
+<div class="search-bar">
+  <div class="search-wrap">
+    <span class="search-icon">&#x1F50D;</span>
+    <input type="text" class="search-input" id="search" placeholder="Filter entities...">
+  </div>
+</div>
+
+<!-- Entity sections (populated by JS) -->
+<div id="entity-sections"></div>
+
+<!-- Loading state -->
+<div class="spinner-wrap" id="loading" style="display:none">
+  <div class="spinner"></div>
+</div>
+
+<!-- Empty state -->
+<div class="empty-state" id="empty-state">
+  <div class="icon">&#x1F9EC;</div>
+  <strong>No entities detected</strong>
+  <p>Click <b>Scan</b> to analyze the current page, or right-click text and choose "Look up in BioGist".</p>
+</div>
+
+<!-- Detail panel (full-screen flip) -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <button class="detail-back" id="btn-close-detail" title="Back to list">&#8592; Back</button>
+    <span class="detail-title" id="detail-title">Details</span>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- Settings -->
+<div class="settings-panel" id="settings-panel">
+  <div class="settings-header">
+    <button class="detail-back" id="btn-close-settings" title="Back">&#8592; Back</button>
+    <span class="detail-title">Settings</span>
+  </div>
+  <div class="settings-body">
+    <div class="setting-row">
+      <span class="setting-label">Theme</span>
+      <div class="toggle" id="toggle-theme" data-key="theme"></div>
+    </div>
+    <div style="font-size:10px;color:#475569;margin:-4px 0 8px;text-align:right">Light / Dark</div>
+    <div class="setting-row">
+      <span class="setting-label">Auto-scan bio pages</span>
+      <div class="toggle on" id="toggle-autoscan" data-key="autoscan"></div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Highlight entities on page</span>
+      <div class="toggle on" id="toggle-highlight" data-key="highlight"></div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Cache API results (24h)</span>
+      <div class="toggle on" id="toggle-cache" data-key="cache"></div>
+    </div>
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #1e293b">
+      <a href="help.html" target="_blank" style="font-size:12px;color:#06b6d4;text-decoration:none">Help &amp; Documentation &#8594;</a>
+    </div>
+    <div style="margin-top:8px">
+      <a href="https://lang.bio" target="_blank" style="font-size:11px;color:#475569;text-decoration:none">BioGist v1.0 &mdash; Oric Labs</a>
+    </div>
+  </div>
+</div>
+
+<script src="sidebar.js"></script>
+</body>
+</html>

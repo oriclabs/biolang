@@ -49,7 +49,7 @@ fn trim_adapter(stream, adapter) {
 }
 
 # Compose pipeline from reusable stages
-fastq("input.fq.gz")
+read_fastq("data/reads.fastq")
   |> trim_adapter("AGATCGGAAGAG")
   |> quality_filter(30.0, 50)
   |> write_fastq("clean.fq.gz")</code></pre>
@@ -66,7 +66,7 @@ fn maybe_filter(stream, condition, predicate) {
 
 let strict_mode = env("STRICT_QC") == "true"
 
-fastq("input.fq.gz")
+read_fastq("data/reads.fastq")
   |> maybe_filter(strict_mode, |r| mean_phred(r.quality) >= 35.0)
   |> write_fastq("output.fq.gz")</code></pre>
 
@@ -74,7 +74,7 @@ fastq("input.fq.gz")
         <pre><code class="language-biolang"># Use each to inspect data mid-pipeline
 let count = 0
 
-let variants = vcf("variants.vcf.gz")
+let variants = read_vcf("data/variants.vcf")
   |> filter(|v| v.filter == "PASS")
   |> collect
 
@@ -174,7 +174,7 @@ let schema = {
   "condition":  { required: true }
 }
 
-let data = csv("sample_sheet.csv")
+let data = read_csv("data/sample_sheet.csv")
 let issues = validate_table(data, schema)
 if len(issues) > 0 {
   print("Sample sheet validation failed:")
@@ -209,7 +209,7 @@ for key, value in config {
 
 # Use config values
 mkdir(config.output_dir)
-fastq("input.fq.gz")
+read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= config.min_quality)
   |> filter(|r| len(r.seq) >= config.min_length)
   |> write_fastq("#{config.output_dir}/filtered.fq.gz")</code></pre>
@@ -265,7 +265,7 @@ fn log_error(msg) { log("ERROR", msg) }
 log_info("Starting QC pipeline")
 log_info("Input: sample.fq.gz")
 
-let reads = fastq("sample.fq.gz")
+let reads = read_fastq("data/reads.fastq")
 let total = reads |> count
 log_info("Total reads: #{total}")
 

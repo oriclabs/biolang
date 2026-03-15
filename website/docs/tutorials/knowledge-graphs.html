@@ -172,7 +172,7 @@ print(f"Subgraph: {node_count(sub)} nodes, {edge_count(sub)} edges")
         </p>
         <pre><code class="language-biolang"># requires: interactions.csv in working directory
 # Suppose interactions.csv has columns: gene_a, gene_b, score
-let edges_data = csv("interactions.csv")
+let edges_data = read_csv("data/expression.csv")
 
 let g = graph()
 let g = edges_data |> reduce(g, |g, row| {

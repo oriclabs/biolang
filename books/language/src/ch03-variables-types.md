@@ -8,7 +8,7 @@ and nil handling.
 
 Variables are introduced with `let` and are immutable by default:
 
-```
+```biolang
 let sample_id = "TCGA-A1-A0SP"
 let min_depth = 30
 let reference = dna"ATCGATCGATCG"
@@ -16,7 +16,7 @@ let reference = dna"ATCGATCGATCG"
 
 Attempting to rebind a `let` variable in the same scope is an error:
 
-```
+```biolang
 let threshold = 0.05
 let threshold = 0.01   # Error: 'threshold' is already bound in this scope
 ```
@@ -25,7 +25,7 @@ let threshold = 0.01   # Error: 'threshold' is already bound in this scope
 
 Use `=` without `let` to reassign an existing variable:
 
-```
+```biolang
 let total_reads = 0
 total_reads = total_reads + 1847293
 
@@ -43,7 +43,7 @@ status = "complete"
 | `Bool` | `true`, `false` | Boolean |
 | `Nil` | `nil` | Absence of value |
 
-```
+```biolang
 let num_samples = 48
 let p_value = 3.2e-8
 let experiment = "RNA-seq time course"
@@ -69,7 +69,7 @@ These types carry domain semantics beyond raw data:
 | `Interval` | `interval("chr1", 1000, 2000)` | Genomic interval |
 | `Variant` | `variant("chr17", 7674220, "C", "T")` | Sequence variant |
 
-```
+```biolang
 let primer_fwd = dna"TGTAAAACGACGGCCAGT"
 let stop_codon = rna"UAG"
 let signal_peptide = protein"MKWVTFISLLFLFSSAYS"
@@ -84,7 +84,7 @@ let brca1_snp = variant("chr17", 43094464, "G", "A")
 
 Intervals represent genomic regions with chromosome, start, and end:
 
-```
+```biolang
 let region = interval("chr1", 1000000, 2000000)
 print(region.chrom)   # => "chr1"
 print(region.start)   # => 1000000
@@ -102,7 +102,7 @@ print(intersect(exon1, exon2))      # => interval("chr1", 1400, 1500)
 
 Variants represent sequence changes at specific positions:
 
-```
+```biolang
 let snv = variant("chr7", 55249071, "C", "T")
 print(snv.chrom)    # => "chr7"
 print(snv.pos)      # => 55249071
@@ -121,7 +121,7 @@ print(variant_type(indel)) # => "DEL"
 Records are BioLang's primary structured data type. They map naturally to the
 tabular, metadata-rich world of bioinformatics:
 
-```
+```biolang
 let sample = {
   sample_id: "S001",
   patient: "P-4821",
@@ -139,7 +139,7 @@ print(sample.mean_coverage)   # => 32.5
 
 Record keys can be identifiers or strings:
 
-```
+```biolang
 let annotation = {
   "gene_name": "EGFR",
   "Gene Ontology": "GO:0005524",
@@ -154,7 +154,7 @@ print(annotation."Gene Ontology")   # => "GO:0005524"
 The spread operator `...` merges one record into another. Later keys override
 earlier ones:
 
-```
+```biolang
 let defaults = {
   aligner: "bwa-mem2",
   min_mapq: 30,
@@ -179,7 +179,7 @@ parameters with per-sample overrides.
 
 Records can nest to arbitrary depth:
 
-```
+```biolang
 let variant_annotation = {
   variant: variant("chr17", 7674220, "C", "T"),
   gene: {
@@ -207,7 +207,7 @@ print(variant_annotation.prediction.sift.score)
 
 BioLang provides introspection functions for runtime type checking:
 
-```
+```biolang
 let seq = dna"ATCG"
 print(type(seq))       # => "DNA"
 print(is_dna(seq))     # => true
@@ -221,7 +221,7 @@ print(is_str(rec))     # => false
 
 Available type check functions:
 
-```
+```biolang
 is_int(val)
 is_float(val)
 is_str(val)
@@ -243,7 +243,7 @@ is_variant(val)
 
 `into(value, "TargetType")` converts between compatible types:
 
-```
+```biolang
 # String to DNA
 let seq = into("ATCGATCG", "DNA")
 
@@ -268,7 +268,7 @@ let region = into(variant("chr1", 1000, "A", "T"), "Interval")
 
 Define aliases to make code self-documenting:
 
-```
+```biolang
 type Locus = Record
 type SampleMeta = Record
 type QCMetrics = Record
@@ -289,7 +289,7 @@ metrics, unmapped reads. BioLang has two operators for nil handling.
 
 Returns the left side if non-nil, otherwise the right:
 
-```
+```biolang
 let depth = sample.coverage ?? 0
 let gene_name = annotation.symbol ?? annotation.id ?? "unknown"
 
@@ -302,7 +302,7 @@ let threads = args.threads ?? 4
 
 Safely accesses nested fields, returning nil if any intermediate value is nil:
 
-```
+```biolang
 let clinvar_status = variant_record?.annotation?.clinvar?.significance
 # Returns nil if annotation, clinvar, or significance is missing
 
@@ -312,7 +312,7 @@ let pathogenicity = variant_record?.annotation?.clinvar?.significance ?? "Unknow
 
 ## Example: Building a Sample Metadata Registry
 
-```
+```biolang
 # sample_registry.bl
 # Parse a sample sheet and build a typed metadata registry.
 
@@ -362,11 +362,11 @@ print(f"\nRegistry: {len(registry)} samples ({tumor_count} tumor, {normal_count}
 
 ## Example: Parsing and Validating Variant Records
 
-```
+```biolang
 # validate_variants.bl
 # Read a VCF file, parse variants into typed records, validate, classify.
 
-let raw_variants = read_vcf("calls.vcf.gz")
+let raw_variants = read_vcf("data/variants.vcf")
 
 # Build typed variant records with full annotation
 let typed_variants = raw_variants |> map(|v| {

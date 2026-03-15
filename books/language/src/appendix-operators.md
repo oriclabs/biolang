@@ -123,8 +123,8 @@ pipelines in BioLang. The `|> into` variant lets you capture an intermediate
 result without breaking left-to-right reading order &mdash; `expr |> into name`
 is equivalent to `let name = expr`:
 
-```
-read_fastq("sample.fq")
+```biolang
+read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) > 25)
   |>> |reads| print("After QC: " + str(len(reads)) + " reads")
   |> map(|r| {id: r.id, gc: gc_content(r.seq)})
@@ -222,7 +222,7 @@ statements. Use them freely to organize code into logical sections.
 | `#` | Line comment | Everything from `#` to end of line is ignored |
 | `##` | Doc comment | Attached to the following declaration; extractable by documentation tools |
 
-```
+```biolang
 # This is a regular comment
 
 ## Compute GC content for a DNA sequence.

@@ -1,0 +1,606 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 1: Why Statistics? The Story Your Data Is Trying to Tell - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-1-why-statistics-the-story-your-data-is-trying-to-tell"><a class="header" href="#day-1-why-statistics-the-story-your-data-is-trying-to-tell">Day 1: Why Statistics? The Story Your Data Is Trying to Tell</a></h1>
+<div class="day-meta">
+<span class="badge">Day 1 of 30</span>
+<span class="badge">No Prerequisites</span>
+<span class="badge">~45 min reading</span>
+<span class="badge">Motivation &amp; Context</span>
+</div>
+
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>In 2006, a pharmaceutical company invested over $800 million developing a promising cancer therapy. Phase II clinical trials had shown a statistically significant survival benefit in 87 patients with advanced colorectal cancer. The data looked compelling: a 38% improvement in median progression-free survival. Investors were jubilant. The company fast-tracked Phase III.</p>
+<p>Then came the reckoning. The Phase III trial enrolled 1,200 patients across 120 medical centers. The drug performed no better than placebo. The stock price collapsed overnight. Nearly a billion dollars and eight years of research, gone — not because the science was wrong, but because the statistics were misunderstood. The Phase II “signal” was noise, amplified by a sample too small to tell the difference.</p>
+<p>This story is not unusual. It plays out every year in laboratories, hospitals, and boardrooms around the world. Similar scenarios have unfolded with Alzheimer’s drugs, cardiovascular therapies, and anti-inflammatory agents. The difference between a breakthrough and a blunder often comes down to a few fundamental statistical concepts — concepts that any biologist, clinician, or bioinformatician can learn.</p>
+<p>That is what this book is about. In 30 days, you will build the statistical intuition and practical skills to avoid these mistakes — whether you are designing a clinical trial, analyzing RNA-seq data, or evaluating a paper over morning coffee.</p>
+<h2 id="what-is-statistics"><a class="header" href="#what-is-statistics">What Is Statistics?</a></h2>
+<p>Statistics is the science of learning from data in the presence of uncertainty. Think of it as a translator between the messy, noisy world of observations and the clean, confident conclusions you want to draw.</p>
+<p>Imagine you are standing in a dark room, trying to understand the shape of an object by touching it with gloves on. You can feel something — ridges, curves, a rough texture — but every touch is imprecise. You might mistake a bump for an edge, or miss a hole entirely. Statistics gives you a flashlight. Not a perfect one — the beam flickers and the lens is smudged — but it is incomparably better than groping in the dark.</p>
+<p>In biology, the “dark room” is enormous. A single human genome contains 3.2 billion base pairs. A transcriptomics experiment measures expression levels for 20,000 genes simultaneously. A clinical trial tracks hundreds of variables across thousands of patients over years. No human can intuit patterns in data this vast. Statistics provides the framework to ask precise questions and get defensible answers.</p>
+<h2 id="the-reproducibility-crisis"><a class="header" href="#the-reproducibility-crisis">The Reproducibility Crisis</a></h2>
+<p>In 2012, a team at Amgen, one of the world’s largest biotechnology companies, attempted to reproduce 53 landmark studies in cancer biology — papers published in top-tier journals by respected labs. These were not obscure findings; they were studies that had shaped drug development programs and clinical practice.</p>
+<p>They could reproduce only 6. That is an 89% failure rate.</p>
+<p>Around the same time, Bayer HealthCare reported a similar effort. Of 67 preclinical studies they attempted to validate, roughly two-thirds could not be reproduced. The results that had guided millions of dollars in investment simply vanished when subjected to rigorous replication.</p>
+<p>How does published, peer-reviewed science fail at this rate? The reasons are many, but they share a common root: <strong>insufficient statistical reasoning</strong>.</p>
+<h3 id="p-hacking-torturing-data-until-it-confesses"><a class="header" href="#p-hacking-torturing-data-until-it-confesses">P-Hacking: Torturing Data Until It Confesses</a></h3>
+<p>One of the most insidious contributors is “p-hacking” — the practice of trying multiple analyses until one produces a statistically significant result. A researcher might:</p>
+<ul>
+<li>Test 15 different subgroups and report only the one with p &lt; 0.05</li>
+<li>Remove outliers selectively until the result becomes significant</li>
+<li>Try multiple statistical tests and report whichever gives the smallest p-value</li>
+<li>Add or remove covariates until the “right” answer appears</li>
+<li>Decide when to stop collecting data based on whether the current result is significant</li>
+</ul>
+<p>None of these practices involves fabricating data. Each individual decision might even seem reasonable in isolation. But collectively, they dramatically inflate the false positive rate. If you flip through enough combinations, you will find “significance” by pure chance — it is a mathematical certainty.</p>
+<h3 id="underpowered-studies"><a class="header" href="#underpowered-studies">Underpowered Studies</a></h3>
+<p>Many published studies use sample sizes far too small to reliably detect the effects they claim to find. A study with only 12 mice per group has roughly a 20% chance of detecting a moderate treatment effect. That means 80% of real effects go undetected. But the 20% that are detected appear larger than they truly are (because only the noisiest, most extreme results cross the significance threshold), creating a distorted picture of biology.</p>
+<h3 id="the-garden-of-forking-paths"><a class="header" href="#the-garden-of-forking-paths">The Garden of Forking Paths</a></h3>
+<p>Researchers make dozens of analytical decisions: how to clean the data, which variables to include, how to handle missing values, which test to use, whether to transform the data, how to define the outcome. Each decision is a fork in the path, and different choices lead to different results. When these choices are made after seeing the data (rather than pre-specified in an analysis plan), the researcher unconsciously navigates toward significance.</p>
+<p>This is not an indictment of individual scientists. Most researchers receive minimal formal training in statistics. A typical biology PhD might include one semester-long course, crammed between lab rotations and qualifying exams. The result is a generation of brilliant experimentalists who treat statistical tests as black boxes — input data, output significance. Reviewers, equally uncertain about statistics, wave the paper through. The system rewards novelty over rigor.</p>
+<blockquote>
+<p><strong>Key insight:</strong> The reproducibility crisis is not primarily a crisis of fraud or incompetence. It is a crisis of statistical literacy. Understanding the concepts in this book is one of the most impactful things you can do for the quality of your science.</p>
+</blockquote>
+<h2 id="signal-vs-noise"><a class="header" href="#signal-vs-noise">Signal vs. Noise</a></h2>
+<p>Here is the most fundamental question in statistics: <strong>Is the pattern I see real, or could it have happened by chance?</strong></p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="320" viewbox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <defs>
+    <marker id="arrow1" markerwidth="8" markerheight="6" refx="8" refy="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6b7280" /></marker>
+  </defs>
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Signal vs. Noise</text>
+  <!-- Left panel: noisy data with no real trend -->
+  <rect x="30" y="42" width="290" height="240" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="175" y="62" text-anchor="middle" font-size="12" font-weight="600" fill="#dc2626">Small Sample (n=10) — Noise Mimics Signal</text>
+  <!-- Axes -->
+  <line x1="60" y1="250" x2="295" y2="250" stroke="#9ca3af" stroke-width="1.5" />
+  <line x1="60" y1="250" x2="60" y2="75" stroke="#9ca3af" stroke-width="1.5" />
+  <text x="175" y="272" text-anchor="middle" font-size="11" fill="#6b7280">Measurement</text>
+  <text x="45" y="165" text-anchor="middle" font-size="11" fill="#6b7280" transform="rotate(-90,45,165)">Response</text>
+  <!-- Scattered noisy points -->
+  <circle cx="80" cy="200" r="5" fill="#ef4444" opacity="0.7" /><circle cx="105" cy="120" r="5" fill="#ef4444" opacity="0.7" />
+  <circle cx="125" cy="230" r="5" fill="#ef4444" opacity="0.7" /><circle cx="150" cy="105" r="5" fill="#ef4444" opacity="0.7" />
+  <circle cx="170" cy="180" r="5" fill="#ef4444" opacity="0.7" /><circle cx="195" cy="90" r="5" fill="#ef4444" opacity="0.7" />
+  <circle cx="220" cy="210" r="5" fill="#ef4444" opacity="0.7" /><circle cx="240" cy="130" r="5" fill="#ef4444" opacity="0.7" />
+  <circle cx="260" cy="160" r="5" fill="#ef4444" opacity="0.7" /><circle cx="280" cy="95" r="5" fill="#ef4444" opacity="0.7" />
+  <!-- Spurious trend line -->
+  <line x1="70" y1="210" x2="285" y2="100" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4" opacity="0.6" />
+  <text x="175" y="288" text-anchor="middle" font-size="10" fill="#dc2626" font-style="italic">Apparent trend is just random scatter</text>
+  <!-- Right panel: clear signal with many points -->
+  <rect x="360" y="42" width="290" height="240" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="505" y="62" text-anchor="middle" font-size="12" font-weight="600" fill="#16a34a">Large Sample (n=100) — Signal Emerges</text>
+  <!-- Axes -->
+  <line x1="390" y1="250" x2="625" y2="250" stroke="#9ca3af" stroke-width="1.5" />
+  <line x1="390" y1="250" x2="390" y2="75" stroke="#9ca3af" stroke-width="1.5" />
+  <text x="505" y="272" text-anchor="middle" font-size="11" fill="#6b7280">Measurement</text>
+  <!-- Many points clustered around trend -->
+  <circle cx="400" cy="225" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="405" cy="218" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="410" cy="230" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="415" cy="210" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="420" cy="222" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="425" cy="215" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="430" cy="205" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="435" cy="212" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="440" cy="200" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="445" cy="208" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="450" cy="195" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="455" cy="190" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="460" cy="198" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="465" cy="185" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="470" cy="192" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="475" cy="180" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="480" cy="188" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="485" cy="175" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="490" cy="182" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="495" cy="170" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="500" cy="178" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="505" cy="165" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="510" cy="172" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="515" cy="160" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="520" cy="168" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="525" cy="155" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="530" cy="162" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="535" cy="150" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="540" cy="158" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="545" cy="145" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="550" cy="152" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="555" cy="140" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="560" cy="148" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="565" cy="135" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="570" cy="142" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="575" cy="128" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="580" cy="138" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="585" cy="122" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="590" cy="130" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="595" cy="118" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="600" cy="125" r="3" fill="#3b82f6" opacity="0.4" /><circle cx="605" cy="110" r="3" fill="#3b82f6" opacity="0.4" />
+  <circle cx="610" cy="115" r="3" fill="#3b82f6" opacity="0.4" />
+  <!-- Clear trend line -->
+  <line x1="395" y1="232" x2="615" y2="108" stroke="#2563eb" stroke-width="2.5" opacity="0.85" />
+  <text x="505" y="288" text-anchor="middle" font-size="10" fill="#16a34a" font-style="italic">With enough data, the real trend is unmistakable</text>
+</svg>
+</div>
+
+<p>Consider a simple experiment. You flip a coin 10 times and get 8 heads. Is the coin biased? Your intuition says maybe — 8 out of 10 is a lot of heads. But if you do the math, a fair coin produces 8 or more heads about 5.5% of the time. That is unlikely, but not astronomically so. You might just be unlucky.</p>
+<p>Now flip the coin 100 times and get 80 heads. Is the coin biased? Almost certainly yes. A fair coin producing 80 or more heads in 100 flips has a probability of about 0.000000000000006. You would need to flip coins continuously for the age of the universe to expect this by chance.</p>
+<p>The pattern (80% heads) is the same in both cases. What changed is the <strong>sample size</strong>. With 10 flips, 80% heads is plausible noise. With 100 flips, 80% heads is an unmistakable signal.</p>
+<p>This is exactly what happened with the cancer drug. In 87 patients, a 38% improvement could easily arise from random variation — which patients happened to be enrolled, how they responded to the placebo, what comorbidities they had. In 1,200 patients, the noise averages out, and the true effect (or lack thereof) becomes visible.</p>
+<blockquote>
+<p><strong>Common pitfall:</strong> Small studies frequently produce dramatic-looking results. This is not because small studies discover larger effects — it is because small samples are inherently noisy, and noise occasionally looks like a big signal. This phenomenon is called the “winner’s curse” and it haunts biomedical research.</p>
+</blockquote>
+<h2 id="the-cost-of-being-wrong"><a class="header" href="#the-cost-of-being-wrong">The Cost of Being Wrong</a></h2>
+<p>In statistics, there are exactly two ways to be wrong, and they have very different consequences.</p>
+<h3 id="type-i-error-the-false-alarm"><a class="header" href="#type-i-error-the-false-alarm">Type I Error: The False Alarm</a></h3>
+<p>A Type I error occurs when you conclude there is an effect when there is none. You declare the coin biased when it is actually fair. You approve a drug that does not work.</p>
+<p>The most devastating Type I error in pharmaceutical history may be thalidomide in the 1950s. Marketed as a safe sedative for pregnant women, the drug was approved based on inadequate evidence. It caused severe birth defects in over 10,000 children worldwide. While this tragedy involved failures far beyond statistics — regulatory, ethical, and scientific — the core issue was concluding safety from data that could not support that conclusion.</p>
+<p>A more modern example: in 2004, Merck withdrew Vioxx (rofecoxib), a blockbuster anti-inflammatory drug, after it became clear that it significantly increased heart attack risk. The drug had been on the market for five years. Post-withdrawal analysis suggested that the cardiovascular risk had been detectable in the original trial data, but was either missed or downplayed. The cost: an estimated 88,000-140,000 excess cases of heart disease in the United States alone.</p>
+<h3 id="type-ii-error-the-missed-discovery"><a class="header" href="#type-ii-error-the-missed-discovery">Type II Error: The Missed Discovery</a></h3>
+<p>A Type II error occurs when you fail to detect a real effect. You declare the coin fair when it is actually biased. You reject a drug that actually works.</p>
+<p>The canonical example is Helicobacter pylori. In 1982, Barry Marshall and Robin Warren proposed that stomach ulcers were caused by a bacterium, not by stress or spicy food as the medical establishment believed. Their initial data was compelling but their sample sizes were small. The medical community dismissed their findings for over a decade, costing millions of patients effective treatment. Marshall eventually infected himself with H. pylori, developed gastritis, and cured it with antibiotics to prove his point. He and Warren won the Nobel Prize in 2005.</p>
+<p>Every year, real treatments are abandoned because clinical trials were too small to detect their effect. Every year, genuine biological mechanisms are dismissed because the experiment lacked statistical power. Type II errors are the silent killers of science — you never know what you missed, because the missed discovery never makes it into a journal.</p>
+<p>How many effective cancer therapies have been shelved because the Phase II trial enrolled 40 patients instead of 400? We will never know. But the statistical tools to prevent this — power analysis and sample size calculation — are straightforward. You will learn them on Day 26.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Error Type</th><th>What Happens</th><th>Consequence</th><th>Biology Example</th></tr>
+</thead>
+<tbody>
+<tr><td>Type I (False Positive)</td><td>Conclude effect exists when it does not</td><td>Wasted resources, patient harm</td><td>Approving ineffective drug</td></tr>
+<tr><td>Type II (False Negative)</td><td>Miss a real effect</td><td>Lost discoveries, delayed treatments</td><td>Rejecting H. pylori hypothesis</td></tr>
+<tr><td>Correct rejection</td><td>Correctly conclude no effect</td><td>Good science</td><td>Debunking a false supplement claim</td></tr>
+<tr><td>Correct detection</td><td>Correctly detect real effect</td><td>Discovery!</td><td>Identifying BRCA1 as cancer gene</td></tr>
+</tbody>
+</table>
+</div>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="310" viewbox="0 0 660 310" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Decision Outcomes: The 2x2 Reality</text>
+  <!-- Column headers -->
+  <text x="370" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280">Reality: No Effect (H0 true)</text>
+  <text x="560" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280">Reality: Effect Exists (H1 true)</text>
+  <!-- Row headers -->
+  <text x="120" y="132" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280">Decision:</text>
+  <text x="120" y="148" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280">"Significant"</text>
+  <text x="120" y="232" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280">Decision:</text>
+  <text x="120" y="248" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280">"Not Significant"</text>
+  <!-- Grid lines -->
+  <line x1="200" y1="70" x2="200" y2="290" stroke="#d1d5db" stroke-width="1.5" />
+  <line x1="470" y1="70" x2="470" y2="290" stroke="#d1d5db" stroke-width="1.5" />
+  <line x1="200" y1="70" x2="640" y2="70" stroke="#d1d5db" stroke-width="1.5" />
+  <line x1="200" y1="180" x2="640" y2="180" stroke="#d1d5db" stroke-width="1.5" />
+  <line x1="200" y1="290" x2="640" y2="290" stroke="#d1d5db" stroke-width="1.5" />
+  <line x1="640" y1="70" x2="640" y2="290" stroke="#d1d5db" stroke-width="1.5" />
+  <!-- Type I Error (False Positive) -->
+  <rect x="202" y="72" width="266" height="106" fill="#fef2f2" rx="4" />
+  <text x="335" y="110" text-anchor="middle" font-size="14" font-weight="bold" fill="#dc2626">TYPE I ERROR</text>
+  <text x="335" y="130" text-anchor="middle" font-size="12" fill="#dc2626">False Positive (alpha)</text>
+  <text x="335" y="150" text-anchor="middle" font-size="11" fill="#7f1d1d">Approve drug that doesn't work</text>
+  <text x="335" y="166" text-anchor="middle" font-size="11" fill="#7f1d1d">Rate controlled at 5%</text>
+  <!-- True Positive -->
+  <rect x="472" y="72" width="166" height="106" fill="#f0fdf4" rx="4" />
+  <text x="555" y="110" text-anchor="middle" font-size="14" font-weight="bold" fill="#16a34a">CORRECT</text>
+  <text x="555" y="130" text-anchor="middle" font-size="12" fill="#16a34a">True Positive (Power)</text>
+  <text x="555" y="150" text-anchor="middle" font-size="11" fill="#14532d">Detect real treatment</text>
+  <text x="555" y="166" text-anchor="middle" font-size="11" fill="#14532d">Goal: 80%+</text>
+  <!-- True Negative -->
+  <rect x="202" y="182" width="266" height="106" fill="#f0fdf4" rx="4" />
+  <text x="335" y="220" text-anchor="middle" font-size="14" font-weight="bold" fill="#16a34a">CORRECT</text>
+  <text x="335" y="240" text-anchor="middle" font-size="12" fill="#16a34a">True Negative</text>
+  <text x="335" y="260" text-anchor="middle" font-size="11" fill="#14532d">Correctly reject bad drug</text>
+  <text x="335" y="276" text-anchor="middle" font-size="11" fill="#14532d">Rate = 1 - alpha = 95%</text>
+  <!-- Type II Error (False Negative) -->
+  <rect x="472" y="182" width="166" height="106" fill="#fef2f2" rx="4" />
+  <text x="555" y="220" text-anchor="middle" font-size="14" font-weight="bold" fill="#dc2626">TYPE II ERROR</text>
+  <text x="555" y="240" text-anchor="middle" font-size="12" fill="#dc2626">False Negative (beta)</text>
+  <text x="555" y="260" text-anchor="middle" font-size="11" fill="#7f1d1d">Miss a real treatment</text>
+  <text x="555" y="276" text-anchor="middle" font-size="11" fill="#7f1d1d">Rate = 1 - Power</text>
+</svg>
+</div>
+
+<blockquote>
+<p><strong>Clinical relevance:</strong> In diagnostic testing, Type I errors produce false positives (telling a healthy person they have cancer) and Type II errors produce false negatives (telling a cancer patient they are healthy). Both are harmful, but in different ways. The balance between them is one of the central tensions in medicine.</p>
+</blockquote>
+<h2 id="why-biology-needs-statistics-more-than-most-fields"><a class="header" href="#why-biology-needs-statistics-more-than-most-fields">Why Biology Needs Statistics More Than Most Fields</a></h2>
+<p>A physicist measuring the speed of light will get the same answer (within measurement precision) whether the experiment is run in Tokyo or Toronto, on Monday or Friday, in summer or winter. The speed of light does not have a bad day.</p>
+<p>Biology is fundamentally different, for three reasons.</p>
+<h3 id="1-biological-variability"><a class="header" href="#1-biological-variability">1. Biological Variability</a></h3>
+<p>Every organism is unique. Two genetically identical mice raised in the same cage, fed the same diet, will still differ in gene expression, tumor growth rate, immune response, and lifespan. This is not experimental error — it is the intrinsic variability of living systems. Evolution has built variability into every level of biology, from stochastic gene expression to somatic mutation to behavioral differences.</p>
+<p>This variability means that a single measurement tells you almost nothing. If one mouse responds to a drug, you cannot conclude the drug works. If one patient’s tumor shrinks, you cannot attribute it to the treatment. You need replicates, and you need statistics to make sense of them.</p>
+<h3 id="2-measurement-noise"><a class="header" href="#2-measurement-noise">2. Measurement Noise</a></h3>
+<p>Biological measurement is imprecise. A sequencing run introduces base-calling errors at a rate of roughly 0.1-1% per base. RNA-seq quantification depends on library preparation, read depth, alignment parameters, and normalization method. Mass spectrometry measurements fluctuate with instrument calibration, sample preparation, and ionization efficiency.</p>
+<p>Every measurement in biology is the true signal plus some unknown amount of noise. Statistics provides the tools to separate one from the other.</p>
+<h3 id="3-massive-parallel-testing"><a class="header" href="#3-massive-parallel-testing">3. Massive Parallel Testing</a></h3>
+<p>Modern biology is high-dimensional. A genome-wide association study (GWAS) tests millions of genetic variants. A differential expression analysis tests 20,000 genes. A proteomics experiment quantifies thousands of proteins. A drug screen tests hundreds of compounds.</p>
+<p>When you test 20,000 hypotheses simultaneously, you expect 1,000 false positives by chance alone (at the conventional 5% threshold). Without proper statistical correction for multiple testing, you would drown in spurious results. This is not a theoretical concern — it is the daily reality of genomics, and getting it wrong has real consequences.</p>
+<p>To make this concrete, consider a differential expression analysis. You measure expression of 20,000 genes in treatment versus control. Even if the treatment does absolutely nothing — affects zero genes — testing each gene at α = 0.05 will flag approximately 1,000 genes as “significant.” If you published a paper claiming these 1,000 genes are treatment-responsive, every single one would be a false positive.</p>
+<p>The solution (multiple testing correction, which we cover on Day 15) reduces the significance threshold to account for the number of tests. In a GWAS with 1 million variants, the genome-wide significance threshold is p &lt; 5 × 10⁻⁸ — one thousand times more stringent than the usual 0.05. Understanding why this correction is necessary, and how to apply it properly, is one of the core skills of a computational biologist.</p>
+<blockquote>
+<p><strong>Key insight:</strong> Biology sits at the intersection of high variability, high noise, and high dimensionality. This makes it arguably the field most in need of statistical sophistication, yet it has historically been one of the least statistically trained.</p>
+</blockquote>
+<h2 id="a-tour-of-what-lies-ahead"><a class="header" href="#a-tour-of-what-lies-ahead">A Tour of What Lies Ahead</a></h2>
+<p>This book will take you from zero to practicing biostatistician in 30 days. Here is a preview of the journey:</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="200" viewbox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">30-Day Roadmap</text>
+  <!-- Timeline line -->
+  <line x1="40" y1="80" x2="640" y2="80" stroke="#d1d5db" stroke-width="3" stroke-linecap="round" />
+  <!-- Week 1 -->
+  <rect x="40" y="65" width="100" height="30" rx="15" fill="#2563eb" />
+  <text x="90" y="85" text-anchor="middle" font-size="11" font-weight="600" fill="white">Week 1</text>
+  <text x="90" y="112" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="600">Foundations</text>
+  <text x="90" y="126" text-anchor="middle" font-size="9" fill="#6b7280">Descriptive stats,</text>
+  <text x="90" y="138" text-anchor="middle" font-size="9" fill="#6b7280">distributions, prob.</text>
+  <!-- Week 2 -->
+  <rect x="160" y="65" width="100" height="30" rx="15" fill="#7c3aed" />
+  <text x="210" y="85" text-anchor="middle" font-size="11" font-weight="600" fill="white">Week 2</text>
+  <text x="210" y="112" text-anchor="middle" font-size="10" fill="#7c3aed" font-weight="600">Hypothesis Testing</text>
+  <text x="210" y="126" text-anchor="middle" font-size="9" fill="#6b7280">CIs, p-values, t-tests,</text>
+  <text x="210" y="138" text-anchor="middle" font-size="9" fill="#6b7280">non-parametric</text>
+  <!-- Week 3 -->
+  <rect x="280" y="65" width="100" height="30" rx="15" fill="#16a34a" />
+  <text x="330" y="85" text-anchor="middle" font-size="11" font-weight="600" fill="white">Week 3</text>
+  <text x="330" y="112" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="600">Beyond Two Groups</text>
+  <text x="330" y="126" text-anchor="middle" font-size="9" fill="#6b7280">ANOVA, chi-square,</text>
+  <text x="330" y="138" text-anchor="middle" font-size="9" fill="#6b7280">regression, MTC</text>
+  <!-- Week 4 -->
+  <rect x="400" y="65" width="100" height="30" rx="15" fill="#dc2626" />
+  <text x="450" y="85" text-anchor="middle" font-size="11" font-weight="600" fill="white">Week 4</text>
+  <text x="450" y="112" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="600">Advanced Methods</text>
+  <text x="450" y="126" text-anchor="middle" font-size="9" fill="#6b7280">Survival, logistic reg,</text>
+  <text x="450" y="138" text-anchor="middle" font-size="9" fill="#6b7280">PCA, clustering</text>
+  <!-- Week 5-6 -->
+  <rect x="520" y="65" width="120" height="30" rx="15" fill="#ea580c" />
+  <text x="580" y="85" text-anchor="middle" font-size="11" font-weight="600" fill="white">Weeks 5-6</text>
+  <text x="580" y="112" text-anchor="middle" font-size="10" fill="#ea580c" font-weight="600">Genomics &amp; Practice</text>
+  <text x="580" y="126" text-anchor="middle" font-size="9" fill="#6b7280">DE analysis, ML,</text>
+  <text x="580" y="138" text-anchor="middle" font-size="9" fill="#6b7280">study design, capstone</text>
+  <!-- Milestone markers -->
+  <circle cx="210" cy="160" r="4" fill="#7c3aed" />
+  <text x="210" y="175" text-anchor="middle" font-size="9" fill="#7c3aed">Day 8: Compare groups</text>
+  <circle cx="450" cy="160" r="4" fill="#dc2626" />
+  <text x="450" y="175" text-anchor="middle" font-size="9" fill="#dc2626">Day 17: Survival curves</text>
+  <circle cx="580" cy="160" r="4" fill="#ea580c" />
+  <text x="580" y="175" text-anchor="middle" font-size="9" fill="#ea580c">Day 30: Full GWAS plan</text>
+</svg>
+</div>
+
+<p><strong>Week 1 (Days 1-5): Foundations.</strong> You will learn to summarize data, understand distributions, reason about probability, and appreciate why sample size matters. These are the tools you need before you can test any hypothesis.</p>
+<p><strong>Week 2 (Days 6-10): Hypothesis Testing.</strong> You will learn confidence intervals, p-values, t-tests, and non-parametric alternatives. By Day 8, you will be able to rigorously determine whether two groups differ. By Day 10, you will know when to use (and when to avoid) parametric tests.</p>
+<p><strong>Week 3 (Days 11-15): Beyond Two Groups.</strong> ANOVA, chi-square tests, correlation, regression, and multiple testing correction. You will analyze multi-group experiments, categorical data, and learn why “correlation does not imply causation” is more nuanced than it sounds.</p>
+<p><strong>Week 4 (Days 16-20): Advanced Methods.</strong> Survival analysis, logistic regression, principal component analysis, and clustering. You will build Kaplan-Meier curves, classify patients, reduce high-dimensional data, and find natural groupings in gene expression datasets.</p>
+<p><strong>Week 5 (Days 21-25): Genomics Applications.</strong> Differential expression analysis, enrichment testing, multiple testing correction in practice, and Bayesian thinking. The methods that power modern computational biology.</p>
+<p><strong>Week 6 (Days 26-30): Real-World Practice.</strong> Power analysis and study design, meta-analysis, machine learning basics, reproducible research practices, and a capstone project that ties everything together.</p>
+<p>By Day 8, you will know if two groups truly differ. By Day 17, you will build survival curves that predict patient outcomes. By Day 22, you will analyze differential gene expression. By Day 30, you will design a complete statistical analysis plan for a GWAS.</p>
+<p>Each day follows the same pattern: a real-world problem that motivates the method, the conceptual framework, hands-on BioLang code, comparisons with Python and R, and exercises to cement your understanding. The emphasis throughout is on <strong>understanding</strong> — not memorizing formulas, but developing the intuition to know which method to use and why.</p>
+<h2 id="the-statisticians-mindset"><a class="header" href="#the-statisticians-mindset">The Statistician’s Mindset</a></h2>
+<p>Before we dive into formulas and code, internalize these four questions. Ask them every time you look at data, read a paper, or plan an experiment:</p>
+<h3 id="1-how-variable-is-it"><a class="header" href="#1-how-variable-is-it">1. How variable is it?</a></h3>
+<p>A mean without a measure of spread is almost meaningless. “Average tumor size decreased by 2 cm” sounds impressive until you learn that the standard deviation was 4 cm. Always ask: what is the spread?</p>
+<h3 id="2-could-chance-explain-this"><a class="header" href="#2-could-chance-explain-this">2. Could chance explain this?</a></h3>
+<p>The human brain is wired to see patterns, even in random noise. We see faces in clouds, constellations in random stars, and trends in stock prices. Before accepting any pattern as real, quantify the probability that it arose by chance. This is the essence of hypothesis testing.</p>
+<h3 id="3-how-big-is-the-effect"><a class="header" href="#3-how-big-is-the-effect">3. How big is the effect?</a></h3>
+<p>Statistical significance and practical significance are not the same thing. With a large enough sample, you can detect a difference of 0.001 grams in tumor weight with p &lt; 0.001. But is a one-milligram difference clinically meaningful? Always report effect sizes alongside p-values.</p>
+<h3 id="4-is-my-sample-representative"><a class="header" href="#4-is-my-sample-representative">4. Is my sample representative?</a></h3>
+<p>If you study the genetics of heart disease using only patients from a single hospital in Boston, your results may not generalize to patients in rural India. If you select only the “best” cell lines for your experiment, your conclusions may not extend to primary cells. Sampling bias is the silent assassin of biomedical research.</p>
+<h3 id="putting-the-mindset-into-practice"><a class="header" href="#putting-the-mindset-into-practice">Putting the Mindset into Practice</a></h3>
+<p>These four questions are not abstract philosophy. They are a practical checklist:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Question</th><th>When Reading a Paper</th><th>When Designing an Experiment</th></tr>
+</thead>
+<tbody>
+<tr><td>How variable?</td><td>Check SD, IQR, range</td><td>Plan enough replicates</td></tr>
+<tr><td>Could chance explain it?</td><td>Scrutinize p-values, CI</td><td>Pre-register analysis plan</td></tr>
+<tr><td>How big is the effect?</td><td>Look for effect sizes, not just significance</td><td>Define minimum meaningful difference</td></tr>
+<tr><td>Representative sample?</td><td>Check inclusion criteria, demographics</td><td>Match your sample to target population</td></tr>
+</tbody>
+</table>
+</div>
+<p>You will encounter these questions again and again throughout this book. By Day 30, they will be second nature — the automatic mental checklist of a statistically literate scientist.</p>
+<blockquote>
+<p><strong>Key insight:</strong> Statistics is not a set of tests to run after the experiment. It is a way of thinking that should inform every stage — from study design to data collection to analysis to interpretation. The best time to consult a statistician is before you collect a single data point.</p>
+</blockquote>
+<h2 id="the-burden-of-proof"><a class="header" href="#the-burden-of-proof">The Burden of Proof</a></h2>
+<p>In everyday life, we make decisions based on intuition, anecdote, and authority. “My grandmother smoked until 95, so smoking cannot be that bad.” “This supplement worked for my friend, so it must be effective.” “The famous professor says this treatment works, so it must.”</p>
+<p>Science demands a higher standard. The burden of proof rests on the claimant. If you claim a drug works, you must demonstrate it with evidence strong enough to withstand scrutiny. If you claim a gene is associated with a disease, you must show that the association is unlikely to be a coincidence.</p>
+<p>Statistics provides the machinery for this burden of proof. It forces you to be explicit about your assumptions, quantify your uncertainty, and acknowledge the limits of your data. It is, in essence, formalized humility.</p>
+<p>Consider the claim “Vitamin D supplements reduce cancer risk.” An anecdote is worthless: your uncle took vitamin D and did not get cancer. A small observational study is weak: 50 people who took vitamin D had fewer cancers than 50 who did not — but maybe the vitamin D group was healthier to begin with (confounding). A large randomized controlled trial with 25,000 participants, pre-registered outcomes, and proper statistical analysis is strong evidence. Each step up the ladder requires more statistical sophistication.</p>
+<p>The hierarchy of evidence is, fundamentally, a hierarchy of statistical rigor:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Evidence Level</th><th>Design</th><th>Statistical Rigor</th></tr>
+</thead>
+<tbody>
+<tr><td>Weakest</td><td>Case report / anecdote</td><td>None</td></tr>
+<tr><td>Weak</td><td>Case series</td><td>Descriptive only</td></tr>
+<tr><td>Moderate</td><td>Observational study</td><td>Potential confounding</td></tr>
+<tr><td>Strong</td><td>Randomized controlled trial</td><td>Causal inference possible</td></tr>
+<tr><td>Strongest</td><td>Meta-analysis of multiple RCTs</td><td>Pooled estimates, high power</td></tr>
+</tbody>
+</table>
+</div>
+<p>This book will equip you to evaluate and produce evidence at every level of this hierarchy.</p>
+<h2 id="the-numbers-tell-a-story"><a class="header" href="#the-numbers-tell-a-story">The Numbers Tell a Story</a></h2>
+<p>To bring this all together, let us look at a real-world scenario that illustrates every concept from today.</p>
+<p>A research group publishes a paper claiming that a new biomarker predicts response to immunotherapy. Their study: 24 patients (12 responders, 12 non-responders). They measure the biomarker level in each patient and find a “statistically significant” difference (p = 0.03).</p>
+<p>Here is what a statistical thinker would ask:</p>
+<p><strong>How variable is it?</strong> The biomarker levels range from 2 to 200 ng/mL. The standard deviation within each group is enormous — nearly as large as the difference between groups. The signal is weak relative to the noise.</p>
+<p><strong>Could chance explain it?</strong> With only 12 per group and high variability, the p-value of 0.03 is fragile. If you removed two extreme patients, it becomes 0.12. The result is not robust.</p>
+<p><strong>How big is the effect?</strong> The difference in medians is 15 ng/mL, but the overlap between groups is substantial. Many responders have lower biomarker levels than many non-responders. The effect size (Cohen’s d) is only 0.4 — a “small to medium” effect.</p>
+<p><strong>Is the sample representative?</strong> All patients came from a single institution, were predominantly male, and had a specific tumor subtype. Whether the biomarker works in a broader population is unknown.</p>
+<p>A naive reader sees “p &lt; 0.05, significant.” A statistically literate reader sees a fragile, underpowered result from a non-representative sample with a modest effect size. These are different conclusions from the same data.</p>
+<h2 id="a-preview-of-the-tools"><a class="header" href="#a-preview-of-the-tools">A Preview of the Tools</a></h2>
+<p>Throughout this book, you will use BioLang to perform statistical analyses. Here is a tiny glimpse of what Day 2 will look like — just to whet your appetite:</p>
+<pre><code># Tomorrow, you'll summarize 10,000 quality scores in one line:
+# let stats = summary(quality_scores)
+#
+# And visualize them instantly:
+# histogram(quality_scores, {bins: 50, title: "Sequencing Quality Distribution"})
+</code></pre>
+<p>But today is about the <strong>why</strong>, not the <strong>how</strong>. The tools are only as good as the thinking behind them. A researcher who understands why a t-test exists will use it correctly even with imperfect software. A researcher who merely knows how to call a t-test function will misuse it regularly, regardless of how elegant the software is.</p>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-the-newspaper-test"><a class="header" href="#exercise-1-the-newspaper-test">Exercise 1: The Newspaper Test</a></h3>
+<p>Find a news article reporting a scientific or medical finding (e.g., “Coffee reduces cancer risk by 15%”). Write down your answers to these four questions:</p>
+<ul>
+<li>(a) What was the sample size? If the article does not mention it, what does that tell you?</li>
+<li>(b) Could the result be due to chance? What would you need to know to answer this?</li>
+<li>(c) Is the effect size meaningful in practice? A 2% reduction in cancer risk sounds different from a 50% reduction.</li>
+<li>(d) Is the sample representative of the population you care about? Who was studied, and who was not?</li>
+</ul>
+<p>If the article does not provide enough information to answer these questions, that itself is informative. Most science journalism omits sample sizes, effect sizes, and confidence intervals — precisely the information you need to evaluate the claim.</p>
+<h3 id="exercise-2-coin-flip-thought-experiment"><a class="header" href="#exercise-2-coin-flip-thought-experiment">Exercise 2: Coin Flip Thought Experiment</a></h3>
+<p>Without doing any math, estimate the following:</p>
+<ul>
+<li>If you flip a fair coin 20 times, what is the probability of getting exactly 10 heads?</li>
+<li>What about 15 or more heads out of 20?</li>
+<li>What about 20 heads in a row?</li>
+</ul>
+<p>Write down your guesses. We will revisit this on Day 4 with the tools to compute exact answers, and you can see how well your intuition calibrated.</p>
+<h3 id="exercise-3-reproducibility-reflection"><a class="header" href="#exercise-3-reproducibility-reflection">Exercise 3: Reproducibility Reflection</a></h3>
+<p>Think about a result from your own work (or a paper you have read) that you found surprising or striking. List three reasons why the result might fail to reproduce if someone repeated the experiment. For each reason, identify whether it is:</p>
+<ul>
+<li>Statistical (sample size, random variation, multiple testing)</li>
+<li>Methodological (different protocols, reagent lots, equipment)</li>
+<li>Biological (different cell lines, patient populations, environmental conditions)</li>
+</ul>
+<h3 id="exercise-4-type-i-vs-type-ii-in-your-field"><a class="header" href="#exercise-4-type-i-vs-type-ii-in-your-field">Exercise 4: Type I vs Type II in Your Field</a></h3>
+<p>Identify one example each of a Type I error (false positive) and a Type II error (false negative) that would be particularly damaging in your area of biology. For each:</p>
+<ul>
+<li>Describe the scenario concretely</li>
+<li>Estimate the consequences (financial, clinical, scientific)</li>
+<li>State which error type you consider more dangerous in your context, and why</li>
+</ul>
+<h3 id="exercise-5-spotting-p-hacking"><a class="header" href="#exercise-5-spotting-p-hacking">Exercise 5: Spotting P-Hacking</a></h3>
+<p>A paper reports testing a drug on patients across 8 different cancer subtypes. Only one subtype shows a significant result (p = 0.04). The paper’s title highlights this positive finding. What statistical concerns should this raise? How many false positives would you expect by chance when testing 8 subtypes at α = 0.05?</p>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>Statistics is the science of learning from data in the presence of uncertainty — it is essential, not optional, for biological research.</li>
+<li>The reproducibility crisis is largely a statistical literacy crisis: most landmark findings fail replication due to underpowered studies, p-hacking, and misunderstood tests.</li>
+<li>Signal vs. noise is the fundamental statistical question: the same percentage difference can be meaningful or meaningless depending on sample size.</li>
+<li>Type I errors (false positives) waste resources and can cause harm; Type II errors (false negatives) cause missed discoveries. Neither can be eliminated — only managed.</li>
+<li>Biology is uniquely challenging for statistics due to inherent biological variability, measurement noise, and massive parallel testing.</li>
+<li>The statistician’s mindset asks four questions: How variable? Could chance explain it? How big is the effect? Is the sample representative?</li>
+<li>Statistics should inform every stage of research, from design through interpretation — not just the analysis phase.</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow, we roll up our sleeves and meet real data. You will learn to summarize 10,000 numbers into a handful of meaningful statistics — means, medians, standard deviations, and more. You will discover why the mean is a liar when outliers are present, why box plots reveal truths that histograms hide, and how a single command in BioLang can tell you whether a sequencing run is worth analyzing or should be thrown away. Day 2 is where the hands-on work begins.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-02.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-02.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

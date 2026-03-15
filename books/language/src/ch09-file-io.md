@@ -15,7 +15,7 @@ interfaces and stream support for files that exceed available memory.
 `read_fasta()` returns a list of records, each with `header` and `seq` fields.
 
 ```biolang
-let contigs = read_fasta("assembly.fasta")
+let contigs = read_fasta("data/sequences.fasta")
 
 for c in contigs {
     print(c.header + ": " + str(len(c.seq)) + " bp")
@@ -35,7 +35,7 @@ compile-time validated sequences, and `read_fasta` for runtime file data.
 fields. Quality scores are integer Phred values.
 
 ```biolang
-let reads = read_fastq("sample_R1.fastq.gz")
+let reads = read_fastq("data/reads.fastq")
 
 reads |> map(|r| gc_content(r.seq)) |> mean() |> into gc_mean
 let summary = {
@@ -59,7 +59,7 @@ Compressed files (`.gz`) are decompressed transparently.
 `alt`, `qual`, `filter`, `info_str`, and `genotypes`.
 
 ```biolang
-let variants = read_vcf("gatk_output.vcf")
+let variants = read_vcf("data/variants.vcf")
 
 let passing = variants |> filter(|v| v.filter == "PASS")
 let snps = passing |> filter(|v| is_snp(v))
@@ -76,7 +76,7 @@ print("  Indels: " + str(len(indels)))
 optional `name`, `score`, `strand` fields depending on the number of columns.
 
 ```biolang
-let targets = read_bed("exome_targets.bed")
+let targets = read_bed("data/exons.bed")
 
 let total_bp = targets |> map(|t| t.end - t.start) |> reduce(0, |a, b| a + b)
 print("Total target region: " + str(total_bp) + " bp")
@@ -96,7 +96,7 @@ for (chrom, regions) in by_chrom {
 `type`, `start`, `end`, `score`, `strand`, `phase`, and `attributes` (a map).
 
 ```biolang
-let features = read_gff("gencode.v44.annotation.gff3")
+let features = read_gff("data/annotations.gff")
 
 let genes = features |> filter(|f| f.type == "gene")
 let protein_coding = genes |> filter(|g| g.attributes.gene_type == "protein_coding")
@@ -165,7 +165,7 @@ return a lazy sequence that is consumed once, record by record.
 
 ```biolang
 # Stream a large FASTQ without loading it all
-let stream = read_fastq("wgs_sample.fastq.gz")
+let stream = read_fastq("data/reads.fastq")
 
 # Streams work with all HOFs -- processing is lazy
 let high_qual_count = stream
@@ -181,8 +181,8 @@ or read the file again:
 
 ```biolang
 # Two-pass: first pass counts, second pass filters
-let total = read_fastq("reads.fastq.gz") |> len()
-let passing = read_fastq("reads.fastq.gz")
+let total = read_fastq("data/reads.fastq") |> len()
+let passing = read_fastq("data/reads.fastq")
     |> filter(|r| mean(r.quality) >= 20)
     |> len()
 
@@ -195,7 +195,7 @@ Strip quality scores from a FASTQ file to produce a FASTA for downstream
 assembly or BLAST.
 
 ```biolang
-let reads = read_fastq("nanopore_reads.fastq.gz")
+let reads = read_fastq("data/reads.fastq")
 
 let fasta_records = reads |> map(|r| {
     header: r.id + " " + (r.description ?? ""),
@@ -215,8 +215,8 @@ Combine a genome FASTA with GFF annotation to extract CDS sequences for each
 protein-coding gene.
 
 ```biolang
-let genome = read_fasta("GRCh38.fasta")
-let features = read_gff("gencode.v44.annotation.gff3")
+let genome = read_fasta("data/sequences.fasta")
+let features = read_gff("data/annotations.gff")
 
 # Build a lookup from chromosome name to sequence
 let chrom_seqs = {}
@@ -261,7 +261,7 @@ Apply multiple quality filters to a VCF and write both passing and failing
 records to separate files.
 
 ```biolang
-let variants = read_vcf("raw_calls.vcf")
+let variants = read_vcf("data/variants.vcf")
 
 let results = variants |> map(|v| {
     let info = parse_info(v.info_str)

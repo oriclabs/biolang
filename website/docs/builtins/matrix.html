@@ -86,7 +86,7 @@ solve(A, b)   # [1.0, 3.0]</code></pre>
             </table>
           </div>
           <pre><code class="language-biolang"># PCA on gene expression matrix (genes x samples)
-let expr = csv("expression_matrix.csv") |> matrix_from_table("value")
+let expr = read_csv("data/expression.csv") |> matrix_from_table("value")
 let result = pca(expr, 3)
 
 println("Variance explained:", result.variance_explained)

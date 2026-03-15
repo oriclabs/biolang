@@ -64,7 +64,7 @@ print("Found #{len(fastq_files)} FASTQ files")
 
 # Download, then process locally
 s3_download("s3://my-bucket/data/counts.csv", "counts.csv")
-let data = csv("counts.csv")
+let data = read_csv("data/counts.csv")
   |> filter(|row| int(row["count"]) > 10)
 print("Filtered rows: #{len(data)}")</code></pre>
 
@@ -166,14 +166,14 @@ print("All downloads complete")</code></pre>
 
         <h3>Streaming from URLs</h3>
         <pre><code class="language-biolang"># Read directly from a URL without downloading the full file
-let vcf_count = vcf("https://example.com/data/variants.vcf.gz")
+let vcf_count = read_vcf("https://example.com/data/variants.vcf.gz")
   |> filter(|v| v.chrom == "chr22" && v.filter == "PASS")
   |> count
 
 print("PASS variants on chr22: #{vcf_count}")
 
 # Stream FASTA from a URL
-let genes = fasta("https://ftp.ensembl.org/pub/current/fasta/homo_sapiens/cds/Homo_sapiens.GRCh38.cds.all.fa.gz")
+let genes = read_fasta("https://ftp.ensembl.org/pub/current/fasta/homo_sapiens/cds/Homo_sapiens.GRCh38.cds.all.fa.gz")
   |> filter(|r| contains(r.id, "BRCA1"))
   |> collect
 

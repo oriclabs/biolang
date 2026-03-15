@@ -34,6 +34,10 @@ pub fn bio_plots_builtin_list() -> Vec<(&'static str, Arity)> {
         ("circos", Arity::Range(1, 2)),
         ("hic_map", Arity::Range(1, 2)),
         ("sashimi", Arity::Range(1, 2)),
+        ("volcano_plot", Arity::Range(1, 2)),
+        ("upset_plot", Arity::Range(1, 2)),
+        ("alignment_view", Arity::Range(1, 2)),
+        ("circos_plot", Arity::Range(1, 2)),
     ]
 }
 
@@ -61,6 +65,10 @@ pub fn is_bio_plots_builtin(name: &str) -> bool {
             | "circos"
             | "hic_map"
             | "sashimi"
+            | "volcano_plot"
+            | "upset_plot"
+            | "alignment_view"
+            | "circos_plot"
     )
 }
 
@@ -108,6 +116,10 @@ pub fn call_bio_plots_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "circos" => builtin_circos(args),
         "hic_map" => builtin_hic_map(args),
         "sashimi" => builtin_sashimi(args),
+        "volcano_plot" => builtin_volcano_plot(args),
+        "upset_plot" => builtin_upset_plot(args),
+        "alignment_view" => builtin_alignment_view(args),
+        "circos_plot" => builtin_circos_plot(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown bio_plots builtin '{name}'"),
@@ -1022,61 +1034,155 @@ fn nn_order(data: &[Vec<f64>]) -> Vec<usize> {
 fn builtin_pca_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let fmt = get_opt_str(&opts, "format", "svg").to_string();
-    let color_col = get_opt_str(&opts, "color", "").to_string();
+    let group_col = get_opt_str(&opts, "group_col", "").to_string();
+    let show_labels = opts.get("labels").and_then(|v| match v {
+        Value::Bool(b) => Some(*b), _ => None,
+    }).unwrap_or(false);
 
-    let (xs, ys, labels) = match &args[0] {
+    // Extract numeric matrix and optional group labels
+    let (data, nrow, ncol, labels, row_names) = match &args[0] {
         Value::Table(table) => {
-            if table.num_cols() < 2 {
-                return Err(BioLangError::runtime(ErrorKind::TypeError, "pca_plot() needs >= 2 columns", None));
+            // Find numeric columns (exclude group_col)
+            let mut num_cols: Vec<String> = Vec::new();
+            for col in &table.columns {
+                if col == &group_col { continue; }
+                if extract_table_col(table, col).is_ok() { num_cols.push(col.clone()); }
             }
-            let xc = get_opt_str(&opts, "x", &table.columns[0]).to_string();
-            let yc = get_opt_str(&opts, "y", &table.columns[1]).to_string();
-            let xs = extract_table_col(table, &xc)?;
-            let ys = extract_table_col(table, &yc)?;
-            let lbls = if !color_col.is_empty() && table.col_index(&color_col).is_some() {
-                extract_str_col(table, &color_col).ok()
+            if num_cols.len() < 2 {
+                return Err(BioLangError::runtime(ErrorKind::TypeError, "pca_plot() needs >= 2 numeric columns", None));
+            }
+            let nrow = table.num_rows();
+            let ncol = num_cols.len();
+            let mut data = vec![0.0; nrow * ncol];
+            for (ci, col) in num_cols.iter().enumerate() {
+                let vals = extract_table_col(table, col)?;
+                for (ri, &v) in vals.iter().enumerate() { data[ri * ncol + ci] = v; }
+            }
+            let lbls = if !group_col.is_empty() && table.col_index(&group_col).is_some() {
+                extract_str_col(table, &group_col).ok()
             } else { None };
-            (xs, ys, lbls)
+            // Use first column as row names if it's a string column
+            let rn: Option<Vec<String>> = if show_labels {
+                table.columns.iter().find_map(|c| {
+                    if c == &group_col { return None; }
+                    let idx = table.col_index(c)?;
+                    if matches!(&table.rows[0][idx], Value::Str(_)) {
+                        Some(table.rows.iter().map(|r| match &r[idx] {
+                            Value::Str(s) => s.clone(), other => format!("{other}"),
+                        }).collect())
+                    } else { None }
+                })
+            } else { None };
+            (data, nrow, ncol, lbls, rn)
         }
         Value::Matrix(m) => {
             if m.ncol < 2 { return Err(BioLangError::runtime(ErrorKind::TypeError, "pca_plot() needs >= 2 columns", None)); }
-            let xs: Vec<f64> = (0..m.nrow).map(|r| m.data[r * m.ncol]).collect();
-            let ys: Vec<f64> = (0..m.nrow).map(|r| m.data[r * m.ncol + 1]).collect();
-            (xs, ys, None)
+            (m.data.clone(), m.nrow, m.ncol, None, m.row_names.clone())
         }
         _ => return Err(BioLangError::type_error("pca_plot() requires Table or Matrix", None)),
     };
-    let xr = col_range(&xs);
-    let yr = col_range(&ys);
+    if nrow < 2 { return Err(BioLangError::runtime(ErrorKind::TypeError, "pca_plot() needs >= 2 rows", None)); }
+
+    // --- PCA via power iteration ---
+    // 1. Center columns
+    let mut centered = data.clone();
+    for ci in 0..ncol {
+        let mean = (0..nrow).map(|r| centered[r * ncol + ci]).sum::<f64>() / nrow as f64;
+        for r in 0..nrow { centered[r * ncol + ci] -= mean; }
+    }
+    // 2. Compute covariance matrix (ncol x ncol)
+    let mut cov = vec![0.0; ncol * ncol];
+    for i in 0..ncol {
+        for j in i..ncol {
+            let val: f64 = (0..nrow).map(|r| centered[r * ncol + i] * centered[r * ncol + j]).sum::<f64>() / (nrow - 1) as f64;
+            cov[i * ncol + j] = val;
+            cov[j * ncol + i] = val;
+        }
+    }
+    // 3. Power iteration for top eigenvector
+    let power_iter = |cov: &[f64], ncol: usize, deflate_vec: Option<&[f64]>| -> Vec<f64> {
+        let mut v: Vec<f64> = (0..ncol).map(|i| if i == 0 { 1.0 } else { 0.5 / (i as f64 + 1.0) }).collect();
+        let norm = v.iter().map(|x| x * x).sum::<f64>().sqrt();
+        for x in &mut v { *x /= norm; }
+        let mut work_cov = cov.to_vec();
+        if let Some(dv) = deflate_vec {
+            // Deflate: C' = C - lambda * v * v^T (approximate lambda via Rayleigh quotient)
+            let mut av = vec![0.0; ncol];
+            for i in 0..ncol { av[i] = (0..ncol).map(|j| cov[i * ncol + j] * dv[j]).sum::<f64>(); }
+            let lambda: f64 = (0..ncol).map(|i| dv[i] * av[i]).sum();
+            for i in 0..ncol { for j in 0..ncol { work_cov[i * ncol + j] -= lambda * dv[i] * dv[j]; } }
+        }
+        for _ in 0..200 {
+            let mut new_v = vec![0.0; ncol];
+            for i in 0..ncol { new_v[i] = (0..ncol).map(|j| work_cov[i * ncol + j] * v[j]).sum::<f64>(); }
+            let n = new_v.iter().map(|x| x * x).sum::<f64>().sqrt();
+            if n < 1e-15 { break; }
+            for x in &mut new_v { *x /= n; }
+            v = new_v;
+        }
+        v
+    };
+    let ev1 = power_iter(&cov, ncol, None);
+    let ev2 = power_iter(&cov, ncol, Some(&ev1));
+    // 4. Project data onto PC1 and PC2
+    let pc1: Vec<f64> = (0..nrow).map(|r| (0..ncol).map(|c| centered[r * ncol + c] * ev1[c]).sum()).collect();
+    let pc2: Vec<f64> = (0..nrow).map(|r| (0..ncol).map(|c| centered[r * ncol + c] * ev2[c]).sum()).collect();
+
+    // Compute variance explained
+    let total_var: f64 = (0..ncol).map(|i| cov[i * ncol + i]).sum();
+    let var1: f64 = (0..ncol).map(|i| { let a: f64 = (0..ncol).map(|j| cov[i * ncol + j] * ev1[j]).sum(); a * ev1[i] }).sum();
+    let var2: f64 = (0..ncol).map(|i| { let a: f64 = (0..ncol).map(|j| cov[i * ncol + j] * ev2[j]).sum(); a * ev2[i] }).sum();
+    let pct1 = if total_var > 0.0 { var1 / total_var * 100.0 } else { 0.0 };
+    let pct2 = if total_var > 0.0 { var2 / total_var * 100.0 } else { 0.0 };
+
+    let xr = col_range(&pc1);
+    let yr = col_range(&pc2);
 
     if fmt == "svg" {
         let w = get_opt_f64(&opts, "width", 600.0);
-        let h = get_opt_f64(&opts, "height", 600.0);
+        let h = get_opt_f64(&opts, "height", 400.0);
+        let title = get_opt_str(&opts, "title", "PCA Plot").to_string();
         let mut c = SvgCanvas::new(w, h);
         let x_scale = Scale { domain: xr, range: (c.margin.left, c.margin.left + c.plot_width()) };
         let y_scale = Scale { domain: yr, range: (c.margin.top + c.plot_height(), c.margin.top) };
         let mut cm: HashMap<String, usize> = HashMap::new();
         let mut next_ci = 0;
-        for j in 0..xs.len() {
+        for j in 0..pc1.len() {
             let ci = labels.as_ref().and_then(|l| {
                 let e = cm.entry(l[j].clone()).or_insert_with(|| { let v = next_ci; next_ci += 1; v });
                 Some(*e)
             }).unwrap_or(0);
-            c.add_circle(x_scale.map(xs[j]), y_scale.map(ys[j]), 4.0, PALETTE[ci % PALETTE.len()]);
+            c.add_circle(x_scale.map(pc1[j]), y_scale.map(pc2[j]), 4.0, PALETTE[ci % PALETTE.len()]);
+            if show_labels {
+                if let Some(ref rn) = row_names {
+                    c.add_text(x_scale.map(pc1[j]) + 6.0, y_scale.map(pc2[j]) - 4.0, &rn[j], "start", 8.0);
+                }
+            }
+        }
+        // Legend for groups
+        if let Some(ref lbls) = labels {
+            let mut seen: Vec<String> = Vec::new();
+            for l in lbls { if !seen.contains(l) { seen.push(l.clone()); } }
+            for (i, name) in seen.iter().enumerate() {
+                let lx = c.margin.left + c.plot_width() - 80.0;
+                let ly = c.margin.top + 15.0 + i as f64 * 16.0;
+                c.add_circle(lx, ly, 4.0, PALETTE[i % PALETTE.len()]);
+                c.add_text(lx + 8.0, ly + 4.0, name, "start", 10.0);
+            }
         }
         let dx = Scale { domain: xr, range: xr };
         let dy = Scale { domain: yr, range: yr };
-        c.draw_x_axis(&dx, "PC1");
-        c.draw_y_axis(&dy, "PC2");
-        c.draw_title("PCA Plot");
+        c.draw_x_axis(&dx, &format!("PC1 ({pct1:.1}%)"));
+        c.draw_y_axis(&dy, &format!("PC2 ({pct2:.1}%)"));
+        c.draw_title(&title);
         return Ok(Value::Str(c.render()));
     }
 
     let width = get_opt_usize(&opts, "width", 60);
     let height = get_opt_usize(&opts, "height", 20);
     let mut chart = AsciiChart::new(width, height);
-    for j in 0..xs.len() { chart.put(xs[j], ys[j], xr, yr, '●'); }
-    write_output(&chart.render("PCA Plot"));
+    for j in 0..pc1.len() { chart.put(pc1[j], pc2[j], xr, yr, '●'); }
+    write_output(&chart.render(&format!("PCA Plot (PC1: {pct1:.1}%, PC2: {pct2:.1}%)")));
     Ok(Value::Nil)
 }
 
@@ -1855,6 +1961,639 @@ fn builtin_sashimi(args: Vec<Value>) -> Result<Value> {
     out.push_str(&format!("  Junctions ({}):\n", j_starts.len()));
     for i in 0..j_starts.len().min(15) {
         out.push_str(&format!("    {:.0}─{:.0} ({:.0} reads) ⌒\n", j_starts[i], j_ends[i], j_counts[i]));
+    }
+    write_output(&out);
+    Ok(Value::Nil)
+}
+
+// ── 22. volcano_plot ────────────────────────────────────────────
+
+fn builtin_volcano_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
+    let fc_cutoff = get_opt_f64(&opts, "fc_cutoff", 1.0);
+    let p_cutoff = get_opt_f64(&opts, "p_cutoff", 0.05);
+    let title = get_opt_str(&opts, "title", "Volcano Plot").to_string();
+
+    // Extract data from Table or List of Records
+    let (fcs, pvals, gene_names) = match &args[0] {
+        Value::Table(table) => {
+            let fc_col = if table.col_index("log2fc").is_some() { "log2fc" }
+                else if table.col_index("log2FoldChange").is_some() { "log2FoldChange" }
+                else { "log2fc" };
+            let p_col = if table.col_index("pvalue").is_some() { "pvalue" }
+                else if table.col_index("padj").is_some() { "padj" }
+                else { "pvalue" };
+            let fcs = extract_table_col(table, fc_col)?;
+            let pvals = extract_table_col(table, p_col)?;
+            let names = if let Some(idx) = table.col_index("gene").or(table.col_index("name")) {
+                Some(table.rows.iter().map(|r| match &r[idx] {
+                    Value::Str(s) => s.clone(), other => format!("{other}"),
+                }).collect::<Vec<_>>())
+            } else { None };
+            (fcs, pvals, names)
+        }
+        Value::List(items) => {
+            let mut fcs = Vec::new();
+            let mut pvals = Vec::new();
+            let mut names: Vec<String> = Vec::new();
+            for item in items {
+                if let Value::Record(map) = item {
+                    let fc = map.get("log2fc").or(map.get("log2FoldChange"))
+                        .and_then(|v| v.as_float()).unwrap_or(0.0);
+                    let pv = map.get("pvalue").or(map.get("padj"))
+                        .and_then(|v| v.as_float()).unwrap_or(1.0);
+                    fcs.push(fc);
+                    pvals.push(pv);
+                    if let Some(n) = map.get("gene").or(map.get("name")) {
+                        names.push(format!("{n}"));
+                    } else {
+                        names.push(String::new());
+                    }
+                }
+            }
+            let names = if names.iter().any(|n| !n.is_empty()) { Some(names) } else { None };
+            (fcs, pvals, names)
+        }
+        _ => return Err(BioLangError::type_error("volcano_plot() requires Table or List of Records", None)),
+    };
+    if fcs.is_empty() {
+        return Err(BioLangError::runtime(ErrorKind::TypeError, "volcano_plot() empty data", None));
+    }
+
+    let neg_log_p: Vec<f64> = pvals.iter().map(|&p| if p > 0.0 { -(p.log10()) } else { 0.0 }).collect();
+    let neg_log_p_cutoff = -(p_cutoff.log10());
+
+    let (x_min, x_max) = col_range(&fcs);
+    let x_abs = x_min.abs().max(x_max.abs()) * 1.1;
+    let (_, y_max) = col_range(&neg_log_p);
+    let yr = (0.0, y_max * 1.1);
+
+    if fmt == "svg" {
+        let w = get_opt_f64(&opts, "width", 600.0);
+        let h = get_opt_f64(&opts, "height", 400.0);
+        let mut c = SvgCanvas::new(w, h);
+        let x_scale = Scale { domain: (-x_abs, x_abs), range: (c.margin.left, c.margin.left + c.plot_width()) };
+        let y_scale = Scale { domain: yr, range: (c.margin.top + c.plot_height(), c.margin.top) };
+
+        // Dashed significance lines
+        let p_y = y_scale.map(neg_log_p_cutoff);
+        c.elements.push(format!(
+            r##"<line x1="{:.1}" y1="{p_y:.1}" x2="{:.1}" y2="{p_y:.1}" stroke="#999" stroke-width="1" stroke-dasharray="5,3" />"##,
+            c.margin.left, c.margin.left + c.plot_width()
+        ));
+        let fc_neg_x = x_scale.map(-fc_cutoff);
+        let fc_pos_x = x_scale.map(fc_cutoff);
+        c.elements.push(format!(
+            r##"<line x1="{fc_neg_x:.1}" y1="{:.1}" x2="{fc_neg_x:.1}" y2="{:.1}" stroke="#999" stroke-width="1" stroke-dasharray="5,3" />"##,
+            c.margin.top, c.margin.top + c.plot_height()
+        ));
+        c.elements.push(format!(
+            r##"<line x1="{fc_pos_x:.1}" y1="{:.1}" x2="{fc_pos_x:.1}" y2="{:.1}" stroke="#999" stroke-width="1" stroke-dasharray="5,3" />"##,
+            c.margin.top, c.margin.top + c.plot_height()
+        ));
+
+        // Collect top hits for labeling
+        let mut top_hits: Vec<(usize, f64)> = Vec::new();
+        for i in 0..fcs.len() {
+            let color = if neg_log_p[i] > neg_log_p_cutoff && fcs[i] > fc_cutoff { "#e15759" }
+                else if neg_log_p[i] > neg_log_p_cutoff && fcs[i] < -fc_cutoff { "#4e79a7" }
+                else { "#999" };
+            c.add_circle(x_scale.map(fcs[i]), y_scale.map(neg_log_p[i]), 3.0, color);
+            if neg_log_p[i] > neg_log_p_cutoff && fcs[i].abs() > fc_cutoff {
+                top_hits.push((i, neg_log_p[i]));
+            }
+        }
+
+        // Label top 10 most significant hits
+        if let Some(ref names) = gene_names {
+            top_hits.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            for &(idx, _) in top_hits.iter().take(10) {
+                if !names[idx].is_empty() {
+                    c.add_text(
+                        x_scale.map(fcs[idx]) + 5.0,
+                        y_scale.map(neg_log_p[idx]) - 5.0,
+                        &names[idx], "start", 8.0,
+                    );
+                }
+            }
+        }
+
+        // Legend
+        let lx = c.margin.left + c.plot_width() - 90.0;
+        c.add_circle(lx, c.margin.top + 10.0, 4.0, "#e15759");
+        c.add_text(lx + 8.0, c.margin.top + 14.0, "Up", "start", 9.0);
+        c.add_circle(lx, c.margin.top + 24.0, 4.0, "#4e79a7");
+        c.add_text(lx + 8.0, c.margin.top + 28.0, "Down", "start", 9.0);
+        c.add_circle(lx, c.margin.top + 38.0, 4.0, "#999");
+        c.add_text(lx + 8.0, c.margin.top + 42.0, "NS", "start", 9.0);
+
+        let dx = Scale { domain: (-x_abs, x_abs), range: (-x_abs, x_abs) };
+        let dy = Scale { domain: yr, range: yr };
+        c.draw_x_axis(&dx, "log2(Fold Change)");
+        c.draw_y_axis(&dy, "-log10(p-value)");
+        c.draw_title(&title);
+        return Ok(Value::Str(c.render()));
+    }
+
+    // ASCII fallback
+    let width = get_opt_usize(&opts, "width", 60);
+    let height = get_opt_usize(&opts, "height", 20);
+    let mut chart = AsciiChart::new(width, height);
+    chart.hline(neg_log_p_cutoff, yr, '┄');
+    for i in 0..fcs.len() {
+        let ch = if neg_log_p[i] > neg_log_p_cutoff && fcs[i].abs() > fc_cutoff {
+            if fcs[i] > 0.0 { '▲' } else { '▼' }
+        } else { '·' };
+        chart.put(fcs[i], neg_log_p[i], (-x_abs, x_abs), yr, ch);
+    }
+    let n_up = fcs.iter().zip(neg_log_p.iter()).filter(|(&f, &p)| p > neg_log_p_cutoff && f > fc_cutoff).count();
+    let n_down = fcs.iter().zip(neg_log_p.iter()).filter(|(&f, &p)| p > neg_log_p_cutoff && f < -fc_cutoff).count();
+    write_output(&chart.render(&format!("{title}  (up={n_up}, down={n_down})")));
+    Ok(Value::Nil)
+}
+
+// ── 23. upset_plot ──────────────────────────────────────────────
+
+fn builtin_upset_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
+    let title = get_opt_str(&opts, "title", "UpSet Plot").to_string();
+    let min_size = get_opt_f64(&opts, "min_size", 1.0) as usize;
+
+    let sets: Vec<(String, HashSet<String>)> = match &args[0] {
+        Value::Record(map) => map.iter().map(|(n, v)| {
+            let items: HashSet<String> = match v {
+                Value::List(l) => l.iter().map(|x| format!("{x}")).collect(),
+                _ => HashSet::new(),
+            };
+            (n.clone(), items)
+        }).collect(),
+        _ => return Err(BioLangError::type_error("upset_plot() requires Record of Lists", None)),
+    };
+    let n = sets.len();
+    if n < 2 { return Err(BioLangError::runtime(ErrorKind::TypeError, "upset_plot() needs >= 2 sets", None)); }
+
+    // Compute all intersection combinations (exclusive membership)
+    let all_items: HashSet<String> = sets.iter().flat_map(|(_, s)| s.iter().cloned()).collect();
+    let mut combos: Vec<(Vec<bool>, usize)> = Vec::new();
+    for mask in 1..(1u32 << n) {
+        let membership: Vec<bool> = (0..n).map(|i| mask & (1 << i) != 0).collect();
+        let count = all_items.iter().filter(|item| {
+            (0..n).all(|i| membership[i] == sets[i].1.contains(*item))
+        }).count();
+        if count >= min_size { combos.push((membership, count)); }
+    }
+    combos.sort_by(|a, b| b.1.cmp(&a.1));
+
+    // Set sizes
+    let set_sizes: Vec<usize> = sets.iter().map(|(_, s)| s.len()).collect();
+    let max_set_size = *set_sizes.iter().max().unwrap_or(&1);
+
+    if fmt == "svg" {
+        let w = get_opt_f64(&opts, "width", 700.0);
+        let h = get_opt_f64(&opts, "height", 500.0);
+        let mut c = SvgCanvas::new(w, h);
+        let left_bar_w = 100.0;
+        c.margin.left = left_bar_w + 60.0;
+        c.margin.bottom = 40.0;
+        let nc = combos.len().min(25);
+        let dot_area_h = n as f64 * 20.0 + 20.0;
+        let bar_area_h = c.plot_height() - dot_area_h;
+        let bar_w = if nc > 0 { c.plot_width() / nc as f64 } else { c.plot_width() };
+        let max_count = combos.iter().map(|(_, c)| *c).max().unwrap_or(1) as f64;
+        let dot_top = c.margin.top + bar_area_h + 15.0;
+
+        // Top: intersection size bars
+        for (ci, (membership, count)) in combos.iter().take(nc).enumerate() {
+            let x = c.margin.left + ci as f64 * bar_w + bar_w * 0.15;
+            let bw = bar_w * 0.7;
+            let bh = (*count as f64 / max_count) * bar_area_h * 0.9;
+            c.add_rect(x, c.margin.top + bar_area_h - bh, bw, bh, "#333");
+            c.add_text(x + bw / 2.0, c.margin.top + bar_area_h - bh - 5.0, &count.to_string(), "middle", 9.0);
+
+            // Bottom: dot matrix
+            let dx = x + bw / 2.0;
+            let mut active_ys: Vec<f64> = Vec::new();
+            for (si, &active) in membership.iter().enumerate() {
+                let dy = dot_top + si as f64 * 20.0;
+                c.add_circle(dx, dy, 5.0, if active { "#333" } else { "#ddd" });
+                if active { active_ys.push(dy); }
+            }
+            // Connect active dots with a line
+            if active_ys.len() > 1 {
+                let y_min = active_ys.iter().cloned().fold(f64::INFINITY, f64::min);
+                let y_max = active_ys.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+                c.add_line(dx, y_min, dx, y_max, "#333", 2.0);
+            }
+        }
+
+        // Left: set size bars and labels
+        for (si, (name, _)) in sets.iter().enumerate() {
+            let y = dot_top + si as f64 * 20.0;
+            c.add_text(c.margin.left - left_bar_w - 5.0, y + 4.0, name, "end", 10.0);
+            let bar_len = (set_sizes[si] as f64 / max_set_size as f64) * left_bar_w * 0.9;
+            c.add_rect(c.margin.left - bar_len - 2.0, y - 6.0, bar_len, 12.0, PALETTE[si % PALETTE.len()]);
+            c.add_text(c.margin.left - bar_len - 8.0, y + 4.0, &set_sizes[si].to_string(), "end", 8.0);
+        }
+
+        c.draw_title(&title);
+        return Ok(Value::Str(c.render()));
+    }
+
+    // ASCII fallback
+    let max_name = sets.iter().map(|(n, _)| n.len()).max().unwrap_or(4);
+    let nc = combos.len().min(15);
+    let max_count = combos.iter().map(|(_, c)| *c).max().unwrap_or(1);
+    let mut out = format!("  {title}\n");
+    out.push_str(&format!("  {:>w$}  ", "count", w = max_name));
+    for (_, count) in combos.iter().take(nc) {
+        let _bar_len = (*count as f64 / max_count as f64 * 5.0).ceil() as usize;
+        out.push_str(&format!("{:>3} ", count));
+    }
+    out.push('\n');
+    for (si, (name, _)) in sets.iter().enumerate() {
+        out.push_str(&format!("  {:>w$}  ", name, w = max_name));
+        for (membership, _) in combos.iter().take(nc) {
+            out.push_str(if membership[si] { " ●  " } else { " ·  " });
+        }
+        out.push_str(&format!("  ({})\n", set_sizes[si]));
+    }
+    write_output(&out);
+    Ok(Value::Nil)
+}
+
+// ── 24. alignment_view (MSA) ────────────────────────────────────
+
+fn builtin_alignment_view(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
+    let title = get_opt_str(&opts, "title", "Multiple Sequence Alignment").to_string();
+    let color_by = get_opt_str(&opts, "color_by", "nucleotide").to_string();
+    let start_pos = get_opt_f64(&opts, "start", 0.0) as usize;
+    let end_pos_opt: Option<usize> = opts.get("end").and_then(|v| v.as_float()).map(|f| f as usize);
+
+    // Extract sequences: List of Records with {id, sequence}
+    let (ids, sequences): (Vec<String>, Vec<String>) = match &args[0] {
+        Value::List(items) => {
+            let mut ids = Vec::new();
+            let mut seqs = Vec::new();
+            for item in items {
+                match item {
+                    Value::Record(map) => {
+                        let id = map.get("id").map(|v| format!("{v}")).unwrap_or_else(|| format!("seq{}", ids.len() + 1));
+                        let seq = map.get("sequence").or(map.get("seq"))
+                            .map(|v| match v { Value::Str(s) => s.clone(), Value::DNA(s) | Value::RNA(s) | Value::Protein(s) => s.data.clone(), _ => format!("{v}") })
+                            .unwrap_or_default();
+                        ids.push(id);
+                        seqs.push(seq);
+                    }
+                    Value::Str(s) => { ids.push(format!("seq{}", ids.len() + 1)); seqs.push(s.clone()); }
+                    Value::DNA(s) | Value::RNA(s) | Value::Protein(s) => { ids.push(format!("seq{}", ids.len() + 1)); seqs.push(s.data.clone()); }
+                    _ => {}
+                }
+            }
+            (ids, seqs)
+        }
+        Value::Table(table) => {
+            let id_col = table.col_index("id").or(table.col_index("name")).unwrap_or(0);
+            let seq_col = table.col_index("sequence").or(table.col_index("seq"));
+            if seq_col.is_none() {
+                return Err(BioLangError::runtime(ErrorKind::TypeError, "alignment_view() needs 'sequence' column", None));
+            }
+            let seq_idx = seq_col.unwrap();
+            let ids: Vec<String> = table.rows.iter().map(|r| match &r[id_col] {
+                Value::Str(s) => s.clone(), other => format!("{other}"),
+            }).collect();
+            let seqs: Vec<String> = table.rows.iter().map(|r| match &r[seq_idx] {
+                Value::Str(s) => s.clone(), Value::DNA(s) | Value::RNA(s) | Value::Protein(s) => s.data.clone(), other => format!("{other}"),
+            }).collect();
+            (ids, seqs)
+        }
+        _ => return Err(BioLangError::type_error("alignment_view() requires List of Records or Table", None)),
+    };
+    if sequences.is_empty() {
+        return Err(BioLangError::runtime(ErrorKind::TypeError, "alignment_view() empty input", None));
+    }
+
+    let max_len = sequences.iter().map(|s| s.len()).max().unwrap_or(0);
+    let end_pos = end_pos_opt.unwrap_or(max_len).min(max_len);
+    let start = start_pos.min(end_pos);
+    let display_len = (end_pos - start).min(100); // limit to 100 positions
+
+    // Compute consensus
+    let mut consensus = String::new();
+    for pos in start..(start + display_len) {
+        let mut counts: HashMap<char, usize> = HashMap::new();
+        for seq in &sequences {
+            if let Some(ch) = seq.chars().nth(pos) {
+                *counts.entry(ch.to_ascii_uppercase()).or_insert(0) += 1;
+            }
+        }
+        let top = counts.iter().max_by_key(|(_, &c)| c).map(|(&ch, _)| ch).unwrap_or('-');
+        consensus.push(top);
+    }
+
+    // Compute conservation scores (fraction matching consensus)
+    let conservation: Vec<f64> = (0..display_len).map(|di| {
+        let pos = start + di;
+        let cons_char = consensus.chars().nth(di).unwrap_or('-');
+        let matches = sequences.iter().filter(|s| s.chars().nth(pos).map(|c| c.to_ascii_uppercase()) == Some(cons_char)).count();
+        matches as f64 / sequences.len() as f64
+    }).collect();
+
+    fn nuc_color(ch: char) -> &'static str {
+        match ch.to_ascii_uppercase() {
+            'A' => "#4caf50", 'T' | 'U' => "#f44336", 'C' => "#2196f3", 'G' => "#ff9800",
+            '-' => "#ffffff", _ => "#cccccc",
+        }
+    }
+
+    fn conservation_color(score: f64) -> String {
+        let t = score.clamp(0.0, 1.0);
+        let r = (255.0 * (1.0 - t * 0.7)) as u8;
+        let g = (255.0 * (1.0 - t * 0.4)) as u8;
+        let b = (255.0 * (1.0 - t * 0.1)) as u8;
+        format!("#{r:02x}{g:02x}{b:02x}")
+    }
+
+    if fmt == "svg" {
+        let cell_w = 12.0;
+        let cell_h = 16.0;
+        let label_w = ids.iter().map(|s| s.len()).max().unwrap_or(4) as f64 * 7.0 + 10.0;
+        let pos_h = 20.0;
+        let cons_h = 18.0;
+        let w_auto = label_w + display_len as f64 * cell_w + 40.0;
+        let h_auto = pos_h + (sequences.len() + 1) as f64 * cell_h + cons_h + 60.0;
+        let w = get_opt_f64(&opts, "width", w_auto.min(1200.0));
+        let h = get_opt_f64(&opts, "height", h_auto.min(800.0));
+        let mut c = SvgCanvas::new(w, h);
+        c.margin.left = label_w;
+        c.margin.top = 50.0;
+
+        let actual_cell_w = (c.plot_width() / display_len as f64).min(cell_w);
+
+        // Position numbers at top (every 10th)
+        for di in 0..display_len {
+            let pos = start + di;
+            if pos % 10 == 0 {
+                let x = c.margin.left + di as f64 * actual_cell_w + actual_cell_w / 2.0;
+                c.add_text(x, c.margin.top - 5.0, &pos.to_string(), "middle", 8.0);
+            }
+        }
+
+        // Sequence rows
+        for (si, seq) in sequences.iter().enumerate() {
+            let y = c.margin.top + si as f64 * cell_h;
+            c.add_text(c.margin.left - 5.0, y + cell_h * 0.7, &ids[si], "end", 9.0);
+            for di in 0..display_len {
+                let pos = start + di;
+                let ch = seq.chars().nth(pos).unwrap_or('-');
+                let x = c.margin.left + di as f64 * actual_cell_w;
+                let fill = if color_by == "conservation" {
+                    conservation_color(conservation[di])
+                } else {
+                    nuc_color(ch).to_string()
+                };
+                c.elements.push(format!(
+                    r#"<rect x="{x:.1}" y="{y:.1}" width="{actual_cell_w:.1}" height="{:.1}" fill="{fill}" opacity="0.6" />"#,
+                    cell_h - 1.0
+                ));
+                if actual_cell_w >= 8.0 {
+                    c.elements.push(format!(
+                        r##"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="{:.0}" font-family="monospace" fill="#333">{}</text>"##,
+                        x + actual_cell_w / 2.0, y + cell_h * 0.7, (actual_cell_w * 0.8).min(11.0), ch
+                    ));
+                }
+            }
+        }
+
+        // Consensus row
+        let cons_y = c.margin.top + sequences.len() as f64 * cell_h + 5.0;
+        c.add_text(c.margin.left - 5.0, cons_y + cell_h * 0.7, "Consensus", "end", 9.0);
+        for (di, cons_ch) in consensus.chars().enumerate() {
+            let x = c.margin.left + di as f64 * actual_cell_w;
+            let bg = if conservation[di] > 0.8 { "#333" } else if conservation[di] > 0.5 { "#888" } else { "#ccc" };
+            c.elements.push(format!(
+                r#"<rect x="{x:.1}" y="{cons_y:.1}" width="{actual_cell_w:.1}" height="{:.1}" fill="{bg}" />"#,
+                cell_h - 1.0
+            ));
+            if actual_cell_w >= 8.0 {
+                c.elements.push(format!(
+                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="{:.0}" font-family="monospace" fill="white" font-weight="bold">{}</text>"#,
+                    x + actual_cell_w / 2.0, cons_y + cell_h * 0.7, (actual_cell_w * 0.8).min(11.0), cons_ch
+                ));
+            }
+        }
+
+        if end_pos - start > 100 {
+            c.add_text(c.margin.left + c.plot_width() + 5.0, c.margin.top + 20.0, "...", "start", 12.0);
+        }
+
+        c.draw_title(&title);
+        return Ok(Value::Str(c.render()));
+    }
+
+    // ASCII fallback
+    let max_id = ids.iter().map(|s| s.len()).max().unwrap_or(4);
+    let term_w = get_opt_usize(&opts, "width", 80);
+    let show_len = display_len.min(term_w.saturating_sub(max_id + 3));
+    let mut out = format!("  {title}\n");
+    out.push_str(&format!("  {:>w$}  ", "", w = max_id));
+    for di in 0..show_len {
+        let pos = start + di;
+        if pos % 10 == 0 { out.push('|'); } else { out.push(' '); }
+    }
+    out.push('\n');
+    for (si, seq) in sequences.iter().enumerate() {
+        out.push_str(&format!("  {:>w$}  ", ids[si], w = max_id));
+        for di in 0..show_len {
+            let pos = start + di;
+            out.push(seq.chars().nth(pos).unwrap_or('-'));
+        }
+        out.push('\n');
+    }
+    out.push_str(&format!("  {:>w$}  ", "Cons", w = max_id));
+    for ch in consensus.chars().take(show_len) { out.push(ch); }
+    out.push('\n');
+    out.push_str(&format!("  {:>w$}  ", "", w = max_id));
+    for &cv in conservation.iter().take(show_len) {
+        out.push(if cv > 0.9 { '*' } else if cv > 0.5 { ':' } else if cv > 0.3 { '.' } else { ' ' });
+    }
+    out.push('\n');
+    write_output(&out);
+    Ok(Value::Nil)
+}
+
+// ── 25. circos_plot ─────────────────────────────────────────────
+
+fn builtin_circos_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let fmt = get_opt_str(&opts, "format", "svg").to_string();
+    let title = get_opt_str(&opts, "title", "Circos Plot").to_string();
+    let track_type = get_opt_str(&opts, "track", "bar").to_string();
+
+    // Default human chromosome sizes (in bp)
+    let default_chroms: Vec<(&str, f64)> = vec![
+        ("chr1", 248956422.0), ("chr2", 242193529.0), ("chr3", 198295559.0), ("chr4", 190214555.0),
+        ("chr5", 181538259.0), ("chr6", 170805979.0), ("chr7", 159345973.0), ("chr8", 145138636.0),
+        ("chr9", 138394717.0), ("chr10", 133797422.0), ("chr11", 135086622.0), ("chr12", 133275309.0),
+        ("chr13", 114364328.0), ("chr14", 107043718.0), ("chr15", 101991189.0), ("chr16", 90338345.0),
+        ("chr17", 83257441.0), ("chr18", 80373285.0), ("chr19", 58617616.0), ("chr20", 64444167.0),
+        ("chr21", 46709983.0), ("chr22", 50818468.0), ("chrX", 156040895.0), ("chrY", 57227415.0),
+    ];
+
+    // Extract data points: List of Records with {chrom, start, end, value}
+    let data_points: Vec<(String, f64, f64, f64)> = match &args[0] {
+        Value::List(items) => {
+            items.iter().filter_map(|item| {
+                if let Value::Record(map) = item {
+                    let chrom = map.get("chrom").or(map.get("chr")).map(|v| format!("{v}"))?;
+                    let start = map.get("start").or(map.get("pos")).and_then(|v| v.as_float()).unwrap_or(0.0);
+                    let end = map.get("end").and_then(|v| v.as_float()).unwrap_or(start + 1.0);
+                    let value = map.get("value").or(map.get("score")).and_then(|v| v.as_float()).unwrap_or(1.0);
+                    Some((chrom, start, end, value))
+                } else { None }
+            }).collect()
+        }
+        Value::Table(table) => {
+            let chroms = extract_str_col(table, if table.col_index("chrom").is_some() { "chrom" } else { "chr" })?;
+            let starts = extract_table_col(table, if table.col_index("start").is_some() { "start" } else { "pos" })?;
+            let ends = extract_table_col(table, "end").unwrap_or_else(|_| starts.iter().map(|&s| s + 1.0).collect());
+            let values = extract_table_col(table, "value").or_else(|_| extract_table_col(table, "score")).unwrap_or_else(|_| vec![1.0; chroms.len()]);
+            chroms.into_iter().zip(starts.into_iter().zip(ends.into_iter().zip(values.into_iter())))
+                .map(|(c, (s, (e, v)))| (c, s, e, v))
+                .collect()
+        }
+        _ => return Err(BioLangError::type_error("circos_plot() requires List of Records or Table", None)),
+    };
+
+    // Determine chromosome set
+    let mut chrom_order: Vec<String> = Vec::new();
+    for (c, _, _, _) in &data_points {
+        if !chrom_order.contains(c) { chrom_order.push(c.clone()); }
+    }
+    let default_order: Vec<&str> = default_chroms.iter().map(|(n, _)| *n).collect();
+    chrom_order.sort_by_key(|c| default_order.iter().position(|&d| d == c).unwrap_or(999));
+
+    let chrom_sizes: Vec<(String, f64)> = chrom_order.iter().map(|c| {
+        let default_size = default_chroms.iter().find(|(n, _)| *n == c.as_str()).map(|(_, s)| *s);
+        let data_max = data_points.iter().filter(|(dc, _, _, _)| dc == c).map(|(_, _, e, _)| *e).fold(0.0f64, f64::max);
+        (c.clone(), default_size.unwrap_or(data_max * 1.1))
+    }).collect();
+    let total_size: f64 = chrom_sizes.iter().map(|(_, s)| s).sum();
+    if total_size <= 0.0 {
+        return Err(BioLangError::runtime(ErrorKind::TypeError, "circos_plot() no data to plot", None));
+    }
+
+    let val_range = {
+        let vals: Vec<f64> = data_points.iter().map(|(_, _, _, v)| *v).collect();
+        if vals.is_empty() { (0.0, 1.0) } else { col_range(&vals) }
+    };
+
+    if fmt == "svg" {
+        let w = get_opt_f64(&opts, "width", 500.0);
+        let h = w;
+        let mut c = SvgCanvas::new(w, h);
+        let (cx, cy) = (w / 2.0, h / 2.0);
+        let r_outer = w.min(h) * 0.40;
+        let r_inner = r_outer * 0.82;
+        let r_track_outer = r_inner * 0.95;
+        let r_track_inner = r_inner * 0.65;
+        let gap = 0.01;
+        let total_gap = gap * chrom_order.len() as f64;
+        let usable_angle = 2.0 * std::f64::consts::PI - total_gap;
+
+        let mut chrom_angles: HashMap<String, (f64, f64)> = HashMap::new();
+        let mut angle = 0.0f64;
+        for (ci, (name, size)) in chrom_sizes.iter().enumerate() {
+            let sweep = (*size / total_size) * usable_angle;
+            let a1 = angle;
+            let a2 = angle + sweep;
+            chrom_angles.insert(name.clone(), (a1, a2));
+
+            let color = PALETTE[ci % PALETTE.len()];
+            let (x1, y1) = (cx + r_outer * a1.cos(), cy + r_outer * a1.sin());
+            let (x2, y2) = (cx + r_outer * a2.cos(), cy + r_outer * a2.sin());
+            let (x3, y3) = (cx + r_inner * a2.cos(), cy + r_inner * a2.sin());
+            let (x4, y4) = (cx + r_inner * a1.cos(), cy + r_inner * a1.sin());
+            let large = if sweep > std::f64::consts::PI { 1 } else { 0 };
+            c.elements.push(format!(
+                r#"<path d="M {x1:.1},{y1:.1} A {ro:.1},{ro:.1} 0 {large} 1 {x2:.1},{y2:.1} L {x3:.1},{y3:.1} A {ri:.1},{ri:.1} 0 {large} 0 {x4:.1},{y4:.1} Z" fill="{color}" opacity="0.5" stroke="white" stroke-width="0.5" />"#,
+                ro = r_outer, ri = r_inner
+            ));
+
+            let mid_a = (a1 + a2) / 2.0;
+            let lx = cx + (r_outer + 14.0) * mid_a.cos();
+            let ly = cy + (r_outer + 14.0) * mid_a.sin();
+            let label = name.strip_prefix("chr").unwrap_or(name);
+            c.add_text(lx, ly + 4.0, label, "middle", 8.0);
+
+            angle = a2 + gap;
+        }
+
+        // Draw data track
+        for (chrom, start, end, value) in &data_points {
+            if let Some(&(a1, a2)) = chrom_angles.get(chrom) {
+                let chrom_size = chrom_sizes.iter().find(|(n, _)| n == chrom).map(|(_, s)| *s).unwrap_or(1.0);
+                let ang_start = a1 + (*start / chrom_size) * (a2 - a1);
+                let ang_end = a1 + (*end / chrom_size) * (a2 - a1);
+                let t = if (val_range.1 - val_range.0).abs() < f64::EPSILON { 0.5 }
+                    else { (value - val_range.0) / (val_range.1 - val_range.0) };
+                let t = t.clamp(0.0, 1.0);
+
+                match track_type.as_str() {
+                    "scatter" => {
+                        let r_pt = r_track_inner + t * (r_track_outer - r_track_inner);
+                        let mid_ang = (ang_start + ang_end) / 2.0;
+                        let px = cx + r_pt * mid_ang.cos();
+                        let py = cy + r_pt * mid_ang.sin();
+                        c.add_circle(px, py, 2.0, "#e15759");
+                    }
+                    "line" => {
+                        let r_pt = r_track_inner + t * (r_track_outer - r_track_inner);
+                        let mid_ang = (ang_start + ang_end) / 2.0;
+                        let px = cx + r_pt * mid_ang.cos();
+                        let py = cy + r_pt * mid_ang.sin();
+                        let base_x = cx + r_track_inner * mid_ang.cos();
+                        let base_y = cy + r_track_inner * mid_ang.sin();
+                        c.add_line(base_x, base_y, px, py, "#4e79a7", 1.0);
+                    }
+                    _ => {
+                        let r_bar = r_track_inner + t * (r_track_outer - r_track_inner);
+                        let (bx1, by1) = (cx + r_track_inner * ang_start.cos(), cy + r_track_inner * ang_start.sin());
+                        let (bx2, by2) = (cx + r_bar * ang_start.cos(), cy + r_bar * ang_start.sin());
+                        let (bx3, by3) = (cx + r_bar * ang_end.cos(), cy + r_bar * ang_end.sin());
+                        let (bx4, by4) = (cx + r_track_inner * ang_end.cos(), cy + r_track_inner * ang_end.sin());
+                        let large_bar = if (ang_end - ang_start) > std::f64::consts::PI { 1 } else { 0 };
+                        let color = sequential_color(t);
+                        c.elements.push(format!(
+                            r#"<path d="M {bx1:.1},{by1:.1} L {bx2:.1},{by2:.1} A {r_bar:.1},{r_bar:.1} 0 {large_bar} 1 {bx3:.1},{by3:.1} L {bx4:.1},{by4:.1} A {ri:.1},{ri:.1} 0 {large_bar} 0 {bx1:.1},{by1:.1} Z" fill="{color}" opacity="0.8" />"#,
+                            ri = r_track_inner
+                        ));
+                    }
+                }
+            }
+        }
+
+        c.elements.push(format!(
+            r##"<circle cx="{cx:.1}" cy="{cy:.1}" r="{:.1}" fill="none" stroke="#ddd" stroke-width="0.5" />"##,
+            r_track_inner
+        ));
+
+        c.draw_title(&title);
+        return Ok(Value::Str(c.render()));
+    }
+
+    // ASCII fallback
+    let bar_w = get_opt_usize(&opts, "width", 50);
+    let max_name = chrom_sizes.iter().map(|(n, _)| n.len()).max().unwrap_or(4);
+    let mut out = format!("  {title} (linear view)\n");
+    for (name, size) in &chrom_sizes {
+        let len = (size / total_size * bar_w as f64).round() as usize;
+        let n_pts = data_points.iter().filter(|(c, _, _, _)| c == name).count();
+        let bar: String = "█".repeat(len.max(1));
+        out.push_str(&format!("  {:>w$}  {bar}  ({n_pts} points)\n", name, w = max_name));
     }
     write_output(&out);
     Ok(Value::Nil)

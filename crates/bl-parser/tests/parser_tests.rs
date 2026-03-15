@@ -773,12 +773,16 @@ fn test_record_literal() {
     let prog = parse("{x: 1, y: 2}");
     match &prog.stmts[0].node {
         Stmt::Expr(expr) => match &expr.node {
-            Expr::Record(fields) => {
-                assert_eq!(fields.len(), 2);
-                assert_eq!(fields[0].0, "x");
-                assert_eq!(fields[0].1.node, Expr::Int(1));
-                assert_eq!(fields[1].0, "y");
-                assert_eq!(fields[1].1.node, Expr::Int(2));
+            Expr::Record(entries) => {
+                assert_eq!(entries.len(), 2);
+                match &entries[0] {
+                    RecordEntry::Field(k, v) => { assert_eq!(k, "x"); assert_eq!(v.node, Expr::Int(1)); }
+                    other => panic!("expected Field, got {other:?}"),
+                }
+                match &entries[1] {
+                    RecordEntry::Field(k, v) => { assert_eq!(k, "y"); assert_eq!(v.node, Expr::Int(2)); }
+                    other => panic!("expected Field, got {other:?}"),
+                }
             }
             other => panic!("expected Record, got {other:?}"),
         },

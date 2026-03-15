@@ -1,0 +1,1163 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 30: Capstone — Genome-Wide Association Study - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-30-capstone--genome-wide-association-study"><a class="header" href="#day-30-capstone--genome-wide-association-study">Day 30: Capstone — Genome-Wide Association Study</a></h1>
+<div class="day-meta">
+<span class="badge">Day 30 of 30</span>
+<span class="badge">Capstone: Days 4, 7, 11-12, 16, 18-19, 21, 25</span>
+<span class="badge">~90 min reading</span>
+<span class="badge">Genomics</span>
+</div>
+
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>A large consortium has genotyped 10,000 individuals — 5,000 with type 2 diabetes (T2D) and 5,000 controls — at 500,000 single nucleotide polymorphisms (SNPs) spread across the genome. The goal is to identify genetic variants associated with T2D risk.</p>
+<p>This is a genome-wide association study (GWAS) — the workhorse of modern human genetics. Since the first GWAS in 2005, thousands of studies have identified genetic associations for hundreds of diseases and traits. The method is conceptually simple: for each SNP, ask “is this variant more common in cases than controls?” But the execution requires careful statistical reasoning, because testing 500,000 hypotheses simultaneously creates an extreme multiple testing problem, and subtle confounders (especially population structure) can generate thousands of false positives.</p>
+<p>By the end of today, you will have built a complete GWAS pipeline: quality control, population structure analysis, genome-wide association testing, multiple testing correction, visualization (Manhattan plot, Q-Q plot), and effect size interpretation. This capstone integrates methods from nearly every chapter of the book.</p>
+<h2 id="the-gwas-pipeline"><a class="header" href="#the-gwas-pipeline">The GWAS Pipeline</a></h2>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="110" viewbox="0 0 680 110" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">GWAS Pipeline Overview</text>
+  <!-- Genotyping -->
+  <rect x="8" y="38" width="82" height="40" rx="6" fill="#2563eb" />
+  <text x="49" y="55" text-anchor="middle" font-size="9" fill="white" font-weight="bold">Genotyping</text>
+  <text x="49" y="68" text-anchor="middle" font-size="8" fill="#93c5fd">500K SNPs</text>
+  <path d="M 92 58 L 106 58" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrowGW30)" />
+  <!-- QC -->
+  <rect x="108" y="38" width="75" height="40" rx="6" fill="#3b82f6" />
+  <text x="145" y="55" text-anchor="middle" font-size="9" fill="white" font-weight="bold">QC</text>
+  <text x="145" y="68" text-anchor="middle" font-size="8" fill="#bfdbfe">HWE, MAF</text>
+  <path d="M 185 58 L 199 58" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrowGW30)" />
+  <!-- PCA -->
+  <rect x="201" y="38" width="75" height="40" rx="6" fill="#3b82f6" opacity="0.85" />
+  <text x="238" y="55" text-anchor="middle" font-size="9" fill="white" font-weight="bold">PCA</text>
+  <text x="238" y="68" text-anchor="middle" font-size="8" fill="#bfdbfe">pop structure</text>
+  <path d="M 278 58 L 292 58" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrowGW30)" />
+  <!-- Association -->
+  <rect x="294" y="38" width="86" height="40" rx="6" fill="#7c3aed" />
+  <text x="337" y="55" text-anchor="middle" font-size="9" fill="white" font-weight="bold">Association</text>
+  <text x="337" y="68" text-anchor="middle" font-size="8" fill="#c4b5fd">logistic reg.</text>
+  <path d="M 382 58 L 396 58" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrowGW30)" />
+  <!-- Multiple Testing -->
+  <rect x="398" y="38" width="86" height="40" rx="6" fill="#7c3aed" opacity="0.85" />
+  <text x="441" y="55" text-anchor="middle" font-size="9" fill="white" font-weight="bold">Correction</text>
+  <text x="441" y="68" text-anchor="middle" font-size="8" fill="#c4b5fd">p &lt; 5e-8</text>
+  <path d="M 486 58 L 500 58" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrowGW30)" />
+  <!-- Visualization -->
+  <rect x="502" y="38" width="82" height="40" rx="6" fill="#16a34a" />
+  <text x="543" y="55" text-anchor="middle" font-size="9" fill="white" font-weight="bold">Visualize</text>
+  <text x="543" y="68" text-anchor="middle" font-size="8" fill="#bbf7d0">Manhattan, QQ</text>
+  <path d="M 586 58 L 600 58" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrowGW30)" />
+  <!-- Interpret -->
+  <rect x="602" y="38" width="68" height="40" rx="6" fill="#1e293b" />
+  <text x="636" y="55" text-anchor="middle" font-size="9" fill="white" font-weight="bold">Interpret</text>
+  <text x="636" y="68" text-anchor="middle" font-size="8" fill="#9ca3af">OR, loci</text>
+  <text x="340" y="100" text-anchor="middle" font-size="10" fill="#6b7280" font-style="italic">10,000 individuals x 500,000 SNPs — testing for Type 2 Diabetes associations</text>
+  <defs>
+    <marker id="arrowGW30" markerwidth="6" markerheight="6" refx="5" refy="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#9ca3af" />
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<ol>
+<li><strong>SNP Quality Control</strong>: Hardy-Weinberg equilibrium, call rates, minor allele frequency</li>
+<li><strong>Population Structure</strong>: PCA on genotype data, identify and correct for ancestry</li>
+<li><strong>Association Testing</strong>: Chi-square or logistic regression per SNP</li>
+<li><strong>Multiple Testing Correction</strong>: Bonferroni at genome-wide threshold</li>
+<li><strong>Visualization</strong>: Manhattan plot, Q-Q plot</li>
+<li><strong>Effect Size Interpretation</strong>: Odds ratios for top hits</li>
+<li><strong>Power Considerations</strong>: What could we have missed?</li>
+</ol>
+<h2 id="section-1-data-simulation"><a class="header" href="#section-1-data-simulation">Section 1: Data Simulation</a></h2>
+<pre><code class="language-bio">set_seed(42)
+# ============================================
+# Genome-Wide Association Study
+# Type 2 Diabetes: 5,000 Cases + 5,000 Controls
+# 500,000 SNPs across 22 autosomes
+# ============================================
+
+
+# --- Configuration ---
+let CONFIG = {
+  n_cases: 5000,
+  n_controls: 5000,
+  n_total: 10000,
+  n_snps: 500000,
+  genome_wide_p: 5e-8,      # genome-wide significance
+  suggestive_p: 1e-5,       # suggestive significance
+  hwe_threshold: 1e-6,      # HWE filter in controls
+  maf_threshold: 0.01,      # minimum minor allele frequency
+  call_rate_threshold: 0.95  # minimum genotyping rate
+}
+
+# Phenotype: 0 = control, 1 = case
+let phenotype = repeat(1, CONFIG.n_cases) + repeat(0, CONFIG.n_controls)
+
+# Distribute SNPs across chromosomes (proportional to chromosome length)
+let chr_lengths = [249, 243, 198, 191, 182, 171, 159, 145, 138, 134,
+                   135, 133, 114, 107, 102, 90, 83, 80, 59, 64, 47, 51]
+let total_length = sum(chr_lengths)
+let snps_per_chr = chr_lengths |&gt; map(|l|
+  round(l / total_length * CONFIG.n_snps, 0))
+
+# Generate SNP positions
+let snp_chr = []
+let snp_pos = []
+let snp_names = []
+
+for c in 0..22 {
+  let n = snps_per_chr[c]
+  let positions = range(0, n) |&gt; map(|i| random_int(1, chr_lengths[c] * 1000000))
+    |&gt; sort_by(|x| x)
+  for p in positions {
+    snp_chr = snp_chr + [c + 1]
+    snp_pos = snp_pos + [p]
+    snp_names = snp_names + ["rs" + str(len(snp_names) + 1)]
+  }
+}
+
+print("Simulated " + str(len(snp_names)) + " SNPs across 22 chromosomes")
+print("Samples: " + str(CONFIG.n_cases) + " cases + " +
+  str(CONFIG.n_controls) + " controls")
+
+# Generate MAFs and genotypes
+# Most SNPs: no association (null)
+# ~50 SNPs: true associations with small effect sizes (OR 1.1-1.4)
+
+let n_true_assoc = 50
+let true_snp_indices = range(0, n_true_assoc) |&gt; map(|i| random_int(0, len(snp_names) - 1))
+let true_effect_sizes = rnorm(n_true_assoc, 0.18, 0.08)
+  |&gt; map(|x| max(0.05, min(0.40, x)))  # log(OR) range
+
+# Generate p-values for each SNP
+let p_values = []
+let odds_ratios = []
+let mafs = []
+
+for i in 0..len(snp_names) {
+  let maf = abs(rnorm(1, 0.2, 0.12)[0])
+  maf = max(0.01, min(0.49, maf))
+  mafs = mafs + [maf]
+
+  if true_snp_indices |&gt; contains(i) {
+    # True association: generate p-value from the effect
+    let idx = true_snp_indices |&gt; index_of(i)
+    let log_or = true_effect_sizes[idx]
+    let or_val = exp(log_or)
+
+    # Approximate chi-square statistic for this effect and sample size
+    let freq_case = maf * or_val / (1 + maf * (or_val - 1))
+    let freq_ctrl = maf
+    let n = CONFIG.n_total
+    let chi2 = n * pow(freq_case - freq_ctrl, 2) / (maf * (1 - maf))
+    let p = max(1e-300, exp(-chi2 / 2))  # approximate
+
+    p_values = p_values + [p]
+    odds_ratios = odds_ratios + [or_val]
+  } else {
+    # Null SNP: p-value from uniform distribution
+    let p = abs(rnorm(1, 0.5, 0.3)[0])
+    p = max(0.0001, min(0.9999, p))
+    p_values = p_values + [p]
+    odds_ratios = odds_ratios + [1.0 + rnorm(1, 0, 0.02)[0]]
+  }
+}
+</code></pre>
+<h2 id="section-2-snp-quality-control"><a class="header" href="#section-2-snp-quality-control">Section 2: SNP Quality Control</a></h2>
+<p>Before testing associations, filter out low-quality SNPs.</p>
+<h3 id="hardy-weinberg-equilibrium"><a class="header" href="#hardy-weinberg-equilibrium">Hardy-Weinberg Equilibrium</a></h3>
+<p>SNPs that violate Hardy-Weinberg equilibrium (HWE) in controls may indicate genotyping errors. We test each SNP with a chi-square goodness-of-fit test.</p>
+<pre><code class="language-bio">set_seed(42)
+# --- Quality Control ---
+print("\n=== SNP Quality Control ===")
+
+# Simulate HWE p-values for each SNP
+# Most SNPs: in HWE (high p-value)
+# A few: genotyping errors (low p-value)
+let n_geno_errors = 500  # SNPs with genotyping problems
+let geno_error_idx = range(0, n_geno_errors) |&gt; map(|i| random_int(0, len(snp_names) - 1))
+
+let hwe_pvalues = []
+for i in 0..len(snp_names) {
+  if geno_error_idx |&gt; contains(i) {
+    # Genotyping error: HWE violation
+    hwe_pvalues = hwe_pvalues + [abs(rnorm(1, 0, 1e-7)[0])]
+  } else {
+    # Normal SNP: in HWE
+    hwe_pvalues = hwe_pvalues + [abs(rnorm(1, 0.5, 0.3)[0])]
+  }
+}
+
+# Apply HWE filter (in controls only)
+let pass_hwe = hwe_pvalues |&gt; map(|p| p &gt;= CONFIG.hwe_threshold)
+let fail_hwe = count(pass_hwe, |x| !x)
+
+print("HWE filter (p &lt; " + str(CONFIG.hwe_threshold) + " in controls):")
+print("  Failed: " + str(fail_hwe) + " SNPs removed")
+
+# MAF filter
+let pass_maf = mafs |&gt; map(|m| m &gt;= CONFIG.maf_threshold)
+let fail_maf = count(pass_maf, |x| !x)
+print("MAF filter (&lt; " + str(CONFIG.maf_threshold) + "):")
+print("  Failed: " + str(fail_maf) + " SNPs removed")
+
+# Combined QC
+let pass_qc = []
+let qc_indices = []
+for i in 0..len(snp_names) {
+  if pass_hwe[i] &amp;&amp; pass_maf[i] {
+    pass_qc = pass_qc + [true]
+    qc_indices = qc_indices + [i]
+  } else {
+    pass_qc = pass_qc + [false]
+  }
+}
+
+let n_pass = len(qc_indices)
+print("\nSNPs passing QC: " + str(n_pass) + " / " + str(len(snp_names)) +
+  " (" + str(round(n_pass / len(snp_names) * 100, 1)) + "%)")
+
+# Filter arrays to QC-passing SNPs
+let qc_pvalues = p_values |&gt; select(qc_indices)
+let qc_ors = odds_ratios |&gt; select(qc_indices)
+let qc_chr = snp_chr |&gt; select(qc_indices)
+let qc_pos = snp_pos |&gt; select(qc_indices)
+let qc_names = snp_names |&gt; select(qc_indices)
+let qc_mafs = mafs |&gt; select(qc_indices)
+</code></pre>
+<blockquote>
+<p><strong>Key insight:</strong> HWE filtering is performed in controls only, not cases. Disease-associated variants may legitimately deviate from HWE in cases (this is actually expected for associated variants under certain genetic models). Testing HWE in cases would remove true associations.</p>
+</blockquote>
+<h2 id="section-3-population-structure--pca"><a class="header" href="#section-3-population-structure--pca">Section 3: Population Structure — PCA</a></h2>
+<p>Population structure is the most common confounder in GWAS. If cases and controls have different ancestral backgrounds, allele frequency differences due to ancestry will be mistaken for disease associations.</p>
+<pre><code class="language-bio">set_seed(42)
+# --- Population Structure Analysis ---
+print("\n=== Population Structure (PCA) ===")
+
+# Simulate PCA scores reflecting population structure
+# Assume 3 major ancestry clusters with some admixture
+let ancestry = range(0, CONFIG.n_total) |&gt; map(|i| {
+  let r = rnorm(1, 0, 1)[0]
+  if r &lt; 0.25 { "European" } else if r &lt; 0.92 { "East Asian" } else { "African" }
+})
+
+# PC1 and PC2 separate ancestries
+let pc1 = []
+let pc2 = []
+for i in 0..CONFIG.n_total {
+  if ancestry[i] == "European" {
+    pc1 = pc1 + [rnorm(1, 0, 5)[0]]
+    pc2 = pc2 + [rnorm(1, 0, 4)[0]]
+  } else if ancestry[i] == "East Asian" {
+    pc1 = pc1 + [rnorm(1, 30, 5)[0]]
+    pc2 = pc2 + [rnorm(1, -10, 4)[0]]
+  } else {
+    pc1 = pc1 + [rnorm(1, -25, 6)[0]]
+    pc2 = pc2 + [rnorm(1, 20, 5)[0]]
+  }
+}
+
+# PCA plot colored by ancestry
+scatter(pc1, pc2,
+  {xlabel: "PC1",
+  ylabel: "PC2",
+  title: "Population Structure — Genotype PCA"})
+
+# PCA plot colored by case/control
+scatter(pc1, pc2,
+  {xlabel: "PC1",
+  ylabel: "PC2",
+  title: "PCA — Case/Control Overlay"})
+
+# Check: are cases and controls balanced across ancestry?
+print("\nAncestry distribution:")
+print("             Cases     Controls")
+for anc in ["European", "East Asian", "African"] {
+  let n_case = 0
+  let n_ctrl = 0
+  for i in 0..CONFIG.n_total {
+    if ancestry[i] == anc {
+      if phenotype[i] == 1 { n_case = n_case + 1 }
+      else { n_ctrl = n_ctrl + 1 }
+    }
+  }
+  print(anc + "   " + str(n_case) + "       " + str(n_ctrl))
+}
+</code></pre>
+<blockquote>
+<p><strong>Common pitfall:</strong> If one ancestry group has a higher prevalence of T2D (which is biologically true — T2D rates differ across populations), and allele frequencies also differ by ancestry, then every ancestry-differentiated SNP will appear associated with T2D. This is confounding, not causation. Including top PCs as covariates in the regression model removes this confounding.</p>
+</blockquote>
+<h2 id="section-4-association-testing"><a class="header" href="#section-4-association-testing">Section 4: Association Testing</a></h2>
+<p>For each SNP, test the association with disease status. The simplest approach is a chi-square test on the 2x3 genotype table. A more powerful approach is logistic regression with PC covariates.</p>
+<h3 id="chi-square-test-basic"><a class="header" href="#chi-square-test-basic">Chi-Square Test (Basic)</a></h3>
+<pre><code class="language-bio"># --- Association Testing ---
+print("\n=== Genome-Wide Association Testing ===")
+print("Testing " + str(n_pass) + " SNPs...")
+
+# The p-values were pre-computed in simulation
+# In a real GWAS, you would compute them here:
+#
+# for each SNP:
+#   let geno_table = cross_tabulate(genotypes, phenotype)
+#   let chi2 = chi_square_test(geno_table)
+#   or: let lr = logistic_regression(phenotype ~ snp + PC1 + PC2 + ...)
+</code></pre>
+<h3 id="logistic-regression-adjusted"><a class="header" href="#logistic-regression-adjusted">Logistic Regression (Adjusted)</a></h3>
+<pre><code class="language-bio"># Adjusted analysis includes top PCs as covariates
+# This removes population structure confounding
+
+# For this simulation, we adjust p-values to reflect
+# the improvement from PC adjustment
+let adjusted_pvalues = qc_pvalues  # In practice, from logistic_regression
+
+print("Association method: logistic regression")
+print("Covariates: PC1, PC2, PC3, PC4 (top 4 principal components)")
+print("Model: disease ~ SNP + PC1 + PC2 + PC3 + PC4")
+</code></pre>
+<h2 id="section-5-multiple-testing-correction"><a class="header" href="#section-5-multiple-testing-correction">Section 5: Multiple Testing Correction</a></h2>
+<p>With 500,000 tests, even a tiny false positive rate generates thousands of false hits. The genome-wide significance threshold of p &lt; 5 x 10^-8 is the standard Bonferroni correction for approximately 1 million independent tests (accounting for linkage disequilibrium).</p>
+<pre><code class="language-bio"># --- Multiple Testing ---
+print("\n=== Multiple Testing Correction ===")
+
+# Genome-wide significant hits
+let gw_sig = []
+for i in 0..n_pass {
+  if adjusted_pvalues[i] &lt; CONFIG.genome_wide_p {
+    gw_sig = gw_sig + [{
+      snp: qc_names[i],
+      chr: qc_chr[i],
+      pos: qc_pos[i],
+      p: adjusted_pvalues[i],
+      or: qc_ors[i],
+      maf: qc_mafs[i]
+    }]
+  }
+}
+
+# Suggestive hits
+let suggestive = []
+for i in 0..n_pass {
+  if adjusted_pvalues[i] &lt; CONFIG.suggestive_p &amp;&amp; adjusted_pvalues[i] &gt;= CONFIG.genome_wide_p {
+    suggestive = suggestive + [{
+      snp: qc_names[i],
+      chr: qc_chr[i],
+      pos: qc_pos[i],
+      p: adjusted_pvalues[i],
+      or: qc_ors[i]
+    }]
+  }
+}
+
+print("Bonferroni threshold (0.05 / " + str(n_pass) + "): " +
+  str(round(0.05 / n_pass, 10)))
+print("Standard genome-wide threshold: 5 x 10^-8")
+print("Suggestive threshold: 1 x 10^-5")
+print("")
+print("Genome-wide significant hits: " + str(len(gw_sig)))
+print("Suggestive hits: " + str(len(suggestive)))
+
+# Top hits table
+let all_hits = gw_sig |&gt; sort_by(|h| h.p)
+
+print("\n=== Top Genome-Wide Significant SNPs ===")
+print("SNP              Chr    Position       p-value          OR       MAF")
+print("-" * 75)
+for hit in all_hits |&gt; take(20) {
+  print(hit.snp + "    " + str(hit.chr) + "    " +
+    str(hit.pos) + "    " +
+    str(hit.p) + "    " +
+    str(round(hit.or, 3)) + "    " +
+    str(round(hit.maf, 3)))
+}
+</code></pre>
+<blockquote>
+<p><strong>Key insight:</strong> The genome-wide significance threshold of 5 x 10^-8 is extremely stringent — it corresponds to a Bonferroni correction for roughly 1 million independent tests. This means we need very large sample sizes (thousands to hundreds of thousands) to detect the small effects typical of common variant associations (OR 1.05-1.30). This is why modern GWAS consortia combine data from dozens of cohorts.</p>
+</blockquote>
+<h2 id="section-6-manhattan-plot"><a class="header" href="#section-6-manhattan-plot">Section 6: Manhattan Plot</a></h2>
+<pre><code class="language-bio"># --- Manhattan Plot ---
+let gwas_tbl = range(0, n_pass) |&gt; map(|i| {
+  chr: qc_chr[i], pos: qc_pos[i], p: adjusted_pvalues[i]
+}) |&gt; to_table()
+
+manhattan(gwas_tbl,
+  {significance_line: CONFIG.genome_wide_p,
+  suggestive_line: CONFIG.suggestive_p,
+  title: "GWAS — Type 2 Diabetes",
+  xlabel: "Chromosome",
+  ylabel: "-log10(p-value)"})
+</code></pre>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="320" viewbox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Manhattan Plot Anatomy — GWAS Results</text>
+  <!-- Axes -->
+  <line x1="60" y1="260" x2="650" y2="260" stroke="#374151" stroke-width="1.5" />
+  <line x1="60" y1="40" x2="60" y2="260" stroke="#374151" stroke-width="1.5" />
+  <text x="355" y="295" text-anchor="middle" font-size="12" fill="#374151">Chromosome</text>
+  <text x="20" y="150" text-anchor="middle" font-size="11" fill="#374151" transform="rotate(-90 20 150)">-log10(p-value)</text>
+  <!-- Y-axis ticks -->
+  <text x="50" y="260" text-anchor="end" font-size="9" fill="#6b7280">0</text>
+  <text x="50" y="216" text-anchor="end" font-size="9" fill="#6b7280">2</text>
+  <text x="50" y="172" text-anchor="end" font-size="9" fill="#6b7280">4</text>
+  <text x="50" y="128" text-anchor="end" font-size="9" fill="#6b7280">6</text>
+  <text x="50" y="84" text-anchor="end" font-size="9" fill="#6b7280">8</text>
+  <text x="50" y="50" text-anchor="end" font-size="9" fill="#6b7280">10</text>
+  <!-- Significance lines -->
+  <line x1="60" y1="98" x2="650" y2="98" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="6,3" />
+  <text x="654" y="95" font-size="8" fill="#dc2626">5x10⁻⁸</text>
+  <line x1="60" y1="150" x2="650" y2="150" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3" />
+  <text x="654" y="147" font-size="8" fill="#9ca3af">1x10⁻⁵</text>
+  <!-- Chromosome labels -->
+  <text x="85" y="278" text-anchor="middle" font-size="9" fill="#6b7280">1</text>
+  <text x="115" y="278" text-anchor="middle" font-size="9" fill="#6b7280">2</text>
+  <text x="142" y="278" text-anchor="middle" font-size="9" fill="#6b7280">3</text>
+  <text x="168" y="278" text-anchor="middle" font-size="9" fill="#6b7280">4</text>
+  <text x="194" y="278" text-anchor="middle" font-size="9" fill="#6b7280">5</text>
+  <text x="218" y="278" text-anchor="middle" font-size="9" fill="#6b7280">6</text>
+  <text x="242" y="278" text-anchor="middle" font-size="9" fill="#6b7280">7</text>
+  <text x="264" y="278" text-anchor="middle" font-size="9" fill="#6b7280">8</text>
+  <text x="286" y="278" text-anchor="middle" font-size="9" fill="#6b7280">9</text>
+  <text x="308" y="278" text-anchor="middle" font-size="9" fill="#6b7280">10</text>
+  <text x="330" y="278" text-anchor="middle" font-size="9" fill="#6b7280">11</text>
+  <text x="355" y="278" text-anchor="middle" font-size="9" fill="#6b7280">12</text>
+  <text x="380" y="278" text-anchor="middle" font-size="9" fill="#6b7280">13</text>
+  <text x="402" y="278" text-anchor="middle" font-size="9" fill="#6b7280">14</text>
+  <text x="424" y="278" text-anchor="middle" font-size="9" fill="#6b7280">15</text>
+  <text x="446" y="278" text-anchor="middle" font-size="9" fill="#6b7280">16</text>
+  <text x="466" y="278" text-anchor="middle" font-size="9" fill="#6b7280">17</text>
+  <text x="486" y="278" text-anchor="middle" font-size="9" fill="#6b7280">18</text>
+  <text x="506" y="278" text-anchor="middle" font-size="9" fill="#6b7280">19</text>
+  <text x="526" y="278" text-anchor="middle" font-size="9" fill="#6b7280">20</text>
+  <text x="546" y="278" text-anchor="middle" font-size="9" fill="#6b7280">21</text>
+  <text x="565" y="278" text-anchor="middle" font-size="9" fill="#6b7280">22</text>
+  <!-- Chr 1 dots (blue) - noise floor -->
+  <circle cx="72" cy="240" r="2" fill="#2563eb" opacity="0.5" /><circle cx="78" cy="235" r="2" fill="#2563eb" opacity="0.5" /><circle cx="84" cy="245" r="2" fill="#2563eb" opacity="0.5" /><circle cx="90" cy="238" r="2" fill="#2563eb" opacity="0.5" /><circle cx="96" cy="250" r="2" fill="#2563eb" opacity="0.5" />
+  <!-- Chr 2 dots (teal) -->
+  <circle cx="108" cy="242" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="114" cy="248" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="120" cy="236" r="2" fill="#3b82f6" opacity="0.5" />
+  <!-- Chr 3 (blue) -->
+  <circle cx="134" cy="244" r="2" fill="#2563eb" opacity="0.5" /><circle cx="140" cy="240" r="2" fill="#2563eb" opacity="0.5" /><circle cx="148" cy="252" r="2" fill="#2563eb" opacity="0.5" />
+  <!-- Chr 4 (teal) -->
+  <circle cx="160" cy="238" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="168" cy="246" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="175" cy="240" r="2" fill="#3b82f6" opacity="0.5" />
+  <!-- Chr 5 (blue) -->
+  <circle cx="186" cy="244" r="2" fill="#2563eb" opacity="0.5" /><circle cx="192" cy="250" r="2" fill="#2563eb" opacity="0.5" /><circle cx="200" cy="235" r="2" fill="#2563eb" opacity="0.5" />
+  <!-- Chr 6 (teal) - HAS A PEAK -->
+  <circle cx="210" cy="240" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="216" cy="248" r="2" fill="#3b82f6" opacity="0.5" />
+  <circle cx="220" cy="180" r="3" fill="#3b82f6" opacity="0.7" />
+  <circle cx="222" cy="130" r="3" fill="#3b82f6" opacity="0.8" />
+  <circle cx="224" cy="70" r="4" fill="#dc2626" opacity="0.9" />
+  <circle cx="226" cy="115" r="3" fill="#3b82f6" opacity="0.8" />
+  <circle cx="228" cy="165" r="3" fill="#3b82f6" opacity="0.7" />
+  <!-- Chr 7 (blue) -->
+  <circle cx="236" cy="242" r="2" fill="#2563eb" opacity="0.5" /><circle cx="244" cy="248" r="2" fill="#2563eb" opacity="0.5" />
+  <!-- Chr 8 (teal) -->
+  <circle cx="258" cy="240" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="266" cy="250" r="2" fill="#3b82f6" opacity="0.5" />
+  <!-- Chr 9 (blue) - HAS A PEAK -->
+  <circle cx="280" cy="244" r="2" fill="#2563eb" opacity="0.5" />
+  <circle cx="284" cy="190" r="3" fill="#2563eb" opacity="0.7" />
+  <circle cx="286" cy="85" r="4" fill="#dc2626" opacity="0.9" />
+  <circle cx="288" cy="140" r="3" fill="#2563eb" opacity="0.7" />
+  <circle cx="292" cy="238" r="2" fill="#2563eb" opacity="0.5" />
+  <!-- Chr 10-15 noise -->
+  <circle cx="302" cy="245" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="310" cy="240" r="2" fill="#3b82f6" opacity="0.5" />
+  <circle cx="324" cy="248" r="2" fill="#2563eb" opacity="0.5" /><circle cx="332" cy="242" r="2" fill="#2563eb" opacity="0.5" />
+  <circle cx="348" cy="244" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="358" cy="250" r="2" fill="#3b82f6" opacity="0.5" />
+  <circle cx="374" cy="240" r="2" fill="#2563eb" opacity="0.5" /><circle cx="384" cy="246" r="2" fill="#2563eb" opacity="0.5" />
+  <circle cx="396" cy="248" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="408" cy="242" r="2" fill="#3b82f6" opacity="0.5" />
+  <circle cx="418" cy="240" r="2" fill="#2563eb" opacity="0.5" /><circle cx="428" cy="250" r="2" fill="#2563eb" opacity="0.5" />
+  <!-- Chr 16 (teal) - HAS A PEAK -->
+  <circle cx="440" cy="246" r="2" fill="#3b82f6" opacity="0.5" />
+  <circle cx="446" cy="170" r="3" fill="#3b82f6" opacity="0.7" />
+  <circle cx="448" cy="60" r="4" fill="#dc2626" opacity="0.9" />
+  <circle cx="450" cy="105" r="3" fill="#3b82f6" opacity="0.8" />
+  <circle cx="454" cy="242" r="2" fill="#3b82f6" opacity="0.5" />
+  <!-- Chr 17-22 noise -->
+  <circle cx="462" cy="248" r="2" fill="#2563eb" opacity="0.5" /><circle cx="470" cy="240" r="2" fill="#2563eb" opacity="0.5" />
+  <circle cx="480" cy="244" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="490" cy="250" r="2" fill="#3b82f6" opacity="0.5" />
+  <circle cx="500" cy="242" r="2" fill="#2563eb" opacity="0.5" /><circle cx="510" cy="248" r="2" fill="#2563eb" opacity="0.5" />
+  <circle cx="520" cy="240" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="530" cy="246" r="2" fill="#3b82f6" opacity="0.5" />
+  <circle cx="540" cy="248" r="2" fill="#2563eb" opacity="0.5" /><circle cx="550" cy="242" r="2" fill="#2563eb" opacity="0.5" />
+  <circle cx="558" cy="244" r="2" fill="#3b82f6" opacity="0.5" /><circle cx="568" cy="250" r="2" fill="#3b82f6" opacity="0.5" />
+  <!-- Peak annotations -->
+  <line x1="224" y1="55" x2="224" y2="67" stroke="#dc2626" stroke-width="0.8" />
+  <text x="224" y="50" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">6p21</text>
+  <line x1="286" y1="70" x2="286" y2="82" stroke="#dc2626" stroke-width="0.8" />
+  <text x="286" y="65" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">9p21</text>
+  <line x1="448" y1="45" x2="448" y2="57" stroke="#dc2626" stroke-width="0.8" />
+  <text x="448" y="40" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">16q12</text>
+  <!-- Legend -->
+  <rect x="580" y="40" width="90" height="50" rx="4" fill="white" stroke="#e5e7eb" stroke-width="1" />
+  <circle cx="594" cy="53" r="3" fill="#dc2626" />
+  <text x="602" y="57" font-size="9" fill="#374151">GW sig.</text>
+  <circle cx="594" cy="70" r="2.5" fill="#2563eb" opacity="0.5" />
+  <text x="602" y="74" font-size="9" fill="#374151">Not sig.</text>
+</svg>
+</div>
+
+<h3 id="reading-the-manhattan-plot"><a class="header" href="#reading-the-manhattan-plot">Reading the Manhattan Plot</a></h3>
+<p>The Manhattan plot gets its name from its resemblance to the New York City skyline. Key features:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>Tall peaks above significance line</td><td>Genome-wide significant loci — strong associations</td></tr>
+<tr><td>Peaks above suggestive line</td><td>Suggestive associations — may reach significance with more samples</td></tr>
+<tr><td>Uniform noise floor</td><td>Background of null associations — should be flat</td></tr>
+<tr><td>Elevated baseline</td><td>Possible inflation from population structure or technical artifacts</td></tr>
+<tr><td>Peak width</td><td>Multiple associated SNPs in linkage disequilibrium — one true signal region</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="section-7-q-q-plot-and-genomic-inflation"><a class="header" href="#section-7-q-q-plot-and-genomic-inflation">Section 7: Q-Q Plot and Genomic Inflation</a></h2>
+<p>The Q-Q plot compares observed p-values to expected p-values under the null. Under the null hypothesis (no associations), p-values should follow a uniform distribution. On the Q-Q plot, this appears as points along the diagonal.</p>
+<pre><code class="language-bio"># --- Q-Q Plot ---
+qq_plot(adjusted_pvalues,
+  {title: "Q-Q Plot — Observed vs Expected p-values",
+  ci: true})
+
+# Genomic inflation factor (lambda)
+# Lambda = median(chi-square statistics) / 0.456
+# Lambda close to 1.0: no inflation
+# Lambda &gt; 1.1: population structure or other systematic bias
+let neg_log_p = adjusted_pvalues |&gt; map(|p| -log10(max(p, 1e-300)))
+let chi2_equiv = adjusted_pvalues |&gt; map(|p| -2 * log(max(p, 1e-300)))
+let lambda = median(chi2_equiv) / 0.456
+
+print("\n=== Genomic Inflation ===")
+print("Lambda (genomic inflation factor): " + str(round(lambda, 3)))
+if lambda &lt; 1.05 {
+  print("Interpretation: No meaningful inflation. Analysis is well-calibrated.")
+} else if lambda &lt; 1.10 {
+  print("Interpretation: Mild inflation. Acceptable for large GWAS.")
+} else {
+  print("WARNING: Lambda &gt; 1.10 suggests confounding.")
+  print("Consider additional PC covariates or genomic control correction.")
+}
+</code></pre>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="600" height="340" viewbox="0 0 600 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="300" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Q-Q Plot for GWAS — Observed vs Expected</text>
+  <!-- Axes -->
+  <line x1="80" y1="280" x2="520" y2="280" stroke="#374151" stroke-width="1.5" />
+  <line x1="80" y1="40" x2="80" y2="280" stroke="#374151" stroke-width="1.5" />
+  <text x="300" y="315" text-anchor="middle" font-size="12" fill="#374151">Expected -log10(p)</text>
+  <text x="25" y="160" text-anchor="middle" font-size="12" fill="#374151" transform="rotate(-90 25 160)">Observed -log10(p)</text>
+  <!-- Axis ticks -->
+  <text x="80" y="298" text-anchor="middle" font-size="9" fill="#6b7280">0</text>
+  <text x="190" y="298" text-anchor="middle" font-size="9" fill="#6b7280">1</text>
+  <text x="300" y="298" text-anchor="middle" font-size="9" fill="#6b7280">2</text>
+  <text x="410" y="298" text-anchor="middle" font-size="9" fill="#6b7280">3</text>
+  <text x="520" y="298" text-anchor="middle" font-size="9" fill="#6b7280">4</text>
+  <text x="68" y="280" text-anchor="end" font-size="9" fill="#6b7280">0</text>
+  <text x="68" y="220" text-anchor="end" font-size="9" fill="#6b7280">2</text>
+  <text x="68" y="160" text-anchor="end" font-size="9" fill="#6b7280">4</text>
+  <text x="68" y="100" text-anchor="end" font-size="9" fill="#6b7280">6</text>
+  <text x="68" y="48" text-anchor="end" font-size="9" fill="#6b7280">8</text>
+  <!-- Reference diagonal (y = x) -->
+  <line x1="80" y1="280" x2="520" y2="40" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="6,3" />
+  <text x="530" y="52" font-size="9" fill="#dc2626">y = x</text>
+  <!-- CI band around diagonal -->
+  <path d="M 80 280 L 300 210 L 520 130" fill="none" stroke="#93c5fd" stroke-width="1" stroke-dasharray="3,2" />
+  <path d="M 80 280 L 300 170 L 520 50" fill="none" stroke="#93c5fd" stroke-width="1" stroke-dasharray="3,2" />
+  <!-- Q-Q points - following diagonal at first, then deviating -->
+  <circle cx="95" cy="275" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="105" cy="270" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="115" cy="266" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="125" cy="260" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="135" cy="255" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="150" cy="248" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="165" cy="241" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="180" cy="234" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="195" cy="226" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="210" cy="218" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="225" cy="210" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="240" cy="202" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="260" cy="192" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="280" cy="182" r="2.5" fill="#2563eb" opacity="0.6" />
+  <circle cx="300" cy="170" r="2.5" fill="#2563eb" opacity="0.6" />
+  <!-- Deviation starts here (true associations) -->
+  <circle cx="320" cy="152" r="3" fill="#2563eb" opacity="0.7" />
+  <circle cx="340" cy="135" r="3" fill="#2563eb" opacity="0.7" />
+  <circle cx="360" cy="115" r="3" fill="#7c3aed" opacity="0.8" />
+  <circle cx="380" cy="92" r="3.5" fill="#7c3aed" opacity="0.8" />
+  <circle cx="400" cy="72" r="3.5" fill="#dc2626" opacity="0.9" />
+  <circle cx="420" cy="58" r="4" fill="#dc2626" opacity="0.9" />
+  <circle cx="445" cy="48" r="4" fill="#dc2626" opacity="0.9" />
+  <!-- Annotation: null region -->
+  <path d="M 160 268 Q 120 290 150 300" fill="none" stroke="#16a34a" stroke-width="1" />
+  <text x="85" y="310" font-size="9" fill="#16a34a">Null SNPs follow</text>
+  <text x="85" y="322" font-size="9" fill="#16a34a">the diagonal</text>
+  <!-- Annotation: deviation region -->
+  <path d="M 390 110 Q 430 130 460 120" fill="none" stroke="#dc2626" stroke-width="1" />
+  <text x="462" y="108" font-size="9" fill="#dc2626">True associations</text>
+  <text x="462" y="120" font-size="9" fill="#dc2626">deviate upward</text>
+  <!-- Lambda annotation -->
+  <rect x="130" y="55" width="150" height="30" rx="4" fill="#f0f9ff" stroke="#93c5fd" stroke-width="1" />
+  <text x="205" y="73" text-anchor="middle" font-size="10" fill="#374151" font-weight="bold">Lambda = 1.02 (good)</text>
+</svg>
+</div>
+
+<h3 id="interpreting-the-q-q-plot"><a class="header" href="#interpreting-the-q-q-plot">Interpreting the Q-Q Plot</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>Points follow diagonal, peel off at the tail</td><td>Expected: most SNPs are null, a few are truly associated</td></tr>
+<tr><td>Points systematically above diagonal everywhere</td><td>Inflation: population structure, technical artifacts</td></tr>
+<tr><td>Points below diagonal</td><td>Deflation: overly conservative test or data quality issue</td></tr>
+<tr><td>Sharp deviation only at extreme tail</td><td>True strong associations — expected in well-powered GWAS</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> A Q-Q plot that looks good (lambda ~ 1.0) does not guarantee the results are correct. It only means there is no systematic inflation. Individual false positives can still occur. Always validate top hits in independent cohorts.</p>
+</blockquote>
+<h2 id="section-8-effect-sizes--odds-ratios"><a class="header" href="#section-8-effect-sizes--odds-ratios">Section 8: Effect Sizes — Odds Ratios</a></h2>
+<pre><code class="language-bio"># --- Effect Size Analysis ---
+print("\n=== Effect Sizes for Top Hits ===")
+
+for hit in all_hits |&gt; take(10) {
+  let log_or = log(hit.or)
+  let se_log_or = abs(log_or) / sqrt(-2 * log(hit.p))  # approximate
+  let ci_lower = exp(log_or - 1.96 * se_log_or)
+  let ci_upper = exp(log_or + 1.96 * se_log_or)
+
+  print(hit.snp + " (chr" + str(hit.chr) + "): OR = " +
+    str(round(hit.or, 3)) + " [" +
+    str(round(ci_lower, 3)) + ", " +
+    str(round(ci_upper, 3)) + "]" +
+    " p = " + str(hit.p))
+}
+
+# Distribution of effect sizes among significant hits
+let sig_ors = gw_sig |&gt; map(|h| h.or)
+if len(sig_ors) &gt; 0 {
+  print("\nEffect size distribution (genome-wide significant):")
+  print("  Median OR: " + str(round(median(sig_ors), 3)))
+  print("  Range: " + str(round(min(sig_ors), 3)) + " - " +
+    str(round(max(sig_ors), 3)))
+
+  histogram(sig_ors, {bins: 20,
+    title: "Distribution of Odds Ratios — Significant Hits",
+    xlabel: "Odds Ratio",
+    ylabel: "Count"})
+}
+</code></pre>
+<h3 id="interpreting-odds-ratios-in-gwas"><a class="header" href="#interpreting-odds-ratios-in-gwas">Interpreting Odds Ratios in GWAS</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>OR</th><th>Risk increase per allele</th><th>Typical for</th></tr>
+</thead>
+<tbody>
+<tr><td>1.05 - 1.10</td><td>5-10%</td><td>Most common variant associations</td></tr>
+<tr><td>1.10 - 1.20</td><td>10-20%</td><td>Moderate-effect common variants</td></tr>
+<tr><td>1.20 - 1.50</td><td>20-50%</td><td>Larger-effect variants (less common)</td></tr>
+<tr><td>1.50 - 3.00</td><td>50-200%</td><td>Strong effects (rare in GWAS, common in candidate gene studies)</td></tr>
+<tr><td>&gt; 3.00</td><td>&gt;200%</td><td>Very rare in GWAS; usually rare variants with large effects</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Clinical relevance:</strong> Individual GWAS hits typically have small effects (OR 1.05-1.20). No single SNP is useful for predicting disease. However, combining hundreds of hits into a polygenic risk score (PRS) can identify individuals at meaningfully elevated risk. For T2D, top-decile PRS individuals have ~3-5x higher risk than bottom-decile individuals.</p>
+</blockquote>
+<h2 id="section-9-power-analysis--what-did-we-miss"><a class="header" href="#section-9-power-analysis--what-did-we-miss">Section 9: Power Analysis — What Did We Miss?</a></h2>
+<pre><code class="language-bio"># --- Power Analysis ---
+print("\n=== Statistical Power ===")
+
+# At our sample size (5000 cases + 5000 controls), what ORs can we detect?
+let mafs_to_check = [0.01, 0.05, 0.10, 0.20, 0.30, 0.50]
+let ors_to_check = [1.05, 1.10, 1.15, 1.20, 1.30, 1.50]
+
+print("\nPower to detect association at p &lt; 5e-8:")
+print("(N = 5,000 cases + 5,000 controls)")
+print("")
+print("MAF    OR=1.05  OR=1.10  OR=1.15  OR=1.20  OR=1.30  OR=1.50")
+print("-" * 65)
+
+for maf in mafs_to_check {
+  let powers = []
+  for or_val in ors_to_check {
+    # Approximate power calculation for GWAS
+    let log_or = log(or_val)
+    let n = CONFIG.n_total
+    let var_logistic = 1 / (n * maf * (1 - maf) * 0.25)
+    let z_alpha = 5.33  # z for p = 5e-8 (two-sided)
+    let ncp = log_or / sqrt(var_logistic)
+    let power = 1.0 - pnorm(z_alpha - ncp) + pnorm(-z_alpha - ncp)
+    power = max(0, min(1, power))
+    powers = powers + [power]
+  }
+  print(str(maf) + "   " +
+    powers |&gt; map(|p| str(round(p * 100, 0)) + "%") |&gt; join("    "))
+}
+
+print("\nInterpretation:")
+print("- At MAF=0.20 and OR=1.20, we have good power (~80%+)")
+print("- At MAF=0.05 and OR=1.10, power is very low")
+print("- Many true associations with small effects are missed")
+print("- Larger sample sizes or meta-analysis would recover more hits")
+</code></pre>
+<h2 id="section-10-locus-summary-and-reporting"><a class="header" href="#section-10-locus-summary-and-reporting">Section 10: Locus Summary and Reporting</a></h2>
+<pre><code class="language-bio"># --- Locus-Level Summary ---
+print("\n=== Locus Summary ===")
+
+# Group nearby significant SNPs into loci (within 500kb)
+let loci = []
+let used = []
+
+for hit in all_hits {
+  if used |&gt; contains(hit.snp) { continue }
+
+  let locus_snps = [hit]
+  used = used + [hit.snp]
+
+  for other in all_hits {
+    if used |&gt; contains(other.snp) { continue }
+    if other.chr == hit.chr &amp;&amp; abs(other.pos - hit.pos) &lt; 500000 {
+      locus_snps = locus_snps + [other]
+      used = used + [other.snp]
+    }
+  }
+
+  let lead = locus_snps |&gt; sort_by(|s| s.p) |&gt; first()
+  loci = loci + [{
+    lead_snp: lead.snp,
+    chr: lead.chr,
+    pos: lead.pos,
+    p: lead.p,
+    or: lead.or,
+    n_snps: len(locus_snps)
+  }]
+}
+
+print("\nIndependent loci: " + str(len(loci)))
+print("\nLocus  Lead SNP         Chr  Position       p-value       OR     #SNPs")
+print("-" * 75)
+for i in 0..len(loci) {
+  let l = loci[i]
+  print(str(i + 1) + "     " + l.lead_snp + "   " + str(l.chr) + "    " +
+    str(l.pos) + "    " + str(l.p) + "    " +
+    str(round(l.or, 3)) + "    " + str(l.n_snps))
+}
+</code></pre>
+<h2 id="section-11-complete-report"><a class="header" href="#section-11-complete-report">Section 11: Complete Report</a></h2>
+<pre><code class="language-bio"># ============================================
+# FINAL GWAS REPORT
+# ============================================
+print("\n" + "=" * 70)
+print("GENOME-WIDE ASSOCIATION STUDY — FINAL REPORT")
+print("Phenotype: Type 2 Diabetes")
+print("=" * 70)
+
+print("\n--- Study Design ---")
+print("Cases: " + str(CONFIG.n_cases))
+print("Controls: " + str(CONFIG.n_controls))
+print("SNPs genotyped: " + str(CONFIG.n_snps))
+print("SNPs after QC: " + str(n_pass))
+print("Association model: logistic regression with PC1-4 covariates")
+print("Random seed: 42")
+
+print("\n--- Quality Control ---")
+print("HWE filter (p &lt; " + str(CONFIG.hwe_threshold) + " in controls): " +
+  str(fail_hwe) + " removed")
+print("MAF filter (&lt; " + str(CONFIG.maf_threshold) + "): " +
+  str(fail_maf) + " removed")
+print("QC pass rate: " + str(round(n_pass / CONFIG.n_snps * 100, 1)) + "%")
+
+print("\n--- Population Structure ---")
+print("Ancestry groups: European (" +
+  str(count(ancestry, |a| a == "European")) + "), East Asian (" +
+  str(count(ancestry, |a| a == "East Asian")) + "), African (" +
+  str(count(ancestry, |a| a == "African")) + ")")
+print("PCA: PC1-PC2 separate ancestry clusters clearly")
+print("Top 4 PCs included as covariates")
+
+print("\n--- Genomic Inflation ---")
+print("Lambda: " + str(round(lambda, 3)))
+if lambda &lt; 1.05 {
+  print("Status: Well-calibrated (no inflation)")
+} else {
+  print("Status: Mild inflation detected — review QC")
+}
+
+print("\n--- Association Results ---")
+print("Genome-wide significant (p &lt; 5e-8): " + str(len(gw_sig)) + " SNPs")
+print("Independent loci: " + str(len(loci)))
+print("Suggestive (p &lt; 1e-5): " + str(len(suggestive)) + " SNPs")
+
+print("\n--- Effect Sizes ---")
+if len(sig_ors) &gt; 0 {
+  print("Median OR among hits: " + str(round(median(sig_ors), 3)))
+  print("OR range: " + str(round(min(sig_ors), 3)) + " - " +
+    str(round(max(sig_ors), 3)))
+}
+
+print("\n--- Key Findings ---")
+print("1. " + str(len(loci)) + " independent loci associated with T2D at genome-wide significance")
+print("2. Effect sizes are modest (OR 1.1-1.4), consistent with polygenic architecture")
+print("3. No evidence of systematic inflation (lambda = " + str(round(lambda, 3)) + ")")
+print("4. Power analysis indicates additional loci would be detectable with larger samples")
+
+print("\n--- Figures Generated ---")
+print("1. PCA plot (population structure)")
+print("2. Manhattan plot (genome-wide results)")
+print("3. Q-Q plot (inflation assessment)")
+print("4. OR distribution (effect sizes)")
+
+print("\n" + "=" * 70)
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+from scipy import stats
+import matplotlib.pyplot as plt
+
+# Load PLINK output or compute associations
+# assoc = pd.read_csv("gwas_results.assoc", sep="\t")
+
+# Chi-square per SNP
+for snp in genotype_matrix.columns:
+    table = pd.crosstab(phenotype, genotype_matrix[snp])
+    chi2, p, dof, expected = stats.chi2_contingency(table)
+
+# Logistic regression with covariates
+from sklearn.linear_model import LogisticRegression
+for snp in snps:
+    X = np.column_stack([genotype[:, snp], pc1, pc2, pc3, pc4])
+    model = LogisticRegression().fit(X, phenotype)
+
+# Manhattan plot
+from qmplot import manhattanplot
+manhattanplot(data=results, chrom="CHR", pos="BP", pv="P",
+              suggestiveline=-np.log10(1e-5),
+              genomewideline=-np.log10(5e-8))
+
+# Q-Q plot
+from qmplot import qqplot
+qqplot(data=results["P"])
+
+# Genomic inflation
+chi2_stats = stats.chi2.isf(results['P'], df=1)
+lambda_gc = np.median(chi2_stats) / 0.456
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># PLINK association (most common tool for GWAS)
+# system("plink --bfile mydata --assoc --adjust --out results")
+
+# Or in R with snpStats
+library(snpStats)
+result &lt;- single.snp.tests(phenotype ~ 1, snp.data = genotypes)
+
+# Manhattan plot
+library(qqman)
+manhattan(results, chr="CHR", bp="BP", p="P", snp="SNP",
+          suggestiveline=-log10(1e-5),
+          genomewideline=-log10(5e-8))
+
+# Q-Q plot
+qq(results$P)
+
+# Logistic regression with covariates
+for (snp in colnames(geno)) {
+  model &lt;- glm(pheno ~ geno[, snp] + PC1 + PC2 + PC3 + PC4,
+               family = binomial)
+  p &lt;- summary(model)$coefficients[2, 4]
+}
+
+# Genomic inflation
+chisq &lt;- qchisq(1 - results$P, df = 1)
+lambda &lt;- median(chisq) / qchisq(0.5, df = 1)
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li><strong>Stricter QC.</strong> Re-run the analysis with a stricter HWE filter (p &lt; 1e-4 instead of 1e-6) and higher MAF threshold (0.05 instead of 0.01). How many SNPs are removed? Does the number of significant hits change?</li>
+</ol>
+<pre><code class="language-bio"># Your code: stricter QC filters, compare hit counts
+</code></pre>
+<ol start="2">
+<li><strong>Bonferroni vs FDR.</strong> Apply BH FDR correction instead of the genome-wide significance threshold. How many more hits does FDR q &lt; 0.05 find compared to p &lt; 5e-8? What is the tradeoff?</li>
+</ol>
+<pre><code class="language-bio"># Your code: BH correction, compare to Bonferroni
+let fdr_adjusted = p_adjust(adjusted_pvalues, "BH")
+</code></pre>
+<ol start="3">
+<li><strong>Ancestry-stratified analysis.</strong> Run the association analysis separately in each ancestry group. Do the same loci reach significance? What happens to power when you split the sample?</li>
+</ol>
+<pre><code class="language-bio"># Your code: subset by ancestry, run GWAS in each, compare
+</code></pre>
+<ol start="4">
+<li><strong>Genomic control.</strong> If lambda were 1.15 (inflated), apply genomic control correction: divide all chi-square statistics by lambda and recompute p-values. How does this change the Manhattan plot?</li>
+</ol>
+<pre><code class="language-bio"># Your code: inflate p-values, apply GC correction, re-plot
+</code></pre>
+<ol start="5">
+<li><strong>Power for future study.</strong> Your consortium plans a Phase 2 GWAS with 50,000 cases and 50,000 controls. At MAF = 0.10, what is the minimum detectable OR at 80% power? How many more loci would you expect to find?</li>
+</ol>
+<pre><code class="language-bio"># Your code: power calculation for larger sample
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>A GWAS tests hundreds of thousands of SNPs for association with a phenotype, requiring rigorous QC (HWE, MAF, call rate), population structure control (PCA), and extreme multiple testing correction (p &lt; 5 x 10^-8).</li>
+<li>Hardy-Weinberg equilibrium testing in controls identifies genotyping errors; MAF filtering removes uninformative rare variants; both are standard QC steps.</li>
+<li>Population structure is the primary confounder in GWAS. PCA on genotype data reveals ancestry, and including top PCs as covariates in logistic regression removes confounding.</li>
+<li>The genome-wide significance threshold (5 x 10^-8) is a Bonferroni correction for approximately 1 million independent tests, accounting for linkage disequilibrium.</li>
+<li>The Manhattan plot displays -log10(p-values) by genomic position; the Q-Q plot assesses whether the test statistics are well-calibrated (lambda near 1.0).</li>
+<li>Most GWAS hits have modest effect sizes (OR 1.05-1.30), reflecting the polygenic architecture of complex traits. Individual variants are not clinically useful predictors, but combined into polygenic risk scores, they have growing clinical applications.</li>
+<li>Power in GWAS depends on sample size, allele frequency, and effect size. Large international consortia (&gt;100,000 individuals) are needed to detect the small effects typical of common diseases.</li>
+<li>This capstone integrates concepts from probability (Day 4), hypothesis testing (Day 7), chi-square tests (Day 11), multiple testing (Day 12), logistic regression (Day 16), power analysis (Day 18), effect sizes (Day 19), PCA (Day 21), and visualization (Day 25).</li>
+</ul>
+<h2 id="congratulations"><a class="header" href="#congratulations">Congratulations</a></h2>
+<p>You have completed “Practical Biostatistics in 30 Days.” Over the past four weeks, you have journeyed from basic descriptive statistics to a genome-wide association study analyzing half a million genetic variants. Along the way, you have learned:</p>
+<ul>
+<li><strong>Foundations</strong>: Distributions, probability, sampling, and why n matters</li>
+<li><strong>Core methods</strong>: Confidence intervals, hypothesis testing, t-tests, non-parametric alternatives, ANOVA, chi-square tests</li>
+<li><strong>Multiple testing</strong>: The FDR crisis and how to control it</li>
+<li><strong>Modeling</strong>: Correlation, linear regression, multiple regression, logistic regression, survival analysis</li>
+<li><strong>Design</strong>: Experimental design, statistical power, effect sizes, batch effects</li>
+<li><strong>Advanced methods</strong>: PCA, clustering, resampling, Bayesian inference, meta-analysis</li>
+<li><strong>Practice</strong>: Reproducible analysis, clinical trials, differential expression, GWAS</li>
+</ul>
+<p>Every method in this book is a tool. Like any tool, it can be used well or poorly. The difference is understanding — knowing not just how to run a test, but when to run it, what its assumptions are, and how to interpret its results in the context of your biological question.</p>
+<p>Statistics is not the final step of an experiment. It is the lens through which every experiment should be designed, conducted, and interpreted. The best statisticians are not those who know the most tests — they are those who ask the right questions.</p>
+<p>Go forth and analyze. Be rigorous. Be honest. Be curious. And always, always check your assumptions.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-29.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="appendix-setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-29.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="appendix-setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

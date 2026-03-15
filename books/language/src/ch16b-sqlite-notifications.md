@@ -12,7 +12,7 @@ store, query, and compare results across runs.
 
 ### Opening a Database
 
-```
+```biolang
 # File-based (creates if missing)
 let db = sqlite("project_results.db")
 
@@ -26,7 +26,7 @@ let scratch = sqlite()
 statements return the number of affected rows. Use `?` placeholders for
 parameterized queries.
 
-```
+```biolang
 # Create a table
 sql(db, "CREATE TABLE IF NOT EXISTS qc (
   sample TEXT PRIMARY KEY,
@@ -46,7 +46,7 @@ print(results)
 
 Since `sql()` returns a standard BioLang Table, you can pipe it directly:
 
-```
+```biolang
 sql(db, "SELECT symbol, chrom, start, end FROM genes WHERE chrom = ?", ["chr17"])
   |> filter(|g| g.start > 40000000)
   |> sort_by(|g| g.start)
@@ -58,7 +58,7 @@ sql(db, "SELECT symbol, chrom, start, end FROM genes WHERE chrom = ?", ["chr17"]
 `sql_insert()` inserts an entire Table or list of records in a single
 transaction. This is much faster than individual INSERT statements.
 
-```
+```biolang
 # From a Table (e.g., read from TSV)
 let stats = tsv("variant_stats.tsv")
 sql_insert(db, "variants", stats)
@@ -74,7 +74,7 @@ print(str(inserted) + " rows inserted")
 
 ### Metadata
 
-```
+```biolang
 # List all tables
 sql_tables(db)
 # ["qc", "variants", "qc_results"]
@@ -93,7 +93,7 @@ sql_schema(db, "qc")
 
 Store QC results from every sample run, then query across all runs:
 
-```
+```biolang
 let db = sqlite("lab_results.db")
 
 sql(db, "CREATE TABLE IF NOT EXISTS qc (
@@ -147,7 +147,7 @@ finishes or fails — Slack, Teams, Telegram, Discord, or email.
 `notify()` is the smart router. It reads `BIOLANG_NOTIFY` to determine which
 provider to use, then sends the message.
 
-```
+```biolang
 # Simple string
 notify("Alignment complete: 24 samples processed")
 
@@ -169,7 +169,7 @@ If `BIOLANG_NOTIFY` is not set, `notify()` prints to stderr as a fallback.
 
 Each provider has a dedicated builtin for direct use:
 
-```
+```biolang
 # Slack (env: SLACK_WEBHOOK)
 slack("Variant calling finished: 1,234 SNPs, 456 indels")
 
@@ -189,7 +189,7 @@ email("lab@example.com", "Pipeline Complete", "Analysis finished successfully")
 All webhook-based builtins accept an optional first argument for an explicit
 webhook URL, so you can skip env vars:
 
-```
+```biolang
 slack("https://hooks.slack.com/services/xxx", "Pipeline done")
 teams("https://outlook.office.com/webhook/xxx", "Pipeline done")
 ```
@@ -199,7 +199,7 @@ teams("https://outlook.office.com/webhook/xxx", "Pipeline done")
 Pass a record instead of a string for rich formatting. Each provider renders
 it natively (Slack Block Kit, Teams Adaptive Cards, Discord embeds):
 
-```
+```biolang
 slack({
   title: "Cohort Analysis Complete",
   status: "success",
@@ -216,12 +216,12 @@ slack({
 
 Use `notify()` at any point in a pipeline for progress updates:
 
-```
+```biolang
 # Variant calling pipeline with notifications
 shell("bwa-mem2 mem -t 16 GRCh38.fa R1.fq.gz R2.fq.gz | samtools sort -o aligned.bam")
 
 shell("gatk HaplotypeCaller -R GRCh38.fa -I aligned.bam -O raw.vcf.gz")
-let variants = read_vcf("raw.vcf.gz") |> collect()
+let variants = read_vcf("data/variants.vcf") |> collect()
 let snps = variants |> filter(|v| is_snp(v)) |> len()
 let indels = variants |> filter(|v| is_indel(v)) |> len()
 
@@ -235,7 +235,7 @@ notify({
 
 Set environment variables once in your shell profile:
 
-```
+```bash
 # Pick your provider
 export BIOLANG_NOTIFY=slack
 

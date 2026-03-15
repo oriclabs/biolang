@@ -4,7 +4,7 @@ BioLang includes a built-in graph data structure for modeling biological network
 
 ## Creating Graphs
 
-```
+```biolang
 # Empty undirected graph
 let g = graph()
 
@@ -16,7 +16,7 @@ let g = graph(true)
 
 Nodes are identified by string IDs and can carry arbitrary attributes:
 
-```
+```biolang
 let g = graph()
 let g = add_node(g, "BRCA1", {biotype: "protein_coding", chrom: "chr17"})
 let g = add_node(g, "TP53", {biotype: "protein_coding", chrom: "chr17"})
@@ -25,7 +25,7 @@ let g = add_edge(g, "BRCA1", "TP53", {score: 0.99, source: "STRING"})
 
 Adding an edge auto-creates nodes that don't exist yet:
 
-```
+```biolang
 let g = graph()
 let g = add_edge(g, "A", "B")  # both A and B are created
 has_node(g, "A")                # true
@@ -33,7 +33,7 @@ has_node(g, "A")                # true
 
 ## Querying the Graph
 
-```
+```biolang
 # Build a small PPI network
 let g = graph()
 let g = add_edge(g, "BRCA1", "TP53", {score: 0.99})
@@ -61,7 +61,7 @@ edges(g)                       # Table with from, to, weight columns
 
 Find disconnected subnetworks:
 
-```
+```biolang
 let g = graph()
 let g = add_edge(g, "BRCA1", "TP53")
 let g = add_edge(g, "BRCA1", "BARD1")
@@ -77,7 +77,7 @@ print("Number of components: " + str(len(components)))
 
 Extract a subgraph containing only specified nodes and their connecting edges:
 
-```
+```biolang
 let g = graph()
 let g = add_edge(g, "A", "B")
 let g = add_edge(g, "B", "C")
@@ -90,7 +90,7 @@ has_edge(sub, "C", "D")    # false (D not in subgraph)
 
 ### Node Attributes
 
-```
+```biolang
 let g = graph()
 let g = add_node(g, "EGFR", {
     biotype: "protein_coding",
@@ -104,7 +104,7 @@ print(attrs.pathway)    # "EGFR signaling"
 
 ## Removing Nodes and Edges
 
-```
+```biolang
 let g = graph()
 let g = add_edge(g, "A", "B")
 let g = add_edge(g, "B", "C")
@@ -122,7 +122,7 @@ has_node(g, "B")          # false
 
 By default, graphs are undirected — edges go both ways:
 
-```
+```biolang
 let g = graph()
 let g = add_edge(g, "A", "B")
 neighbors(g, "B")    # ["A"] — B sees A as neighbor
@@ -130,7 +130,7 @@ neighbors(g, "B")    # ["A"] — B sees A as neighbor
 
 For directed graphs (e.g., regulatory networks):
 
-```
+```biolang
 let g = graph(true)
 let g = add_edge(g, "TF", "TARGET")
 neighbors(g, "TF")      # ["TARGET"]
@@ -139,7 +139,7 @@ neighbors(g, "TARGET")  # [] — directed, no reverse edge
 
 ## Real-World Example: STRING Network Analysis
 
-```
+```biolang
 # requires: internet connection
 # Fetch protein interactions from STRING
 let network = string_network(["BRCA1"], 9606)

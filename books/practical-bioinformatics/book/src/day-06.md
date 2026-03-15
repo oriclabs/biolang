@@ -60,7 +60,7 @@ BioLang provides two ways to read FASTQ files: eager loading and streaming.
 
 ```bio
 # Read a FASTQ file (eager --- loads all into memory)
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 println(f"Total reads: {len(reads)}")
 println(f"First read: {first(reads)}")
 ```
@@ -131,7 +131,7 @@ For deeper analysis, you can compute per-read quality scores using pipes:
 
 ```bio
 # Per-read quality analysis
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let qualities = reads |> map(|r| mean_phred(r.qual))
 println(f"Quality range: {round(min(qualities), 1)} - {round(max(qualities), 1)}")
 println(f"Mean quality: {round(mean(qualities), 1)}")
@@ -150,7 +150,7 @@ The `mean_phred()` function takes a quality string and returns the average Phred
 
 ```bio
 # Quality distribution as ASCII plot
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 reads
     |> map(|r| mean_phred(r.qual))
     |> quality_plot()
@@ -184,7 +184,7 @@ BioLang provides `filter_reads()` for the most common quality filters:
 
 ```bio
 # Filter reads by quality and length
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 
 let clean = reads |> filter_reads(min_length: 50, min_quality: 20)
 println(f"Before: {len(reads)} reads")
@@ -206,7 +206,7 @@ For more specific criteria, compose your own filters using `filter()`:
 
 ```bio
 # Custom filtering with pipes
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 
 let clean = reads
     |> filter(|r| len(r.seq) >= 50)
@@ -235,7 +235,7 @@ Sometimes a read has good bases at the start but degrades toward the end. This i
 
 ```bio
 # Quality trimming --- remove low-quality bases from ends
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let trimmed = trim_quality(reads, min_quality: 20)
 
 # Check how trimming affected lengths
@@ -284,7 +284,7 @@ Detected adapters: [AGATCGGAAGAGC, CTGTCTCTTATACACATCT]
 
 ```bio
 # Trim adapters
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let trimmed = trim_adapters(reads)
 println(f"Adapter-trimmed reads: {len(trimmed)}")
 ```
@@ -310,7 +310,7 @@ K-mers are subsequences of length k. Counting k-mer frequencies across your read
 
 ```bio
 # K-mer frequency analysis
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 
 # Count k-mers in the first read
 let first_seq = first(reads).seq
@@ -346,7 +346,7 @@ After filtering and trimming, save the clean reads to a new FASTQ file:
 
 ```bio
 # Save filtered reads to a new file
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let clean = reads |> filter_reads(min_length: 50, min_quality: 20)
 write_fastq(clean, "results/clean_reads.fastq")
 println(f"Wrote {len(clean)} clean reads")
@@ -379,7 +379,7 @@ println(f"   Bases: {stats.total_bases}")
 println(f"   Mean quality: {round(stats.mean_quality, 1)}")
 
 # Step 2: Load and filter
-let reads = read_fastq("examples/sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let clean = reads
     |> filter(|r| len(r.seq) >= 50)
     |> filter(|r| mean_phred(r.qual) >= 20)

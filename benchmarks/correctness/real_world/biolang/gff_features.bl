@@ -1,0 +1,14 @@
+let lines = read_lines("real_data/ecoli_annotation.gff") |> filter(|l| !starts_with(l, "#") and len(trim(l)) > 0) |> collect()
+let by_type = {}
+for line in lines
+  let parts = split(line, "\t")
+  if len(parts) >= 3
+    let ftype = parts[2]
+    if has_key(by_type, ftype)
+      by_type[ftype] = by_type[ftype] + 1
+    else
+      by_type[ftype] = 1
+    end
+  end
+end
+print(to_json({total_features: len(lines), by_type: by_type}))

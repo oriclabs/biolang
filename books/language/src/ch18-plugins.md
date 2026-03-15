@@ -129,7 +129,7 @@ The plugin should clean up resources and exit.
 
 ### From a Directory
 
-```
+```bash
 bl add ./my-plugins/blast-wrapper
 ```
 
@@ -137,7 +137,7 @@ This copies (or symlinks) the plugin into `~/.biolang/plugins/blast-wrapper/`.
 
 ### From a Git Repository
 
-```
+```bash
 bl add https://github.com/lab/biolang-deseq2.git
 ```
 
@@ -145,19 +145,19 @@ BioLang clones the repository into the plugins directory.
 
 ### Removing Plugins
 
-```
+```bash
 bl remove blast-wrapper
 ```
 
 ### Listing Installed Plugins
 
 From the command line:
-```
+```bash
 bl plugins
 ```
 
 From the REPL:
-```
+```bash
 :plugins
 ```
 
@@ -167,7 +167,7 @@ Both show the plugin name, version, kind, and available functions.
 
 Once installed, import a plugin by name and call its functions.
 
-```
+```biolang
 import "blast-wrapper"
 
 # Build a custom database
@@ -183,10 +183,10 @@ hits |> each(|h| print(h.subject + " identity=" + str(h.identity)
 
 Plugin functions integrate seamlessly with pipes and other BioLang features.
 
-```
+```biolang
 import "blast-wrapper"
 
-read_fasta("contigs.fa")
+read_fasta("data/sequences.fasta")
   |> filter(|r| len(r.seq) > kb(1))
   |> write_fasta("long_contigs.fa")
 
@@ -322,7 +322,7 @@ if __name__ == "__main__":
 
 Install and use:
 
-```
+```biolang
 bl add ./blast-wrapper
 
 # In a BioLang script:
@@ -495,7 +495,7 @@ close(con)
 
 ### Using the DESeq2 Plugin
 
-```
+```biolang
 # requires: internet connection (for ncbi_gene calls below)
 # requires: NCBI_API_KEY (optional, increases rate limit)
 bl add ./deseq2-plugin
@@ -657,7 +657,7 @@ for await (const line of readLines(Deno.stdin)) {
 
 ### Using the LIMS Plugin
 
-```
+```biolang
 import "lims-connector"
 
 # Fetch samples from the LIMS

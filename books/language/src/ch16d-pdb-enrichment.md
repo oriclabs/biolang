@@ -6,7 +6,7 @@ BioLang provides direct access to the RCSB Protein Data Bank and built-in gene s
 
 ### Fetching Entries
 
-```
+```biolang
 # requires: internet connection
 let entry = pdb_entry("4HHB")
 print(entry.title)          # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN"
@@ -18,7 +18,7 @@ print(entry.release_date)   # "1984-07-17"
 
 ### Searching
 
-```
+```biolang
 # requires: internet connection
 let ids = pdb_search("insulin receptor")
 print("Found " + str(len(ids)) + " structures")
@@ -27,7 +27,7 @@ ids |> take(5) |> each(|id| print(id))
 
 ### Chains and Entities
 
-```
+```biolang
 # requires: internet connection
 # Get all polymer entities (chains) in a structure
 let chains = pdb_chains("4HHB")
@@ -47,7 +47,7 @@ print(len(seq))             # sequence length
 
 ### Real-World Example: Compare Hemoglobin Chains
 
-```
+```biolang
 # requires: internet connection
 let alpha = pdb_entity("4HHB", 1)
 let beta = pdb_entity("4HHB", 2)
@@ -60,7 +60,7 @@ print("Alpha type: " + alpha.entity_type)
 
 Search PubMed and retrieve abstracts:
 
-```
+```biolang
 # requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # Search for recent CRISPR papers
@@ -74,7 +74,7 @@ print(abstract)
 
 ### Literature Review Pipeline
 
-```
+```biolang
 # requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # Search for papers about a gene of interest
@@ -98,7 +98,7 @@ results.ids
 
 Test whether your gene list is enriched for specific biological pathways:
 
-```
+```biolang
 # Load gene sets (GMT format from MSigDB, GO, KEGG, etc.)
 let gene_sets = read_gmt("h.all.v2024.1.Hs.symbols.gmt")
 
@@ -122,7 +122,7 @@ Output columns: `term`, `overlap`, `p_value`, `fdr`, `genes`
 
 For ranked gene lists (e.g., by fold change or t-statistic):
 
-```
+```biolang
 # Prepare ranked table with gene and score columns
 let ranked = tsv("de_results.tsv")
   |> select("gene", "log2fc")
@@ -158,7 +158,7 @@ Standard sources:
 
 ### Real-World Example: RNA-seq Enrichment Pipeline
 
-```
+```biolang
 # 1. Read differential expression results
 let de = tsv("deseq2_results.tsv")
 

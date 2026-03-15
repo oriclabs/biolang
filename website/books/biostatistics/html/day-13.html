@@ -1,0 +1,782 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 13: Correlation — Finding Relationships - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-13-correlation--finding-relationships"><a class="header" href="#day-13-correlation--finding-relationships">Day 13: Correlation — Finding Relationships</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. Sarah Kim is studying breast cancer transcriptomics across 200 tumor samples. She notices that <strong>BRCA1</strong> and <strong>BARD1</strong> expression seem to rise and fall together — when one is high, the other tends to be high too. Exciting! These genes encode proteins that form a heterodimer critical for DNA repair.</p>
+<p>But her collaborator raises a concern: “Both genes are upregulated in rapidly dividing cells. Couldn’t <strong>cell proliferation</strong> be driving both signals independently? You might be seeing a spurious association.”</p>
+<p>Sarah needs to:</p>
+<ol>
+<li><strong>Quantify</strong> how strongly BRCA1 and BARD1 co-vary</li>
+<li><strong>Determine</strong> whether the relationship is statistically significant</li>
+<li><strong>Control</strong> for the confounding effect of proliferation</li>
+<li><strong>Visualize</strong> relationships across an entire panel of DNA repair genes</li>
+</ol>
+<p>This is the domain of <strong>correlation analysis</strong> — one of the most used (and most misused) tools in all of biology.</p>
+<h2 id="what-is-correlation"><a class="header" href="#what-is-correlation">What Is Correlation?</a></h2>
+<p>Correlation measures the <strong>strength and direction</strong> of the relationship between two variables. It answers: “When one variable goes up, does the other tend to go up, go down, or do nothing?”</p>
+<p>The correlation coefficient ranges from <strong>-1 to +1</strong>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Value</th><th>Interpretation</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>+1.0</td><td>Perfect positive</td><td>Identical twins’ heights</td></tr>
+<tr><td>+0.7 to +0.9</td><td>Strong positive</td><td>BRCA1 and BARD1 expression</td></tr>
+<tr><td>+0.3 to +0.7</td><td>Moderate positive</td><td>BMI and blood pressure</td></tr>
+<tr><td>-0.3 to +0.3</td><td>Weak / none</td><td>Shoe size and IQ</td></tr>
+<tr><td>-0.3 to -0.7</td><td>Moderate negative</td><td>Exercise and resting heart rate</td></tr>
+<tr><td>-0.7 to -1.0</td><td>Strong negative</td><td>Tumor suppressor vs. proliferation rate</td></tr>
+<tr><td>-1.0</td><td>Perfect negative</td><td>Altitude and air pressure</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> Correlation is symmetric — the correlation between X and Y is the same as between Y and X. It doesn’t imply direction or causation.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="200" viewbox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Correlation Spectrum: r = -0.9 to r = +0.9</text>
+  <!-- Panel 1: r = -0.9 -->
+  <rect x="18" y="35" width="120" height="110" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="78" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">r = -0.9</text>
+  <line x1="30" y1="130" x2="126" y2="130" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="30" y1="130" x2="30" y2="60" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="35" y1="68" x2="120" y2="125" stroke="#2563eb" stroke-width="1.5" stroke-opacity="0.5" />
+  <circle cx="40" cy="70" r="2.5" fill="#2563eb" /><circle cx="48" cy="72" r="2.5" fill="#2563eb" />
+  <circle cx="55" cy="80" r="2.5" fill="#2563eb" /><circle cx="62" cy="82" r="2.5" fill="#2563eb" />
+  <circle cx="70" cy="90" r="2.5" fill="#2563eb" /><circle cx="78" cy="95" r="2.5" fill="#2563eb" />
+  <circle cx="85" cy="100" r="2.5" fill="#2563eb" /><circle cx="92" cy="105" r="2.5" fill="#2563eb" />
+  <circle cx="100" cy="112" r="2.5" fill="#2563eb" /><circle cx="108" cy="118" r="2.5" fill="#2563eb" />
+  <circle cx="115" cy="122" r="2.5" fill="#2563eb" />
+  <text x="78" y="148" text-anchor="middle" font-size="10" fill="#6b7280">Strong negative</text>
+  <!-- Panel 2: r = -0.5 -->
+  <rect x="152" y="35" width="120" height="110" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="212" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#3b82f6">r = -0.5</text>
+  <line x1="164" y1="130" x2="260" y2="130" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="164" y1="130" x2="164" y2="60" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="170" y1="78" x2="254" y2="115" stroke="#3b82f6" stroke-width="1.5" stroke-opacity="0.5" />
+  <circle cx="175" cy="70" r="2.5" fill="#3b82f6" /><circle cx="183" cy="90" r="2.5" fill="#3b82f6" />
+  <circle cx="190" cy="78" r="2.5" fill="#3b82f6" /><circle cx="198" cy="95" r="2.5" fill="#3b82f6" />
+  <circle cx="205" cy="85" r="2.5" fill="#3b82f6" /><circle cx="212" cy="100" r="2.5" fill="#3b82f6" />
+  <circle cx="220" cy="92" r="2.5" fill="#3b82f6" /><circle cx="228" cy="110" r="2.5" fill="#3b82f6" />
+  <circle cx="235" cy="105" r="2.5" fill="#3b82f6" /><circle cx="243" cy="118" r="2.5" fill="#3b82f6" />
+  <circle cx="250" cy="125" r="2.5" fill="#3b82f6" />
+  <text x="212" y="148" text-anchor="middle" font-size="10" fill="#6b7280">Moderate neg.</text>
+  <!-- Panel 3: r = 0 -->
+  <rect x="286" y="35" width="120" height="110" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="346" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#6b7280">r = 0</text>
+  <line x1="298" y1="130" x2="394" y2="130" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="298" y1="130" x2="298" y2="60" stroke="#d1d5db" stroke-width="0.5" />
+  <circle cx="310" cy="75" r="2.5" fill="#6b7280" /><circle cx="320" cy="110" r="2.5" fill="#6b7280" />
+  <circle cx="325" cy="85" r="2.5" fill="#6b7280" /><circle cx="335" cy="120" r="2.5" fill="#6b7280" />
+  <circle cx="340" cy="70" r="2.5" fill="#6b7280" /><circle cx="350" cy="100" r="2.5" fill="#6b7280" />
+  <circle cx="355" cy="65" r="2.5" fill="#6b7280" /><circle cx="365" cy="115" r="2.5" fill="#6b7280" />
+  <circle cx="370" cy="80" r="2.5" fill="#6b7280" /><circle cx="380" cy="95" r="2.5" fill="#6b7280" />
+  <circle cx="385" cy="125" r="2.5" fill="#6b7280" />
+  <text x="346" y="148" text-anchor="middle" font-size="10" fill="#6b7280">No correlation</text>
+  <!-- Panel 4: r = +0.5 -->
+  <rect x="420" y="35" width="120" height="110" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="480" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#f97316">r = +0.5</text>
+  <line x1="432" y1="130" x2="528" y2="130" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="432" y1="130" x2="432" y2="60" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="438" y1="118" x2="522" y2="75" stroke="#f97316" stroke-width="1.5" stroke-opacity="0.5" />
+  <circle cx="440" cy="120" r="2.5" fill="#f97316" /><circle cx="448" cy="105" r="2.5" fill="#f97316" />
+  <circle cx="455" cy="115" r="2.5" fill="#f97316" /><circle cx="463" cy="98" r="2.5" fill="#f97316" />
+  <circle cx="470" cy="108" r="2.5" fill="#f97316" /><circle cx="480" cy="92" r="2.5" fill="#f97316" />
+  <circle cx="488" cy="100" r="2.5" fill="#f97316" /><circle cx="495" cy="85" r="2.5" fill="#f97316" />
+  <circle cx="503" cy="90" r="2.5" fill="#f97316" /><circle cx="510" cy="78" r="2.5" fill="#f97316" />
+  <circle cx="518" cy="72" r="2.5" fill="#f97316" />
+  <text x="480" y="148" text-anchor="middle" font-size="10" fill="#6b7280">Moderate pos.</text>
+  <!-- Panel 5: r = +0.9 -->
+  <rect x="554" y="35" width="120" height="110" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="614" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">r = +0.9</text>
+  <line x1="566" y1="130" x2="662" y2="130" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="566" y1="130" x2="566" y2="60" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="572" y1="125" x2="656" y2="65" stroke="#dc2626" stroke-width="1.5" stroke-opacity="0.5" />
+  <circle cx="575" cy="122" r="2.5" fill="#dc2626" /><circle cx="583" cy="118" r="2.5" fill="#dc2626" />
+  <circle cx="590" cy="112" r="2.5" fill="#dc2626" /><circle cx="598" cy="105" r="2.5" fill="#dc2626" />
+  <circle cx="606" cy="100" r="2.5" fill="#dc2626" /><circle cx="614" cy="93" r="2.5" fill="#dc2626" />
+  <circle cx="622" cy="88" r="2.5" fill="#dc2626" /><circle cx="630" cy="80" r="2.5" fill="#dc2626" />
+  <circle cx="638" cy="75" r="2.5" fill="#dc2626" /><circle cx="646" cy="70" r="2.5" fill="#dc2626" />
+  <circle cx="653" cy="66" r="2.5" fill="#dc2626" />
+  <text x="614" y="148" text-anchor="middle" font-size="10" fill="#6b7280">Strong positive</text>
+  <!-- Bottom scale bar -->
+  <rect x="78" y="170" width="524" height="8" rx="4" fill="url(#corrGrad)" />
+  <defs>
+    <lineargradient id="corrGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="50%" stop-color="#d1d5db" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </lineargradient>
+  </defs>
+  <text x="78" y="192" text-anchor="start" font-size="10" fill="#2563eb">-1.0</text>
+  <text x="340" y="192" text-anchor="middle" font-size="10" fill="#6b7280">0</text>
+  <text x="602" y="192" text-anchor="end" font-size="10" fill="#dc2626">+1.0</text>
+</svg>
+</div>
+
+<h2 id="three-types-of-correlation"><a class="header" href="#three-types-of-correlation">Three Types of Correlation</a></h2>
+<h3 id="1-pearsons-r-the-linear-standard"><a class="header" href="#1-pearsons-r-the-linear-standard">1. Pearson’s r: The Linear Standard</a></h3>
+<p>Pearson’s correlation coefficient measures <strong>linear</strong> association:</p>
+<p>$$r = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=1}^{n}(x_i - \bar{x})^2 \cdot \sum_{i=1}^{n}(y_i - \bar{y})^2}}$$</p>
+<p><strong>Assumptions:</strong></p>
+<ul>
+<li>Both variables are continuous</li>
+<li>Relationship is approximately linear</li>
+<li>Data are roughly normally distributed (for inference)</li>
+<li>No extreme outliers (a single outlier can flip the sign)</li>
+</ul>
+<p><strong>Strengths:</strong> Most powerful when assumptions are met. Directly related to R² in linear regression.</p>
+<p><strong>Weakness:</strong> Sensitive to outliers. Misses non-linear relationships entirely.</p>
+<h3 id="2-spearmans-ρ-rho-the-rank-based-alternative"><a class="header" href="#2-spearmans-ρ-rho-the-rank-based-alternative">2. Spearman’s ρ (rho): The Rank-Based Alternative</a></h3>
+<p>Spearman’s correlation operates on <strong>ranks</strong> rather than raw values. It measures <strong>monotonic</strong> association — whether Y tends to increase (or decrease) as X increases, even if not linearly.</p>
+<p><strong>How it works:</strong></p>
+<ol>
+<li>Rank each variable separately (1, 2, 3, …)</li>
+<li>Compute Pearson’s r on the ranks</li>
+</ol>
+<p><strong>Assumptions:</strong></p>
+<ul>
+<li>Ordinal or continuous data</li>
+<li>Monotonic relationship (doesn’t need to be linear)</li>
+</ul>
+<p><strong>Strengths:</strong> Robust to outliers. Works with non-normal distributions. Handles log-scale expression data naturally.</p>
+<p><strong>Weakness:</strong> Less powerful than Pearson when linearity holds.</p>
+<h3 id="3-kendalls-τ-tau-the-most-robust"><a class="header" href="#3-kendalls-τ-tau-the-most-robust">3. Kendall’s τ (tau): The Most Robust</a></h3>
+<p>Kendall’s tau counts <strong>concordant</strong> and <strong>discordant</strong> pairs:</p>
+<p>$$\tau = \frac{(\text{concordant pairs}) - (\text{discordant pairs})}{\binom{n}{2}}$$</p>
+<p>A pair (i, j) is concordant if both xᵢ &gt; xⱼ and yᵢ &gt; yⱼ (or both less). It’s discordant if they disagree.</p>
+<p><strong>Strengths:</strong> Most robust to outliers. Better for small samples. Has clearer probabilistic interpretation.</p>
+<p><strong>Weakness:</strong> Computationally slower for large datasets. Values tend to be smaller than Pearson/Spearman for the same data.</p>
+<h3 id="decision-table-which-correlation-to-use"><a class="header" href="#decision-table-which-correlation-to-use">Decision Table: Which Correlation to Use?</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Situation</th><th>Best Choice</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td>Both variables normal, linear relationship</td><td>Pearson</td><td>Most powerful</td></tr>
+<tr><td>Skewed data (e.g., raw gene expression)</td><td>Spearman</td><td>Rank-based, outlier-robust</td></tr>
+<tr><td>Small sample (n &lt; 30)</td><td>Kendall</td><td>Most reliable for small n</td></tr>
+<tr><td>Ordinal data (e.g., tumor grade 1-4)</td><td>Spearman or Kendall</td><td>Ranks are appropriate</td></tr>
+<tr><td>Suspect outliers</td><td>Spearman or Kendall</td><td>Rank-based methods resist outliers</td></tr>
+<tr><td>Large RNA-seq dataset, log-transformed</td><td>Pearson or Spearman</td><td>Both work well after log transform</td></tr>
+<tr><td>Survival times with censoring</td><td>Kendall</td><td>Handles ties from censoring</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> Using Pearson on raw RNA-seq counts. These are heavily right-skewed — a few highly expressed genes dominate the correlation. Always log-transform first or use Spearman.</p>
+</blockquote>
+<h2 id="partial-correlation-controlling-for-confounders"><a class="header" href="#partial-correlation-controlling-for-confounders">Partial Correlation: Controlling for Confounders</a></h2>
+<p>Standard correlation between X and Y can be <strong>inflated</strong> or <strong>deflated</strong> by a confounding variable Z that influences both. Partial correlation removes the effect of Z:</p>
+<p>$$r_{XY \cdot Z} = \frac{r_{XY} - r_{XZ} \cdot r_{YZ}}{\sqrt{(1 - r_{XZ}^2)(1 - r_{YZ}^2)}}$$</p>
+<p><strong>Example:</strong> BRCA1 and BARD1 might correlate at r = 0.85. But if cell proliferation (MKI67 expression) drives both, the partial correlation controlling for MKI67 might drop to r = 0.45 — still real, but weaker.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> In pharmacogenomics, two drug targets may appear correlated simply because both are overexpressed in a particular cancer subtype. Partial correlation controlling for subtype reveals whether the targets have an independent relationship.</p>
+</blockquote>
+<h2 id="anscombes-quartet-why-you-must-visualize"><a class="header" href="#anscombes-quartet-why-you-must-visualize">Anscombe’s Quartet: Why You Must Visualize</a></h2>
+<p>In 1973, Francis Anscombe created four datasets with <strong>identical</strong> Pearson correlations (r = 0.816), identical means, and identical regression lines — but wildly different patterns:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Dataset</th><th>Pattern</th><th>Lesson</th></tr>
+</thead>
+<tbody>
+<tr><td>I</td><td>Normal linear</td><td>Correlation works correctly</td></tr>
+<tr><td>II</td><td>Perfect curve</td><td>r misses non-linearity</td></tr>
+<tr><td>III</td><td>Tight line + one outlier</td><td>Single point inflates r</td></tr>
+<tr><td>IV</td><td>Vertical cluster + outlier</td><td>r is meaningless</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>The lesson:</strong> Never trust a correlation coefficient without a scatter plot.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="230" viewbox="0 0 680 230" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Anscombe's Quartet: All Have r = 0.82 — But Look Different!</text>
+  <!-- Dataset I: Normal linear -->
+  <rect x="20" y="40" width="150" height="130" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="95" y="56" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">I: Linear</text>
+  <line x1="35" y1="155" x2="155" y2="155" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="35" y1="155" x2="35" y2="65" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="40" y1="145" x2="150" y2="72" stroke="#2563eb" stroke-width="1" stroke-opacity="0.4" />
+  <circle cx="45" cy="140" r="2.5" fill="#2563eb" /><circle cx="55" cy="132" r="2.5" fill="#2563eb" />
+  <circle cx="65" cy="125" r="2.5" fill="#2563eb" /><circle cx="78" cy="118" r="2.5" fill="#2563eb" />
+  <circle cx="88" cy="108" r="2.5" fill="#2563eb" /><circle cx="98" cy="100" r="2.5" fill="#2563eb" />
+  <circle cx="108" cy="95" r="2.5" fill="#2563eb" /><circle cx="118" cy="87" r="2.5" fill="#2563eb" />
+  <circle cx="128" cy="80" r="2.5" fill="#2563eb" /><circle cx="140" cy="75" r="2.5" fill="#2563eb" />
+  <circle cx="148" cy="70" r="2.5" fill="#2563eb" />
+  <text x="95" y="178" text-anchor="middle" font-size="10" fill="#16a34a">Correlation works</text>
+  <!-- Dataset II: Perfect curve -->
+  <rect x="185" y="40" width="150" height="130" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="260" y="56" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c3aed">II: Curved</text>
+  <line x1="200" y1="155" x2="320" y2="155" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="200" y1="155" x2="200" y2="65" stroke="#d1d5db" stroke-width="0.5" />
+  <path d="M 205 148 Q 260 60 315 148" fill="none" stroke="#7c3aed" stroke-width="1" stroke-opacity="0.4" />
+  <circle cx="210" cy="145" r="2.5" fill="#7c3aed" /><circle cx="222" cy="125" r="2.5" fill="#7c3aed" />
+  <circle cx="234" cy="100" r="2.5" fill="#7c3aed" /><circle cx="246" cy="82" r="2.5" fill="#7c3aed" />
+  <circle cx="258" cy="72" r="2.5" fill="#7c3aed" /><circle cx="268" cy="70" r="2.5" fill="#7c3aed" />
+  <circle cx="278" cy="78" r="2.5" fill="#7c3aed" /><circle cx="288" cy="92" r="2.5" fill="#7c3aed" />
+  <circle cx="298" cy="110" r="2.5" fill="#7c3aed" /><circle cx="308" cy="130" r="2.5" fill="#7c3aed" />
+  <circle cx="315" cy="145" r="2.5" fill="#7c3aed" />
+  <text x="260" y="178" text-anchor="middle" font-size="10" fill="#dc2626">r misses non-linearity</text>
+  <!-- Dataset III: Outlier inflates -->
+  <rect x="350" y="40" width="150" height="130" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="425" y="56" text-anchor="middle" font-size="11" font-weight="bold" fill="#f97316">III: Outlier</text>
+  <line x1="365" y1="155" x2="485" y2="155" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="365" y1="155" x2="365" y2="65" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="370" y1="110" x2="480" y2="90" stroke="#f97316" stroke-width="1" stroke-opacity="0.4" />
+  <circle cx="375" cy="110" r="2.5" fill="#f97316" /><circle cx="385" cy="108" r="2.5" fill="#f97316" />
+  <circle cx="395" cy="106" r="2.5" fill="#f97316" /><circle cx="405" cy="105" r="2.5" fill="#f97316" />
+  <circle cx="415" cy="103" r="2.5" fill="#f97316" /><circle cx="425" cy="102" r="2.5" fill="#f97316" />
+  <circle cx="435" cy="100" r="2.5" fill="#f97316" /><circle cx="445" cy="98" r="2.5" fill="#f97316" />
+  <circle cx="455" cy="97" r="2.5" fill="#f97316" /><circle cx="465" cy="95" r="2.5" fill="#f97316" />
+  <circle cx="475" cy="68" r="4" fill="#dc2626" stroke="#dc2626" stroke-width="1" />
+  <text x="425" y="178" text-anchor="middle" font-size="10" fill="#dc2626">One point inflates r</text>
+  <!-- Dataset IV: Vertical + outlier -->
+  <rect x="515" y="40" width="150" height="130" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="590" y="56" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">IV: Clustered</text>
+  <line x1="530" y1="155" x2="650" y2="155" stroke="#d1d5db" stroke-width="0.5" />
+  <line x1="530" y1="155" x2="530" y2="65" stroke="#d1d5db" stroke-width="0.5" />
+  <circle cx="568" cy="145" r="2.5" fill="#dc2626" /><circle cx="568" cy="130" r="2.5" fill="#dc2626" />
+  <circle cx="568" cy="115" r="2.5" fill="#dc2626" /><circle cx="568" cy="100" r="2.5" fill="#dc2626" />
+  <circle cx="568" cy="85" r="2.5" fill="#dc2626" /><circle cx="568" cy="135" r="2.5" fill="#dc2626" />
+  <circle cx="568" cy="120" r="2.5" fill="#dc2626" /><circle cx="568" cy="105" r="2.5" fill="#dc2626" />
+  <circle cx="568" cy="90" r="2.5" fill="#dc2626" /><circle cx="568" cy="75" r="2.5" fill="#dc2626" />
+  <circle cx="638" cy="68" r="4" fill="#dc2626" stroke="#dc2626" stroke-width="1" />
+  <text x="590" y="178" text-anchor="middle" font-size="10" fill="#dc2626">r is meaningless</text>
+  <!-- Common annotation -->
+  <text x="340" y="205" text-anchor="middle" font-size="12" font-weight="bold" fill="#7c3aed">All four datasets: r = 0.82, same mean, same variance, same regression line</text>
+  <text x="340" y="222" text-anchor="middle" font-size="12" fill="#1e293b">Lesson: ALWAYS visualize before trusting a correlation coefficient</text>
+</svg>
+</div>
+
+<h2 id="correlation-matrix-and-heatmaps"><a class="header" href="#correlation-matrix-and-heatmaps">Correlation Matrix and Heatmaps</a></h2>
+<p>When studying many variables simultaneously, a <strong>correlation matrix</strong> shows all pairwise correlations. For p variables, this is a p × p symmetric matrix with 1s on the diagonal.</p>
+<p>For genomics, this is invaluable for:</p>
+<ul>
+<li>Identifying co-expression modules</li>
+<li>Detecting batch effects (technical variables cluster together)</li>
+<li>Revealing pathway relationships</li>
+</ul>
+<p>A <strong>heatmap</strong> visualization uses color intensity to represent correlation strength, making patterns immediately visible across dozens or hundreds of variables.</p>
+<h2 id="testing-significance-is-this-correlation-real"><a class="header" href="#testing-significance-is-this-correlation-real">Testing Significance: Is This Correlation Real?</a></h2>
+<p>A correlation of r = 0.3 might be noise in 10 samples but highly significant in 1000. The <strong>correlation test</strong> evaluates:</p>
+<ul>
+<li><strong>H₀:</strong> ρ = 0 (no correlation in the population)</li>
+<li><strong>H₁:</strong> ρ ≠ 0</li>
+</ul>
+<p>The test statistic follows a t-distribution with n-2 degrees of freedom:</p>
+<p>$$t = r\sqrt{\frac{n-2}{1-r^2}}$$</p>
+<blockquote>
+<p><strong>Key insight:</strong> With large n (common in genomics), even tiny correlations become “significant.” A correlation of r = 0.05 is significant at p &lt; 0.05 when n &gt; 1500. Always report both the coefficient AND the p-value, and judge practical significance by the magnitude of r.</p>
+</blockquote>
+<h2 id="correlation--causation"><a class="header" href="#correlation--causation">Correlation ≠ Causation</a></h2>
+<p>This cannot be overstated. Correlation tells you variables <strong>co-vary</strong> — nothing more.</p>
+<p>Classic examples in biology:</p>
+<ul>
+<li>Ice cream sales correlate with drowning deaths (confounder: hot weather)</li>
+<li>Shoe size correlates with reading ability in children (confounder: age)</li>
+<li>Stork population correlates with birth rate across European countries (confounder: rural vs. urban)</li>
+</ul>
+<p>To establish causation, you need:</p>
+<ol>
+<li><strong>Temporal precedence</strong> — cause precedes effect</li>
+<li><strong>Experimental manipulation</strong> — perturb X, observe Y change</li>
+<li><strong>Elimination of confounders</strong> — no third variable explains both</li>
+<li><strong>Biological mechanism</strong> — plausible pathway</li>
+</ol>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="240" viewbox="0 0 660 240" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Correlation Does NOT Imply Causation</text>
+  <text x="330" y="44" text-anchor="middle" font-size="12" fill="#6b7280">A confounding variable creates a spurious association</text>
+  <!-- Confounding variable (top) -->
+  <rect x="235" y="62" width="190" height="40" rx="20" fill="#f97316" fill-opacity="0.15" stroke="#f97316" stroke-width="2" />
+  <text x="330" y="87" text-anchor="middle" font-size="14" font-weight="bold" fill="#f97316">Hot Weather</text>
+  <text x="330" y="56" text-anchor="middle" font-size="11" fill="#9ca3af">(Confounder)</text>
+  <!-- Left variable -->
+  <rect x="60" y="160" width="180" height="40" rx="20" fill="#2563eb" fill-opacity="0.12" stroke="#2563eb" stroke-width="2" />
+  <text x="150" y="185" text-anchor="middle" font-size="14" font-weight="bold" fill="#2563eb">Ice Cream Sales</text>
+  <!-- Right variable -->
+  <rect x="420" y="160" width="180" height="40" rx="20" fill="#dc2626" fill-opacity="0.12" stroke="#dc2626" stroke-width="2" />
+  <text x="510" y="185" text-anchor="middle" font-size="14" font-weight="bold" fill="#dc2626">Drowning Deaths</text>
+  <!-- Causal arrows from confounder -->
+  <line x1="275" y1="102" x2="185" y2="155" stroke="#f97316" stroke-width="2.5" marker-end="url(#arrowOrange)" />
+  <line x1="385" y1="102" x2="475" y2="155" stroke="#f97316" stroke-width="2.5" marker-end="url(#arrowOrange)" />
+  <!-- Spurious correlation (dashed) -->
+  <line x1="240" y1="180" x2="420" y2="180" stroke="#9ca3af" stroke-width="2" stroke-dasharray="8,4" />
+  <text x="330" y="175" text-anchor="middle" font-size="12" fill="#9ca3af">r = 0.87 (spurious!)</text>
+  <!-- Cross mark on spurious line -->
+  <line x1="322" y1="192" x2="338" y2="208" stroke="#dc2626" stroke-width="3" />
+  <line x1="338" y1="192" x2="322" y2="208" stroke="#dc2626" stroke-width="3" />
+  <text x="330" y="228" text-anchor="middle" font-size="12" fill="#dc2626" font-weight="bold">No causal link exists between ice cream and drowning</text>
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowOrange" markerwidth="10" markerheight="7" refx="9" refy="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f97316" />
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<h2 id="correlation-in-biolang"><a class="header" href="#correlation-in-biolang">Correlation in BioLang</a></h2>
+<h3 id="basic-correlations"><a class="header" href="#basic-correlations">Basic Correlations</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Generate tumor expression data for 200 samples
+let n = 200
+
+# Simulate BRCA1 and BARD1 with true correlation + noise
+let proliferation = rnorm(n, 10, 3)
+let brca1 = proliferation * 0.8 + rnorm(n, 5, 2)
+let bard1 = proliferation * 0.7 + rnorm(n, 4, 2)
+
+# Pearson correlation — assumes linearity
+let r_pearson = cor(brca1, bard1)
+print("Pearson r: {r_pearson}")  # ~0.78
+
+# Spearman rank correlation — monotonic, robust
+let r_spearman = spearman(brca1, bard1)
+print("Spearman ρ: {r_spearman}")  # ~0.76
+
+# Kendall tau — concordant/discordant pairs, most robust
+let r_kendall = kendall(brca1, bard1)
+print("Kendall τ: {r_kendall}")  # ~0.57 (typically smaller)
+</code></pre>
+<h3 id="statistical-testing"><a class="header" href="#statistical-testing">Statistical Testing</a></h3>
+<pre><code class="language-bio"># Test whether correlation is significantly different from zero
+# cor() returns the coefficient; use a t-test transformation for p-value
+let r = cor(brca1, bard1)
+let t_stat = r * sqrt((n - 2) / (1 - r * r))
+print("r = {r}, t = {t_stat}")
+
+# Spearman returns {coefficient, pvalue}
+let spearman_result = spearman(brca1, bard1)
+print("Spearman ρ = {spearman_result}")
+</code></pre>
+<h3 id="partial-correlation-removing-confounders"><a class="header" href="#partial-correlation-removing-confounders">Partial Correlation: Removing Confounders</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# BRCA1-BARD1 correlation controlling for proliferation (MKI67)
+let mki67 = proliferation + rnorm(n, 0, 1)
+
+# Raw correlation
+let r_raw = cor(brca1, bard1)
+print("Raw Pearson r: {r_raw}")  # ~0.78
+
+# Partial correlation controlling for MKI67
+# Compute manually: regress out confounder from both variables
+let r_xz = cor(brca1, mki67)
+let r_yz = cor(bard1, mki67)
+let r_partial = (r_raw - r_xz * r_yz) / sqrt((1 - r_xz * r_xz) * (1 - r_yz * r_yz))
+print("Partial r (controlling MKI67): {r_partial}")  # lower — confounder removed
+
+# The difference reveals how much of the BRCA1-BARD1
+# association was driven by shared proliferation signal
+print("Reduction: {((r_raw - r_partial) / r_raw * 100) |&gt; round(1)}%")
+</code></pre>
+<h3 id="correlation-matrix-and-heatmap"><a class="header" href="#correlation-matrix-and-heatmap">Correlation Matrix and Heatmap</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Build expression matrix for 8 DNA repair genes
+let base = rnorm(200, 0, 1)
+
+let genes = {
+    "BRCA1":  base * 0.8 + rnorm(200, 10, 2),
+    "BARD1":  base * 0.7 + rnorm(200, 8, 2),
+    "RAD51":  base * 0.6 + rnorm(200, 12, 3),
+    "PALB2":  base * 0.5 + rnorm(200, 9, 2),
+    "ATM":    rnorm(200, 11, 3),
+    "TP53":   base * -0.4 + rnorm(200, 15, 4),
+    "MDM2":   base * -0.3 + rnorm(200, 7, 2),
+    "GAPDH":  rnorm(200, 20, 1)
+}
+
+# Compute pairwise correlations
+let gene_names = ["BRCA1", "BARD1", "RAD51", "PALB2", "ATM", "TP53", "MDM2", "GAPDH"]
+for i in 0..8 {
+    for j in (i+1)..8 {
+        let r = cor(genes[gene_names[i]], genes[gene_names[j]])
+        print("{gene_names[i]} vs {gene_names[j]}: r = {r |&gt; round(3)}")
+    }
+}
+
+# Visualize as heatmap — instantly reveals co-expression modules
+heatmap(genes, {title: "DNA Repair Gene Co-Expression", color_scale: "RdBu"})
+</code></pre>
+<h3 id="visualizing-with-scatter-plots"><a class="header" href="#visualizing-with-scatter-plots">Visualizing with Scatter Plots</a></h3>
+<pre><code class="language-bio"># Scatter plot with correlation annotation
+let scatter_data = table({"BRCA1": brca1, "BARD1": bard1})
+plot(scatter_data, {type: "scatter", x: "BRCA1", y: "BARD1",
+    title: "BRCA1 vs BARD1 Co-Expression",
+    x_label: "BRCA1 Expression (log2 FPKM)",
+    y_label: "BARD1 Expression (log2 FPKM)"})
+</code></pre>
+<h3 id="demonstrating-anscombes-quartet-effect"><a class="header" href="#demonstrating-anscombes-quartet-effect">Demonstrating Anscombe’s Quartet Effect</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Two datasets with identical Pearson r but different patterns
+let x_linear = rnorm(100, 10, 3)
+let y_linear = x_linear * 0.5 + rnorm(100, 0, 2)
+
+let x_curve = rnorm(100, 10, 5)
+let y_curve = (x_curve - 10) ** 2 / 10 + rnorm(100, 0, 1)
+
+print("Linear: Pearson r = {cor(x_linear, y_linear)}")
+print("Curved: Pearson r = {cor(x_curve, y_curve)}")
+print("Linear: Spearman ρ = {spearman(x_linear, y_linear)}")
+print("Curved: Spearman ρ = {spearman(x_curve, y_curve)}")
+
+# Spearman catches the monotonic but non-linear pattern
+# Always plot your data!
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">import numpy as np
+from scipy import stats
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Pearson
+r, p = stats.pearsonr(brca1, bard1)
+
+# Spearman
+rho, p = stats.spearmanr(brca1, bard1)
+
+# Kendall
+tau, p = stats.kendalltau(brca1, bard1)
+
+# Partial correlation (using pingouin)
+import pingouin as pg
+partial = pg.partial_corr(data=df, x='BRCA1', y='BARD1', covar='MKI67')
+
+# Correlation matrix heatmap
+corr = df.corr(method='spearman')
+sns.heatmap(corr, annot=True, cmap='RdBu_r', center=0)
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Pearson
+cor.test(brca1, bard1, method = "pearson")
+
+# Spearman
+cor.test(brca1, bard1, method = "spearman")
+
+# Kendall
+cor.test(brca1, bard1, method = "kendall")
+
+# Partial correlation (using ppcor)
+library(ppcor)
+pcor.test(brca1, bard1, mki67)
+
+# Correlation matrix heatmap
+library(corrplot)
+corrplot(cor(gene_matrix, method = "spearman"),
+         method = "color", type = "upper")
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-compare-three-methods"><a class="header" href="#exercise-1-compare-three-methods">Exercise 1: Compare Three Methods</a></h3>
+<p>Compute Pearson, Spearman, and Kendall correlations for the following gene pairs. Which method gives the most different result, and why?</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 150
+
+# Gene pair 1: linear relationship with outliers
+let gene_a = rnorm(n, 8, 2)
+let gene_b = gene_a * 0.6 + rnorm(n, 3, 1)
+
+# Add 5 extreme outliers
+# (imagine contaminated samples)
+
+# Compute all three correlations for gene_a vs gene_b
+# Which is most affected by outliers?
+</code></pre>
+<h3 id="exercise-2-partial-correlation-in-drug-response"><a class="header" href="#exercise-2-partial-correlation-in-drug-response">Exercise 2: Partial Correlation in Drug Response</a></h3>
+<p>Three variables are measured across 100 cancer cell lines: drug sensitivity (IC50), target gene expression, and cell doubling time. The target gene and IC50 appear correlated. Is the relationship real, or driven by growth rate?</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 100
+let growth_rate = rnorm(n, 24, 6)
+
+let target_expr = growth_rate * 0.5 + rnorm(n, 10, 3)
+let ic50 = growth_rate * -0.3 + rnorm(n, 50, 10)
+
+# 1. Compute raw correlation between target_expr and ic50
+# 2. Compute partial correlation controlling for growth_rate
+# 3. What fraction of the apparent association was confounded?
+</code></pre>
+<h3 id="exercise-3-build-and-interpret-a-heatmap"><a class="header" href="#exercise-3-build-and-interpret-a-heatmap">Exercise 3: Build and Interpret a Heatmap</a></h3>
+<p>Create a correlation heatmap for the following gene expression panel. Identify which genes cluster into co-expression modules.</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 300
+
+# Simulate 3 biological modules:
+# Module 1 (immune): CD8A, GZMB, PRF1, IFNG
+# Module 2 (proliferation): MKI67, TOP2A, PCNA
+# Module 3 (housekeeping): GAPDH, ACTB
+
+# Create correlated expression within modules
+# and weak/no correlation between modules
+# Compute pairwise cor() and visualize with heatmap
+# Which modules emerge from the clustering?
+</code></pre>
+<h3 id="exercise-4-significance-vs-magnitude"><a class="header" href="#exercise-4-significance-vs-magnitude">Exercise 4: Significance vs. Magnitude</a></h3>
+<p>Generate datasets with n = 20 and n = 2000. Show that a weak correlation (r ≈ 0.1) is non-significant with small n but highly significant with large n. Argue why the p-value alone is misleading.</p>
+<pre><code class="language-bio">set_seed(42)
+# Small sample: n = 20, weak correlation
+let x_small = rnorm(20, 0, 1)
+let y_small = x_small * 0.1 + rnorm(20, 0, 1)
+
+# Large sample: n = 2000, same weak correlation
+let x_large = rnorm(2000, 0, 1)
+let y_large = x_large * 0.1 + rnorm(2000, 0, 1)
+
+# Compute cor() on both and test significance
+# Compare p-values and correlation magnitudes
+# What should you report?
+</code></pre>
+<h3 id="exercise-5-anscombe-challenge"><a class="header" href="#exercise-5-anscombe-challenge">Exercise 5: Anscombe Challenge</a></h3>
+<p>Create two synthetic gene-pair datasets where Pearson r is nearly identical (~0.7) but scatter plots reveal completely different biology — one linear, one with a threshold effect (flat then rising). Show that Spearman catches the difference.</p>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Pearson</strong> measures linear association; <strong>Spearman</strong> measures monotonic (rank-based); <strong>Kendall</strong> counts concordant pairs and is most robust</li>
+<li>Correlation ranges from -1 to +1; the sign indicates direction, the magnitude indicates strength</li>
+<li><strong>Always visualize</strong> — identical correlations can hide wildly different patterns (Anscombe’s quartet)</li>
+<li><strong>Partial correlation</strong> removes the effect of confounders, revealing true associations</li>
+<li>With large genomics datasets, tiny correlations become “significant” — always report the <strong>magnitude</strong> alongside the p-value</li>
+<li><strong>Correlation is not causation</strong> — co-expression does not imply co-regulation or functional relationship</li>
+<li>Spearman is generally the safest default for gene expression data</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Now that we can quantify relationships between two variables, Day 14 takes the next step: <strong>using one variable to predict another</strong>. We’ll build our first linear regression models, learning to fit lines, interpret slopes, and critically evaluate whether our predictions are trustworthy.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-12.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-14.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-12.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-14.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -41,7 +41,7 @@
 
         <h3>CSV files</h3>
         <pre><code class="language-biolang"># Load a CSV with automatic header detection
-let samples = csv("examples/sample-data/samples.csv")
+let samples = read_csv("examples/sample-data/samples.csv")
 samples |> head(5) |> print
 
 # TSV is tab-delimited
@@ -65,7 +65,7 @@ len(lines) |> print</code></pre>
         <h2>Column Operations</h2>
 
         <h3>Selecting columns</h3>
-        <pre><code class="language-biolang">let data = csv("examples/sample-data/gene_counts.csv")
+        <pre><code class="language-biolang">let data = read_csv("examples/sample-data/gene_counts.csv")
 
 # Select specific columns
 data |> select("gene_id", "sample_1", "sample_2") |> head(10) |> print
@@ -97,7 +97,7 @@ variants
         <h2>Filtering and Sorting</h2>
 
         <h3>Row filtering</h3>
-        <pre><code class="language-biolang">let data = csv("deseq2_results.csv")
+        <pre><code class="language-biolang">let data = read_csv("data/expression.csv")
 
 # Filter significant genes
 let sig = data
@@ -108,7 +108,7 @@ print(f"Significant DE genes: {sig |> len}")
 sig |> write_csv("significant_genes.csv")</code></pre>
 
         <h3>Sorting</h3>
-        <pre><code class="language-biolang">let data = csv("scores.csv")
+        <pre><code class="language-biolang">let data = read_csv("data/expression.csv")
 
 # Sort by a single column
 data |> sort_by(|a, b| a.p_value - b.p_value) |> head(20) |> print
@@ -138,13 +138,13 @@ counts
 
         <h3>Pivot / reshape</h3>
         <pre><code class="language-biolang"># Wide to long format
-let wide = csv("expression_wide.csv")
+let wide = read_csv("data/expression.csv")
 wide
   |> pivot_longer(["sample_a", "sample_b", "sample_c"], "sample", "expression")
-  |> write_csv("expression_long.csv")
+  |> write_read_csv("data/expression.csv")
 
 # Long to wide format
-let long_data = csv("expression_long.csv")
+let long_data = read_csv("data/expression.csv")
 long_data
   |> pivot_wider("sample", "expression")
   |> write_csv("expression_wide_again.csv")</code></pre>
@@ -166,8 +166,8 @@ print(f"Genes without counts: {missing |> len}")</code></pre>
 
         <h3>Concatenating tables</h3>
         <pre><code class="language-biolang"># Stack tables vertically
-let batch1 = csv("batch1_results.csv")
-let batch2 = csv("batch2_results.csv")
+let batch1 = read_csv("data/expression.csv")
+let batch2 = read_csv("data/counts.csv")
 let combined = concat([batch1, batch2])
 combined |> write_csv("all_results.csv")
 
@@ -192,7 +192,7 @@ data
 
         <h2>Writing Output</h2>
 
-        <pre><code class="language-biolang">let results = csv("raw.csv")
+        <pre><code class="language-biolang">let results = read_csv("data/expression.csv")
   |> filter(|row| { row["quality"] |> float > 30.0 })
   |> sort_by(|a, b| b.score - a.score)
 

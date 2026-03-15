@@ -73,7 +73,7 @@ build an interval tree. Construction is O(n log n); each query is O(log n + k)
 where k is the number of hits.
 
 ```biolang
-let exons = read_bed("gencode_exons.bed")
+let exons = read_bed("data/exons.bed")
     |> map(|e| interval(e.chrom, e.start, e.end, name: e.name))
 
 let tree = interval_tree(exons)
@@ -175,7 +175,7 @@ for v in examples {
 When a variant carries genotype information (from a VCF), query zygosity.
 
 ```biolang
-let variants = read_vcf("sample.vcf")
+let variants = read_vcf("data/variants.vcf")
 
 let het_snps = variants
     |> filter(|v| is_snp(v) && is_het(v))
@@ -219,7 +219,7 @@ factor binding peaks from a ChIP-seq experiment.
 
 ```biolang
 # Load gene annotations
-let genes = read_gff("gencode.v44.annotation.gff3")
+let genes = read_gff("data/annotations.gff")
     |> filter(|f| f.type == "gene" && f.attributes.gene_type == "protein_coding")
 
 # Define promoter regions: 2kb upstream of TSS
@@ -232,7 +232,7 @@ let promoters = genes |> map(|g| {
 })
 
 # Load ChIP-seq peaks
-let peaks = read_bed("H3K27ac_peaks.bed")
+let peaks = read_bed("data/regions.bed")
     |> map(|p| interval(p.chrom, p.start, p.end, name: p.name ?? "peak"))
 
 # Build interval tree from promoters for fast lookup
@@ -282,7 +282,7 @@ Whole-genome sequencing typically yields Ti/Tv around 2.0-2.1; exome around
 2.8-3.0. Deviations suggest systematic errors.
 
 ```biolang
-let variants = read_vcf("deepvariant_output.vcf")
+let variants = read_vcf("data/variants.vcf")
 
 # Keep only PASS SNPs
 let pass_snps = variants
@@ -352,13 +352,13 @@ annotate each variant with the regulatory elements it falls within.
 
 ```biolang
 # Load regulatory regions from ENCODE
-let regulatory = read_bed("ENCODE_cCREs.bed")
+let regulatory = read_bed("data/regions.bed")
     |> map(|r| interval(r.chrom, r.start, r.end, name: r.name ?? "cCRE"))
 
 let reg_tree = interval_tree(regulatory)
 
 # Load variants
-let variants = read_vcf("gwas_hits.vcf")
+let variants = read_vcf("data/variants.vcf")
 
 # Annotate each variant with overlapping regulatory regions
 let annotated = variants |> map(|v| {

@@ -24,22 +24,20 @@
       <article class="prose prose-invert max-w-none">
         <h1>Collections</h1>
         <p>
-          BioLang provides three core collection types: <strong>Lists</strong> (ordered sequences),
-          <strong>Maps</strong> (key-value associations), and <strong>Sets</strong> (unique unordered
-          elements). All collections are immutable by default and support functional operations via
-          pipes.
+          BioLang provides two core collection types: <strong>Lists</strong> (ordered sequences)
+          and <strong>Records</strong> (named field collections). Both support functional
+          operations via pipes and are used throughout bioinformatics workflows.
         </p>
 
         <h2>Lists</h2>
         <p>
-          Lists are ordered, indexable sequences of values. They are the most commonly used
-          collection in BioLang:
+          Lists are ordered, indexable sequences of values. Create them with bracket syntax:
         </p>
-        <pre><code class="language-biolang"># Create lists with bracket syntax
+        <pre><code class="language-biolang"># Create lists
 let numbers = [1, 2, 3, 4, 5]
 let genes = ["BRCA1", "TP53", "EGFR", "KRAS"]
 let mixed = [42, "hello", true, dna"ATCG"]
-let empty: List[Int] = []
+let empty = []
 
 # Nested lists
 let matrix = [
@@ -48,238 +46,182 @@ let matrix = [
   [7, 8, 9]
 ]</code></pre>
 
-        <h3>Indexing and Slicing</h3>
+        <h3>Indexing</h3>
         <pre><code class="language-biolang">let items = ["a", "b", "c", "d", "e"]
 
+# Zero-based indexing
 let first = items[0]       # "a"
-let last = items[-1]       # "e"
-let slice = items[1..3]    # ["b", "c"]
-let tail = items[2..]      # ["c", "d", "e"]
-let head = items[..3]      # ["a", "b", "c"]
+let third = items[2]       # "c"
 
-# Safe indexing returns nil if out of bounds
-let maybe = slice(items, 10, 11) |> first()  # nil (no panic)</code></pre>
+# Length
+let n = len(items)         # 5
+println(f"List has {n} elements")</code></pre>
+
+        <h3>push and pop</h3>
+        <pre><code class="language-biolang">let a = [1, 2, 3]
+
+# push returns a new list with the element appended
+let b = push(a, 4)
+println(b)   # [1, 2, 3, 4]
+
+# pop returns a new list with the last element removed
+let c = pop(a)
+println(c)   # [1, 2]
+
+# Original list is unchanged
+println(a)   # [1, 2, 3]</code></pre>
 
         <h3>List Operations</h3>
         <pre><code class="language-biolang">let a = [1, 2, 3]
 let b = [4, 5, 6]
 
-# Concatenation
-let combined = a + b                # [1, 2, 3, 4, 5, 6]
-let with_item = push(a, 4)         # [1, 2, 3, 4]
-let prepended = concat([0], a)     # [0, 1, 2, 3]
+# Concatenation with ++ operator
+let combined = a ++ b
+println(combined)   # [1, 2, 3, 4, 5, 6]
 
-# Information
-let length = len(a)                # 3
-let has_two = 2 in a               # true
-let idx = find_index(a, |x| x == 3)  # 2
+# Or use concat()
+let also_combined = concat(a, b)
+println(also_combined)   # [1, 2, 3, 4, 5, 6]
 
-# Modification (returns new list)
-let reversed = a |> reverse()      # [3, 2, 1]
-let sorted = a |> sort()           # [1, 2, 3]
-let deduped = [1, 2, 2, 3] |> unique()  # [1, 2, 3]
-let flat = [[1, 2], [3, 4]] |> flatten() # [1, 2, 3, 4]</code></pre>
+# Reverse, sort, unique, flatten
+let reversed = reverse(a)
+println(reversed)   # [3, 2, 1]
+
+let sorted = sort([3, 1, 2])
+println(sorted)   # [1, 2, 3]
+
+let deduped = unique([1, 2, 2, 3, 3])
+println(deduped)   # [1, 2, 3]
+
+let flat = flatten([[1, 2], [3, 4]])
+println(flat)   # [1, 2, 3, 4]</code></pre>
 
         <h3>Functional Operations on Lists</h3>
         <pre><code class="language-biolang">let scores = [85, 92, 78, 95, 88]
 
-# map — transform each element
-let percentages = scores |> map(|s| s / 100.0)
+# map -- transform each element
+let doubled = scores |> map(|s| s * 2)
+println(doubled)   # [170, 184, 156, 190, 176]
 
-# filter — keep elements matching a predicate
-let high = scores |> filter(|s| s >= 90)   # [92, 95]
+# filter -- keep elements matching a predicate
+let high = scores |> filter(|s| s >= 90)
+println(high)   # [92, 95]
 
-# reduce — combine all elements into one value
-let total = scores |> reduce(|acc, s| acc + s)  # 438
+# reduce -- combine all elements into one value
+let total = scores |> reduce(|acc, s| acc + s)
+println(total)   # 438
 
-# find — first matching element
-let first_high = scores |> find(|s| s >= 90)   # 92 (or nil if not found)
+# each -- iterate for side effects
+scores |> each(|s| println(f"Score: {s}"))
 
-# any / all — boolean tests
-let has_perfect = scores |> any(|s| s == 100)  # false
-let all_passing = scores |> all(|s| s >= 60)   # true
+# Chaining with pipes
+let result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  |> filter(|x| x % 2 == 0)
+  |> map(|x| x * x)
+println(result)   # [4, 16, 36, 64, 100]</code></pre>
 
-# zip — combine two lists element-wise
-let names = ["Alice", "Bob", "Carol"]
-let ages = [30, 25, 35]
-let pairs = zip(names, ages)  # [("Alice", 30), ("Bob", 25), ("Carol", 35)]
-
-# map and flatten
-let codons = sequences |> map(|s| kmers(s, 3)) |> flatten()</code></pre>
-
-        <h3>List Comprehensions</h3>
-        <pre><code class="language-biolang"># Generate a list with a comprehension
-let squares = [x * x for x in 1..=10]
-# [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
-
-# Comprehension with filter
-let even_squares = [x * x for x in 1..=10 if x % 2 == 0]
-# [4, 16, 36, 64, 100]
-
-# Nested comprehension
-let pairs = [(i, j) for i in 0..3 for j in 0..3 if i != j]
-# [(0,1), (0,2), (1,0), (1,2), (2,0), (2,1)]
-
-# Comprehension with bio data
-let gc_ratios = [gc_content(seq) for seq in sequences if len(seq) >= 100]</code></pre>
-
-        <h2>Maps</h2>
+        <h3>Comprehension-like Patterns</h3>
         <p>
-          Maps are unordered key-value collections. Keys must be hashable types (String, Int,
-          Bool, DNA, RNA, Protein):
+          BioLang uses <code>range()</code> with <code>map</code> and <code>filter</code>
+          to achieve comprehension-like patterns:
         </p>
-        <pre><code class="language-biolang"># Create maps with brace syntax
-let gene_ids = {
-  "BRCA1": 672,
-  "TP53": 7157,
-  "EGFR": 1956,
-  "KRAS": 3845
-}
+        <pre><code class="language-biolang"># Generate squares of 0..9
+let squares = range(10) |> map(|i| i * i)
+println(squares)   # [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
 
-let empty_map: Map[String, Int] = {}
+# Filter and transform in a pipeline
+let even_squares = range(10)
+  |> filter(|i| i % 2 == 0)
+  |> map(|i| i * i)
+println(even_squares)   # [0, 4, 16, 36, 64]</code></pre>
 
-# Access values
-let id = gene_ids["BRCA1"]           # 672
-let maybe_id = has_key(gene_ids, "MYC")  # false (safe check)</code></pre>
-
-        <h3>Map Operations</h3>
-        <pre><code class="language-biolang">let m = {"a": 1, "b": 2, "c": 3}
-
-# Query
-let has_a = "a" in m              # true
-let size = len(m)                 # 3
-let all_keys = keys(m)            # ["a", "b", "c"]
-let all_vals = values(m)          # [1, 2, 3]
-let pairs = zip(keys(m), values(m))  # [("a", 1), ("b", 2), ("c", 3)]
-
-# Modification (returns new map)
-let merged = merge(m, {"c": 99, "d": 4})  # {"a": 1, "b": 2, "c": 99, "d": 4}
-
-# Iteration over maps
-for (k, v) in m {
-  print(f"{k} = {v}")
-}</code></pre>
-
-        <h3>Building Maps</h3>
-        <pre><code class="language-biolang"># From a list of pairs
-let pairs = [("BRCA1", 672), ("TP53", 7157)]
-let m = into(pairs, "Map")
-
-# Group a list into a map
-let reads_by_chrom = reads |> group_by("chrom")
-# Map[String, List[Read]]
-
-# Count occurrences
-let base_counts = base_counts(sequence)
-# {"A": 42, "T": 38, "C": 31, "G": 29}
-
-# Map comprehension
-let squared = {k: v * v for (k, v) in scores}</code></pre>
-
-        <h2>Sets</h2>
+        <h2>Records</h2>
         <p>
-          Sets are unordered collections of unique elements. BioLang uses brace syntax with
-          values only (no colons) to create sets:
+          Records are collections of named fields. They use brace syntax with
+          identifier keys:
         </p>
-        <pre><code class="language-biolang"># Create sets
-let sample_ids = {"S001", "S002", "S003"}
-let chromosomes = {"chr1", "chr2", "chr3", "chrX"}
-let empty_set: Set[String] = set()
+        <pre><code class="language-biolang"># Create a record
+let gene = {name: "BRCA1", score: 0.95, chrom: "chr17"}
 
-# From a list (deduplicates)
-let uniq = unique([1, 2, 2, 3, 3, 3])  # [1, 2, 3]
-let as_set = set([1, 2, 2, 3])         # {1, 2, 3}</code></pre>
+# Access fields with dot notation
+println(gene.name)    # BRCA1
+println(gene.score)   # 0.95
+println(gene.chrom)   # chr17</code></pre>
 
-        <h3>Set Operations</h3>
-        <pre><code class="language-biolang">let a = {"BRCA1", "TP53", "EGFR", "KRAS"}
-let b = {"TP53", "KRAS", "MYC", "BRAF"}
+        <h3>Records with String Keys</h3>
+        <pre><code class="language-biolang"># String keys also work
+let info = {"gene": "TP53", "impact": "HIGH", "frequency": 0.034}
+println(info.gene)      # TP53
+println(info.impact)    # HIGH</code></pre>
 
-# Standard set operations
-let common = intersection(a, b)     # {"TP53", "KRAS"}
-let all_genes = union(a, b)         # {"BRCA1", "TP53", "EGFR", "KRAS", "MYC", "BRAF"}
-let only_a = difference(a, b)       # {"BRCA1", "EGFR"}
-# Membership
-let has_tp53 = "TP53" in a         # true
+        <h3>Record Spread</h3>
+        <p>
+          Use the spread operator <code>...</code> to merge records, with later
+          fields overriding earlier ones:
+        </p>
+        <pre><code class="language-biolang">let defaults = {quality: 30, depth: 10, filter: "PASS"}
+let custom = {...defaults, quality: 50, name: "sample_1"}
+println(custom.quality)   # 50
+println(custom.depth)     # 10
+println(custom.name)      # sample_1</code></pre>
 
-# Size
-let count = len(a)  # 4</code></pre>
+        <h2>Nested Structures</h2>
+        <p>
+          Lists of records are a common pattern, especially for structured
+          bioinformatics data:
+        </p>
+        <pre><code class="language-biolang"># List of records
+let variants = [
+  {gene: "BRCA1", chrom: "chr17", impact: "HIGH"},
+  {gene: "TP53", chrom: "chr17", impact: "HIGH"},
+  {gene: "EGFR", chrom: "chr7", impact: "MODERATE"}
+]
 
-        <h3>Sets in Bioinformatics</h3>
-        <pre><code class="language-biolang"># Find overlapping genes between two experiments
-let experiment_1 = csv("degs_treated.csv")
-  |> select("gene")
-  |> collect()
-  |> unique()
+# Filter and iterate
+let high_impact = variants |> filter(|v| v.impact == "HIGH")
+high_impact |> each(|v| println(f"{v.gene} on {v.chrom}"))
 
-let experiment_2 = csv("degs_control.csv")
-  |> select("gene")
-  |> collect()
-  |> unique()
+# Transform to extract fields
+let gene_names = variants |> map(|v| v.gene)
+println(gene_names)   # [BRCA1, TP53, EGFR]</code></pre>
 
-let shared = intersection(set(experiment_1), set(experiment_2))
-print(f"Shared DEGs: {len(shared)}")
+        <h2>Sorting Lists</h2>
+        <pre><code class="language-biolang"># Sort with default ordering
+let sorted_nums = sort([3, 1, 4, 1, 5])
+println(sorted_nums)   # [1, 1, 3, 4, 5]
 
-# Venn diagram data
-let only_treated = difference(set(experiment_1), set(experiment_2))
-let only_control = difference(set(experiment_2), set(experiment_1))
-print(f"Only treated: {len(only_treated)}")
-print(f"Only control: {len(only_control)}")</code></pre>
+# Sort by a computed key with sort_by
+let genes = ["EGFR", "BRCA1", "TP53"]
+let by_length = genes |> sort_by(|a, b| len(a) - len(b))
+println(by_length)   # [TP53, EGFR, BRCA1]
 
-        <h2>Iteration Patterns</h2>
-        <pre><code class="language-biolang"># enumerate — get index and value
-for (i, gene) in enumerate(genes) {
-  print(f"{i + 1}. {gene}")
-}
+# Reverse after sorting for descending order
+let descending = sort([3, 1, 4, 1, 5]) |> reverse()
+println(descending)   # [5, 4, 3, 1, 1]</code></pre>
 
-# chunked iteration
-for batch in reads |> chunk(1000) {
-  process_batch(batch)
-}
+        <h2>Useful List Builtins</h2>
+        <pre><code class="language-biolang">let data = [10, 20, 30, 40, 50]
 
-# windowed iteration
-for w in signal |> window(3) {
-  let avg = mean(w)
-  print(f"Moving average: {avg}")
-}
-
-# parallel zip iteration
-for (name, score) in zip(names, scores) {
-  print(f"{name}: {score}")
-}
+# Length
+println(len(data))   # 5
 
 # take / skip
-let first_ten = items |> take(10)
-let after_header = lines |> drop(1)</code></pre>
+let first_three = take(data, 3)
+println(first_three)   # [10, 20, 30]
 
-        <h2>Sorting and Ordering</h2>
-        <pre><code class="language-biolang"># Sort with default ordering
-let sorted_nums = [3, 1, 4, 1, 5] |> sort()        # [1, 1, 3, 4, 5]
-let sorted_desc = [3, 1, 4, 1, 5] |> sort() |> reverse()  # [5, 4, 3, 1, 1]
+let after_two = skip(data, 2)
+println(after_two)   # [30, 40, 50]
 
-# Sort by key
-let by_length = genes |> sort_by(|g| len(g))
-let by_score = results |> sort_by(|r| r.score) |> reverse()
+# zip -- combine two lists element-wise
+let names = ["Alice", "Bob", "Carol"]
+let ages = [30, 25, 35]
+let pairs = zip(names, ages)
+println(pairs)   # [[Alice, 30], [Bob, 25], [Carol, 35]]
 
-# min / max
-let best = max(scores)                        # 95
-let worst = min(scores)                       # 78
-let longest = sort_by(sequences, |s| len(s)) |> last()</code></pre>
-
-        <h2>Converting Between Collections</h2>
-        <pre><code class="language-biolang"># Deduplicate a list
-let unique_genes = unique(gene_list)
-
-# Sort a collection
-let sorted_genes = sort(gene_list)
-
-# List to Table
-let t = table(
-  gene = gene_list,
-  score = score_list
-)
-
-# Table column to List
-let genes = variants |> select("gene") |> collect()</code></pre>
+# enumerate -- get index and value
+let items = ["a", "b", "c"]
+let indexed = enumerate(items)
+println(indexed)   # [[0, a], [1, b], [2, c]]</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="pattern-matching.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

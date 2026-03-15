@@ -60,7 +60,7 @@ let counts = kmer_count(seq, 4)
 print(counts)   # Table: kmer | count
 
 # Stream mode — constant memory for large FASTQ files
-fastq("reads.fq.gz")
+read_fastq("data/reads.fastq")
   |> kmer_count(21)
   |> head(10)
   |> print()</code></pre>
@@ -140,12 +140,12 @@ print(seq)</code></pre>
           K-mer analysis enables fast taxonomic classification without alignment:
         </p>
         <pre><code class="language-biolang"># Top 21-mers across all reads — streaming, bounded memory
-fastq("metagenome.fq.gz")
+read_fastq("data/reads.fastq")
   |> kmer_count(21, 50)
   |> print()
 
 # Or full k-mer profile (auto-spills to disk for large datasets)
-fastq("metagenome.fq.gz")
+read_fastq("data/reads.fastq")
   |> kmer_count(21)
   |> head(20)
   |> bar_chart("Top 21-mers")</code></pre>

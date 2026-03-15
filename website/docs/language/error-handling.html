@@ -24,245 +24,140 @@
       <article class="prose prose-invert max-w-none">
         <h1>Error Handling</h1>
         <p>
-          BioLang provides <code>try</code>/<code>catch</code> for exception-style error handling,
-          the <code>error()</code> function for throwing errors, <code>??</code> for nil coalescing,
-          and <code>?.</code> for safe navigation. These tools cover everything from simple defaults
-          to robust multi-stage pipeline error recovery.
+          BioLang uses <code>try</code>/<code>catch</code> for exception-style error handling and
+          <code>assert(condition, "message")</code> for precondition checks. Uncaught errors
+          propagate up the call stack automatically.
         </p>
 
-        <h2>Throwing Errors</h2>
+        <h2>try / catch</h2>
         <p>
-          Use <code>error("message")</code> to throw an error. The error propagates up the call
-          stack until it is caught by a <code>try</code>/<code>catch</code> block:
+          Wrap fallible code in <code>try { ... } catch e { ... }</code>. The caught
+          value <code>e</code> is a string containing the error message:
         </p>
-        <pre><code class="language-biolang"># Functions that can fail throw errors
-fn parse_vcf_line(line: String) {
-  let fields = line |> split("\t")
-  if len(fields) < 8 {
-    error("VCF line has fewer than 8 fields")
-  }
-
-  let chrom = fields[0]
-  let pos = int(fields[1])
-  let qual = float(fields[5])
-
-  Variant {
-    chrom: chrom,
-    pos: pos,
-    ref_allele: fields[3],
-    alt_allele: fields[4],
-    qual: qual
-  }
-}</code></pre>
-
-        <h2>Try / Catch</h2>
-        <p>
-          Wrap fallible operations in <code>try</code>/<code>catch</code> blocks. The caught
-          value <code>e</code> is a plain string containing the error message:
-        </p>
-        <pre><code class="language-biolang"># Basic try/catch
+        <pre><code class="language-biolang"># Catch a division-by-zero error
 try {
-  let data = csv("input.csv")
-  let results = analyze(data)
-  write_csv(results, "output.csv")
-  print("Analysis complete")
+  let x = 1 / 0
 } catch e {
-  print(f"Pipeline failed: {e}")
+  println(f"Caught: {e}")
 }
 
-# try/catch for file operations
+println("Execution continues after the catch block")</code></pre>
+
+        <h2>Error Types</h2>
+        <p>
+          Any runtime error can be caught: type errors, arithmetic errors, index-out-of-bounds,
+          and I/O failures. The error message string describes the problem:
+        </p>
+        <pre><code class="language-biolang"># Type error
 try {
-  let variants = read_vcf("variants.vcf")
-  let annotated = annotate(variants, "clinvar.vcf")
-  write_vcf(annotated, "annotated.vcf")
+  let x = "hello" + 42
 } catch e {
-  print(f"Error: {e}")
-}</code></pre>
-
-        <h2>Nil Coalescing: ??</h2>
-        <p>
-          The <code>??</code> operator returns the left-hand value if it is not <code>nil</code>,
-          otherwise returns the right-hand default:
-        </p>
-        <pre><code class="language-biolang"># Provide defaults for nil values
-let gene = find_gene("BRCA1", db)
-let g = gene ?? default_gene
-
-# Chain ?? for fallback sequences
-let ref_path = env("REF_GENOME")
-  ?? config["reference"]
-  ?? "/refs/default/GRCh38.fa"
-
-# Common with map lookups
-let score = scores["BRCA1"] ?? 0.0
-let name = record["gene_name"] ?? "unknown"</code></pre>
-
-        <h2>Safe Navigation: ?.</h2>
-        <p>
-          The <code>?.</code> operator accesses a field only if the receiver is not <code>nil</code>.
-          If the receiver is <code>nil</code>, the entire expression evaluates to <code>nil</code>
-          without an error:
-        </p>
-        <pre><code class="language-biolang"># Safe navigation on potentially nil values
-let gene_name = result?.gene?.symbol
-let score = annotation?.impact?.score ?? 0.0
-
-# Useful in pipe chains with optional data
-let pathway = find_gene("TP53", db)
-  ?.pathway
-  ?? "unknown"</code></pre>
-
-        <h2>Error Propagation Pattern</h2>
-        <p>
-          Since BioLang does not have a postfix <code>?</code> operator, use
-          <code>try</code>/<code>catch</code> to propagate errors up the call stack:
-        </p>
-        <pre><code class="language-biolang"># Chain fallible operations with try/catch
-fn load_and_filter(path: String) {
-  let text = read_text(path)
-  let table = csv(text)
-  table |> filter(|r| r.score > 0.5)
+  println(f"Type error: {e}")
 }
 
-# Errors from read_text or csv propagate automatically.
-# Catch them at the call site:
+# Index out of bounds
 try {
-  let data = load_and_filter("samples.csv")
-  print(f"Loaded {len(data)} rows")
+  let xs = [1, 2, 3]
+  let bad = xs[10]
 } catch e {
-  print(f"Failed to load: {e}")
-}
-
-# Multi-step pipeline
-fn process_sample(path: String) {
-  let data = csv(path)
-  let validated = validate_schema(data)
-  normalize(validated)
+  println(f"Index error: {e}")
 }</code></pre>
 
-        <h2>Finding Values</h2>
+        <h2>try as an Expression</h2>
         <p>
-          Functions like <code>find</code> return <code>nil</code> when no match is found.
-          Use <code>??</code> to provide defaults:
+          <code>try</code>/<code>catch</code> is an expression &mdash; it returns the value
+          of whichever branch executes:
         </p>
-        <pre><code class="language-biolang"># find returns nil if no match
-let gene = find_gene("BRCA1", db)
+        <pre><code class="language-biolang"># Provide a fallback value on failure
+let result = try { 100 / 0 } catch _ { -1 }
+println(f"Result: {result}")
 
-# Provide a default
-let g = gene ?? fetch_from_ncbi("BRCA1")
+# Fault-tolerant batch processing
+let paths = ["good.csv", "missing.csv", "also_good.csv"]
+let loaded = paths
+  |> map(|p| try { read_csv(p) } catch _ { nil })
+  |> filter(|x| x != nil)</code></pre>
 
-# Check for nil explicitly
-if gene != nil {
-  print(f"Found {gene.symbol} on {gene.chrom}")
-  analyze(gene)
-} else {
-  print("Gene not found in database")
-}</code></pre>
-
-        <h2>Try as an Expression</h2>
+        <h2>assert(condition, message)</h2>
         <p>
-          <code>try</code> can be used as an expression. If the block throws, the catch
-          branch provides a fallback value:
+          <code>assert</code> takes two arguments: a boolean condition and an error message
+          string. If the condition is false, the assertion throws an error that can be caught
+          with <code>try</code>/<code>catch</code>:
         </p>
-        <pre><code class="language-biolang"># try/catch as an expression
-let data = try { csv("data.csv") } catch _ { empty_table() }
+        <pre><code class="language-biolang"># Assertions that pass do nothing
+assert(1 + 1 == 2, "math works")
+assert(len([1, 2, 3]) == 3, "len is correct")
+println("all assertions passed")
 
-# Useful in map for fault-tolerant batch processing
-let results = file_paths
-  |> map(|path| try { csv(path) } catch _ { nil })
-  |> filter(|r| r != nil)</code></pre>
-
-        <h2>Validation with error()</h2>
-        <pre><code class="language-biolang"># Validate inputs and throw on failure
-fn validate_vcf(table: Table) {
-  if !("CHROM" in table.columns) {
-    error("Missing required column: CHROM")
-  }
-  if !("POS" in table.columns) {
-    error("Missing required column: POS")
-  }
-  if table.num_rows == 0 {
-    error("VCF table is empty")
-  }
-  table
-}
-
-# Usage
+# A failing assertion throws an error
 try {
-  let data = csv("variants.csv")
-  let validated = validate_vcf(data)
-  process(validated)
+  assert(1 > 2, "one is not greater than two")
 } catch e {
-  print(f"Validation failed: {e}")
+  println(f"Caught assertion: {e}")
 }</code></pre>
 
-        <h2>Retry Logic</h2>
-        <pre><code class="language-biolang"># Retry with exponential backoff
-fn fetch_with_retry(url: String, max_attempts = 3) {
-  let attempt = 0
-  let last_error = nil
-
-  while attempt < max_attempts {
-    try {
-      return fetch(url)
-    } catch e {
-      last_error = e
-      attempt = attempt + 1
-      if attempt < max_attempts {
-        sleep(pow(2, attempt) * 1000)
-      }
-    }
-  }
-
-  error(f"Failed after {max_attempts} attempts: {last_error}")
-}
-
-# Usage
-let seq = fetch_with_retry("https://api.ncbi.nlm.nih.gov/seq/NM_007294")</code></pre>
-
-        <h2>Retry</h2>
+        <h2>Error Propagation in Pipelines</h2>
         <p>
-          The <code>retry</code> expression re-attempts a block up to N times with an
-          optional delay &mdash; essential for flaky network calls to bio databases:
+          Errors propagate automatically through pipe chains. If any step throws, the
+          entire chain stops and the error bubbles up to the nearest
+          <code>try</code>/<code>catch</code>:
         </p>
-        <pre><code class="language-biolang"># requires: internet connection
-# Retry NCBI fetch 3 times with 2-second delay
-let gene = retry(3, delay: 2000) {
-    ncbi_gene("TP53")
+        <pre><code class="language-biolang"># An error in any pipe stage stops the chain
+fn must_be_positive(n) {
+  if n <= 0 {
+    error(f"expected positive, got {n}")
+  }
+  n
 }
 
-# Retry with increasing delay (manual exponential backoff)
-let result = retry(5, delay: 1000) {
-    ensembl_vep("rs699")
+try {
+  let result = [-1, 2, 3]
+    |> map(must_be_positive)
+    |> sum()
+  println(f"Sum: {result}")
+} catch e {
+  println(f"Pipeline failed: {e}")
 }</code></pre>
 
-        <h2>Collecting Results</h2>
-        <pre><code class="language-biolang"># Process all, collect successes and failures separately
-let successes = []
-let failures = []
+        <h2>Per-Item Error Handling</h2>
+        <p>
+          To skip failures rather than aborting the whole pipeline, catch errors inside
+          the <code>map</code> callback:
+        </p>
+        <pre><code class="language-biolang"># Process each item, collect results and errors separately
+let items = [10, 0, 5, 0, 20]
 
-for s in samples {
+let results = items |> map(|x| {
   try {
-    let result = process(s)
-    successes = push(successes, {id: s.id, data: result})
+    {value: 100 / x, ok: true}
   } catch e {
-    failures = push(failures, {id: s.id, error: e})
+    {value: 0, ok: false}
   }
+})
+
+let good = results |> filter(|r| r.ok) |> len()
+let bad = results |> filter(|r| !r.ok) |> len()
+println(f"Succeeded: {good}, Failed: {bad}")</code></pre>
+
+        <h2>Validation Pattern</h2>
+        <pre><code class="language-biolang"># Use assert for precondition checks
+fn analyze(scores) {
+  assert(len(scores) > 0, "scores list must not be empty")
+  let avg = sum(scores) / len(scores)
+  let mx = max(scores)
+  {average: avg, maximum: mx}
 }
 
-print(f"Succeeded: {len(successes)}, Failed: {len(failures)}")
-for f in failures {
-  print(f"  {f.id}: {f.error}")
+# Valid call
+let r = analyze([85, 92, 78])
+println(f"Average: {r.average}, Max: {r.maximum}")
+
+# Invalid call — caught by try/catch
+try {
+  analyze([])
+} catch e {
+  println(f"Validation error: {e}")
 }</code></pre>
-
-        <h2>Assertions</h2>
-        <pre><code class="language-biolang"># assert — throws an error if condition is false
-assert(len(reads) > 0, "No reads found in input file")
-assert(len(reference) > 0, "Reference sequence is empty")
-
-# assert with equality checks
-assert(len(columns) == expected_cols, "Column count mismatch")
-assert(sample_a != sample_b, "Samples must be different")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="streams.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

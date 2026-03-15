@@ -711,7 +711,7 @@ impl Compiler {
                     BinaryOp::Le => self.emit(OpCode::LessEqual),
                     BinaryOp::Ge => self.emit(OpCode::GreaterEqual),
                     BinaryOp::Pow | BinaryOp::BitAnd | BinaryOp::BitXor
-                    | BinaryOp::Shl | BinaryOp::Shr => {
+                    | BinaryOp::Shl | BinaryOp::Shr | BinaryOp::Concat => {
                         // Stub: emit Nil for now (not yet supported in bytecode)
                         self.emit(OpCode::Nil)
                     }
@@ -897,13 +897,26 @@ impl Compiler {
                 }
                 self.emit(OpCode::MakeList(elements.len() as u16));
             }
-            Expr::Record(fields) => {
-                for (key, value) in fields {
-                    let idx = self.add_name(key.clone());
-                    self.emit(OpCode::Constant(idx));
-                    self.compile_expr(value)?;
+            Expr::Record(entries) => {
+                let mut field_count = 0u16;
+                for entry in entries {
+                    match entry {
+                        RecordEntry::Field(key, value) => {
+                            let idx = self.add_name(key.clone());
+                            self.emit(OpCode::Constant(idx));
+                            self.compile_expr(value)?;
+                            field_count += 1;
+                        }
+                        RecordEntry::Spread(_) => {
+                            // Spread in compiled records not yet supported
+                            return Err(CompileError::new(
+                                "record spread (...) is not supported in compiled mode",
+                                Some(expr.span),
+                            ));
+                        }
+                    }
                 }
-                self.emit(OpCode::MakeRecord(fields.len() as u16));
+                self.emit(OpCode::MakeRecord(field_count));
             }
             Expr::Formula(inner) => {
                 let const_idx =
@@ -1190,7 +1203,7 @@ impl Compiler {
             }
             // New expression types — fall back to Nil in bytecode compiler (experimental)
             Expr::In { .. } | Expr::DoBlock { .. } | Expr::TypeCast { .. } | Expr::ThenPipe { .. } | Expr::Slice { .. }
-            | Expr::TapPipe { .. } | Expr::Given { .. } | Expr::Retry { .. } | Expr::RecordSpread { .. } => {
+            | Expr::TapPipe { .. } | Expr::Given { .. } | Expr::Retry { .. } => {
                 self.emit(OpCode::Nil);
             }
         }

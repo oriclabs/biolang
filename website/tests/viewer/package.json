@@ -1,0 +1,19 @@
+{
+  "name": "blviewer-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automated test suite for BLViewer",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:unit": "npx playwright test --grep @unit",
+    "test:e2e": "npx playwright test e2e/",
+    "test:visual": "npx playwright test visual/",
+    "test:all": "npx playwright test e2e/ visual/",
+    "screenshots": "npx playwright test screenshots/capture.spec.js",
+    "video": "npx playwright test video/tutorial.spec.js --project=video",
+    "report": "npx playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

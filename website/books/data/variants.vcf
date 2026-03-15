@@ -1,0 +1,13 @@
+##fileformat=VCFv4.2
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total read depth">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele frequency">
+##INFO=<ID=GENE,Number=1,Type=String,Description="Gene name">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1
+chr1	11856378	rs1801133	C	T	99	PASS	DP=45;AF=0.5;GENE=MTHFR	GT:DP	0/1:45
+chr7	55259515	rs121913529	T	G	99	PASS	DP=120;AF=0.25;GENE=EGFR	GT:DP	0/1:120
+chr12	25245350	rs121913529	C	A	99	PASS	DP=80;AF=0.15;GENE=KRAS	GT:DP	0/0:80
+chr13	32929387	rs80357906	A	G	50	LowQual	DP=15;AF=0.1;GENE=BRCA2	GT:DP	0/1:15
+chr17	7579472	rs28934576	G	C	99	PASS	DP=200;AF=0.45;GENE=TP53	GT:DP	0/1:200
+chr17	43093449	rs80357713	G	A	99	PASS	DP=95;AF=0.5;GENE=BRCA1	GT:DP	0/1:95

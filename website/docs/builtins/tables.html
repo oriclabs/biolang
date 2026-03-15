@@ -51,10 +51,10 @@ write_csv(tbl, path, opts?) -> string</code></pre>
             </tbody>
           </table>
           <pre><code class="language-biolang"># Read CSV
-let de = csv("deseq2_results.csv")
+let de = read_csv("data/expression.csv")
 
 # Read TSV (e.g., VCF or BED)
-let bed = csv("regions.bed", {separator: "\t", header: false})
+let bed = read_csv("data/regions.bed", {separator: "\t", header: false})
 
 # Write filtered results
 de |> filter(|row| row.padj < 0.05)
@@ -89,7 +89,7 @@ de |> arrange("chrom", "start") # multi-column sort</code></pre>
           <p class="text-slate-400 mt-2">Group rows and compute aggregate statistics per group.</p>
           <pre><code class="language-biolang">group_by(tbl, columns...) -> grouped_table
 summarize(grouped, aggregations) -> table</code></pre>
-          <pre><code class="language-biolang">let counts = csv("gene_counts.csv")
+          <pre><code class="language-biolang">let counts = read_csv("data/counts.csv")
 
 counts
   |> group_by("sample")
@@ -120,8 +120,8 @@ outer_join(a, b, on) -> table
 semi_join(a, b, on) -> table    # rows in a that have a match in b
 anti_join(a, b, on) -> table    # rows in a that have NO match in b
 cross_join(a, b) -> table       # cartesian product</code></pre>
-          <pre><code class="language-biolang">let expression = csv("expression.csv")   # gene, log2fc, padj
-let annotation = csv("annotation.csv")    # gene, chrom, start, end, biotype
+          <pre><code class="language-biolang">let expression = read_csv("data/expression.csv")   # gene, log2fc, padj
+let annotation = read_csv("data/counts.csv")    # gene, chrom, start, end, biotype
 
 # Annotate DE results with genomic coordinates
 let annotated = left_join(expression, annotation, "gene")
@@ -140,12 +140,12 @@ let missing = anti_join(expression, annotation, "gene")</code></pre>
           <pre><code class="language-biolang">pivot_wider(tbl, names_from, values_from) -> table
 pivot_longer(tbl, cols, names_to, values_to) -> table</code></pre>
           <pre><code class="language-biolang"># Long to wide: one column per sample
-let long_counts = csv("counts_long.csv")   # gene, sample, count
+let long_counts = read_csv("data/counts.csv")   # gene, sample, count
 let wide = pivot_wider(long_counts, "sample", "count")
 # gene | sample_A | sample_B | sample_C
 
 # Wide to long for plotting
-let wide_expr = csv("expression_matrix.csv")
+let wide_expr = read_csv("data/expression.csv")
 let long = pivot_longer(wide_expr, ["S1", "S2", "S3"], "sample", "expression")</code></pre>
         </section>
 
@@ -184,7 +184,7 @@ de |> arrange("padj")
               </tbody>
             </table>
           </div>
-          <pre><code class="language-biolang">let de = csv("results.csv")
+          <pre><code class="language-biolang">let de = read_csv("data/expression.csv")
 println("Rows:", nrow(de), "Cols:", ncol(de))
 println("Columns:", colnames(de))
 de |> head(5)   # preview first 5 rows</code></pre>

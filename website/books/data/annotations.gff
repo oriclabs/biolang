@@ -1,0 +1,9 @@
+##gff-version 3
+chr1	ensembl	gene	11856278	11856478	.	+	.	ID=gene:MTHFR;Name=MTHFR;biotype=protein_coding
+chr1	ensembl	exon	11856278	11856478	.	+	.	Parent=gene:MTHFR;Name=MTHFR-exon5
+chr7	ensembl	gene	55259415	55259615	.	+	.	ID=gene:EGFR;Name=EGFR;biotype=protein_coding
+chr7	ensembl	exon	55259415	55259615	.	+	.	Parent=gene:EGFR;Name=EGFR-exon19
+chr17	ensembl	gene	7579372	7579572	.	-	.	ID=gene:TP53;Name=TP53;biotype=protein_coding
+chr17	ensembl	exon	7579372	7579572	.	-	.	Parent=gene:TP53;Name=TP53-exon7
+chr17	ensembl	gene	43093349	43093549	.	-	.	ID=gene:BRCA1;Name=BRCA1;biotype=protein_coding
+chr17	ensembl	exon	43093349	43093549	.	-	.	Parent=gene:BRCA1;Name=BRCA1-exon10

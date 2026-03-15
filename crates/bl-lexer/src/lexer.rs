@@ -81,7 +81,10 @@ impl Lexer {
                 '+' => {
                     let start = self.pos;
                     self.advance();
-                    if !self.is_at_end() && self.current() == '=' {
+                    if !self.is_at_end() && self.current() == '+' {
+                        self.advance();
+                        self.tokens.push(Token::new(TokenKind::PlusPlus, Span::new(start, self.pos)));
+                    } else if !self.is_at_end() && self.current() == '=' {
                         self.advance();
                         self.tokens.push(Token::new(TokenKind::PlusEq, Span::new(start, self.pos)));
                     } else {
@@ -388,6 +391,7 @@ impl Lexer {
                     | TokenKind::LBracket
                     | TokenKind::Newline
                     | TokenKind::Plus
+                    | TokenKind::PlusPlus
                     | TokenKind::Minus
                     | TokenKind::Star
                     | TokenKind::StarStar

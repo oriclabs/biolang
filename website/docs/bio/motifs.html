@@ -65,7 +65,7 @@ n = motif_count(seq, "RTCG")   # R = A or G
 print(n, "degenerate matches")
 
 # Scan a FASTA file for a regulatory element
-fasta("promoters.fa")
+read_fasta("data/sequences.fasta")
   |> map(|r| {
     gene: r.id,
     tata_boxes: motif_count(r.seq, "TATAWAW")
@@ -117,7 +117,7 @@ matrix |> map(|pos| print(pos))
           the PWM score exceeds a threshold:
         </p>
         <pre><code class="language-biolang"># Build a PWM from known binding sites
-let binding_sites = fasta("tf_binding_sites.fa")
+let binding_sites = read_fasta("data/sequences.fasta")
   |> map(|r| r.seq)
   |> collect()
 
@@ -135,7 +135,7 @@ hits = pwm_scan(promoter, matrix, 0.8)
 hits |> map(|h| print(h.pos, h.score))
 
 # Genome-wide scan
-fasta("genome.fa")
+read_fasta("data/sequences.fasta")
   |> map(|chr| {
     chrom: chr.id,
     sites: pwm_scan(chr.seq, matrix, 0.85)
@@ -171,7 +171,7 @@ hits |> map(|h| print("Hit at", h.pos, "score:", h.score))</code></pre>
 
         <h2>Practical Example: Transcription Factor Binding Analysis</h2>
         <pre><code class="language-biolang"># Analyze motif enrichment in sequences
-let seqs = fasta("chip_peak_seqs.fa") |> collect()
+let seqs = read_fasta("data/sequences.fasta") |> collect()
 
 # Count occurrences of a known motif across sequences
 seqs
@@ -188,7 +188,7 @@ let matrix = seqs |> map(|r| r.seq) |> pwm()
 print("PWM built from", len(seqs), "sequences")
 
 # Scan a target sequence
-let target_seq = fasta("target.fa") |> first()
+let target_seq = read_fasta("data/sequences.fasta") |> first()
 let hits = pwm_scan(target_seq.seq, matrix, 0.8)
 print(len(hits), "PWM hits found")</code></pre>
       </article>

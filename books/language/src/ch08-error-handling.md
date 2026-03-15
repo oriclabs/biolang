@@ -13,7 +13,7 @@ proceed.
 
 ```biolang
 let records = try {
-    read_vcf("variants.vcf")
+    read_vcf("data/variants.vcf")
 } catch e {
     print("Failed to parse VCF: " + e.message)
     []
@@ -379,7 +379,7 @@ do not. Some have `CLNSIG`, most do not. Use `?.` and `??` to process them
 uniformly.
 
 ```biolang
-let variants = read_vcf("clinvar.vcf")
+let variants = read_vcf("data/variants.vcf")
 
 let annotated = variants |> map(|v| {
     let info = parse_info(v.info_str)

@@ -24,59 +24,28 @@
       <article class="prose prose-invert max-w-none">
         <h1>Style Guide</h1>
         <p>
-          This guide covers BioLang's conventions for comments, naming, formatting, and best
-          practices. Following these conventions produces consistent, readable code across the
-          community.
+          Conventions for readable, consistent BioLang code. Following these guidelines
+          makes your scripts easier to read and maintain.
         </p>
 
         <h2>Comments</h2>
         <p>
-          BioLang uses <code>#</code> for line comments. There are no block comments.
+          Use <code>#</code> for line comments. There are no block comments.
+          Doc comments use <code>##</code>.
         </p>
-        <pre><code class="language-biolang"># This is a line comment
+        <pre><code class="language-biolang"># This is a comment
+let x = 42  # inline comment
 
-let x = 42  # Inline comment after code
+# Multi-line comments: use consecutive # lines
+# Good comments explain WHY, not WHAT
 
-# Multi-line comments use consecutive # lines.
-# Each line starts with # and a single space.
-# Keep comments concise and meaningful.
-
-# Avoid obvious comments like:
-# let count = 0  # set count to zero   (BAD — states the obvious)
-
-# Good comments explain WHY, not WHAT:
-# Filter reads with MAPQ < 30 because the aligner reports
-# unreliable mappings below this threshold for short reads.
-let hq_reads = reads |> filter(|r| r.mapq >= 30)</code></pre>
-
-        <h3>Documentation Comments</h3>
-        <pre><code class="language-biolang"># Doc comments use ## and appear before declarations.
-# They are extracted by the documentation generator.
-
-## Compute the GC content of a DNA sequence.
-##
-## Returns the fraction of bases that are G or C,
-## as a Float between 0.0 and 1.0.
-##
-## Example:
-##   let gc = gc_ratio(dna"ATCGATCG")  # 0.5
-pub fn gc_ratio(seq: DNA) -> Float {
+## Doc comment: appears before a function declaration
+## Extracted by the documentation generator
+fn gc_ratio(seq) {
   gc_content(seq)
 }
 
-## A genomic variant with position and quality information.
-pub struct Variant {
-  ## Chromosome name (e.g. "chr1")
-  chrom: String,
-  ## 1-based genomic position
-  pos: Int,
-  ## Reference allele
-  ref_allele: String,
-  ## Alternate allele
-  alt_allele: String,
-  ## Phred-scaled quality score
-  qual: Float
-}</code></pre>
+println(f"GC of ATCGATCG: {gc_ratio(dna"ATCGATCG")}")</code></pre>
 
         <h2>Naming Conventions</h2>
         <table>
@@ -84,230 +53,105 @@ pub struct Variant {
             <tr><th>Item</th><th>Convention</th><th>Example</th></tr>
           </thead>
           <tbody>
-            <tr><td>Variables</td><td>snake_case</td><td><code>read_count</code>, <code>gc_content</code></td></tr>
+            <tr><td>Variables</td><td>snake_case</td><td><code>read_count</code>, <code>gc_value</code></td></tr>
             <tr><td>Functions</td><td>snake_case</td><td><code>filter_reads</code>, <code>compute_stats</code></td></tr>
-            <tr><td>Structs</td><td>PascalCase</td><td><code>GenomicInterval</code>, <code>AlignmentConfig</code></td></tr>
+            <tr><td>Structs</td><td>PascalCase</td><td><code>GenomicInterval</code>, <code>AlignConfig</code></td></tr>
             <tr><td>Enums</td><td>PascalCase</td><td><code>Strand</code>, <code>VariantType</code></td></tr>
             <tr><td>Enum variants</td><td>PascalCase</td><td><code>Strand.Plus</code>, <code>VariantType.Snv</code></td></tr>
-            <tr><td>Traits</td><td>PascalCase</td><td><code>Sequenceable</code>, <code>Display</code></td></tr>
-            <tr><td>Constants</td><td>SCREAMING_SNAKE</td><td><code>MAX_QUALITY</code>, <code>DEFAULT_MAPQ</code></td></tr>
-            <tr><td>Modules</td><td>snake_case</td><td><code>bio/io</code>, <code>quality_control</code></td></tr>
-            <tr><td>Type parameters</td><td>Single uppercase</td><td><code>T</code>, <code>K</code>, <code>V</code></td></tr>
+            <tr><td>Constants</td><td>SCREAMING_SNAKE</td><td><code>MAX_QUALITY</code>, <code>MIN_MAPQ</code></td></tr>
+            <tr><td>File names</td><td>snake_case.bl</td><td><code>quality_control.bl</code></td></tr>
           </tbody>
         </table>
 
-        <h3>Naming Guidelines</h3>
-        <pre><code class="language-biolang"># Good names — descriptive and consistent
-let filtered_reads = reads |> filter(|r| r.mapq >= 30)
-let gene_expression = csv("expression.csv")
-let variant_count = len(variants)
-fn compute_gc_content(seq: DNA) -> Float { ... }
+        <h2>Prefer Pipes Over Nesting</h2>
+        <pre><code class="language-biolang"># BAD: deeply nested function calls
+let result = reverse(sort(filter([5, 3, 8, 1, 9, 2], |n| n > 3)))
 
-# Avoid abbreviations unless universally understood
-let fltrd_rds = ...       # BAD — unclear abbreviation
-let filtered_reads = ...  # GOOD
+# GOOD: pipe chain, one transform per line
+let result = [5, 3, 8, 1, 9, 2]
+  |> filter(|n| n > 3)
+  |> sort()
+  |> reverse()
 
-# Accepted abbreviations in bioinformatics
-let gc = gc_content(seq)    # GC content
-let mapq = read.mapq        # Mapping quality
-let snv = variant            # Single nucleotide variant
-let bam = read_bam(path)    # BAM format
-let vcf = read_vcf(path)   # VCF format</code></pre>
+println(result)</code></pre>
 
-        <h2>Formatting</h2>
-
-        <h3>Indentation</h3>
+        <h2>One Transform Per Line</h2>
         <p>
-          Use <strong>2 spaces</strong> for indentation. Never use tabs.
+          Break pipe chains so each <code>|></code> stage is on its own line,
+          indented by 2 spaces:
         </p>
-        <pre><code class="language-biolang"># 2-space indentation
-fn process_sample(sample) {
-  let reads = read_fastq(sample.path)
-  let filtered = reads
-    |> filter(|r| mean_phred(r.quality) >= 30)
-    |> filter(|r| r.length >= 50)
+        <pre><code class="language-biolang"># GOOD: easy to read, easy to comment out individual stages
+let scores = [85, 92, 78, 95, 88, 72, 91]
 
-  if len(filtered) > 0 {
-    let results = analyze(filtered)
-    write_results(results, sample.output)
-  } else {
-    print(f"Warning: no reads passed QC for {sample.id}")
-  }
-}</code></pre>
+let top = scores
+  |> filter(|s| s >= 80)
+  |> sort()
+  |> reverse()
+  |> head(3)
 
-        <h3>Line Length</h3>
-        <p>
-          Keep lines under <strong>100 characters</strong>. Break long expressions at operators,
-          commas, or after opening delimiters:
-        </p>
-        <pre><code class="language-biolang"># Break pipe chains — one stage per line
-let result = data
-  |> filter(|r| r.quality >= threshold)
-  |> map(|r| transform(r))
-  |> arrange("-score")
+println(f"Top 3 scores: {top}")</code></pre>
 
-# Break long function calls at argument boundaries
-let config = AlignmentConfig {
-  reference: "hg38.fa",
-  min_mapq: 30,
-  max_mismatch: 3,
-  paired_only: true
-}
+        <h2>Use Meaningful Lambda Names</h2>
+        <pre><code class="language-biolang"># BAD: cryptic parameter names
+let x = [1, 2, 3, 4, 5] |> filter(|a| a > 2) |> map(|c| c * 10)
 
-# Break long conditions
-if variant.qual >= min_quality
-  && variant.depth >= min_depth
-  && variant.allele_frequency >= min_af {
-  accept(variant)
-}</code></pre>
+# GOOD: descriptive single-letter is fine for simple cases
+let big = [1, 2, 3, 4, 5] |> filter(|n| n > 2) |> map(|n| n * 10)
 
-        <h3>Blank Lines</h3>
-        <pre><code class="language-biolang"># One blank line between top-level declarations
-fn load_data(path) {
-  csv(path)
-}
+println(big)</code></pre>
 
-fn process(data) {
-  data |> filter(|r| r.score > 0)
-}
-
-# No blank line between closely related statements
-let reads = read_fastq(path)
-let filtered = reads |> filter(|r| r.quality >= 30)
-let count = len(filtered)
-
-# One blank line to separate logical blocks within a function
-fn analyze(sample) {
-  # Load and validate
-  let data = csv(sample.path)
-  let validated = validate(data)
-
-  # Filter and transform
-  let processed = validated
-    |> filter(|r| r.score > 0)
-    |> mutate("normalized", |r| r.score / max_score)
-
-  # Output
-  write_csv(processed, sample.output)
-  print(f"Done: {sample.id}")
-}</code></pre>
-
-        <h2>Best Practices</h2>
-
-        <h3>Prefer Pipes Over Nesting</h3>
-        <pre><code class="language-biolang"># BAD — deeply nested, hard to read
-let result = arrange(filter(select(data, "gene", "score"), |r| r.score > 0.5), "-score")
-
-# GOOD — pipe chain, easy to follow
-let result = data
-  |> select("gene", "score")
-  |> filter(|r| r.score > 0.5)
-  |> arrange("-score")</code></pre>
-
-        <h3>Prefer Functional Style</h3>
-        <pre><code class="language-biolang"># BAD — unnecessary loop accumulation
+        <h2>Prefer Functional Over Imperative</h2>
+        <pre><code class="language-biolang"># BAD: manual loop accumulation
 let total = 0
-for x in values {
-  total = total + x
+let values = [10, 20, 30, 40]
+for v in values {
+  total = total + v
 }
 
-# GOOD — functional reduction
-let total = values |> sum()
+# GOOD: built-in reduction
+let total = [10, 20, 30, 40] |> sum()
 
-# OK — loop when it is genuinely clearer
-let retries = 0
-let result = nil
-while retries < 3 && result == nil {
-  result = try { fetch(url) } catch _ { nil }
-  retries = retries + 1
-}</code></pre>
+println(f"Total: {total}")</code></pre>
 
-        <h3>Use Meaningful Variable Names in Lambdas</h3>
-        <pre><code class="language-biolang"># BAD — cryptic parameter names
-let x = data |> filter(|a| a.b > 0.5) |> map(|c| c.d + c.e)
+        <h2>Handle Errors Explicitly</h2>
+        <pre><code class="language-biolang"># BAD: no error handling — crash on failure
+# let data = read_csv("missing.csv")
 
-# GOOD — descriptive names
-let significant = data
-  |> filter(|gene| gene.p_value < 0.05)
-  |> map(|gene| gene.log2fc + gene.base_mean)
-
-# OK — single letter for obvious cases
-let lengths = sequences |> map(|s| len(s))
-let evens = numbers |> filter(|n| n % 2 == 0)</code></pre>
-
-        <h3>Handle Errors Explicitly</h3>
-        <pre><code class="language-biolang"># BAD — ignoring potential errors
-let data = csv("input.csv")
-
-# GOOD — handle the error case
+# GOOD: catch and provide a clear message
 let data = try {
-  csv("input.csv")
+  1 / 0
 } catch e {
-  print(f"Failed to read input: {e}")
-  exit(1)
+  println(f"Error caught: {e}")
+  0
 }
 
-# GOOD — let errors propagate, catch at top level
-try {
-  let data = csv("input.csv")
-  process(data)
-} catch e {
-  print(f"Pipeline failed: {e}")
-}</code></pre>
+println(f"Result: {data}")</code></pre>
 
-        <h3>Prefer Descriptive Function Signatures</h3>
-        <pre><code class="language-biolang"># BAD — no types, unclear purpose
-fn process(a, b, c) { ... }
+        <h2>Named Constants</h2>
+        <pre><code class="language-biolang"># BAD: magic numbers without explanation
+let filtered = [35, 25, 15, 45] |> filter(|q| q >= 30)
 
-# GOOD — typed, self-documenting
-fn filter_variants(
-  variants: Table,
-  min_quality: Float = 30.0,
-  min_depth: Int = 10,
-  impact_filter: List[String] = ["HIGH", "MODERATE"]
-) -> Table {
-  variants
-    |> filter(|v| v.qual >= min_quality)
-    |> filter(|v| v.depth >= min_depth)
-    |> filter(|v| v.impact in impact_filter)
-}</code></pre>
+# GOOD: named constant with comment
+let MIN_QUALITY = 30  # Phred 30 = 99.9% base call accuracy
+let filtered = [35, 25, 15, 45] |> filter(|q| q >= MIN_QUALITY)
 
-        <h3>Group Related Imports</h3>
-        <pre><code class="language-biolang"># Standard library imports first
-import { csv, write_csv } from "io"
-import { mean, stdev } from "stats"
+println(f"Passed: {len(filtered)} of 4")</code></pre>
 
-# Bio-specific imports
-import { read_fastq, stream_bam } from "bio/io"
-import { gc_content, reverse_complement } from "bio/seq"
-import { align } from "bio/align"
+        <h2>Break Long Stages</h2>
+        <pre><code class="language-biolang"># Named intermediate stages improve readability
+let data = [
+  {name: "A", score: 85, group: "x"},
+  {name: "B", score: 92, group: "y"},
+  {name: "C", score: 78, group: "x"},
+  {name: "D", score: 95, group: "y"},
+]
 
-# Local imports last
-import { PipelineConfig } from "./config.bl"
-import { run_qc } from "./lib/qc.bl"</code></pre>
+# Break into named stages instead of one giant chain
+let high_scores = data |> filter(|r| r.score >= 80)
+let sorted = high_scores |> sort_by("score") |> reverse()
+let names = sorted |> map(|r| r.name)
 
-        <h2>Anti-Patterns</h2>
-        <pre><code class="language-biolang"># Anti-pattern: stringly typed data
-let status = "running"   # Use an enum instead
-
-# Better:
-enum JobStatus { Pending, Running, Completed, Failed }
-let status = JobStatus.Running
-
-# Anti-pattern: magic numbers
-let filtered = reads |> filter(|r| r.mapq >= 30)  # Why 30?
-
-# Better: named constant with comment
-const MIN_MAPQ = 30  # MAPQ 30 = 99.9% mapping confidence
-let filtered = reads |> filter(|r| r.mapq >= MIN_MAPQ)
-
-# Anti-pattern: overly long pipe chains without explanation
-let result = data |> f() |> g() |> h() |> i() |> j() |> k() |> l()
-
-# Better: break into named stages
-let cleaned = data |> f() |> g()        # Preprocessing
-let analyzed = cleaned |> h() |> i()    # Analysis
-let result = analyzed |> j() |> k()     # Formatting</code></pre>
+println(f"Top scorers: {names}")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="types.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

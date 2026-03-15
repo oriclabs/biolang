@@ -1,0 +1,794 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 25: Statistical Visualization — Plots That Tell the Truth - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-25-statistical-visualization--plots-that-tell-the-truth"><a class="header" href="#day-25-statistical-visualization--plots-that-tell-the-truth">Day 25: Statistical Visualization — Plots That Tell the Truth</a></h1>
+<div class="day-meta">
+<span class="badge">Day 25 of 30</span>
+<span class="badge">Prerequisites: All previous days</span>
+<span class="badge">~60 min reading</span>
+<span class="badge">Data Visualization</span>
+</div>
+
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You have spent weeks analyzing a clinical dataset. The results are solid: a survival benefit, a clear dose-response relationship, differentially expressed genes with strong effect sizes. You write up the manuscript, generate figures, and submit.</p>
+<p>Three weeks later, the reviewer’s comments arrive. “Figure 2: bar charts with error bars hide the data distribution. Replace with violin plots or beeswarm plots showing individual data points. Figure 4: the y-axis does not start at zero, exaggerating the effect. Figure 6: red-green color scheme is inaccessible to the 8% of males with color vision deficiency. Major revision.”</p>
+<p>The statistics were correct. The visualization was not. And in modern publishing, visualization is not decoration — it is evidence. A misleading plot can sink an otherwise excellent paper. A well-designed figure can convey complex results in seconds.</p>
+<p>Today is your visualization reference guide. We will cover every major plot type you have encountered in this book, when to use each, how to read them, common mistakes, and how to produce publication-ready versions in BioLang.</p>
+<h2 id="the-which-plot-decision-guide"><a class="header" href="#the-which-plot-decision-guide">The “Which Plot?” Decision Guide</a></h2>
+<p>Choosing the right plot starts with two questions: What type of data do you have? What relationship are you showing?</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Data situation</th><th>Recommended plot(s)</th></tr>
+</thead>
+<tbody>
+<tr><td>Distribution of one continuous variable</td><td><code>histogram</code>, <code>density_plot</code></td></tr>
+<tr><td>Compare distributions across groups</td><td><code>boxplot</code>, <code>violin_plot</code></td></tr>
+<tr><td>Two continuous variables</td><td><code>scatter</code></td></tr>
+<tr><td>Trend over time or ordered variable</td><td><code>line_plot</code></td></tr>
+<tr><td>Counts or proportions by category</td><td><code>bar_chart</code></td></tr>
+<tr><td>Matrix of values (e.g., expression)</td><td><code>heatmap</code></td></tr>
+<tr><td>Differential expression (fold change + significance)</td><td><code>volcano</code></td></tr>
+<tr><td>Genome-wide association results</td><td><code>manhattan_plot</code></td></tr>
+<tr><td>Observed vs expected p-values</td><td><code>qq_plot</code></td></tr>
+<tr><td>Meta-analysis effect sizes</td><td><code>forest_plot</code></td></tr>
+<tr><td>Method agreement</td><td><code>bland_altman</code></td></tr>
+<tr><td>Publication bias assessment</td><td><code>funnel_plot</code></td></tr>
+<tr><td>Survival curves</td><td><code>kaplan_meier_plot</code></td></tr>
+<tr><td>Classifier performance</td><td><code>roc_curve</code></td></tr>
+<tr><td>PCA scores + loadings</td><td><code>pca_biplot</code></td></tr>
+</tbody>
+</table>
+</div>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="420" viewbox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">"Which Plot?" Decision Guide</text>
+  <!-- Headers -->
+  <rect x="20" y="45" width="220" height="30" rx="4" fill="#2563eb" />
+  <text x="130" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Data Situation</text>
+  <rect x="245" y="45" width="200" height="30" rx="4" fill="#2563eb" />
+  <text x="345" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Recommended Plot</text>
+  <rect x="450" y="45" width="215" height="30" rx="4" fill="#2563eb" />
+  <text x="558" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Visual Example</text>
+  <!-- Row 1: One continuous variable -->
+  <rect x="20" y="80" width="220" height="38" rx="3" fill="#f0f9ff" />
+  <text x="130" y="103" text-anchor="middle" font-size="11" fill="#1e293b">One continuous variable</text>
+  <rect x="245" y="80" width="200" height="38" rx="3" fill="#f0f9ff" />
+  <text x="345" y="103" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Histogram / Density</text>
+  <g transform="translate(480, 85)">
+    <rect x="0" y="18" width="10" height="10" fill="#3b82f6" opacity="0.6" /><rect x="12" y="12" width="10" height="16" fill="#3b82f6" opacity="0.6" />
+    <rect x="24" y="5" width="10" height="23" fill="#3b82f6" opacity="0.7" /><rect x="36" y="0" width="10" height="28" fill="#3b82f6" opacity="0.8" />
+    <rect x="48" y="4" width="10" height="24" fill="#3b82f6" opacity="0.7" /><rect x="60" y="10" width="10" height="18" fill="#3b82f6" opacity="0.6" />
+    <rect x="72" y="16" width="10" height="12" fill="#3b82f6" opacity="0.5" /><rect x="84" y="22" width="10" height="6" fill="#3b82f6" opacity="0.4" />
+  </g>
+  <!-- Row 2: Compare groups -->
+  <rect x="20" y="123" width="220" height="38" rx="3" fill="white" />
+  <text x="130" y="146" text-anchor="middle" font-size="11" fill="#1e293b">Compare groups (continuous)</text>
+  <rect x="245" y="123" width="200" height="38" rx="3" fill="white" />
+  <text x="345" y="146" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Boxplot / Violin</text>
+  <g transform="translate(495, 128)">
+    <rect x="0" y="8" width="18" height="16" fill="none" stroke="#3b82f6" stroke-width="1.5" />
+    <line x1="0" y1="16" x2="18" y2="16" stroke="#3b82f6" stroke-width="2" />
+    <line x1="9" y1="0" x2="9" y2="8" stroke="#3b82f6" stroke-width="1" />
+    <line x1="9" y1="24" x2="9" y2="30" stroke="#3b82f6" stroke-width="1" />
+    <rect x="28" y="5" width="18" height="20" fill="none" stroke="#dc2626" stroke-width="1.5" />
+    <line x1="28" y1="15" x2="46" y2="15" stroke="#dc2626" stroke-width="2" />
+    <line x1="37" y1="0" x2="37" y2="5" stroke="#dc2626" stroke-width="1" />
+    <line x1="37" y1="25" x2="37" y2="30" stroke="#dc2626" stroke-width="1" />
+    <rect x="56" y="10" width="18" height="14" fill="none" stroke="#16a34a" stroke-width="1.5" />
+    <line x1="56" y1="17" x2="74" y2="17" stroke="#16a34a" stroke-width="2" />
+    <line x1="65" y1="2" x2="65" y2="10" stroke="#16a34a" stroke-width="1" />
+    <line x1="65" y1="24" x2="65" y2="30" stroke="#16a34a" stroke-width="1" />
+  </g>
+  <!-- Row 3: Two continuous -->
+  <rect x="20" y="166" width="220" height="38" rx="3" fill="#f0f9ff" />
+  <text x="130" y="189" text-anchor="middle" font-size="11" fill="#1e293b">Two continuous variables</text>
+  <rect x="245" y="166" width="200" height="38" rx="3" fill="#f0f9ff" />
+  <text x="345" y="189" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Scatter Plot</text>
+  <g transform="translate(498, 172)">
+    <circle cx="5" cy="22" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="15" cy="18" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="25" cy="15" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="35" cy="10" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="45" cy="8" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="55" cy="5" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="20" cy="20" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="40" cy="12" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="50" cy="6" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="30" cy="18" r="2.5" fill="#3b82f6" opacity="0.7" />
+    <line x1="0" y1="25" x2="62" y2="0" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2" />
+  </g>
+  <!-- Row 4: Trend / time -->
+  <rect x="20" y="209" width="220" height="38" rx="3" fill="white" />
+  <text x="130" y="232" text-anchor="middle" font-size="11" fill="#1e293b">Trend over time / ordered</text>
+  <rect x="245" y="209" width="200" height="38" rx="3" fill="white" />
+  <text x="345" y="232" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Line Plot</text>
+  <g transform="translate(498, 215)">
+    <polyline points="0,22 15,18 30,12 45,8 60,3" fill="none" stroke="#3b82f6" stroke-width="2" />
+    <polyline points="0,20 15,22 30,24 45,26 60,28" fill="none" stroke="#dc2626" stroke-width="2" />
+  </g>
+  <!-- Row 5: Categories -->
+  <rect x="20" y="252" width="220" height="38" rx="3" fill="#f0f9ff" />
+  <text x="130" y="275" text-anchor="middle" font-size="11" fill="#1e293b">Counts by category</text>
+  <rect x="245" y="252" width="200" height="38" rx="3" fill="#f0f9ff" />
+  <text x="345" y="275" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Bar Chart</text>
+  <g transform="translate(498, 255)">
+    <rect x="0" y="8" width="14" height="22" rx="1" fill="#3b82f6" opacity="0.7" />
+    <rect x="18" y="0" width="14" height="30" rx="1" fill="#3b82f6" opacity="0.7" />
+    <rect x="36" y="12" width="14" height="18" rx="1" fill="#3b82f6" opacity="0.7" />
+    <rect x="54" y="5" width="14" height="25" rx="1" fill="#3b82f6" opacity="0.7" />
+  </g>
+  <!-- Row 6: Matrix -->
+  <rect x="20" y="295" width="220" height="38" rx="3" fill="white" />
+  <text x="130" y="318" text-anchor="middle" font-size="11" fill="#1e293b">Expression matrix</text>
+  <rect x="245" y="295" width="200" height="38" rx="3" fill="white" />
+  <text x="345" y="318" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Heatmap</text>
+  <g transform="translate(498, 298)">
+    <rect x="0" y="0" width="10" height="10" fill="#dc2626" opacity="0.8" />
+    <rect x="12" y="0" width="10" height="10" fill="#ef4444" opacity="0.5" />
+    <rect x="24" y="0" width="10" height="10" fill="#93c5fd" />
+    <rect x="36" y="0" width="10" height="10" fill="#2563eb" />
+    <rect x="0" y="12" width="10" height="10" fill="#93c5fd" />
+    <rect x="12" y="12" width="10" height="10" fill="#2563eb" />
+    <rect x="24" y="12" width="10" height="10" fill="#dc2626" opacity="0.7" />
+    <rect x="36" y="12" width="10" height="10" fill="#ef4444" opacity="0.4" />
+    <rect x="0" y="24" width="10" height="10" fill="#2563eb" opacity="0.6" />
+    <rect x="12" y="24" width="10" height="10" fill="#dc2626" opacity="0.9" />
+    <rect x="24" y="24" width="10" height="10" fill="#ef4444" opacity="0.3" />
+    <rect x="36" y="24" width="10" height="10" fill="#93c5fd" />
+  </g>
+  <!-- Row 7: DE / Volcano -->
+  <rect x="20" y="338" width="220" height="38" rx="3" fill="#f0f9ff" />
+  <text x="130" y="361" text-anchor="middle" font-size="11" fill="#1e293b">Fold change + significance</text>
+  <rect x="245" y="338" width="200" height="38" rx="3" fill="#f0f9ff" />
+  <text x="345" y="361" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Volcano Plot</text>
+  <g transform="translate(498, 340)">
+    <circle cx="5" cy="25" r="2" fill="#9ca3af" opacity="0.5" />
+    <circle cx="15" cy="22" r="2" fill="#9ca3af" opacity="0.5" />
+    <circle cx="25" cy="20" r="2" fill="#9ca3af" opacity="0.5" />
+    <circle cx="35" cy="18" r="2" fill="#9ca3af" opacity="0.5" />
+    <circle cx="30" cy="24" r="2" fill="#9ca3af" opacity="0.5" />
+    <circle cx="8" cy="8" r="2.5" fill="#3b82f6" />
+    <circle cx="12" cy="5" r="2.5" fill="#3b82f6" />
+    <circle cx="52" cy="6" r="2.5" fill="#dc2626" />
+    <circle cx="58" cy="3" r="2.5" fill="#dc2626" />
+    <circle cx="55" cy="10" r="2.5" fill="#dc2626" />
+    <line x1="30" y1="0" x2="30" y2="30" stroke="#9ca3af" stroke-width="0.5" stroke-dasharray="2,2" />
+  </g>
+  <!-- Footer -->
+  <rect x="20" y="386" width="645" height="25" rx="4" fill="#f1f5f9" />
+  <text x="340" y="403" text-anchor="middle" font-size="11" fill="#6b7280">Also: Manhattan plot (GWAS), QQ plot (p-value QC), Forest plot (meta-analysis), ROC curve (classifier), Kaplan-Meier (survival)</text>
+</svg>
+</div>
+
+<h2 id="histogram"><a class="header" href="#histogram">Histogram</a></h2>
+<p><strong>When</strong>: Visualize the shape of a single continuous distribution.</p>
+<p><strong>How to read</strong>: Each bar represents a bin; the height shows how many observations fall in that range. Look for: center (peak), spread (width), shape (symmetric? skewed?), modes (one peak or multiple?), outliers (isolated bars far from the center).</p>
+<p><strong>Mistakes</strong>: Too few bins (hides structure), too many bins (shows noise), not specifying bin count (default may be misleading).</p>
+<pre><code class="language-bio">set_seed(42)
+# Quality score distribution
+let scores = concat(rnorm(5000, 35, 8), rnorm(1000, 20, 3))
+
+histogram(scores, {bins: 50,
+  title: "Sequencing Quality Score Distribution",
+  xlabel: "Phred Quality Score",
+  ylabel: "Count"})
+</code></pre>
+<p><strong>Publication tip</strong>: Always state the bin width or number of bins in the figure legend. Use 30-50 bins for most datasets.</p>
+<h2 id="density-plot"><a class="header" href="#density-plot">Density Plot</a></h2>
+<p><strong>When</strong>: Smooth estimate of the probability distribution. Better than histograms for comparing multiple groups on the same axes.</p>
+<p><strong>How to read</strong>: The curve shows estimated probability density. The area under the curve equals 1. Higher curves mean more observations at that value.</p>
+<pre><code class="language-bio">set_seed(42)
+# Compare two treatment groups
+let group_a = rnorm(200, 50, 12)
+let group_b = rnorm(200, 62, 15)
+
+density(group_a, {title: "Expression Level Distribution by Group",
+  xlabel: "Expression (TPM)", label: "Control"})
+density(group_b, {label: "Treatment"})
+</code></pre>
+<p><strong>Publication tip</strong>: Use semi-transparent fills when overlapping multiple densities. State the bandwidth if non-default.</p>
+<h2 id="box-plot"><a class="header" href="#box-plot">Box Plot</a></h2>
+<p><strong>When</strong>: Compare distributions across groups. The standard for multi-group comparisons in biology.</p>
+<p><strong>How to read</strong>: The box spans Q1 to Q3 (the IQR, containing the middle 50%). The line inside is the median. Whiskers extend to the most extreme point within 1.5 x IQR. Points beyond whiskers are outliers.</p>
+<p><strong>Mistakes</strong>: Bar charts with error bars hide distribution shape — use box plots instead. Forgetting to show sample size.</p>
+<pre><code class="language-bio">set_seed(42)
+let control = rnorm(30, 5.0, 1.2)
+let low_dose = rnorm(30, 6.5, 1.5)
+let high_dose = rnorm(30, 8.2, 1.8)
+
+let bp_table = table({"Control": control, "Low Dose": low_dose, "High Dose": high_dose})
+boxplot(bp_table, {title: "Tumor Response by Treatment Arm"})
+</code></pre>
+<p><strong>Publication tip</strong>: Always overlay individual data points (jittered) on box plots when n &lt; 50. Report n per group in the axis label or legend.</p>
+<h2 id="violin-plot"><a class="header" href="#violin-plot">Violin Plot</a></h2>
+<p><strong>When</strong>: Like a box plot but shows the full distribution shape. Best for revealing multimodality that box plots miss.</p>
+<p><strong>How to read</strong>: The width of the “violin” at any value shows the density of observations there. A violin with two bulges indicates a bimodal distribution.</p>
+<pre><code class="language-bio">violin([control, low_dose, high_dose],
+  {labels: ["Control", "Low Dose", "High Dose"],
+  title: "Response Distribution — Full Shape",
+  ylabel: "Response Score"})
+</code></pre>
+<p><strong>Publication tip</strong>: Include a miniature box plot inside the violin for reference. Violin plots are increasingly preferred by reviewers over bar charts.</p>
+<h2 id="scatter-plot"><a class="header" href="#scatter-plot">Scatter Plot</a></h2>
+<p><strong>When</strong>: Show the relationship between two continuous variables. The most versatile plot in statistics.</p>
+<p><strong>How to read</strong>: Each point is one observation. Look for: direction (positive/negative), form (linear/curved), strength (tight/scattered), outliers (isolated points), clusters.</p>
+<pre><code class="language-bio">set_seed(42)
+let gene_expr = rnorm(100, 50, 15)
+let drug_response = gene_expr |&gt; map(|x| -0.8 * x + 90 + rnorm(1, 0, 8)[0])
+
+scatter(gene_expr, drug_response,
+  {xlabel: "Gene Expression (TPM)",
+  ylabel: "Drug Response (%)",
+  title: "Gene Expression vs Drug Response"})
+</code></pre>
+<p><strong>Publication tip</strong>: Add a trend line with confidence band for linear relationships. Use transparency (alpha) when points overlap. Report the correlation coefficient and p-value in the figure legend or panel.</p>
+<h2 id="line-plot"><a class="header" href="#line-plot">Line Plot</a></h2>
+<p><strong>When</strong>: Data has a natural order (time series, dose-response, ordered categories).</p>
+<p><strong>How to read</strong>: The line connects sequential observations. Look for trends, cycles, sudden changes.</p>
+<p><strong>Mistakes</strong>: Connecting unrelated categorical data with lines (implies ordering that does not exist).</p>
+<pre><code class="language-bio">let days = seq(0, 28, 7)
+let tumor_vol_drug = [450, 380, 290, 210, 175]
+let tumor_vol_ctrl = [450, 510, 580, 650, 720]
+
+# Build a table with both series for plotting
+let drug_rows = zip(days, tumor_vol_drug) |&gt; map(|p| {day: p[0], volume: p[1], group: "Drug X"})
+let ctrl_rows = zip(days, tumor_vol_ctrl) |&gt; map(|p| {day: p[0], volume: p[1], group: "Control"})
+let tbl = concat(drug_rows, ctrl_rows) |&gt; to_table()
+
+plot(tbl, {type: "line", x: "day", y: "volume", color: "group",
+  xlabel: "Days Since Randomization",
+  ylabel: "Tumor Volume (mm^3)",
+  title: "Tumor Growth Over Time"})
+</code></pre>
+<h2 id="bar-chart"><a class="header" href="#bar-chart">Bar Chart</a></h2>
+<p><strong>When</strong>: Compare counts or proportions across categories. NOT for continuous distributions (use box/violin plots).</p>
+<p><strong>How to read</strong>: Bar height represents the value. Bars should start at zero.</p>
+<p><strong>Mistakes</strong>: Using bar charts for continuous data (hides distribution). Not starting at zero (exaggerates differences). Using 3D bars (distorts perception).</p>
+<pre><code class="language-bio">let categories = ["Complete Response", "Partial Response", "Stable Disease", "Progressive"]
+let counts = [18, 35, 28, 19]
+
+bar_chart(categories, counts,
+  {title: "RECIST Response Categories",
+  ylabel: "Number of Patients"})
+</code></pre>
+<blockquote>
+<p><strong>Common pitfall:</strong> Bar charts with error bars (dynamite plots) are the most criticized visualization in biostatistics. They show only the mean and one measure of spread, hiding the actual data distribution. A sample with a bimodal distribution and a sample with a normal distribution can produce identical bar charts. Always prefer box plots, violin plots, or strip charts for continuous data.</p>
+</blockquote>
+<h2 id="heatmap"><a class="header" href="#heatmap">Heatmap</a></h2>
+<p><strong>When</strong>: Visualize a matrix of values (gene expression across samples, correlation matrices, p-value matrices).</p>
+<p><strong>How to read</strong>: Color intensity represents the value at each cell. Rows and columns are often clustered to group similar patterns.</p>
+<pre><code class="language-bio"># Expression heatmap of top 50 DE genes
+heatmap(top_50_expression,
+  {cluster_rows: true,
+  cluster_cols: true,
+  color_scale: "red_blue",
+  title: "Top 50 Differentially Expressed Genes"})
+</code></pre>
+<p><strong>Publication tip</strong>: State the color scale, clustering method, and distance metric in the legend. Use diverging color scales (red-blue) for data centered on zero; sequential scales (white-red) for non-negative data.</p>
+<h2 id="volcano-plot"><a class="header" href="#volcano-plot">Volcano Plot</a></h2>
+<p><strong>When</strong>: Differential expression analysis — simultaneously display fold change (effect size) and statistical significance.</p>
+<p><strong>How to read</strong>: x-axis is log2 fold change, y-axis is -log10(p-value). Points in the upper corners are genes with large, significant changes. Upper-left: significantly downregulated. Upper-right: significantly upregulated. Bottom center: not significant.</p>
+<pre><code class="language-bio">volcano(de_results,
+  {fc_threshold: 1.0,       # log2 FC cutoff
+  p_threshold: 0.05,        # adjusted p-value cutoff
+  title: "Tumor vs Normal — Differential Expression",
+  xlabel: "log2 Fold Change",
+  ylabel: "-log10(adjusted p-value)"})
+</code></pre>
+<p><strong>Publication tip</strong>: Use adjusted p-values (FDR), not raw p-values. Label the most significant genes. Include dashed lines at your FC and p-value thresholds.</p>
+<h2 id="manhattan-plot"><a class="header" href="#manhattan-plot">Manhattan Plot</a></h2>
+<p><strong>When</strong>: Genome-wide association results — display p-values for hundreds of thousands of SNPs across chromosomes.</p>
+<p><strong>How to read</strong>: x-axis is genomic position (chromosomes colored alternately), y-axis is -log10(p-value). Peaks above the genome-wide significance line (p &lt; 5 x 10^-8) are associated loci.</p>
+<pre><code class="language-bio">manhattan(gwas_results,
+  {significance_line: 5e-8,
+  suggestive_line: 1e-5,
+  title: "GWAS — Type 2 Diabetes"})
+</code></pre>
+<p><strong>Publication tip</strong>: Use alternating colors for chromosomes. Draw both the genome-wide significance line (5 x 10^-8) and the suggestive line (1 x 10^-5). Label top hits with the nearest gene name.</p>
+<h2 id="q-q-plot"><a class="header" href="#q-q-plot">Q-Q Plot</a></h2>
+<p><strong>When</strong>: Check whether observed p-values follow the expected uniform distribution under the null. Essential for GWAS quality control.</p>
+<p><strong>How to read</strong>: Points should follow the diagonal if there is no systematic inflation. Deviation at the upper end indicates true signal. Deviation along the entire line indicates systematic inflation (population structure, technical artifacts).</p>
+<pre><code class="language-bio">qq_plot(p_values,
+  {title: "Q-Q Plot — Observed vs Expected p-values",
+  ci: true})
+</code></pre>
+<p><strong>Publication tip</strong>: Report the genomic inflation factor (lambda) in the plot or legend. Lambda close to 1.0 is good; lambda &gt; 1.1 suggests confounding.</p>
+<h2 id="forest-plot"><a class="header" href="#forest-plot">Forest Plot</a></h2>
+<p><strong>When</strong>: Meta-analysis or subgroup analysis — display effect estimates and confidence intervals from multiple studies or subgroups.</p>
+<p><strong>How to read</strong>: Each row is a study/subgroup. The square is the point estimate (size proportional to weight), horizontal line is the CI. The diamond at the bottom is the pooled estimate. If the CI crosses the null (vertical line at 0 or 1), the result is not statistically significant.</p>
+<pre><code class="language-bio">let meta_tbl = [
+  {study: "Smith 2019", estimate: 0.72, ci_lower: 0.55, ci_upper: 0.93, weight: 25},
+  {study: "Jones 2020", estimate: 0.85, ci_lower: 0.70, ci_upper: 1.03, weight: 30},
+  {study: "Lee 2021", estimate: 0.68, ci_lower: 0.48, ci_upper: 0.96, weight: 15},
+  {study: "Garcia 2022", estimate: 0.91, ci_lower: 0.75, ci_upper: 1.10, weight: 30},
+  {study: "Pooled", estimate: 0.78, ci_lower: 0.68, ci_upper: 0.89, weight: 100}
+] |&gt; to_table()
+
+forest_plot(meta_tbl,
+  {null_value: 1.0,
+  title: "Meta-Analysis — Hazard Ratios for Overall Survival",
+  xlabel: "Hazard Ratio (95% CI)"})
+</code></pre>
+<h2 id="bland-altman-plot"><a class="header" href="#bland-altman-plot">Bland-Altman Plot</a></h2>
+<p><strong>When</strong>: Assess agreement between two measurement methods. NOT the same as correlation — two methods can be highly correlated but systematically biased.</p>
+<p><strong>How to read</strong>: x-axis is the mean of two measurements, y-axis is their difference. Points should scatter randomly around zero (no bias). The limits of agreement (mean difference +/- 1.96 SD) show the expected range of disagreement.</p>
+<pre><code class="language-bio">let method_a = [5.2, 6.1, 4.8, 7.3, 5.5, 6.8, 4.2, 5.9, 7.1, 6.3]
+let method_b = [5.0, 6.3, 4.5, 7.0, 5.8, 6.5, 4.4, 5.7, 7.4, 6.1]
+
+# Bland-Altman: plot difference vs mean
+let means = zip(method_a, method_b) |&gt; map(|p| (p[0] + p[1]) / 2)
+let diffs = zip(method_a, method_b) |&gt; map(|p| p[0] - p[1])
+let mean_diff = mean(diffs)
+let sd_diff = sd(diffs)
+
+scatter(means, diffs,
+  {title: "Bland-Altman — qPCR vs RNA-seq Expression",
+  xlabel: "Mean of Two Methods",
+  ylabel: "Difference (qPCR - RNA-seq)"})
+print("Mean difference: " + str(round(mean_diff, 3)))
+print("Limits of agreement: [" +
+  str(round(mean_diff - 1.96 * sd_diff, 3)) + ", " +
+  str(round(mean_diff + 1.96 * sd_diff, 3)) + "]")
+</code></pre>
+<h2 id="funnel-plot"><a class="header" href="#funnel-plot">Funnel Plot</a></h2>
+<p><strong>When</strong>: Assess publication bias in meta-analysis. Small studies with extreme results may indicate selective publishing.</p>
+<p><strong>How to read</strong>: x-axis is effect size, y-axis is study precision (1/SE or sample size). Large, precise studies cluster near the true effect (top). Small, imprecise studies scatter widely (bottom). Asymmetry suggests publication bias — if small negative studies are missing, the funnel is lopsided.</p>
+<pre><code class="language-bio"># Funnel plot: scatter of effect size vs precision
+scatter(effect_sizes, standard_errors,
+  {title: "Funnel Plot — Publication Bias Assessment",
+  xlabel: "Effect Size (log OR)",
+  ylabel: "Standard Error"})
+</code></pre>
+<h2 id="kaplan-meier-plot"><a class="header" href="#kaplan-meier-plot">Kaplan-Meier Plot</a></h2>
+<p><strong>When</strong>: Survival analysis — display probability of survival over time, comparing treatment arms.</p>
+<p><strong>How to read</strong>: The curve starts at 1.0 (all alive) and drops with each event. Censored observations (patients lost to follow-up) are marked with tick marks. The median survival is where the curve crosses 0.5.</p>
+<pre><code class="language-bio"># Build a Kaplan-Meier survival table and plot
+let km_tbl = zip(time, event, group) |&gt; map(|r| {
+  time: r[0], event: r[1], group: r[2]
+}) |&gt; to_table()
+
+plot(km_tbl, {type: "line", x: "time", y: "survival",
+  color: "group",
+  title: "Overall Survival — Drug X vs Standard of Care",
+  xlabel: "Months",
+  ylabel: "Survival Probability"})
+</code></pre>
+<p><strong>Publication tip</strong>: Include a risk table below the plot showing the number at risk at regular intervals. Report the log-rank p-value and hazard ratio with CI.</p>
+<h2 id="roc-curve"><a class="header" href="#roc-curve">ROC Curve</a></h2>
+<p><strong>When</strong>: Evaluate a binary classifier — plot sensitivity (true positive rate) against 1-specificity (false positive rate) at all thresholds.</p>
+<p><strong>How to read</strong>: The curve bows toward the upper-left corner for good classifiers. The AUC (area under the curve) summarizes performance: 0.5 = random guessing, 1.0 = perfect classification. AUC &gt; 0.8 is generally considered good.</p>
+<pre><code class="language-bio">roc_curve(roc_tbl,
+  {title: "ROC — Gene Expression Classifier for Response",
+  auc_label: true})
+</code></pre>
+<h2 id="pca-biplot"><a class="header" href="#pca-biplot">PCA Biplot</a></h2>
+<p><strong>When</strong>: Display PCA scores (samples) and loadings (variables) simultaneously.</p>
+<p><strong>How to read</strong>: Points are samples — clusters indicate groups. Arrows are variable loadings — direction and length show each variable’s contribution to the PCs.</p>
+<pre><code class="language-bio">let result = pca(expression_matrix)
+pca_plot(result,
+  {title: "PCA Biplot — Gene Expression",
+  xlabel: "PC1 (" + str(round(result.variance_explained[0] * 100, 1)) + "%)",
+  ylabel: "PC2 (" + str(round(result.variance_explained[1] * 100, 1)) + "%)"})
+</code></pre>
+<h2 id="the-grammar-of-honest-visualization"><a class="header" href="#the-grammar-of-honest-visualization">The Grammar of Honest Visualization</a></h2>
+<h3 id="rule-1-start-axes-at-zero-usually"><a class="header" href="#rule-1-start-axes-at-zero-usually">Rule 1: Start axes at zero (usually)</a></h3>
+<p>Truncating the y-axis can make a 2% difference look like a 200% difference. Always start bar charts at zero. For scatter plots and line plots, starting at zero is less critical but should be considered.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="320" viewbox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Truncated Y-Axis: Misleading vs Honest</text>
+  <!-- BAD chart: truncated axis -->
+  <rect x="20" y="48" width="300" height="235" rx="6" fill="white" stroke="#dc2626" stroke-width="1.5" />
+  <text x="170" y="68" text-anchor="middle" font-size="13" font-weight="bold" fill="#dc2626">Misleading</text>
+  <text x="170" y="84" text-anchor="middle" font-size="10" fill="#dc2626">(Y-axis starts at 95)</text>
+  <!-- Y-axis -->
+  <line x1="70" y1="100" x2="70" y2="255" stroke="#9ca3af" stroke-width="1" />
+  <text x="62" y="255" text-anchor="end" font-size="10" fill="#9ca3af">95</text>
+  <text x="62" y="216" text-anchor="end" font-size="10" fill="#9ca3af">97</text>
+  <text x="62" y="177" text-anchor="end" font-size="10" fill="#9ca3af">99</text>
+  <text x="62" y="138" text-anchor="end" font-size="10" fill="#9ca3af">101</text>
+  <text x="62" y="100" text-anchor="end" font-size="10" fill="#9ca3af">103</text>
+  <!-- X-axis -->
+  <line x1="70" y1="255" x2="290" y2="255" stroke="#9ca3af" stroke-width="1" />
+  <!-- Bars (values: 100, 102, 101, 103 -- but axis starts at 95, making differences look huge) -->
+  <rect x="90" y="157" width="40" height="98" rx="2" fill="#3b82f6" opacity="0.8" />
+  <rect x="145" y="118" width="40" height="137" rx="2" fill="#3b82f6" opacity="0.8" />
+  <rect x="200" y="138" width="40" height="117" rx="2" fill="#3b82f6" opacity="0.8" />
+  <rect x="255" y="98" width="40" height="157" rx="2" fill="#3b82f6" opacity="0.8" />
+  <text x="110" y="270" text-anchor="middle" font-size="10" fill="#6b7280">A</text>
+  <text x="165" y="270" text-anchor="middle" font-size="10" fill="#6b7280">B</text>
+  <text x="220" y="270" text-anchor="middle" font-size="10" fill="#6b7280">C</text>
+  <text x="275" y="270" text-anchor="middle" font-size="10" fill="#6b7280">D</text>
+  <!-- Zigzag break indicator -->
+  <polyline points="65,250 67,244 73,248 70,242" fill="none" stroke="#dc2626" stroke-width="1.5" />
+  <!-- GOOD chart: axis from zero -->
+  <rect x="360" y="48" width="300" height="235" rx="6" fill="white" stroke="#16a34a" stroke-width="1.5" />
+  <text x="510" y="68" text-anchor="middle" font-size="13" font-weight="bold" fill="#16a34a">Honest</text>
+  <text x="510" y="84" text-anchor="middle" font-size="10" fill="#16a34a">(Y-axis starts at 0)</text>
+  <!-- Y-axis -->
+  <line x1="410" y1="100" x2="410" y2="255" stroke="#9ca3af" stroke-width="1" />
+  <text x="402" y="255" text-anchor="end" font-size="10" fill="#9ca3af">0</text>
+  <text x="402" y="216" text-anchor="end" font-size="10" fill="#9ca3af">25</text>
+  <text x="402" y="177" text-anchor="end" font-size="10" fill="#9ca3af">50</text>
+  <text x="402" y="138" text-anchor="end" font-size="10" fill="#9ca3af">75</text>
+  <text x="402" y="100" text-anchor="end" font-size="10" fill="#9ca3af">100</text>
+  <!-- X-axis -->
+  <line x1="410" y1="255" x2="630" y2="255" stroke="#9ca3af" stroke-width="1" />
+  <!-- Bars (same values: 100, 102, 101, 103 -- but now from 0, differences are tiny) -->
+  <rect x="430" y="100" width="40" height="155" rx="2" fill="#3b82f6" opacity="0.8" />
+  <rect x="485" y="97" width="40" height="158" rx="2" fill="#3b82f6" opacity="0.8" />
+  <rect x="540" y="98" width="40" height="157" rx="2" fill="#3b82f6" opacity="0.8" />
+  <rect x="595" y="95" width="40" height="160" rx="2" fill="#3b82f6" opacity="0.8" />
+  <text x="450" y="270" text-anchor="middle" font-size="10" fill="#6b7280">A</text>
+  <text x="505" y="270" text-anchor="middle" font-size="10" fill="#6b7280">B</text>
+  <text x="560" y="270" text-anchor="middle" font-size="10" fill="#6b7280">C</text>
+  <text x="615" y="270" text-anchor="middle" font-size="10" fill="#6b7280">D</text>
+  <!-- Bottom note -->
+  <rect x="20" y="290" width="640" height="22" rx="4" fill="#f1f5f9" />
+  <text x="340" y="305" text-anchor="middle" font-size="11" fill="#6b7280">Same data (100, 102, 101, 103). The truncated axis makes a 3% difference look like a 60% difference.</text>
+</svg>
+</div>
+
+<h3 id="rule-2-no-3d-charts"><a class="header" href="#rule-2-no-3d-charts">Rule 2: No 3D charts</a></h3>
+<p>3D bar charts, 3D pie charts, and 3D scatter plots distort perception. The human visual system poorly judges depth in 2D projections. Use 2D alternatives always.</p>
+<h3 id="rule-3-use-colorblind-safe-palettes"><a class="header" href="#rule-3-use-colorblind-safe-palettes">Rule 3: Use colorblind-safe palettes</a></h3>
+<p>Approximately 8% of males and 0.5% of females have red-green color vision deficiency. Never use red-green as the only distinguishing feature. Safe alternatives:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Palette</th><th>Colors</th></tr>
+</thead>
+<tbody>
+<tr><td>Blue-orange</td><td>Good contrast, colorblind safe</td></tr>
+<tr><td>Viridis</td><td>Perceptually uniform, prints well in grayscale</td></tr>
+<tr><td>Blue-red diverging</td><td>Good for centered data (use with colorblind check)</td></tr>
+<tr><td>Categorical (Set2)</td><td>Up to 8 distinguishable, colorblind safe</td></tr>
+</tbody>
+</table>
+</div>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="200" viewbox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Colorblind-Safe Palette (8 Distinguishable Colors)</text>
+  <text x="340" y="48" text-anchor="middle" font-size="11" fill="#6b7280">Wong (2011) palette -- safe for protanopia, deuteranopia, and tritanopia</text>
+  <!-- Color swatches -->
+  <g transform="translate(60, 70)">
+    <!-- Black -->
+    <rect x="0" y="0" width="60" height="50" rx="6" fill="#000000" />
+    <text x="30" y="70" text-anchor="middle" font-size="10" fill="#1e293b">Black</text>
+    <text x="30" y="82" text-anchor="middle" font-size="9" fill="#9ca3af">#000000</text>
+    <!-- Orange -->
+    <rect x="75" y="0" width="60" height="50" rx="6" fill="#E69F00" />
+    <text x="105" y="70" text-anchor="middle" font-size="10" fill="#1e293b">Orange</text>
+    <text x="105" y="82" text-anchor="middle" font-size="9" fill="#9ca3af">#E69F00</text>
+    <!-- Sky Blue -->
+    <rect x="150" y="0" width="60" height="50" rx="6" fill="#56B4E9" />
+    <text x="180" y="70" text-anchor="middle" font-size="10" fill="#1e293b">Sky Blue</text>
+    <text x="180" y="82" text-anchor="middle" font-size="9" fill="#9ca3af">#56B4E9</text>
+    <!-- Bluish Green -->
+    <rect x="225" y="0" width="60" height="50" rx="6" fill="#009E73" />
+    <text x="255" y="70" text-anchor="middle" font-size="10" fill="#1e293b">Green</text>
+    <text x="255" y="82" text-anchor="middle" font-size="9" fill="#9ca3af">#009E73</text>
+    <!-- Yellow -->
+    <rect x="300" y="0" width="60" height="50" rx="6" fill="#F0E442" stroke="#e5e7eb" />
+    <text x="330" y="70" text-anchor="middle" font-size="10" fill="#1e293b">Yellow</text>
+    <text x="330" y="82" text-anchor="middle" font-size="9" fill="#9ca3af">#F0E442</text>
+    <!-- Blue -->
+    <rect x="375" y="0" width="60" height="50" rx="6" fill="#0072B2" />
+    <text x="405" y="70" text-anchor="middle" font-size="10" fill="#1e293b">Blue</text>
+    <text x="405" y="82" text-anchor="middle" font-size="9" fill="#9ca3af">#0072B2</text>
+    <!-- Vermillion -->
+    <rect x="450" y="0" width="60" height="50" rx="6" fill="#D55E00" />
+    <text x="480" y="70" text-anchor="middle" font-size="10" fill="#1e293b">Vermillion</text>
+    <text x="480" y="82" text-anchor="middle" font-size="9" fill="#9ca3af">#D55E00</text>
+    <!-- Reddish Purple -->
+    <rect x="525" y="0" width="60" height="50" rx="6" fill="#CC79A7" />
+    <text x="555" y="70" text-anchor="middle" font-size="10" fill="#1e293b">Rose</text>
+    <text x="555" y="82" text-anchor="middle" font-size="9" fill="#9ca3af">#CC79A7</text>
+  </g>
+  <!-- Bottom note -->
+  <rect x="20" y="165" width="640" height="25" rx="4" fill="#f1f5f9" />
+  <text x="340" y="182" text-anchor="middle" font-size="11" fill="#6b7280">Avoid red-green as the only distinction. ~8% of males have red-green color vision deficiency. Use shape + color together.</text>
+</svg>
+</div>
+
+<h3 id="rule-4-show-the-data"><a class="header" href="#rule-4-show-the-data">Rule 4: Show the data</a></h3>
+<p>Whenever possible, show individual data points. Summary statistics (means, medians) are important but insufficient. A bimodal distribution and a unimodal distribution can have identical means and standard deviations.</p>
+<h3 id="rule-5-label-everything"><a class="header" href="#rule-5-label-everything">Rule 5: Label everything</a></h3>
+<p>Every figure needs: title, axis labels with units, legend if multiple groups, sample sizes, and any statistical annotations.</p>
+<h2 id="visualization-sins-that-lie"><a class="header" href="#visualization-sins-that-lie">Visualization Sins That Lie</a></h2>
+<h3 id="the-truncated-axis"><a class="header" href="#the-truncated-axis">The truncated axis</a></h3>
+<p>A bar chart showing revenue of $100M vs $102M with the y-axis starting at $99M makes a 2% difference look enormous. In biology, this commonly appears in gene expression plots where the y-axis starts at a non-zero value.</p>
+<h3 id="the-dual-y-axis"><a class="header" href="#the-dual-y-axis">The dual y-axis</a></h3>
+<p>Two different scales on the same plot can make unrelated trends appear correlated. By choosing the scales appropriately, you can make any two lines appear to track each other.</p>
+<h3 id="the-cherry-picked-time-window"><a class="header" href="#the-cherry-picked-time-window">The cherry-picked time window</a></h3>
+<p>Showing survival curves from month 6 to month 24 (where the drug looks good) but omitting month 0 to 6 (where there is no difference) or month 24 to 48 (where the effect fades) is misleading.</p>
+<h3 id="the-pie-chart"><a class="header" href="#the-pie-chart">The pie chart</a></h3>
+<p>Pie charts are universally criticized by statisticians. Humans are poor at judging angles and areas. A bar chart conveys the same information more accurately.</p>
+<blockquote>
+<p><strong>Key insight:</strong> The goal of visualization is not to make your results look impressive — it is to accurately represent the data so that the reader can draw correct conclusions. A figure that misleads, even unintentionally, undermines the entire paper.</p>
+</blockquote>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li><strong>Box vs violin vs bar.</strong> Generate three datasets: (a) normal, (b) bimodal, (c) heavily skewed. For each, create a bar chart with error bars, a box plot with points, and a violin plot. Which plot type reveals the distribution shape most honestly?</li>
+</ol>
+<pre><code class="language-bio">set_seed(42)
+let normal = rnorm(100, 50, 10)
+let bimodal = concat(rnorm(50, 30, 5), rnorm(50, 70, 5))
+let skewed = rnorm(100, 0, 1) |&gt; map(|x| abs(x) * 10)
+# Your code: create all three plot types for each dataset
+</code></pre>
+<ol start="2">
+<li><strong>Publication figure.</strong> Take the clinical trial data from Day 17 (survival analysis) and create a publication-ready Kaplan-Meier plot with: risk table, log-rank p-value, hazard ratio annotation, median survival lines, and proper axis labels. Save as SVG.</li>
+</ol>
+<pre><code class="language-bio"># Your code: kaplan_meier_plot with all publication elements
+</code></pre>
+<ol start="3">
+<li><strong>Volcano and heatmap.</strong> From the DE analysis on Day 12, create (a) a volcano plot with the top 10 genes labeled and threshold lines, and (b) a heatmap of the top 50 DE genes clustered by sample and gene.</li>
+</ol>
+<pre><code class="language-bio"># Your code: volcano + heatmap, publication quality
+</code></pre>
+<ol start="4">
+<li><strong>Color blindness check.</strong> Create a scatter plot with 4 groups using (a) a red-green palette and (b) a colorblind-safe palette. Describe why the first is problematic.</li>
+</ol>
+<pre><code class="language-bio"># Your code: two versions of the same scatter, different palettes
+</code></pre>
+<ol start="5">
+<li><strong>Visualization critique.</strong> The following figure specifications describe common visualization sins. For each, explain the problem and generate the correct version:
+<ul>
+<li>(a) Bar chart of gene expression levels with y-axis from 95 to 105</li>
+<li>(b) 3D pie chart of mutation types</li>
+<li>(c) Scatter plot with no axis labels</li>
+</ul>
+</li>
+</ol>
+<pre><code class="language-bio"># Your code: create the corrected versions
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>Choose the plot type based on your data type and the relationship you want to show — the decision guide above covers the most common situations.</li>
+<li>Box plots and violin plots show distribution shape; bar charts with error bars do not — prefer the former for continuous data.</li>
+<li>Volcano plots combine fold change and significance for differential expression; Manhattan plots display genome-wide results by chromosomal position.</li>
+<li>Forest plots are the standard for meta-analysis and subgroup results; Bland-Altman plots assess method agreement; funnel plots check for publication bias.</li>
+<li>Honest visualization requires: axes starting at zero (for bar charts), no 3D effects, colorblind-safe palettes, individual data points when feasible, and complete labeling.</li>
+<li>Every publication figure should include: descriptive title, axis labels with units, legend, sample sizes, statistical annotations (p-values, effect sizes), and a mention of the color scale for heatmaps.</li>
+<li>The goal of visualization is truth, not beauty. A technically impressive plot that misleads is worse than a simple plot that communicates honestly.</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Individual studies provide individual estimates. But what happens when five different labs study the same question and get five different answers? Tomorrow, we tackle meta-analysis — the formal framework for combining results across studies to get a single, more precise estimate. You will build forest plots, assess heterogeneity, check for publication bias, and learn when pooling studies is appropriate and when it is dangerously misleading.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-24.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-26.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-24.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-26.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -171,7 +171,7 @@ print(f"Heterozygosity rate: {het_rate |> round(4)}")</code></pre>
         <h2>FASTA Analysis</h2>
 
         <h3>Assembly statistics</h3>
-        <pre><code class="language-biolang">let contigs = fasta("assembly.fa")
+        <pre><code class="language-biolang">let contigs = read_fasta("data/sequences.fasta")
   |> map(|r| len(r.seq))
   |> sort_by(|a, b| b - a)
   |> collect
@@ -184,11 +184,11 @@ print("Assembly Statistics:")
 print(f"  Contigs:    {n_contigs}")
 print(f"  Total bp:   {total |> str}")
 print(f"  Longest:    {longest |> str}")
-print(f"  GC content: {fasta("assembly.fa") |> map(|r| gc_content(r.seq)) |> mean |> round(3)}")</code></pre>
+print(f"  GC content: {read_fasta("data/sequences.fasta") |> map(|r| gc_content(r.seq)) |> mean |> round(3)}")</code></pre>
 
         <h3>Find motifs in a genome</h3>
         <pre><code class="language-biolang"># Search for a restriction enzyme site (EcoRI: GAATTC)
-let genome = fasta("genome.fa")
+let genome = read_fasta("data/sequences.fasta")
 
 for record in genome {
   let sites = find_motif(record.seq, "GAATTC")

@@ -213,7 +213,7 @@ println("Error rate:", error_rate(q))
 let trimmed = trim_quality(q, 20)  # trim below Q20
 
 # FASTQ records include quality scores
-let reads = fastq("sample.fq")
+let reads = read_fastq("data/reads.fastq")
 for read in reads {
   if mean_phred(read.quality) < 25 {
     println("Low quality read:", read.id)

@@ -9,14 +9,14 @@ the operations that make them powerful.
 
 A DNA literal is created with the `dna` prefix:
 
-```
+```biolang
 let seq = dna"ATCGATCGATCG"
 ```
 
 DNA literals accept only valid IUPAC nucleotide codes: `A`, `T`, `C`, `G`, and
 ambiguity codes `N`, `R`, `Y`, `S`, `W`, `K`, `M`, `B`, `D`, `H`, `V`.
 
-```
+```biolang
 # Ambiguous positions are valid
 let probe = dna"ATCNNGATCG"
 
@@ -27,7 +27,7 @@ print(lower)   # => dna"ATCGATCG"
 
 Invalid bases cause a compile-time error:
 
-```
+```biolang
 # This is a compile error -- U is not a DNA base
 let bad = dna"AUCG"
 # Error: invalid DNA base 'U' at position 1
@@ -37,7 +37,7 @@ let bad = dna"AUCG"
 
 RNA uses the `rna` prefix and contains `A`, `U`, `C`, `G`:
 
-```
+```biolang
 let mrna = rna"AUGCUUAAGGCUAG"
 ```
 
@@ -45,14 +45,14 @@ let mrna = rna"AUGCUUAAGGCUAG"
 
 Protein sequences use standard single-letter amino acid codes:
 
-```
+```biolang
 let p53_fragment = protein"MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPS"
 ```
 
 Protein literals validate against the 20 standard amino acids plus `X` (unknown),
 `*` (stop), `U` (selenocysteine), and `O` (pyrrolysine):
 
-```
+```biolang
 let with_stop = protein"MVLSPADKTNVK*"
 ```
 
@@ -60,20 +60,20 @@ let with_stop = protein"MVLSPADKTNVK*"
 
 Phred+33 quality scores are first-class values:
 
-```
+```biolang
 let quals = qual"IIIIIHHHGGFFEEDCBA"
 ```
 
 Each character maps to a Phred quality score. You can work with them numerically:
 
-```
+```biolang
 let q = qual"IIIIIHHHGG"
 print(mean(q))       # => 37.2
 print(min(q))        # => 38  (G = 38)
 print(max(q))        # => 40  (I = 40)
 
 # Filter reads by mean quality
-let reads = read_fastq("sample.fastq.gz")
+let reads = read_fastq("data/reads.fastq")
 let hq_reads = reads |> filter(|r| mean(r.quality) >= 30)
 ```
 
@@ -81,7 +81,7 @@ let hq_reads = reads |> filter(|r| mean(r.quality) >= 30)
 
 ### Complement and Reverse Complement
 
-```
+```biolang
 let forward = dna"ATCGATCG"
 
 let comp = forward |> complement()
@@ -93,7 +93,7 @@ print(rc)     # => dna"CGATCGAT"
 
 Reverse complement is the workhorse of strand-aware bioinformatics:
 
-```
+```biolang
 # Check if a primer binds to either strand
 let template = dna"ATCGATCGAATTCGCTAGC"
 let primer = dna"GCTAGC"
@@ -106,7 +106,7 @@ print(f"Forward hits: {len(fwd_match)}, Reverse hits: {len(rev_match)}")
 
 ### Transcription and Translation
 
-```
+```biolang
 let gene = dna"ATGAAAGCTTTTCGATAG"
 
 # Transcribe DNA to RNA (T -> U)
@@ -117,13 +117,13 @@ print(mrna)   # => rna"AUGAAAGCUUUUCGAUAG"
 let protein_seq = gene |> translate()
 print(protein_seq)   # => protein"MKAFR*"
 
-# Translate with a different codon table (e.g., mitochondrial)
-let mito_protein = gene |> translate(table: 2)
+let mito_protein = gene |> translate()
+print(mito_protein)  # standard genetic code (table 1)
 ```
 
 ### GC Content
 
-```
+```biolang
 let contig = dna"ATCGATCGGGCCCATATATGCGCGC"
 
 let gc = contig |> gc_content()
@@ -136,7 +136,7 @@ print(gc_windows)
 
 ### Subsequences with `slice` and `len`
 
-```
+```biolang
 let genome_fragment = dna"ATCGATCGATCGATCGATCG"
 
 print(seq_len(genome_fragment))           # => 20
@@ -152,7 +152,7 @@ let cds = genome_fragment |> slice(cds_start, cds_end)
 
 `find_motif` returns a list of match positions:
 
-```
+```biolang
 let seq = dna"ATCGAATTCGATCGAATTCG"
 
 # Find EcoRI recognition site
@@ -169,7 +169,7 @@ matches |> each(|m| print(f"Match at {m.start}: {m.text}"))
 An open reading frame (ORF) starts with ATG and ends at the first in-frame stop codon
 (TAA, TAG, TGA). This script finds all ORFs in all six reading frames.
 
-```
+```biolang
 # orf_finder.bl
 # Find all open reading frames in a FASTA sequence.
 
@@ -196,7 +196,7 @@ let find_orfs = |seq, min_length| {
   orfs
 }
 
-let sequences = read_fasta("contigs.fa")
+let sequences = read_fasta("data/sequences.fasta")
 
 # Search all 6 reading frames
 let all_orfs = sequences |> flat_map(|entry| {
@@ -235,11 +235,11 @@ all_orfs
 Given a coding sequence, calculate the frequency of each codon and display
 the codon usage bias.
 
-```
+```biolang
 # codon_usage.bl
 # Build a codon usage table from a coding sequence.
 
-let cds_records = read_fasta("cds_sequences.fa")
+let cds_records = read_fasta("data/sequences.fasta")
 
 # Aggregate codons across all coding sequences
 let codon_list = cds_records
@@ -280,7 +280,7 @@ rare |> each(|c| print(f"  {c.codon} ({c.amino_acid}): {c.per_thousand:.1f}/1000
 Find all restriction enzyme recognition sites in a sequence and predict
 fragment sizes for a virtual digest.
 
-```
+```biolang
 # digest.bl
 # Virtual restriction digest of a DNA sequence.
 
@@ -296,7 +296,7 @@ let enzymes = [
   {name: "PstI",    site: dna"CTGCAG",  cut_offset: 5}
 ]
 
-let entry = read_fasta("plasmid.fa") |> first()
+let entry = read_fasta("data/sequences.fasta") |> first()
 let seq = entry.seq
 print(f"Sequence length: {seq_len(seq)} bp\n")
 

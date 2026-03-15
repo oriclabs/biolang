@@ -67,7 +67,7 @@
 # rnaseq.bio — differential expression analysis
 
 # Read the count matrix
-let counts = csv("data/counts.csv")
+let counts = read_csv("data/counts.csv")
 
 print(f"Genes: {nrow(counts)}")
 print(f"Samples: {ncol(counts) - 1}")  # minus the gene column
@@ -133,7 +133,7 @@ print(head(cpm_table, 3))
 
 # TPM normalization (Transcripts Per Kilobase Million)
 # Requires gene lengths
-let gene_lengths = csv("data/gene_lengths.csv")  # gene, length
+let gene_lengths = read_csv("data/expression.csv")  # gene, length
 
 let with_lengths = inner_join(expressed, gene_lengths, "gene")
 let lengths = col(with_lengths, "length")
@@ -306,8 +306,8 @@ save_svg(p, "results/enrichment.svg")</code></pre>
 
 fn run_de_analysis(counts_file, design_file, output_dir) {
   # Load data
-  let counts = csv(counts_file)
-  let design = csv(design_file)
+  let counts = read_csv(counts_file)
+  let design = read_csv(design_file)
   let samples = col(design, "sample")
   let n_ctrl = nrow(filter(design, |r| r["group"] == "control"))
 

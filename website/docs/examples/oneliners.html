@@ -60,19 +60,19 @@
         <h2>FASTQ Operations</h2>
 
         <h3>Count reads in a FASTQ file</h3>
-        <pre><code class="language-biolang">fastq("sample.fq.gz") |> len |> print</code></pre>
+        <pre><code class="language-biolang">read_fastq("data/reads.fastq") |> len |> print</code></pre>
 
         <h3>Average read length</h3>
-        <pre><code class="language-biolang">fastq("reads.fq") |> map(|r| r.length) |> mean |> print</code></pre>
+        <pre><code class="language-biolang">read_fastq("data/reads.fastq") |> map(|r| r.length) |> mean |> print</code></pre>
 
         <h3>Filter reads by quality</h3>
-        <pre><code class="language-biolang">fastq("in.fq") |> filter(|r| mean_phred(r.quality) >= 30.0) |> write_fastq("hq.fq")</code></pre>
+        <pre><code class="language-biolang">read_fastq("data/reads.fastq") |> filter(|r| mean_phred(r.quality) >= 30.0) |> write_fastq("hq.fq")</code></pre>
 
         <h3>Extract read names</h3>
-        <pre><code class="language-biolang">fastq("reads.fq") |> map(|r| r.id) |> take(10) |> print</code></pre>
+        <pre><code class="language-biolang">read_fastq("data/reads.fastq") |> map(|r| r.id) |> take(10) |> print</code></pre>
 
         <h3>Total bases in a FASTQ file</h3>
-        <pre><code class="language-biolang">fastq("reads.fq") |> map(|r| r.length) |> sum |> print</code></pre>
+        <pre><code class="language-biolang">read_fastq("data/reads.fastq") |> map(|r| r.length) |> sum |> print</code></pre>
 
         <h2>VCF Operations</h2>
 
@@ -99,13 +99,13 @@
         <h2>FASTA Operations</h2>
 
         <h3>Sequence lengths from a FASTA</h3>
-        <pre><code class="language-biolang">fasta("genome.fa") |> map(|r| [r.id, len(r.seq)]) |> print</code></pre>
+        <pre><code class="language-biolang">read_fasta("data/sequences.fasta") |> map(|r| [r.id, len(r.seq)]) |> print</code></pre>
 
         <h3>Filter sequences by length</h3>
-        <pre><code class="language-biolang">fasta("contigs.fa") |> filter(|r| len(r.seq) >= 1000) |> write_fasta("long.fa")</code></pre>
+        <pre><code class="language-biolang">read_fasta("data/sequences.fasta") |> filter(|r| len(r.seq) >= 1000) |> write_fasta("long.fa")</code></pre>
 
         <h3>GC content of all sequences</h3>
-        <pre><code class="language-biolang">fasta("assembly.fa") |> map(|r| gc_content(r.seq)) |> mean |> print</code></pre>
+        <pre><code class="language-biolang">read_fasta("data/sequences.fasta") |> map(|r| gc_content(r.seq)) |> mean |> print</code></pre>
 
         <h2>Text and Data</h2>
 
@@ -116,7 +116,7 @@
         <pre><code class="language-biolang">tsv("data.tsv") |> map(|row| row["gene_name"]) |> unique |> print</code></pre>
 
         <h3>Sum a numeric column</h3>
-        <pre><code class="language-biolang">csv("counts.csv") |> map(|row| row["count"] |> int) |> sum |> print</code></pre>
+        <pre><code class="language-biolang">read_csv("data/counts.csv") |> map(|row| row["count"] |> int) |> sum |> print</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

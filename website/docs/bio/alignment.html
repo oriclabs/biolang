@@ -143,7 +143,7 @@ print(result.cigar)       # => CIGAR string
 print(result.gaps)        # => number of gap positions
 
 # Compare multiple sequences against the first
-let seqs = fasta("homologs.fa") |> collect()
+let seqs = read_fasta("data/sequences.fasta") |> collect()
 let ref_seq = first(seqs)
 seqs |> map(|s| {
   id: s.id,

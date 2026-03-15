@@ -37,34 +37,8 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-28e3bb40.js";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
         </script>
-
-        <!-- Custom JS scripts for mdbook-pdf PDF generation -->
-        <script type='text/javascript'>
-            let markAllContentHasLoadedForPrinting = () =>
-                window.setTimeout(
-                    () => {
-                        let p = document.createElement('div');
-                        p.setAttribute('id', 'content-has-all-loaded-for-mdbook-pdf-generation');
-                        document.body.appendChild(p);
-                    }, 100
-                );
-
-            window.addEventListener('load', () => {
-                // Expand all the <details> elements for printing.
-                r = document.getElementsByTagName('details');
-                for (let i of r)
-                    i.open = true;
-
-                try {
-                    MathJax.Hub.Register.StartupHook('End', markAllContentHasLoadedForPrinting);
-                } catch (e) {
-                    markAllContentHasLoadedForPrinting();
-                }
-            });
-        </script>
-    <div style="display: none"><a href="#introduction">introduction</a><a href="#day-01">day-01</a><a href="#day-02">day-02</a><a href="#day-03">day-03</a><a href="#day-04">day-04</a><a href="#day-05">day-05</a><a href="#day-06">day-06</a><a href="#day-07">day-07</a><a href="#day-08">day-08</a><a href="#day-09">day-09</a><a href="#day-10">day-10</a><a href="#day-11">day-11</a><a href="#day-12">day-12</a><a href="#day-13">day-13</a><a href="#day-14">day-14</a><a href="#day-15">day-15</a><a href="#day-16">day-16</a><a href="#day-17">day-17</a><a href="#day-18">day-18</a><a href="#day-19">day-19</a><a href="#day-20">day-20</a><a href="#day-21">day-21</a><a href="#day-22">day-22</a><a href="#day-23">day-23</a><a href="#day-24">day-24</a><a href="#day-25">day-25</a><a href="#day-26">day-26</a><a href="#day-27">day-27</a><a href="#day-28">day-28</a><a href="#day-29">day-29</a><a href="#day-30">day-30</a><a href="#appendix-setup">appendix-setup</a><a href="#appendix-flowchart">appendix-flowchart</a><a href="#appendix-distributions">appendix-distributions</a><a href="#appendix-glossary">appendix-glossary</a><a href="#appendix-reference">appendix-reference</a></div>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
     </head>
@@ -368,8 +342,8 @@ bl repl
 <h2 id="a-quick-taste"><a class="header" href="#a-quick-taste">A Quick Taste</a></h2>
 <p>Here is what statistical analysis looks like in BioLang. This script loads gene expression data, runs a t-test between two conditions, and generates a volcano plot — all in pipe style:</p>
 <pre><code class="language-bio"># Load expression data for two conditions
-let ctrl = read_csv("control_expression.csv")
-let treat = read_csv("treated_expression.csv")
+let ctrl = read_csv("data/expression.csv")
+let treat = read_csv("data/expression.csv")
 
 # Run t-tests for every gene, correct for multiple testing
 let results = ctrl
@@ -390,7 +364,7 @@ results |&gt; volcano_plot("log2fc", "padj", "gene_id")
 </code></pre>
 <p>Twelve lines. No imports. No boilerplate. The pipe operator makes the analytical logic visible: load, join, test, correct, filter, plot. You will understand every line of this by Day 10.</p>
 <p>Here is another example — survival analysis in three lines:</p>
-<pre><code class="language-bio">let patients = read_csv("clinical_outcomes.csv")
+<pre><code class="language-bio">let patients = read_csv("data/clinical.csv")
 
 patients
   |&gt; kaplan_meier("months", "deceased", "treatment")
@@ -432,7 +406,7 @@ TTestResult { t: 4.12, df: 4, p: 0.0146 }
 <h3 id="python-and-r-comparisons"><a class="header" href="#python-and-r-comparisons">Python and R Comparisons</a></h3>
 <p>Multi-language comparisons appear with labeled blocks:</p>
 <p><strong>BioLang:</strong></p>
-<pre><code class="language-bio">let data = read_csv("expression.csv")
+<pre><code class="language-bio">let data = read_csv("data/expression.csv")
 data |&gt; ttest(ctrl, treated) |&gt; println()
 </code></pre>
 <p><strong>Python:</strong></p>
@@ -1136,7 +1110,7 @@ print(report)
 <h3 id="working-with-real-sequencing-data"><a class="header" href="#working-with-real-sequencing-data">Working with Real Sequencing Data</a></h3>
 <pre><code class="language-bio">set_seed(42)
 # In practice, you'd load from a file:
-# let scores = read_csv("run_quality_scores.csv") |&gt; column("phred_score")
+# let scores = read_csv("data/expression.csv") |&gt; column("phred_score")
 
 # Simulate a problematic run with bimodal quality
 let good_tiles = rnorm(8000, 33.0, 2.5)
@@ -15370,7 +15344,7 @@ scatter(pca_result.scores[0], pca_result.scores[1],
 <p>Let us take a messy analysis from earlier chapters and restructure it into a reproducible pipeline.</p>
 <h3 id="before-messy"><a class="header" href="#before-messy">Before (messy):</a></h3>
 <pre><code class="language-bio"># quick analysis
-let d = read_csv("data.csv")
+let d = read_csv("data/expression.csv")
 let a = d |&gt; filter(|r| r.group == "A") |&gt; map(|r| r.value)
 let b = d |&gt; filter(|r| r.group == "B") |&gt; map(|r| r.value)
 print(ttest(a, b))
@@ -19411,7 +19385,7 @@ let model = lm(survival_time, [age, stage, treatment])
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-aab19ecd.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
 
         <script>
         window.addEventListener('load', function() {

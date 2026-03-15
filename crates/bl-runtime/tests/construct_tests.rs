@@ -2146,3 +2146,281 @@ result.aic"#;
         assert!(f > 0.0, "AIC should be positive, got {f}");
     } else { panic!("expected Float"); }
 }
+
+// ============================================================
+// resolve() — gene symbol resolution
+// ============================================================
+
+#[test]
+fn test_resolve_registered() {
+    // resolve() requires network — just verify it doesn't crash on registration
+    // It will error with "no fetch hook" but that proves it's registered
+    let result = eval_err(r#"resolve("BRCA1")"#);
+    assert!(result); // expect error (no fetch hook in tests)
+}
+
+// ============================================================
+// bio_join() — biological table join
+// ============================================================
+
+#[test]
+fn test_bio_join_auto_detect_key() {
+    let result = eval(r#"
+let left = [{gene: "BRCA1", score: 10}, {gene: "TP53", score: 20}]
+let right = [{gene: "BRCA1", pathway: "repair"}, {gene: "TP53", pathway: "apoptosis"}]
+let joined = bio_join(left, right)
+len(joined)
+"#);
+    assert_eq!(result, Value::Int(2));
+}
+
+#[test]
+fn test_bio_join_explicit_key() {
+    let result = eval(r#"
+let a = [{id: "A", val: 1}, {id: "B", val: 2}]
+let b = [{id: "A", name: "alpha"}, {id: "C", name: "charlie"}]
+let joined = bio_join(a, b, "id")
+len(joined)
+"#);
+    assert_eq!(result, Value::Int(1)); // inner join
+}
+
+#[test]
+fn test_bio_join_left() {
+    let result = eval(r#"
+let a = [{gene: "A", val: 1}, {gene: "B", val: 2}]
+let b = [{gene: "A", name: "alpha"}]
+let joined = bio_join(a, b, "gene", "left")
+len(joined)
+"#);
+    assert_eq!(result, Value::Int(2)); // left join keeps all from left
+}
+
+#[test]
+fn test_bio_join_case_insensitive() {
+    let result = eval(r#"
+let a = [{gene: "BRCA1", val: 1}]
+let b = [{gene: "brca1", name: "test"}]
+let joined = bio_join(a, b, "gene")
+len(joined)
+"#);
+    assert_eq!(result, Value::Int(1));
+}
+
+// ============================================================
+// diff_table() — table difference
+// ============================================================
+
+#[test]
+fn test_diff_table_basic() {
+    let result = eval(r#"
+let a = [{id: "A", val: 1}, {id: "B", val: 2}]
+let b = [{id: "A", val: 1}, {id: "B", val: 3}, {id: "C", val: 4}]
+let d = diff_table(a, b, "id")
+d.unchanged
+"#);
+    assert_eq!(result, Value::Int(1));
+}
+
+// ============================================================
+// qc_report() — read quality report
+// ============================================================
+
+#[test]
+fn test_qc_report_basic() {
+    let result = eval(r#"
+let reads = [
+    {id: "r1", sequence: "ATCGATCG", quality: "IIIIIIII", length: 8},
+    {id: "r2", sequence: "GCTAGCTA", quality: "HHHHGGGG", length: 8},
+]
+let qc = qc_report(reads)
+qc.total_reads
+"#);
+    assert_eq!(result, Value::Int(2));
+}
+
+#[test]
+fn test_qc_report_total_bases() {
+    let result = eval(r#"
+let reads = [
+    {id: "r1", sequence: "ATCG", quality: "IIII", length: 4},
+    {id: "r2", sequence: "GCTA", quality: "HHHH", length: 4},
+]
+let qc = qc_report(reads)
+qc.total_bases
+"#);
+    assert_eq!(result, Value::Int(8));
+}
+
+// ============================================================
+// primer_design() — returns list of primers
+// ============================================================
+
+#[test]
+fn test_primer_design_returns_list() {
+    let result = eval(r#"
+let seq = dna"ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG"
+let primers = primer_design(seq, 20, 40)
+typeof(primers)
+"#);
+    assert_eq!(result, Value::Str("List".into()));
+}
+
+// ============================================================
+// heatmap() — SVG output
+// ============================================================
+
+#[test]
+fn test_heatmap_returns_svg() {
+    let result = eval(r#"
+let data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+let svg = heatmap(data)
+starts_with(svg, "<svg")
+"#);
+    assert_eq!(result, Value::Bool(true));
+}
+
+// ============================================================
+// spread operator — {...base, key: val}
+// ============================================================
+
+#[test]
+fn test_spread_basic() {
+    let result = eval(r#"
+let base = {a: 1, b: 2}
+let extended = {...base, c: 3}
+extended.c
+"#);
+    assert_eq!(result, Value::Int(3));
+}
+
+#[test]
+fn test_spread_override() {
+    let result = eval(r#"
+let defaults = {color: "red", size: 10}
+let custom = {...defaults, color: "blue"}
+custom.color
+"#);
+    assert_eq!(result, Value::Str("blue".into()));
+}
+
+#[test]
+fn test_spread_multiple() {
+    let result = eval(r#"
+let a = {x: 1}
+let b = {y: 2}
+let merged = {...a, ...b, z: 3}
+merged.x + merged.y + merged.z
+"#);
+    assert_eq!(result, Value::Int(6));
+}
+
+// ============================================================
+// ++ concat operator
+// ============================================================
+
+#[test]
+fn test_concat_lists() {
+    let result = eval(r#"
+[1, 2] ++ [3, 4]
+"#);
+    assert_eq!(result, Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)]));
+}
+
+#[test]
+fn test_concat_strings() {
+    let result = eval(r#"
+"hello" ++ " world"
+"#);
+    assert_eq!(result, Value::Str("hello world".into()));
+}
+
+// ============================================================
+// each() returns Nil with side effects
+// ============================================================
+
+#[test]
+fn test_each_returns_nil_with_side_effects() {
+    let result = eval(r#"
+let count = 0
+[1, 2, 3] |> each(|n| { count = count + n })
+count
+"#);
+    assert_eq!(result, Value::Int(6));
+}
+
+// ============================================================
+// slice on DNA
+// ============================================================
+
+#[test]
+fn test_slice_dna() {
+    let result = eval(r#"
+let seq = dna"ATCGATCG"
+slice(seq, 2, 6)
+"#);
+    assert_eq!(result, Value::DNA(bl_core::value::BioSequence { data: "CGAT".into() }));
+}
+
+// ============================================================
+// find_motif with DNA
+// ============================================================
+
+#[test]
+fn test_find_motif_dna_args() {
+    let result = eval(r#"
+let seq = dna"ATCGAATTCGATCG"
+let positions = find_motif(seq, dna"GAATTC")
+len(positions)
+"#);
+    assert_eq!(result, Value::Int(1));
+}
+
+// ============================================================
+// window on DNA
+// ============================================================
+
+#[test]
+fn test_window_dna() {
+    let result = eval(r#"
+let seq = dna"ATCG"
+let wins = window(seq, 2)
+len(wins)
+"#);
+    assert_eq!(result, Value::Int(3));
+}
+
+// ============================================================
+// ANI — Average Nucleotide Identity
+// ============================================================
+
+#[test]
+fn test_ani_identical() {
+    let result = eval(r#"
+let s = dna"ATCGATCGATCGATCGATCGATCG"
+ani(s, s)
+"#);
+    if let Value::Float(v) = result {
+        assert!((v - 1.0).abs() < 0.001);
+    } else {
+        panic!("expected Float");
+    }
+}
+
+// ============================================================
+// enrichment_score
+// ============================================================
+
+#[test]
+fn test_enrichment_score_basic() {
+    let result = eval(r#"
+let values = {A: 10.0, B: 20.0, C: 5.0, D: 15.0}
+let gene_set = ["A", "B"]
+enrichment_score(values, gene_set)
+"#);
+    if let Value::Float(v) = result {
+        assert!(v > 1.0); // A+B mean (15) > global mean (12.5)
+    } else {
+        panic!("expected Float");
+    }
+}

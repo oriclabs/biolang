@@ -349,6 +349,12 @@ pub fn register_builtins(env: &mut Environment) {
         builtins.push((name, arity));
     }
 
+    // Add Parquet builtins (native only)
+    #[cfg(feature = "native")]
+    for (name, arity) in crate::parquet::parquet_builtin_list() {
+        builtins.push((name, arity));
+    }
+
     // Add hash builtins
     for (name, arity) in crate::hash::hash_builtin_list() {
         builtins.push((name, arity));
@@ -381,6 +387,13 @@ pub fn register_builtins(env: &mut Environment) {
 
     // Add core sequence builtins (WASM-safe — pure string transforms via bio_core)
     for (name, arity) in crate::seq::seq_builtin_list() {
+        builtins.push((name, arity));
+    }
+
+    // Add NCBI E-utilities builtins (WASM-safe — uses fetch hook for browser API calls)
+    // On native builds these are shadowed by the full apis.rs builtins registered above.
+    #[cfg(not(feature = "native"))]
+    for (name, arity) in crate::ncbi_wasm::ncbi_wasm_builtin_list() {
         builtins.push((name, arity));
     }
 
@@ -470,9 +483,13 @@ pub fn register_builtins(env: &mut Environment) {
         ("is_sparse", Arity::Exact(1)),
     ]);
 
-    // Add bio builtins (native only — requires bl-bio)
+    // Add bio builtins (native: full bl-bio with noodles; WASM: lightweight text parsers)
     #[cfg(feature = "native")]
     for (name, arity) in bl_bio::bio_builtin_list() {
+        builtins.push((name, arity));
+    }
+    #[cfg(not(feature = "native"))]
+    for (name, arity) in crate::bio_wasm::bio_wasm_builtin_list() {
         builtins.push((name, arity));
     }
 
@@ -567,6 +584,12 @@ pub fn all_builtin_names() -> Vec<&'static str> {
     for (n, _) in crate::sparse::sparse_builtin_list() { names.push(n); }
     for (n, _) in crate::seq::seq_builtin_list() { names.push(n); }
     #[cfg(feature = "native")]
+    for (n, _) in bl_bio::bio_builtin_list() { names.push(n); }
+    #[cfg(not(feature = "native"))]
+    for (n, _) in crate::bio_wasm::bio_wasm_builtin_list() { names.push(n); }
+    #[cfg(not(feature = "native"))]
+    for (n, _) in crate::ncbi_wasm::ncbi_wasm_builtin_list() { names.push(n); }
+    #[cfg(feature = "native")]
     {
         for (n, _) in crate::fs::fs_builtin_list() { names.push(n); }
         for (n, _) in crate::http::http_builtin_list() { names.push(n); }
@@ -576,7 +599,7 @@ pub fn all_builtin_names() -> Vec<&'static str> {
         for (n, _) in crate::nf_parse::nf_parse_builtin_list() { names.push(n); }
         for (n, _) in crate::notify::notify_builtin_list() { names.push(n); }
         for (n, _) in crate::sqlite::sqlite_builtin_list() { names.push(n); }
-        for (n, _) in bl_bio::bio_builtin_list() { names.push(n); }
+        for (n, _) in crate::parquet::parquet_builtin_list() { names.push(n); }
         for (n, _) in crate::apis::apis_builtin_list() { names.push(n); }
     }
     names
@@ -1674,13 +1697,32 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             }
         }
         "window" => {
+            // Handle bio sequences: convert to list of single-char sequences
+            if let Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) = &args[0] {
+                let size = require_int(&args[1], "window")? as usize;
+                if size == 0 || size > seq.data.len() {
+                    return Ok(Value::List(vec![]));
+                }
+                let windows: Vec<Value> = (0..=seq.data.len() - size)
+                    .map(|i| {
+                        let sub = bl_core::value::BioSequence { data: seq.data[i..i + size].to_string() };
+                        match &args[0] {
+                            Value::DNA(_) => Value::DNA(sub),
+                            Value::RNA(_) => Value::RNA(sub),
+                            Value::Protein(_) => Value::Protein(sub),
+                            _ => unreachable!(),
+                        }
+                    })
+                    .collect();
+                return Ok(Value::List(windows));
+            }
             let owned;
             let items = match &args[0] {
                 Value::List(l) => l,
                 Value::Table(t) => { owned = table_to_records(t); &owned }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("window() requires List or Table, got {}", other.type_of()),
+                        format!("window() requires List, Table, or bio sequence, got {}", other.type_of()),
                         None,
                     ))
                 }
@@ -1850,12 +1892,29 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     let start = start.min(end);
                     return Ok(Value::Str(s[start..end].to_string()));
                 }
+                Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => {
+                    let start = require_int(&args[1], "slice")? as usize;
+                    let end = if args.len() > 2 {
+                        require_int(&args[2], "slice")? as usize
+                    } else {
+                        seq.data.len()
+                    };
+                    let end = end.min(seq.data.len());
+                    let start = start.min(end);
+                    let sliced = bl_core::value::BioSequence { data: seq.data[start..end].to_string() };
+                    return Ok(match &args[0] {
+                        Value::DNA(_) => Value::DNA(sliced),
+                        Value::RNA(_) => Value::RNA(sliced),
+                        Value::Protein(_) => Value::Protein(sliced),
+                        _ => unreachable!(),
+                    });
+                }
                 Value::Table(_) => {
                     return crate::table_ops::call_table_builtin("slice", args);
                 }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("slice() requires List, Str, or Table, got {}", other.type_of()),
+                        format!("slice() requires List, Str, Table, or bio sequence, got {}", other.type_of()),
                         None,
                     ))
                 }
@@ -2217,6 +2276,8 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             crate::regex_ops::call_regex_builtin(name, args)
         }
         _ if crate::csv::is_csv_builtin(name) => crate::csv::call_csv_builtin(name, args),
+        #[cfg(feature = "native")]
+        _ if crate::parquet::is_parquet_builtin(name) => crate::parquet::call_parquet_builtin(name, args),
         _ if crate::table_ops::is_table_builtin(name) => {
             crate::table_ops::call_table_builtin(name, args)
         }
@@ -2229,11 +2290,11 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::matrix::is_matrix_builtin(name) => {
             crate::matrix::call_matrix_builtin(name, args)
         }
-        _ if crate::viz::is_viz_builtin(name) => {
-            crate::viz::call_viz_builtin(name, args)
-        }
         _ if crate::bio_plots::is_bio_plots_builtin(name) => {
             crate::bio_plots::call_bio_plots_builtin(name, args)
+        }
+        _ if crate::viz::is_viz_builtin(name) => {
+            crate::viz::call_viz_builtin(name, args)
         }
         // GAP 5: Sparse matrix operations
         _ if crate::sparse::is_sparse_builtin(name) => {
@@ -2354,11 +2415,16 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::seq::is_seq_builtin(name) => {
             crate::seq::call_seq_builtin(name, args)
         }
+        // NCBI E-utilities (WASM-safe — uses fetch hook for browser API calls)
+        // Only reached on WASM builds; on native, apis.rs handles these above.
+        #[cfg(not(feature = "native"))]
+        _ if crate::ncbi_wasm::is_ncbi_wasm_builtin(name) => {
+            crate::ncbi_wasm::call_ncbi_wasm_builtin(name, args)
+        }
         #[cfg(feature = "native")]
         _ => {
             let result = bl_bio::call_bio_builtin(name, args);
             if result.is_err() {
-                // If bl-bio didn't recognize it either, add a "did you mean?" suggestion
                 let mut err = result.unwrap_err();
                 if err.kind == ErrorKind::NameError {
                     if let Some(suggestion) = suggest_builtin(name) {
@@ -2369,6 +2435,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             } else {
                 result
             }
+        }
+        #[cfg(not(feature = "native"))]
+        _ if crate::bio_wasm::is_bio_wasm_builtin(name) => {
+            crate::bio_wasm::call_bio_wasm_builtin(name, args)
         }
         #[cfg(not(feature = "native"))]
         _ => {

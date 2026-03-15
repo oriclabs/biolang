@@ -381,7 +381,7 @@ print("All plots saved to results/")</code></pre>
 # workflow.bl — complete visualization pipeline
 
 # Load differential expression results
-let de = csv("results/de_results.csv")
+let de = read_csv("results/de_results.csv")
 
 # 1. Volcano plot of DE results
 let v = volcano(de, {
@@ -420,7 +420,7 @@ let top_genes = de
   |> arrange("pvalue")
   |> head(20)
 
-let expr_matrix = csv("data/expression_matrix.csv")
+let expr_matrix = read_read_csv("data/expression.csv")
   |> filter(|r| r.gene in col(top_genes, "gene"))
 
 let samples = ["ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3"]
@@ -447,7 +447,7 @@ genome_track(regions, {
 }) |> save_svg("figures/genome_track.svg")
 
 # 6. General scatter plot of expression correlation
-let scatter_data = csv("data/expression.csv")
+let scatter_data = read_csv("data/expression.csv")
 plot(scatter_data, {
   x:      "ctrl_mean",
   y:      "treat_mean",

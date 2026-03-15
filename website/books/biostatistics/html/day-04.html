@@ -1,0 +1,760 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 4: Probability — Quantifying Uncertainty - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-4-probability--quantifying-uncertainty"><a class="header" href="#day-4-probability--quantifying-uncertainty">Day 4: Probability — Quantifying Uncertainty</a></h1>
+<div class="day-meta">
+<span class="badge">Day 4 of 30</span>
+<span class="badge">Prerequisites: Days 1-3</span>
+<span class="badge">~50 min</span>
+<span class="badge">Hands-on</span>
+</div>
+
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Maria and David sit in a genetic counselor’s office. The air is still. Maria has just learned she carries a pathogenic BRCA1 mutation — a variant that dramatically increases lifetime risk of breast and ovarian cancer. They are planning to start a family and they need answers.</p>
+<p>What is the probability their child inherits the mutation? If the child inherits it, what is the probability she develops breast cancer by age 70? They are considering preimplantation genetic testing — if the test says the embryo is mutation-free, how confident can they be? The counselor pulls out a notepad and begins writing probabilities.</p>
+<p>This is not an abstract exercise. These numbers will determine whether Maria and David proceed with natural conception, pursue IVF with genetic screening, or consider adoption. The difference between a 50% risk and a 5% risk changes lives. Understanding how to compute, combine, and interpret probabilities is not just statistics — in genetics, it is clinical care.</p>
+<h2 id="what-is-probability"><a class="header" href="#what-is-probability">What Is Probability?</a></h2>
+<p>Probability is a number between 0 and 1 that quantifies how likely an event is to occur. Zero means impossible. One means certain. Everything interesting happens in between.</p>
+<p>Think of probability as a weather forecast. When the forecaster says “70% chance of rain,” she means: in historical situations with similar atmospheric conditions, it rained about 70% of the time. She is not saying it will rain exactly 70% of the total rainfall. She is quantifying uncertainty about a future event using past data and models.</p>
+<p>In biology, we use probability constantly:</p>
+<ul>
+<li>The probability a child inherits a specific allele from a heterozygous parent: 0.5</li>
+<li>The probability a random human carries at least one pathogenic BRCA1 variant: roughly 1/400</li>
+<li>The probability that a drug produces a response in a given cancer type: varies, but measured in clinical trials</li>
+<li>The probability that a sequencing read is mapped incorrectly: the mapping quality score encodes this directly</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Probability</th><th>Meaning</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td>Impossible</td><td>Rolling a 7 on a standard die</td></tr>
+<tr><td>0.001</td><td>Very unlikely</td><td>Rare disease prevalence</td></tr>
+<tr><td>0.05</td><td>Unlikely</td><td>Conventional significance threshold</td></tr>
+<tr><td>0.25</td><td>Possible</td><td>Child inheriting recessive allele from two carriers</td></tr>
+<tr><td>0.50</td><td>Even odds</td><td>Coin flip, heterozygous allele transmission</td></tr>
+<tr><td>0.95</td><td>Very likely</td><td>Diagnostic test sensitivity</td></tr>
+<tr><td>1.0</td><td>Certain</td><td>Sum of all possible outcomes</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="basic-rules-of-probability"><a class="header" href="#basic-rules-of-probability">Basic Rules of Probability</a></h2>
+<h3 id="the-addition-rule"><a class="header" href="#the-addition-rule">The Addition Rule</a></h3>
+<p>The probability of event A <strong>or</strong> event B occurring depends on whether they can both happen at the same time.</p>
+<p><strong>Mutually exclusive events</strong> (cannot co-occur):
+P(A or B) = P(A) + P(B)</p>
+<p>A person’s blood type is A, B, AB, or O. These are mutually exclusive — you cannot be both type A and type B simultaneously. So P(A or B) = P(A) + P(B) = 0.40 + 0.11 = 0.51.</p>
+<p><strong>Non-mutually exclusive events</strong> (can co-occur):
+P(A or B) = P(A) + P(B) - P(A and B)</p>
+<p>A patient might have diabetes, hypertension, or both. If P(diabetes) = 0.10, P(hypertension) = 0.30, and P(both) = 0.05, then P(either) = 0.10 + 0.30 - 0.05 = 0.35. You subtract the overlap to avoid double-counting.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="300" viewbox="0 0 660 300" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="26" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Set Operations: Union and Intersection</text>
+  <!-- Universe rectangle -->
+  <rect x="40" y="40" width="580" height="240" rx="8" fill="#f8fafc" stroke="#d1d5db" stroke-width="1.5" />
+  <text x="600" y="60" text-anchor="end" font-size="11" fill="#9ca3af">Sample Space S</text>
+  <!-- Circle A -->
+  <circle cx="250" cy="160" r="100" fill="#3b82f6" fill-opacity="0.2" stroke="#2563eb" stroke-width="2.5" />
+  <!-- Circle B -->
+  <circle cx="400" cy="160" r="100" fill="#ef4444" fill-opacity="0.2" stroke="#dc2626" stroke-width="2.5" />
+  <!-- Intersection highlight -->
+  <clippath id="clipA"><circle cx="250" cy="160" r="100" /></clippath>
+  <circle cx="400" cy="160" r="100" fill="#7c3aed" fill-opacity="0.3" clip-path="url(#clipA)" />
+  <!-- Labels -->
+  <text x="195" y="155" text-anchor="middle" font-size="16" font-weight="bold" fill="#2563eb">A only</text>
+  <text x="195" y="175" text-anchor="middle" font-size="12" fill="#2563eb">P(A) - P(A and B)</text>
+  <text x="325" y="148" text-anchor="middle" font-size="14" font-weight="bold" fill="#7c3aed">A and B</text>
+  <text x="325" y="168" text-anchor="middle" font-size="12" fill="#7c3aed">P(A and B)</text>
+  <text x="455" y="155" text-anchor="middle" font-size="16" font-weight="bold" fill="#dc2626">B only</text>
+  <text x="455" y="175" text-anchor="middle" font-size="12" fill="#dc2626">P(B) - P(A and B)</text>
+  <!-- Labels outside circles -->
+  <text x="120" y="90" font-size="14" font-weight="bold" fill="#2563eb">A = Diabetes</text>
+  <text x="120" y="108" font-size="12" fill="#2563eb">P(A) = 0.10</text>
+  <text x="420" y="72" font-size="14" font-weight="bold" fill="#dc2626">B = Hypertension</text>
+  <text x="420" y="90" font-size="12" fill="#dc2626">P(B) = 0.30</text>
+  <!-- Formula box -->
+  <rect x="170" y="240" width="320" height="30" rx="4" fill="#faf5ff" stroke="#7c3aed" stroke-width="1" />
+  <text x="330" y="260" text-anchor="middle" font-size="12" font-weight="600" fill="#7c3aed">P(A or B) = P(A) + P(B) - P(A and B) = 0.10 + 0.30 - 0.05 = 0.35</text>
+</svg>
+</div>
+
+<h3 id="the-multiplication-rule"><a class="header" href="#the-multiplication-rule">The Multiplication Rule</a></h3>
+<p>The probability of event A <strong>and</strong> event B both occurring depends on whether they are independent.</p>
+<p><strong>Independent events</strong> (one does not affect the other):
+P(A and B) = P(A) × P(B)</p>
+<p>The probability that two unrelated people both carry a BRCA1 mutation: P(carrier) × P(carrier) = (1/400) × (1/400) = 1/160,000.</p>
+<p><strong>Dependent events</strong> (one affects the other):
+P(A and B) = P(A) × P(B|A)</p>
+<p>where P(B|A) is the probability of B <strong>given that</strong> A has occurred. If a mother carries BRCA1 (event A), the probability her daughter both inherits it (B) and develops cancer by 70 (C) is:
+P(B and C) = P(B|A) × P(C|B) = 0.5 × 0.72 = 0.36.</p>
+<h3 id="the-complement-rule"><a class="header" href="#the-complement-rule">The Complement Rule</a></h3>
+<p>P(not A) = 1 - P(A)</p>
+<p>The probability of <strong>not</strong> inheriting the mutation is 1 - 0.5 = 0.5. The probability a diagnostic test does <strong>not</strong> give a false positive is 1 - (false positive rate). Simple but powerful — often easier to compute the complement and subtract.</p>
+<blockquote>
+<p><strong>Key insight:</strong> Most probability errors in biology come from confusing independent and dependent events, or from forgetting to subtract the overlap in non-mutually exclusive events. Write out the formula before plugging in numbers.</p>
+</blockquote>
+<h2 id="conditional-probability"><a class="header" href="#conditional-probability">Conditional Probability</a></h2>
+<p>Conditional probability is the probability of an event <strong>given that</strong> another event has occurred. It is written P(A|B) and read “the probability of A given B.”</p>
+<p>This is where most people’s intuition breaks down, because <strong>P(A|B) is not the same as P(B|A).</strong></p>
+<h3 id="the-critical-distinction"><a class="header" href="#the-critical-distinction">The Critical Distinction</a></h3>
+<ul>
+<li>P(cancer | BRCA1 mutation) ≈ 0.72 — If you carry BRCA1, your lifetime breast cancer risk is about 72%.</li>
+<li>P(BRCA1 mutation | cancer) ≈ 0.05 — If you have breast cancer, the probability it is due to BRCA1 is only about 5%.</li>
+</ul>
+<p>These are completely different numbers answering completely different questions. Confusing them is called the <strong>inverse probability fallacy</strong>, and it has real consequences in medicine, law, and genetics.</p>
+<h3 id="the-prosecutors-fallacy"><a class="header" href="#the-prosecutors-fallacy">The Prosecutor’s Fallacy</a></h3>
+<p>In forensic genetics, the prosecutor’s fallacy works like this: “The probability of this DNA match occurring by chance is 1 in 10 million. Therefore, the probability the defendant is innocent is 1 in 10 million.”</p>
+<p>This is logically wrong. P(match | innocent) is not P(innocent | match). In a city of 8 million people, you would expect roughly one other person to match by chance. If the only evidence is the DNA match, the probability of innocence might be closer to 50%, not 1 in 10 million.</p>
+<p>The same fallacy appears in genetic testing: “The test is 99% accurate” does not mean a positive result is 99% likely to be correct. The answer depends on how common the condition is — which brings us to Bayes’ theorem.</p>
+<blockquote>
+<p><strong>Common pitfall:</strong> Never interpret P(result | hypothesis) as P(hypothesis | result). This mistake is ubiquitous in clinical genetics, drug development, and forensics. Bayes’ theorem is the correction.</p>
+</blockquote>
+<h2 id="bayes-theorem"><a class="header" href="#bayes-theorem">Bayes’ Theorem</a></h2>
+<p>Bayes’ theorem provides the mathematical machinery to flip conditional probabilities. Given P(B|A), it computes P(A|B):</p>
+<p><strong>P(A|B) = P(B|A) × P(A) / P(B)</strong></p>
+<p>In words: the probability of A given B equals the probability of B given A, times the prior probability of A, divided by the total probability of B.</p>
+<h3 id="the-diagnostic-test-example"><a class="header" href="#the-diagnostic-test-example">The Diagnostic Test Example</a></h3>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="360" viewbox="0 0 680 360" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <defs>
+    <marker id="arrowBayes" markerwidth="8" markerheight="6" refx="8" refy="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6b7280" /></marker>
+  </defs>
+  <text x="340" y="26" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Bayes' Theorem: Diagnostic Test Decision Tree</text>
+  <!-- Root: Population -->
+  <rect x="255" y="40" width="170" height="36" rx="18" fill="#f1f5f9" stroke="#64748b" stroke-width="2" />
+  <text x="340" y="63" text-anchor="middle" font-size="12" font-weight="600" fill="#334155">100,000 People</text>
+  <!-- Branch to Diseased -->
+  <line x1="290" y1="76" x2="160" y2="118" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrowBayes)" />
+  <text x="210" y="92" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="600">P = 0.001</text>
+  <!-- Branch to Healthy -->
+  <line x1="390" y1="76" x2="520" y2="118" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrowBayes)" />
+  <text x="470" y="92" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="600">P = 0.999</text>
+  <!-- Diseased box -->
+  <rect x="80" y="118" width="160" height="36" rx="18" fill="#fef2f2" stroke="#dc2626" stroke-width="2" />
+  <text x="160" y="141" text-anchor="middle" font-size="11" font-weight="600" fill="#dc2626">Diseased: 100</text>
+  <!-- Healthy box -->
+  <rect x="440" y="118" width="160" height="36" rx="18" fill="#f0fdf4" stroke="#16a34a" stroke-width="2" />
+  <text x="520" y="141" text-anchor="middle" font-size="11" font-weight="600" fill="#16a34a">Healthy: 99,900</text>
+  <!-- Diseased -> Test+ -->
+  <line x1="120" y1="154" x2="80" y2="200" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrowBayes)" />
+  <text x="85" y="178" text-anchor="middle" font-size="9" fill="#6b7280">Sens=0.99</text>
+  <!-- Diseased -> Test- -->
+  <line x1="200" y1="154" x2="240" y2="200" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrowBayes)" />
+  <text x="235" y="178" text-anchor="middle" font-size="9" fill="#6b7280">0.01</text>
+  <!-- Healthy -> Test+ -->
+  <line x1="480" y1="154" x2="440" y2="200" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrowBayes)" />
+  <text x="445" y="178" text-anchor="middle" font-size="9" fill="#6b7280">FPR=0.05</text>
+  <!-- Healthy -> Test- -->
+  <line x1="560" y1="154" x2="600" y2="200" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrowBayes)" />
+  <text x="595" y="178" text-anchor="middle" font-size="9" fill="#6b7280">Spec=0.95</text>
+  <!-- Leaf nodes -->
+  <rect x="20" y="200" width="120" height="44" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" />
+  <text x="80" y="218" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">TP: 99</text>
+  <text x="80" y="234" text-anchor="middle" font-size="9" fill="#991b1b">True Positive</text>
+  <rect x="180" y="200" width="120" height="44" rx="6" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5" />
+  <text x="240" y="218" text-anchor="middle" font-size="11" font-weight="bold" fill="#ca8a04">FN: 1</text>
+  <text x="240" y="234" text-anchor="middle" font-size="9" fill="#854d0e">False Negative</text>
+  <rect x="380" y="200" width="120" height="44" rx="6" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5" />
+  <text x="440" y="218" text-anchor="middle" font-size="11" font-weight="bold" fill="#ca8a04">FP: 4,995</text>
+  <text x="440" y="234" text-anchor="middle" font-size="9" fill="#854d0e">False Positive</text>
+  <rect x="540" y="200" width="120" height="44" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" />
+  <text x="600" y="218" text-anchor="middle" font-size="11" font-weight="bold" fill="#16a34a">TN: 94,905</text>
+  <text x="600" y="234" text-anchor="middle" font-size="9" fill="#14532d">True Negative</text>
+  <!-- Summary box -->
+  <rect x="100" y="265" width="480" height="82" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" />
+  <text x="340" y="286" text-anchor="middle" font-size="12" font-weight="bold" fill="#7c3aed">The Surprising Result</text>
+  <text x="340" y="305" text-anchor="middle" font-size="11" fill="#581c87">Total positive tests: 99 + 4,995 = 5,094</text>
+  <text x="340" y="322" text-anchor="middle" font-size="12" font-weight="bold" fill="#dc2626">PPV = 99 / 5,094 = 1.94% (not 99%!)</text>
+  <text x="340" y="340" text-anchor="middle" font-size="10" fill="#6b7280">False positives overwhelm true positives when the disease is rare</text>
+</svg>
+</div>
+
+<p>This is the single most important application of Bayes’ theorem in biomedical science. Work through it carefully.</p>
+<p><strong>Setup:</strong></p>
+<ul>
+<li>A genetic disease has a prevalence of 1 in 1,000 (P(disease) = 0.001)</li>
+<li>A diagnostic test has 99% sensitivity: P(positive | disease) = 0.99</li>
+<li>The test has 95% specificity: P(negative | no disease) = 0.95, so P(positive | no disease) = 0.05</li>
+</ul>
+<p><strong>Question:</strong> A patient tests positive. What is the probability they actually have the disease?</p>
+<p><strong>Intuition says:</strong> The test is 99% sensitive and 95% specific — surely a positive result means ~95-99% chance of disease?</p>
+<p><strong>Bayes says:</strong></p>
+<p>P(disease | positive) = P(positive | disease) × P(disease) / P(positive)</p>
+<p>P(positive) = P(positive | disease) × P(disease) + P(positive | no disease) × P(no disease)
+P(positive) = 0.99 × 0.001 + 0.05 × 0.999
+P(positive) = 0.00099 + 0.04995 = 0.05094</p>
+<p>P(disease | positive) = 0.00099 / 0.05094 = <strong>0.0194</strong></p>
+<p>A positive test result means only a <strong>1.94% chance</strong> of actually having the disease.</p>
+<p>How can a “99% accurate” test give such a low positive predictive value? Because the disease is rare. In 100,000 people, 100 have the disease (99 test positive) and 99,900 are healthy (4,995 test positive by mistake). Of the 5,094 total positives, only 99 are true positives.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Group</th><th>Population</th><th>Test Positive</th><th>Test Negative</th></tr>
+</thead>
+<tbody>
+<tr><td>Diseased</td><td>100</td><td>99 (TP)</td><td>1 (FN)</td></tr>
+<tr><td>Healthy</td><td>99,900</td><td>4,995 (FP)</td><td>94,905 (TN)</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>100,000</strong></td><td><strong>5,094</strong></td><td><strong>94,906</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>PPV = 99 / 5,094 = 1.94%. The false positives overwhelm the true positives.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> This is why population-wide genetic screening for rare conditions produces mostly false positives. It is also why a confirmatory test with a different methodology is always required. Understanding PPV is essential for anyone interpreting genetic test results.</p>
+</blockquote>
+<h3 id="bayes-in-biolang"><a class="header" href="#bayes-in-biolang">Bayes in BioLang</a></h3>
+<pre><code class="language-bio"># Diagnostic test calculator using Bayes' theorem
+let prevalence = 0.001      # P(disease) = 1 in 1,000
+let sensitivity = 0.99      # P(positive | disease)
+let specificity = 0.95      # P(negative | no disease)
+let fpr = 1.0 - specificity # P(positive | no disease) = 0.05
+
+# Total probability of testing positive
+let p_positive = sensitivity * prevalence + fpr * (1.0 - prevalence)
+
+# Positive Predictive Value (PPV)
+let ppv = (sensitivity * prevalence) / p_positive
+
+# Negative Predictive Value (NPV)
+let p_negative = (1.0 - sensitivity) * prevalence + specificity * (1.0 - prevalence)
+let npv = (specificity * (1.0 - prevalence)) / p_negative
+
+print("=== Diagnostic Test Analysis ===")
+print("Prevalence:    {prevalence}")
+print("Sensitivity:   {sensitivity}")
+print("Specificity:   {specificity}")
+print("P(positive):   {p_positive:.4}")
+print("PPV:           {ppv:.4} ({ppv * 100:.1}%)")
+print("NPV:           {npv:.6} ({npv * 100:.4}%)")
+print("")
+print("Interpretation: A positive result means only a {ppv * 100:.1}% chance of disease.")
+print("A negative result means a {npv * 100:.4}% chance of being disease-free.")
+</code></pre>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="250" viewbox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="26" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Diagnostic Test Flow: From Prevalence to Predictive Values</text>
+  <defs>
+    <marker id="arrowFlow" markerwidth="8" markerheight="6" refx="8" refy="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2563eb" /></marker>
+  </defs>
+  <!-- Step 1: Prevalence -->
+  <rect x="30" y="55" width="120" height="60" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2" />
+  <text x="90" y="78" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">PREVALENCE</text>
+  <text x="90" y="95" text-anchor="middle" font-size="10" fill="#1e40af">P(Disease)</text>
+  <text x="90" y="108" text-anchor="middle" font-size="9" fill="#3b82f6">Prior probability</text>
+  <!-- Arrow -->
+  <line x1="150" y1="85" x2="185" y2="85" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowFlow)" />
+  <!-- Step 2: Test characteristics -->
+  <rect x="190" y="40" width="140" height="90" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="2" />
+  <text x="260" y="60" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">TEST PROPERTIES</text>
+  <text x="260" y="80" text-anchor="middle" font-size="10" fill="#15803d">Sensitivity</text>
+  <text x="260" y="94" text-anchor="middle" font-size="9" fill="#16a34a">P(+|Disease)</text>
+  <text x="260" y="112" text-anchor="middle" font-size="10" fill="#15803d">Specificity</text>
+  <text x="260" y="124" text-anchor="middle" font-size="9" fill="#16a34a">P(-|Healthy)</text>
+  <!-- Arrow -->
+  <line x1="330" y1="85" x2="365" y2="85" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowFlow)" />
+  <!-- Bayes box -->
+  <rect x="370" y="55" width="115" height="60" rx="30" fill="#faf5ff" stroke="#7c3aed" stroke-width="2.5" />
+  <text x="428" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#7c3aed">BAYES'</text>
+  <text x="428" y="96" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c3aed">THEOREM</text>
+  <!-- Arrow -->
+  <line x1="485" y1="85" x2="515" y2="85" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowFlow)" />
+  <!-- Step 3: Predictive Values -->
+  <rect x="520" y="40" width="120" height="90" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2" />
+  <text x="580" y="60" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">PREDICTIVE</text>
+  <text x="580" y="76" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">VALUES</text>
+  <text x="580" y="96" text-anchor="middle" font-size="10" fill="#dc2626">PPV: P(Dis|+)</text>
+  <text x="580" y="112" text-anchor="middle" font-size="10" fill="#dc2626">NPV: P(Heal|-)</text>
+  <text x="580" y="124" text-anchor="middle" font-size="9" fill="#b91c1c">What the patient needs</text>
+  <!-- Bottom key insight -->
+  <rect x="60" y="155" width="540" height="80" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5" />
+  <text x="330" y="176" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400e">Key Insight: Prevalence Dominates PPV</text>
+  <text x="330" y="196" text-anchor="middle" font-size="11" fill="#78350f">Rare disease (0.1%) + 99% sensitive test + 95% specific test = PPV of only 1.9%</text>
+  <text x="330" y="214" text-anchor="middle" font-size="11" fill="#78350f">Common disease (50%) + same test = PPV of 95.2%</text>
+  <text x="330" y="230" text-anchor="middle" font-size="10" fill="#92400e" font-style="italic">The same test accuracy means completely different things depending on prevalence</text>
+</svg>
+</div>
+
+<h3 id="how-prevalence-changes-everything"><a class="header" href="#how-prevalence-changes-everything">How Prevalence Changes Everything</a></h3>
+<pre><code class="language-bio"># Show how PPV changes with disease prevalence
+let sensitivity = 0.99
+let specificity = 0.95
+
+let prevalences = [0.0001, 0.001, 0.01, 0.05, 0.10, 0.20, 0.50]
+
+print("Prevalence | PPV")
+print("-----------|--------")
+for prev in prevalences {
+    let fpr = 1.0 - specificity
+    let p_pos = sensitivity * prev + fpr * (1.0 - prev)
+    let ppv = (sensitivity * prev) / p_pos
+    print("  {prev:.4}   | {ppv * 100:.1}%")
+}
+# At 0.01% prevalence: PPV = 0.2% (nearly all positives are false)
+# At 50% prevalence: PPV = 95.2% (most positives are true)
+</code></pre>
+<p>This table is one of the most important results in clinical statistics. It explains why screening tests work well for common conditions but poorly for rare ones.</p>
+<h2 id="probability-distributions-revisited"><a class="header" href="#probability-distributions-revisited">Probability Distributions Revisited</a></h2>
+<p>On Day 3, we met distributions as shapes. Now we can understand them as probability functions.</p>
+<h3 id="discrete-distributions"><a class="header" href="#discrete-distributions">Discrete Distributions</a></h3>
+<p>For discrete random variables (counts, genotypes), the <strong>probability mass function</strong> (PMF) gives P(X = k) — the probability of observing exactly the value k.</p>
+<pre><code class="language-bio"># Binomial PMF: probability of exactly k successes in n trials
+# Scenario: 4 children, mother is BRCA1 carrier (p = 0.5)
+let n_children = 4
+let p_inherit = 0.5
+
+print("Number of children inheriting BRCA1:")
+for k in 0..5 {
+    let prob = dbinom(k, n_children, p_inherit)
+    print("  {k} children: {prob:.4} ({prob * 100:.1}%)")
+}
+# 0: 6.25%, 1: 25.0%, 2: 37.5%, 3: 25.0%, 4: 6.25%
+</code></pre>
+<h3 id="cumulative-distribution"><a class="header" href="#cumulative-distribution">Cumulative Distribution</a></h3>
+<p>The <strong>cumulative distribution function</strong> (CDF) gives P(X ≤ k) — the probability of observing k or fewer.</p>
+<pre><code class="language-bio"># What's the probability that at most 1 of 4 children inherits the mutation?
+let p_at_most_1 = pbinom(1, 4, 0.5)
+print("P(0 or 1 child inherits): {p_at_most_1:.4}")  # 0.3125
+
+# What's the probability at least 1 inherits?
+let p_at_least_1 = 1.0 - pbinom(0, 4, 0.5)
+print("P(at least 1 inherits): {p_at_least_1:.4}")  # 0.9375
+</code></pre>
+<h3 id="continuous-distributions"><a class="header" href="#continuous-distributions">Continuous Distributions</a></h3>
+<p>For continuous random variables (gene expression, blood pressure), the <strong>probability density function</strong> (PDF) does not give P(X = k) (which is always zero for continuous variables). Instead, probabilities are computed over intervals using the CDF.</p>
+<pre><code class="language-bio"># Blood pressure: normal with mean 120, SD 15
+let mu = 120.0
+let sigma = 15.0
+
+# P(BP &gt; 140) — hypertension threshold
+let p_hypertension = 1.0 - pnorm(140, mu, sigma)
+print("P(BP &gt; 140): {p_hypertension:.4}")  # ~0.0912
+
+# P(100 &lt; BP &lt; 130)
+let p_normal_range = pnorm(130, mu, sigma) - pnorm(100, mu, sigma)
+print("P(100 &lt; BP &lt; 130): {p_normal_range:.4}")
+
+# What BP value has only 5% of people above it?
+let bp_95th = qnorm(0.95, mu, sigma)
+print("95th percentile BP: {bp_95th:.1}")  # ~144.7
+</code></pre>
+<h2 id="hardy-weinberg-as-a-probability-model"><a class="header" href="#hardy-weinberg-as-a-probability-model">Hardy-Weinberg as a Probability Model</a></h2>
+<p>Hardy-Weinberg equilibrium (HWE) is one of the most elegant applications of probability in genetics. For a biallelic locus with allele frequencies p (allele A) and q = 1-p (allele a), random mating produces genotypes with probabilities:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Genotype</th><th>Frequency</th><th>If p = 0.3</th></tr>
+</thead>
+<tbody>
+<tr><td>AA</td><td>p²</td><td>0.09</td></tr>
+<tr><td>Aa</td><td>2pq</td><td>0.42</td></tr>
+<tr><td>aa</td><td>q²</td><td>0.49</td></tr>
+</tbody>
+</table>
+</div>
+<p>This model treats each allele transmission as an independent random event — like drawing two alleles from a bag with replacement.</p>
+<pre><code class="language-bio"># Test for Hardy-Weinberg equilibrium
+# Observed genotype counts from a population study
+let observed_AA = 45
+let observed_Aa = 210
+let observed_aa = 245
+let total = observed_AA + observed_Aa + observed_aa  # 500
+
+# Estimate allele frequencies
+let p_A = (2.0 * observed_AA + observed_Aa) / (2.0 * total)
+let p_a = 1.0 - p_A
+print("Estimated allele frequencies: p(A) = {p_A:.3}, p(a) = {p_a:.3}")
+
+# Expected counts under HWE
+let expected_AA = p_A * p_A * total
+let expected_Aa = 2.0 * p_A * p_a * total
+let expected_aa = p_a * p_a * total
+print("Expected: AA={expected_AA:.1}, Aa={expected_Aa:.1}, aa={expected_aa:.1}")
+print("Observed: AA={observed_AA}, Aa={observed_Aa}, aa={observed_aa}")
+
+# Chi-square test for HWE (we'll cover this formally on Day 13)
+let chi2 = (observed_AA - expected_AA) ** 2 / expected_AA +
+           (observed_Aa - expected_Aa) ** 2 / expected_Aa +
+           (observed_aa - expected_aa) ** 2 / expected_aa
+print("Chi-square statistic: {chi2:.3}")
+print("Deviation from HWE: {if chi2 &gt; 3.84 then 'Significant' else 'Not significant'}")
+</code></pre>
+<h2 id="carrier-probability-calculations"><a class="header" href="#carrier-probability-calculations">Carrier Probability Calculations</a></h2>
+<p>Returning to Maria and David’s consultation:</p>
+<pre><code class="language-bio"># Genetic counseling probability calculator
+
+# Maria is a BRCA1 carrier (heterozygous)
+# David is not a carrier (assumed)
+
+# Autosomal dominant: 50% chance each child inherits
+let p_inherit = 0.5
+
+# They want 3 children
+let n_children = 3
+
+print("=== Genetic Counseling: BRCA1 Inheritance ===")
+print("")
+
+# Probability none of 3 children inherit
+let p_none = dbinom(0, n_children, p_inherit)
+print("P(no children inherit): {p_none:.4} ({p_none * 100:.1}%)")
+
+# Probability exactly 1 inherits
+let p_one = dbinom(1, n_children, p_inherit)
+print("P(exactly 1 inherits):  {p_one:.4} ({p_one * 100:.1}%)")
+
+# Probability at least 1 inherits
+let p_at_least_one = 1.0 - p_none
+print("P(at least 1 inherits): {p_at_least_one:.4} ({p_at_least_one * 100:.1}%)")
+
+print("")
+print("=== Conditional Cancer Risk ===")
+# If a daughter inherits BRCA1, lifetime breast cancer risk ~ 72%
+let p_cancer_given_brca = 0.72
+
+# P(inherits AND develops cancer)
+let p_inherit_and_cancer = p_inherit * p_cancer_given_brca
+print("P(daughter inherits AND gets cancer): {p_inherit_and_cancer:.3} ({p_inherit_and_cancer * 100:.1}%)")
+
+# P(daughter gets cancer by 70 | she is female)
+# Must account for 50% chance of being female
+let p_affected_daughter = 0.5 * p_inherit * p_cancer_given_brca
+print("P(random child is affected daughter): {p_affected_daughter:.3} ({p_affected_daughter * 100:.1}%)")
+</code></pre>
+<h2 id="python-and-r-equivalents"><a class="header" href="#python-and-r-equivalents">Python and R Equivalents</a></h2>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">from scipy import stats
+import numpy as np
+
+# Binomial probabilities
+stats.binom.pmf(k=2, n=4, p=0.5)     # P(X = 2)
+stats.binom.cdf(k=1, n=4, p=0.5)     # P(X &lt;= 1)
+
+# Normal probabilities
+stats.norm.cdf(140, loc=120, scale=15) # P(X &lt;= 140)
+stats.norm.ppf(0.95, loc=120, scale=15) # 95th percentile
+
+# Poisson
+stats.poisson.pmf(k=5, mu=3.5)        # P(X = 5)
+stats.poisson.cdf(k=9, mu=3.5)        # P(X &lt;= 9)
+
+# Bayes calculation
+prevalence = 0.001
+sensitivity = 0.99
+fpr = 0.05
+p_pos = sensitivity * prevalence + fpr * (1 - prevalence)
+ppv = (sensitivity * prevalence) / p_pos
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Binomial
+dbinom(2, size = 4, prob = 0.5)    # P(X = 2)
+pbinom(1, size = 4, prob = 0.5)    # P(X &lt;= 1)
+
+# Normal
+pnorm(140, mean = 120, sd = 15)    # P(X &lt;= 140)
+qnorm(0.95, mean = 120, sd = 15)   # 95th percentile
+
+# Poisson
+dpois(5, lambda = 3.5)             # P(X = 5)
+ppois(9, lambda = 3.5)             # P(X &lt;= 9)
+
+# Bayes
+prevalence &lt;- 0.001
+sensitivity &lt;- 0.99
+fpr &lt;- 0.05
+p_pos &lt;- sensitivity * prevalence + fpr * (1 - prevalence)
+ppv &lt;- (sensitivity * prevalence) / p_pos
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-the-prenatal-test"><a class="header" href="#exercise-1-the-prenatal-test">Exercise 1: The Prenatal Test</a></h3>
+<p>A prenatal screening test for Down syndrome has sensitivity 95% and specificity 97%. The prevalence of Down syndrome is approximately 1 in 700 live births for a 30-year-old mother.</p>
+<pre><code class="language-bio"># TODO: Compute the PPV — if the test is positive, what is the true probability?
+# TODO: Compute the NPV — if the test is negative, how reassuring is it?
+# TODO: How does the PPV change for a 40-year-old mother (prevalence ~1 in 100)?
+let prevalence_30 = 1.0 / 700.0
+let prevalence_40 = 1.0 / 100.0
+let sensitivity = 0.95
+let specificity = 0.97
+</code></pre>
+<h3 id="exercise-2-multiple-independent-events"><a class="header" href="#exercise-2-multiple-independent-events">Exercise 2: Multiple Independent Events</a></h3>
+<p>A patient takes three independent diagnostic tests for a condition. Each test has 90% sensitivity.</p>
+<pre><code class="language-bio"># TODO: What is P(all three tests are positive | disease)?
+# TODO: What is P(at least one test is negative | disease)?
+# TODO: What is P(all three tests are negative | disease)?
+# TODO: If the patient tests positive on all three, and prevalence is 1%,
+#       what is the updated probability they have the disease?
+let sensitivity = 0.90
+let specificity = 0.95
+let prevalence = 0.01
+</code></pre>
+<h3 id="exercise-3-carrier-frequency"><a class="header" href="#exercise-3-carrier-frequency">Exercise 3: Carrier Frequency</a></h3>
+<p>Cystic fibrosis is autosomal recessive with a carrier frequency of approximately 1 in 25 among Europeans.</p>
+<pre><code class="language-bio">let carrier_freq = 1.0 / 25.0
+
+# TODO: What is P(both parents are carriers)?
+# TODO: If both are carriers, P(affected child)?
+# TODO: P(random European couple has an affected child)?
+# TODO: If one parent is a confirmed carrier and the other is untested,
+#       what is P(their child is affected)?
+</code></pre>
+<h3 id="exercise-4-sequencing-error"><a class="header" href="#exercise-4-sequencing-error">Exercise 4: Sequencing Error</a></h3>
+<p>A variant caller reports a SNV at a position covered by 50 reads. 5 reads support the variant allele.</p>
+<pre><code class="language-bio"># Is this a real variant or sequencing error?
+# Assume sequencing error rate = 0.01 per base per read
+
+let n_reads = 50
+let n_alt = 5
+let error_rate = 0.01
+
+# TODO: Under the null (all errors), what is P(5+ alt reads)?
+# Use the binomial: P(X &gt;= 5 | n=50, p=0.01) = 1 - pbinom(4, 50, 0.01)
+# TODO: Is this consistent with error alone, or likely a real variant?
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Probability</strong> quantifies uncertainty on a 0-to-1 scale. It is the mathematical language of statistics.</li>
+<li>The <strong>addition rule</strong> handles “or” questions; the <strong>multiplication rule</strong> handles “and” questions. Whether events are mutually exclusive or independent changes the formula.</li>
+<li><strong>Conditional probability</strong> P(A|B) is NOT the same as P(B|A). Confusing them is the source of the prosecutor’s fallacy and misinterpretation of diagnostic tests.</li>
+<li><strong>Bayes’ theorem</strong> is the bridge from P(B|A) to P(A|B). It shows that a positive test for a rare disease usually means the patient is healthy — the positive predictive value depends critically on prevalence.</li>
+<li>In genetics, probability models like <strong>Hardy-Weinberg equilibrium</strong> and <strong>Mendelian inheritance</strong> translate directly into binomial probability calculations.</li>
+<li>Always compute both <strong>PPV and NPV</strong> when interpreting diagnostic or screening tests. Sensitivity and specificity alone are insufficient.</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Today you learned to compute probabilities for individual events. But in real experiments, you do not observe single events — you observe samples drawn from populations. Tomorrow, on Day 5, we tackle the crucial question of sampling: Why does sample size matter so much? You will see the Central Limit Theorem in action — watching the distribution of sample means magically approach normality even when the underlying data is wildly skewed. You will understand what “statistical power” means and why a study with 20 patients per arm is almost guaranteed to fail. Day 5 is the bridge between probability theory and the practical reality of experimental design.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-03.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-05.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-03.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-05.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

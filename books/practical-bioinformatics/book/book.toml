@@ -9,7 +9,8 @@ src = "src"
 build-dir = "../../../website/books/practical-bioinformatics"
 
 [output.html]
-default-theme = "rust"
+default-theme = "light"
+preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/oriclabs/biolang"
 additional-js = ["mermaid.min.js", "mermaid-init.js", "book-runner.js"]
 

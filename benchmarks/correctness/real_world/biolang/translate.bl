@@ -1,0 +1,9 @@
+let seqs = read_fasta("real_data/yeast_genome.fa") |> head(3) |> collect()
+let results = []
+for seq in seqs
+  let sub = slice(seq.seq, 0, 99) |> to_string()
+  let original = dna(sub)
+  let protein = translate(original) |> to_string()
+  results = append(results, {id: seq.id, dna: sub, protein: protein})
+end
+print(to_json({translations: results}))

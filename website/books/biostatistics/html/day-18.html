@@ -1,0 +1,869 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 18: Experimental Design and Statistical Power - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-18-experimental-design-and-statistical-power"><a class="header" href="#day-18-experimental-design-and-statistical-power">Day 18: Experimental Design and Statistical Power</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. Ana Reyes is a junior PI writing her first R01 grant. She proposes a study comparing gene expression between psoriatic skin and normal skin using RNA-seq, planning <strong>3 samples per group</strong> because “that’s what the lab down the hall used.”</p>
+<p>The grant comes back with this reviewer comment:</p>
+<blockquote>
+<p><em>“The proposed sample size of n=3 per group is inadequate. The applicant provides no power analysis to justify this number. With 3 replicates, the study is severely underpowered to detect anything less than a 4-fold change, which is biologically unrealistic for most genes. We recommend at least 8-10 biological replicates per condition based on published power analyses for RNA-seq DE studies.”</em></p>
+</blockquote>
+<p>Grant rejected. Six months of proposal writing, wasted — because she didn’t plan the sample size.</p>
+<p><strong>Statistical power</strong> determines whether your study can actually detect the effect you’re looking for. Getting it wrong wastes time, money, animals, and patient samples.</p>
+<h2 id="what-is-statistical-power"><a class="header" href="#what-is-statistical-power">What Is Statistical Power?</a></h2>
+<p>Power analysis sits at the intersection of four interconnected quantities:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Quantity</th><th>Symbol</th><th>Definition</th><th>Typical Value</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Significance level</strong></td><td>α</td><td>Probability of false positive (Type I error)</td><td>0.05</td></tr>
+<tr><td><strong>Power</strong></td><td>1 - β</td><td>Probability of detecting a true effect</td><td>0.80 (80%)</td></tr>
+<tr><td><strong>Effect size</strong></td><td>d, Δ</td><td>Magnitude of the real biological difference</td><td>Varies</td></tr>
+<tr><td><strong>Sample size</strong></td><td>n</td><td>Number of observations per group</td><td>What you solve for</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>The fundamental relationship:</strong> Given any three, you can calculate the fourth.</p>
+<h3 id="type-i-and-type-ii-errors"><a class="header" href="#type-i-and-type-ii-errors">Type I and Type II Errors</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th>H₀ True (no real effect)</th><th>H₀ False (real effect exists)</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Reject H₀</strong></td><td>Type I error (α) — false positive</td><td>Correct! (Power = 1 - β)</td></tr>
+<tr><td><strong>Fail to reject H₀</strong></td><td>Correct! (1 - α)</td><td>Type II error (β) — false negative</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> An underpowered study has a high β — it frequently misses real effects. This doesn’t just waste resources; it can lead to the false conclusion that an effect doesn’t exist, discouraging further research on a real phenomenon.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="340" viewbox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Statistical Power: Type I and Type II Errors</text>
+  <g transform="translate(50, 50)">
+    <!-- Axis -->
+    <line x1="30" y1="220" x2="580" y2="220" stroke="#6b7280" stroke-width="1.5" />
+    <text x="305" y="252" text-anchor="middle" font-size="12" fill="#6b7280">Test Statistic</text>
+    <!-- H0 distribution (centered at 180) -->
+    <path d="M 30,220 C 50,218 70,210 90,195 C 110,170 130,130 150,90 C 160,70 170,55 180,48 C 190,55 200,70 210,90 C 230,130 250,170 270,195 C 290,210 310,218 330,220" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" stroke-width="2" />
+    <text x="180" y="42" text-anchor="middle" font-size="12" fill="#2563eb" font-weight="bold">H0 (no effect)</text>
+    <!-- H1 distribution (centered at 380) -->
+    <path d="M 230,220 C 250,218 270,210 290,195 C 310,170 330,130 350,90 C 360,70 370,55 380,48 C 390,55 400,70 410,90 C 430,130 450,170 470,195 C 490,210 510,218 530,220" fill="#dc2626" opacity="0.15" stroke="#dc2626" stroke-width="2" />
+    <text x="380" y="42" text-anchor="middle" font-size="12" fill="#dc2626" font-weight="bold">H1 (true effect)</text>
+    <!-- Critical value line -->
+    <line x1="290" y1="15" x2="290" y2="225" stroke="#1e293b" stroke-width="2" stroke-dasharray="5,3" />
+    <text x="290" y="265" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Critical value</text>
+    <!-- Alpha region (right tail of H0) -->
+    <path d="M 290,195 C 300,200 310,208 320,212 C 330,216 335,220 330,220 L 290,220 Z" fill="#2563eb" opacity="0.5" />
+    <line x1="300" y1="200" x2="340" y2="170" stroke="#2563eb" stroke-width="0.8" />
+    <rect x="340" y="158" width="95" height="30" rx="4" fill="white" stroke="#2563eb" stroke-width="0.8" />
+    <text x="387" y="172" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">alpha (Type I)</text>
+    <text x="387" y="184" text-anchor="middle" font-size="9" fill="#2563eb">False positive</text>
+    <!-- Beta region (left tail of H1, before critical value) -->
+    <path d="M 230,220 C 250,218 260,214 270,208 C 278,202 284,198 290,195 L 290,220 Z" fill="#dc2626" opacity="0.4" />
+    <line x1="260" y1="210" x2="200" y2="170" stroke="#dc2626" stroke-width="0.8" />
+    <rect x="130" y="158" width="95" height="30" rx="4" fill="white" stroke="#dc2626" stroke-width="0.8" />
+    <text x="177" y="172" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">beta (Type II)</text>
+    <text x="177" y="184" text-anchor="middle" font-size="9" fill="#dc2626">False negative</text>
+    <!-- Power region (right portion of H1) -->
+    <path d="M 290,195 C 310,170 330,130 350,90 C 360,70 370,55 380,48 C 390,55 400,70 410,90 C 430,130 450,170 470,195 C 490,210 510,218 530,220 L 290,220 Z" fill="#16a34a" opacity="0.2" />
+    <rect x="395" y="100" width="120" height="30" rx="4" fill="white" stroke="#16a34a" stroke-width="0.8" />
+    <text x="455" y="114" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="bold">Power = 1 - beta</text>
+    <text x="455" y="126" text-anchor="middle" font-size="9" fill="#16a34a">Correctly detect effect</text>
+  </g>
+</svg>
+</div>
+
+<h3 id="why-80-power"><a class="header" href="#why-80-power">Why 80% Power?</a></h3>
+<p>The convention of 80% power means accepting a 20% chance of missing a real effect. Some contexts demand higher:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Context</th><th>Minimum Power</th><th>Rationale</th></tr>
+</thead>
+<tbody>
+<tr><td>Exploratory study</td><td>70-80%</td><td>Acceptable miss rate for discovery</td></tr>
+<tr><td>Confirmatory clinical trial</td><td>80-90%</td><td>Regulatory requirement</td></tr>
+<tr><td>Safety/non-inferiority trial</td><td>90-95%</td><td>Must not miss harmful effects</td></tr>
+<tr><td>Rare disease (limited patients)</td><td>60-70%</td><td>Pragmatic constraint</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="effect-size-the-missing-ingredient"><a class="header" href="#effect-size-the-missing-ingredient">Effect Size: The Missing Ingredient</a></h2>
+<p>Effect size is the hardest quantity to estimate because it requires knowledge about the biology before doing the experiment. Sources:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Approach</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Pilot data</strong></td><td>Small preliminary experiment (best source)</td></tr>
+<tr><td><strong>Literature</strong></td><td>Previous studies on similar questions</td></tr>
+<tr><td><strong>Clinical significance</strong></td><td>“What’s the smallest difference that matters?”</td></tr>
+<tr><td><strong>Conventions</strong></td><td>Cohen’s standards (d = 0.2 small, 0.5 medium, 0.8 large)</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> Using an inflated effect size from a small pilot study. Small studies overestimate effects (the “winner’s curse”). If your pilot with n=5 shows d=1.5, the true effect is probably smaller. Be conservative.</p>
+</blockquote>
+<h3 id="cohens-d-for-two-group-comparisons"><a class="header" href="#cohens-d-for-two-group-comparisons">Cohen’s d for Two-Group Comparisons</a></h3>
+<p>$$d = \frac{|\mu_1 - \mu_2|}{\sigma_{pooled}}$$</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Cohen’s d</th><th>Interpretation</th><th>Biological Example</th></tr>
+</thead>
+<tbody>
+<tr><td>0.2</td><td>Small</td><td>Subtle expression change between tissues</td></tr>
+<tr><td>0.5</td><td>Medium</td><td>DE gene in RNA-seq (2-fold change)</td></tr>
+<tr><td>0.8</td><td>Large</td><td>Drug vs. placebo in responsive patients</td></tr>
+<tr><td>1.2</td><td>Very large</td><td>Knockout vs. wild-type for target gene</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="power-for-common-designs"><a class="header" href="#power-for-common-designs">Power for Common Designs</a></h2>
+<h3 id="two-group-comparison-t-test"><a class="header" href="#two-group-comparison-t-test">Two-Group Comparison (t-test)</a></h3>
+<p>The most basic design: compare means between two independent groups.</p>
+<p><strong>Required sample size per group</strong> (approximate, for α=0.05, power=0.80):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Effect Size (d)</th><th>n per group</th></tr>
+</thead>
+<tbody>
+<tr><td>0.2 (small)</td><td>394</td></tr>
+<tr><td>0.5 (medium)</td><td>64</td></tr>
+<tr><td>0.8 (large)</td><td>26</td></tr>
+<tr><td>1.0</td><td>17</td></tr>
+<tr><td>1.5</td><td>9</td></tr>
+<tr><td>2.0</td><td>6</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> Detecting a small effect requires nearly 400 samples per group! This is why GWAS studies need thousands of subjects — individual genetic variants typically have very small effects (d ≈ 0.1-0.2).</p>
+</blockquote>
+<h3 id="paired-design-paired-t-test"><a class="header" href="#paired-design-paired-t-test">Paired Design (Paired t-test)</a></h3>
+<p>When the same subjects are measured before and after treatment, pairing removes between-subject variability. Power increases dramatically:</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="280" viewbox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Paired vs. Unpaired Design: Why Pairing Reduces Noise</text>
+  <!-- Left: Unpaired -->
+  <g transform="translate(20, 40)">
+    <text x="150" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="#dc2626">Unpaired (Independent Groups)</text>
+    <rect x="20" y="25" width="260" height="195" rx="6" fill="white" stroke="#e5e7eb" stroke-width="1" />
+    <!-- Group A points (scattered widely) -->
+    <text x="90" y="45" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">Group A</text>
+    <circle cx="60" cy="80" r="5" fill="#3b82f6" opacity="0.6" /><circle cx="80" cy="120" r="5" fill="#3b82f6" opacity="0.6" />
+    <circle cx="55" cy="160" r="5" fill="#3b82f6" opacity="0.6" /><circle cx="100" cy="95" r="5" fill="#3b82f6" opacity="0.6" />
+    <circle cx="75" cy="140" r="5" fill="#3b82f6" opacity="0.6" /><circle cx="110" cy="180" r="5" fill="#3b82f6" opacity="0.6" />
+    <!-- Group B points (scattered widely) -->
+    <text x="210" y="45" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">Group B</text>
+    <circle cx="190" cy="70" r="5" fill="#ef4444" opacity="0.6" /><circle cx="210" cy="110" r="5" fill="#ef4444" opacity="0.6" />
+    <circle cx="185" cy="145" r="5" fill="#ef4444" opacity="0.6" /><circle cx="230" cy="85" r="5" fill="#ef4444" opacity="0.6" />
+    <circle cx="205" cy="130" r="5" fill="#ef4444" opacity="0.6" /><circle cx="240" cy="170" r="5" fill="#ef4444" opacity="0.6" />
+    <!-- Variance arrows -->
+    <text x="150" y="208" text-anchor="middle" font-size="10" fill="#6b7280">Between-subject variance</text>
+    <text x="150" y="220" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">dominates the signal</text>
+  </g>
+  <!-- Right: Paired -->
+  <g transform="translate(360, 40)">
+    <text x="150" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="#16a34a">Paired (Same Subjects)</text>
+    <rect x="20" y="25" width="260" height="195" rx="6" fill="white" stroke="#e5e7eb" stroke-width="1" />
+    <!-- Paired points connected by lines -->
+    <text x="70" y="45" text-anchor="middle" font-size="10" fill="#6b7280">Before</text>
+    <text x="230" y="45" text-anchor="middle" font-size="10" fill="#6b7280">After</text>
+    <!-- Subject 1 -->
+    <circle cx="70" cy="70" r="5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="230" cy="60" r="5" fill="#16a34a" opacity="0.7" />
+    <line x1="75" y1="70" x2="225" y2="60" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2" />
+    <!-- Subject 2 -->
+    <circle cx="70" cy="100" r="5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="230" cy="88" r="5" fill="#16a34a" opacity="0.7" />
+    <line x1="75" y1="100" x2="225" y2="88" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2" />
+    <!-- Subject 3 -->
+    <circle cx="70" cy="130" r="5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="230" cy="118" r="5" fill="#16a34a" opacity="0.7" />
+    <line x1="75" y1="130" x2="225" y2="118" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2" />
+    <!-- Subject 4 -->
+    <circle cx="70" cy="155" r="5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="230" cy="143" r="5" fill="#16a34a" opacity="0.7" />
+    <line x1="75" y1="155" x2="225" y2="143" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2" />
+    <!-- Subject 5 -->
+    <circle cx="70" cy="180" r="5" fill="#3b82f6" opacity="0.7" />
+    <circle cx="230" cy="168" r="5" fill="#16a34a" opacity="0.7" />
+    <line x1="75" y1="180" x2="225" y2="168" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2" />
+    <!-- Annotation -->
+    <text x="150" y="208" text-anchor="middle" font-size="10" fill="#6b7280">Each subject is its own control</text>
+    <text x="150" y="220" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="bold">Only within-subject noise matters</text>
+  </g>
+</svg>
+</div>
+
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Correlation between pairs</th><th>Power improvement</th></tr>
+</thead>
+<tbody>
+<tr><td>0.3</td><td>~30% fewer samples needed</td></tr>
+<tr><td>0.5</td><td>~50% fewer samples needed</td></tr>
+<tr><td>0.7</td><td>~70% fewer samples needed</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="rna-seq-differential-expression"><a class="header" href="#rna-seq-differential-expression">RNA-seq Differential Expression</a></h3>
+<p>RNA-seq power depends on additional factors:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Factor</th><th>Effect on Power</th></tr>
+</thead>
+<tbody>
+<tr><td>Sequencing depth</td><td>More reads → more power for low-expression genes</td></tr>
+<tr><td>Biological replicates</td><td>THE major driver of power</td></tr>
+<tr><td>Fold change threshold</td><td>Larger FC → easier to detect</td></tr>
+<tr><td>Dispersion</td><td>Higher variability → need more samples</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Rules of thumb for RNA-seq DE:</strong></p>
+<ul>
+<li><strong>Minimum:</strong> 3 biological replicates (detects only &gt;4-fold changes)</li>
+<li><strong>Good:</strong> 6-8 replicates (detects 2-fold changes)</li>
+<li><strong>Ideal:</strong> 12+ replicates (detects 1.5-fold changes)</li>
+<li>Technical replicates have diminishing returns — invest in biological replicates</li>
+</ul>
+<blockquote>
+<p><strong>Common pitfall:</strong> Confusing technical replicates (sequencing the same library twice) with biological replicates (independent biological samples). Only biological replicates give you power to generalize. Ten technical replicates of one sample give you n=1, not n=10.</p>
+</blockquote>
+<h3 id="gwas"><a class="header" href="#gwas">GWAS</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Study Type</th><th>Typical n</th><th>Detectable Effect</th></tr>
+</thead>
+<tbody>
+<tr><td>Candidate gene</td><td>500-1000</td><td>Large OR (&gt;2.0)</td></tr>
+<tr><td>Moderate GWAS</td><td>5,000-10,000</td><td>Medium OR (1.3-1.5)</td></tr>
+<tr><td>Large GWAS</td><td>50,000-500,000</td><td>Small OR (1.05-1.1)</td></tr>
+<tr><td>UK Biobank scale</td><td>500,000+</td><td>Tiny effects</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="power-curves"><a class="header" href="#power-curves">Power Curves</a></h2>
+<p><strong>Power curves</strong> show how power varies with sample size for different effect sizes. They’re the most informative visualization for study planning — you can see the “sweet spot” where adding more samples gives diminishing returns.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="380" viewbox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Power Curves by Effect Size</text>
+  <g transform="translate(80, 40)">
+    <!-- Grid -->
+    <line x1="60" y1="52" x2="500" y2="52" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="60" y1="104" x2="500" y2="104" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="60" y1="156" x2="500" y2="156" stroke="#e5e7eb" stroke-width="0.5" />
+    <line x1="60" y1="208" x2="500" y2="208" stroke="#e5e7eb" stroke-width="0.5" />
+    <!-- 80% power line -->
+    <line x1="60" y1="72" x2="500" y2="72" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.6" />
+    <text x="505" y="76" font-size="10" fill="#16a34a" font-weight="bold">80% power</text>
+    <!-- Axes -->
+    <line x1="60" y1="260" x2="500" y2="260" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="60" y1="260" x2="60" y2="30" stroke="#6b7280" stroke-width="1.5" />
+    <text x="280" y="295" text-anchor="middle" font-size="12" fill="#6b7280">Sample Size per Group</text>
+    <text x="15" y="145" text-anchor="middle" font-size="12" fill="#6b7280" transform="rotate(-90, 15, 145)">Statistical Power</text>
+    <!-- Y-axis labels -->
+    <text x="52" y="264" text-anchor="end" font-size="10" fill="#6b7280">0%</text>
+    <text x="52" y="212" text-anchor="end" font-size="10" fill="#6b7280">20%</text>
+    <text x="52" y="160" text-anchor="end" font-size="10" fill="#6b7280">40%</text>
+    <text x="52" y="108" text-anchor="end" font-size="10" fill="#6b7280">60%</text>
+    <text x="52" y="56" text-anchor="end" font-size="10" fill="#6b7280">80%</text>
+    <text x="52" y="34" text-anchor="end" font-size="10" fill="#6b7280">100%</text>
+    <!-- X-axis labels -->
+    <text x="60" y="276" text-anchor="middle" font-size="10" fill="#6b7280">0</text>
+    <text x="148" y="276" text-anchor="middle" font-size="10" fill="#6b7280">20</text>
+    <text x="236" y="276" text-anchor="middle" font-size="10" fill="#6b7280">40</text>
+    <text x="324" y="276" text-anchor="middle" font-size="10" fill="#6b7280">60</text>
+    <text x="412" y="276" text-anchor="middle" font-size="10" fill="#6b7280">80</text>
+    <text x="500" y="276" text-anchor="middle" font-size="10" fill="#6b7280">100</text>
+    <!-- Curve: d=0.3 (small) — slow to reach power -->
+    <path d="M 60,252 C 100,248 148,240 200,228 C 250,215 300,198 350,180 C 400,160 440,142 480,126 C 495,120 500,118 500,116" stroke="#9ca3af" stroke-width="2.5" fill="none" />
+    <text x="505" y="120" font-size="10" fill="#9ca3af" font-weight="bold">d = 0.3</text>
+    <!-- Curve: d=0.5 (medium) -->
+    <path d="M 60,247 C 100,235 148,210 200,178 C 250,145 300,112 340,88 C 380,72 420,58 460,48 C 480,44 500,42 500,40" stroke="#7c3aed" stroke-width="2.5" fill="none" />
+    <text x="505" y="44" font-size="10" fill="#7c3aed" font-weight="bold">d = 0.5</text>
+    <!-- Curve: d=0.8 (large) — quickly reaches power -->
+    <path d="M 60,238 C 90,210 120,170 148,132 C 175,98 200,72 236,52 C 260,42 300,36 340,34 C 400,32 500,32 500,32" stroke="#2563eb" stroke-width="2.5" fill="none" />
+    <text x="505" y="36" font-size="10" fill="#2563eb" font-weight="bold">d = 0.8</text>
+    <!-- Markers where each curve hits 80% power -->
+    <circle cx="460" cy="48" r="5" fill="#7c3aed" stroke="white" stroke-width="1.5" />
+    <text x="460" y="66" text-anchor="middle" font-size="9" fill="#7c3aed">n~64</text>
+    <circle cx="185" cy="72" r="5" fill="#2563eb" stroke="white" stroke-width="1.5" />
+    <text x="185" y="66" text-anchor="middle" font-size="9" fill="#2563eb">n~26</text>
+    <!-- d=0.3 doesn't reach 80% in this range -->
+    <text x="440" y="145" font-size="9" fill="#9ca3af" font-style="italic">n~394 needed!</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="the-cost-of-underpowered-studies"><a class="header" href="#the-cost-of-underpowered-studies">The Cost of Underpowered Studies</a></h2>
+<p>An underpowered study is not just a failed study — it’s actively harmful:</p>
+<ol>
+<li><strong>Waste:</strong> Money, time, and irreplaceable biological samples consumed for inconclusive results</li>
+<li><strong>Publication bias:</strong> Only “lucky” underpowered studies (that happen to find p &lt; 0.05) get published, inflating reported effect sizes</li>
+<li><strong>False negatives:</strong> Real treatments or biomarkers get abandoned</li>
+<li><strong>Ethical cost:</strong> Patients enrolled in clinical trials with no realistic chance of detecting a benefit</li>
+</ol>
+<blockquote>
+<p><strong>Clinical relevance:</strong> The FDA and EMA require power analyses for all clinical trial protocols. Journal reviewers increasingly require them for observational studies too. “How many samples do you need?” is the first question of good experimental design.</p>
+</blockquote>
+<h2 id="experimental-design-in-biolang"><a class="header" href="#experimental-design-in-biolang">Experimental Design in BioLang</a></h2>
+<h3 id="basic-power-analysis-for-t-test"><a class="header" href="#basic-power-analysis-for-t-test">Basic Power Analysis for t-test</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# How many samples to detect a 2-fold change in gene expression?
+
+# Parameters
+let alpha = 0.05
+let power_target = 0.80
+let effect_size = 0.8   # Cohen's d for ~2-fold change
+
+# Simulate power at different sample sizes
+let sample_sizes = [5, 10, 15, 20, 30, 50, 75, 100]
+let n_simulations = 1000
+
+print("=== Power Analysis: Two-Sample t-test ===")
+print("Effect size (Cohen's d): {effect_size}")
+print("Alpha: {alpha}")
+print("")
+print("n per group    Estimated Power")
+
+for n in sample_sizes {
+    let significant = 0
+
+    for sim in 0..n_simulations {
+        # Simulate two groups with known effect
+        let group1 = rnorm(n, 0, 1)
+        let group2 = rnorm(n, effect_size, 1)
+
+        let result = ttest(group1, group2)
+        if result.p_value &lt; alpha {
+            significant = significant + 1
+        }
+    }
+
+    let power = significant / n_simulations
+    let marker = if power &gt;= power_target { " &lt;-- sufficient" } else { "" }
+    print("{n}            {power |&gt; round(3)}{marker}")
+}
+</code></pre>
+<h3 id="power-curves-for-different-effect-sizes"><a class="header" href="#power-curves-for-different-effect-sizes">Power Curves for Different Effect Sizes</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Visualize power as a function of sample size
+let sample_sizes = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]
+let effect_sizes = [0.3, 0.5, 0.8, 1.2]
+let n_sims = 500
+
+let power_curves = {}
+
+for d in effect_sizes {
+    let powers = []
+
+    for n in sample_sizes {
+        let sig_count = 0
+        for s in 0..n_sims {
+            let g1 = rnorm(n, 0, 1)
+            let g2 = rnorm(n, d, 1)
+            if ttest(g1, g2).p_value &lt; 0.05 {
+                sig_count = sig_count + 1
+            }
+        }
+        powers = powers + [sig_count / n_sims]
+    }
+
+    power_curves["{d}"] = powers
+}
+
+# Plot power curves
+let curve_table = table({
+    "n": sample_sizes,
+    "d_0.3": power_curves["0.3"],
+    "d_0.5": power_curves["0.5"],
+    "d_0.8": power_curves["0.8"],
+    "d_1.2": power_curves["1.2"]
+})
+plot(curve_table, {type: "line", x: "n",
+    title: "Power Curves: Two-Sample t-test",
+    x_label: "Sample Size per Group", y_label: "Statistical Power"})
+</code></pre>
+<h3 id="rna-seq-experiment-design"><a class="header" href="#rna-seq-experiment-design">RNA-seq Experiment Design</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# How many biological replicates for RNA-seq DE?
+
+# Simulate RNA-seq-like data
+let fold_changes = [1.5, 2.0, 3.0, 4.0]
+let replicates = [3, 5, 8, 12, 20]
+let n_sims = 200
+
+print("=== RNA-seq Power by Fold Change and Replicates ===")
+print("FC       n=3     n=5     n=8    n=12    n=20")
+
+for fc in fold_changes {
+    let powers = []
+
+    for n in replicates {
+        let detected = 0
+
+        for sim in 0..n_sims {
+            # Simulate one gene with known fold change
+            let control = rnorm(n, 10, 2)
+            let treatment = rnorm(n, 10 * fc, 2 * fc)
+
+            # Log-transform (as in real RNA-seq analysis)
+            let log_ctrl = control |&gt; map(|x| log2(max(x, 0.1)))
+            let log_treat = treatment |&gt; map(|x| log2(max(x, 0.1)))
+
+            let p = ttest(log_ctrl, log_treat).p_value
+            if p &lt; 0.05 { detected = detected + 1 }
+        }
+
+        powers = powers + [detected / n_sims]
+    }
+
+    print("{fc}     " ++ powers |&gt; map(|p| "{(p * 100) |&gt; round(0)}%") |&gt; join("   "))
+}
+
+# Key takeaway: n=3 barely detects 4-fold changes;
+# n=8 reliably detects 2-fold changes
+</code></pre>
+<h3 id="paired-vs-unpaired-design"><a class="header" href="#paired-vs-unpaired-design">Paired vs. Unpaired Design</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Show the power advantage of paired designs
+let n_sims = 1000
+let n = 20
+let effect = 0.5  # medium effect
+let subject_sd = 2.0  # between-subject variability
+let within_sd = 0.5    # within-subject variability
+
+let power_unpaired = 0
+let power_paired = 0
+
+for sim in 0..n_sims {
+    # Unpaired: independent groups
+    let group1 = rnorm(n, 0, subject_sd)
+    let group2 = rnorm(n, effect, subject_sd)
+    if ttest(group1, group2).p_value &lt; 0.05 {
+        power_unpaired = power_unpaired + 1
+    }
+
+    # Paired: same subjects, before and after
+    let baseline = rnorm(n, 0, subject_sd)
+    let after = baseline + effect + rnorm(n, 0, within_sd)
+    let diff = after - baseline
+    if ttest_one(diff, 0).p_value &lt; 0.05 {
+        power_paired = power_paired + 1
+    }
+}
+
+print("=== Paired vs Unpaired Design (n={n}, d={effect}) ===")
+print("Unpaired power: {(power_unpaired / n_sims * 100) |&gt; round(1)}%")
+print("Paired power:   {(power_paired / n_sims * 100) |&gt; round(1)}%")
+print("Pairing advantage: {((power_paired - power_unpaired) / n_sims * 100) |&gt; round(1)} percentage points")
+</code></pre>
+<h3 id="multi-group-design-anova"><a class="header" href="#multi-group-design-anova">Multi-Group Design (ANOVA)</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Power for detecting differences among 4 treatment groups
+let n_sims = 500
+let k = 4  # number of groups
+let group_means = [0, 0.3, 0.6, 0.9]  # increasing effect
+let sample_sizes = [5, 10, 15, 20, 30]
+
+print("=== ANOVA Power (k={k} groups) ===")
+for n in sample_sizes {
+    let sig = 0
+
+    for sim in 0..n_sims {
+        let groups = []
+        for i in 0..k {
+            groups = groups + [rnorm(n, group_means[i], 1)]
+        }
+
+        let result = anova(groups)
+        if result.p_value &lt; 0.05 { sig = sig + 1 }
+    }
+
+    print("n = {n} per group: power = {(sig / n_sims * 100) |&gt; round(1)}%")
+}
+</code></pre>
+<h3 id="sample-size-recommendation-report"><a class="header" href="#sample-size-recommendation-report">Sample Size Recommendation Report</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Generate a complete sample size recommendation
+let scenarios = [
+    { name: "Conservative (d=0.5)", effect: 0.5 },
+    { name: "Expected (d=0.8)", effect: 0.8 },
+    { name: "Optimistic (d=1.2)", effect: 1.2 }
+]
+
+print("=== SAMPLE SIZE RECOMMENDATION REPORT ===")
+print("Two-group comparison, alpha=0.05, power=80%")
+print("")
+
+for s in scenarios {
+    # Find minimum n for 80% power via simulation
+    let required_n = 0
+    for n in 5..200 {
+        let power = 0
+        for sim in 0..500 {
+            let g1 = rnorm(n, 0, 1)
+            let g2 = rnorm(n, s.effect, 1)
+            if ttest(g1, g2).p_value &lt; 0.05 { power = power + 1 }
+        }
+        if power / 500 &gt;= 0.80 {
+            required_n = n
+            break
+        }
+    }
+
+    print("{s.name}: n = {required_n}/group")
+}
+
+print("")
+print("Recommendation: Plan for the CONSERVATIVE")
+print("estimate + 10-20% for dropout/QC failures")
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">from scipy.stats import norm
+from statsmodels.stats.power import TTestIndPower, TTestPower
+
+# Power analysis for two-sample t-test
+analysis = TTestIndPower()
+
+# Required sample size
+n = analysis.solve_power(effect_size=0.8, alpha=0.05, power=0.80)
+print(f"Required n per group: {n:.0f}")
+
+# Power curve
+import matplotlib.pyplot as plt
+fig = analysis.plot_power(
+    dep_var='nobs', nobs=range(5, 100),
+    effect_size=[0.3, 0.5, 0.8, 1.2])
+
+# Simulation-based power
+import numpy as np
+from scipy.stats import ttest_ind
+
+def simulate_power(n, d, n_sim=1000):
+    sig = sum(ttest_ind(np.random.normal(0, 1, n),
+                        np.random.normal(d, 1, n)).pvalue &lt; 0.05
+              for _ in range(n_sim))
+    return sig / n_sim
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Power analysis for two-sample t-test
+power.t.test(d = 0.8, sig.level = 0.05, power = 0.80)
+
+# Power curve
+library(pwr)
+pwr.t.test(d = 0.8, sig.level = 0.05, power = 0.80)
+
+# RNA-seq specific power
+library(RNASeqPower)
+rnapower(depth = 20e6, cv = 0.4, effect = 2,
+         alpha = 0.05, power = 0.8)
+
+# Simulation-based
+library(simr)
+# simr provides power simulation for mixed models
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-power-for-your-study"><a class="header" href="#exercise-1-power-for-your-study">Exercise 1: Power for Your Study</a></h3>
+<p>You’re planning a study comparing tumor mutation burden between immunotherapy responders and non-responders. Pilot data suggests d ≈ 0.6 with SD = 5 mutations/Mb. How many patients per group do you need for 80% power?</p>
+<pre><code class="language-bio">
+# 1. Simulate power at n = 10, 20, 30, 50, 75, 100
+# 2. Find the minimum n for 80% power
+# 3. Add 15% for anticipated dropout
+# 4. Create a power curve plot
+</code></pre>
+<h3 id="exercise-2-paired-vs-unpaired"><a class="header" href="#exercise-2-paired-vs-unpaired">Exercise 2: Paired vs. Unpaired</a></h3>
+<p>A study can either use 30 independent samples per group OR 30 paired before/after measurements. The between-subject SD is 3x the within-subject SD. Compare the power of both designs.</p>
+<pre><code class="language-bio">
+# 1. Simulate paired and unpaired designs with n=30
+# 2. Effect size d = 0.5
+# 3. Between-subject SD = 3, within-subject SD = 1
+# 4. Which design achieves higher power?
+# 5. How many unpaired samples would match the paired design's power?
+</code></pre>
+<h3 id="exercise-3-rna-seq-planning"><a class="header" href="#exercise-3-rna-seq-planning">Exercise 3: RNA-seq Planning</a></h3>
+<p>You’re designing an RNA-seq experiment to identify genes with at least 1.5-fold change between two conditions. Your budget allows either 6 samples at 30M reads each or 12 samples at 15M reads each. Which design has more power?</p>
+<pre><code class="language-bio">
+# Simulate both scenarios
+# Track how many "true DE genes" each design detects
+# Which is better: more depth or more replicates?
+</code></pre>
+<h3 id="exercise-4-the-underpowered-literature"><a class="header" href="#exercise-4-the-underpowered-literature">Exercise 4: The Underpowered Literature</a></h3>
+<p>Simulate 100 “studies” with n=10 per group and a true small effect (d=0.3). Show that:</p>
+<ol>
+<li>Most studies (&gt;80%) fail to detect the effect</li>
+<li>The “significant” studies dramatically overestimate the effect size</li>
+<li>This creates a biased picture in the published literature</li>
+</ol>
+<pre><code class="language-bio">
+# 1. Run 100 simulated two-sample t-tests (n=10, d=0.3)
+# 2. Count how many achieve p &lt; 0.05
+# 3. For the significant ones, compute Cohen's d from the data
+# 4. Compare the average "published" d to the true d = 0.3
+# 5. This is the "winner's curse" — published effects are inflated
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Power analysis</strong> determines how many samples you need BEFORE starting an experiment — it’s not optional, it’s essential</li>
+<li>The four pillars are <strong>α</strong> (false positive rate), <strong>power</strong> (1-β, false negative rate), <strong>effect size</strong>, and <strong>sample size</strong> — fix three, solve for the fourth</li>
+<li><strong>Underpowered studies</strong> waste resources, inflate published effect sizes, and can falsely suggest an effect doesn’t exist</li>
+<li><strong>Biological replicates</strong> drive power in genomics — technical replicates give diminishing returns</li>
+<li>For RNA-seq: n=3 is barely adequate (detects &gt;4-fold), n=8 is good (2-fold), n=12+ is ideal (1.5-fold)</li>
+<li><strong>Paired designs</strong> dramatically increase power by removing between-subject variability</li>
+<li>The <strong>winner’s curse</strong>: underpowered studies that happen to be significant overestimate the true effect</li>
+<li>Always use <strong>conservative</strong> effect size estimates and add buffer for dropout/QC failures</li>
+<li>Power curves visualize the sample size / power trade-off and help identify the sweet spot</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Statistical significance tells you whether an effect is real, but not whether it <strong>matters</strong>. Day 19 introduces <strong>effect sizes</strong> — Cohen’s d, odds ratios, relative risk — and the critical distinction between statistical significance and practical importance.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-17.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-19.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-17.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-19.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

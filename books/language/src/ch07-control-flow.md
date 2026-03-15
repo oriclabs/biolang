@@ -60,7 +60,7 @@ fn describe_alignment(aln) {
 The basic `for` loop iterates over any collection or stream.
 
 ```biolang
-let reads = read_fastq("sample.fastq.gz")
+let reads = read_fastq("data/reads.fastq")
 let total_bases = 0
 
 for read in reads {
@@ -91,7 +91,7 @@ for (sample, path) in zip(sample_ids, fastq_paths) {
 Destructuring also works with `enumerate`:
 
 ```biolang
-let exons = read_bed("BRCA1_exons.bed")
+let exons = read_bed("data/exons.bed")
 
 for (i, exon) in enumerate(exons) {
     print("Exon " + str(i + 1) + ": " + exon.chrom + ":" + str(exon.start) + "-" + str(exon.end))
@@ -106,7 +106,7 @@ The `else` block executes only when the loop completes without hitting a
 ```biolang
 # requires: internet connection
 let target = dna"TATAAA"
-let promoters = read_bed("promoter_regions.bed")
+let promoters = read_bed("data/regions.bed")
 
 for region in promoters {
     let seq = ucsc_sequence("hg38", region.chrom, region.start, region.end)
@@ -154,7 +154,7 @@ let orfs = find_orfs_manual("ATGAAACCCTAGATGTTTGAATAA")
 `break` exits the innermost loop. `continue` skips to the next iteration.
 
 ```biolang
-let variants = read_vcf("somatic.vcf")
+let variants = read_vcf("data/variants.vcf")
 let first_pathogenic = nil
 
 for v in variants {
@@ -259,7 +259,7 @@ fn process_bam(path) {
 Read a VCF and produce a summary table of variant types using `match`.
 
 ```biolang
-let variants = read_vcf("sample.vcf")
+let variants = read_vcf("data/variants.vcf")
 
 let classified = variants |> map(|v| {
     let vtype = match true {
@@ -296,7 +296,7 @@ first hit or state that none was found.
 ```biolang
 # requires: internet connection
 let motif = dna"CANNTG"  # E-box motif (N = any base)
-let genes = read_gff("annotations.gff")
+let genes = read_gff("data/annotations.gff")
     |> filter(|f| f.type == "gene" && f.biotype == "protein_coding")
 
 for gene in genes {

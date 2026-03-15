@@ -1,0 +1,778 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 2: Your Data at a Glance — Descriptive Statistics - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-2-your-data-at-a-glance--descriptive-statistics"><a class="header" href="#day-2-your-data-at-a-glance--descriptive-statistics">Day 2: Your Data at a Glance — Descriptive Statistics</a></h1>
+<div class="day-meta">
+<span class="badge">Day 2 of 30</span>
+<span class="badge">Prerequisites: Day 1</span>
+<span class="badge">~50 min</span>
+<span class="badge">Hands-on</span>
+</div>
+
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. Sarah Chen stares at her screen. The Illumina NovaSeq 6000 finished its run overnight, and now she has 10,247 quality scores — one for each tile on the flow cell. Her PI needs a decision by the morning meeting: is this data usable, or do they need to re-run the library, burning another $4,000 and two days?</p>
+<p>She cannot read 10,247 numbers. She cannot scroll through them and develop an intuition. She has five minutes before the meeting starts. What she needs is a way to compress 10,247 numbers into a handful of meaningful summaries that answer three questions: What is the typical quality? How much does it vary? Are there any red flags?</p>
+<p>This is the job of descriptive statistics. They are the first thing you compute, every time, before you run a single test. Get them wrong — or skip them — and everything downstream is built on sand.</p>
+<h2 id="what-are-descriptive-statistics"><a class="header" href="#what-are-descriptive-statistics">What Are Descriptive Statistics?</a></h2>
+<p>Descriptive statistics are summaries. Think of them as a movie trailer for your data. The full movie (the raw dataset) might be two hours long, but the trailer gives you the genre, the tone, and the key plot points in two minutes. A good trailer does not lie about the movie. A good set of descriptive statistics does not lie about the data.</p>
+<p>There are three things you need to know about any dataset:</p>
+<ol>
+<li><strong>Center</strong> — Where is the “middle” of the data?</li>
+<li><strong>Spread</strong> — How far do values range from that center?</li>
+<li><strong>Shape</strong> — Is the data symmetric? Skewed? Are there outliers?</li>
+</ol>
+<h3 id="why-do-these-three-matter"><a class="header" href="#why-do-these-three-matter">Why Do These Three Matter?</a></h3>
+<p><strong>Center tells you what is “normal.”</strong> If the mean quality score of your sequencing run is Q35, you know tiles are performing well. If it is Q15, something went wrong. Without center, you have no reference point — you cannot say whether a single observation is typical or alarming. In clinical genomics, center defines the baseline: what is the typical variant allele frequency in this cohort? What is the average coverage across your target regions?</p>
+<p><strong>Spread tells you how much you can trust the center.</strong> Two experiments might both report a mean IC50 of 12 nM, but one has values ranging from 11 to 13 (tight, reproducible) while the other ranges from 2 to 45 (noisy, unreliable). The center is the same — the spread tells you completely different stories. High spread means your next measurement could land anywhere; low spread means you can make confident predictions. In RNA-seq, high within-group variance buries real differential expression in noise.</p>
+<p><strong>Shape tells you which statistical tools are safe to use.</strong> Almost every standard statistical test (t-test, ANOVA, linear regression) assumes the data is approximately bell-shaped (normally distributed). If your data is heavily right-skewed — which gene expression nearly always is — those tests give wrong answers. Shape also reveals hidden structure: a bimodal distribution might mean you have two distinct populations mixed together (e.g., responders and non-responders to a drug). Ignoring shape is the single most common reason published biomedical results fail to replicate.</p>
+<blockquote>
+<p><strong>Key insight:</strong> Center without spread is meaningless (“the average temperature is 72°F” tells you nothing if the range is -20 to 160). Spread without shape is dangerous (a standard deviation assumes symmetry, but skewed data violates this). You always need all three.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="280" viewbox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">The Three Pillars of Descriptive Statistics</text>
+  <!-- Center -->
+  <rect x="30" y="50" width="190" height="200" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" />
+  <text x="125" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e3a8a">CENTER</text>
+  <text x="125" y="95" text-anchor="middle" font-size="11" fill="#1e3a8a">"What is typical?"</text>
+  <line x1="70" y1="140" x2="180" y2="140" stroke="#6b7280" stroke-width="1" />
+  <path d="M 70,138 Q 100,120 125,105 Q 150,120 180,138" fill="none" stroke="#2563eb" stroke-width="2" />
+  <line x1="125" y1="105" x2="125" y2="140" stroke="#dc2626" stroke-width="2" stroke-dasharray="4,3" />
+  <circle cx="125" cy="105" r="3" fill="#dc2626" />
+  <text x="125" y="160" text-anchor="middle" font-size="10" fill="#dc2626">mean / median</text>
+  <text x="125" y="180" text-anchor="middle" font-size="10" fill="#475569">Without center, you can't</text>
+  <text x="125" y="195" text-anchor="middle" font-size="10" fill="#475569">judge if a value is normal</text>
+  <text x="125" y="210" text-anchor="middle" font-size="10" fill="#475569">or alarming</text>
+  <text x="125" y="235" text-anchor="middle" font-size="10" font-style="italic" fill="#2563eb">Q35 = good run</text>
+  <text x="125" y="248" text-anchor="middle" font-size="10" font-style="italic" fill="#dc2626">Q15 = re-sequence</text>
+  <!-- Spread -->
+  <rect x="245" y="50" width="190" height="200" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" />
+  <text x="340" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#14532d">SPREAD</text>
+  <text x="340" y="95" text-anchor="middle" font-size="11" fill="#14532d">"How much can I trust it?"</text>
+  <line x1="285" y1="140" x2="395" y2="140" stroke="#6b7280" stroke-width="1" />
+  <!-- Tight distribution -->
+  <path d="M 295,138 Q 310,125 320,108 Q 330,98 340,95 Q 350,98 360,108 Q 370,125 385,138" fill="none" stroke="#16a34a" stroke-width="2" />
+  <text x="340" y="155" text-anchor="middle" font-size="9" fill="#16a34a">Tight = reliable</text>
+  <!-- Wide distribution hint -->
+  <path d="M 285,138 Q 300,130 315,125 Q 340,118 365,125 Q 380,130 395,138" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3,3" />
+  <text x="340" y="170" text-anchor="middle" font-size="9" fill="#dc2626">Wide = noisy</text>
+  <text x="340" y="195" text-anchor="middle" font-size="10" fill="#475569">Same mean, but different</text>
+  <text x="340" y="210" text-anchor="middle" font-size="10" fill="#475569">confidence in the result</text>
+  <text x="340" y="235" text-anchor="middle" font-size="10" font-style="italic" fill="#16a34a">IC50: 11-13 nM (trust it)</text>
+  <text x="340" y="248" text-anchor="middle" font-size="10" font-style="italic" fill="#dc2626">IC50: 2-45 nM (don't)</text>
+  <!-- Shape -->
+  <rect x="460" y="50" width="190" height="200" rx="8" fill="#f3e8ff" stroke="#7c3aed" stroke-width="1.5" />
+  <text x="555" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#4c1d95">SHAPE</text>
+  <text x="555" y="95" text-anchor="middle" font-size="11" fill="#4c1d95">"Which tools are safe?"</text>
+  <line x1="500" y1="140" x2="610" y2="140" stroke="#6b7280" stroke-width="1" />
+  <!-- Skewed distribution -->
+  <path d="M 500,138 Q 515,130 530,110 Q 540,100 545,98 Q 555,100 570,115 Q 590,130 610,138" fill="none" stroke="#7c3aed" stroke-width="2" />
+  <text x="555" y="155" text-anchor="middle" font-size="9" fill="#7c3aed">Skewed → wrong test = wrong answer</text>
+  <text x="555" y="195" text-anchor="middle" font-size="10" fill="#475569">Bell-shaped → t-test OK</text>
+  <text x="555" y="210" text-anchor="middle" font-size="10" fill="#475569">Skewed → need log-transform</text>
+  <text x="555" y="225" text-anchor="middle" font-size="10" fill="#475569">Bimodal → two populations?</text>
+  <text x="555" y="248" text-anchor="middle" font-size="10" font-style="italic" fill="#7c3aed">#1 reason results fail to replicate</text>
+</svg>
+</div>
+
+<p>Every statistical analysis starts here. If you skip descriptive statistics and jump straight to hypothesis testing, you are performing surgery without an examination.</p>
+<h2 id="measures-of-center"><a class="header" href="#measures-of-center">Measures of Center</a></h2>
+<h3 id="mean-arithmetic-average"><a class="header" href="#mean-arithmetic-average">Mean (Arithmetic Average)</a></h3>
+<p>The mean is the balance point. If your data values were weights placed along a ruler, the mean is the spot where the ruler would balance perfectly.</p>
+<p><strong>Formula:</strong> x̄ = (1/n) ∑ xᵢ</p>
+<p>The mean uses every data point, which is both its strength and its weakness. It is the most efficient estimator of center when data is symmetric with no outliers. But it is exquisitely sensitive to extreme values.</p>
+<p><strong>Example:</strong> Five gene expression values (FPKM): 12, 15, 14, 13, 16. Mean = 14.0. Reasonable.</p>
+<p>Now add one highly expressed gene: 12, 15, 14, 13, 16, 5000. Mean = 845.0. The mean has been dragged from 14 to 845 by a single outlier. It no longer represents “typical” expression.</p>
+<blockquote>
+<p><strong>Common pitfall:</strong> In genomics, gene expression distributions are heavily right-skewed. Reporting mean FPKM/TPM values without acknowledging this skew is misleading. The median is almost always a better summary for expression data.</p>
+</blockquote>
+<h3 id="median-middle-value"><a class="header" href="#median-middle-value">Median (Middle Value)</a></h3>
+<p>The median is the value that splits the data in half: 50% of observations fall below it, 50% above. Sort the data and pick the middle number (or average the two middle numbers if n is even).</p>
+<p>For our outlier-contaminated expression data: sorted = 12, 13, 14, 15, 16, 5000. Median = (14 + 15) / 2 = 14.5. The outlier barely matters.</p>
+<p>The median is <strong>robust</strong> — it resists the pull of extreme values. This makes it the preferred measure of center for skewed distributions, which are the norm in biology.</p>
+<h3 id="mode-most-frequent-value"><a class="header" href="#mode-most-frequent-value">Mode (Most Frequent Value)</a></h3>
+<p>The mode is the most common value. It is most useful for categorical or discrete data: the most common blood type, the most frequent variant allele, the peak of a histogram.</p>
+<p>For continuous data, the mode is the peak of the density curve. Bimodal distributions (two peaks) arise in biology more often than you might expect — for instance, CpG methylation levels often cluster near 0% and 100%, reflecting fully unmethylated and fully methylated states.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="320" viewbox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Mean, Median, and Mode in a Right-Skewed Distribution</text>
+  <!-- Axes -->
+  <line x1="60" y1="250" x2="640" y2="250" stroke="#9ca3af" stroke-width="1.5" />
+  <line x1="60" y1="250" x2="60" y2="50" stroke="#9ca3af" stroke-width="1.5" />
+  <text x="350" y="280" text-anchor="middle" font-size="12" fill="#6b7280">Value (e.g., gene expression, TPM)</text>
+  <text x="30" y="155" text-anchor="middle" font-size="12" fill="#6b7280" transform="rotate(-90,30,155)">Frequency</text>
+  <!-- Right-skewed bell curve (approximated with polygon) -->
+  <path d="M 80,248 Q 120,245 150,220 Q 180,160 200,100 Q 215,65 230,58 Q 250,55 270,65 Q 300,90 340,140 Q 380,180 430,210 Q 490,235 560,245 Q 600,248 630,248" fill="#93c5fd" fill-opacity="0.3" stroke="#2563eb" stroke-width="2.5" />
+  <!-- Mode line (peak) -->
+  <line x1="230" y1="55" x2="230" y2="250" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6,4" />
+  <circle cx="230" cy="55" r="5" fill="#7c3aed" />
+  <text x="230" y="44" text-anchor="middle" font-size="12" font-weight="bold" fill="#7c3aed">Mode</text>
+  <text x="230" y="268" text-anchor="middle" font-size="10" fill="#7c3aed">Peak of distribution</text>
+  <!-- Median line -->
+  <line x1="295" y1="98" x2="295" y2="250" stroke="#16a34a" stroke-width="2" stroke-dasharray="6,4" />
+  <circle cx="295" cy="98" r="5" fill="#16a34a" />
+  <text x="295" y="88" text-anchor="middle" font-size="12" font-weight="bold" fill="#16a34a">Median</text>
+  <text x="295" y="268" text-anchor="middle" font-size="10" fill="#16a34a">50% of data on each side</text>
+  <!-- Mean line (pulled right by tail) -->
+  <line x1="370" y1="155" x2="370" y2="250" stroke="#dc2626" stroke-width="2" stroke-dasharray="6,4" />
+  <circle cx="370" cy="155" r="5" fill="#dc2626" />
+  <text x="370" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="#dc2626">Mean</text>
+  <text x="370" y="268" text-anchor="middle" font-size="10" fill="#dc2626">Pulled right by outliers</text>
+  <!-- Annotation arrow showing pull -->
+  <path d="M 310,300 C 330,290 350,290 365,295" fill="none" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arrowDay2)" />
+  <defs><marker id="arrowDay2" markerwidth="8" markerheight="6" refx="8" refy="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626" /></marker></defs>
+  <text x="340" y="313" text-anchor="middle" font-size="10" fill="#dc2626" font-style="italic">Outliers drag the mean toward the tail</text>
+  <!-- Legend -->
+  <rect x="490" y="60" width="150" height="80" rx="4" fill="white" stroke="#e5e7eb" />
+  <text x="500" y="78" font-size="11" font-weight="600" fill="#1e293b">Right-skewed data:</text>
+  <line x1="500" y1="92" x2="520" y2="92" stroke="#7c3aed" stroke-width="2" />
+  <text x="525" y="96" font-size="10" fill="#7c3aed">Mode (smallest)</text>
+  <line x1="500" y1="110" x2="520" y2="110" stroke="#16a34a" stroke-width="2" />
+  <text x="525" y="114" font-size="10" fill="#16a34a">Median (middle)</text>
+  <line x1="500" y1="128" x2="520" y2="128" stroke="#dc2626" stroke-width="2" />
+  <text x="525" y="132" font-size="10" fill="#dc2626">Mean (largest)</text>
+</svg>
+</div>
+
+<h3 id="when-to-use-each"><a class="header" href="#when-to-use-each">When to Use Each</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Measure</th><th>Best For</th><th>Sensitive to Outliers?</th><th>Biological Example</th></tr>
+</thead>
+<tbody>
+<tr><td>Mean</td><td>Symmetric, well-behaved data</td><td>Yes, very</td><td>Measurement error in technical replicates</td></tr>
+<tr><td>Median</td><td>Skewed data, outliers present</td><td>No</td><td>Gene expression (FPKM/TPM)</td></tr>
+<tr><td>Mode</td><td>Categorical data, multimodal</td><td>No</td><td>Variant allele frequency peaks</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> Always report both mean and median. If they differ substantially, your data is skewed, and the median is the more honest summary.</p>
+</blockquote>
+<h2 id="measures-of-spread"><a class="header" href="#measures-of-spread">Measures of Spread</a></h2>
+<p>Knowing the center is not enough. Two datasets can have identical means and wildly different behaviors. Consider drug response in two patient cohorts — both might have a mean survival of 12 months, but in one cohort everyone lives 11-13 months, while in the other, half die in 2 months and half live 22 months. The clinical implications are completely different.</p>
+<h3 id="range"><a class="header" href="#range">Range</a></h3>
+<p>The simplest measure: maximum minus minimum. It tells you the total extent of the data but is completely determined by the two most extreme points.</p>
+<h3 id="variance-and-standard-deviation"><a class="header" href="#variance-and-standard-deviation">Variance and Standard Deviation</a></h3>
+<p>Variance measures the average squared distance from the mean:</p>
+<p><strong>Variance:</strong> s² = (1 / (n-1)) ∑ (xᵢ - x̄)²</p>
+<p><strong>Standard Deviation:</strong> s = √(s²)</p>
+<p>We divide by (n-1) rather than n (Bessel’s correction) because a sample underestimates the true population variance. The standard deviation is in the same units as the data, making it more interpretable than variance.</p>
+<p><strong>Rule of thumb:</strong> For normally distributed data, about 68% of values fall within 1 SD of the mean, 95% within 2 SDs, and 99.7% within 3 SDs. If a quality score is more than 3 SDs below the mean, something is wrong with that tile.</p>
+<h3 id="interquartile-range-iqr"><a class="header" href="#interquartile-range-iqr">Interquartile Range (IQR)</a></h3>
+<p>The IQR is the range of the middle 50% of the data: Q3 - Q1, where Q1 is the 25th percentile and Q3 is the 75th percentile.</p>
+<p>Like the median, the IQR is robust to outliers. It is the foundation of the box plot and a standard measure of spread for skewed data.</p>
+<h3 id="coefficient-of-variation-cv"><a class="header" href="#coefficient-of-variation-cv">Coefficient of Variation (CV)</a></h3>
+<p>CV = (SD / Mean) × 100%. The CV expresses variability relative to the mean, making it useful for comparing spread across measurements with different scales.</p>
+<p><strong>Example:</strong> If gene A has mean expression 1000 TPM with SD 100, and gene B has mean 10 TPM with SD 5, which is more variable? Gene A has higher SD, but gene B has a higher CV (50% vs 10%). Gene B’s expression is relatively more variable.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Measure</th><th>Formula</th><th>Robust to Outliers?</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td>Range</td><td>max - min</td><td>No</td><td>Quick overview</td></tr>
+<tr><td>Variance</td><td>s²</td><td>No</td><td>Mathematical convenience</td></tr>
+<tr><td>Standard Deviation</td><td>s</td><td>No</td><td>Symmetric data</td></tr>
+<tr><td>IQR</td><td>Q3 - Q1</td><td>Yes</td><td>Skewed data, box plots</td></tr>
+<tr><td>CV</td><td>(SD / Mean) × 100%</td><td>No</td><td>Comparing variability across scales</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="shape-skewness-and-kurtosis"><a class="header" href="#shape-skewness-and-kurtosis">Shape: Skewness and Kurtosis</a></h2>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="250" viewbox="0 0 680 250" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="26" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Three Distribution Shapes</text>
+  <!-- Left-skewed (Negative Skew) -->
+  <rect x="15" y="38" width="210" height="195" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="120" y="58" text-anchor="middle" font-size="12" font-weight="600" fill="#7c3aed">Left-Skewed (Negative)</text>
+  <line x1="35" y1="200" x2="210" y2="200" stroke="#9ca3af" stroke-width="1" />
+  <path d="M 45,198 Q 65,195 85,185 Q 105,150 120,100 Q 130,75 145,65 Q 165,60 175,68 Q 185,80 190,110 Q 195,150 200,198" fill="#c4b5fd" fill-opacity="0.4" stroke="#7c3aed" stroke-width="2" />
+  <text x="120" y="218" text-anchor="middle" font-size="10" fill="#7c3aed">Long tail on the left</text>
+  <text x="120" y="230" text-anchor="middle" font-size="10" fill="#6b7280">Mean &lt; Median &lt; Mode</text>
+  <!-- Symmetric (Normal) -->
+  <rect x="235" y="38" width="210" height="195" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="340" y="58" text-anchor="middle" font-size="12" font-weight="600" fill="#2563eb">Symmetric (Normal)</text>
+  <line x1="255" y1="200" x2="430" y2="200" stroke="#9ca3af" stroke-width="1" />
+  <path d="M 265,198 Q 280,195 295,180 Q 310,145 320,100 Q 330,72 340,62 Q 350,72 360,100 Q 370,145 385,180 Q 400,195 415,198" fill="#93c5fd" fill-opacity="0.4" stroke="#2563eb" stroke-width="2" />
+  <text x="340" y="218" text-anchor="middle" font-size="10" fill="#2563eb">Mirror-image symmetry</text>
+  <text x="340" y="230" text-anchor="middle" font-size="10" fill="#6b7280">Mean = Median = Mode</text>
+  <!-- Right-skewed (Positive Skew) -->
+  <rect x="455" y="38" width="210" height="195" rx="6" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="560" y="58" text-anchor="middle" font-size="12" font-weight="600" fill="#dc2626">Right-Skewed (Positive)</text>
+  <line x1="475" y1="200" x2="650" y2="200" stroke="#9ca3af" stroke-width="1" />
+  <path d="M 485,198 Q 490,150 495,110 Q 500,80 505,68 Q 515,60 535,65 Q 550,75 560,100 Q 575,150 595,185 Q 615,195 635,198" fill="#fecaca" fill-opacity="0.4" stroke="#dc2626" stroke-width="2" />
+  <text x="560" y="218" text-anchor="middle" font-size="10" fill="#dc2626">Long tail on the right</text>
+  <text x="560" y="230" text-anchor="middle" font-size="10" fill="#6b7280">Mode &lt; Median &lt; Mean</text>
+</svg>
+</div>
+
+<h3 id="skewness"><a class="header" href="#skewness">Skewness</a></h3>
+<p>Skewness measures asymmetry. A skewness of 0 means perfectly symmetric (like the normal distribution). Positive skewness means a right tail (most values cluster low, with a few very high values). Negative skewness means a left tail.</p>
+<p><strong>Biological reality:</strong> Most biological measurements are positively skewed. Gene expression, protein abundance, cell counts, read depths — all tend to have many low values and a few very high ones. This is because multiplicative processes (gene regulation cascades, exponential growth) naturally produce right-skewed distributions.</p>
+<h3 id="kurtosis"><a class="header" href="#kurtosis">Kurtosis</a></h3>
+<p>Kurtosis measures the “tailedness” of the distribution — how likely extreme values are compared to a normal distribution. High kurtosis means heavy tails (more outliers than expected). Low kurtosis means light tails.</p>
+<p>In genomics, variant allele frequency distributions often have high kurtosis, reflecting the mixture of common variants (clustered near 50%) and rare variants (near 0%).</p>
+<blockquote>
+<p><strong>Key insight:</strong> If skewness is far from 0 or kurtosis is far from 3, your data is not normally distributed, and parametric tests that assume normality may give misleading results. We will explore this deeply on Day 3.</p>
+</blockquote>
+<h2 id="descriptive-statistics-in-biolang"><a class="header" href="#descriptive-statistics-in-biolang">Descriptive Statistics in BioLang</a></h2>
+<p>Let us return to Dr. Chen’s problem. She has 10,247 quality scores and five minutes.</p>
+<h3 id="loading-and-summarizing-data"><a class="header" href="#loading-and-summarizing-data">Loading and Summarizing Data</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Simulate sequencing quality scores (Phred scale, typically 0-40)
+let quality_scores = rnorm(10247, 32.5, 3.8)
+
+# One-line comprehensive summary
+let stats = summary(quality_scores)
+print(stats)
+# Output:
+#   n:        10247
+#   mean:     32.48
+#   median:   32.51
+#   sd:       3.81
+#   min:      17.23
+#   max:      47.12
+#   q1:       29.93
+#   q3:       35.07
+#   iqr:      5.14
+#   skewness: -0.01
+#   kurtosis: 2.99
+</code></pre>
+<p>That single call answers Dr. Chen’s three questions immediately. Mean quality is 32.5 (good — above the Phred 30 threshold). The SD is 3.8 (moderate spread). Skewness is near zero (symmetric). No red flags. The run is usable.</p>
+<h3 id="computing-individual-statistics"><a class="header" href="#computing-individual-statistics">Computing Individual Statistics</a></h3>
+<pre><code class="language-bio"># Individual measures of center
+let avg = mean(quality_scores)       # 32.48
+let med = median(quality_scores)     # 32.51
+let mod = mode(quality_scores)       # 32 (rounded to nearest integer)
+
+# Individual measures of spread
+let sd = stdev(quality_scores)       # 3.81
+let v = variance(quality_scores)     # 14.52
+let r = range_stat(quality_scores)   # [17.23, 47.12]
+let q = quantile(quality_scores, [0.25, 0.5, 0.75])  # [29.93, 32.51, 35.07]
+let i = iqr(quality_scores)          # 5.14
+
+# Shape
+let sk = skewness(quality_scores)    # -0.01
+let ku = kurtosis(quality_scores)    # 2.99
+
+print("Mean: {avg}, Median: {med}")
+print("SD: {sd}, IQR: {i}")
+print("Skewness: {sk}, Kurtosis: {ku}")
+</code></pre>
+<h3 id="the-summary-function"><a class="header" href="#the-summary-function">The <code>summary()</code> Function</a></h3>
+<p>For a more detailed report:</p>
+<pre><code class="language-bio">let report = summary(quality_scores)
+print(report)
+# Output:
+#   Variable:    quality_scores
+#   Count:       10247
+#   Mean:        32.48
+#   Std Dev:     3.81
+#   Min:         17.23
+#   25%:         29.93
+#   50%:         32.51
+#   75%:         35.07
+#   Max:         47.12
+#   Skewness:    -0.01
+#   Kurtosis:    2.99
+#   CV:          11.73%
+#   SE(mean):    0.038
+</code></pre>
+<h3 id="working-with-real-sequencing-data"><a class="header" href="#working-with-real-sequencing-data">Working with Real Sequencing Data</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# In practice, you'd load from a file:
+# let scores = read_csv("data/expression.csv") |&gt; column("phred_score")
+
+# Simulate a problematic run with bimodal quality
+let good_tiles = rnorm(8000, 33.0, 2.5)
+let bad_tiles = rnorm(2247, 18.0, 4.0)
+let mixed_scores = good_tiles + bad_tiles
+
+let mixed_stats = summary(mixed_scores)
+print(mixed_stats)
+# Mean: 29.7 — looks okay at first glance
+# Median: 32.1 — the median reveals the truth: most tiles are fine
+# Skewness: -1.4 — strongly left-skewed, warning sign!
+
+# The mean alone would have hidden the problem.
+# Always look at the full distribution.
+</code></pre>
+<blockquote>
+<p><strong>Common pitfall:</strong> Relying on the mean alone can hide bimodal distributions. The “bad tile” problem above is common in sequencing — a mean of 29.7 looks passable, but 22% of tiles are failing. Always visualize.</p>
+</blockquote>
+<h2 id="visualization-always-plot-before-you-test"><a class="header" href="#visualization-always-plot-before-you-test">Visualization: Always Plot Before You Test</a></h2>
+<p>Numbers tell part of the story. Plots tell the rest. Anscombe’s Quartet — four datasets with identical means, variances, and correlations but wildly different structures — demonstrates why you must always look at your data.</p>
+<h3 id="histograms"><a class="header" href="#histograms">Histograms</a></h3>
+<p>A histogram bins your data and counts frequencies. It reveals the distribution’s shape at a glance.</p>
+<pre><code class="language-bio"># Basic histogram (uses quality_scores from block above — click "Run All Above + This")
+histogram(quality_scores, {bins: 50, title: "Sequencing Quality Distribution"})
+</code></pre>
+<pre><code class="language-bio"># Histogram of the problematic run (uses mixed_scores from earlier block)
+histogram(mixed_scores, {bins: 50, title: "Bimodal Quality — Problem Run"})
+# This immediately reveals the two peaks that the mean masked.
+</code></pre>
+<p>The good run produces a single symmetric peak around 32-33. The problem run shows two distinct peaks — one centered at 18 and one at 33. No summary statistic captures this as effectively as the histogram.</p>
+<h3 id="box-plots"><a class="header" href="#box-plots">Box Plots</a></h3>
+<p>A box plot displays the median (center line), IQR (box), and whiskers (typically 1.5 × IQR). Points beyond the whiskers are marked as individual outliers.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="380" viewbox="0 0 660 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Anatomy of a Box Plot</text>
+  <!-- The box plot itself (vertical orientation, centered) -->
+  <!-- Outer whisker lines -->
+  <line x1="260" y1="320" x2="260" y2="280" stroke="#2563eb" stroke-width="2" />
+  <line x1="240" y1="320" x2="280" y2="320" stroke="#2563eb" stroke-width="2.5" />
+  <line x1="260" y1="130" x2="260" y2="100" stroke="#2563eb" stroke-width="2" />
+  <line x1="240" y1="100" x2="280" y2="100" stroke="#2563eb" stroke-width="2.5" />
+  <!-- Box -->
+  <rect x="220" y="130" width="80" height="150" fill="#93c5fd" fill-opacity="0.3" stroke="#2563eb" stroke-width="2.5" rx="2" />
+  <!-- Median line -->
+  <line x1="220" y1="195" x2="300" y2="195" stroke="#dc2626" stroke-width="3" />
+  <!-- Outliers -->
+  <circle cx="260" cy="62" r="6" fill="none" stroke="#ef4444" stroke-width="2" />
+  <circle cx="260" cy="348" r="6" fill="none" stroke="#ef4444" stroke-width="2" />
+  <!-- Annotation lines and labels -->
+  <!-- Q3 label -->
+  <line x1="302" y1="130" x2="360" y2="130" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="365" y="134" font-size="12" fill="#2563eb" font-weight="600">Q3 (75th percentile)</text>
+  <!-- Median label -->
+  <line x1="302" y1="195" x2="360" y2="195" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="365" y="199" font-size="12" fill="#dc2626" font-weight="600">Median (Q2, 50th)</text>
+  <!-- Q1 label -->
+  <line x1="302" y1="280" x2="360" y2="280" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="365" y="284" font-size="12" fill="#2563eb" font-weight="600">Q1 (25th percentile)</text>
+  <!-- IQR brace -->
+  <path d="M 195,130 L 185,130 L 185,280 L 195,280" fill="none" stroke="#16a34a" stroke-width="2" />
+  <text x="175" y="210" text-anchor="end" font-size="12" fill="#16a34a" font-weight="600">IQR</text>
+  <text x="175" y="224" text-anchor="end" font-size="10" fill="#16a34a">Q3 - Q1</text>
+  <!-- Upper whisker label -->
+  <line x1="282" y1="100" x2="360" y2="80" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="365" y="76" font-size="11" fill="#6b7280">Upper whisker</text>
+  <text x="365" y="90" font-size="10" fill="#6b7280">max(data) or Q3 + 1.5*IQR</text>
+  <!-- Lower whisker label -->
+  <line x1="282" y1="320" x2="360" y2="335" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="365" y="332" font-size="11" fill="#6b7280">Lower whisker</text>
+  <text x="365" y="346" font-size="10" fill="#6b7280">min(data) or Q1 - 1.5*IQR</text>
+  <!-- Outlier labels -->
+  <line x1="268" y1="62" x2="360" y2="50" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="365" y="48" font-size="11" fill="#ef4444" font-weight="600">Outlier</text>
+  <text x="365" y="62" font-size="10" fill="#ef4444">Beyond 1.5*IQR from box</text>
+  <line x1="268" y1="348" x2="360" y2="362" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="365" y="366" font-size="11" fill="#ef4444" font-weight="600">Outlier</text>
+  <!-- Middle 50% annotation -->
+  <rect x="50" y="142" width="130" height="44" rx="4" fill="#f0fdf4" stroke="#16a34a" stroke-width="1" />
+  <text x="115" y="160" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="600">The box contains the</text>
+  <text x="115" y="175" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="600">middle 50% of the data</text>
+</svg>
+</div>
+
+<pre><code class="language-bio">set_seed(42)
+# Compare quality across lanes
+let lane1 = rnorm(2000, 33.0, 2.0)
+let lane2 = rnorm(2000, 31.5, 3.5)
+let lane3 = rnorm(2000, 28.0, 5.0)
+
+let bp_table = table({"Lane 1": lane1, "Lane 2": lane2, "Lane 3": lane3})
+boxplot(bp_table, {title: "Quality Score Distribution by Lane"})
+# Lane 3 immediately stands out: lower median, wider spread, more outliers.
+</code></pre>
+<p>Box plots shine when comparing groups. You can see at a glance which lane is problematic, without computing a single number.</p>
+<h3 id="combining-plots-and-stats"><a class="header" href="#combining-plots-and-stats">Combining Plots and Stats</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Full QC report in a few lines
+let scores = rnorm(10000, 32.5, 3.8)
+
+# Side-by-side: histogram + box plot
+histogram(scores, {bins: 40, title: "Quality Score Distribution"})
+boxplot(scores, {title: "Quality Score Box Plot"})
+
+# Summary table
+let stats = summary(scores)
+print("QC Decision: {if stats.mean &gt; 30 then 'PASS' else 'FAIL'}")
+print("Mean Q-score: {stats.mean:.1}")
+print("Tiles below Q20: {scores |&gt; filter(|s| s &lt; 20) |&gt; len()}")
+</code></pre>
+<h2 id="python-and-r-equivalents"><a class="header" href="#python-and-r-equivalents">Python and R Equivalents</a></h2>
+<p>For those coming from Python or R, here are the equivalent operations.</p>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">import numpy as np
+from scipy import stats
+
+scores = np.random.normal(32.5, 3.8, 10247)
+
+# Measures of center
+np.mean(scores)          # 32.48
+np.median(scores)        # 32.51
+stats.mode(scores)       # most frequent
+
+# Measures of spread
+np.std(scores, ddof=1)   # 3.81 (ddof=1 for sample SD)
+np.var(scores, ddof=1)   # 14.52
+np.percentile(scores, [25, 50, 75])
+stats.iqr(scores)        # 5.14
+
+# Shape
+stats.skew(scores)       # -0.01
+stats.kurtosis(scores)   # -0.01 (scipy uses excess kurtosis)
+
+# Comprehensive summary
+import pandas as pd
+pd.Series(scores).describe()
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r">scores &lt;- rnorm(10247, mean = 32.5, sd = 3.8)
+
+# Measures of center
+mean(scores)       # 32.48
+median(scores)     # 32.51
+
+# Measures of spread
+sd(scores)         # 3.81
+var(scores)        # 14.52
+quantile(scores, c(0.25, 0.5, 0.75))
+IQR(scores)        # 5.14
+
+# Shape (requires moments package)
+library(moments)
+skewness(scores)   # -0.01
+kurtosis(scores)   # 2.99
+
+# Comprehensive summary
+summary(scores)
+
+# Visualization
+hist(scores, breaks = 50, main = "Quality Distribution")
+boxplot(scores, main = "Quality Box Plot")
+</code></pre>
+<h2 id="worked-example-the-qc-decision"><a class="header" href="#worked-example-the-qc-decision">Worked Example: The QC Decision</a></h2>
+<p>Let us walk through Dr. Chen’s complete analysis.</p>
+<pre><code class="language-bio">set_seed(42)
+# Step 1: Load the data
+let scores = rnorm(10247, 32.5, 3.8)
+
+# Step 2: Quick summary
+let stats = summary(scores)
+
+# Step 3: QC criteria
+let pass_threshold = 30.0     # Minimum acceptable mean quality
+let fail_fraction_limit = 0.10 # Max 10% tiles below Q20
+
+# Step 4: Compute QC metrics
+let tiles_below_q20 = scores |&gt; filter(|s| s &lt; 20) |&gt; len()
+let fraction_below_q20 = tiles_below_q20 / len(scores)
+
+# Step 5: Decision
+let qc_pass = stats.mean &gt;= pass_threshold and fraction_below_q20 &lt;= fail_fraction_limit
+
+print("=== Sequencing Run QC Report ===")
+print("Total tiles:          {len(scores)}")
+print("Mean quality:         {stats.mean:.2}")
+print("Median quality:       {stats.median:.2}")
+print("Std deviation:        {stats.sd:.2}")
+print("Tiles below Q20:      {tiles_below_q20} ({fraction_below_q20 * 100:.1}%)")
+print("QC Result:            {if qc_pass then 'PASS' else 'FAIL'}")
+print("================================")
+
+# Step 6: Visualize
+histogram(scores, {bins: 50, title: "Run QC: Quality Score Distribution"})
+</code></pre>
+<p>This takes about 10 seconds to run. Dr. Chen has her answer well before the meeting.</p>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-gene-expression-summary"><a class="header" href="#exercise-1-gene-expression-summary">Exercise 1: Gene Expression Summary</a></h3>
+<p>Compute descriptive statistics for a set of gene expression values and identify the best measure of center.</p>
+<pre><code class="language-bio"># Gene expression values (TPM) for 20 genes
+let expression = [0.5, 1.2, 3.4, 5.1, 8.7, 12.3, 15.0, 22.4, 45.6, 78.9,
+                  120.5, 250.3, 0.1, 2.8, 6.5, 0.3, 1100.0, 33.2, 0.8, 18.5]
+
+# TODO: Compute mean, median, stdev, skewness
+# TODO: Which measure of center best represents "typical" expression? Why?
+# TODO: Create a histogram. What shape do you see?
+</code></pre>
+<h3 id="exercise-2-comparing-sequencing-runs"><a class="header" href="#exercise-2-comparing-sequencing-runs">Exercise 2: Comparing Sequencing Runs</a></h3>
+<p>Two sequencing runs produced quality scores. Determine which run is better.</p>
+<pre><code class="language-bio">set_seed(42)
+let run_a = rnorm(5000, 31.0, 2.5)
+let run_b = rnorm(5000, 33.0, 6.0)
+
+# TODO: Compute summary() for both runs
+# TODO: Which has higher mean? Which has lower variability?
+# TODO: Compute the CV for each. Which is more consistent?
+# TODO: Create side-by-side box plots
+# TODO: If you could only pick one run, which would you choose and why?
+</code></pre>
+<h3 id="exercise-3-outlier-detection"><a class="header" href="#exercise-3-outlier-detection">Exercise 3: Outlier Detection</a></h3>
+<p>Identify outliers using the IQR method (values below Q1 - 1.5<em>IQR or above Q3 + 1.5</em>IQR).</p>
+<pre><code class="language-bio"># Protein abundance measurements with some suspicious values
+let protein = [45.2, 48.1, 50.3, 47.8, 49.5, 46.7, 51.2, 48.9,
+               150.0, 47.3, 49.8, 46.1, 50.5, 48.4, 3.0, 49.1]
+
+# TODO: Compute Q1, Q3, IQR
+# TODO: Calculate lower and upper fences
+# TODO: Identify which values are outliers
+# TODO: Compute mean with and without outliers — how much does it change?
+</code></pre>
+<h3 id="exercise-4-multi-sample-qc-dashboard"><a class="header" href="#exercise-4-multi-sample-qc-dashboard">Exercise 4: Multi-Sample QC Dashboard</a></h3>
+<p>Build a QC summary for multiple samples.</p>
+<pre><code class="language-bio">set_seed(42)
+let samples = {
+    "Sample_A": rnorm(1000, 34.0, 2.0),
+    "Sample_B": rnorm(1000, 29.0, 4.0),
+    "Sample_C": rnorm(1000, 32.0, 3.0),
+    "Sample_D": rnorm(1000, 20.0, 5.0)
+}
+
+# TODO: Loop through samples, compute summary() for each
+# TODO: Flag any sample with mean &lt; 25 or CV &gt; 20%
+# TODO: Create a box plot comparing all four samples
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>Descriptive statistics compress large datasets into interpretable summaries of center, spread, and shape.</li>
+<li>The <strong>mean</strong> is efficient but outlier-sensitive; the <strong>median</strong> is robust. For skewed biological data, prefer the median.</li>
+<li><strong>Standard deviation</strong> measures absolute spread; <strong>IQR</strong> is robust to outliers; <strong>CV</strong> enables comparison across different scales.</li>
+<li><strong>Skewness</strong> and <strong>kurtosis</strong> reveal whether your data’s shape matches the assumptions of common statistical tests.</li>
+<li><strong>Always visualize</strong> your data with histograms and box plots before computing any test. Summary statistics can hide multimodal distributions, outliers, and other structural features.</li>
+<li><code>summary()</code> in BioLang provides comprehensive descriptive statistics in a single function call.</li>
+<li>Descriptive statistics are not optional preliminaries — they are the foundation of every analysis.</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>You now know how to summarize data, but you may have noticed something: we keep saying “normally distributed” and “skewed” without precisely defining what a distribution is. Tomorrow, on Day 3, we dive into the mathematical shapes that biological data follows — the normal distribution, the log-normal, the Poisson, and the binomial. You will learn why gene expression data refuses to be normal, why read counts follow a Poisson process (sort of), and how to test whether your data fits the distribution you think it does. Understanding distributions is the key to choosing the right statistical test — and avoiding the wrong one.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-01.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-03.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-01.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-03.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

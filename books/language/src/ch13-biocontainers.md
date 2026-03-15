@@ -16,7 +16,7 @@ script. No imports are needed.
 `biocontainers_search` queries the BioContainers registry by name or keyword.
 It returns a list of records, each describing a matching tool.
 
-```
+```biolang
 # requires: internet connection (all biocontainers_* functions query the BioContainers API)
 # Find all samtools-related containers
 let results = biocontainers_search("samtools")
@@ -38,7 +38,7 @@ results |> each(|tool| {
 The default limit is 25 results. Pass a second argument to narrow or widen the
 search.
 
-```
+```biolang
 # Top 5 matches for short-read aligners
 let aligners = biocontainers_search("bwa", 5)
 
@@ -48,7 +48,7 @@ aligners |> each(|a| print(a.name + " => " + a.latest_image))
 Search terms are matched against tool names and descriptions, so broader
 queries work too.
 
-```
+```biolang
 # Find tools related to RNA-seq quantification
 let quant_tools = biocontainers_search("salmon rna-seq")
 
@@ -63,7 +63,7 @@ quant_tools
 useful for discovering which tools the community relies on and for auditing
 whether your pipeline uses well-maintained software.
 
-```
+```biolang
 let top20 = biocontainers_popular()
 
 print("Top 20 BioContainers tools:")
@@ -72,7 +72,7 @@ top20 |> each(|t| print("  " + t.name + " - " + t.latest_version))
 
 Pass a limit to retrieve more.
 
-```
+```biolang
 # Top 50 most popular bioinformatics containers
 let top50 = biocontainers_popular(50)
 
@@ -94,7 +94,7 @@ our_tools |> each(|tool| {
 `biocontainers_info` returns a detailed record for a single tool, including its
 full version history with per-version container images.
 
-```
+```biolang
 let info = biocontainers_info("samtools")
 # info => {
 #   name: "samtools",
@@ -127,7 +127,7 @@ The `images` list for each version may contain entries from multiple registries
 or image types (Docker, Singularity). Filter by registry or type if your
 infrastructure requires a specific format.
 
-```
+```biolang
 # Find Singularity images for deepvariant
 let dv = biocontainers_info("deepvariant")
 
@@ -144,7 +144,7 @@ dv.versions |> each(|v| {
 with a list of full image URI strings. This is the function to use when you
 need to pin a specific version in a pipeline manifest.
 
-```
+```biolang
 let versions = biocontainers_versions("gatk4")
 # versions => [
 #   {version: "4.5.0.0--py310hdfd78af_0",
@@ -165,7 +165,7 @@ print("Pinning GATK to: " + gatk44.images[0])
 You can use this to check whether a specific version exists before committing
 to it in a pipeline definition.
 
-```
+```biolang
 # Verify that bcftools 1.18 is available
 let bc_versions = biocontainers_versions("bcftools")
 let target = bc_versions |> find(|v| starts_with(v.version, "1.18"))
@@ -182,7 +182,7 @@ A variant calling pipeline needs exact container images for every tool. Use the
 BioContainers builtins to resolve each tool to a pinned image URI and export
 the manifest.
 
-```
+```biolang
 # Tools required for a germline variant calling pipeline
 let required = [
   {name: "bwa-mem2",  min_version: "2.2"},
@@ -228,7 +228,7 @@ control alongside the pipeline definition.
 When starting a new analysis type, you need to survey what tools are available.
 Here we explore the methylation analysis landscape.
 
-```
+```biolang
 # What methylation tools exist in BioContainers?
 let methyl_tools = biocontainers_search("methylation", 50)
 
@@ -277,7 +277,7 @@ bismark.versions |> take(5) |> each(|v| {
 For an existing pipeline, verify that every tool has a valid BioContainers
 image and flag any that are outdated.
 
-```
+```biolang
 # Current pipeline tools and their pinned versions
 let pinned = [
   {tool: "bwa-mem2",  version: "2.2.1--hd03093a_2"},

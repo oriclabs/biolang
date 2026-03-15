@@ -1,0 +1,6 @@
+##gff-version 3
+chr1	ensembl	gene	1000	5000	.	+	.	ID=gene1;Name=BRCA1;biotype=protein_coding
+chr1	ensembl	mRNA	1000	5000	.	+	.	ID=mrna1;Parent=gene1;Name=BRCA1-201
+chr1	ensembl	exon	1000	2000	.	+	.	ID=exon1;Parent=mrna1
+chr1	ensembl	CDS	1100	1900	.	+	0	ID=cds1;Parent=mrna1
+chr2	havana	gene	5000	9500	.	-	.	ID=gene2;Name=TP53;biotype=protein_coding

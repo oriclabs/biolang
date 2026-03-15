@@ -239,7 +239,8 @@
       if (ext === "bcf") {
         return { ok: false, reason: "BCF (binary variant)", hint: "BCF is the binary equivalent of VCF. Convert for viewing:\n\n  bcftools view file.bcf > file.vcf\n\nFor a specific region:\n  bcftools view file.bcf chr1:1000-50000 > region.vcf" };
       }
-      return { ok: false, reason: "Gzip compressed", hint: "This file is gzip-compressed. Decompress first:\n\n  gunzip file.gz\n\nOr use BioLang directly:\n  read_csv(\"file.csv.gz\")" };
+      // Allow gzipped text files — will be decompressed in browser
+      return { ok: true, gzipped: true };
     }
 
     // BAM magic: "BAM\1"
@@ -799,6 +800,33 @@
     if (el) el.remove();
   }
 
+  // ── GZ decompression helpers ───────────────────────────────────
+  function isGzipped(buffer) {
+    var bytes = new Uint8Array(buffer);
+    return bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+  }
+
+  async function decompressGz(buffer) {
+    var ds = new DecompressionStream("gzip");
+    var stream = new Response(buffer).body.pipeThrough(ds);
+    var decompressed = await new Response(stream).text();
+    return decompressed;
+  }
+
+  function stripGzExtension(name) {
+    return name.replace(/\.(gz|bgz)$/i, "");
+  }
+
+  // ── Chunked preview for large files ───────────────────────────
+  var MAX_PREVIEW_LINES = 50000;
+  var MAX_PREVIEW_BYTES = 5 * 1024 * 1024; // 5MB threshold for line-based preview
+
+  function previewText(text, maxLines) {
+    var lines = text.split("\n");
+    if (lines.length <= maxLines) return { text: text, truncated: false, totalLines: lines.length };
+    return { text: lines.slice(0, maxLines).join("\n"), truncated: true, totalLines: lines.length };
+  }
+
   // ── File loading ───────────────────────────────────────────────
   function loadFiles(fileList) {
     var toLoad = Array.from(fileList);
@@ -824,6 +852,28 @@
           showFileError(file.name, check.reason, check.hint);
           return;
         }
+
+        // Gzipped file — read entire file as ArrayBuffer, decompress in browser
+        if (check.gzipped) {
+          var gzReader = new FileReader();
+          updateLoadingOverlay("Reading compressed file...", 20);
+          gzReader.onprogress = function(e) { if (e.lengthComputable) updateLoadingOverlay("Reading... " + Math.round(e.loaded / 1024 / 1024) + " MB", 15 + Math.round(e.loaded / e.total * 25)); };
+          gzReader.onload = function() {
+            updateLoadingOverlay("Decompressing...", 50);
+            decompressGz(gzReader.result).then(function(text) {
+              var decompName = stripGzExtension(file.name);
+              var decompSize = text.length;
+              updateLoadingOverlay("Parsing data...", 75);
+              setTimeout(function() { addFile(decompName, decompSize, text, false, null); hideLoadingOverlay(); }, 10);
+            }).catch(function(err) {
+              hideLoadingOverlay();
+              showFileError(file.name, "Decompression failed", "Could not decompress this gzip file in the browser.\n\nError: " + (err.message || err) + "\n\nTry decompressing locally:\n  gunzip " + file.name);
+            });
+          };
+          gzReader.readAsArrayBuffer(file);
+          return;
+        }
+
         // Magic bytes OK — read as text
         if (file.size > MAX_PREVIEW) {
           var reader = new FileReader();
@@ -878,6 +928,18 @@
   }
 
   function addFile(name, size, text, truncated, fileRef) {
+    // Chunked preview: for large files, only parse first N lines
+    var fullText = null;
+    var linePreview = null;
+    if (text.length > MAX_PREVIEW_BYTES) {
+      linePreview = previewText(text, MAX_PREVIEW_LINES);
+      if (linePreview.truncated) {
+        fullText = text; // keep reference for "Load Full File"
+        text = linePreview.text;
+        truncated = true;
+      }
+    }
+
     var parsed = parseFile(name, text);
 
     // Stage 3: Post-parse validation
@@ -887,7 +949,8 @@
     var keepText = size <= 10 * 1024 * 1024 ? text : null;
     var rawPreview = text.substring(0, 500000); // keep first 500K chars for raw view
 
-    files.push({ name: name, size: size, text: keepText, rawPreview: rawPreview, parsed: parsed, truncated: truncated, fileRef: fileRef || null });
+    files.push({ name: name, size: size, text: keepText, rawPreview: rawPreview, parsed: parsed, truncated: truncated, fileRef: fileRef || null,
+      _fullText: fullText, _previewLines: linePreview ? MAX_PREVIEW_LINES : null, _totalLines: linePreview ? linePreview.totalLines : null });
     dropZone.style.display = "none";
     workspace.classList.add("active");
     renderTabs();
@@ -1160,6 +1223,46 @@
     var f = files[activeTab];
     if (!f) return;
 
+    // Line-preview banner: show when file was truncated by line count
+    if (f._fullText && f._previewLines) {
+      var banner = document.createElement("div");
+      banner.className = "vw-preview-banner";
+      banner.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:8px 16px;" +
+        "background:rgba(255,180,0,0.1);border:1px solid var(--vw-amber);border-radius:8px;margin:8px 12px;" +
+        "font-family:var(--vw-sans);font-size:13px;color:var(--vw-amber);";
+      var infoSpan = document.createElement("span");
+      infoSpan.textContent = "Showing first " + f._previewLines.toLocaleString() + " lines of ~" + f._totalLines.toLocaleString() + " total (preview mode).";
+      banner.appendChild(infoSpan);
+      var loadBtn = document.createElement("button");
+      loadBtn.className = "vw-tbtn";
+      loadBtn.style.cssText = "margin-left:12px;padding:4px 14px;border-radius:6px;border:1px solid var(--vw-amber);" +
+        "background:transparent;color:var(--vw-amber);cursor:pointer;font-size:12px;font-weight:600;font-family:var(--vw-sans);white-space:nowrap;";
+      loadBtn.textContent = "Load Full File";
+      loadBtn.addEventListener("click", function() {
+        var idx = activeTab;
+        var entry = files[idx];
+        if (!entry || !entry._fullText) return;
+        showLoadingOverlay(entry.name, entry.size);
+        updateLoadingOverlay("Parsing full file...", 50);
+        setTimeout(function() {
+          var fullParsed = parseFile(entry.name, entry._fullText);
+          validateParsed(fullParsed, entry.name);
+          entry.parsed = fullParsed;
+          entry.truncated = false;
+          entry.text = entry._fullText.length <= 10 * 1024 * 1024 ? entry._fullText : null;
+          entry.rawPreview = entry._fullText.substring(0, 500000);
+          entry._fullText = null;
+          entry._previewLines = null;
+          entry._totalLines = null;
+          hideLoadingOverlay();
+          renderView();
+          updateFooter(entry);
+        }, 10);
+      });
+      banner.appendChild(loadBtn);
+      contentEl.appendChild(banner);
+    }
+
     if (splitMode && currentView === "table") {
       // Split view: table on left, stats on right
       var container = document.createElement("div");
@@ -1326,6 +1429,15 @@
         showQuickChart(colName, vals);
       });
       actions.appendChild(chartBtn);
+
+      var histBtn = document.createElement("button");
+      histBtn.textContent = "Quick Histogram";
+      histBtn.style.cssText = "background:none;border:1px solid var(--vw-border);border-radius:4px;padding:2px 8px;color:var(--vw-green);cursor:pointer;font-size:10px;";
+      histBtn.addEventListener("click", function() {
+        drop.remove();
+        showQuickHistogram(f, colIndex);
+      });
+      actions.appendChild(histBtn);
 
       var heatBtn = document.createElement("button");
       var isHeat = heatmapCols[colIndex] && heatmapCols[colIndex].enabled;
@@ -1832,6 +1944,7 @@
     f.parsed.columns.forEach(function(c, i) { colIdx[c] = i; });
     var isSam = f.parsed.format === "sam";
     var isVcf = f.parsed.format === "vcf";
+    var isFasta = f.parsed.format === "fasta";
 
     // Pagination: slice rows by current page
     var totalFiltered = rows.length;
@@ -1967,6 +2080,8 @@
           var seqStr = String(val).substring(0, 120);
           if (motifTerm && motifTerm.length > 0) {
             td.innerHTML = colorSequenceWithMotif(seqStr, motifTerm);
+          } else if (isFasta && seqStr.length > 6) {
+            td.innerHTML = colorSequenceWithCodons(seqStr);
           } else {
             td.innerHTML = colorSequence(seqStr);
           }
@@ -1974,7 +2089,18 @@
         } else if (colType === "qual") {
           td.className = "qual-cell";
           var qstr = String(val);
-          td.innerHTML = colorQuality(qstr.substring(0, 80)) + (qstr.length > 80 ? '<span style="color:var(--vw-text-muted)">...</span>' : '');
+          // FASTQ quality heatmap bar
+          if (f.parsed.format === "fastq" && (colName === "quality" || colName === "Quality")) {
+            var qualBar = "";
+            for (var qi = 0; qi < Math.min(qstr.length, 50); qi++) {
+              var q = qstr.charCodeAt(qi) - 33;
+              var color = q >= 30 ? "#4ade80" : q >= 20 ? "#fbbf24" : "#f87171";
+              qualBar += '<span style="display:inline-block;width:3px;height:12px;background:' + color + ';margin:0 0.5px;border-radius:1px" title="Q' + q + '"></span>';
+            }
+            td.innerHTML = '<div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px;color:var(--vw-text-muted)">' + qstr.length + 'bp</span><span>' + qualBar + '</span></div>';
+          } else {
+            td.innerHTML = colorQuality(qstr.substring(0, 80)) + (qstr.length > 80 ? '<span style="color:var(--vw-text-muted)">...</span>' : '');
+          }
         } else if (colType === "num") {
           td.className = "num-cell";
           // Feature 11: numeric formatting toggle
@@ -1982,6 +2108,16 @@
             td.textContent = val.toLocaleString();
           } else {
             td.textContent = typeof val === "number" ? val.toLocaleString() : val;
+          }
+        } else if (colName === "strand" || colName === "Strand") {
+          // Strand direction indicator for BED/GFF
+          var cellVal = String(val);
+          if (cellVal === "+") {
+            td.innerHTML = '<span style="color:#4ade80" title="Forward strand">&#8594; +</span>';
+          } else if (cellVal === "-") {
+            td.innerHTML = '<span style="color:#f87171" title="Reverse strand">&#8592; -</span>';
+          } else {
+            td.textContent = cellVal;
           }
         } else {
           td.textContent = String(val).substring(0, 200);
@@ -3603,6 +3739,15 @@
         showToast("Protein translation copied");
       }});
     }
+    // Copy as FASTA for sequence cells
+    if (colType === "seq" || (colType === "str" && /^[ATCGNatcgn]{10,}$/.test(cellVal))) {
+      items.push({ label: "Copy as FASTA", key: "", action: function() {
+        var header = ">" + (rowData[0] || "sequence") + "\n";
+        var seq = cellVal.match(/.{1,80}/g).join("\n");
+        navigator.clipboard.writeText(header + seq);
+        showToast("Copied as FASTA");
+      }});
+    }
     // BLAST option for sequence columns
     if (colType === "seq" && cellVal.length >= 10) {
       items.push({ label: "BLAST this sequence", key: "", action: function() { openBLAST(cellVal); } });
@@ -3655,6 +3800,40 @@
         items.push({ label: "View in Ensembl", key: "", action: function() {
           window.open("https://ensembl.org/Homo_sapiens/Location/View?r=" + ensChrom + ":" + ensStart + "-" + ensEnd, "_blank");
         }});
+      }
+    }
+
+    // Copy as BED interval for VCF rows
+    if (f.parsed && f.parsed.format === "vcf") {
+      var bedChromIdx = f.parsed.columns.indexOf("CHROM");
+      var bedPosIdx = f.parsed.columns.indexOf("POS");
+      var bedRefIdx = f.parsed.columns.indexOf("REF");
+      if (bedChromIdx >= 0 && bedPosIdx >= 0) {
+        items.push({ label: "Copy as BED", key: "", action: function() {
+          var chrom = rowData[bedChromIdx];
+          var pos = parseInt(rowData[bedPosIdx]);
+          var refLen = bedRefIdx >= 0 ? String(rowData[bedRefIdx]).length : 1;
+          var bed = chrom + "\t" + (pos - 1) + "\t" + (pos - 1 + refLen);
+          navigator.clipboard.writeText(bed);
+          showToast("Copied as BED interval");
+        }});
+        // Copy selected rows as BED when multiple rows are selected
+        if (selectedRows && selectedRows.size > 1) {
+          items.push({ label: "Copy selected as BED", key: "", action: function() {
+            var lines = [];
+            selectedRows.forEach(function(idx) {
+              var row = f.parsed.rows[idx];
+              if (row) {
+                var chrom = row[bedChromIdx];
+                var pos = parseInt(row[bedPosIdx]);
+                var refLen = bedRefIdx >= 0 ? String(row[bedRefIdx]).length : 1;
+                lines.push(chrom + "\t" + (pos - 1) + "\t" + (pos - 1 + refLen));
+              }
+            });
+            navigator.clipboard.writeText(lines.join("\n"));
+            showToast("Copied " + lines.length + " BED intervals");
+          }});
+        }
       }
     }
 
@@ -4018,6 +4197,24 @@
     return parts.join("");
   }
 
+  function colorSequenceWithCodons(seq) {
+    if (seq.length <= 6) return colorSequence(seq);
+    var parts = [];
+    for (var i = 0; i < seq.length; i++) {
+      var c = seq.charAt(i).toUpperCase();
+      var codonGroup = Math.floor(i / 3) % 2;
+      var bgOpacity = codonGroup === 0 ? "0.05" : "0.12";
+      var inner;
+      if (c === "A" || c === "T" || c === "C" || c === "G" || c === "U" || c === "N") {
+        inner = '<span class="nt-' + (c === "U" ? "T" : c) + '">' + seq.charAt(i) + '</span>';
+      } else {
+        inner = seq.charAt(i);
+      }
+      parts.push('<span style="background:rgba(100,116,139,' + bgOpacity + ')">' + inner + '</span>');
+    }
+    return parts.join("");
+  }
+
   function colorQuality(qual) {
     var parts = [];
     for (var i = 0; i < qual.length; i++) {
@@ -4269,7 +4466,7 @@
     } else {
       script.textContent = [
         'try {',
-        '  var mod = await import("./wasm/br_wasm.js");',
+        '  var mod = await import("./wasm/bl_wasm.js");',
         '  await mod.default();',
         '  mod.init();',
         '  window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset };',
@@ -4297,15 +4494,32 @@
     }, { once: true });
   }
 
-  // ── Feature: Clipboard Paste (1) ──────────────────────────────
+  // ── Feature: Smart Clipboard Paste Detection ──────────────────
   document.addEventListener("paste", function(e) {
     // Only handle paste when not in an input field
     var tag = (document.activeElement || {}).tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
     var text = (e.clipboardData || window.clipboardData || { getData: function() { return ""; } }).getData("text");
-    if (!text || text.length < 2) return;
+    if (!text || text.length < 5) return;
+
+    // Auto-detect format from content
+    var name = "pasted";
+    if (text.charAt(0) === ">") name = "pasted.fasta";
+    else if (text.charAt(0) === "@" && text.indexOf("+\n") >= 0) name = "pasted.fastq";
+    else if (text.indexOf("##fileformat=VCF") === 0) name = "pasted.vcf";
+    else if (text.indexOf("##gff") === 0 || text.indexOf("##gff-version") === 0) name = "pasted.gff";
+    else if (/^chr\w+\t\d+\t\d+/.test(text)) name = "pasted.bed";
+    else if (text.indexOf(",") >= 0 && text.indexOf("\n") >= 0) name = "pasted.csv";
+    else if (text.indexOf("\t") >= 0 && text.indexOf("\n") >= 0) name = "pasted.tsv";
+    else if (/^[ATCGNatcgn\s]{20,}$/.test(text.trim())) name = "pasted.fasta";
+    else name = "pasted.txt";
+
+    // If raw sequence without FASTA header, wrap it
+    if (name === "pasted.fasta" && text.charAt(0) !== ">") {
+      text = ">pasted_sequence\n" + text.trim();
+    }
+
     e.preventDefault();
-    var name = "clipboard-" + new Date().toISOString().slice(11, 19).replace(/:/g, "") + ".txt";
     addFile(name, text.length, text, false);
   });
 
@@ -4688,6 +4902,59 @@
 
     // Histogram SVG
     popup.appendChild(svgHistogram(values, { width: 480, height: 180, color: "#7c3aed", label: colName }));
+
+    document.body.appendChild(popup);
+    document.addEventListener("keydown", function handler(e) {
+      if (e.key === "Escape") { popup.remove(); document.removeEventListener("keydown", handler); }
+    });
+  }
+
+  // ── Quick Histogram (right-click column header) ──────────────
+  function isNumericColumn(f, colIndex) {
+    return f.parsed.colTypes[colIndex] === "num";
+  }
+
+  function showQuickHistogram(f, colIndex) {
+    var colName = f.parsed.columns[colIndex];
+    var vals = [];
+    for (var ri = 0; ri < f.parsed.rows.length; ri++) {
+      var v = f.parsed.rows[ri][colIndex];
+      if (typeof v === "number" && !isNaN(v)) vals.push(v);
+    }
+    if (!vals.length) return;
+    var existing = document.getElementById("vw-quick-histogram");
+    if (existing) existing.remove();
+
+    vals.sort(function(a, b) { return a - b; });
+    var n = vals.length;
+    var sum = 0; for (var i = 0; i < n; i++) sum += vals[i];
+    var mean = sum / n;
+    var med = n % 2 === 0 ? (vals[n / 2 - 1] + vals[n / 2]) / 2 : vals[Math.floor(n / 2)];
+    var sqSum = 0; for (var i = 0; i < n; i++) sqSum += (vals[i] - mean) * (vals[i] - mean);
+    var stdev = Math.sqrt(sqSum / n);
+    var fmt = function(x) { return x.toLocaleString(undefined, {maximumFractionDigits: 2}); };
+
+    var popup = document.createElement("div");
+    popup.id = "vw-quick-histogram";
+    popup.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:300;background:var(--vw-panel);border:1px solid var(--vw-border);border-radius:12px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);font-family:var(--vw-sans);";
+
+    var header = document.createElement("div");
+    header.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;";
+    header.innerHTML = '<span style="font-weight:600;color:var(--vw-accent);font-size:13px">Histogram: ' + escapeHtml(colName) + '</span>';
+    var closeBtn = document.createElement("button");
+    closeBtn.textContent = "\u00d7";
+    closeBtn.style.cssText = "background:none;border:none;color:var(--vw-text-muted);cursor:pointer;font-size:18px;padding:0 4px;";
+    closeBtn.addEventListener("click", function() { popup.remove(); });
+    header.appendChild(closeBtn);
+    popup.appendChild(header);
+
+    popup.appendChild(svgHistogram(vals, { width: 480, height: 180, color: "#7c3aed", label: colName }));
+
+    var stats = document.createElement("div");
+    stats.style.cssText = "font-size:11px;color:var(--vw-text-dim);margin-top:8px;font-family:var(--vw-mono);line-height:1.6;";
+    stats.innerHTML = "n=" + n + "  min=" + fmt(vals[0]) + "  max=" + fmt(vals[n - 1]) +
+      "<br>mean=" + fmt(mean) + "  median=" + fmt(med) + "  stdev=" + fmt(stdev);
+    popup.appendChild(stats);
 
     document.body.appendChild(popup);
     document.addEventListener("keydown", function handler(e) {
@@ -5566,6 +5833,48 @@
     fileInput.value = "";
   });
 
+  // ── URL input loading ───────────────────────────────────────────
+  (function() {
+    var urlInput = document.getElementById("vw-url-input");
+    var urlLoadBtn = document.getElementById("vw-url-load");
+    if (!urlInput || !urlLoadBtn) return;
+    function loadFromUrl() {
+      var url = urlInput.value.trim();
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) { url = "https://" + url; }
+      var name = url.split("/").pop().split("?")[0].split("#")[0] || "remote-file.txt";
+      footerRows.textContent = "Loading " + name + "...";
+      urlInput.disabled = true;
+      urlLoadBtn.disabled = true;
+      urlLoadBtn.textContent = "Loading...";
+      // Try direct fetch first, fall back to CORS proxy
+      fetch(url).then(function(resp) {
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        return resp.text();
+      }).catch(function() {
+        // CORS blocked — try via proxy
+        footerRows.textContent = "Retrying via proxy...";
+        return fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url)).then(function(resp) {
+          if (!resp.ok) throw new Error("Proxy HTTP " + resp.status);
+          return resp.text();
+        });
+      }).then(function(text) {
+        addFile(name, text.length, text, true);
+        urlInput.value = "";
+      }).catch(function(err) {
+        showFileError(name, "Failed to load URL", String(err) + "\n\nThe server may block external access. Try downloading the file and dropping it here instead.");
+      }).finally(function() {
+        urlInput.disabled = false;
+        urlLoadBtn.disabled = false;
+        urlLoadBtn.textContent = "Load";
+      });
+    }
+    urlLoadBtn.addEventListener("click", loadFromUrl);
+    urlInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") loadFromUrl();
+    });
+  })();
+
   // Search (debounced with progress indicator)
   var searchTimer = 0;
   searchInput.addEventListener("input", function() {
@@ -5698,6 +6007,27 @@
       else updateFooter(files[activeTab]);
       motifInput.focus();
     }, 350);
+  });
+
+  // Global Ctrl+K — Quick search (focus the search input)
+  // Global Ctrl+Shift+G — Jump to coordinate (focus the coordinate input)
+  // Global Ctrl+E — Export current view
+  document.addEventListener("keydown", function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      var searchInput = document.getElementById("vw-search");
+      if (searchInput) searchInput.focus();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "G") {
+      e.preventDefault();
+      var jumpInput = document.querySelector(".vw-jump-input");
+      if (jumpInput) jumpInput.focus();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+      e.preventDefault();
+      var exportBtn = document.getElementById("vw-export-btn");
+      if (exportBtn) exportBtn.click();
+    }
   });
 
   // Global Ctrl+G for go-to-row
@@ -5896,12 +6226,26 @@
     fetch(url).then(function(resp) {
       if (!resp.ok) throw new Error("HTTP " + resp.status);
       return resp.text();
+    }).catch(function() {
+      // CORS blocked — try via proxy
+      dropZone.querySelector(".vw-drop-sub").textContent = "Retrying via proxy...";
+      return fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url)).then(function(resp) {
+        if (!resp.ok) throw new Error("Proxy HTTP " + resp.status);
+        return resp.text();
+      });
     }).then(function(text) {
       addFile(name, text.length, text, false);
     }).catch(function(err) {
-      showFileError(name, "Failed to load URL", String(err) + "\n\nMake sure the URL supports CORS and is publicly accessible.");
+      showFileError(name, "Failed to load URL", String(err) + "\n\nThe server may block external access. Try downloading the file and dropping it here instead.");
     });
   })();
+
+  // ── Receive files from BioGist extension via postMessage ──
+  window.addEventListener("message", function(e) {
+    if (e.data && e.data.type === "biogist-file" && e.data.content) {
+      addFile(e.data.name || "biogist-file.txt", e.data.content.length, e.data.content, false);
+    }
+  });
 
   // ── Recent Files (Feature 4) ─────────────────────────────────
   function formatTimeAgo(ts) {
@@ -6270,15 +6614,17 @@
     var input = document.createElement("input");
     input.id = "vw-coord-input";
     input.type = "text";
-    input.placeholder = "chr1:1000-5000";
-    input.title = "Jump to genomic coordinate (e.g. chr17:7674220-7674290)";
-    input.style.cssText = "font-family:var(--vw-mono);font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--vw-border);background:var(--vw-tab-bg);color:var(--vw-text);outline:none;width:140px;";
+    input.placeholder = "chr1:12345 or chr1:1k-5k";
+    input.title = "Jump to coordinate (chr1:12345) or filter range (chr1:1000-5000)";
+    input.style.cssText = "font-family:var(--vw-mono);font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--vw-border);background:var(--vw-tab-bg);color:var(--vw-text);outline:none;width:170px;";
     input.addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
         var val = input.value.trim();
-        var match = val.match(/^(chr[A-Za-z0-9]+|\d+):(\d+)[-–](\d+)$/i);
-        if (!match) { showToast("Invalid format. Use chr1:1000-5000"); return; }
-        var chrom = match[1], startPos = parseInt(match[2]), endPos = parseInt(match[3]);
+        // Try range format first: chr1:1000-5000
+        var rangeMatch = val.match(/^(chr[A-Za-z0-9]+|\d+):(\d+)[-\u2013](\d+)$/i);
+        // Then try single-position: chr1:12345
+        var posMatch = !rangeMatch ? val.match(/^(chr[A-Za-z0-9]+|\d+):(\d+)$/i) : null;
+        if (!rangeMatch && !posMatch) { showToast("Use chr1:12345 or chr1:1000-5000"); return; }
         // Find chrom and position columns
         var chromCol = -1, posCol = -1;
         f.parsed.columns.forEach(function(c, i) {
@@ -6286,22 +6632,56 @@
           if (/^(pos|start|chromstart)/i.test(c)) posCol = i;
         });
         if (chromCol < 0 || posCol < 0) { showToast("No chrom/pos columns found"); return; }
-        // Set column filters
-        colFilters[chromCol] = new Set([chrom]);
-        // For position, use search term as a workaround — apply manual filtering
-        currentPage = 0;
-        // Override the filter to also check position range
-        var origFilterFn = getFilteredRows;
-        _filterCache = null;
-        var filtered = getFilteredRows(f).filter(function(item) {
-          var pos = parseInt(item.row[posCol]);
-          return !isNaN(pos) && pos >= startPos && pos <= endPos;
-        });
-        // Apply as search
-        _filterCache = filtered;
-        _filterKey = activeTab + "|coord:" + val + "|" + f.parsed.rows.length;
-        renderView();
-        showToast("Filtered to " + chrom + ":" + startPos + "-" + endPos);
+
+        if (posMatch) {
+          // Single-position jump: scroll to first row at or after this position
+          var jumpChrom = posMatch[1], jumpPos = parseInt(posMatch[2]);
+          var rows = f.parsed.rows;
+          var bestIdx = -1, bestDist = Infinity;
+          for (var ri = 0; ri < rows.length; ri++) {
+            if (String(rows[ri][chromCol]).toLowerCase() === jumpChrom.toLowerCase()) {
+              var rp = parseInt(rows[ri][posCol]);
+              if (!isNaN(rp) && rp >= jumpPos && (rp - jumpPos) < bestDist) {
+                bestDist = rp - jumpPos;
+                bestIdx = ri;
+                if (bestDist === 0) break;
+              }
+            }
+          }
+          if (bestIdx < 0) { showToast("No rows found at " + jumpChrom + ":" + jumpPos); return; }
+          // Clear any active filters and jump to the page
+          colFilters = {};
+          _filterCache = null;
+          currentPage = Math.floor(bestIdx / pageSize);
+          renderView();
+          setTimeout(function() {
+            var rowInPage = bestIdx % pageSize;
+            var tbody = document.querySelector(".vw-table tbody");
+            if (tbody) {
+              var trs = tbody.querySelectorAll("tr:not(.vw-group-row)");
+              if (trs[rowInPage]) {
+                trs[rowInPage].classList.add("vw-row-flash");
+                trs[rowInPage].scrollIntoView({ block: "center" });
+              }
+            }
+          }, 50);
+          showToast("Jumped to " + jumpChrom + ":" + rows[bestIdx][posCol]);
+        } else {
+          // Range filter (existing behavior)
+          var chrom = rangeMatch[1], startPos = parseInt(rangeMatch[2]), endPos = parseInt(rangeMatch[3]);
+          colFilters[chromCol] = new Set([chrom]);
+          currentPage = 0;
+          var origFilterFn = getFilteredRows;
+          _filterCache = null;
+          var filtered = getFilteredRows(f).filter(function(item) {
+            var pos = parseInt(item.row[posCol]);
+            return !isNaN(pos) && pos >= startPos && pos <= endPos;
+          });
+          _filterCache = filtered;
+          _filterKey = activeTab + "|coord:" + val + "|" + f.parsed.rows.length;
+          renderView();
+          showToast("Filtered to " + chrom + ":" + startPos + "-" + endPos);
+        }
       }
     });
 
@@ -6343,6 +6723,9 @@
       '<tr><td>Ctrl+G</td><td>Go to row number</td></tr>' +
       '<tr><td>Ctrl+T</td><td>Toggle transpose view</td></tr>' +
       '<tr><td>Ctrl+Shift+F</td><td>Find column by name</td></tr>' +
+      '<tr><td>Ctrl+K</td><td>Focus search</td></tr>' +
+      '<tr><td>Ctrl+Shift+G</td><td>Jump to coordinate</td></tr>' +
+      '<tr><td>Ctrl+E</td><td>Export menu</td></tr>' +
       '<tr><td>Ctrl+Z</td><td>Undo last action</td></tr>' +
       '<tr><td>Enter</td><td>Copy cell value / confirm</td></tr>' +
       '<tr><td>/</td><td>Focus search box</td></tr>' +
@@ -7769,6 +8152,645 @@
       var existing = tab.title || "";
       tab.title = existing + (existing ? "\n" : "") + "Quality: " + q.score + "% (" + q.label + ") \u2014 " + q.detail;
     });
+  })();
+
+  // ── Feature: Copy as BioLang Button ─────────────────────────────
+  (function() {
+    function formatToReadFn(format, name) {
+      var map = {
+        vcf: "read_vcf", csv: "read_csv", tsv: "read_tsv",
+        fasta: "read_fasta", fastq: "read_fastq",
+        bed: "read_bed", gff: "read_gff", sam: "read_sam"
+      };
+      return (map[format] || "read_csv") + '("' + name + '")';
+    }
+
+    function generateBioLangSnippet(f) {
+      var lines = [];
+      lines.push("let data = " + formatToReadFn(f.parsed.format, f.name));
+
+      // Collect for stream formats
+      if (f.parsed.format === "fasta" || f.parsed.format === "fastq") {
+        lines.push("  |> collect()");
+      }
+
+      // Column filters -> filter pipes
+      var cols = f.parsed.columns;
+      for (var ci in colFilters) {
+        if (!colFilters.hasOwnProperty(ci)) continue;
+        var colName = cols[ci] || ("col" + ci);
+        var allowed = Array.from(colFilters[ci]);
+        if (allowed.length === 1) {
+          var val = allowed[0];
+          if (!isNaN(val) && val !== "") {
+            lines.push('  |> filter(|r| r.' + colName + ' == ' + val + ')');
+          } else {
+            lines.push('  |> filter(|r| r.' + colName + ' == "' + val.replace(/"/g, '\\"') + '")');
+          }
+        } else if (allowed.length <= 5) {
+          var vals = allowed.map(function(v) {
+            return !isNaN(v) && v !== "" ? v : '"' + v.replace(/"/g, '\\"') + '"';
+          });
+          lines.push('  |> filter(|r| [' + vals.join(", ") + '] |> contains(r.' + colName + '))');
+        }
+      }
+
+      // Search term -> filter pipe
+      if (searchTerm) {
+        lines.push('  |> filter(|r| str(r) |> contains("' + searchTerm.replace(/"/g, '\\"') + '"))');
+      }
+
+      // Sort -> sort_by pipe
+      if (sortCols.length > 0) {
+        var sc = sortCols[0];
+        var sName = cols[sc.col] || ("col" + sc.col);
+        if (sc.asc) {
+          lines.push('  |> sort_by(|a, b| a.' + sName + ' - b.' + sName + ')');
+        } else {
+          lines.push('  |> sort_by(|a, b| b.' + sName + ' - a.' + sName + ')');
+        }
+      } else if (sortCol >= 0) {
+        var sName = cols[sortCol] || ("col" + sortCol);
+        if (sortAsc) {
+          lines.push('  |> sort_by(|a, b| a.' + sName + ' - b.' + sName + ')');
+        } else {
+          lines.push('  |> sort_by(|a, b| b.' + sName + ' - a.' + sName + ')');
+        }
+      }
+
+      // Hidden columns -> select (show only visible)
+      var hidden = hiddenCols[activeTab];
+      if (hidden && hidden.size > 0) {
+        var visible = [];
+        for (var i = 0; i < cols.length; i++) {
+          if (!hidden.has(i)) visible.push('"' + cols[i] + '"');
+        }
+        if (visible.length > 0 && visible.length < cols.length) {
+          lines.push('  |> select(' + visible.join(", ") + ')');
+        }
+      }
+
+      return lines.join("\n");
+    }
+
+    var rightGroup = document.querySelector("#vw-toolbar > div:last-child");
+    if (!rightGroup) return;
+
+    var blBtn = document.createElement("button");
+    blBtn.className = "vw-tbtn";
+    blBtn.textContent = "{ } BioLang";
+    blBtn.title = "Copy BioLang code for current view";
+    blBtn.id = "vw-biolang-btn";
+    blBtn.addEventListener("click", function() {
+      var f = files[activeTab];
+      if (!f) { showToast("No file open"); return; }
+      var code = generateBioLangSnippet(f);
+      navigator.clipboard.writeText(code).then(function() {
+        showToast("BioLang code copied to clipboard");
+      }, function() {
+        prompt("Copy this BioLang code:", code);
+      });
+    });
+    rightGroup.insertBefore(blBtn, rightGroup.firstChild);
+  })();
+
+  // ── Feature: Sequence Motif Search Button ───────────────────────
+  (function() {
+    function showMotifResults(results, motif, f) {
+      var existing = document.getElementById("vw-motif-results");
+      if (existing) existing.remove();
+
+      var overlay = document.createElement("div");
+      overlay.id = "vw-motif-results";
+      overlay.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:300;background:var(--vw-panel);border:1px solid var(--vw-border);border-radius:12px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);width:420px;max-height:500px;display:flex;flex-direction:column;font-family:var(--vw-sans);";
+
+      // Header
+      var header = document.createElement("div");
+      header.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-shrink:0;";
+      header.innerHTML =
+        '<span style="font-weight:600;color:var(--vw-accent);font-size:13px">Motif: ' + escapeHtml(motif) + ' \u2014 ' + results.length + ' match' + (results.length !== 1 ? 'es' : '') + '</span>' +
+        '<span style="cursor:pointer;color:var(--vw-text-dim);font-size:16px" id="vw-motif-close">&times;</span>';
+      overlay.appendChild(header);
+
+      if (results.length === 0) {
+        var empty = document.createElement("div");
+        empty.style.cssText = "padding:20px;text-align:center;color:var(--vw-text-dim);font-size:13px;";
+        empty.textContent = "No matches found for \"" + motif + "\"";
+        overlay.appendChild(empty);
+      } else {
+        // Column headers
+        var colHeader = document.createElement("div");
+        colHeader.style.cssText = "display:flex;padding:4px 6px;font-size:11px;color:var(--vw-text-dim);border-bottom:1px solid var(--vw-border);flex-shrink:0;font-weight:600;";
+        colHeader.innerHTML =
+          '<span style="width:50px">Row</span>' +
+          '<span style="width:70px">Position</span>' +
+          '<span style="flex:1">Match</span>' +
+          '<span style="width:120px;text-align:right">Context</span>';
+        overlay.appendChild(colHeader);
+
+        // Scrollable list
+        var list = document.createElement("div");
+        list.style.cssText = "overflow-y:auto;flex:1;";
+
+        var nameCol = -1;
+        var idCols = ["id", "name", "header", "ID"];
+        for (var ic = 0; ic < idCols.length; ic++) {
+          var idx = f.parsed.columns.indexOf(idCols[ic]);
+          if (idx >= 0) { nameCol = idx; break; }
+        }
+
+        var maxShow = Math.min(results.length, 200);
+        for (var ri = 0; ri < maxShow; ri++) {
+          var r = results[ri];
+          var row = document.createElement("div");
+          row.style.cssText = "display:flex;padding:4px 6px;font-size:12px;border-bottom:1px solid var(--vw-border);cursor:pointer;align-items:center;";
+          row.dataset.rowIdx = r.row;
+
+          var rowLabel = nameCol >= 0 ? String(f.parsed.rows[r.row][nameCol]).substring(0, 15) : String(r.row + 1);
+          var seqStr = String(f.parsed.rows[r.row][r.seqCol]);
+          var ctxStart = Math.max(0, r.position - 5);
+          var ctxEnd = Math.min(seqStr.length, r.position + r.match.length + 5);
+          var context = (ctxStart > 0 ? "\u2026" : "") +
+            escapeHtml(seqStr.substring(ctxStart, r.position)) +
+            '<span style="color:var(--vw-accent);font-weight:700">' + escapeHtml(r.match) + '</span>' +
+            escapeHtml(seqStr.substring(r.position + r.match.length, ctxEnd)) +
+            (ctxEnd < seqStr.length ? "\u2026" : "");
+
+          row.innerHTML =
+            '<span style="width:50px;color:var(--vw-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Row ' + (r.row + 1) + '">' + escapeHtml(rowLabel) + '</span>' +
+            '<span style="width:70px;color:var(--vw-text-muted);font-family:var(--vw-mono);font-size:11px">' + (r.position + 1) + '</span>' +
+            '<span style="flex:1;font-family:var(--vw-mono);font-size:11px;color:var(--vw-text)">' + escapeHtml(r.match) + '</span>' +
+            '<span style="width:120px;text-align:right;font-family:var(--vw-mono);font-size:10px;color:var(--vw-text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + context + '</span>';
+
+          row.addEventListener("mouseenter", function() { this.style.background = "var(--vw-row-hover)"; });
+          row.addEventListener("mouseleave", function() { this.style.background = ""; });
+
+          (function(rowIdx) {
+            row.addEventListener("click", function() {
+              overlay.remove();
+              // Navigate to the row's page and highlight it
+              var filtered = getFilteredRows(f);
+              for (var fi = 0; fi < filtered.length; fi++) {
+                if (filtered[fi].idx === rowIdx) {
+                  currentPage = Math.floor(fi / pageSize);
+                  renderView();
+                  setTimeout(function() {
+                    var pageRow = fi % pageSize;
+                    var trs = contentEl.querySelectorAll(".vw-table tbody tr:not(.vw-group-row)");
+                    if (trs[pageRow]) {
+                      trs[pageRow].style.outline = "2px solid var(--vw-accent)";
+                      trs[pageRow].scrollIntoView({ block: "center" });
+                      setTimeout(function() { trs[pageRow].style.outline = ""; }, 3000);
+                    }
+                  }, 100);
+                  break;
+                }
+              }
+            });
+          })(r.row);
+
+          list.appendChild(row);
+        }
+
+        if (results.length > maxShow) {
+          var more = document.createElement("div");
+          more.style.cssText = "padding:6px;font-size:11px;color:var(--vw-text-dim);text-align:center;";
+          more.textContent = "... and " + (results.length - maxShow) + " more matches";
+          list.appendChild(more);
+        }
+
+        overlay.appendChild(list);
+      }
+
+      // Summary stats
+      var summary = document.createElement("div");
+      summary.style.cssText = "margin-top:8px;padding-top:8px;border-top:1px solid var(--vw-border);font-size:11px;color:var(--vw-text-dim);flex-shrink:0;";
+      var uniqueRows = new Set(results.map(function(r) { return r.row; }));
+      summary.textContent = results.length + " matches across " + uniqueRows.size + " sequence" + (uniqueRows.size !== 1 ? "s" : "");
+      overlay.appendChild(summary);
+
+      document.body.appendChild(overlay);
+
+      document.getElementById("vw-motif-close").addEventListener("click", function() { overlay.remove(); });
+      function closeOverlay(ev) {
+        if (!overlay.contains(ev.target)) { overlay.remove(); document.removeEventListener("mousedown", closeOverlay); }
+      }
+      setTimeout(function() { document.addEventListener("mousedown", closeOverlay); }, 0);
+    }
+
+    // Patch updateToolbar to show/hide motif search button
+    var prevUpdateToolbar = updateToolbar;
+    updateToolbar = function() {
+      prevUpdateToolbar();
+      var f = files[activeTab];
+      var btn = document.getElementById("vw-motif-search-btn");
+      if (!btn) return;
+      if (f && (f.parsed.format === "fasta" || f.parsed.format === "fastq")) {
+        btn.style.display = "";
+      } else {
+        btn.style.display = "none";
+      }
+    };
+
+    var rightGroup = document.querySelector("#vw-toolbar > div:last-child");
+    if (!rightGroup) return;
+
+    var motifSearchBtn = document.createElement("button");
+    motifSearchBtn.className = "vw-tbtn";
+    motifSearchBtn.textContent = "Motif";
+    motifSearchBtn.title = "Search for DNA motif across all sequences";
+    motifSearchBtn.id = "vw-motif-search-btn";
+    motifSearchBtn.style.display = "none";
+    motifSearchBtn.addEventListener("click", function() {
+      var f = files[activeTab];
+      if (!f) return;
+      var motif = prompt("Enter DNA motif (e.g., GAATTC, or regex like GA[AT]TTC):");
+      if (!motif) return;
+
+      // Find sequence columns
+      var seqCols = [];
+      if (f.parsed.colTypes) {
+        f.parsed.colTypes.forEach(function(t, i) {
+          if (t === "seq") seqCols.push(i);
+        });
+      }
+      if (seqCols.length === 0) {
+        var seqNames = ["sequence", "seq", "SEQ", "SEQUENCE"];
+        for (var si = 0; si < seqNames.length; si++) {
+          var idx = f.parsed.columns.indexOf(seqNames[si]);
+          if (idx >= 0) { seqCols.push(idx); break; }
+        }
+      }
+      if (seqCols.length === 0) {
+        showToast("No sequence column found");
+        return;
+      }
+
+      var results = [];
+      try {
+        var re = new RegExp(motif.toUpperCase(), "gi");
+        f.parsed.rows.forEach(function(row, i) {
+          for (var sc = 0; sc < seqCols.length; sc++) {
+            var seq = String(row[seqCols[sc]]).toUpperCase();
+            re.lastIndex = 0;
+            var match;
+            while ((match = re.exec(seq)) !== null) {
+              results.push({ row: i, position: match.index, match: match[0], seqCol: seqCols[sc] });
+              if (match[0].length === 0) { re.lastIndex++; }
+            }
+          }
+        });
+      } catch (e) {
+        showToast("Invalid motif regex: " + e.message);
+        return;
+      }
+
+      showMotifResults(results, motif, f);
+    });
+    rightGroup.insertBefore(motifSearchBtn, rightGroup.firstChild);
+  })();
+
+  // ── Feature 21: FASTQ QC Summary Panel ──────────────────────────
+  (function() {
+    var qcBtn = document.createElement("button");
+    qcBtn.className = "vw-tbtn";
+    qcBtn.innerHTML = "\u2695 QC";
+    qcBtn.title = "FASTQ quality control summary";
+    qcBtn.id = "vw-fastq-qc-btn";
+    qcBtn.style.display = "none";
+    var rightGroup = document.querySelector("#vw-toolbar > div:last-child");
+    if (rightGroup) rightGroup.insertBefore(qcBtn, rightGroup.firstChild);
+
+    qcBtn.addEventListener("click", function() {
+      var existing = document.getElementById("vw-fastq-qc-panel");
+      if (existing) { existing.remove(); return; }
+      var f = files[activeTab];
+      if (!f || f.parsed.format !== "fastq") return;
+
+      var rows = f.parsed.rows;
+      var stats = f.parsed.stats || {};
+      var quals = rows.map(function(r) { return parseFloat(r[2]); });
+      var lens = rows.map(function(r) { return r[1]; });
+      var totalBases = lens.reduce(function(a, b) { return a + b; }, 0);
+
+      // Compute GC content
+      var gcSum = 0, gcTotal = 0;
+      var sampleN = Math.min(rows.length, 5000);
+      for (var i = 0; i < sampleN; i++) {
+        var seq = String(rows[i][3] || "");
+        for (var j = 0; j < seq.length; j++) {
+          var ch = seq.charAt(j).toUpperCase();
+          if (ch === "G" || ch === "C") { gcSum++; gcTotal++; }
+          else if (ch === "A" || ch === "T" || ch === "U" || ch === "N") { gcTotal++; }
+        }
+      }
+      var gcPct = gcTotal > 0 ? (gcSum / gcTotal * 100).toFixed(1) : "N/A";
+
+      // Q20+ and Q30+ percentages
+      var q20Count = 0, q30Count = 0;
+      for (var i = 0; i < quals.length; i++) {
+        if (quals[i] >= 20) q20Count++;
+        if (quals[i] >= 30) q30Count++;
+      }
+      var q20Pct = rows.length > 0 ? (q20Count / rows.length * 100).toFixed(1) : "0";
+      var q30Pct = rows.length > 0 ? (q30Count / rows.length * 100).toFixed(1) : "0";
+
+      // Median quality
+      var sortedQ = quals.slice().sort(function(a, b) { return a - b; });
+      var medianQ = sortedQ.length > 0 ? sortedQ[Math.floor(sortedQ.length / 2)].toFixed(1) : "0";
+
+      // N50 read length
+      var sortedLens = lens.slice().sort(function(a, b) { return b - a; });
+      var cumLen = 0, n50 = 0, halfTotal = totalBases / 2;
+      for (var i = 0; i < sortedLens.length; i++) {
+        cumLen += sortedLens[i];
+        if (cumLen >= halfTotal) { n50 = sortedLens[i]; break; }
+      }
+
+      // Build read-length histogram as inline SVG
+      var histBins = 20;
+      var minLen = Math.min.apply(null, lens), maxLen = Math.max.apply(null, lens);
+      var binWidth = maxLen > minLen ? (maxLen - minLen) / histBins : 1;
+      var bins = new Array(histBins).fill(0);
+      for (var i = 0; i < lens.length; i++) {
+        var bi = Math.min(Math.floor((lens[i] - minLen) / binWidth), histBins - 1);
+        bins[bi]++;
+      }
+      var maxBin = Math.max.apply(null, bins) || 1;
+      var svgW = 320, svgH = 80, barW = svgW / histBins;
+      var histSvg = '<svg width="' + svgW + '" height="' + (svgH + 16) + '" style="display:block;margin:8px 0">';
+      for (var i = 0; i < histBins; i++) {
+        var bh = (bins[i] / maxBin) * svgH;
+        histSvg += '<rect x="' + (i * barW) + '" y="' + (svgH - bh) + '" width="' + (barW - 1) + '" height="' + bh + '" fill="#60a5fa" rx="1"/>';
+      }
+      histSvg += '<text x="0" y="' + (svgH + 12) + '" fill="#94a3b8" font-size="9" font-family="var(--vw-mono)">' + minLen + ' bp</text>';
+      histSvg += '<text x="' + svgW + '" y="' + (svgH + 12) + '" fill="#94a3b8" font-size="9" font-family="var(--vw-mono)" text-anchor="end">' + maxLen + ' bp</text>';
+      histSvg += '</svg>';
+
+      // QC verdict
+      var verdict = "PASS", verdictColor = "var(--vw-green)";
+      var meanQ = parseFloat(stats["Mean quality"] || 0);
+      if (parseFloat(q30Pct) < 60 || meanQ < 20) { verdict = "FAIL"; verdictColor = "var(--vw-red, #f87171)"; }
+      else if (parseFloat(q30Pct) < 80 || meanQ < 25) { verdict = "WARN"; verdictColor = "var(--vw-amber, #fbbf24)"; }
+
+      var panel = document.createElement("div");
+      panel.id = "vw-fastq-qc-panel";
+      panel.style.cssText = "position:absolute;top:40px;right:10px;z-index:9000;background:var(--vw-panel);border:1px solid var(--vw-border);border-radius:10px;padding:16px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.4);font-family:var(--vw-sans);max-width:380px;";
+      panel.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+        '<span style="font-weight:600;font-size:14px;color:var(--vw-text)">FASTQ QC Summary</span>' +
+        '<span style="font-weight:700;font-size:13px;color:' + verdictColor + ';border:1px solid ' + verdictColor + ';border-radius:4px;padding:2px 8px">' + verdict + '</span>' +
+        '</div>' +
+        '<table style="width:100%;font-size:12px;border-collapse:collapse;color:var(--vw-text)">' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">Total reads</td><td style="text-align:right;font-family:var(--vw-mono)">' + rows.length.toLocaleString() + '</td></tr>' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">Total bases</td><td style="text-align:right;font-family:var(--vw-mono)">' + totalBases.toLocaleString() + '</td></tr>' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">Mean length</td><td style="text-align:right;font-family:var(--vw-mono)">' + (rows.length ? Math.round(totalBases / rows.length) : 0) + ' bp</td></tr>' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">N50</td><td style="text-align:right;font-family:var(--vw-mono)">' + n50.toLocaleString() + ' bp</td></tr>' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">Mean quality</td><td style="text-align:right;font-family:var(--vw-mono)">Q' + (stats["Mean quality"] || "0") + '</td></tr>' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">Median quality</td><td style="text-align:right;font-family:var(--vw-mono)">Q' + medianQ + '</td></tr>' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">Q20+ reads</td><td style="text-align:right;font-family:var(--vw-mono)">' + q20Pct + '%</td></tr>' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">Q30+ reads</td><td style="text-align:right;font-family:var(--vw-mono)">' + q30Pct + '%</td></tr>' +
+        '<tr><td style="padding:3px 0;color:var(--vw-text-dim)">GC content</td><td style="text-align:right;font-family:var(--vw-mono)">' + gcPct + '%</td></tr>' +
+        '</table>' +
+        '<div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--vw-text-dim)">Read Length Distribution</div>' +
+        histSvg +
+        '<button id="vw-fastq-qc-close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:var(--vw-text-dim);cursor:pointer;font-size:16px">&times;</button>';
+
+      // Insert relative to toolbar
+      var toolbar = document.getElementById("vw-toolbar");
+      if (toolbar && toolbar.parentNode) {
+        toolbar.parentNode.style.position = "relative";
+        toolbar.parentNode.appendChild(panel);
+      } else {
+        document.body.appendChild(panel);
+      }
+
+      document.getElementById("vw-fastq-qc-close").addEventListener("click", function() { panel.remove(); });
+      // Close on outside click
+      setTimeout(function() {
+        document.addEventListener("click", function handler(e) {
+          if (!panel.contains(e.target) && e.target !== qcBtn) {
+            panel.remove();
+            document.removeEventListener("click", handler);
+          }
+        });
+      }, 100);
+    });
+
+    // Show/hide QC button based on format — patch updateToolbar
+    var _origUpdateToolbarQC = updateToolbar;
+    updateToolbar = function() {
+      _origUpdateToolbarQC();
+      var f = files[activeTab];
+      qcBtn.style.display = (f && f.parsed && f.parsed.format === "fastq") ? "" : "none";
+    };
+  })();
+
+  // ── Feature 22: VCF Variant Density Panel ──────────────────────────
+  (function() {
+    var densBtn = document.createElement("button");
+    densBtn.className = "vw-tbtn";
+    densBtn.innerHTML = "\u2593 Density";
+    densBtn.title = "Variant density per chromosome";
+    densBtn.id = "vw-vcf-density-btn";
+    densBtn.style.display = "none";
+    var rightGroup = document.querySelector("#vw-toolbar > div:last-child");
+    if (rightGroup) rightGroup.insertBefore(densBtn, rightGroup.firstChild);
+
+    densBtn.addEventListener("click", function() {
+      var existing = document.getElementById("vw-vcf-density-panel");
+      if (existing) { existing.remove(); return; }
+      var f = files[activeTab];
+      if (!f || f.parsed.format !== "vcf") return;
+
+      // Count variants per chromosome
+      var chromCol = f.parsed.columns.indexOf("CHROM");
+      if (chromCol < 0) chromCol = 0;
+      var chromCounts = {};
+      f.parsed.rows.forEach(function(r) {
+        var c = String(r[chromCol] || "");
+        if (c && c !== ".") chromCounts[c] = (chromCounts[c] || 0) + 1;
+      });
+
+      // Sort chromosomes naturally
+      var entries = Object.entries(chromCounts).sort(function(a, b) {
+        var na = a[0].replace(/^chr/i, ""), nb = b[0].replace(/^chr/i, "");
+        var ia = parseInt(na), ib = parseInt(nb);
+        if (!isNaN(ia) && !isNaN(ib)) return ia - ib;
+        if (!isNaN(ia)) return -1;
+        if (!isNaN(ib)) return 1;
+        return na.localeCompare(nb);
+      }).slice(0, 30);
+
+      var maxCount = Math.max.apply(null, entries.map(function(e) { return e[1]; })) || 1;
+      var totalVariants = f.parsed.rows.length;
+
+      // Build inline SVG horizontal bar chart
+      var barH = 18, gap = 3, labelW = 65, valueW = 50;
+      var chartW = 360, chartAreaW = chartW - labelW - valueW;
+      var svgH = entries.length * (barH + gap) + 10;
+      var colors = ["#7c3aed", "#a78bfa", "#6d28d9", "#8b5cf6", "#c4b5fd"];
+
+      var svgParts = ['<svg width="' + chartW + '" height="' + svgH + '" style="display:block">'];
+      entries.forEach(function(entry, i) {
+        var y = i * (barH + gap) + 5;
+        var bw = (entry[1] / maxCount) * chartAreaW;
+        var pct = (entry[1] / totalVariants * 100).toFixed(1);
+        var color = colors[i % colors.length];
+        svgParts.push('<text x="' + (labelW - 4) + '" y="' + (y + barH / 2 + 4) + '" fill="#94a3b8" font-size="10" text-anchor="end" font-family="var(--vw-mono)">' + entry[0] + '</text>');
+        svgParts.push('<rect x="' + labelW + '" y="' + y + '" width="' + bw + '" height="' + barH + '" fill="' + color + '" rx="3" opacity="0.85"/>');
+        svgParts.push('<text x="' + (labelW + chartAreaW + 4) + '" y="' + (y + barH / 2 + 4) + '" fill="#c0caf5" font-size="10" font-family="var(--vw-mono)">' + entry[1].toLocaleString() + ' (' + pct + '%)</text>');
+      });
+      svgParts.push('</svg>');
+
+      var panel = document.createElement("div");
+      panel.id = "vw-vcf-density-panel";
+      panel.style.cssText = "position:absolute;top:40px;right:10px;z-index:9000;background:var(--vw-panel);border:1px solid var(--vw-border);border-radius:10px;padding:16px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.4);font-family:var(--vw-sans);max-height:80vh;overflow-y:auto;";
+      panel.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+        '<span style="font-weight:600;font-size:14px;color:var(--vw-text)">Variant Density</span>' +
+        '<span style="font-size:11px;color:var(--vw-text-dim)">' + totalVariants.toLocaleString() + ' total across ' + entries.length + ' chromosomes</span>' +
+        '</div>' +
+        svgParts.join("") +
+        '<button id="vw-density-close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:var(--vw-text-dim);cursor:pointer;font-size:16px">&times;</button>';
+
+      var toolbar = document.getElementById("vw-toolbar");
+      if (toolbar && toolbar.parentNode) {
+        toolbar.parentNode.style.position = "relative";
+        toolbar.parentNode.appendChild(panel);
+      } else {
+        document.body.appendChild(panel);
+      }
+
+      document.getElementById("vw-density-close").addEventListener("click", function() { panel.remove(); });
+      setTimeout(function() {
+        document.addEventListener("click", function handler(e) {
+          if (!panel.contains(e.target) && e.target !== densBtn) {
+            panel.remove();
+            document.removeEventListener("click", handler);
+          }
+        });
+      }, 100);
+    });
+
+    // Show/hide Density button based on format — patch updateToolbar
+    var _origUpdateToolbarDens = updateToolbar;
+    updateToolbar = function() {
+      _origUpdateToolbarDens();
+      var f = files[activeTab];
+      densBtn.style.display = (f && f.parsed && f.parsed.format === "vcf") ? "" : "none";
+    };
+  })();
+
+  // ── Feature: VCF FILTER Pie Chart ──────────────────────────────
+  (function() {
+    var filterBtn = document.createElement("button");
+    filterBtn.className = "vw-tbtn";
+    filterBtn.innerHTML = "\u25D4 Filters";
+    filterBtn.title = "FILTER value breakdown (PASS/FAIL pie chart)";
+    filterBtn.id = "vw-vcf-filter-btn";
+    filterBtn.style.display = "none";
+    var rightGroup = document.querySelector("#vw-toolbar > div:last-child");
+    if (rightGroup) rightGroup.insertBefore(filterBtn, rightGroup.firstChild);
+
+    filterBtn.addEventListener("click", function() {
+      var existing = document.getElementById("vw-vcf-filter-panel");
+      if (existing) { existing.remove(); return; }
+      var f = files[activeTab];
+      if (!f || f.parsed.format !== "vcf") return;
+
+      var filterIdx = f.parsed.columns.indexOf("FILTER");
+      if (filterIdx < 0) { showToast("No FILTER column found"); return; }
+
+      // Count FILTER values
+      var filterCounts = {};
+      f.parsed.rows.forEach(function(r) {
+        var v = String(r[filterIdx] || ".");
+        filterCounts[v] = (filterCounts[v] || 0) + 1;
+      });
+      var total = f.parsed.rows.length;
+      var entries = Object.entries(filterCounts).sort(function(a, b) { return b[1] - a[1]; });
+
+      // Build SVG donut chart
+      var svgSize = 160, cx = svgSize / 2, cy = svgSize / 2, radius = 55, innerR = 32;
+      var pieColors = { "PASS": "#34d399", ".": "#94a3b8" };
+      var failColors = ["#f87171", "#fbbf24", "#fb923c", "#a78bfa", "#60a5fa", "#e879f9"];
+      var failIdx = 0;
+      entries.forEach(function(e) {
+        if (!pieColors[e[0]]) {
+          pieColors[e[0]] = failColors[failIdx % failColors.length];
+          failIdx++;
+        }
+      });
+
+      var svgParts = ['<svg width="' + svgSize + '" height="' + svgSize + '" viewBox="0 0 ' + svgSize + ' ' + svgSize + '">'];
+      var startAngle = -Math.PI / 2;
+      entries.forEach(function(entry) {
+        var sliceAngle = (entry[1] / total) * 2 * Math.PI;
+        if (sliceAngle < 0.001) return;
+        var endAngle = startAngle + sliceAngle;
+        var largeArc = sliceAngle > Math.PI ? 1 : 0;
+        var x1 = cx + radius * Math.cos(startAngle), y1 = cy + radius * Math.sin(startAngle);
+        var x2 = cx + radius * Math.cos(endAngle), y2 = cy + radius * Math.sin(endAngle);
+        var ix1 = cx + innerR * Math.cos(startAngle), iy1 = cy + innerR * Math.sin(startAngle);
+        var ix2 = cx + innerR * Math.cos(endAngle), iy2 = cy + innerR * Math.sin(endAngle);
+        var d = "M" + x1 + "," + y1 + " A" + radius + "," + radius + " 0 " + largeArc + " 1 " + x2 + "," + y2 +
+                " L" + ix2 + "," + iy2 + " A" + innerR + "," + innerR + " 0 " + largeArc + " 0 " + ix1 + "," + iy1 + " Z";
+        svgParts.push('<path d="' + d + '" fill="' + (pieColors[entry[0]] || "#94a3b8") + '" opacity="0.9"/>');
+        startAngle = endAngle;
+      });
+      // Center label
+      svgParts.push('<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700" font-family="var(--vw-mono)">' + total.toLocaleString() + '</text>');
+      svgParts.push('<text x="' + cx + '" y="' + (cy + 12) + '" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="var(--vw-sans)">variants</text>');
+      svgParts.push('</svg>');
+
+      // Build legend
+      var legendParts = [];
+      entries.forEach(function(entry) {
+        var pct = (entry[1] / total * 100).toFixed(1);
+        legendParts.push('<div style="display:flex;align-items:center;gap:6px;padding:2px 0">' +
+          '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + (pieColors[entry[0]] || "#94a3b8") + '"></span>' +
+          '<span style="color:var(--vw-text);font-size:12px;font-family:var(--vw-mono)">' + escapeHtml(entry[0]) + '</span>' +
+          '<span style="color:var(--vw-text-dim);font-size:11px;margin-left:auto">' + entry[1].toLocaleString() + ' (' + pct + '%)</span></div>');
+      });
+
+      var panel = document.createElement("div");
+      panel.id = "vw-vcf-filter-panel";
+      panel.style.cssText = "position:absolute;top:40px;right:10px;z-index:9000;background:var(--vw-panel);border:1px solid var(--vw-border);border-radius:10px;padding:16px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.4);font-family:var(--vw-sans);max-width:320px;";
+      panel.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+        '<span style="font-weight:600;font-size:14px;color:var(--vw-text)">FILTER Breakdown</span>' +
+        '<button id="vw-vcf-filter-close" style="background:none;border:none;color:var(--vw-text-dim);cursor:pointer;font-size:16px">&times;</button></div>' +
+        '<div style="display:flex;align-items:center;gap:16px">' +
+        '<div>' + svgParts.join("") + '</div>' +
+        '<div style="flex:1">' + legendParts.join("") + '</div></div>';
+
+      var toolbar = document.getElementById("vw-toolbar");
+      if (toolbar && toolbar.parentNode) {
+        toolbar.parentNode.style.position = "relative";
+        toolbar.parentNode.appendChild(panel);
+      } else {
+        document.body.appendChild(panel);
+      }
+
+      document.getElementById("vw-vcf-filter-close").addEventListener("click", function() { panel.remove(); });
+      setTimeout(function() {
+        document.addEventListener("click", function handler(e) {
+          if (!panel.contains(e.target) && e.target !== filterBtn) {
+            panel.remove();
+            document.removeEventListener("click", handler);
+          }
+        });
+      }, 100);
+    });
+
+    // Show/hide Filters button based on format — patch updateToolbar
+    var _origUpdateToolbarFilter = updateToolbar;
+    updateToolbar = function() {
+      _origUpdateToolbarFilter();
+      var f = files[activeTab];
+      filterBtn.style.display = (f && f.parsed && f.parsed.format === "vcf") ? "" : "none";
+    };
   })();
 
 })();

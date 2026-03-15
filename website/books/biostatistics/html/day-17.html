@@ -1,0 +1,824 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 17: Survival Analysis — Time-to-Event Data - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-17-survival-analysis--time-to-event-data"><a class="header" href="#day-17-survival-analysis--time-to-event-data">Day 17: Survival Analysis — Time-to-Event Data</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Dr. Elena Volkov is a cancer genomicist analyzing overall survival in 250 lung adenocarcinoma patients. She has tumor sequencing data and wants to answer: <strong>Do TP53-mutant patients survive longer than TP53 wild-type patients?</strong></p>
+<p>Her first attempt: compute the mean survival time for each group and run a t-test. But she immediately hits a wall. 40% of patients are <strong>still alive</strong> at the end of the study. Their survival time is <strong>at least</strong> 36 months — but she doesn’t know their actual survival time. Dropping these patients biases the analysis (the longest survivors are removed). Using 36 months as their survival time underestimates it.</p>
+<p>This is the problem of <strong>censoring</strong>, and it requires survival analysis.</p>
+<h2 id="what-is-censoring"><a class="header" href="#what-is-censoring">What Is Censoring?</a></h2>
+<p><strong>Right-censoring</strong> occurs when the event of interest (death, relapse, progression) has not yet happened at the time of observation. The patient is lost to follow-up, the study ends, or they die of an unrelated cause.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Patient</th><th>Follow-up</th><th>Status</th><th>What We Know</th></tr>
+</thead>
+<tbody>
+<tr><td>A</td><td>24 months</td><td>Dead</td><td>Survived exactly 24 months</td></tr>
+<tr><td>B</td><td>36 months</td><td>Alive</td><td>Survived <strong>at least</strong> 36 months</td></tr>
+<tr><td>C</td><td>12 months</td><td>Lost</td><td>Survived <strong>at least</strong> 12 months</td></tr>
+<tr><td>D</td><td>48 months</td><td>Dead</td><td>Survived exactly 48 months</td></tr>
+</tbody>
+</table>
+</div>
+<p>Patients B and C are <strong>censored</strong> — we know a lower bound on their survival, but not the actual value.</p>
+<blockquote>
+<p><strong>Key insight:</strong> Censored observations are NOT missing data. They contain real information (“this patient survived at least X months”). Throwing them away wastes data and biases results. Including them as if the event occurred underestimates survival.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="650" height="310" viewbox="0 0 650 310" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="325" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Censoring in Survival Data</text>
+  <text x="325" y="42" text-anchor="middle" font-size="11" fill="#6b7280">Each line = one patient's follow-up period</text>
+  <g transform="translate(100, 55)">
+    <!-- Time axis -->
+    <line x1="100" y1="230" x2="450" y2="230" stroke="#6b7280" stroke-width="1.5" />
+    <text x="275" y="256" text-anchor="middle" font-size="12" fill="#6b7280">Time (months)</text>
+    <text x="100" y="246" text-anchor="middle" font-size="10" fill="#6b7280">0</text>
+    <text x="170" y="246" text-anchor="middle" font-size="10" fill="#6b7280">6</text>
+    <text x="240" y="246" text-anchor="middle" font-size="10" fill="#6b7280">12</text>
+    <text x="310" y="246" text-anchor="middle" font-size="10" fill="#6b7280">18</text>
+    <text x="380" y="246" text-anchor="middle" font-size="10" fill="#6b7280">24</text>
+    <text x="450" y="246" text-anchor="middle" font-size="10" fill="#6b7280">30</text>
+    <!-- Tick marks on axis -->
+    <line x1="100" y1="228" x2="100" y2="233" stroke="#6b7280" stroke-width="1" />
+    <line x1="170" y1="228" x2="170" y2="233" stroke="#6b7280" stroke-width="1" />
+    <line x1="240" y1="228" x2="240" y2="233" stroke="#6b7280" stroke-width="1" />
+    <line x1="310" y1="228" x2="310" y2="233" stroke="#6b7280" stroke-width="1" />
+    <line x1="380" y1="228" x2="380" y2="233" stroke="#6b7280" stroke-width="1" />
+    <line x1="450" y1="228" x2="450" y2="233" stroke="#6b7280" stroke-width="1" />
+    <!-- Patient timelines -->
+    <!-- Patient 1: event at 8 months -->
+    <text x="90" y="18" text-anchor="end" font-size="11" fill="#1e293b">Pt 1</text>
+    <line x1="100" y1="15" x2="193" y2="15" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+    <text x="198" y="20" font-size="16" fill="#dc2626" font-weight="bold">X</text>
+    <!-- Patient 2: censored at 28 months (still alive) -->
+    <text x="90" y="43" text-anchor="end" font-size="11" fill="#1e293b">Pt 2</text>
+    <line x1="100" y1="40" x2="427" y2="40" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+    <circle cx="433" cy="40" r="6" fill="none" stroke="#16a34a" stroke-width="2.5" />
+    <!-- Patient 3: event at 14 months -->
+    <text x="90" y="68" text-anchor="end" font-size="11" fill="#1e293b">Pt 3</text>
+    <line x1="100" y1="65" x2="263" y2="65" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+    <text x="268" y="70" font-size="16" fill="#dc2626" font-weight="bold">X</text>
+    <!-- Patient 4: censored at 20 months (lost to follow-up) -->
+    <text x="90" y="93" text-anchor="end" font-size="11" fill="#1e293b">Pt 4</text>
+    <line x1="100" y1="90" x2="333" y2="90" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+    <circle cx="339" cy="90" r="6" fill="none" stroke="#16a34a" stroke-width="2.5" />
+    <!-- Patient 5: event at 5 months -->
+    <text x="90" y="118" text-anchor="end" font-size="11" fill="#1e293b">Pt 5</text>
+    <line x1="100" y1="115" x2="158" y2="115" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+    <text x="163" y="120" font-size="16" fill="#dc2626" font-weight="bold">X</text>
+    <!-- Patient 6: censored at 24 months -->
+    <text x="90" y="143" text-anchor="end" font-size="11" fill="#1e293b">Pt 6</text>
+    <line x1="100" y1="140" x2="374" y2="140" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+    <circle cx="380" cy="140" r="6" fill="none" stroke="#16a34a" stroke-width="2.5" />
+    <!-- Patient 7: event at 18 months -->
+    <text x="90" y="168" text-anchor="end" font-size="11" fill="#1e293b">Pt 7</text>
+    <line x1="100" y1="165" x2="310" y2="165" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+    <text x="315" y="170" font-size="16" fill="#dc2626" font-weight="bold">X</text>
+    <!-- Patient 8: event at 22 months -->
+    <text x="90" y="193" text-anchor="end" font-size="11" fill="#1e293b">Pt 8</text>
+    <line x1="100" y1="190" x2="357" y2="190" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+    <text x="362" y="195" font-size="16" fill="#dc2626" font-weight="bold">X</text>
+    <!-- Legend -->
+    <text x="198" y="218" font-size="15" fill="#dc2626" font-weight="bold">X</text>
+    <text x="215" y="218" font-size="10" fill="#1e293b">= Event (death/relapse)</text>
+    <circle cx="325" cy="214" r="5" fill="none" stroke="#16a34a" stroke-width="2" />
+    <text x="340" y="218" font-size="10" fill="#1e293b">= Censored (alive / lost)</text>
+  </g>
+</svg>
+</div>
+
+<h3 id="why-standard-methods-fail"><a class="header" href="#why-standard-methods-fail">Why Standard Methods Fail</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Problem with Censored Data</th></tr>
+</thead>
+<tbody>
+<tr><td>Mean survival</td><td>Can’t compute — don’t know censored patients’ true times</td></tr>
+<tr><td>t-test</td><td>Assumes complete observations</td></tr>
+<tr><td>Linear regression</td><td>Can’t handle “at least” values</td></tr>
+<tr><td>Simple proportions</td><td>Ignores timing of events</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="the-kaplan-meier-estimator"><a class="header" href="#the-kaplan-meier-estimator">The Kaplan-Meier Estimator</a></h2>
+<p>The <strong>Kaplan-Meier (KM) estimator</strong> is the workhorse of survival analysis. It estimates the survival function S(t) = P(survival &gt; t) as a step function that drops at each observed event.</p>
+<p><strong>How it works:</strong>
+At each event time tⱼ:</p>
+<p>$$\hat{S}(t) = \prod_{t_j \leq t} \left(1 - \frac{d_j}{n_j}\right)$$</p>
+<p>Where:</p>
+<ul>
+<li>dⱼ = number of events at time tⱼ</li>
+<li>nⱼ = number at risk just before tⱼ (alive and not yet censored)</li>
+</ul>
+<p><strong>Reading a KM curve:</strong></p>
+<ul>
+<li>Y-axis: proportion surviving (starts at 1.0 = 100%)</li>
+<li>X-axis: time</li>
+<li>Steps down: events (deaths)</li>
+<li>Tick marks: censored observations (patients lost but still contribute until that point)</li>
+<li>Steeper drops: periods of high event rate</li>
+<li>Flat plateaus: stable periods</li>
+</ul>
+<h3 id="median-survival"><a class="header" href="#median-survival">Median Survival</a></h3>
+<p>The <strong>median survival</strong> is the time at which the KM curve crosses 0.50 — the point where half the patients have experienced the event. It is more robust than the mean because it is less affected by a few extreme values.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> “Median overall survival was 18 months in the treatment arm versus 12 months in the control arm” is the standard way clinical trials report survival data. It’s the single most important number in oncology clinical trials.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="380" viewbox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Kaplan-Meier Curve Anatomy</text>
+  <g transform="translate(70, 40)">
+    <!-- Axes -->
+    <line x1="60" y1="280" x2="520" y2="280" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="60" y1="280" x2="60" y2="20" stroke="#6b7280" stroke-width="1.5" />
+    <text x="290" y="310" text-anchor="middle" font-size="12" fill="#6b7280">Time (months)</text>
+    <text x="15" y="150" text-anchor="middle" font-size="12" fill="#6b7280" transform="rotate(-90, 15, 150)">Survival Probability</text>
+    <!-- Y-axis labels -->
+    <text x="52" y="284" text-anchor="end" font-size="10" fill="#6b7280">0.0</text>
+    <text x="52" y="219" text-anchor="end" font-size="10" fill="#6b7280">0.25</text>
+    <text x="52" y="154" text-anchor="end" font-size="10" fill="#6b7280">0.50</text>
+    <text x="52" y="89" text-anchor="end" font-size="10" fill="#6b7280">0.75</text>
+    <text x="52" y="24" text-anchor="end" font-size="10" fill="#6b7280">1.00</text>
+    <!-- X-axis labels -->
+    <text x="60" y="296" text-anchor="middle" font-size="10" fill="#6b7280">0</text>
+    <text x="153" y="296" text-anchor="middle" font-size="10" fill="#6b7280">6</text>
+    <text x="243" y="296" text-anchor="middle" font-size="10" fill="#6b7280">12</text>
+    <text x="335" y="296" text-anchor="middle" font-size="10" fill="#6b7280">18</text>
+    <text x="428" y="296" text-anchor="middle" font-size="10" fill="#6b7280">24</text>
+    <text x="520" y="296" text-anchor="middle" font-size="10" fill="#6b7280">30</text>
+    <!-- Confidence band (shaded) for Group A -->
+    <path d="M 60,20 L 60,20 L 120,20 L 120,40 L 180,40 L 180,65 L 220,65 L 220,90 L 260,90 L 260,115 L 310,115 L 310,140 L 370,140 L 370,170 L 430,170 L 430,195 L 520,195 L 520,235 L 430,235 L 430,210 L 370,210 L 370,185 L 310,185 L 310,160 L 260,160 L 260,135 L 220,135 L 220,110 L 180,110 L 180,80 L 120,80 L 120,55 L 60,55 Z" fill="#2563eb" opacity="0.08" />
+    <!-- Confidence band for Group B -->
+    <path d="M 60,20 L 60,20 L 100,20 L 100,50 L 140,50 L 140,85 L 175,85 L 175,120 L 210,120 L 210,155 L 250,155 L 250,195 L 290,195 L 290,225 L 340,225 L 340,258 L 340,278 L 290,278 L 290,255 L 250,255 L 250,225 L 210,225 L 210,190 L 175,190 L 175,155 L 140,155 L 140,120 L 100,120 L 100,75 L 60,75 Z" fill="#dc2626" opacity="0.08" />
+    <!-- KM step curve - Group A (better survival) - blue -->
+    <path d="M 60,20 L 120,20 L 120,47 L 180,47 L 180,72 L 220,72 L 220,100 L 260,100 L 260,125 L 310,125 L 310,152 L 370,152 L 370,178 L 430,178 L 430,215 L 520,215" stroke="#2563eb" stroke-width="2.5" fill="none" />
+    <!-- KM step curve - Group B (worse survival) - red -->
+    <path d="M 60,20 L 100,20 L 100,62 L 140,62 L 140,102 L 175,102 L 175,140 L 210,140 L 210,175 L 250,175 L 250,212 L 290,212 L 290,240 L 340,240 L 340,268" stroke="#dc2626" stroke-width="2.5" fill="none" />
+    <!-- Censored tick marks on Group A -->
+    <line x1="90" y1="16" x2="90" y2="24" stroke="#2563eb" stroke-width="2" />
+    <line x1="150" y1="43" x2="150" y2="51" stroke="#2563eb" stroke-width="2" />
+    <line x1="200" y1="68" x2="200" y2="76" stroke="#2563eb" stroke-width="2" />
+    <line x1="280" y1="121" x2="280" y2="129" stroke="#2563eb" stroke-width="2" />
+    <line x1="350" y1="148" x2="350" y2="156" stroke="#2563eb" stroke-width="2" />
+    <line x1="460" y1="211" x2="460" y2="219" stroke="#2563eb" stroke-width="2" />
+    <!-- Censored tick marks on Group B -->
+    <line x1="80" y1="16" x2="80" y2="24" stroke="#dc2626" stroke-width="2" />
+    <line x1="120" y1="58" x2="120" y2="66" stroke="#dc2626" stroke-width="2" />
+    <line x1="192" y1="136" x2="192" y2="144" stroke="#dc2626" stroke-width="2" />
+    <line x1="270" y1="208" x2="270" y2="216" stroke="#dc2626" stroke-width="2" />
+    <!-- Median survival lines -->
+    <line x1="60" y1="150" x2="307" y2="150" stroke="#2563eb" stroke-width="1" stroke-dasharray="4,3" opacity="0.5" />
+    <line x1="307" y1="150" x2="307" y2="280" stroke="#2563eb" stroke-width="1" stroke-dasharray="4,3" opacity="0.5" />
+    <line x1="60" y1="150" x2="205" y2="150" stroke="#dc2626" stroke-width="1" stroke-dasharray="4,3" opacity="0.5" />
+    <line x1="205" y1="150" x2="205" y2="280" stroke="#dc2626" stroke-width="1" stroke-dasharray="4,3" opacity="0.5" />
+    <!-- Median survival label -->
+    <text x="52" y="148" text-anchor="end" font-size="9" fill="#7c3aed" font-weight="bold">0.50</text>
+    <text x="307" y="326" text-anchor="middle" font-size="9" fill="#2563eb">~17mo</text>
+    <text x="205" y="326" text-anchor="middle" font-size="9" fill="#dc2626">~11mo</text>
+    <!-- Annotations -->
+    <line x1="150" y1="47" x2="165" y2="56" stroke="#6b7280" stroke-width="0.5" />
+    <rect x="140" y="56" width="88" height="16" rx="3" fill="white" stroke="#6b7280" stroke-width="0.5" />
+    <text x="184" y="67" text-anchor="middle" font-size="9" fill="#6b7280">| = censored obs</text>
+    <!-- Step annotation -->
+    <path d="M 254,100 L 254,125" stroke="#6b7280" stroke-width="0.5" marker-end="url(#arrowhead)" />
+    <text x="254" y="95" text-anchor="middle" font-size="9" fill="#6b7280">step = event</text>
+    <!-- Legend -->
+    <line x1="390" y1="50" x2="420" y2="50" stroke="#2563eb" stroke-width="2.5" />
+    <text x="425" y="54" font-size="10" fill="#1e293b">TP53 Wild-type</text>
+    <line x1="390" y1="68" x2="420" y2="68" stroke="#dc2626" stroke-width="2.5" />
+    <text x="425" y="72" font-size="10" fill="#1e293b">TP53 Mutant</text>
+    <rect x="388" y="76" width="8" height="2" fill="#6b7280" />
+    <text x="425" y="84" font-size="9" fill="#6b7280">Confidence band</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="the-log-rank-test"><a class="header" href="#the-log-rank-test">The Log-Rank Test</a></h2>
+<p>The <strong>log-rank test</strong> compares survival curves between groups. It asks: “Is the survival experience significantly different between these groups?”</p>
+<ul>
+<li><strong>H₀:</strong> The survival curves are identical</li>
+<li><strong>H₁:</strong> The survival curves differ</li>
+</ul>
+<p>The test compares observed events to expected events (under H₀) at each time point across the entire follow-up period. It gives most weight to later time points.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Consideration</th><th>Detail</th></tr>
+</thead>
+<tbody>
+<tr><td>Assumptions</td><td>Proportional hazards (constant HR over time)</td></tr>
+<tr><td>Power</td><td>Best when hazard ratio is constant</td></tr>
+<tr><td>Limitation</td><td>Only tests equality — doesn’t estimate HOW different</td></tr>
+<tr><td>Multiple groups</td><td>Can compare 3+ groups simultaneously</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> The log-rank test can be non-significant even when curves look different, if the difference is early (then converges) or if curves cross. If hazards are not proportional, consider alternatives like the Wilcoxon (Breslow) test, which gives more weight to early events.</p>
+</blockquote>
+<h2 id="cox-proportional-hazards-model"><a class="header" href="#cox-proportional-hazards-model">Cox Proportional Hazards Model</a></h2>
+<p>The <strong>Cox PH model</strong> is the regression analog for survival data. It models the hazard (instantaneous event rate) as:</p>
+<p>$$h(t|X) = h_0(t) \cdot \exp(\beta_1 X_1 + \beta_2 X_2 + \cdots)$$</p>
+<p>Where h₀(t) is the baseline hazard and the exponential term scales it by covariates.</p>
+<h3 id="the-hazard-ratio"><a class="header" href="#the-hazard-ratio">The Hazard Ratio</a></h3>
+<p>The key output is the <strong>hazard ratio (HR)</strong>:</p>
+<p>$$HR = e^{\beta}$$</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>HR</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>1.0</td><td>No difference in hazard</td></tr>
+<tr><td>2.0</td><td>Twice the hazard (worse survival)</td></tr>
+<tr><td>0.5</td><td>Half the hazard (better survival)</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> HR = 2.0 does NOT mean “dies twice as fast” or “survives half as long.” It means that at any given time point, the hazard (instantaneous risk of the event) is 2x higher. The relationship between HR and median survival depends on the shape of the baseline hazard.</p>
+</blockquote>
+<h3 id="proportional-hazards-assumption"><a class="header" href="#proportional-hazards-assumption">Proportional Hazards Assumption</a></h3>
+<p>The Cox model assumes that the <strong>ratio of hazards</strong> between groups is constant over time. If TP53-mutant patients have HR = 1.5, this ratio should hold at 6 months, 12 months, and 24 months.</p>
+<p><strong>Violations:</strong></p>
+<ul>
+<li>Curves that cross (treatment effect reverses over time)</li>
+<li>HR that changes with time (e.g., surgery risk is high early, then protective later)</li>
+<li>Delayed treatment effects (immunotherapy often shows late separation)</li>
+</ul>
+<h3 id="adjusting-for-confounders"><a class="header" href="#adjusting-for-confounders">Adjusting for Confounders</a></h3>
+<p>Like multiple regression, Cox models can include multiple predictors:</p>
+<p>$$h(t) = h_0(t) \cdot \exp(\beta_1 \cdot \text{TP53} + \beta_2 \cdot \text{Age} + \beta_3 \cdot \text{Stage})$$</p>
+<p>This gives the HR for TP53 mutation <strong>adjusted for</strong> age and stage — a cleaner estimate of its independent effect.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> A univariate HR for TP53 might be 1.8 (worse survival). But if TP53-mutant tumors also tend to be higher stage, the adjusted HR might drop to 1.3 after controlling for stage. The adjusted HR is what matters for understanding TP53’s independent prognostic value.</p>
+</blockquote>
+<h2 id="survival-analysis-in-biolang"><a class="header" href="#survival-analysis-in-biolang">Survival Analysis in BioLang</a></h2>
+<h3 id="kaplan-meier-curves"><a class="header" href="#kaplan-meier-curves">Kaplan-Meier Curves</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Lung adenocarcinoma survival by TP53 status
+let n = 250
+
+# Simulate TP53 status (40% mutant)
+let tp53_mut = rnorm(n, 0, 1) |&gt; map(|x| if x &gt; 0.25 { 0 } else { 1 })
+
+# Simulate survival times (exponential with TP53 effect)
+let base_hazard = 0.03  # monthly hazard rate
+let survival_time = []
+let status = []  # 1 = dead, 0 = censored
+
+for i in 0..n {
+    let hazard = base_hazard * if tp53_mut[i] == 1 { 1.6 } else { 1.0 }
+    let true_time = -log(rnorm(1, 0.5, 0.2)[0] |&gt; max(0.01)) / hazard
+    let censor_time = rnorm(1, 42, 10)[0] |&gt; max(24)
+
+    if true_time &lt; censor_time {
+        survival_time = survival_time + [true_time]
+        status = status + [1]  # event observed
+    } else {
+        survival_time = survival_time + [censor_time]
+        status = status + [0]  # censored
+    }
+}
+
+print("Events: {status |&gt; sum} / {n} ({(status |&gt; sum) / n * 100 |&gt; round(1)}%)")
+print("Censored: {n - (status |&gt; sum)}")
+
+# Fit Kaplan-Meier for each group
+let wt_times = []
+let wt_status = []
+let mut_times = []
+let mut_status = []
+for i in 0..n {
+    if tp53_mut[i] == 0 {
+        wt_times = wt_times + [survival_time[i]]
+        wt_status = wt_status + [status[i]]
+    } else {
+        mut_times = mut_times + [survival_time[i]]
+        mut_status = mut_status + [status[i]]
+    }
+}
+
+let km_wt = kaplan_meier(wt_times, wt_status)
+let km_mut = kaplan_meier(mut_times, mut_status)
+
+print("Median survival (TP53 WT): {km_wt.median |&gt; round(1)} months")
+print("Median survival (TP53 mut): {km_mut.median |&gt; round(1)} months")
+</code></pre>
+<h3 id="kaplan-meier-plot"><a class="header" href="#kaplan-meier-plot">Kaplan-Meier Plot</a></h3>
+<pre><code class="language-bio"># Publication-quality survival curves
+# Plot KM data using plot()
+let km_table = table({
+    "time": km_wt.times ++ km_mut.times,
+    "survival": km_wt.survival ++ km_mut.survival,
+    "group": km_wt.times |&gt; map(|t| "TP53 WT") ++ km_mut.times |&gt; map(|t| "TP53 Mut")
+})
+plot(km_table, {type: "line", x: "time", y: "survival", color: "group",
+    title: "Overall Survival by TP53 Status",
+    x_label: "Time (months)", y_label: "Survival Probability"})
+</code></pre>
+<h3 id="log-rank-test"><a class="header" href="#log-rank-test">Log-Rank Test</a></h3>
+<pre><code class="language-bio"># Compare survival curves statistically
+# Compute log-rank test from KM outputs
+# The test compares observed vs expected events across groups
+let km_all = kaplan_meier(survival_time, status)
+
+# Use Cox PH as a proxy for log-rank (equivalent for single binary predictor)
+let cox_lr = cox_ph(survival_time, status, [tp53_mut])
+print("=== Log-Rank Test (via Cox) ===")
+print("p-value: {cox_lr.p_value |&gt; round(4)}")
+
+if cox_lr.p_value &lt; 0.05 {
+    print("Significant difference in survival between TP53 groups")
+} else {
+    print("No significant difference detected (p &gt; 0.05)")
+}
+</code></pre>
+<h3 id="cox-proportional-hazards-model-1"><a class="header" href="#cox-proportional-hazards-model-1">Cox Proportional Hazards Model</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Simulate additional covariates
+let age = rnorm(n, 65, 10)
+let stage = rnorm(n, 2.5, 0.8) |&gt; map(|x| max(1, min(4, round(x))))
+
+# Univariate Cox model
+let cox_simple = cox_ph(survival_time, status, [tp53_mut])
+
+print("=== Univariate Cox Model ===")
+print("TP53 Mutation HR: {cox_simple.hazard_ratio |&gt; round(2)}")
+print("  p-value: {cox_simple.p_value |&gt; round(4)}")
+
+# Multivariable Cox model — adjust for age and stage
+let cox_adjusted = cox_ph(survival_time, status, [tp53_mut, age, stage])
+
+print("\n=== Multivariable Cox Model ===")
+print("Hazard ratios: {cox_adjusted.hazard_ratios}")
+print("p-values: {cox_adjusted.p_values}")
+
+# Compare: does TP53 HR change after adjusting for stage?
+print("\nTP53 HR unadjusted: {cox_simple.hazard_ratio |&gt; round(2)}")
+print("TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |&gt; round(2)}")
+</code></pre>
+<h3 id="forest-plot-of-hazard-ratios"><a class="header" href="#forest-plot-of-hazard-ratios">Forest Plot of Hazard Ratios</a></h3>
+<pre><code class="language-bio"># Visualize all HRs from the multivariable model
+let hr_data = table({
+    "predictor": ["TP53 Mutation", "Age", "Stage"],
+    "hr": cox_adjusted.hazard_ratios,
+    "p_value": cox_adjusted.p_values
+})
+forest_plot(hr_data)
+
+# Left of 1 = protective, Right of 1 = harmful
+</code></pre>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="650" height="280" viewbox="0 0 650 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="325" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Forest Plot: Hazard Ratios from Cox Model</text>
+  <g transform="translate(30, 45)">
+    <!-- Column headers -->
+    <text x="110" y="12" text-anchor="end" font-size="11" fill="#6b7280" font-weight="bold">Variable</text>
+    <text x="370" y="12" text-anchor="middle" font-size="11" fill="#6b7280" font-weight="bold">Hazard Ratio (95% CI)</text>
+    <text x="545" y="12" text-anchor="middle" font-size="11" fill="#6b7280" font-weight="bold">HR [CI]</text>
+    <line x1="0" y1="20" x2="600" y2="20" stroke="#e5e7eb" stroke-width="1" />
+    <!-- Reference line at HR=1 -->
+    <line x1="370" y1="25" x2="370" y2="205" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4,3" />
+    <text x="370" y="222" text-anchor="middle" font-size="10" fill="#6b7280">HR = 1.0</text>
+    <!-- Scale -->
+    <text x="250" y="222" text-anchor="middle" font-size="9" fill="#9ca3af">0.5</text>
+    <text x="490" y="222" text-anchor="middle" font-size="9" fill="#9ca3af">2.0</text>
+    <text x="190" y="222" text-anchor="middle" font-size="9" fill="#9ca3af">0.25</text>
+    <line x1="190" y1="210" x2="190" y2="215" stroke="#9ca3af" stroke-width="0.5" />
+    <line x1="250" y1="210" x2="250" y2="215" stroke="#9ca3af" stroke-width="0.5" />
+    <line x1="490" y1="210" x2="490" y2="215" stroke="#9ca3af" stroke-width="0.5" />
+    <!-- Axis line -->
+    <line x1="190" y1="210" x2="550" y2="210" stroke="#9ca3af" stroke-width="0.5" />
+    <!-- Row labels -->
+    <text x="250" y="238" text-anchor="middle" font-size="10" fill="#16a34a">Protective</text>
+    <text x="490" y="238" text-anchor="middle" font-size="10" fill="#dc2626">Harmful</text>
+    <!-- Row 1: TP53 Mutation HR=1.6 [1.1, 2.3] -->
+    <text x="110" y="55" text-anchor="end" font-size="12" fill="#1e293b">TP53 Mutation</text>
+    <line x1="322" y1="52" x2="440" y2="52" stroke="#dc2626" stroke-width="2" />
+    <rect x="392" y="46" width="12" height="12" fill="#dc2626" rx="1" />
+    <text x="545" y="56" text-anchor="middle" font-size="10" fill="#1e293b">1.60 [1.10, 2.30]</text>
+    <!-- Row 2: Stage III HR=1.8 [1.2, 2.7] -->
+    <text x="110" y="95" text-anchor="end" font-size="12" fill="#1e293b">Stage III</text>
+    <line x1="334" y1="92" x2="462" y2="92" stroke="#dc2626" stroke-width="2" />
+    <rect x="406" y="86" width="12" height="12" fill="#dc2626" rx="1" />
+    <text x="545" y="96" text-anchor="middle" font-size="10" fill="#1e293b">1.80 [1.20, 2.70]</text>
+    <!-- Row 3: Stage IV HR=3.2 [2.1, 4.9] -->
+    <text x="110" y="135" text-anchor="end" font-size="12" fill="#1e293b">Stage IV</text>
+    <line x1="410" y1="132" x2="548" y2="132" stroke="#dc2626" stroke-width="2" />
+    <rect x="474" y="126" width="12" height="12" fill="#dc2626" rx="1" />
+    <text x="545" y="136" text-anchor="middle" font-size="10" fill="#1e293b">3.20 [2.10, 4.90]</text>
+    <!-- Row 4: Age>60 HR=1.3 [0.9, 1.8] — crosses 1 -->
+    <text x="110" y="175" text-anchor="end" font-size="12" fill="#1e293b">Age &gt; 60</text>
+    <line x1="346" y1="172" x2="406" y2="172" stroke="#6b7280" stroke-width="2" />
+    <rect x="372" y="166" width="12" height="12" fill="#6b7280" rx="1" />
+    <text x="545" y="176" text-anchor="middle" font-size="10" fill="#6b7280">1.30 [0.90, 1.80]</text>
+    <!-- Note about non-significance -->
+    <text x="420" y="186" font-size="8" fill="#6b7280" font-style="italic">CI crosses 1 = not significant</text>
+  </g>
+</svg>
+</div>
+
+<h3 id="survival-curve-from-cox-model"><a class="header" href="#survival-curve-from-cox-model">Survival Curve from Cox Model</a></h3>
+<pre><code class="language-bio"># Plot adjusted survival curves from KM estimates
+let surv_table = table({
+    "time": km_wt.times ++ km_mut.times,
+    "survival": km_wt.survival ++ km_mut.survival,
+    "group": km_wt.times |&gt; map(|t| "TP53 WT") ++ km_mut.times |&gt; map(|t| "TP53 Mut")
+})
+
+plot(surv_table, {type: "line", x: "time", y: "survival", color: "group",
+    title: "Adjusted Survival Curves from Cox Model",
+    x_label: "Time (months)", y_label: "Survival Probability"})
+</code></pre>
+<h3 id="checking-proportional-hazards"><a class="header" href="#checking-proportional-hazards">Checking Proportional Hazards</a></h3>
+<pre><code class="language-bio"># Check proportional hazards assumption
+# If hazard ratios change over time, PH is violated
+# Visual check: compare early vs late HR
+let early_times = []
+let early_status = []
+let early_tp53 = []
+let late_times = []
+let late_status = []
+let late_tp53 = []
+
+let midpoint = 24  # months
+for i in 0..n {
+    if survival_time[i] &lt;= midpoint {
+        early_times = early_times + [survival_time[i]]
+        early_status = early_status + [status[i]]
+        early_tp53 = early_tp53 + [tp53_mut[i]]
+    } else {
+        late_times = late_times + [survival_time[i]]
+        late_status = late_status + [status[i]]
+        late_tp53 = late_tp53 + [tp53_mut[i]]
+    }
+}
+
+print("=== Proportional Hazards Check ===")
+print("If HRs differ substantially, PH assumption may be violated")
+# If p &lt; 0.05, consider: stratified Cox model, time-varying coefficients,
+# or restricted mean survival time (RMST)
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">from lifelines import KaplanMeierFitter, CoxPHFitter
+from lifelines.statistics import logrank_test
+
+# Kaplan-Meier
+kmf = KaplanMeierFitter()
+kmf.fit(time_wt, event_wt, label='TP53 WT')
+kmf.plot()
+kmf.fit(time_mut, event_mut, label='TP53 Mut')
+kmf.plot()
+
+# Log-rank test
+results = logrank_test(time_wt, time_mut, event_wt, event_mut)
+print(f"p = {results.p_value:.4f}")
+
+# Cox model
+cph = CoxPHFitter()
+cph.fit(df, duration_col='time', event_col='status')
+cph.print_summary()
+cph.plot()  # forest plot
+
+# Check PH assumption
+cph.check_assumptions(df, show_plots=True)
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r">library(survival)
+library(survminer)
+
+# Kaplan-Meier
+km_fit &lt;- survfit(Surv(time, status) ~ tp53, data = df)
+
+# Publication-quality KM plot
+ggsurvplot(km_fit,
+           pval = TRUE, risk.table = TRUE,
+           palette = c("#2196F3", "#F44336"))
+
+# Log-rank test
+survdiff(Surv(time, status) ~ tp53, data = df)
+
+# Cox model
+cox_model &lt;- coxph(Surv(time, status) ~ tp53 + age + stage, data = df)
+summary(cox_model)
+
+# Forest plot
+ggforest(cox_model)
+
+# Proportional hazards test
+cox.zph(cox_model)
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-kaplan-meier-and-median-survival"><a class="header" href="#exercise-1-kaplan-meier-and-median-survival">Exercise 1: Kaplan-Meier and Median Survival</a></h3>
+<p>A clinical trial follows 200 breast cancer patients treated with either chemotherapy or chemotherapy + targeted therapy. Compute KM curves and median survival for both arms.</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 200
+let treatment = rnorm(n, 0, 1) |&gt; map(|x| if x &gt; 0 { 1 } else { 0 })  # 0=chemo, 1=chemo+targeted
+
+# Simulate survival data
+# Targeted therapy reduces hazard by 30%
+# Generate survival times and censoring
+
+# 1. Compute kaplan_meier() for each treatment arm
+# 2. Plot KM curves with plot()
+# 3. Report median survival for each arm
+# 4. What is the absolute improvement in median survival?
+</code></pre>
+<h3 id="exercise-2-log-rank-test-with-multiple-groups"><a class="header" href="#exercise-2-log-rank-test-with-multiple-groups">Exercise 2: Log-Rank Test with Multiple Groups</a></h3>
+<p>Compare survival across four molecular subtypes (Luminal A, Luminal B, HER2+, Triple-negative). Which pairs differ significantly?</p>
+<pre><code class="language-bio">set_seed(42)
+let n = 300
+# Assign subtypes: 0=LumA, 1=LumB, 2=HER2+, 3=TNBC
+let subtype = rnorm(n, 0, 1) |&gt; map(|x|
+    if x &lt; -0.39 { 0 }
+    else if x &lt; 0.25 { 1 }
+    else if x &lt; 0.64 { 2 }
+    else { 3 })
+
+# Simulate different hazard rates by subtype
+# Luminal A: lowest hazard, Triple-neg: highest
+
+# 1. Compute kaplan_meier() for all 4 subtypes
+# 2. Fit cox_ph() with subtype as predictor
+# 3. Which subtypes have the best and worst prognosis?
+</code></pre>
+<h3 id="exercise-3-multivariable-cox-model"><a class="header" href="#exercise-3-multivariable-cox-model">Exercise 3: Multivariable Cox Model</a></h3>
+<p>Build a Cox model with TP53 status, age, stage, and smoking status. Determine which factors are independently prognostic after adjustment.</p>
+<pre><code class="language-bio">let n = 300
+
+# Simulate covariates and survival
+# Fit cox_ph() with all 4 predictors
+# 1. Report hazard ratios for each predictor
+# 2. Which predictors are significant after adjustment?
+# 3. Create a forest_plot()
+# 4. Does the TP53 hazard ratio change from univariate to multivariable?
+</code></pre>
+<h3 id="exercise-4-checking-the-ph-assumption"><a class="header" href="#exercise-4-checking-the-ph-assumption">Exercise 4: Checking the PH Assumption</a></h3>
+<p>Simulate a scenario where the proportional hazards assumption is violated — an immunotherapy that has no effect in the first 3 months but a strong effect afterward (delayed separation). Show that the PH test flags this.</p>
+<pre><code class="language-bio"># Simulate two groups:
+# Control: constant hazard
+# Treatment: same hazard for months 0-3, then 50% reduced hazard
+
+# 1. Plot KM curves — do they cross or show delayed separation?
+# 2. Fit cox_ph() and check if HR changes over time
+# 3. Is the PH assumption violated?
+# 4. What would you do in practice?
+</code></pre>
+<h3 id="exercise-5-complete-survival-analysis-pipeline"><a class="header" href="#exercise-5-complete-survival-analysis-pipeline">Exercise 5: Complete Survival Analysis Pipeline</a></h3>
+<p>Perform a full survival analysis: KM curves, log-rank test, univariate Cox for each predictor, multivariable Cox, forest plot. Write a one-paragraph summary of findings.</p>
+<pre><code class="language-bio"># Use 400 patients with 5 clinical/genomic variables
+# Run the complete pipeline from raw data to clinical interpretation
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>Censored observations</strong> contain real information — survival analysis methods handle them correctly while standard methods cannot</li>
+<li><strong>Kaplan-Meier</strong> estimates survival probabilities as a step function; <strong>median survival</strong> is the primary summary measure</li>
+<li>The <strong>log-rank test</strong> compares survival curves between groups (the “t-test” of survival analysis)</li>
+<li><strong>Cox proportional hazards</strong> regression models the effect of multiple covariates on hazard; the <strong>hazard ratio</strong> is the key output</li>
+<li>HR = 2.0 means twice the instantaneous risk, NOT twice as fast to die or half the survival time</li>
+<li>Always <strong>check the proportional hazards assumption</strong> — violations (crossing curves, delayed effects) invalidate the standard Cox model</li>
+<li><strong>Forest plots</strong> are the standard visualization for hazard ratios from Cox models</li>
+<li>Adjusted HRs (controlling for confounders) are more clinically meaningful than unadjusted ones</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>We’ve been analyzing data. But before collecting data, there’s a critical question: <strong>How many samples do you need?</strong> Day 18 covers experimental design and statistical power — the science of planning studies that can actually detect the effects you’re looking for.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-16.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-18.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-16.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-18.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

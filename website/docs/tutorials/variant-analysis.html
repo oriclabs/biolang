@@ -73,7 +73,7 @@
         <pre><code class="language-biolang"># requires: examples/sample-data/calls.vcf in working directory
 # variants.bio — VCF variant analysis
 
-let variants = vcf("examples/sample-data/calls.vcf") |> collect()
+let variants = read_vcf("examples/sample-data/calls.vcf") |> collect()
 
 # Total variant count
 print(f"Total variants: {len(variants)}")

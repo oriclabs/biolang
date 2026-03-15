@@ -14,6 +14,8 @@ pub fn table_builtin_list() -> Vec<(&'static str, Arity)> {
         ("colnames", Arity::Exact(1)),
         ("to_records", Arity::Exact(1)),
         ("from_records", Arity::Exact(1)),
+        ("to_table", Arity::Exact(1)),   // alias for from_records
+        ("from_table", Arity::Exact(1)), // alias for to_records
         // Row operations
         ("head", Arity::Range(1, 2)),
         ("tail", Arity::Range(1, 2)),
@@ -35,6 +37,7 @@ pub fn table_builtin_list() -> Vec<(&'static str, Arity)> {
         ("value_counts", Arity::Exact(2)),
         ("describe", Arity::Exact(1)),
         // Combine
+        ("bio_join", Arity::Range(2, 4)),
         ("concat", Arity::AtLeast(2)),
         ("bind_cols", Arity::AtLeast(2)),
         ("inner_join", Arity::Exact(3)),
@@ -88,6 +91,8 @@ pub fn is_table_builtin(name: &str) -> bool {
             | "colnames"
             | "to_records"
             | "from_records"
+            | "to_table"
+            | "from_table"
             | "head"
             | "tail"
             | "slice"
@@ -105,6 +110,7 @@ pub fn is_table_builtin(name: &str) -> bool {
             | "classify_variants"
             | "value_counts"
             | "describe"
+            | "bio_join"
             | "concat"
             | "bind_cols"
             | "inner_join"
@@ -152,6 +158,8 @@ pub fn call_table_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "colnames" => builtin_colnames(args),
         "to_records" => builtin_to_records(args),
         "from_records" => builtin_from_records(args),
+        "to_table" => builtin_from_records(args),   // alias
+        "from_table" => builtin_to_records(args),   // alias
         "head" => builtin_head(args),
         "tail" => builtin_tail(args),
         "slice" => builtin_slice(args),
@@ -169,6 +177,7 @@ pub fn call_table_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "classify_variants" => builtin_classify_variants(args),
         "value_counts" => builtin_value_counts(args),
         "describe" => builtin_describe(args),
+        "bio_join" => builtin_bio_join(args),
         "concat" => builtin_concat(args),
         "bind_cols" => builtin_bind_cols(args),
         "inner_join" => builtin_inner_join(args),
@@ -2385,4 +2394,242 @@ fn builtin_pivot_wider(args: Vec<Value>) -> Result<Value> {
     }
 
     Ok(Value::Table(Table::new(out_cols, out_rows)))
+}
+
+// ── bio_join(left, right, [on], [join_type]) ─────────────────────────
+// Biologically-aware join for multi-omics data. Auto-detects join key
+// from common bio columns, supports case-insensitive gene symbol matching
+// and Ensembl ID version stripping.
+
+/// Priority list of biologically significant column names for auto-detection.
+const BIO_JOIN_KEYS: &[&str] = &[
+    "gene", "gene_id", "gene_name", "symbol", "ensembl_id",
+    "uniprot_id", "accession", "id", "name",
+];
+
+/// Normalize a biological identifier for matching:
+/// - lowercase for case-insensitive gene symbol matching
+/// - strip Ensembl version suffixes (ENSG00000012048.16 -> ensg00000012048)
+fn bio_normalize_key(val: &Value) -> String {
+    let s = format!("{}", val);
+    let lower = s.to_lowercase();
+    // Strip version suffix for Ensembl-style IDs (ENS + species code + digits + .version)
+    if lower.starts_with("ens") {
+        if let Some(dot_pos) = lower.rfind('.') {
+            let after_dot = &lower[dot_pos + 1..];
+            if !after_dot.is_empty() && after_dot.chars().all(|c| c.is_ascii_digit()) {
+                return lower[..dot_pos].to_string();
+            }
+        }
+    }
+    lower
+}
+
+/// Convert a Value (Table or List of Records) into a Table.
+fn coerce_to_table(val: &Value, func: &str) -> Result<Table> {
+    match val {
+        Value::Table(t) => Ok(t.clone()),
+        Value::List(items) => {
+            if items.is_empty() {
+                return Ok(Table::new(vec![], vec![]));
+            }
+            let first = match &items[0] {
+                Value::Record(m) | Value::Map(m) => m,
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!("{func}() requires Table or List of Records, got List of {}", other.type_of()),
+                        None,
+                    ))
+                }
+            };
+            let columns: Vec<String> = first.keys().cloned().collect();
+            let mut rows = Vec::new();
+            for item in items {
+                let map = match item {
+                    Value::Record(m) | Value::Map(m) => m,
+                    _ => continue,
+                };
+                let row: Vec<Value> = columns
+                    .iter()
+                    .map(|c| map.get(c).cloned().unwrap_or(Value::Nil))
+                    .collect();
+                rows.push(row);
+            }
+            Ok(Table::new(columns, rows))
+        }
+        other => Err(BioLangError::type_error(
+            format!("{func}() requires Table or List of Records, got {}", other.type_of()),
+            None,
+        )),
+    }
+}
+
+fn builtin_bio_join(args: Vec<Value>) -> Result<Value> {
+    let left = coerce_to_table(&args[0], "bio_join")?;
+    let right = coerce_to_table(&args[1], "bio_join")?;
+
+    // Determine join key
+    let key_col = if args.len() >= 3 {
+        require_str(&args[2], "bio_join")?
+    } else {
+        // Auto-detect: find first column name from priority list present in both tables
+        let left_cols: std::collections::HashSet<String> =
+            left.columns.iter().map(|c| c.to_lowercase()).collect();
+        let right_cols: std::collections::HashSet<String> =
+            right.columns.iter().map(|c| c.to_lowercase()).collect();
+
+        let mut detected: Option<String> = None;
+        for &candidate in BIO_JOIN_KEYS {
+            if left_cols.contains(candidate) && right_cols.contains(candidate) {
+                // Return the original-case column name from the left table
+                detected = left
+                    .columns
+                    .iter()
+                    .find(|c| c.to_lowercase() == candidate)
+                    .cloned();
+                break;
+            }
+        }
+        detected.ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "bio_join(): no common biological key column found; specify one explicitly".to_string(),
+                None,
+            )
+        })?
+    };
+
+    // Determine join type
+    let join_type = if args.len() >= 4 {
+        let jt = require_str(&args[3], "bio_join")?;
+        match jt.to_lowercase().as_str() {
+            "inner" | "left" | "right" | "outer" => jt.to_lowercase(),
+            other => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("bio_join(): unknown join type '{other}'; expected inner, left, right, or outer"),
+                    None,
+                ))
+            }
+        }
+    } else {
+        "inner".to_string()
+    };
+
+    // Find key column indices (case-insensitive search)
+    let key_lower = key_col.to_lowercase();
+    let left_ki = left
+        .columns
+        .iter()
+        .position(|c| c.to_lowercase() == key_lower)
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::NameError,
+                format!("bio_join(): key column '{key_col}' not found in left input"),
+                None,
+            )
+        })?;
+    let right_ki = right
+        .columns
+        .iter()
+        .position(|c| c.to_lowercase() == key_lower)
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::NameError,
+                format!("bio_join(): key column '{key_col}' not found in right input"),
+                None,
+            )
+        })?;
+
+    // Build output columns: left columns + right columns (excluding key)
+    let mut out_cols = left.columns.clone();
+    let right_col_indices: Vec<usize> = (0..right.num_cols())
+        .filter(|&i| i != right_ki)
+        .collect();
+    for &i in &right_col_indices {
+        let col = &right.columns[i];
+        // Avoid duplicate column names by suffixing with _right
+        if out_cols.iter().any(|c| c == col) {
+            out_cols.push(format!("{col}_right"));
+        } else {
+            out_cols.push(col.clone());
+        }
+    }
+
+    // Build hash index on right table using bio-normalized keys
+    let mut right_index: HashMap<String, Vec<usize>> =
+        HashMap::with_capacity(right.rows.len());
+    for (i, rrow) in right.rows.iter().enumerate() {
+        let rkey = bio_normalize_key(&rrow[right_ki]);
+        right_index.entry(rkey).or_default().push(i);
+    }
+
+    let right_fill_count = right_col_indices.len();
+    let left_fill_count = left.num_cols();
+    let mut out_rows: Vec<Vec<Value>> = Vec::new();
+    let mut right_matched: Vec<bool> = if join_type == "outer" || join_type == "right" {
+        vec![false; right.rows.len()]
+    } else {
+        vec![]
+    };
+
+    for lrow in &left.rows {
+        let lkey = bio_normalize_key(&lrow[left_ki]);
+        if let Some(indices) = right_index.get(&lkey) {
+            for &ri in indices {
+                if !right_matched.is_empty() {
+                    right_matched[ri] = true;
+                }
+                let rrow = &right.rows[ri];
+                let mut new_row = lrow.clone();
+                for &i in &right_col_indices {
+                    new_row.push(rrow[i].clone());
+                }
+                out_rows.push(new_row);
+            }
+        } else if join_type == "left" || join_type == "outer" {
+            let mut new_row = lrow.clone();
+            for _ in 0..right_fill_count {
+                new_row.push(Value::Nil);
+            }
+            out_rows.push(new_row);
+        }
+        // inner/right: skip unmatched left rows
+    }
+
+    // For right/outer joins, add unmatched right rows
+    if join_type == "right" || join_type == "outer" {
+        for (ri, matched) in right_matched.iter().enumerate() {
+            if !matched {
+                let rrow = &right.rows[ri];
+                let mut new_row: Vec<Value> = (0..left_fill_count)
+                    .map(|i| {
+                        if i == left_ki {
+                            rrow[right_ki].clone()
+                        } else {
+                            Value::Nil
+                        }
+                    })
+                    .collect();
+                for &i in &right_col_indices {
+                    new_row.push(rrow[i].clone());
+                }
+                out_rows.push(new_row);
+            }
+        }
+    }
+
+    // Return as List of Records for easy field access in pipes
+    let records: Vec<Value> = out_rows
+        .iter()
+        .map(|row| {
+            let mut map = HashMap::new();
+            for (i, col) in out_cols.iter().enumerate() {
+                map.insert(col.clone(), row.get(i).cloned().unwrap_or(Value::Nil));
+            }
+            Value::Record(map)
+        })
+        .collect();
+
+    Ok(Value::List(records))
 }

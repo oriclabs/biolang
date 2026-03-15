@@ -1,0 +1,20 @@
+let seqs = read_fasta("real_data/yeast_genome.fa") |> collect()
+let lengths = seqs |> map(|s| len(s.seq)) |> sort() |> reverse()
+let total = sum(lengths)
+let gc_total = 0
+for seq in seqs
+  gc_total = gc_total + gc_content(seq.seq) * len(seq.seq)
+end
+let overall_gc = gc_total / total
+
+let cumulative = 0
+let n50 = 0
+for l in lengths
+  cumulative = cumulative + l
+  if cumulative >= total / 2
+    n50 = l
+    break
+  end
+end
+
+print(to_json({n_sequences: len(seqs), total_length: total, n50: n50, gc_content: overall_gc}))

@@ -97,7 +97,10 @@ function openTextInViewer(text) {
   });
 }
 
-// Listen for messages from popup or viewer
+// Register BLViewer extension ID so BioGist can find us
+chrome.storage.local.set({ blviewer_extension_id: chrome.runtime.id });
+
+// Listen for messages from popup, viewer, or external extensions (BioGist)
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   if (msg.type === "open-viewer") {
     chrome.tabs.create({ url: chrome.runtime.getURL("viewer.html") });
@@ -105,6 +108,26 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   } else if (msg.type === "open-viewer-url") {
     openUrlInViewer(msg.url);
     sendResponse({ ok: true });
+  } else if (msg.type === "fetch-for-viewer") {
+    // BioGist or other extension asks us to fetch a URL (we bypass CORS)
+    fetch(msg.url).then(function(resp) {
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      return resp.text();
+    }).then(function(text) {
+      // Store content and open viewer
+      var name = msg.url.split("/").pop().split("?")[0] || "remote-file.txt";
+      chrome.storage.session.set({
+        pendingFile: { name: name, content: text }
+      }, function() {
+        chrome.tabs.create({
+          url: chrome.runtime.getURL("viewer.html") + "?source=extension"
+        });
+      });
+      sendResponse({ ok: true });
+    }).catch(function(err) {
+      sendResponse({ ok: false, error: String(err) });
+    });
+    return true; // keep sendResponse alive for async
   }
   return true;
 });

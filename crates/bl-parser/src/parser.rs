@@ -1468,28 +1468,25 @@ impl Parser {
         self.expect(TokenKind::LBrace)?;
         self.skip_newlines();
 
-        // Check if first entry is a spread `...expr`
-        let mut spreads: Vec<Spanned<Expr>> = Vec::new();
-        let mut fields: Vec<(String, Spanned<Expr>)> = Vec::new();
-        let mut has_spread = false;
+        let mut entries: Vec<RecordEntry> = Vec::new();
+        let mut is_first = true;
 
-        // Parse entries: either `...expr` or `key: value`
+        // Parse entries: either `...expr` (spread) or `key: value` (field)
         loop {
             if self.check(&TokenKind::RBrace) || self.is_at_end() {
                 break;
             }
             if self.check(&TokenKind::DotDotDot) {
-                has_spread = true;
                 self.advance(); // consume ...
                 let spread_expr = self.parse_expr()?;
-                spreads.push(spread_expr);
+                entries.push(RecordEntry::Spread(spread_expr));
             } else {
                 let key_name = self.expect_record_key()?;
                 self.expect(TokenKind::Colon)?;
                 let value = self.parse_expr()?;
 
                 // Check for map comprehension on first field: {k: v for x in iter [if cond]}
-                if fields.is_empty() && spreads.is_empty() && self.check(&TokenKind::For) {
+                if is_first && self.check(&TokenKind::For) {
                     self.advance();
                     let var = self.expect_ident()?;
                     self.expect(TokenKind::In)?;
@@ -1517,8 +1514,9 @@ impl Parser {
                     ));
                 }
 
-                fields.push((key_name, value));
+                entries.push(RecordEntry::Field(key_name, value));
             }
+            is_first = false;
             self.skip_newlines();
             if self.check(&TokenKind::Comma) {
                 self.advance();
@@ -1531,11 +1529,7 @@ impl Parser {
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
 
-        if has_spread {
-            Ok(Spanned::new(Expr::RecordSpread { spreads, fields }, start.merge(end)))
-        } else {
-            Ok(Spanned::new(Expr::Record(fields), start.merge(end)))
-        }
+        Ok(Spanned::new(Expr::Record(entries), start.merge(end)))
     }
 
     fn parse_block_expr(&mut self) -> Result<Spanned<Expr>> {
@@ -2455,6 +2449,7 @@ impl Parser {
             TokenKind::Caret => BinaryOp::BitXor,
             TokenKind::Shl => BinaryOp::Shl,
             TokenKind::Shr => BinaryOp::Shr,
+            TokenKind::PlusPlus => BinaryOp::Concat,
             _ => {
                 return Err(BioLangError::parser(
                     format!("expected operator, found '{}'", self.current_kind()),
@@ -2481,7 +2476,7 @@ impl Parser {
             TokenKind::Shl | TokenKind::Shr => Precedence::Shift,
             TokenKind::As => Precedence::TypeCast,
             TokenKind::DotDot | TokenKind::DotDotEq => Precedence::Range,
-            TokenKind::Plus | TokenKind::Minus => Precedence::Addition,
+            TokenKind::Plus | TokenKind::Minus | TokenKind::PlusPlus => Precedence::Addition,
             TokenKind::Star | TokenKind::Slash | TokenKind::Percent => Precedence::Multiply,
             TokenKind::StarStar => Precedence::Power,
             TokenKind::LParen | TokenKind::Dot | TokenKind::LBracket | TokenKind::QuestionDot => Precedence::Call,

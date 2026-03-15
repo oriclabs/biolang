@@ -1,0 +1,151 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic "VCF | 420 B | 5 rows | 8 cols | parsed in 0.000s" [ref=e5] [cursor=pointer]:
+        - generic [ref=e6]: 🔬
+        - generic [ref=e7]: sample.vcf (5)
+        - generic [ref=e8]: ×
+      - button "+" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: VCF
+        - generic [ref=e13]: 5 records
+        - generic [ref=e14]: 420 B
+      - generic [ref=e16]:
+        - button "Table" [ref=e17] [cursor=pointer]
+        - button "Stats" [ref=e18] [cursor=pointer]
+        - button "Raw" [ref=e19] [cursor=pointer]
+        - button "BioLang" [ref=e20] [cursor=pointer]
+      - textbox "Search / filter..." [ref=e22]
+      - textbox "Jump to coordinate (chr1:12345) or filter range (chr1:1000-5000)" [ref=e24]:
+        - /placeholder: chr1:12345 or chr1:1k-5k
+      - button ".*" [ref=e25] [cursor=pointer]
+      - 'textbox "Sequence motif search (e.g. ATG[CG]{3})" [ref=e26]':
+        - /placeholder: Motif regex...
+      - generic [ref=e27]:
+        - button "▓ Density" [ref=e28] [cursor=pointer]
+        - 'button "{ } BioLang" [ref=e29] [cursor=pointer]'
+        - button "1,234" [ref=e30] [cursor=pointer]
+        - button "Wrap" [ref=e31] [cursor=pointer]
+        - button "# Rows" [ref=e32] [cursor=pointer]
+        - button "⛶ Fullscreen" [ref=e33] [cursor=pointer]
+        - button "☰ Expand INFO" [ref=e34] [cursor=pointer]
+        - button "📂 Views" [ref=e35] [cursor=pointer]
+        - button "☆ Bookmarks" [ref=e36] [cursor=pointer]
+        - button "📌 Pin Cols" [ref=e37] [cursor=pointer]
+        - button "↕ Detail" [ref=e38] [cursor=pointer]
+        - button "☼ Theme" [active] [ref=e39] [cursor=pointer]
+        - button "◫ Split" [ref=e40] [cursor=pointer]
+        - button "↹ Transpose" [ref=e41] [cursor=pointer]
+        - button "★ Highlight" [ref=e42] [cursor=pointer]
+        - button "📷 Screenshot" [ref=e43] [cursor=pointer]
+        - button "🔗 Share" [ref=e44] [cursor=pointer]
+        - button "Export ▾" [ref=e45] [cursor=pointer]
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]: Regions
+        - generic [ref=e49] [cursor=pointer]: chr1 2
+        - generic [ref=e50] [cursor=pointer]: chr2 2
+        - generic [ref=e51] [cursor=pointer]: chr3 1
+      - table [ref=e53]:
+        - rowgroup [ref=e54]:
+          - row "# CHROM▼ POS▼ ID▼ REF▼ ALT▼ QUAL▼ FILTER▼ INFO▼" [ref=e55]:
+            - columnheader "#" [ref=e56] [cursor=pointer]
+            - columnheader "CHROM▼" [ref=e57] [cursor=pointer]:
+              - text: CHROM
+              - text: ▼
+            - columnheader "POS▼" [ref=e59] [cursor=pointer]:
+              - text: POS
+              - text: ▼
+              - img [ref=e61]
+            - columnheader "ID▼" [ref=e72] [cursor=pointer]:
+              - text: ID
+              - text: ▼
+            - columnheader "REF▼" [ref=e74] [cursor=pointer]:
+              - text: REF
+              - text: ▼
+            - columnheader "ALT▼" [ref=e76] [cursor=pointer]:
+              - text: ALT
+              - text: ▼
+            - columnheader "QUAL▼" [ref=e78] [cursor=pointer]:
+              - text: QUAL
+              - text: ▼
+            - columnheader "FILTER▼" [ref=e80] [cursor=pointer]:
+              - text: FILTER
+              - text: ▼
+            - columnheader "INFO▼" [ref=e82] [cursor=pointer]:
+              - text: INFO
+              - text: ▼
+          - row "Σ 3 uniq μ27603.4 5 uniq seq seq 5 uniq 2 uniq 5 uniq" [ref=e84]:
+            - cell "Σ" [ref=e85]
+            - cell "3 uniq" [ref=e86]
+            - cell "μ27603.4" [ref=e87]
+            - cell "5 uniq" [ref=e88]
+            - cell "seq" [ref=e89]
+            - cell "seq" [ref=e90]
+            - cell "5 uniq" [ref=e91]
+            - cell "2 uniq" [ref=e92]
+            - cell "5 uniq" [ref=e93]
+        - rowgroup [ref=e94]:
+          - row "1 chr1 10,542 rs001 A G 255 PASS DP=100;AF=0.45" [ref=e95]:
+            - cell "1" [ref=e96]
+            - cell "chr1" [ref=e97]
+            - cell "10,542" [ref=e98]
+            - cell "rs001" [ref=e99]
+            - cell "A" [ref=e100]
+            - cell "G" [ref=e101]
+            - cell "255" [ref=e102]
+            - cell "PASS" [ref=e103]
+            - cell "DP=100;AF=0.45" [ref=e104]
+          - row "2 chr1 15,274 rs002 C T 180 PASS DP=85;AF=0.30" [ref=e105]:
+            - cell "2" [ref=e106]
+            - cell "chr1" [ref=e107]
+            - cell "15,274" [ref=e108]
+            - cell "rs002" [ref=e109]
+            - cell "C" [ref=e110]
+            - cell "T" [ref=e111]
+            - cell "180" [ref=e112]
+            - cell "PASS" [ref=e113]
+            - cell "DP=85;AF=0.30" [ref=e114]
+          - row "3 chr2 28,901 rs003 G A 45 LowQual DP=12;AF=0.08" [ref=e115]:
+            - cell "3" [ref=e116]
+            - cell "chr2" [ref=e117]
+            - cell "28,901" [ref=e118]
+            - cell "rs003" [ref=e119]
+            - cell "G" [ref=e120]
+            - cell "A" [ref=e121]
+            - cell "45" [ref=e122]
+            - cell "LowQual" [ref=e123]
+            - cell "DP=12;AF=0.08" [ref=e124]
+          - row "4 chr2 33,100 rs004 T C 99 PASS DP=200;AF=0.50" [ref=e125]:
+            - cell "4" [ref=e126]
+            - cell "chr2" [ref=e127]
+            - cell "33,100" [ref=e128]
+            - cell "rs004" [ref=e129]
+            - cell "T" [ref=e130]
+            - cell "C" [ref=e131]
+            - cell "99" [ref=e132]
+            - cell "PASS" [ref=e133]
+            - cell "DP=200;AF=0.50" [ref=e134]
+          - row "5 chr3 50,200 rs005 A T 150 PASS DP=65;AF=0.22" [ref=e135]:
+            - cell "5" [ref=e136]
+            - cell "chr3" [ref=e137]
+            - cell "50,200" [ref=e138]
+            - cell "rs005" [ref=e139]
+            - cell "A" [ref=e140]
+            - cell "T" [ref=e141]
+            - cell "150" [ref=e142]
+            - cell "PASS" [ref=e143]
+            - cell "DP=65;AF=0.22" [ref=e144]
+    - generic [ref=e145]:
+      - generic [ref=e147]: 5 rows
+      - generic [ref=e148]:
+        - generic [ref=e149]: parsed in 0.000s
+        - generic [ref=e150]: BLViewer PWA
+  - generic [ref=e152]:
+    - heading "Column" [level=3] [ref=e153]
+    - button "×" [ref=e154] [cursor=pointer]
+```

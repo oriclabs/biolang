@@ -35,8 +35,7 @@ Thumbs.db
 # Active books — keep built output (tracked for GitHub Pages)
 !/website/books/practical-bioinformatics/pdf/output.pdf
 
-# Other books — under review, ignore entirely
-/website/books/biostatistics/
+# Old/inactive book HTML outputs
 /website/books/biostatisticsold/
 /website/biostatistics/
 /website/clinical-genomics/

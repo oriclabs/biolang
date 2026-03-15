@@ -57,8 +57,8 @@ region |> len()        # => 1000</code></pre>
           not overlap, it returns <code>nil</code>:
         </p>
         <pre><code class="language-biolang"># Intersect two BED tables (tables with chrom, start, end columns)
-let exons = bed("exons.bed")
-let peaks = bed("peaks.bed")
+let exons = read_bed("data/regions.bed")
+let peaks = read_bed("data/regions.bed")
 
 # Find all pairwise intersections
 let shared = intersect(exons, peaks)
@@ -71,7 +71,7 @@ print(nrow(shared), "overlapping regions")</code></pre>
         </p>
         <pre><code class="language-biolang"># Merge overlapping intervals in a table (collapses overlapping rows)
 # The table must have chrom, start, end columns
-let regions = bed("regions.bed")
+let regions = read_bed("data/regions.bed")
 let merged = merge_intervals(regions)
 print(nrow(merged), "merged regions")</code></pre>
 
@@ -81,8 +81,8 @@ print(nrow(merged), "merged regions")</code></pre>
           The result may be zero, one, or two intervals:
         </p>
         <pre><code class="language-biolang"># Subtract one table's intervals from another
-let exons = bed("exons.bed")
-let repeats = bed("repeats.bed")
+let exons = read_bed("data/regions.bed")
+let repeats = read_bed("data/regions.bed")
 
 # Remove repeat-overlapping portions from exons
 let clean_exons = subtract(exons, repeats)
@@ -95,8 +95,8 @@ print(nrow(clean_exons), "clean exon regions")</code></pre>
         </p>
         <pre><code class="language-biolang"># Find closest intervals between two tables
 # Returns a table with the closest match for each row in the first table
-let queries = bed("regions_of_interest.bed")
-let genes = bed("genes.bed")
+let queries = read_bed("data/regions.bed")
+let genes = read_bed("data/regions.bed")
 
 let result = closest(queries, genes)
 print(result)</code></pre>
@@ -107,7 +107,7 @@ print(result)</code></pre>
           for O(log n + k) query time instead of O(n):
         </p>
         <pre><code class="language-biolang"># Build an interval tree from a BED file
-let tree = bed("annotations.bed") |> interval_tree()
+let tree = read_bed("data/regions.bed") |> interval_tree()
 
 # Query the tree for overlapping intervals
 let hits = query_overlaps(tree, "chr1", 50000, 51000)
@@ -135,9 +135,9 @@ kmers(seq, 6)
         </p>
         <pre><code class="language-biolang"># Find promoter regions that overlap with ChIP-seq peaks
 # but not with known repeat elements
-let genes = bed("genes.bed")
-let peaks = bed("chip_peaks.bed")
-let repeats = bed("repeats.bed")
+let genes = read_bed("data/regions.bed")
+let peaks = read_bed("data/regions.bed")
+let repeats = read_bed("data/regions.bed")
 
 # Use flank() to get upstream regions (2kb)
 let promoters = flank(genes, 2000)

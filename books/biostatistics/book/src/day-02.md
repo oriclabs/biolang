@@ -332,7 +332,7 @@ print(report)
 ```bio
 set_seed(42)
 # In practice, you'd load from a file:
-# let scores = read_csv("run_quality_scores.csv") |> column("phred_score")
+# let scores = read_csv("data/expression.csv") |> column("phred_score")
 
 # Simulate a problematic run with bimodal quality
 let good_tiles = rnorm(8000, 33.0, 2.5)

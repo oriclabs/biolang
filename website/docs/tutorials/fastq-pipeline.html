@@ -226,7 +226,7 @@ print(detected)</code></pre>
           <ul class="text-slate-400 text-sm mt-2 space-y-1">
             <li><strong>Default:</strong> in-memory up to ~2M unique k-mers, then auto-spills to disk (SQLite temp DB)</li>
             <li><strong>Top-N:</strong> <code>kmer_count(reads, 21, 100)</code> — bounded memory, keeps only top 100</li>
-            <li><strong>Streaming:</strong> <code>fastq("file.fq.gz") |> kmer_count(21)</code> — reads never loaded into memory</li>
+            <li><strong>Streaming:</strong> <code>read_fastq("data/reads.fastq") |> kmer_count(21)</code> — reads never loaded into memory</li>
           </ul>
           <p class="text-slate-500 text-xs mt-2">
             Results are always sorted by count descending — no <code>sort_by</code> needed after <code>kmer_count</code>.

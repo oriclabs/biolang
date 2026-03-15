@@ -1,0 +1,6 @@
+id	chrom	position	ref	alt	quality	depth	freq	gene	effect
+var_1	chr1	10542	A	G	85.5	100	0.45	BRCA1	missense
+var_2	chr1	15274	C	T	92.1	85	0.30	TP53	synonymous
+var_3	chr2	28901	G	A	12.3	12	0.08	EGFR	nonsense
+var_4	chr2	33100	T	C	76.8	200	0.50	KRAS	frameshift
+var_5	chr3	50200	A	T	55.2	65	0.22	MYC	intron

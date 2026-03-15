@@ -24,137 +24,115 @@
       <article class="prose prose-invert max-w-none">
         <h1>Language Overview</h1>
         <p>
-          BioLang is a domain-specific language (DSL) for bioinformatics, featuring pipe-first syntax and designed from the ground up for genomics
-          and computational biology. It combines the expressiveness of modern functional languages
-          with first-class support for biological data types, tabular operations, and streaming
-          genomic pipelines.
+          BioLang is a pipe-first programming language for bioinformatics. Data flows left to right
+          through transformation chains, biological sequences are first-class values with literal
+          syntax, and tables have built-in dplyr-style verbs. BioLang uses dynamic typing &mdash; no
+          type annotations are needed or supported.
         </p>
-
-        <h2>Design Philosophy</h2>
-        <p>
-          BioLang is guided by four core principles that shape every language decision:
-        </p>
-        <ul>
-          <li>
-            <strong class="text-violet-400">Pipe-first composition</strong> &mdash; Data flows left
-            to right through transformation chains using the <code>|&gt;</code> operator, mirroring
-            the way bioinformatics pipelines are conceptualized.
-          </li>
-          <li>
-            <strong class="text-violet-400">Biology-native types</strong> &mdash; DNA, RNA, and
-            protein sequences are first-class values with literal syntax, not strings with ad-hoc
-            parsing.
-          </li>
-          <li>
-            <strong class="text-violet-400">Tables as data</strong> &mdash; Tabular data is the
-            lingua franca of genomics. BioLang provides dplyr-style verbs directly in the language.
-          </li>
-          <li>
-            <strong class="text-violet-400">Streaming by default</strong> &mdash; Genomic datasets
-            are often too large to fit in memory. Lazy streams let you process terabyte-scale files
-            with constant memory.
-          </li>
-        </ul>
 
         <h2>A Quick Taste</h2>
+
+        <h3>DNA Sequences</h3>
         <p>
-          Here is a complete BioLang program that reads a FASTQ file, filters reads by quality,
-          and writes the result:
+          DNA, RNA, and protein sequences are first-class values with dedicated literal syntax
+          and built-in operations:
         </p>
-        <pre><code class="language-biolang"># Filter high-quality reads from a FASTQ file
-let reads = fastq("sample.fastq")
-  |> filter(|r| mean_phred(r.quality) >= 30)
-  |> filter(|r| r.length >= 100)
-  |> collect()
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCG"
+println(f"Sequence: {seq}")
+println(f"Length: {seq_len(seq)} bp")
+println(f"GC content: {gc_content(seq)}")
 
-print(f"Kept {len(reads)} high-quality reads")</code></pre>
+let rc = reverse_complement(seq)
+println(f"Reverse complement: {rc}")
 
-        <h2>Key Language Features</h2>
+let rna_seq = transcribe(seq)
+println(f"RNA: {rna_seq}")
+println(f"Protein: {translate(rna_seq)}")</code></pre>
 
-        <h3>Pipe Operator</h3>
+        <h3>Pipe Chains</h3>
         <p>
           The pipe operator <code>|&gt;</code> passes the left-hand value as the first argument
           to the right-hand function. This creates readable, linear data flows:
         </p>
-        <pre><code class="language-biolang"># Without pipes — nested, hard to read
-let result = summarize(group_by(filter(data, |r| r.score > 0.5), "gene"), |key, rows| { gene: key, mean_score: mean(col(rows, "score")) })
+        <pre><code class="language-biolang">let result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  |> filter(|x| x % 2 == 0)
+  |> map(|x| x * x)
+  |> sort()
+  |> reverse()
 
-# With pipes — linear, clear
-let result = data
-  |> filter(|r| r.score > 0.5)
-  |> group_by("gene")
-  |> summarize(|key, rows| { gene: key, mean_score: mean(col(rows, "score")) })</code></pre>
+println(f"Even squares (descending): {result}")</code></pre>
 
-        <h3>Bio Literals</h3>
+        <h3>Statistics</h3>
         <p>
-          BioLang provides literal syntax for biological sequences. These are typed values, not
-          plain strings, enabling compile-time validation and specialized operations:
+          Built-in functions for common statistical operations:
         </p>
-        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCG"
-let rna_seq = rna"AUCGAUCGAUCG"
-let prot = protein"MKTLLILAVS"
+        <pre><code class="language-biolang">let data = [23.1, 45.7, 12.3, 67.8, 34.5, 56.2, 19.8]
+println(f"Mean:   {mean(data)}")
+println(f"Median: {median(data)}")
+println(f"Stdev:  {stdev(data)}")
+println(f"Min:    {min(data)}")
+println(f"Max:    {max(data)}")
+println(f"Sum:    {sum(data)}")</code></pre>
 
-# Reverse complement is a method, not a string hack
-let rc = seq |> reverse_complement()
-
-# Translation uses the standard genetic code
-let translated = seq |> transcribe() |> translate()</code></pre>
-
-        <h3>Pattern Matching</h3>
-        <p>
-          BioLang supports expressive pattern matching with destructuring, guards, and wildcard
-          patterns:
-        </p>
-        <pre><code class="language-biolang">let result = match classify_variant(variant) {
-  "missense" => analyze_protein_impact(variant),
-  "nonsense" => { flag_lof(variant); "loss_of_function" },
-  "synonymous" if variant.conservation > 0.9 => "conserved_silent",
-  _ => "benign"
-}</code></pre>
-
-        <h3>Table Operations</h3>
+        <h3>Tables</h3>
         <p>
           Tables are a built-in type with familiar dplyr-style verbs for data manipulation:
         </p>
-        <pre><code class="language-biolang">let variants = read_vcf("calls.vcf")
-  |> select("chrom", "pos", "ref_allele", "alt_allele", "qual")
-  |> filter(|v| v.qual >= 30.0)
-  |> arrange("-qual")
-  |> group_by("chrom")
-  |> summarize(|key, rows| {
-    chrom: key,
-    count: len(rows),
-    avg_qual: mean(col(rows, "qual")),
-    max_qual: max(col(rows, "qual"))
-  })</code></pre>
+        <pre><code class="language-biolang">let t = table(
+  gene = ["BRCA1", "TP53", "EGFR", "MYC", "KRAS"],
+  score = [0.95, 0.87, 0.72, 0.91, 0.65],
+  chrom = ["chr17", "chr17", "chr7", "chr8", "chr12"]
+)
 
-        <h3>Lazy Streams</h3>
-        <p>
-          Streams enable lazy, memory-efficient processing of large datasets. No data is read
-          until the stream is consumed:
-        </p>
-        <pre><code class="language-biolang"># Process a 100 GB FASTQ file with constant memory
-let high_qual = fastq("reads.fq.gz")
-  |> filter(|r| mean_phred(r.quality) >= 30)
-  |> filter(|r| r.length >= 100)
-  |> take(1_000_000)
-  |> collect()</code></pre>
+let top = t
+  |> filter(|r| r.score > 0.8)
+  |> arrange("-score")
+
+println(top)</code></pre>
+
+        <h2>Key Features</h2>
+        <ul>
+          <li>
+            <strong class="text-violet-400">Pipe-first composition</strong> &mdash; Data flows left
+            to right using <code>|&gt;</code>, mirroring how bioinformatics pipelines are
+            conceptualized.
+          </li>
+          <li>
+            <strong class="text-violet-400">Biology-native types</strong> &mdash; DNA, RNA, and
+            protein sequences are typed values with literal syntax (<code>dna"ATCG"</code>,
+            <code>rna"AUGC"</code>, <code>protein"MKT"</code>), not plain strings.
+          </li>
+          <li>
+            <strong class="text-violet-400">Lambdas everywhere</strong> &mdash; Concise lambda
+            syntax <code>|x| expr</code> for inline transformations.
+          </li>
+          <li>
+            <strong class="text-violet-400">Tables as data</strong> &mdash; Built-in table type with
+            <code>filter</code>, <code>select</code>, <code>mutate</code>, <code>arrange</code>,
+            <code>group_by</code>, and <code>summarize</code> verbs.
+          </li>
+          <li>
+            <strong class="text-violet-400">Dynamic typing</strong> &mdash; Types are always inferred
+            from values. No type annotations are needed or supported.
+          </li>
+          <li>
+            <strong class="text-violet-400">Streaming</strong> &mdash; Lazy streams for
+            memory-efficient processing of large genomic datasets.
+          </li>
+        </ul>
 
         <h2>Type System</h2>
         <p>
-          BioLang uses gradual typing with full type inference. You can add type annotations
-          when you want extra safety, or leave them off for concise scripts:
+          BioLang is dynamically typed. Every value has a runtime type that you can inspect with
+          <code>typeof()</code>:
         </p>
-        <pre><code class="language-biolang"># Inferred types — concise
-let x = 42
-let name = "BRCA1"
-let seq = dna"ATCG"
-
-# Explicit annotations — self-documenting
-let x: Int = 42
-let name: String = "BRCA1"
-let seq: DNA = dna"ATCG"
-let scores: List[Float] = [0.1, 0.5, 0.9]</code></pre>
+        <pre><code class="language-biolang">println(typeof(42))                # Int
+println(typeof(3.14))              # Float
+println(typeof("hello"))           # Str
+println(typeof(true))              # Bool
+println(typeof(dna"ATCG"))         # DNA
+println(typeof([1, 2, 3]))         # List
+println(typeof({name: "BRCA1"}))   # Record</code></pre>
 
         <h3>Built-in Types</h3>
         <table>
@@ -162,41 +140,39 @@ let scores: List[Float] = [0.1, 0.5, 0.9]</code></pre>
             <tr><th>Category</th><th>Types</th></tr>
           </thead>
           <tbody>
-            <tr><td>Primitives</td><td><code>Int</code>, <code>Float</code>, <code>String</code>, <code>Bool</code></td></tr>
-            <tr><td>Collections</td><td><code>List</code>, <code>Map</code>, <code>Set</code>, <code>Table</code>, <code>Matrix</code></td></tr>
+            <tr><td>Primitives</td><td><code>Int</code>, <code>Float</code>, <code>Str</code>, <code>Bool</code>, <code>Nil</code></td></tr>
             <tr><td>Biology</td><td><code>DNA</code>, <code>RNA</code>, <code>Protein</code>, <code>Interval</code></td></tr>
-            <tr><td>Control</td><td><code>Stream</code></td></tr>
+            <tr><td>Collections</td><td><code>List</code>, <code>Record</code>, <code>Table</code>, <code>Set</code></td></tr>
+            <tr><td>Control</td><td><code>Stream</code>, <code>Function</code></td></tr>
           </tbody>
         </table>
 
         <h2>Error Handling</h2>
         <p>
           BioLang provides <code>try</code>/<code>catch</code> for error handling,
-          <code>error()</code> for throwing errors, <code>??</code> for nil coalescing,
-          and <code>?.</code> for safe navigation:
+          <code>error()</code> for throwing errors, and <code>??</code> for nil coalescing:
         </p>
-        <pre><code class="language-biolang"># Functions throw errors with error()
-fn load_reference(path: String) {
-  let seqs = read_fasta(path)
-  let seq = first(seqs)
-  if seq == nil { error("No sequences in reference") }
-  seq.seq
-}
+        <pre><code class="language-biolang"># Nil coalescing with ??
+let value = nil
+let safe = value ?? "default"
+println(f"Safe value: {safe}")
 
-# try/catch for top-level scripts
-try {
-  let ref_seq = load_reference("hg38.fa")
-  let aligned = read_fastq(ref_seq) |> filter(|r| mean_phred(r.quality) >= 30)
+# try/catch for fallible operations
+let result = try {
+  int("not_a_number")
 } catch e {
-  print(f"Pipeline failed: {e}")
-}</code></pre>
+  println(f"Caught error: {e}")
+  0
+}
+println(f"Result: {result}")</code></pre>
 
         <h2>Next Steps</h2>
         <p>
           Explore the language reference in depth:
         </p>
         <ul>
-          <li><a href="variables.html" class="text-violet-400 hover:text-violet-300">Variables &amp; Types</a> &mdash; bindings, type annotations, all value types</li>
+          <li><a href="variables.html" class="text-violet-400 hover:text-violet-300">Variables &amp; Assignment</a> &mdash; bindings, reassignment, scope</li>
+          <li><a href="types.html" class="text-violet-400 hover:text-violet-300">Type System</a> &mdash; all value types and conversions</li>
           <li><a href="pipes.html" class="text-violet-400 hover:text-violet-300">Pipes</a> &mdash; the <code>|&gt;</code> operator and composition patterns</li>
           <li><a href="functions.html" class="text-violet-400 hover:text-violet-300">Functions</a> &mdash; declarations, lambdas, closures</li>
           <li><a href="tables.html" class="text-violet-400 hover:text-violet-300">Tables</a> &mdash; the built-in table type and data verbs</li>

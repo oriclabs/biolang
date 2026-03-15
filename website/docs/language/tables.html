@@ -22,286 +22,225 @@
         <span class="text-slate-300">Tables</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>Tables</h1>
+        <h1>Tables &amp; Data Frames</h1>
         <p>
           Tables are a first-class data type in BioLang, designed for the tabular data that
           dominates bioinformatics workflows. BioLang provides dplyr-inspired verbs &mdash;
-          <code>select</code>, <code>filter</code>, <code>arrange</code>, <code>group_by</code>,
-          <code>summarize</code>, <code>join</code>, <code>pivot</code>, and <code>window</code>
+          <code>select</code>, <code>filter</code>, <code>mutate</code>, <code>group_by</code>,
+          <code>summarize</code>, <code>sort_by</code>, and <code>join</code>
           &mdash; that compose naturally with pipes.
         </p>
 
         <h2>Creating Tables</h2>
-        <pre><code class="language-biolang"># From named columns
-let variants = table(
-  gene = ["BRCA1", "TP53", "EGFR", "KRAS", "BRAF"],
-  chrom = ["chr17", "chr17", "chr7", "chr12", "chr7"],
-  position = [43044295, 7577120, 55259515, 25398284, 140453136],
-  impact = ["HIGH", "HIGH", "MODERATE", "HIGH", "MODERATE"],
-  frequency = [0.012, 0.034, 0.089, 0.156, 0.023]
-)
 
-# From a CSV file
-let data = csv("results.csv")
+        <h3>From Records</h3>
+        <p>
+          <code>from_records()</code> converts a list of records into a table:
+        </p>
+        <pre><code class="language-biolang"># Create a table from a list of records
+let data = from_records([
+  {gene: "BRCA1", log2fc: 2.5, pvalue: 0.001},
+  {gene: "TP53", log2fc: -1.8, pvalue: 0.005},
+  {gene: "EGFR", log2fc: 3.1, pvalue: 0.0001},
+  {gene: "KRAS", log2fc: 0.4, pvalue: 0.42},
+  {gene: "MYC", log2fc: 1.9, pvalue: 0.008}
+])
+println(data)</code></pre>
 
-# From a TSV file
-let bed = tsv("regions.bed", header = false,
-  col_names = ["chrom", "start", "end", "name", "score"])
-
-# From VCF
-let vcf_data = read_vcf("variants.vcf")
-
-# Empty table with schema
-let empty = table(gene: List[String] = [], score: List[Float] = [])</code></pre>
-
-        <h2>Table Information</h2>
-        <pre><code class="language-biolang">let t = csv("experiment.csv")
-
-t.num_rows       # Number of rows
-t.num_cols       # Number of columns
-t.columns        # List of column names
-describe(t)      # Summary statistics with types and sample values
-head(t, 5)       # First 5 rows
-tail(t, 5)       # Last 5 rows</code></pre>
+        <h3>From CSV</h3>
+        <pre><code class="language-biolang"># Read a CSV file into a table
+let data = read_csv("data/expression.csv")
+println(data)</code></pre>
 
         <h2>Select</h2>
         <p>
-          Choose columns to keep, rename columns, or reorder them:
+          Choose which columns to keep:
         </p>
-        <pre><code class="language-biolang"># Keep specific columns
-let subset = variants |> select("gene", "impact", "frequency")
+        <pre><code class="language-biolang">let data = from_records([
+  {gene: "BRCA1", log2fc: 2.5, pvalue: 0.001, chrom: "chr17"},
+  {gene: "TP53", log2fc: -1.8, pvalue: 0.005, chrom: "chr17"},
+  {gene: "EGFR", log2fc: 3.1, pvalue: 0.0001, chrom: "chr7"}
+])
 
-# Drop columns (negative selection)
-let trimmed = variants |> select(-"position", -"chrom")
-
-# Rename while selecting
-let renamed = variants |> select(
-  gene_name = "gene",
-  chr = "chrom",
-  freq = "frequency"
-)
-
-# Select with a filter
-let qual_cols = data |> select("qual_a", "qual_b", "qual_c")</code></pre>
+# Keep only specific columns
+let subset = data |> select("gene", "pvalue")
+println(subset)</code></pre>
 
         <h2>Filter</h2>
         <p>
-          Keep rows matching a predicate:
+          Keep rows matching a predicate. The closure receives each row as a record:
         </p>
-        <pre><code class="language-biolang"># Simple filter
-let high_impact = variants |> filter(|r| r.impact == "HIGH")
+        <pre><code class="language-biolang">let data = from_records([
+  {gene: "BRCA1", log2fc: 2.5, pvalue: 0.001},
+  {gene: "TP53", log2fc: -1.8, pvalue: 0.005},
+  {gene: "EGFR", log2fc: 3.1, pvalue: 0.0001},
+  {gene: "KRAS", log2fc: 0.4, pvalue: 0.42}
+])
+
+# Filter for significant genes
+let significant = data |> filter(|r| r.pvalue < 0.01)
+println(significant)
 
 # Multiple conditions
-let significant = variants
-  |> filter(|r| r.impact == "HIGH" && r.frequency > 0.01)
-
-# Filter with string operations
-let chr17 = variants |> filter(|r| r.chrom == "chr17")
-
-# Filter with 'in' operator
-let target_genes = ["BRCA1", "TP53", "KRAS"]
-let targets = variants |> filter(|r| r.gene in target_genes)
-
-# Remove nil values
-let clean = data |> filter(|r| r.score != nil)</code></pre>
-
-        <h2>Arrange</h2>
-        <p>
-          Sort rows by one or more columns:
-        </p>
-        <pre><code class="language-biolang"># Sort ascending (default)
-let sorted = variants |> arrange("frequency")
-
-# Sort descending (prefix "-")
-let top_freq = variants |> arrange("-frequency")
-
-# Multi-column sort
-let ordered = variants |> arrange("chrom", "-position")
-
-# Sort by computed value
-let by_name_len = variants |> arrange(|r| len(r.gene))</code></pre>
+let up_and_sig = data |> filter(|r| r.log2fc > 1.0 && r.pvalue < 0.01)
+println(up_and_sig)</code></pre>
 
         <h2>Mutate</h2>
         <p>
-          Add new columns or transform existing ones:
+          Add or transform columns. Takes the table, a column name string, and a
+          closure that receives each row as a record:
         </p>
-        <pre><code class="language-biolang"># Add a new column
-let enriched = variants
-  |> mutate("log_freq", |r| log10(r.frequency))
+        <pre><code class="language-biolang">let data = from_records([
+  {gene: "BRCA1", log2fc: 2.5, pvalue: 0.001},
+  {gene: "TP53", log2fc: -1.8, pvalue: 0.005},
+  {gene: "EGFR", log2fc: 3.1, pvalue: 0.0001}
+])
 
-# Multiple new columns
-let annotated = variants
-  |> mutate("is_rare", |r| r.frequency < 0.01)
-  |> mutate("label", |r| f"{r.gene}:{r.chrom}:{r.position}")
-  |> mutate("severity", |r| if r.impact == "HIGH" { 3 } else { 1 })
+# Add a new column
+let enriched = data
+  |> mutate("significant", |r| r.pvalue < 0.01)
+  |> mutate("direction", |r| if r.log2fc > 0 { "up" } else { "down" })
+println(enriched)</code></pre>
 
-# Overwrite an existing column
-let updated = variants
-  |> mutate("frequency", |r| round(r.frequency, 4))</code></pre>
+        <h2>Sorting</h2>
+        <p>
+          Use <code>sort_by</code> to sort rows with a comparison closure, or
+          <code>arrange</code> to sort by column names:
+        </p>
+        <pre><code class="language-biolang">let data = from_records([
+  {gene: "BRCA1", log2fc: 2.5, pvalue: 0.001},
+  {gene: "TP53", log2fc: -1.8, pvalue: 0.005},
+  {gene: "EGFR", log2fc: 3.1, pvalue: 0.0001},
+  {gene: "KRAS", log2fc: 0.4, pvalue: 0.42}
+])
+
+# sort_by with a comparison closure
+let by_fc = data |> sort_by(|a, b| b.log2fc - a.log2fc)
+println(by_fc)
+
+# arrange by column name (string args)
+let by_pvalue = data |> arrange("pvalue")
+println(by_pvalue)</code></pre>
 
         <h2>Group By and Summarize</h2>
         <p>
-          Group rows by one or more columns, then compute aggregate statistics per group:
+          <code>group_by</code> splits a table into a map of sub-tables keyed by column value.
+          <code>summarize</code> then reduces each group to a single record:
         </p>
-        <pre><code class="language-biolang"># Group and summarize
-let by_impact = variants
-  |> group_by("impact")
-  |> summarize(|key, rows| {
-    impact: key,
-    count: len(rows),
-    avg_freq: mean(col(rows, "frequency")),
-    max_freq: max(col(rows, "frequency")),
-    genes: col(rows, "gene")
-  })
+        <pre><code class="language-biolang">let data = from_records([
+  {gene: "BRCA1", chrom: "chr17", score: 0.95},
+  {gene: "TP53", chrom: "chr17", score: 0.88},
+  {gene: "EGFR", chrom: "chr7", score: 0.91},
+  {gene: "BRAF", chrom: "chr7", score: 0.72}
+])
 
-# Multiple grouping columns
-let by_chrom_impact = variants
+let summary = data
   |> group_by("chrom")
-  |> summarize(|chrom, rows| {
-    chrom: chrom,
-    count: len(rows),
-    total_freq: sum(col(rows, "frequency"))
-  })
-
-# Available aggregation functions:
-# n(), sum(), mean(), median(), min(), max(), stdev(), variance(),
-# first(), last(), collect(), count(), quantile()</code></pre>
-
-        <h2>Join</h2>
-        <p>
-          Combine two tables based on matching columns:
-        </p>
-        <pre><code class="language-biolang">let annotations = table(
-  gene = ["BRCA1", "TP53", "EGFR"],
-  pathway = ["DNA repair", "Cell cycle", "Growth signaling"],
-  druggable = [false, false, true]
-)
-
-# Inner join — only matching rows
-let joined = variants |> inner_join(annotations, by = "gene")
-
-# Left join — keep all rows from left table
-let enriched = variants |> left_join(annotations, by = "gene")
-
-# Full outer join — keep all rows from both (not built-in, use left_join both ways)
-# let all_data = ...
-
-# Join on different column names
-let merged = table_a |> inner_join(table_b, left = "gene_id", right = "id")</code></pre>
-
-        <h2>Pivot</h2>
-        <p>
-          Reshape tables between long and wide formats:
-        </p>
-        <pre><code class="language-biolang"># Long to wide (pivot_wider)
-let expression = table(
-  gene = ["BRCA1", "BRCA1", "TP53", "TP53"],
-  sample = ["tumor", "normal", "tumor", "normal"],
-  fpkm = [12.5, 8.3, 45.2, 42.1]
-)
-
-let wide = expression |> pivot_wider(
-  names_from = "sample",
-  values_from = "fpkm"
-)
-# Result: gene | tumor | normal
-#         BRCA1  12.5    8.3
-#         TP53   45.2    42.1
-
-# Wide to long (pivot_longer)
-let long = wide |> pivot_longer(
-  cols = ["tumor", "normal"],
-  names_to = "sample",
-  values_to = "fpkm"
-)</code></pre>
-
-        <h2>Window Functions</h2>
-        <p>
-          Compute values across a sliding window of rows without collapsing groups:
-        </p>
-        <pre><code class="language-biolang"># Running average
-let smoothed = signal_data
-  |> arrange("position")
-  |> mutate("rm", |r| rolling_mean(r.value, 5))
-  |> mutate("rs", |r| rolling_sum(r.value, 5))
-
-# Rank within groups
-let ranked = variants
-  |> group_by("chrom")
-  |> mutate("rk", |r| row_number())
-  |> mutate("cs", |r| cumsum(r.frequency))
-
-# Lead and lag
-let time_series = data
-  |> arrange("timepoint")
-  |> mutate("prev_value", |r| lag(r.value, 1))
-  |> mutate("next_value", |r| lead(r.value, 1))
-  |> mutate("delta", |r| r.value - lag(r.value, 1))</code></pre>
-
-        <h2>Distinct and Count</h2>
-        <pre><code class="language-biolang"># Unique rows
-let unique_genes = variants |> distinct("gene")
-
-# Unique combinations
-let unique_pairs = variants |> distinct("chrom", "impact")
-
-# Count occurrences
-let counts = variants |> count("impact")
-# impact   | n
-# HIGH     | 3
-# MODERATE | 2
-
-# Count with sort
-let top_chroms = variants |> count("chrom", sort = true)</code></pre>
-
-        <h2>Slice Operations</h2>
-        <pre><code class="language-biolang"># First/last n rows
-let top5 = variants |> head(5)
-let bottom5 = variants |> tail(5)
-
-# Slice by index range
-let middle = variants |> slice(10..20)
-
-# Top n by value (arrange + head)
-let top_freq = variants |> arrange("-frequency") |> head(3)
-let bottom_freq = variants |> arrange("frequency") |> head(3)
-
-# Random sample
-let sampled = variants |> sample(100)</code></pre>
-
-        <h2>Chaining Table Operations</h2>
-        <p>
-          The real power of table verbs is in composing them into complete analysis pipelines:
-        </p>
-        <pre><code class="language-biolang"># Complete analysis pipeline
-let report = read_vcf("cohort.vcf")
-  |> filter(|v| v.qual >= 30.0 && v.depth >= 10)
-  |> mutate("af", |v| v.alt_count / v.total_count)
-  |> mutate("is_rare", |v| v.af < 0.01)
-  |> left_join(gene_annotations, by = "gene")
-  |> filter(|v| v.impact == "HIGH" || v.impact == "MODERATE")
-  |> group_by("gene")
   |> summarize(|key, rows| {
-    gene: key,
-    variant_count: len(rows),
-    avg_af: mean(col(rows, "af")),
-    rare_count: rows |> filter(|r| r.is_rare) |> len
+    chrom: key,
+    count: len(col(rows, "gene")),
+    avg_score: mean(col(rows, "score"))
   })
-  |> arrange("-variant_count")
-  |> head(50)</code></pre>
+println(summary)</code></pre>
+
+        <h2>Count By</h2>
+        <p>
+          <code>count_by</code> counts the number of rows for each distinct value
+          in a column:
+        </p>
+        <pre><code class="language-biolang">let data = from_records([
+  {gene: "BRCA1", impact: "HIGH"},
+  {gene: "TP53", impact: "HIGH"},
+  {gene: "EGFR", impact: "MODERATE"},
+  {gene: "KRAS", impact: "HIGH"},
+  {gene: "BRAF", impact: "MODERATE"}
+])
+
+let counts = data |> count_by("impact")
+println(counts)</code></pre>
+
+        <h2>Column Access</h2>
+        <p>
+          Use <code>col(table, "name")</code> to extract a single column as a list:
+        </p>
+        <pre><code class="language-biolang">let data = from_records([
+  {gene: "BRCA1", score: 0.95},
+  {gene: "TP53", score: 0.88},
+  {gene: "EGFR", score: 0.91}
+])
+
+let scores = col(data, "score")
+println(scores)        # [0.95, 0.88, 0.91]
+println(mean(scores))  # 0.9133...</code></pre>
+
+        <h2>Joins</h2>
+        <p>
+          Combine two tables by a shared column. <code>inner_join</code> keeps only
+          matching rows; <code>left_join</code> keeps all rows from the left table:
+        </p>
+        <pre><code class="language-biolang">let expression = from_records([
+  {gene: "BRCA1", log2fc: 2.5},
+  {gene: "TP53", log2fc: -1.8},
+  {gene: "EGFR", log2fc: 3.1}
+])
+
+let annotations = from_records([
+  {gene: "BRCA1", pathway: "DNA repair"},
+  {gene: "TP53", pathway: "Cell cycle"},
+  {gene: "MYC", pathway: "Proliferation"}
+])
+
+# Inner join -- only rows with matching gene in both tables
+let joined = inner_join(expression, annotations, "gene")
+println(joined)
+
+# Left join -- keep all expression rows
+let enriched = left_join(expression, annotations, "gene")
+println(enriched)</code></pre>
+
+        <h3>bio_join for Multi-Omics</h3>
+        <p>
+          <code>bio_join</code> auto-detects common biological key columns (gene, chrom,
+          transcript_id, etc.) so you don't need to specify the key:
+        </p>
+        <pre><code class="language-biolang">let rnaseq = from_records([
+  {gene: "BRCA1", fpkm: 12.5},
+  {gene: "TP53", fpkm: 45.2}
+])
+
+let proteomics = from_records([
+  {gene: "BRCA1", intensity: 8500.0},
+  {gene: "TP53", intensity: 12300.0}
+])
+
+# Auto-detects "gene" as the join key
+let multi_omics = bio_join(rnaseq, proteomics)
+println(multi_omics)</code></pre>
+
+        <h2>Complete Pipeline Example</h2>
+        <p>
+          The real power of table verbs is in composing them into analysis pipelines:
+        </p>
+        <pre><code class="language-biolang">let data = read_csv("data/expression.csv")
+data
+  |> filter(|r| r.pvalue < 0.01)
+  |> sort_by(|a, b| b.log2fc - a.log2fc)
+  |> each(|r| println(f"{r.gene}: FC={r.log2fc}, p={r.pvalue}"))</code></pre>
 
         <h2>Writing Tables</h2>
-        <pre><code class="language-biolang"># Write to CSV
-report |> write_csv("report.csv")
+        <pre><code class="language-biolang">let data = from_records([
+  {gene: "BRCA1", log2fc: 2.5, pvalue: 0.001},
+  {gene: "TP53", log2fc: -1.8, pvalue: 0.005}
+])
 
-# Write to TSV
-report |> write_tsv("report.tsv")
+# Write to CSV (table first, path second)
+write_csv(data, "output/results.csv")
 
-# Write with options
-report |> write_csv("report.csv", quote = true, na = "NA")
+# Or with pipe syntax
+data |> write_csv("output/results.csv")
 
 # Pretty-print to console
-print(report)</code></pre>
+println(data)</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="collections.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

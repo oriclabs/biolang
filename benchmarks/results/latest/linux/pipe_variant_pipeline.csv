@@ -1,5 +1,0 @@
-task,language,time_sec,loc
-variant_pipeline,biolang,0.268,8
-variant_pipeline,python,0.177,29
-variant_pipeline_real,biolang,0.591,16
-variant_pipeline_real,python,0.261,31

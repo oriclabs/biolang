@@ -1,22 +1,51 @@
 (function() {
   "use strict";
 
-  // Synchronous fetch bridge for WASM read_csv("https://...")
-  // Uses synchronous XMLHttpRequest (works in main thread, same-origin or CORS-enabled)
+  // Synchronous fetch bridge for WASM read_csv/read_fasta/etc.
+  // Resolves relative paths against the book's data directory on the server.
+  // Uses synchronous XMLHttpRequest (works in main thread, same-origin or CORS-enabled).
+
+  // Detect book data base path from current page URL
+  // e.g., /books/practical-bioinformatics/html/day-02.html → /books/practical-bioinformatics/html/
+  var _bookBasePath = (function() {
+    var path = window.location.pathname;
+    var idx = path.lastIndexOf("/");
+    return idx >= 0 ? path.substring(0, idx + 1) : "/";
+  })();
+
+  // In-memory file registry — pre-populated or cached from fetches
+  window.__blFiles = {};
+
   window.__blFetch = {
     sync: function(url) {
-      try {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", url, false); // synchronous
-        xhr.send(null);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          return xhr.responseText;
-        } else {
-          return "ERROR:" + xhr.status + " " + xhr.statusText;
-        }
-      } catch (e) {
-        return "ERROR:" + String(e);
+      // 1. Check in-memory registry first
+      if (window.__blFiles && window.__blFiles[url]) {
+        return window.__blFiles[url];
       }
+
+      // 2. Resolve relative paths — try multiple locations
+      var fetchUrl = url;
+      var isRelative = !/^https?:\/\//.test(url) && !/^\//.test(url);
+
+      // Try locations in order: page-relative, then shared /books/data/
+      var tryPaths = isRelative
+        ? [_bookBasePath + url, "/books/data/" + url.replace(/^data\//, "")]
+        : [fetchUrl];
+
+      for (var pi = 0; pi < tryPaths.length; pi++) {
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", tryPaths[pi], false);
+          xhr.send(null);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            window.__blFiles[url] = xhr.responseText;
+            return xhr.responseText;
+          }
+        } catch (e) {
+          // Try next path
+        }
+      }
+      return "ERROR:404 File not found (" + url + ")";
     }
   };
 
@@ -41,8 +70,9 @@
     script.type = "module";
     script.textContent = [
       'try {',
-      '  var mod = await import("' + wasmBasePath + '/br_wasm.js");',
+      '  var mod = await import("' + wasmBasePath + '/bl_wasm.js");',
       '  await mod.default();',
+      '  mod.init();',
       '  window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset };',
       '  window.dispatchEvent(new Event("bl-wasm-ready"));',
       '} catch(e) {',
@@ -80,15 +110,19 @@
     if (prev && prev.tagName === "BLOCKQUOTE" && prev.textContent.indexOf("Requires CLI") !== -1) return true;
     var code = pre.querySelector("code");
     var text = code ? code.textContent : "";
-    if (/\b(read_fasta|read_fastq|read_vcf|read_bed|read_gff|read_sam|read_bam|write_csv|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
-    // read_csv with a local path (not http) is CLI-only
-    if (/\bread_csv\s*\(/.test(text) && !/read_csv\s*\(\s*["']https?:/.test(text)) return true;
-    if (/\b(csv|tsv|vcf|fastq|fasta|bam|sam|bed|gff)\s*\(/.test(text)) return true;
-    if (/\b(open|save|write_file|read_file|read_lines|write_lines|mkdir)\s*\(/.test(text)) return true;
-    if (/\b(ncbi_gene|ncbi_search|ncbi_sequence|ensembl_gene|ensembl_vep|uniprot_search|uniprot_entry|kegg_get|kegg_find|pdb_entry|string_network|go_term|go_annotations|cosmic_gene|datasets_gene|reactome_pathways|ucsc_sequence|fetch|http_get|http_post)\b/.test(text)) return true;
+    // Write operations are always CLI-only
+    if (/\b(write_csv|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
+    if (/\b(open|save|write_file|write_lines|mkdir)\s*\(/.test(text)) return true;
+    if (/\b(save_plot|save_svg|save_png)\s*\(/.test(text)) return true;
+    // Read operations are allowed — they use the fetch bridge to load data from the server
+    // BAM/SAM are binary formats that can't be fetched as text
+    if (/\b(read_sam|read_bam)\b/.test(text)) return true;
+    // Network APIs: CLI-only (require API keys or lack CORS support)
+    // Note: ncbi_search, ncbi_gene, ncbi_sequence, ncbi_summary, ncbi_fetch work in WASM
+    // because NCBI E-utilities support CORS and are accessed via the fetch hook.
+    if (/\b(ensembl_gene|ensembl_vep|uniprot_search|uniprot_entry|kegg_get|kegg_find|pdb_entry|string_network|go_term|go_annotations|cosmic_gene|datasets_gene|reactome_pathways|ucsc_sequence|fetch|http_get|http_post)\b/.test(text)) return true;
     if (/\b(chat|chat_code|llm|ask_llm)\s*\(/.test(text)) return true;
     if (/\b(notebook|pipeline|import\s+")\b/.test(text)) return true;
-    if (/\b(save_plot|save_svg|save_png)\s*\(/.test(text)) return true;
     return false;
   }
 

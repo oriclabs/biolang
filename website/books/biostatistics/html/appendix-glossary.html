@@ -1,0 +1,351 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Appendix D: Glossary - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="appendix-d-glossary"><a class="header" href="#appendix-d-glossary">Appendix D: Glossary</a></h1>
+<blockquote>
+<p><em>Statistics has its own language. This glossary translates it into plain English, with biological context.</em></p>
+</blockquote>
+<p>Terms are listed alphabetically. Cross-references appear in <em>italics</em>.</p>
+<hr>
+<p><strong>Adjusted R-squared.</strong> A modified version of <em>R-squared</em> that penalizes the addition of unnecessary predictors. Unlike R-squared, adjusted R-squared can decrease when a non-informative variable is added to a model. Preferred over R-squared for comparing models with different numbers of predictors.</p>
+<p><strong>Alpha (significance level).</strong> The threshold you set before testing for declaring a result statistically significant. Conventionally 0.05 (5%), meaning you accept a 5% chance of a <em>Type I error</em>. In genome-wide studies, often set much lower (5 x 10^-8 for GWAS).</p>
+<p><strong>Alternative hypothesis (H1).</strong> The hypothesis that there is an effect or a difference. The complement of the <em>null hypothesis</em>. Example: “Drug-treated tumors are smaller than untreated tumors.”</p>
+<p><strong>ANOVA (Analysis of Variance).</strong> A test for differences in means across three or more groups. Extends the <em>t-test</em> to multiple groups by comparing between-group variance to within-group variance. Produces an <em>F-statistic</em>.</p>
+<p><strong>AUC (Area Under the Curve).</strong> In the context of ROC analysis, the probability that a randomly chosen positive case ranks higher than a randomly chosen negative case. An AUC of 0.5 is random guessing; 1.0 is perfect classification.</p>
+<p><strong>Batch effect.</strong> Systematic technical variation introduced by processing samples in different batches, on different days, or with different reagents. A major confounder in genomics. Must be addressed through experimental design (randomization) or statistical correction (ComBat, limma).</p>
+<p><strong>Bayesian statistics.</strong> An approach to inference that combines prior knowledge with observed data to produce <em>posterior</em> probability distributions. Contrasts with <em>frequentist</em> statistics, which relies on long-run frequencies. Allows statements like “there is a 95% probability the true effect lies in this interval.”</p>
+<p><strong>Benjamini-Hochberg (BH).</strong> A <em>multiple testing correction</em> method that controls the <em>false discovery rate</em> (FDR) rather than the <em>family-wise error rate</em>. Less conservative than <em>Bonferroni</em>. The standard correction in genomics.</p>
+<p><strong>Beta (Type II error rate).</strong> The probability of failing to reject the <em>null hypothesis</em> when it is actually false. <em>Power</em> equals 1 - beta. A beta of 0.2 means a 20% chance of missing a real effect.</p>
+<p><strong>Bias.</strong> Systematic deviation of an estimate from the true value. Distinct from random error (<em>variance</em>). An estimator can be precise (low variance) but biased (consistently wrong in one direction).</p>
+<p><strong>Bimodal distribution.</strong> A distribution with two peaks. In gene expression, bimodality often indicates two distinct cell populations or states (e.g., expressed vs. silenced genes).</p>
+<p><strong>Blinding.</strong> Concealing group assignments from participants, clinicians, or analysts to prevent bias. Single-blind: participants do not know their group. Double-blind: neither participants nor clinicians know.</p>
+<p><strong>Bonferroni correction.</strong> The simplest <em>multiple testing correction</em>: multiply each p-value by the number of tests (or equivalently, divide alpha by the number of tests). Controls the <em>family-wise error rate</em> but is very conservative for large numbers of tests.</p>
+<p><strong>Bootstrap.</strong> A <em>resampling</em> method that estimates the sampling distribution of a statistic by repeatedly drawing samples with replacement from the observed data. Does not assume any particular parametric distribution.</p>
+<p><strong>Box plot.</strong> A visualization showing the median, quartiles, and outliers of a distribution. The box spans the interquartile range (IQR); whiskers extend to 1.5 * IQR; points beyond are outliers.</p>
+<p><strong>Categorical variable.</strong> A variable that takes a limited set of discrete values (e.g., genotype: AA, AB, BB; tissue type: liver, brain, kidney). Contrasts with <em>continuous variable</em>.</p>
+<p><strong>CDF (Cumulative Distribution Function).</strong> The probability that a random variable takes a value less than or equal to x. F(x) = P(X &lt;= x). Ranges from 0 to 1.</p>
+<p><strong>Central limit theorem.</strong> The theorem stating that the sampling distribution of the mean approaches a <em>normal distribution</em> as sample size increases, regardless of the shape of the original population distribution. The foundation of most parametric tests.</p>
+<p><strong>Chi-square test.</strong> A test for association between two <em>categorical variables</em>. Compares observed frequencies in a contingency table to expected frequencies under independence. Requires expected cell counts &gt;= 5; otherwise use <em>Fisher’s exact test</em>.</p>
+<p><strong>Clinical significance.</strong> A difference large enough to matter in practice, regardless of <em>statistical significance</em>. A drug that lowers blood pressure by 0.5 mmHg might be statistically significant with a large enough sample but clinically irrelevant.</p>
+<p><strong>Clustering.</strong> Grouping observations (samples, genes, cells) by similarity. Common methods: <em>k-means</em> (requires specifying k), <em>hierarchical</em> (produces a dendrogram), <em>DBSCAN</em> (finds clusters of arbitrary shape).</p>
+<p><strong>Coefficient of variation (CV).</strong> The ratio of the <em>standard deviation</em> to the <em>mean</em>, expressed as a percentage. Useful for comparing variability across measurements with different scales. CV = (SD / mean) * 100%.</p>
+<p><strong>Confidence interval (CI).</strong> A range of values that, if the experiment were repeated many times, would contain the true parameter value in the stated percentage of cases. A 95% CI does <em>not</em> mean “95% probability the true value is in this range” (that is the Bayesian <em>credible interval</em>).</p>
+<p><strong>Confounding variable.</strong> A variable that influences both the independent and dependent variables, creating a spurious association. Age confounds many gene expression studies because both expression and disease risk change with age.</p>
+<p><strong>Continuous variable.</strong> A variable that can take any value within a range (e.g., expression level, concentration, temperature). Contrasts with <em>categorical variable</em>.</p>
+<p><strong>Correlation.</strong> A measure of linear association between two variables. <em>Pearson</em> correlation (r) measures linear relationships; <em>Spearman</em> correlation (rho) measures monotonic relationships. Ranges from -1 to +1.</p>
+<p><strong>Cox proportional hazards.</strong> A regression model for <em>survival analysis</em> that estimates the effect of covariates on the hazard (instantaneous risk) of an event. Does not assume a particular survival distribution. Reports <em>hazard ratios</em>.</p>
+<p><strong>Credible interval.</strong> The <em>Bayesian</em> analog of a <em>confidence interval</em>. A 95% credible interval means there is a 95% probability the true parameter lies within the interval, given the data and prior. Requires specifying a <em>prior distribution</em>.</p>
+<p><strong>Degrees of freedom (df).</strong> The number of independent values that can vary in a statistical calculation. For a t-test with n1 and n2 observations, df is approximately n1 + n2 - 2 (for Student’s) or a more complex formula (for Welch’s).</p>
+<p><strong>Differential expression.</strong> A gene is differentially expressed if its expression level differs significantly between conditions (e.g., treated vs. control). Typically assessed with a <em>negative binomial</em> model (DESeq2, edgeR) and <em>BH correction</em>.</p>
+<p><strong>Effect size.</strong> A measure of the magnitude of a difference or association, independent of sample size. Common measures: <em>Cohen’s d</em> (standardized mean difference), <em>odds ratio</em>, <em>hazard ratio</em>, <em>R-squared</em>.</p>
+<p><strong>Cohen’s d.</strong> A standardized <em>effect size</em> for the difference between two means: d = (mean1 - mean2) / pooled_SD. Conventions: 0.2 = small, 0.5 = medium, 0.8 = large.</p>
+<p><strong>Eta-squared.</strong> An <em>effect size</em> for <em>ANOVA</em> representing the proportion of total variance explained by the group factor. Analogous to <em>R-squared</em> in regression.</p>
+<p><strong>Empirical distribution.</strong> The distribution derived directly from observed data, without assuming a parametric form. Used in <em>permutation tests</em> and <em>bootstrap</em> methods.</p>
+<p><strong>Enrichment analysis.</strong> Testing whether a set of genes (e.g., differentially expressed genes) contains more members of a particular pathway or GO category than expected by chance. Uses the <em>hypergeometric distribution</em> or <em>GSEA</em>.</p>
+<p><strong>False discovery rate (FDR).</strong> The expected proportion of rejected null hypotheses that are false positives. Controlled by <em>Benjamini-Hochberg</em> correction. At FDR = 0.05, you expect 5% of your “significant” findings to be false.</p>
+<p><strong>Family-wise error rate (FWER).</strong> The probability of making at least one <em>Type I error</em> across all tests. Controlled by <em>Bonferroni</em> and <em>Holm</em> corrections. More conservative than <em>FDR</em> control.</p>
+<p><strong>Fisher’s exact test.</strong> A test for association in 2x2 contingency tables that computes the exact probability under the <em>hypergeometric distribution</em>. Preferred over <em>chi-square</em> when sample sizes are small or expected cell counts are below 5.</p>
+<p><strong>Fold change.</strong> The ratio of a value in one condition to the value in another. A fold change of 2 means doubled; 0.5 means halved. Often reported on the log2 scale: log2(FC) = 1 means doubled.</p>
+<p><strong>Forest plot.</strong> A visualization for <em>meta-analysis</em> showing effect sizes and confidence intervals from multiple studies, plus a combined estimate. Each study is a horizontal line; the diamond shows the pooled effect.</p>
+<p><strong>Frequentist statistics.</strong> The dominant framework in biostatistics, based on long-run frequencies. P-values, confidence intervals, and hypothesis tests are frequentist concepts. Contrasts with <em>Bayesian statistics</em>.</p>
+<p><strong>GSEA (Gene Set Enrichment Analysis).</strong> A method that tests whether a predefined set of genes shows concordant differences between conditions. Unlike overrepresentation analysis, GSEA uses the full ranked gene list rather than an arbitrary significance cutoff.</p>
+<p><strong>GWAS (Genome-Wide Association Study).</strong> A study design that tests hundreds of thousands to millions of genetic variants for association with a phenotype. Requires stringent <em>multiple testing correction</em> (typically p &lt; 5 x 10^-8).</p>
+<p><strong>Hazard ratio (HR).</strong> The ratio of hazard rates between two groups in <em>survival analysis</em>. HR = 0.7 means the treatment group has 30% lower instantaneous risk. HR = 1 means no difference. Estimated by <em>Cox proportional hazards</em> regression.</p>
+<p><strong>Heteroscedasticity.</strong> Unequal variance across groups or across the range of a predictor. Violates assumptions of standard <em>t-tests</em> and <em>linear regression</em>. Detected by residual plots. Addressed by Welch’s tests or robust standard errors.</p>
+<p><strong>Hierarchical clustering.</strong> A <em>clustering</em> method that builds a tree (dendrogram) by iteratively merging (agglomerative) or splitting (divisive) clusters. Common linkage methods: ward, complete, average, single.</p>
+<p><strong>Holm correction.</strong> A step-down <em>multiple testing correction</em> that is uniformly more powerful than <em>Bonferroni</em> while still controlling the <em>FWER</em>. Rejects the smallest p-value at alpha/m, the next at alpha/(m-1), and so on.</p>
+<p><strong>Homoscedasticity.</strong> Equal variance across groups or across the range of a predictor. An assumption of Student’s <em>t-test</em> and standard <em>linear regression</em>.</p>
+<p><strong>Hypothesis testing.</strong> A formal procedure for deciding between two competing hypotheses (<em>null</em> and <em>alternative</em>) based on observed data. Produces a <em>test statistic</em> and <em>p-value</em>.</p>
+<p><strong>Interquartile range (IQR).</strong> The range between the 25th and 75th percentiles. Contains the middle 50% of the data. A robust measure of spread, less sensitive to outliers than <em>standard deviation</em>.</p>
+<p><strong>Kaplan-Meier estimator.</strong> A non-parametric method for estimating survival probabilities over time, accounting for censored observations. Produces the familiar step-function survival curve.</p>
+<p><strong>k-means clustering.</strong> A <em>clustering</em> algorithm that partitions n observations into k clusters by minimizing within-cluster variance. Requires specifying k in advance. Sensitive to initialization; run multiple times.</p>
+<p><strong>Kruskal-Wallis test.</strong> The non-parametric alternative to one-way <em>ANOVA</em>. Tests whether multiple groups have the same distribution. Based on ranks rather than raw values.</p>
+<p><strong>Linear regression.</strong> A model that predicts a continuous outcome as a linear function of one or more predictors: y = beta_0 + beta_1 * x_1 + … + epsilon. Assumes normally distributed residuals and constant variance.</p>
+<p><strong>Log-rank test.</strong> A test for comparing <em>survival curves</em> between two or more groups. Tests the <em>null hypothesis</em> that the groups have equal hazard functions. The standard test for comparing <em>Kaplan-Meier</em> curves.</p>
+<p><strong>Logistic regression.</strong> A <em>regression</em> model for binary outcomes (0/1, yes/no, case/control). Models the log-odds of the outcome as a linear function of predictors. Reports <em>odds ratios</em>.</p>
+<p><strong>Manhattan plot.</strong> A visualization for <em>GWAS</em> results showing -log10(p-value) vs. genomic position. Significant associations appear as tall peaks above the genome-wide significance line. Named for its skyline-like appearance.</p>
+<p><strong>Mann-Whitney U test.</strong> A non-parametric alternative to the two-sample <em>t-test</em>. Tests whether one group tends to have larger values than the other. Based on ranks. Also called the Wilcoxon rank-sum test.</p>
+<p><strong>Mean.</strong> The arithmetic average. Sum of all values divided by the number of values. Sensitive to outliers. For skewed data, the <em>median</em> is often more representative.</p>
+<p><strong>Median.</strong> The middle value when data is sorted. Robust to outliers. Preferred over <em>mean</em> for skewed distributions. The 50th percentile.</p>
+<p><strong>Meta-analysis.</strong> A statistical method for combining results from multiple independent studies to produce a single pooled estimate. Uses weighted averages based on study precision. Visualized with <em>forest plots</em>.</p>
+<p><strong>Mixed-effects model.</strong> A <em>regression</em> model that includes both fixed effects (variables of interest) and random effects (grouping variables like patient, batch, or site). Accounts for non-independence in hierarchical or repeated-measures data.</p>
+<p><strong>Mode.</strong> The most frequently occurring value (discrete data) or the peak of the density curve (continuous data). A distribution can be <em>bimodal</em> or multimodal.</p>
+<p><strong>Multiple testing correction.</strong> Adjusting p-values or significance thresholds when performing many simultaneous tests to control the overall error rate. Methods include <em>Bonferroni</em>, <em>Holm</em>, <em>Benjamini-Hochberg</em>, and <em>permutation</em> testing.</p>
+<p><strong>Negative binomial distribution.</strong> A <em>discrete distribution</em> for count data that allows the variance to exceed the mean (<em>overdispersion</em>). The standard model for RNA-seq differential expression (DESeq2, edgeR).</p>
+<p><strong>Non-parametric test.</strong> A statistical test that does not assume a specific parametric distribution (e.g., normality). Examples: <em>Mann-Whitney U</em>, <em>Kruskal-Wallis</em>, <em>Wilcoxon signed-rank</em>. Generally less powerful than parametric tests when assumptions hold.</p>
+<p><strong>Normal distribution.</strong> The symmetric, bell-shaped distribution described by a <em>mean</em> and <em>standard deviation</em>. Many biological measurements are approximately normal, especially after log transformation. The basis for most parametric tests via the <em>central limit theorem</em>.</p>
+<p><strong>Null hypothesis (H0).</strong> The hypothesis that there is no effect, no difference, or no association. Statistical tests assess evidence against the null. Example: “There is no difference in gene expression between treated and control groups.”</p>
+<p><strong>Odds ratio (OR).</strong> The ratio of odds of an event in one group to odds in another. OR = 1 means no association. OR &gt; 1 means increased odds. Commonly reported in <em>logistic regression</em> and case-control studies.</p>
+<p><strong>Outlier.</strong> An observation that is unusually far from the rest of the data. In a <em>box plot</em>, observations beyond 1.5 * IQR from the quartiles. Can indicate errors, biological extremes, or violations of assumptions.</p>
+<p><strong>Overdispersion.</strong> Variance exceeding the mean in count data. Poisson models assume variance = mean; when this is violated, <em>negative binomial</em> models are more appropriate. Nearly universal in RNA-seq data.</p>
+<p><strong>Paired test.</strong> A test that accounts for the natural pairing of observations (e.g., before/after measurements on the same subject). More powerful than unpaired tests because pairing removes between-subject variability.</p>
+<p><strong>Parametric test.</strong> A statistical test that assumes the data follows a specific probability distribution (usually <em>normal</em>). Examples: <em>t-test</em>, <em>ANOVA</em>, <em>Pearson correlation</em>. More powerful than <em>non-parametric tests</em> when assumptions hold.</p>
+<p><strong>PCA (Principal Component Analysis).</strong> A <em>dimensionality reduction</em> method that finds orthogonal linear combinations of variables (principal components) that capture maximum variance. PC1 captures the most variance, PC2 the next most, and so on.</p>
+<p><strong>PDF (Probability Density Function).</strong> For continuous distributions, the function whose integral over an interval gives the probability of falling in that interval. The height of the curve at a point is not a probability.</p>
+<p><strong>Pearson correlation.</strong> A measure of linear association between two continuous variables. Ranges from -1 (perfect negative) to +1 (perfect positive). Assumes both variables are approximately <em>normally distributed</em>.</p>
+<p><strong>Permutation test.</strong> A non-parametric test that estimates the null distribution by repeatedly shuffling group labels and recomputing the test statistic. The p-value is the proportion of permuted statistics as extreme as the observed. Makes minimal assumptions.</p>
+<p><strong>PMF (Probability Mass Function).</strong> For <em>discrete distributions</em>, the function that gives the probability of each possible value. P(X = k) = pmf(k).</p>
+<p><strong>Posterior distribution.</strong> In <em>Bayesian statistics</em>, the updated distribution of a parameter after observing data. Combines the <em>prior distribution</em> with the likelihood. Posterior is proportional to prior times likelihood.</p>
+<p><strong>Power.</strong> The probability of correctly rejecting the <em>null hypothesis</em> when it is false. Power = 1 - <em>beta</em>. Conventionally set at 0.8 (80%). Depends on sample size, <em>effect size</em>, <em>alpha</em>, and variability.</p>
+<p><strong>Prior distribution.</strong> In <em>Bayesian statistics</em>, the distribution representing beliefs about a parameter before observing data. Can be informative (based on previous studies) or non-informative (vague).</p>
+<p><strong>p-value.</strong> The probability of observing data as extreme as (or more extreme than) what was observed, assuming the <em>null hypothesis</em> is true. It is <em>not</em> the probability that the null hypothesis is true.</p>
+<p><strong>Q-Q plot (Quantile-Quantile plot).</strong> A diagnostic plot that compares the quantiles of observed data to the quantiles of a theoretical distribution (usually <em>normal</em>). Points on the diagonal indicate good fit. Used to check normality and to assess genomic inflation in <em>GWAS</em>.</p>
+<p><strong>Quartile.</strong> Values that divide the data into four equal parts. Q1 (25th percentile), Q2 (50th percentile = <em>median</em>), Q3 (75th percentile). The <em>IQR</em> is Q3 - Q1.</p>
+<p><strong>Randomization.</strong> Random assignment of subjects to treatment groups to ensure that confounding variables are equally distributed across groups. The gold standard for causal inference in clinical trials.</p>
+<p><strong>Relative risk (RR).</strong> The ratio of risk (probability) of an event in the exposed group to risk in the unexposed group. RR = 1 means no association. Reported in cohort studies and clinical trials. Distinct from <em>odds ratio</em>.</p>
+<p><strong>Resampling.</strong> Methods that generate new datasets from the observed data by sampling with or without replacement. Includes <em>bootstrap</em> and <em>permutation</em> methods. Useful when parametric assumptions are questionable.</p>
+<p><strong>Residual.</strong> The difference between an observed value and the value predicted by a model. Patterns in residuals indicate model misspecification. Residual plots are essential diagnostics for <em>regression</em>.</p>
+<p><strong>ROC curve (Receiver Operating Characteristic).</strong> A plot of sensitivity (true positive rate) vs. 1-specificity (false positive rate) at various classification thresholds. The <em>AUC</em> summarizes overall discrimination.</p>
+<p><strong>R-squared (coefficient of determination).</strong> The proportion of variance in the outcome explained by the model. Ranges from 0 to 1. R-squared = 0.7 means the model explains 70% of the variability. Always increases with more predictors; use <em>adjusted R-squared</em> for model comparison.</p>
+<p><strong>Sample size.</strong> The number of observations in a study. Larger samples give more precise estimates and greater <em>power</em>. Sample size calculations use <em>power analysis</em> to determine the minimum n needed for a given <em>effect size</em> and <em>alpha</em>.</p>
+<p><strong>Sensitivity.</strong> The proportion of true positives correctly identified. Sensitivity = TP / (TP + FN). Also called the true positive rate or recall. A test with high sensitivity rarely misses real positives.</p>
+<p><strong>Spearman correlation.</strong> A non-parametric measure of monotonic association. Computed by applying <em>Pearson</em> correlation to the ranks of the data. Does not assume linearity or normality.</p>
+<p><strong>Specificity.</strong> The proportion of true negatives correctly identified. Specificity = TN / (TN + FP). A test with high specificity rarely produces false positives.</p>
+<p><strong>Standard deviation (SD).</strong> The square root of <em>variance</em>. Measures the typical deviation of observations from the <em>mean</em>. Reported in the same units as the data. About 68% of normal data falls within one SD of the mean.</p>
+<p><strong>Standard error (SE).</strong> The <em>standard deviation</em> of a sampling distribution. SE of the mean = SD / sqrt(n). Decreases with larger sample sizes. Used to construct <em>confidence intervals</em>.</p>
+<p><strong>Survival analysis.</strong> Statistical methods for analyzing time-to-event data with censoring. Key tools: <em>Kaplan-Meier</em> estimator, <em>log-rank test</em>, <em>Cox proportional hazards</em> model.</p>
+<p><strong>t-test.</strong> A test for comparing means of two groups. Student’s t-test assumes equal variances; Welch’s t-test does not. For paired observations, use the paired t-test. Assumes approximately <em>normal</em> data or large samples.</p>
+<p><strong>Tukey HSD.</strong> A post-hoc test for all pairwise comparisons after a significant <em>ANOVA</em>. Controls the <em>family-wise error rate</em> across all comparisons. Preferred when comparing all group pairs.</p>
+<p><strong>Type I error.</strong> Rejecting the <em>null hypothesis</em> when it is actually true (false positive). The probability of a Type I error is <em>alpha</em>. In genomics, controlled by <em>multiple testing correction</em>.</p>
+<p><strong>Type II error.</strong> Failing to reject the <em>null hypothesis</em> when it is actually false (false negative). The probability of a Type II error is <em>beta</em>. Reduced by increasing sample size or <em>effect size</em>.</p>
+<p><strong>Variance.</strong> The average squared deviation from the <em>mean</em>. Var = sum((x_i - mean)^2) / (n - 1) for a sample. Measures the spread of a distribution. The square of the <em>standard deviation</em>.</p>
+<p><strong>VIF (Variance Inflation Factor).</strong> A measure of multicollinearity in <em>regression</em>. VIF = 1 means no correlation between predictors; VIF &gt; 5-10 suggests problematic multicollinearity. Computed for each predictor.</p>
+<p><strong>Volcano plot.</strong> A visualization for <em>differential expression</em> showing -log10(p-value) vs. log2(<em>fold change</em>). Significant and biologically meaningful genes appear in the upper left (downregulated) and upper right (upregulated) corners.</p>
+<p><strong>Wilcoxon signed-rank test.</strong> A non-parametric alternative to the <em>paired t-test</em>. Tests whether the median of paired differences is zero. Based on the ranks of the absolute differences.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="appendix-distributions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="appendix-reference.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="appendix-distributions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="appendix-reference.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

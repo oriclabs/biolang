@@ -12,12 +12,12 @@ The pipe operator `|>` is BioLang's core tool for building pipelines. It
 inserts the left-hand value as the first argument to the right-hand function,
 creating readable chains of transformations.
 
-```
+```biolang
 # Single-step pipe
-let reads = read_fastq("sample.fastq.gz")
+let reads = read_fastq("data/reads.fastq")
 
 # Multi-step pipeline via pipe chaining
-let result = read_fastq("sample.fastq.gz")
+let result = read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30)
   |> map(|r| {seq: r.sequence, gc: gc_content(r.sequence)})
   |> sort_by(|a, b| b.gc - a.gc)
@@ -33,9 +33,9 @@ with no special syntax. This is how most BioLang pipelines are written.
 For workflows where intermediate results need names, use sequential `let`
 bindings connected by pipes. Each step is explicit and inspectable.
 
-```
+```biolang
 # FASTQ QC pipeline
-let raw = read_fastq("sample_R1.fastq.gz")
+let raw = read_fastq("data/reads.fastq")
 
 let stats = raw
   |> map(|r| mean_phred(r.quality))
@@ -45,7 +45,7 @@ let total_reads = len(raw)
 println("Reads: " + str(total_reads) + ", Mean Q: " + str(round(avg_quality, 1)))
 
 # Filter and write
-let passed = read_fastq("sample_R1.fastq.gz")
+let passed = read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= 25)
   |> collect()
 
@@ -61,9 +61,9 @@ on it, or feed it into multiple downstream steps.
 BioLang's table operations work naturally in pipe chains for aggregation
 workflows.
 
-```
+```biolang
 # Variant summary pipeline
-let summary = read_vcf("variants.vcf.gz")
+let summary = read_vcf("data/variants.vcf")
   |> filter(|v| v.qual >= 30)
   |> classify_variants()
   |> group_by("type")
@@ -72,7 +72,7 @@ let summary = read_vcf("variants.vcf.gz")
 println(summary)
 
 # Per-chromosome depth analysis
-let depths = read_bed("coverage.bed")
+let depths = read_bed("data/regions.bed")
   |> group_by("chrom")
   |> summarize(|chrom, rows| {chrom: chrom, mean_depth: mean(col(rows, "score"))})
   |> arrange("chrom")
@@ -89,14 +89,14 @@ For larger workflows with named stages, BioLang provides `pipeline` blocks.
 A `pipeline` declares a named workflow. Inside the block you can use `stage`
 declarations to name intermediate results with the arrow (`->`) syntax.
 
-```
+```biolang
 pipeline fastq_qc {
   # stage name -> expression
-  stage raw_stats -> read_fastq("sample_R1.fastq.gz")
+  stage raw_stats -> read_fastq("data/reads.fastq")
     |> map(|r| mean_phred(r.quality))
     |> mean()
 
-  stage filtered -> read_fastq("sample_R1.fastq.gz")
+  stage filtered -> read_fastq("data/reads.fastq")
     |> filter(|r| mean_phred(r.quality) >= 30)
 
   stage write_out -> write_fastq(filtered, "sample_R1.filtered.fastq.gz")
@@ -120,7 +120,7 @@ expression and makes the result available by name to subsequent stages.
 Stage names become bindings that later stages can reference. This creates an
 implicit dependency chain.
 
-```
+```biolang
 pipeline align_and_call {
   stage aligned -> shell("bwa-mem2 mem -t 16 GRCh38.fa sample_R1.fq.gz sample_R2.fq.gz | samtools sort -@ 8 -o aligned.sorted.bam")
 
@@ -128,7 +128,7 @@ pipeline align_and_call {
 
   stage variants -> shell("bcftools mpileup -f GRCh38.fa " + aligned + " | bcftools call -mv -Oz -o variants.vcf.gz")
 
-  stage stats -> read_vcf("variants.vcf.gz")
+  stage stats -> read_vcf("data/variants.vcf")
     |> filter(|v| v.qual >= 30)
     |> classify_variants()
     |> count_by("type")
@@ -147,7 +147,7 @@ A pipeline can accept parameters, turning it into a reusable template. When you
 declare `pipeline name(params) { ... }`, BioLang defines a callable function
 instead of executing immediately.
 
-```
+```biolang
 # Define a reusable alignment template
 pipeline align_sample(sample_id, r1, r2, reference) {
   stage sorted -> shell("bwa-mem2 mem -t 16 " + reference + " " + r1 + " " + r2
@@ -169,7 +169,7 @@ println("Normal BAM: " + normal_bam)
 Parameterized pipelines behave exactly like functions. You can loop over a
 sample list to process a whole cohort:
 
-```
+```biolang
 let samples = [
   {id: "S1", r1: "S1_R1.fq.gz", r2: "S1_R2.fq.gz"},
   {id: "S2", r1: "S2_R1.fq.gz", r2: "S2_R2.fq.gz"},
@@ -187,8 +187,8 @@ println("Aligned " + str(len(bams)) + " samples")
 For data-parallel operations on lists, `par_map` and `par_filter` distribute
 work across available cores.
 
-```
-let sequences = read_fasta("proteins.fasta")
+```biolang
+let sequences = read_fasta("data/sequences.fasta")
 
 # Compute GC content in parallel
 let gc_values = sequences
@@ -207,7 +207,7 @@ For workflows that need to run a block of statements per item, `parallel for`
 fans out iterations. In the current tree-walking interpreter these run
 sequentially; a future bytecode backend will parallelize them.
 
-```
+```biolang
 let samples = [
   {id: "tumor_01", r1: "t01_R1.fq.gz", r2: "t01_R2.fq.gz"},
   {id: "tumor_02", r1: "t02_R1.fq.gz", r2: "t02_R2.fq.gz"},
@@ -229,7 +229,7 @@ The result of a `parallel for` is the value of the last iteration's block.
 The `shell()` builtin executes external commands and returns their stdout as a
 string. This is how BioLang integrates with existing bioinformatics tools.
 
-```
+```biolang
 # Run a single command
 let flagstat = shell("samtools flagstat aligned.bam")
 println(flagstat)
@@ -253,7 +253,7 @@ println("Mean depth: " + str(mean(depths)))
 `defer` registers an expression that runs when the enclosing scope exits,
 whether it succeeds or fails. This keeps intermediate files from piling up.
 
-```
+```biolang
 pipeline trimmed_alignment {
   stage trimmed -> shell("fastp -i sample_R1.fq.gz -I sample_R2.fq.gz -o trimmed_R1.fq.gz -O trimmed_R2.fq.gz")
 
@@ -273,7 +273,7 @@ pipeline trimmed_alignment {
 Wrap pipeline steps in `try`/`catch` to handle failures gracefully without
 aborting the entire workflow.
 
-```
+```biolang
 let samples = ["sample_A", "sample_B", "sample_C"]
 
 let results = samples |> map(|name| {
@@ -299,9 +299,9 @@ to continue past non-critical failures.
 
 A complete quality-control workflow using only pipe composition.
 
-```
+```biolang
 # Read and analyze
-let reads = read_fastq("sample_R1.fastq.gz")
+let reads = read_fastq("data/reads.fastq")
 let qualities = reads |> map(|r| mean_phred(r.quality))
 
 let qc = {
@@ -332,7 +332,7 @@ notify("FASTQ QC complete: " + str(qc.total_reads) + " reads, Q30=" + str(qc.q30
 
 Germline variant calling from FASTQ to filtered VCF using pipeline blocks.
 
-```
+```biolang
 pipeline germline_variants {
   stage aligned -> shell(
     "bwa-mem2 mem -t 16 -R '@RG\\tID:S1\\tSM:sample' GRCh38.fa "
@@ -359,7 +359,7 @@ pipeline germline_variants {
   )
 
   # Analyze the results in BioLang
-  stage summary -> read_vcf("sample.filtered.vcf.gz")
+  stage summary -> read_vcf("data/variants.vcf")
     |> filter(|v| v.filter == "PASS")
     |> classify_variants()
     |> count_by("type")
@@ -372,7 +372,7 @@ println(germline_variants)
 
 Processing a cohort with parameterized pipelines and aggregation.
 
-```
+```biolang
 # Reusable per-sample pipeline
 pipeline process_sample(sample_id, r1, r2) {
   stage bam -> shell(
@@ -393,7 +393,7 @@ pipeline process_sample(sample_id, r1, r2) {
 }
 
 # Load sample manifest
-let manifest = csv("samples.csv")
+let manifest = read_csv("data/sample_sheet.csv")
 
 # Process all samples
 let results = manifest
@@ -430,7 +430,7 @@ slack("Cohort processing complete: " + str(len(passed)) + "/" + str(len(results)
 Pipelines are values. Parameterized pipelines are functions. You can call one
 from another to build layered workflows.
 
-```
+```biolang
 pipeline align_one(sample) {
   stage sorted -> shell(
     "bwa-mem2 mem -t 8 GRCh38.fa " + sample.r1 + " " + sample.r2
@@ -453,7 +453,7 @@ pipeline somatic_pair(tumor, normal) {
     "gatk FilterMutectCalls -V " + called + " -R GRCh38.fa -O somatic.filtered.vcf.gz"
   )
 
-  let variants = read_vcf("somatic.filtered.vcf.gz")
+  let variants = read_vcf("data/variants.vcf")
     |> filter(|v| v.filter == "PASS")
   println("Found " + str(len(variants)) + " somatic variants")
   filtered

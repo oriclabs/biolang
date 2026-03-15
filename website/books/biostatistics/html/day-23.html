@@ -1,0 +1,939 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 23: Resampling — Bootstrap and Permutation Tests - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-23-resampling--bootstrap-and-permutation-tests"><a class="header" href="#day-23-resampling--bootstrap-and-permutation-tests">Day 23: Resampling — Bootstrap and Permutation Tests</a></h1>
+<div class="day-meta">
+<span class="badge">Day 23 of 30</span>
+<span class="badge">Prerequisites: Days 6-8</span>
+<span class="badge">~60 min reading</span>
+<span class="badge">Non-Parametric Inference</span>
+</div>
+
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Your collaborator is studying a rare metabolic disorder. She has tissue samples from 6 affected mice and 6 controls, measuring enzyme activity in each. The treatment group shows higher median enzyme activity, and she wants to know if the difference is real.</p>
+<p>You reach for a t-test, but hesitate. With only 6 observations per group, you cannot meaningfully assess whether the data is normally distributed. A Shapiro-Wilk test on 6 points has almost no power. The Wilcoxon rank-sum test is an option, but with only 6 per group, it can only detect very large effects.</p>
+<p>What if you could test the hypothesis without assuming any distribution at all? What if you could build a confidence interval for any statistic — not just the mean, but the median, the trimmed mean, the ratio of two variances, the 90th percentile — without knowing the population distribution?</p>
+<p>You can. Resampling methods let the data speak for itself, replacing theoretical assumptions with raw computational power. They are among the most broadly applicable tools in statistics, and after today, you will wonder how you ever lived without them.</p>
+<h2 id="what-are-resampling-methods"><a class="header" href="#what-are-resampling-methods">What Are Resampling Methods?</a></h2>
+<p>Resampling methods draw repeated samples from your data to estimate the sampling distribution of a statistic. Instead of deriving a formula for how the mean varies from sample to sample (the classical approach), you literally simulate the process: draw a new sample, compute the statistic, repeat thousands of times, and look at the distribution of results.</p>
+<p>Think of it like this. You have a bag containing 12 marbles (your data). You want to know how variable the “average marble weight” is. The classical approach derives a formula based on the normal distribution. The resampling approach says: shake the bag, pull out 12 marbles (with replacement), weigh them, compute the average. Put them back. Repeat 10,000 times. The distribution of those 10,000 averages tells you everything you need to know — no formula, no assumptions.</p>
+<blockquote>
+<p><strong>Key insight:</strong> Resampling methods trade mathematical assumptions for computational effort. With modern computers, 10,000 resamples takes milliseconds. The only assumption is that your sample is representative of the population — the same assumption underlying all of statistics.</p>
+</blockquote>
+<h2 id="the-bootstrap"><a class="header" href="#the-bootstrap">The Bootstrap</a></h2>
+<p>The bootstrap, invented by Bradley Efron in 1979, is one of the most important ideas in modern statistics. It estimates the sampling distribution of any statistic by resampling with replacement from your data.</p>
+<h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
+<ol>
+<li>You have a sample of n observations.</li>
+<li>Draw a new sample of n observations <strong>with replacement</strong> from your original data. Some observations will appear multiple times; some will not appear at all.</li>
+<li>Compute your statistic of interest (mean, median, standard deviation, correlation, whatever) on this bootstrap sample.</li>
+<li>Repeat steps 2-3 many times (typically 10,000).</li>
+<li>The distribution of the computed statistics is the <strong>bootstrap distribution</strong>. It approximates the sampling distribution of your statistic.</li>
+</ol>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="360" viewbox="0 0 680 360" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Bootstrap Resampling: How It Works</text>
+  <!-- Original dataset -->
+  <rect x="20" y="50" width="150" height="130" rx="6" fill="white" stroke="#2563eb" stroke-width="1.5" />
+  <text x="95" y="70" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Original Data (n=8)</text>
+  <g font-size="14" fill="#1e293b" text-anchor="middle">
+    <text x="50" y="95">3.8</text><text x="95" y="95">4.2</text><text x="140" y="95">4.9</text>
+    <text x="50" y="118">5.1</text><text x="95" y="118">5.5</text><text x="140" y="118">5.8</text>
+    <text x="50" y="141">6.3</text><text x="95" y="141">4.7</text>
+  </g>
+  <text x="95" y="172" text-anchor="middle" font-size="11" fill="#6b7280">Sample with replacement</text>
+  <!-- Arrow -->
+<p><text x="192" y="115" font-size="24" fill="#9ca3af">→</text></p>
+  <!-- Bootstrap samples -->
+  <rect x="215" y="45" width="130" height="75" rx="5" fill="white" stroke="#3b82f6" />
+  <text x="280" y="62" text-anchor="middle" font-size="10" font-weight="bold" fill="#3b82f6">Bootstrap #1</text>
+  <text x="280" y="80" text-anchor="middle" font-size="11" fill="#1e293b">4.2 5.1 4.2 6.3</text>
+  <text x="280" y="96" text-anchor="middle" font-size="11" fill="#1e293b">5.5 3.8 5.1 4.9</text>
+  <text x="280" y="112" text-anchor="middle" font-size="10" fill="#7c3aed">median = 5.0</text>
+  <rect x="215" y="128" width="130" height="75" rx="5" fill="white" stroke="#3b82f6" />
+  <text x="280" y="145" text-anchor="middle" font-size="10" font-weight="bold" fill="#3b82f6">Bootstrap #2</text>
+  <text x="280" y="163" text-anchor="middle" font-size="11" fill="#1e293b">5.8 5.8 3.8 4.7</text>
+  <text x="280" y="179" text-anchor="middle" font-size="11" fill="#1e293b">6.3 4.9 5.5 6.3</text>
+  <text x="280" y="195" text-anchor="middle" font-size="10" fill="#7c3aed">median = 5.35</text>
+  <rect x="215" y="211" width="130" height="75" rx="5" fill="white" stroke="#3b82f6" />
+  <text x="280" y="228" text-anchor="middle" font-size="10" font-weight="bold" fill="#3b82f6">Bootstrap #10000</text>
+  <text x="280" y="246" text-anchor="middle" font-size="11" fill="#1e293b">4.7 5.1 4.2 5.5</text>
+  <text x="280" y="262" text-anchor="middle" font-size="11" fill="#1e293b">4.2 3.8 5.8 4.9</text>
+  <text x="280" y="278" text-anchor="middle" font-size="10" fill="#7c3aed">median = 4.8</text>
+  <!-- Dots between samples -->
+<p><text x="280" y="299" text-anchor="middle" font-size="14" fill="#9ca3af">…</text></p>
+  <!-- Arrow to distribution -->
+<p><text x="365" y="165" font-size="24" fill="#9ca3af">→</text></p>
+  <!-- Bootstrap distribution -->
+  <rect x="395" y="50" width="270" height="260" rx="6" fill="white" stroke="#7c3aed" stroke-width="1.5" />
+  <text x="530" y="70" text-anchor="middle" font-size="12" font-weight="bold" fill="#7c3aed">Bootstrap Distribution</text>
+  <!-- Histogram bars approximating a bell shape -->
+  <rect x="420" y="230" width="18" height="15" rx="1" fill="#93c5fd" opacity="0.7" />
+  <rect x="440" y="215" width="18" height="30" rx="1" fill="#93c5fd" opacity="0.7" />
+  <rect x="460" y="190" width="18" height="55" rx="1" fill="#93c5fd" opacity="0.7" />
+  <rect x="480" y="155" width="18" height="90" rx="1" fill="#93c5fd" opacity="0.7" />
+  <rect x="500" y="120" width="18" height="125" rx="1" fill="#3b82f6" opacity="0.7" />
+  <rect x="520" y="105" width="18" height="140" rx="1" fill="#3b82f6" opacity="0.7" />
+  <rect x="540" y="115" width="18" height="130" rx="1" fill="#3b82f6" opacity="0.7" />
+  <rect x="560" y="150" width="18" height="95" rx="1" fill="#93c5fd" opacity="0.7" />
+  <rect x="580" y="185" width="18" height="60" rx="1" fill="#93c5fd" opacity="0.7" />
+  <rect x="600" y="210" width="18" height="35" rx="1" fill="#93c5fd" opacity="0.7" />
+  <rect x="620" y="228" width="18" height="17" rx="1" fill="#93c5fd" opacity="0.7" />
+  <!-- Axis -->
+  <line x1="415" y1="245" x2="645" y2="245" stroke="#9ca3af" stroke-width="1" />
+  <text x="530" y="262" text-anchor="middle" font-size="11" fill="#6b7280">Bootstrap Median Values</text>
+  <!-- CI markers -->
+  <line x1="448" y1="248" x2="448" y2="280" stroke="#dc2626" stroke-width="2" />
+  <line x1="610" y1="248" x2="610" y2="280" stroke="#dc2626" stroke-width="2" />
+  <line x1="448" y1="275" x2="610" y2="275" stroke="#dc2626" stroke-width="1.5" />
+  <text x="529" y="292" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">95% Confidence Interval</text>
+  <text x="448" y="298" text-anchor="middle" font-size="10" fill="#dc2626">2.5th %ile</text>
+  <text x="610" y="298" text-anchor="middle" font-size="10" fill="#dc2626">97.5th %ile</text>
+  <!-- Note about repeated values -->
+  <rect x="15" y="325" width="650" height="25" rx="4" fill="#f1f5f9" />
+  <text x="340" y="342" text-anchor="middle" font-size="11" fill="#6b7280">Note: some values repeat (4.2 appears twice in #1) and some are missing -- this is sampling with replacement</text>
+</svg>
+</div>
+
+<h3 id="bootstrap-confidence-intervals"><a class="header" href="#bootstrap-confidence-intervals">Bootstrap Confidence Intervals</a></h3>
+<p>The simplest bootstrap CI uses percentiles. For a 95% CI, take the 2.5th and 97.5th percentiles of the bootstrap distribution.</p>
+<pre><code class="language-bio">set_seed(42)
+# Enzyme activity in 6 treatment mice
+let treatment = [4.2, 5.1, 3.8, 6.3, 4.9, 5.5]
+
+# Bootstrap 95% CI for the median
+let n_boot = 10000
+let boot_medians = []
+for i in 0..n_boot {
+  let resample = seq(1, length(treatment))
+    |&gt; map(|_| treatment[random_int(0, length(treatment) - 1)])
+  boot_medians = boot_medians + [median(resample)]
+}
+let ci_lower = quantile(boot_medians, 0.025)
+let ci_upper = quantile(boot_medians, 0.975)
+
+print("Observed median: " + str(median(treatment)))
+print("Bootstrap 95% CI: [" +
+  str(round(ci_lower, 2)) + ", " +
+  str(round(ci_upper, 2)) + "]")
+
+# Visualize the bootstrap distribution
+histogram(boot_medians, {bins: 50,
+  title: "Bootstrap Distribution of Median Enzyme Activity"})
+</code></pre>
+<h3 id="why-replacement-matters"><a class="header" href="#why-replacement-matters">Why Replacement Matters</a></h3>
+<p>Drawing with replacement is what makes the bootstrap work. Each bootstrap sample is a plausible alternative dataset — a dataset you might have obtained if you had re-run the experiment. By computing your statistic on thousands of these alternative datasets, you learn how much the statistic would vary from experiment to experiment.</p>
+<p>Without replacement, you would just get your original data back (in a different order), and the statistic would never change.</p>
+<h3 id="bootstrap-for-any-statistic"><a class="header" href="#bootstrap-for-any-statistic">Bootstrap for Any Statistic</a></h3>
+<p>The beauty of the bootstrap is its universality. Classical formulas for confidence intervals exist for means, proportions, and a few other well-behaved statistics. But what about the median? The inter-quartile range? The ratio of two means? The coefficient of variation? The 95th percentile? For most of these, no clean formula exists. The bootstrap handles them all identically.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Statistic</th><th>Classical CI formula?</th><th>Bootstrap works?</th></tr>
+</thead>
+<tbody>
+<tr><td>Mean</td><td>Yes (t-interval)</td><td>Yes</td></tr>
+<tr><td>Median</td><td>Complicated, approximate</td><td>Yes</td></tr>
+<tr><td>Standard deviation</td><td>Approximate (chi-square)</td><td>Yes</td></tr>
+<tr><td>Correlation</td><td>Fisher z-transform</td><td>Yes</td></tr>
+<tr><td>Ratio of means</td><td>No simple formula</td><td>Yes</td></tr>
+<tr><td>90th percentile</td><td>No simple formula</td><td>Yes</td></tr>
+<tr><td>Difference in medians</td><td>No simple formula</td><td>Yes</td></tr>
+<tr><td>Any custom function</td><td>Almost never</td><td>Yes</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bio">set_seed(42)
+# Bootstrap CI for the coefficient of variation
+let data = [4.2, 5.1, 3.8, 6.3, 4.9, 5.5, 4.7, 5.8]
+
+let n_boot = 10000
+let boot_cvs = []
+for i in 0..n_boot {
+  let resample = seq(1, length(data))
+    |&gt; map(|_| data[random_int(0, length(data) - 1)])
+  boot_cvs = boot_cvs + [stdev(resample) / mean(resample)]
+}
+
+print("CV: " + str(round(stdev(data) / mean(data), 3)))
+print("95% CI: [" + str(round(quantile(boot_cvs, 0.025), 3)) + ", " +
+  str(round(quantile(boot_cvs, 0.975), 3)) + "]")
+</code></pre>
+<h3 id="bootstrap-hypothesis-testing"><a class="header" href="#bootstrap-hypothesis-testing">Bootstrap Hypothesis Testing</a></h3>
+<p>You can also use the bootstrap for hypothesis testing. To test whether the mean of a population is equal to some value mu_0:</p>
+<ol>
+<li>Shift your data so that its mean equals mu_0 (subtract the difference).</li>
+<li>Bootstrap from the shifted data.</li>
+<li>Compute the statistic on each bootstrap sample.</li>
+<li>The p-value is the proportion of bootstrap statistics as extreme as or more extreme than your observed statistic.</li>
+</ol>
+<pre><code class="language-bio">set_seed(42)
+# Bootstrap test: is the mean enzyme activity &gt; 4.0?
+let observed_mean = mean(treatment)
+let shifted = treatment |&gt; map(|x| x - (observed_mean - 4.0))
+
+let boot_means = []
+for i in 0..10000 {
+  let resample = seq(1, length(shifted))
+    |&gt; map(|_| shifted[random_int(0, length(shifted) - 1)])
+  boot_means = boot_means + [mean(resample)]
+}
+let p_value = boot_means
+  |&gt; filter(|x| x &gt;= observed_mean)
+  |&gt; length() / 10000
+
+print("Observed mean: " + str(round(observed_mean, 2)))
+print("Bootstrap p-value (H0: mu = 4.0): " + str(round(p_value, 4)))
+</code></pre>
+<blockquote>
+<p><strong>Common pitfall:</strong> The bootstrap is not magic. It cannot create information that is not in your data. With only 6 observations, the bootstrap distribution is limited to combinations of those 6 values. The bootstrap CI will be approximate, and it underestimates uncertainty when n is very small (say, n &lt; 10). It works best when n is moderate to large.</p>
+</blockquote>
+<h2 id="the-permutation-test"><a class="header" href="#the-permutation-test">The Permutation Test</a></h2>
+<p>The permutation test directly addresses the question: “Could the observed difference between groups have arisen by chance?” It does so by exhaustively (or approximately) considering all possible ways to assign labels to the data.</p>
+<h3 id="how-it-works-1"><a class="header" href="#how-it-works-1">How It Works</a></h3>
+<ol>
+<li>Compute the test statistic (e.g., difference in means) for the observed data.</li>
+<li><strong>Shuffle</strong> the group labels randomly, keeping the data values fixed.</li>
+<li>Recompute the test statistic on the shuffled data.</li>
+<li>Repeat steps 2-3 many times (10,000 or more).</li>
+<li>The p-value is the proportion of shuffled statistics as extreme as or more extreme than the observed one.</li>
+</ol>
+<p>The logic is simple: if group membership does not matter (the null hypothesis), then shuffling labels should produce similar statistics. If the observed statistic is far from what shuffling produces, the group difference is real.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="380" viewbox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Permutation Test: Shuffling Labels Under the Null</text>
+  <!-- Original data -->
+  <rect x="20" y="48" width="190" height="120" rx="6" fill="white" stroke="#2563eb" stroke-width="1.5" />
+  <text x="115" y="68" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Original Data</text>
+  <text x="65" y="88" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">Treatment</text>
+  <text x="160" y="88" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">Control</text>
+  <g font-size="12" fill="#1e293b">
+    <text x="65" y="108" text-anchor="middle">4.2, 5.1</text>
+    <text x="65" y="124" text-anchor="middle">3.8, 6.3</text>
+    <text x="65" y="140" text-anchor="middle">4.9, 5.5</text>
+    <text x="160" y="108" text-anchor="middle">3.1, 2.8</text>
+    <text x="160" y="124" text-anchor="middle">3.5, 3.2</text>
+    <text x="160" y="140" text-anchor="middle">2.9, 3.6</text>
+  </g>
+  <text x="115" y="162" text-anchor="middle" font-size="11" fill="#7c3aed" font-weight="bold">diff = 1.80</text>
+  <!-- Shuffle arrow -->
+  <g transform="translate(225, 85)">
+    <text x="20" y="15" font-size="11" fill="#6b7280">Shuffle</text>
+    <text x="20" y="30" font-size="11" fill="#6b7280">labels</text>
+    <text x="20" y="50" font-size="22" fill="#9ca3af">→</text>
+  </g>
+  <!-- Shuffled example -->
+  <rect x="280" y="48" width="190" height="120" rx="6" fill="white" stroke="#9ca3af" stroke-width="1.5" />
+  <text x="375" y="68" text-anchor="middle" font-size="12" font-weight="bold" fill="#9ca3af">Shuffled Labels</text>
+  <text x="325" y="88" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">"Treatment"</text>
+  <text x="425" y="88" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">"Control"</text>
+  <g font-size="12" fill="#1e293b">
+    <text x="325" y="108" text-anchor="middle">3.1, 5.1</text>
+    <text x="325" y="124" text-anchor="middle">4.9, 3.2</text>
+    <text x="325" y="140" text-anchor="middle">6.3, 2.8</text>
+    <text x="425" y="108" text-anchor="middle">4.2, 3.5</text>
+    <text x="425" y="124" text-anchor="middle">5.5, 2.9</text>
+    <text x="425" y="140" text-anchor="middle">3.8, 3.6</text>
+  </g>
+  <text x="375" y="162" text-anchor="middle" font-size="11" fill="#9ca3af">diff = 0.37</text>
+  <!-- Repeat arrow -->
+<p><text x="485" y="110" font-size="14" fill="#9ca3af">Repeat</text>
+<text x="485" y="128" font-size="14" fill="#9ca3af">10,000x</text>
+<text x="510" y="148" font-size="22" fill="#9ca3af">→</text></p>
+  <!-- Null distribution -->
+  <rect x="540" y="48" width="128" height="130" rx="6" fill="white" stroke="#7c3aed" stroke-width="1.5" />
+  <text x="604" y="68" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c3aed">Null Distribution</text>
+  <!-- Mini histogram -->
+  <rect x="555" y="135" width="8" height="10" fill="#93c5fd" opacity="0.6" />
+  <rect x="565" y="125" width="8" height="20" fill="#93c5fd" opacity="0.6" />
+  <rect x="575" y="105" width="8" height="40" fill="#93c5fd" opacity="0.6" />
+  <rect x="585" y="85" width="8" height="60" fill="#93c5fd" opacity="0.6" />
+  <rect x="595" y="80" width="8" height="65" fill="#93c5fd" opacity="0.6" />
+  <rect x="605" y="88" width="8" height="57" fill="#93c5fd" opacity="0.6" />
+  <rect x="615" y="108" width="8" height="37" fill="#93c5fd" opacity="0.6" />
+  <rect x="625" y="122" width="8" height="23" fill="#93c5fd" opacity="0.6" />
+  <rect x="635" y="132" width="8" height="13" fill="#93c5fd" opacity="0.6" />
+  <line x1="553" y1="145" x2="648" y2="145" stroke="#9ca3af" stroke-width="1" />
+  <!-- Observed mark -->
+  <line x1="650" y1="75" x2="650" y2="150" stroke="#dc2626" stroke-width="2.5" />
+  <text x="650" y="166" text-anchor="middle" font-size="9" font-weight="bold" fill="#dc2626">Observed</text>
+  <text x="650" y="176" text-anchor="middle" font-size="9" fill="#dc2626">(1.80)</text>
+  <!-- Bottom explanation: p-value -->
+  <rect x="20" y="195" width="645" height="45" rx="6" fill="#f0f9ff" stroke="#93c5fd" />
+  <text x="340" y="215" text-anchor="middle" font-size="12" fill="#1e293b">
+    <tspan font-weight="bold">p-value</tspan> = fraction of shuffled differences as extreme as observed = (count where |diff| &gt;= 1.80) / 10,000</text>
+  <text x="340" y="233" text-anchor="middle" font-size="11" fill="#6b7280">If very few shuffled values are this extreme, the group difference is unlikely due to chance.</text>
+  <!-- K-fold CV section -->
+<p><text x="340" y="270" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">5-Fold Cross-Validation</text></p>
+  <!-- Fold visualization: 5 rows, each with 5 segments, one highlighted as test -->
+  <g transform="translate(90, 280)">
+    <!-- Row labels -->
+    <text x="-10" y="13" text-anchor="end" font-size="10" fill="#6b7280">Fold 1</text>
+    <text x="-10" y="30" text-anchor="end" font-size="10" fill="#6b7280">Fold 2</text>
+    <text x="-10" y="47" text-anchor="end" font-size="10" fill="#6b7280">Fold 3</text>
+    <text x="-10" y="64" text-anchor="end" font-size="10" fill="#6b7280">Fold 4</text>
+    <text x="-10" y="81" text-anchor="end" font-size="10" fill="#6b7280">Fold 5</text>
+    <!-- Fold 1 -->
+    <rect x="0" y="2" width="95" height="14" rx="2" fill="#dc2626" opacity="0.7" />
+    <rect x="98" y="2" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="196" y="2" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="294" y="2" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="392" y="2" width="95" height="14" rx="2" fill="#93c5fd" />
+    <!-- Fold 2 -->
+    <rect x="0" y="19" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="98" y="19" width="95" height="14" rx="2" fill="#dc2626" opacity="0.7" />
+    <rect x="196" y="19" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="294" y="19" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="392" y="19" width="95" height="14" rx="2" fill="#93c5fd" />
+    <!-- Fold 3 -->
+    <rect x="0" y="36" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="98" y="36" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="196" y="36" width="95" height="14" rx="2" fill="#dc2626" opacity="0.7" />
+    <rect x="294" y="36" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="392" y="36" width="95" height="14" rx="2" fill="#93c5fd" />
+    <!-- Fold 4 -->
+    <rect x="0" y="53" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="98" y="53" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="196" y="53" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="294" y="53" width="95" height="14" rx="2" fill="#dc2626" opacity="0.7" />
+    <rect x="392" y="53" width="95" height="14" rx="2" fill="#93c5fd" />
+    <!-- Fold 5 -->
+    <rect x="0" y="70" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="98" y="70" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="196" y="70" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="294" y="70" width="95" height="14" rx="2" fill="#93c5fd" />
+    <rect x="392" y="70" width="95" height="14" rx="2" fill="#dc2626" opacity="0.7" />
+    <!-- Legend -->
+    <rect x="500" y="25" width="12" height="12" rx="2" fill="#dc2626" opacity="0.7" />
+    <text x="518" y="35" font-size="10" fill="#6b7280">Test set</text>
+    <rect x="500" y="45" width="12" height="12" rx="2" fill="#93c5fd" />
+    <text x="518" y="55" font-size="10" fill="#6b7280">Training set</text>
+  </g>
+</svg>
+</div>
+
+<pre><code class="language-bio">set_seed(42)
+# Treatment vs control enzyme activity
+let treatment = [4.2, 5.1, 3.8, 6.3, 4.9, 5.5]
+let control = [3.1, 2.8, 3.5, 3.2, 2.9, 3.6]
+
+# Permutation test for difference in means
+let observed_diff = mean(treatment) - mean(control)
+let combined = treatment + control
+let n_perm = 10000
+let null_diffs = []
+
+for i in 0..n_perm {
+  let shuffled = shuffle(combined)
+  let perm_diff = mean(shuffled |&gt; take(6)) - mean(shuffled |&gt; drop(6))
+  null_diffs = null_diffs + [perm_diff]
+}
+
+let p_value = null_diffs
+  |&gt; filter(|d| abs(d) &gt;= abs(observed_diff))
+  |&gt; length() / n_perm
+
+print("Observed difference: " + str(round(observed_diff, 3)))
+print("Permutation p-value: " + str(round(p_value, 4)))
+
+# Visualize the null distribution
+histogram(null_diffs, {bins: 50,
+  title: "Permutation Null Distribution"})
+</code></pre>
+<h3 id="permutation-vs-bootstrap"><a class="header" href="#permutation-vs-bootstrap">Permutation vs Bootstrap</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>Bootstrap</th><th>Permutation Test</th></tr>
+</thead>
+<tbody>
+<tr><td>Primary use</td><td>Confidence intervals</td><td>Hypothesis testing</td></tr>
+<tr><td>Resamples from</td><td>One group (with replacement)</td><td>Combined data (without replacement, shuffling labels)</td></tr>
+<tr><td>Tests</td><td>Any statistic; H0: parameter = value</td><td>Two-group (or multi-group) comparisons</td></tr>
+<tr><td>Null distribution</td><td>Centered at observed statistic</td><td>Centered at zero difference</td></tr>
+<tr><td>Assumptions</td><td>Sample is representative</td><td>Exchangeability under H0</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> Use the bootstrap when you want a confidence interval. Use the permutation test when you want a p-value comparing groups. They are complementary, not competing methods.</p>
+</blockquote>
+<h3 id="exact-permutation-tests"><a class="header" href="#exact-permutation-tests">Exact Permutation Tests</a></h3>
+<p>With small samples, you can enumerate all possible permutations. For 6 treatment and 6 control observations, there are C(12, 6) = 924 possible label assignments. You can compute the test statistic for every one and get an exact p-value.</p>
+<pre><code class="language-bio"># Exact permutation test (small sample)
+# With 6+6 = 12 observations, there are C(12,6) = 924 permutations
+# We can enumerate all of them for an exact p-value
+# (In practice, use the randomized version above for larger datasets)
+print("Exact permutation: enumerate all 924 label assignments")
+print("This gives exact p-values for small samples")
+</code></pre>
+<h2 id="cross-validation"><a class="header" href="#cross-validation">Cross-Validation</a></h2>
+<p>Cross-validation is a resampling method for evaluating predictive models. Instead of testing a model on the same data it was trained on (which overestimates performance), you repeatedly hold out a portion of the data for testing.</p>
+<h3 id="k-fold-cross-validation"><a class="header" href="#k-fold-cross-validation">K-Fold Cross-Validation</a></h3>
+<ol>
+<li>Divide the data into k equally-sized folds.</li>
+<li>For each fold: train the model on the other k-1 folds, predict on the held-out fold, record the error.</li>
+<li>Average the errors across all k folds.</li>
+</ol>
+<p>Common choices: k = 5 or k = 10. Leave-one-out cross-validation (LOOCV) uses k = n.</p>
+<pre><code class="language-bio">set_seed(42)
+# Generate data with a true linear relationship
+let x = seq(1, 100) |&gt; take(50)
+let y = x |&gt; map(|xi| 2.5 * xi + 10 + rnorm(1, 0, 15)[0])
+
+# 5-fold cross-validation for linear regression
+let k = 5
+let fold_size = length(x) / k
+let fold_errors = []
+
+for f in 0..k {
+  let test_idx = seq(f * fold_size, (f + 1) * fold_size - 1)
+  let train_x = []
+  let train_y = []
+  let test_x = []
+  let test_y = []
+  for i in 0..length(x) {
+    if i &gt;= f * fold_size &amp;&amp; i &lt; (f + 1) * fold_size {
+      test_x = test_x + [x[i]]
+      test_y = test_y + [y[i]]
+    } else {
+      train_x = train_x + [x[i]]
+      train_y = train_y + [y[i]]
+    }
+  }
+  let model = lm(train_y, train_x)
+  let preds = test_x |&gt; map(|xi| model.intercept + model.slope * xi)
+  let mse = mean(zip(preds, test_y) |&gt; map(|p| (p[0] - p[1]) * (p[0] - p[1])))
+  fold_errors = fold_errors + [mse]
+}
+
+print("Mean squared error per fold: " + str(fold_errors))
+print("Average MSE: " + str(round(mean(fold_errors), 2)))
+print("Standard deviation of MSE: " + str(round(stdev(fold_errors), 2)))
+</code></pre>
+<h3 id="why-cross-validation-matters-in-genomics"><a class="header" href="#why-cross-validation-matters-in-genomics">Why Cross-Validation Matters in Genomics</a></h3>
+<p>In genomics, overfitting is pervasive. A model trained on 20,000 gene expression features and 100 samples can easily memorize the training data while learning nothing generalizable. Cross-validation reveals this: if training accuracy is 99% but cross-validated accuracy is 52%, the model is memorizing, not learning.</p>
+<blockquote>
+<p><strong>Clinical relevance:</strong> Gene expression classifiers for cancer prognosis (like MammaPrint or Oncotype DX) must be validated on independent cohorts. Cross-validation provides an estimate of out-of-sample performance during development, but ultimate validation requires truly independent datasets.</p>
+</blockquote>
+<h2 id="the-jackknife"><a class="header" href="#the-jackknife">The Jackknife</a></h2>
+<p>The jackknife (predating the bootstrap by two decades) is a leave-one-out resampling method. It computes the statistic n times, each time leaving out one observation. The variation among these n estimates quantifies uncertainty.</p>
+<pre><code class="language-bio"># Jackknife estimate of standard error for the median
+let data = [4.2, 5.1, 3.8, 6.3, 4.9, 5.5, 4.7, 5.8]
+let n = length(data)
+let full_stat = median(data)
+
+let jk_estimates = []
+for i in 0..n {
+  let subset = data |&gt; filter_index(|j, _| j != i)
+  jk_estimates = jk_estimates + [median(subset)]
+}
+
+let jk_mean = mean(jk_estimates)
+let jk_bias = (n - 1) * (jk_mean - full_stat)
+let jk_se = sqrt((n - 1) / n * sum(jk_estimates |&gt; map(|x| (x - jk_mean) * (x - jk_mean))))
+
+print("Jackknife estimate: " + str(round(full_stat, 3)))
+print("Jackknife SE: " + str(round(jk_se, 3)))
+print("Jackknife bias: " + str(round(jk_bias, 4)))
+</code></pre>
+<p>The jackknife is less versatile than the bootstrap but useful for bias estimation and influence analysis (which observation has the most impact on the statistic?).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Resamples</th><th>With replacement</th><th>Primary use</th></tr>
+</thead>
+<tbody>
+<tr><td>Bootstrap</td><td>10,000+ random</td><td>Yes</td><td>CIs for any statistic</td></tr>
+<tr><td>Permutation</td><td>10,000+ shuffled</td><td>No (labels shuffled)</td><td>Hypothesis testing</td></tr>
+<tr><td>Cross-validation</td><td>k folds</td><td>No (systematic split)</td><td>Model evaluation</td></tr>
+<tr><td>Jackknife</td><td>n leave-one-out</td><td>No</td><td>Bias, SE, influence</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="when-to-use-resampling"><a class="header" href="#when-to-use-resampling">When to Use Resampling</a></h2>
+<p>Resampling methods are appropriate when:</p>
+<ul>
+<li><strong>Sample size is small</strong> and normality cannot be verified</li>
+<li><strong>The statistic has no known distribution</strong> (median, ratio, custom function)</li>
+<li><strong>You want to avoid distributional assumptions</strong> entirely</li>
+<li><strong>Classical methods are unavailable</strong> for your specific analysis</li>
+<li><strong>You want a second opinion</strong> — bootstrap CIs should roughly agree with parametric CIs when assumptions hold</li>
+</ul>
+<p>Resampling methods are less appropriate when:</p>
+<ul>
+<li><strong>The sample is very small</strong> (n &lt; 5): too few unique bootstrap samples</li>
+<li><strong>The data has complex structure</strong> (time series, spatial): naive resampling breaks the structure</li>
+<li><strong>Computational cost matters</strong>: millions of bootstraps on large datasets can be slow</li>
+<li><strong>A well-validated parametric method exists</strong> and assumptions are met: the parametric method will be more efficient (tighter CIs for the same sample size)</li>
+</ul>
+<h2 id="resampling-in-biolang--complete-pipeline"><a class="header" href="#resampling-in-biolang--complete-pipeline">Resampling in BioLang — Complete Pipeline</a></h2>
+<pre><code class="language-bio">set_seed(42)
+# Mouse experiment: enzyme activity
+let treatment = [4.2, 5.1, 3.8, 6.3, 4.9, 5.5]
+let control = [3.1, 2.8, 3.5, 3.2, 2.9, 3.6]
+
+# Helper: bootstrap a statistic from a list
+fn boot_ci(data, stat_fn, n_boot) {
+  let samples = []
+  for i in 0..n_boot {
+    let resample = seq(1, length(data))
+      |&gt; map(|_| data[random_int(0, length(data) - 1)])
+    samples = samples + [stat_fn(resample)]
+  }
+  {lower: quantile(samples, 0.025), upper: quantile(samples, 0.975), dist: samples}
+}
+
+# ============================================
+# 1. Bootstrap CI for median in each group
+# ============================================
+let boot_treat = boot_ci(treatment, median, 10000)
+let boot_ctrl = boot_ci(control, median, 10000)
+
+print("=== Bootstrap CIs for Median ===")
+print("Treatment: " + str(round(median(treatment), 2)) +
+  " [" + str(round(boot_treat.lower, 2)) + ", " +
+  str(round(boot_treat.upper, 2)) + "]")
+print("Control: " + str(round(median(control), 2)) +
+  " [" + str(round(boot_ctrl.lower, 2)) + ", " +
+  str(round(boot_ctrl.upper, 2)) + "]")
+
+# ============================================
+# 2. Bootstrap CI for difference in medians
+# ============================================
+let boot_diffs = []
+for i in 0..10000 {
+  let res_t = seq(1, 6) |&gt; map(|_| treatment[random_int(0, 5)])
+  let res_c = seq(1, 6) |&gt; map(|_| control[random_int(0, 5)])
+  boot_diffs = boot_diffs + [median(res_t) - median(res_c)]
+}
+
+print("\n=== Bootstrap CI for Median Difference ===")
+print("Difference: " + str(round(median(treatment) - median(control), 2)))
+print("95% CI: [" + str(round(quantile(boot_diffs, 0.025), 2)) + ", " +
+  str(round(quantile(boot_diffs, 0.975), 2)) + "]")
+
+# ============================================
+# 3. Permutation test
+# ============================================
+let obs_diff = mean(treatment) - mean(control)
+let combined = treatment + control
+let null_diffs = []
+for i in 0..10000 {
+  let s = shuffle(combined)
+  null_diffs = null_diffs + [mean(s |&gt; take(6)) - mean(s |&gt; drop(6))]
+}
+let perm_p = null_diffs |&gt; filter(|d| abs(d) &gt;= abs(obs_diff)) |&gt; length() / 10000
+
+print("\n=== Permutation Test ===")
+print("Observed mean diff: " + str(round(obs_diff, 3)))
+print("Permutation p-value: " + str(round(perm_p, 4)))
+
+# Compare to Welch t-test
+let tt = ttest(treatment, control)
+print("Welch t-test p-value: " + str(round(tt.p_value, 4)))
+
+# Visualize the null distribution
+histogram(null_diffs, {bins: 50,
+  title: "Permutation Null vs Observed"})
+
+# ============================================
+# 4. Cross-validate a regression model
+# ============================================
+let gene_expr = seq(1, 100) |&gt; take(40)
+let drug_response = gene_expr |&gt; map(|x| -0.5 * x + 80 + rnorm(1, 0, 10)[0])
+
+let k = 5
+let fold_size = length(gene_expr) / k
+let fold_errors = []
+for f in 0..k {
+  let train_x = []
+  let train_y = []
+  let test_x = []
+  let test_y = []
+  for j in 0..length(gene_expr) {
+    if j &gt;= f * fold_size &amp;&amp; j &lt; (f + 1) * fold_size {
+      test_x = test_x + [gene_expr[j]]
+      test_y = test_y + [drug_response[j]]
+    } else {
+      train_x = train_x + [gene_expr[j]]
+      train_y = train_y + [drug_response[j]]
+    }
+  }
+  let model = lm(train_y, train_x)
+  let preds = test_x |&gt; map(|xi| model.intercept + model.slope * xi)
+  let mse = mean(zip(preds, test_y) |&gt; map(|p| (p[0] - p[1]) * (p[0] - p[1])))
+  fold_errors = fold_errors + [mse]
+}
+
+print("\n=== Cross-Validation ===")
+print("5-fold CV MSE: " + str(round(mean(fold_errors), 2)) +
+  " +/- " + str(round(stdev(fold_errors), 2)))
+
+# ============================================
+# 5. Compare bootstrap vs parametric CI
+# ============================================
+let boot_means = boot_ci(treatment, mean, 10000)
+let t_ci = ttest_one(treatment, 0)
+
+print("\n=== Bootstrap vs Parametric CI for Mean ===")
+print("Bootstrap 95% CI: [" + str(round(boot_means.lower, 2)) +
+  ", " + str(round(boot_means.upper, 2)) + "]")
+print("t-based 95% CI:   [" + str(round(t_ci.ci_lower, 2)) +
+  ", " + str(round(t_ci.ci_upper, 2)) + "]")
+
+# ============================================
+# 6. Jackknife for influence detection
+# ============================================
+let n = length(treatment)
+let jk_estimates = []
+for i in 0..n {
+  let subset = treatment |&gt; filter_index(|j, _| j != i)
+  jk_estimates = jk_estimates + [mean(subset)]
+}
+print("\n=== Jackknife ===")
+print("Leave-one-out estimates:")
+for i in 0..n {
+  print("  Without obs " + str(i+1) + ": " +
+    str(round(jk_estimates[i], 3)))
+}
+let max_diff = 0
+let max_idx = 0
+for i in 0..n {
+  let d = abs(jk_estimates[i] - mean(treatment))
+  if d &gt; max_diff { max_diff = d; max_idx = i }
+}
+print("Most influential observation: " + str(max_idx + 1))
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">import numpy as np
+from scipy import stats
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LinearRegression
+from sklearn.utils import resample
+
+# Bootstrap CI for median
+np.random.seed(42)
+treatment = np.array([4.2, 5.1, 3.8, 6.3, 4.9, 5.5])
+boot_medians = [np.median(resample(treatment)) for _ in range(10000)]
+ci = np.percentile(boot_medians, [2.5, 97.5])
+print(f"Bootstrap 95% CI for median: [{ci[0]:.2f}, {ci[1]:.2f}]")
+
+# Permutation test
+control = np.array([3.1, 2.8, 3.5, 3.2, 2.9, 3.6])
+observed = treatment.mean() - control.mean()
+combined = np.concatenate([treatment, control])
+null_dist = []
+for _ in range(10000):
+    np.random.shuffle(combined)
+    null_dist.append(combined[:6].mean() - combined[6:].mean())
+p_value = np.mean(np.abs(null_dist) &gt;= np.abs(observed))
+
+# Cross-validation
+from sklearn.model_selection import cross_val_score
+model = LinearRegression()
+scores = cross_val_score(model, X.reshape(-1,1), y, cv=5, scoring='neg_mean_squared_error')
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Bootstrap CI for median
+library(boot)
+med_fn &lt;- function(data, i) median(data[i])
+b &lt;- boot(treatment, med_fn, R = 10000)
+boot.ci(b, type = "perc")
+
+# Permutation test
+library(coin)
+wilcox_test(values ~ group, data = df, distribution = "exact")
+
+# Or manual permutation
+observed &lt;- mean(treatment) - mean(control)
+combined &lt;- c(treatment, control)
+null_dist &lt;- replicate(10000, {
+  perm &lt;- sample(combined)
+  mean(perm[1:6]) - mean(perm[7:12])
+})
+p_value &lt;- mean(abs(null_dist) &gt;= abs(observed))
+
+# Cross-validation
+library(caret)
+cv &lt;- train(y ~ x, data = df, method = "lm",
+            trControl = trainControl(method = "cv", number = 5))
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li><strong>Bootstrap the correlation.</strong> Given paired measurements from 15 patients (gene expression and drug response), compute the Pearson correlation and a bootstrap 95% CI. Is the correlation significantly different from zero?</li>
+</ol>
+<pre><code class="language-bio">let expr = [2.1, 4.5, 3.2, 5.8, 1.9, 6.2, 3.8, 4.1, 5.5, 2.8, 3.5, 6.0, 4.3, 2.5, 5.1]
+let response = [35, 62, 41, 78, 30, 82, 55, 50, 71, 38, 48, 79, 58, 33, 68]
+# Your code: bootstrap CI for cor(expr, response)
+</code></pre>
+<ol start="2">
+<li><strong>Permutation test for median.</strong> Using the treatment and control data from this chapter, run a permutation test using the difference in medians (not means) as the test statistic. Compare the p-value to the mean-based permutation test.</li>
+</ol>
+<pre><code class="language-bio"># Your code: permutation_test with statistic: "median_diff"
+</code></pre>
+<ol start="3">
+<li><strong>Bootstrap vs t-test at n=6.</strong> Generate 1,000 datasets of n=6 from a skewed distribution (e.g., exponential). For each, compute both a t-based CI and a bootstrap CI for the mean. Compare coverage rates (how often the true mean falls within the CI). Which method is more reliable?</li>
+</ol>
+<pre><code class="language-bio"># Your code: simulation study comparing CI coverage
+</code></pre>
+<ol start="4">
+<li><strong>Cross-validation showdown.</strong> Fit a linear regression predicting drug response from gene expression. Compare 5-fold, 10-fold, and leave-one-out cross-validation. Do they agree on the model’s prediction error?</li>
+</ol>
+<pre><code class="language-bio"># Your code: three CV approaches, compare MSE estimates
+</code></pre>
+<ol start="5">
+<li><strong>Jackknife influence.</strong> Compute the jackknife influence values for the mean of the treatment data. Which observation, when removed, changes the mean the most? Does this make sense given the data?</li>
+</ol>
+<pre><code class="language-bio">let treatment = [4.2, 5.1, 3.8, 6.3, 4.9, 5.5]
+# Your code: jackknife, identify most influential observation
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>The bootstrap estimates the sampling distribution of any statistic by resampling with replacement — no distributional assumptions needed.</li>
+<li>Bootstrap confidence intervals use percentiles of the bootstrap distribution; they work for means, medians, ratios, correlations, or any custom function.</li>
+<li>Permutation tests build a null distribution by shuffling group labels, providing an exact or approximate p-value for group comparisons without distributional assumptions.</li>
+<li>Cross-validation evaluates predictive models honestly by holding out data, preventing the overfitting that plagues high-dimensional genomics.</li>
+<li>The jackknife identifies influential observations and estimates bias.</li>
+<li>Resampling methods complement, rather than replace, parametric methods — when assumptions are met, parametric methods are more efficient; when they are not, resampling provides a robust alternative.</li>
+<li>With very small samples (n &lt; 5-10), even resampling methods have limited resolution — there are simply too few unique resamples.</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>Tomorrow we cross the philosophical divide in statistics. Everything so far has been frequentist: probabilities describe long-run frequencies of events. Bayesian statistics takes a fundamentally different view — probability describes degrees of belief, and we update those beliefs as evidence accumulates. You will learn to combine prior knowledge with observed data using Bayes’ theorem, build posterior distributions, and discover why Bayesian thinking is particularly natural for interpreting variants of uncertain significance.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-22.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-24.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-22.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-24.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

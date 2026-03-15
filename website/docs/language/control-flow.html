@@ -25,298 +25,278 @@
         <h1>Control Flow</h1>
         <p>
           BioLang provides familiar control flow constructs &mdash; <code>if</code>/<code>else</code>,
-          <code>for</code> loops, and <code>while</code> loops. A key distinction is that
+          <code>for</code> loops, <code>while</code> loops, <code>match</code> expressions, and
+          <code>try</code>/<code>catch</code> for error handling. A key distinction is that
           <code>if</code>/<code>else</code> are <strong>expressions</strong> that return values,
           not just statements.
         </p>
 
-        <h2>If / Else Expressions</h2>
+        <h2>If / Then / Else</h2>
         <p>
-          Every <code>if</code>/<code>else</code> block evaluates to a value. The last expression
-          in each branch is the value of that branch:
+          BioLang supports two styles of conditionals: the inline <code>if ... then ... else ...</code>
+          form and the block form with braces. Both are expressions that return values:
         </p>
-        <pre><code class="language-biolang"># if/else as an expression — assigns the result
-let label = if score >= 0.9 {
-  "high"
-} else if score >= 0.5 {
-  "medium"
+        <pre><code class="language-biolang"># Inline form with then/else
+let x = 42
+let label = if x > 50 then "big" else "small"
+println(label)   # small
+
+# Block form with braces
+let score = 85
+let grade = if score >= 90 {
+  "A"
+} else if score >= 80 {
+  "B"
+} else if score >= 70 {
+  "C"
 } else {
-  "low"
+  "F"
 }
-
-# Single-line conditional
-let status = if is_coding { "coding" } else { "non-coding" }
-
-# Using if/else in a pipe chain
-let category = variant.impact
-  |> (|impact| if impact == "HIGH" { 1 } else { 0 })</code></pre>
+println(grade)   # B</code></pre>
 
         <h2>If Without Else</h2>
         <p>
-          An <code>if</code> without an <code>else</code> branch returns <code>nil</code> when
-          the condition is false. When used as a statement (ignoring the return value), the else
-          is not required:
+          An <code>if</code> without an <code>else</code> branch executes conditionally.
+          When used as a statement, no else is required:
         </p>
         <pre><code class="language-biolang"># Statement usage — no else needed
+let verbose = true
 if verbose {
-  print(f"Processing {len(reads)} reads")
+  println("Debug mode is on")
 }
 
-# As expression without else — returns nil when false
-let maybe_value = if condition { compute_value() }
-# maybe_value is nil if condition is false
-
-# Guard clause pattern
-fn process(data) {
-  if len(data) == 0 {
-    error("empty input")
-  }
-
-  # Main logic here
-  transform(data)
-}</code></pre>
+# Inline form
+let n = 7
+if n > 5 then println(f"{n} is greater than 5")</code></pre>
 
         <h2>Conditional Chains</h2>
-        <pre><code class="language-biolang">fn classify_variant(variant) -> String {
-  if is_snp(variant) && variant.consequence == "synonymous" {
-    "synonymous_SNV"
-  } else if is_snp(variant) && variant.consequence == "missense" {
-    "missense_SNV"
-  } else if is_snp(variant) && variant.consequence == "nonsense" {
-    "nonsense_SNV"
-  } else if is_indel(variant) && variant.consequence == "frameshift" {
-    "frameshift_indel"
-  } else if is_indel(variant) {
-    "inframe_indel"
-  } else {
-    "other"
-  }
+        <pre><code class="language-biolang">fn classify_gc(gc) {
+  if gc > 0.6 { "high GC" }
+  else if gc > 0.4 { "normal GC" }
+  else if gc > 0.2 { "low GC" }
+  else { "AT-rich" }
+}
+
+let seqs = [dna"GCGCGCGC", dna"ATCGATCG", dna"AAATTTAA"]
+for seq in seqs {
+  let gc = gc_content(seq)
+  println(f"{seq}: {classify_gc(gc)}")
 }</code></pre>
 
         <h2>For Loops</h2>
         <p>
           The <code>for</code> loop iterates over any iterable value &mdash; lists, ranges,
-          strings, maps, tables, and streams:
+          strings, and maps:
         </p>
-        <pre><code class="language-biolang"># requires: internet connection
-# Iterate over a list
-for gene in ["BRCA1", "TP53", "EGFR"] {
-  print(f"Looking up {gene}")
-  let info = ncbi_gene(gene)
-  print(f"  Chromosome: {info.chromosome}")
+        <pre><code class="language-biolang"># Iterate over a list
+let genes = ["BRCA1", "TP53", "EGFR"]
+for gene in genes {
+  if len(gene) <= 4 then println(f"{gene} is short")
+  else println(f"{gene} is long")
 }
+# BRCA1 is long
+# TP53 is short
+# EGFR is short
 
 # Iterate over a range
-for i in 0..10 {
-  print(f"Index: {i}")
+for i in range(5) {
+  println(f"Index: {i}")
 }
 
-# Inclusive range
-for i in 1..=100 {
-  # processes 1 through 100
+# Iterate with enumerate
+let items = ["alpha", "beta", "gamma"]
+for pair in enumerate(items) {
+  println(f"{pair[0]}: {pair[1]}")
 }
-
-# Iterate with index
-for (i, read) in enumerate(reads) {
-  if i % 1000 == 0 {
-    print(f"Processed {i} reads")
-  }
-}</code></pre>
+# 0: alpha
+# 1: beta
+# 2: gamma</code></pre>
 
         <h3>Iterating Over Maps</h3>
         <pre><code class="language-biolang">let gene_scores = {"BRCA1": 0.95, "TP53": 0.87, "EGFR": 0.72}
 
-# Key-value destructuring
-for (gene, score) in gene_scores {
+# Iterate over keys
+for gene in keys(gene_scores) {
+  let score = gene_scores[gene]
   if score > 0.8 {
-    print(f"{gene} is significant (score={score})")
+    println(f"{gene} is significant (score={score})")
   }
 }
 
-# Keys only
-for gene in keys(gene_scores) {
-  print(gene)
-}
-
-# Values only
+# Iterate over values
+let total = 0.0
 for score in values(gene_scores) {
-  print(score)
-}</code></pre>
-
-        <h3>Iterating Over Tables</h3>
-        <pre><code class="language-biolang">let variants = read_vcf("calls.vcf")
-
-for row in variants {
-  print(f"{row.chrom}:{row.pos} {row.ref_allele}>{row.alt_allele}")
+  total = total + score
 }
-
-# Process in chunks
-for chunk in variants |> chunk(1000) {
-  let batch_result = analyze_batch(chunk)
-  write_results(batch_result)
-}</code></pre>
+println(f"Total: {total}")</code></pre>
 
         <h2>While Loops</h2>
         <pre><code class="language-biolang"># Basic while loop
-let attempts = 0
-let result = nil
-
-while attempts < 3 && result == nil {
-  result = try { fetch_data(url) } catch _ { nil }
-  attempts = attempts + 1
+let count = 0
+let total = 0
+while count < 10 {
+  total = total + count
+  count = count + 1
 }
+println(f"Sum 0..9 = {total}")   # Sum 0..9 = 45
 
-# Read until EOF
-let lines = []
-let line = read_line(file)
-while line != nil {
-  lines = push(lines, line)
-  line = read_line(file)
-}</code></pre>
+# Collatz conjecture
+let n = 27
+let steps = 0
+while n != 1 {
+  if n % 2 == 0 then n = n / 2
+  else n = n * 3 + 1
+  steps = steps + 1
+}
+println(f"Collatz steps for 27: {steps}")   # Collatz steps for 27: 111</code></pre>
 
-        <h2>Loop Control: Break and Continue</h2>
+        <h2>Break and Continue</h2>
         <pre><code class="language-biolang"># break exits the loop immediately
-for read in fastq("sample.fq") {
-  if mean_phred(read.quality) < 10 {
-    print("Found corrupted read, stopping")
+let nums = [2, 4, 6, 7, 8, 10]
+for n in nums {
+  if n % 2 != 0 {
+    println(f"Found odd number: {n}")
     break
   }
-  process(read)
+  println(f"{n} is even")
 }
+# 2 is even
+# 4 is even
+# 6 is even
+# Found odd number: 7
 
 # continue skips to the next iteration
-let good_reads = []
-for read in reads {
-  if read.length < 50 {
-    continue   # Skip short reads
-  }
-  if mean_phred(read.quality) < 20 {
-    continue   # Skip low-quality reads
-  }
-  good_reads = push(good_reads, read)
-}</code></pre>
+let result = []
+for n in range(10) {
+  if n % 3 == 0 { continue }
+  result = push(result, n)
+}
+println(result)   # [1, 2, 4, 5, 7, 8]</code></pre>
 
-        <h2>Break with Values</h2>
+        <h2>Match Expressions</h2>
         <p>
-          Loops can return values via <code>break</code>, similar to how <code>if</code> returns
-          values. This is useful for search patterns:
+          The <code>match</code> expression selects a branch based on the value being matched.
+          Use <code>_</code> as a wildcard to match anything:
         </p>
-        <pre><code class="language-biolang"># Find the first high-quality variant
-let found = for variant in variants {
-  if variant.qual >= 99.0 && variant.depth >= 30 {
-    break variant
+        <pre><code class="language-biolang"># Match on values
+fn codon_to_amino(codon) {
+  match codon {
+    "ATG" => "Met (Start)",
+    "TAA" => "Stop",
+    "TAG" => "Stop",
+    "TGA" => "Stop",
+    _ => "other"
   }
 }
-# found is nil if no break was reached
+println(codon_to_amino("ATG"))   # Met (Start)
+println(codon_to_amino("TAA"))   # Stop
+println(codon_to_amino("GCT"))   # other
 
-# Search with index
-let position = for (i, base) in enumerate(sequence) {
-  if base == 'G' {
-    break i
+# Match as an expression
+let base = "A"
+let complement = match base {
+  "A" => "T",
+  "T" => "A",
+  "G" => "C",
+  "C" => "G",
+  _ => "N"
+}
+println(f"Complement of {base} is {complement}")</code></pre>
+
+        <h2>Try / Catch</h2>
+        <p>
+          Use <code>try</code>/<code>catch</code> to handle errors gracefully:
+        </p>
+        <pre><code class="language-biolang"># Basic error handling
+let result = try {
+  100 / 0
+} catch e {
+  println(f"Error: {e}")
+  -1
+}
+println(f"Result: {result}")
+
+# Try/catch in a pipeline
+let values = [10, 0, 5, 0, 2]
+let safe_reciprocals = values |> map(|v| {
+  try { 1.0 / v } catch _ { 0.0 }
+})
+println(safe_reciprocals)   # [0.1, 0, 0.2, 0, 0.5]</code></pre>
+
+        <h2>Return</h2>
+        <p>
+          Use <code>return</code> for early exit from a function:
+        </p>
+        <pre><code class="language-biolang">fn find_first(items, predicate) {
+  for item in items {
+    if predicate(item) {
+      return item
+    }
   }
-}</code></pre>
+  return nil
+}
+
+let nums = [3, 7, 12, 5, 18, 2]
+let first_big = find_first(nums, |x| x > 10)
+println(f"First > 10: {first_big}")   # First > 10: 12</code></pre>
 
         <h2>Nested Loops</h2>
-        <pre><code class="language-biolang"># Compare all pairs of samples
-let samples = ["sample_a", "sample_b", "sample_c"]
-
-for i in 0..len(samples) {
-  for j in (i + 1)..len(samples) {
-    let similarity = compare(samples[i], samples[j])
-    print(f"{samples[i]} vs {samples[j]}: {similarity}")
+        <pre><code class="language-biolang"># Build a multiplication table
+for i in range(1, 4) {
+  let row = []
+  for j in range(1, 4) {
+    row = push(row, i * j)
   }
+  println(f"{i}: {row}")
 }
+# 1: [1, 2, 3]
+# 2: [2, 4, 6]
+# 3: [3, 6, 9]</code></pre>
 
-# Labeled break for nested loops
-for chrom in chromosomes {
-  for gene in genes_on(chrom) {
-    for variant in variants_in(gene) {
-      if is_pathogenic(variant) {
-        print(f"Found pathogenic: {variant}")
-        break   # Exits innermost loop
-      }
-    }
-  }
-}</code></pre>
-
-        <h2>Comprehensions vs. Loops</h2>
+        <h2>Functional vs. Imperative</h2>
         <p>
-          BioLang encourages functional style with <code>map</code>/<code>filter</code> over
-          imperative loops, but loops are available when they are clearer:
+          BioLang supports both styles. Functional pipes are preferred for transforms;
+          loops are clearer for side effects:
         </p>
         <pre><code class="language-biolang"># Functional style (preferred for transforms)
-let gc_values = sequences |> map(|s| gc_content(s))
-let long_seqs = sequences |> filter(|s| len(s) > 1000)
+let squares = [1, 2, 3, 4, 5] |> map(|x| x * x)
+println(squares)   # [1, 4, 9, 16, 25]
 
-# Loop style (clearer for side effects)
-for sample in samples {
-  let result = run_pipeline(sample)
-  write_report(result, f"{sample.name}_report.html")
-  print(f"Completed {sample.name}")
+let evens = [1, 2, 3, 4, 5, 6] |> filter(|x| x % 2 == 0)
+println(evens)   # [2, 4, 6]
+
+let total = [1, 2, 3, 4, 5] |> reduce(|a, b| a + b)
+println(total)   # 15
+
+# Loop style (clearer for side effects and complex logic)
+let acc = 0
+for val in [1, 2, 3, 4, 5] {
+  acc = acc + val
+}
+println(f"Loop total: {acc}")   # Loop total: 15</code></pre>
+
+        <h2>Putting It All Together</h2>
+        <pre><code class="language-biolang"># A complete example combining control flow constructs
+let sequences = [
+  {name: "seq1", bases: dna"GCGCGCGC"},
+  {name: "seq2", bases: dna"ATATATAT"},
+  {name: "seq3", bases: dna"ATCGATCG"},
+  {name: "seq4", bases: dna"GGGGCCCC"}
+]
+
+for s in sequences {
+  let gc = gc_content(s.bases)
+  let category = if gc > 0.6 then "GC-rich"
+    else if gc < 0.4 then "AT-rich"
+    else "balanced"
+  println(f"{s.name}: GC={gc}, {category}")
 }
 
-# Loop with accumulation (reduce is often better)
-let total = 0
-for val in values {
-  total = total + val
-}
-# vs.
-let total = values |> reduce(|a, b| a + b)</code></pre>
-
-        <h2>Conditional Expressions in Context</h2>
-        <pre><code class="language-biolang"># Ternary-like usage in function calls
-let color = if p_value < 0.05 { "red" } else { "gray" }
-
-# Inside string interpolation
-print(f"Status: {if passed { "PASS" } else { "FAIL" }}")
-
-# As function arguments
-plot(data,
-  color = if grouped { "category" } else { "none" },
-  title = if normalized { "Normalized Values" } else { "Raw Values" }
-)
-
-# In list construction
-let flags = [
-  if is_duplicate { "DUP" } else { nil },
-  if is_supplementary { "SUPP" } else { nil },
-  if failed_qc { "FAIL" } else { nil }
-] |> filter(|f| f != nil)</code></pre>
-
-        <h2>Given / Otherwise</h2>
-        <p>
-          The <code>given</code> expression provides declarative conditional chains &mdash;
-          cleaner than nested if/else for multi-criteria decisions:
-        </p>
-        <pre><code class="language-biolang">let classification = given {
-    gc_content(seq) > 0.6 => "high_gc"
-    gc_content(seq) > 0.4 => "normal_gc"
-    gc_content(seq) > 0.2 => "low_gc"
-    otherwise => "at_rich"
-}
-
-# Sample QC decision
-let qc_status = given {
-    mean_qual < 20 => "fail"
-    adapter_rate > 0.3 => "fail"
-    duplication_rate > 0.5 => "warn"
-    otherwise => "pass"
-}</code></pre>
-
-        <h2>For / Else</h2>
-        <p>
-          The <code>else</code> block on a <code>for</code> loop runs only when the
-          loop completes without <code>break</code> &mdash; useful for search-and-fail patterns:
-        </p>
-        <pre><code class="language-biolang"># Search for a specific motif
-for seq in sequences {
-    if find_motif(seq, "TATAAA") != nil {
-        print(f"Found TATA box in {seq.id}")
-        break
-    }
-} else {
-    print("No TATA box found in any sequence")
-}</code></pre>
+# Filter and summarize
+let gc_rich = sequences
+  |> filter(|s| gc_content(s.bases) > 0.5)
+  |> map(|s| s.name)
+println(f"GC-rich sequences: {gc_rich}")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="functions.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

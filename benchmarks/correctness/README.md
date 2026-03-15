@@ -61,3 +61,15 @@ Run `python benchmarks/generate_data.py` first if data is missing.
 2. Write a BioLang script in `biolang/` that prints identical JSON
 3. (Optional) Write an R script in `r/` with the same output
 4. Add the task name to the `TASKS` array in `validate.sh` and `validate.ps1`
+
+## Real-World Validation
+
+A separate suite validates the same 9 tasks on real biological data from NCBI and ClinVar. See [`real_world/README.md`](real_world/README.md) for details.
+
+```bash
+# Download real data (~25 MB from NCBI FTP)
+python download_real_data.py
+
+# Run real-world validation
+./validate_real.sh [bl_binary] [python_binary] [rscript_binary]
+```

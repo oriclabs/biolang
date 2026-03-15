@@ -1,0 +1,10 @@
+let seqs = read_fasta("real_data/ecoli_genome.fa") |> collect()
+let seq_str = slice(seqs[0].seq, 0, 50000) |> to_string()
+let seq = dna(seq_str)
+let counts = kmer_count(seq, 5)
+let total = 0
+for k, v in counts
+  total = total + v
+end
+let sorted_kmers = entries(counts) |> sort_by(|e| -e[1]) |> head(10)
+print(to_json({sequence_id: seqs[0].id, total_kmers: total, unique_kmers: len(counts), top_10: sorted_kmers}))

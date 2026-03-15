@@ -88,7 +88,14 @@ fn builtin_regex_match(args: Vec<Value>) -> Result<Value> {
 }
 
 fn builtin_regex_find(args: Vec<Value>) -> Result<Value> {
-    let s = require_str(&args[0], "regex_find")?;
+    let s = match &args[0] {
+        Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => &seq.data,
+        Value::Str(s) => s,
+        other => return Err(BioLangError::type_error(
+            format!("regex_find() requires Str or bio sequence, got {}", other.type_of()),
+            None,
+        )),
+    };
     let pattern = extract_pattern(&args[1], "regex_find")?;
     let re = compile_regex(&pattern, "regex_find")?;
     let matches: Vec<Value> = re

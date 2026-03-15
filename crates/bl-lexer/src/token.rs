@@ -95,6 +95,7 @@ pub enum TokenKind {
     DotDot,    // ..
     DotDotEq,  // ..=
     DotDotDot, // ...
+    PlusPlus,  // ++
     PlusEq,    // +=
     MinusEq,   // -=
     StarEq,    // *=
@@ -264,6 +265,7 @@ impl fmt::Display for TokenKind {
             TokenKind::StarStar => write!(f, "**"),
             TokenKind::Slash => write!(f, "/"),
             TokenKind::Percent => write!(f, "%"),
+            TokenKind::PlusPlus => write!(f, "++"),
             TokenKind::PlusEq => write!(f, "+="),
             TokenKind::MinusEq => write!(f, "-="),
             TokenKind::StarEq => write!(f, "*="),

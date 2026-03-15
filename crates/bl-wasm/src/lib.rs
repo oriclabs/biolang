@@ -6,7 +6,6 @@ use bl_parser::Parser;
 use bl_runtime::Interpreter;
 use bl_runtime::builtins::set_output_buffer;
 use bl_runtime::csv::set_fetch_hook;
-use bl_bio::io::set_bio_fetch_hook;
 
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
@@ -45,8 +44,7 @@ fn js_fetch_closure(url: &str) -> std::result::Result<String, String> {
 fn install_fetch_hooks() {
     let hook: Arc<dyn Fn(&str) -> std::result::Result<String, String>> =
         Arc::new(js_fetch_closure);
-    set_fetch_hook(Some(hook.clone()));
-    set_bio_fetch_hook(Some(hook));
+    set_fetch_hook(Some(hook));
 }
 
 /// Initialize the WASM module (set panic hook for better error messages).
@@ -245,7 +243,7 @@ fn token_kind_class(kind: &bl_lexer::TokenKind) -> &'static str {
         | Given | Otherwise | Retry | Where | Into => "keyword",
         True | False | Nil => "literal",
         PipeOp | TapPipe => "pipe",
-        Plus | Minus | Star | StarStar | Slash | Percent | PlusEq | MinusEq | StarEq | SlashEq
+        Plus | PlusPlus | Minus | Star | StarStar | Slash | Percent | PlusEq | MinusEq | StarEq | SlashEq
         | QuestionQuestion | QuestionDot | QuestionEq | EqEq | Neq | Lt | Gt | Le | Ge
         | And | Or | Bang | Eq | Tilde | Dot | Arrow | FatArrow
         | DotDot | DotDotEq | DotDotDot | At | Amp | Caret | Shl | Shr => "operator",

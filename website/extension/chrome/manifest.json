@@ -2,10 +2,10 @@
   "manifest_version": 3,
   "name": "BLViewer",
   "short_name": "BLViewer",
-  "version": "1.0.0",
-  "description": "View FASTA, FASTQ, VCF, BED, GFF, SAM, CSV files instantly. Right-click any bio file link to open. 100% client-side.",
+  "version": "1.1.0",
+  "description": "View and inspect bioinformatics data files in your browser. Drag-and-drop or right-click to open. 100% client-side.",
   "author": {
-    "email": "oriclabsau@gmail.com"
+    "email": "devking2021@gmail.com"
   },
   "homepage_url": "https://lang.bio/viewer",
   "icons": {

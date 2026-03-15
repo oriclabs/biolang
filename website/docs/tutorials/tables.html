@@ -68,7 +68,7 @@
 # tables.bio — working with tabular data
 
 # Read a gene expression file
-let expr = csv("data/expression.csv")
+let expr = read_read_csv("data/expression.csv")
 
 # Preview the table
 print(expr)
@@ -186,7 +186,7 @@ let flag_summary = summarize(flag_groups, |key, g| {
         </p>
         <pre><code class="language-biolang"># requires: data/gene_annotations.csv in working directory
 # Load a gene annotation table
-let annotations = csv("data/gene_annotations.csv")
+let annotations = read_read_csv("data/expression.csv")
 # gene, chromosome, start, end, description
 
 # Inner join: only genes present in both tables
@@ -276,7 +276,7 @@ let top20 = annotated
 write_csv(top20, "results/top20_genes.csv")
 
 # Complete pipeline: read, process, write
-let result = csv("data/expression.csv")
+let result = read_csv("data/expression.csv")
   |> filter(|row| row.group == "case")
   |> mutate("mean", |row| (row.sample1 + row.sample2 + row.sample3) / 3.0)
   |> arrange("mean", "desc")

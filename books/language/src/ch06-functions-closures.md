@@ -288,8 +288,8 @@ let wgs_filter = make_qc_filter(min_qual: 15, min_len: 36)
 # Amplicon: strict
 let amp_filter = make_qc_filter(min_qual: 30, min_len: 100, max_n_frac: 0.01)
 
-let wgs_reads = read_fastq("sample_wgs.fastq.gz") |> filter(wgs_filter)
-let amp_reads = read_fastq("sample_amp.fastq.gz") |> filter(amp_filter)
+let wgs_reads = read_fastq("data/reads.fastq") |> filter(wgs_filter)
+let amp_reads = read_fastq("data/reads.fastq") |> filter(amp_filter)
 
 print("WGS passing: " + to_string(len(wgs_reads)))
 print("Amplicon passing: " + to_string(len(amp_reads)))

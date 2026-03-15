@@ -1,0 +1,783 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 22: Clustering — Finding Structure in Omics Data - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-22-clustering--finding-structure-in-omics-data"><a class="header" href="#day-22-clustering--finding-structure-in-omics-data">Day 22: Clustering — Finding Structure in Omics Data</a></h1>
+<div class="day-meta">
+<span class="badge">Day 22 of 30</span>
+<span class="badge">Prerequisites: Days 2-3, 13, 21</span>
+<span class="badge">~60 min reading</span>
+<span class="badge">Unsupervised Learning</span>
+</div>
+
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You are part of a cancer genomics consortium. Five hundred tumor samples have been profiled with RNA-seq, measuring the expression of 18,000 genes in each. The pathologist has classified these tumors into three histological subtypes based on what she sees under the microscope. But molecular data often reveals finer distinctions invisible to the eye.</p>
+<p>Your task: find natural groupings in the gene expression data — without peeking at the pathologist’s labels. If the molecular subtypes align with the histological ones, confidence in the classification increases. If the data reveals additional subtypes, you may have discovered clinically distinct groups that respond differently to treatment. In breast cancer, this is exactly how the PAM50 molecular subtypes were discovered — and they now guide treatment decisions for millions of patients worldwide.</p>
+<p>But there is a danger lurking. Clustering algorithms always find clusters, even in random noise. The critical question is not “can I find groups?” but “are the groups real?”</p>
+<h2 id="what-is-clustering"><a class="header" href="#what-is-clustering">What Is Clustering?</a></h2>
+<p>Clustering is unsupervised grouping: divide observations into sets such that observations within a set are more similar to each other than to observations in other sets.</p>
+<p>Unlike classification (supervised learning), clustering has no labels to learn from. You are not training the algorithm to distinguish “tumor” from “normal.” You are asking the algorithm to discover structure on its own.</p>
+<p>Think of it as sorting a pile of coins. If you have pennies, nickels, dimes, and quarters, the task is straightforward — there are obvious groupings by size and color. But if someone hands you a pile of irregularly shaped pebbles and says “sort these into groups,” you must decide what “similar” means. By weight? By color? By texture? Different definitions of similarity lead to different groupings. This subjectivity is both the power and the peril of clustering.</p>
+<blockquote>
+<p><strong>Key insight:</strong> Clustering is a tool for exploration, not proof. It generates hypotheses about structure in your data. Validating those hypotheses requires independent evidence — clinical outcomes, functional assays, or replication in new datasets.</p>
+</blockquote>
+<h2 id="k-means-clustering"><a class="header" href="#k-means-clustering">K-Means Clustering</a></h2>
+<p>K-means is the simplest and most widely used clustering algorithm. It partitions data into exactly <em>k</em> groups by iterating two steps.</p>
+<h3 id="the-algorithm"><a class="header" href="#the-algorithm">The Algorithm</a></h3>
+<ol>
+<li><strong>Choose k</strong> (the number of clusters you want).</li>
+<li><strong>Initialize</strong> k random “centroids” (cluster centers).</li>
+<li><strong>Assign</strong> each data point to the nearest centroid.</li>
+<li><strong>Update</strong> each centroid to the mean of its assigned points.</li>
+<li><strong>Repeat</strong> steps 3-4 until assignments stop changing.</li>
+</ol>
+<p>That is it. The algorithm converges quickly, typically in 10-20 iterations.</p>
+<h3 id="properties"><a class="header" href="#properties">Properties</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>K-means</th></tr>
+</thead>
+<tbody>
+<tr><td>Shape of clusters</td><td>Spherical (roughly equal-sized blobs)</td></tr>
+<tr><td>Requires k in advance</td><td>Yes</td></tr>
+<tr><td>Handles outliers</td><td>Poorly — outliers pull centroids</td></tr>
+<tr><td>Handles unequal cluster sizes</td><td>Poorly — tends to split large clusters</td></tr>
+<tr><td>Speed</td><td>Very fast, even on large datasets</td></tr>
+<tr><td>Deterministic</td><td>No — depends on random initialization</td></tr>
+</tbody>
+</table>
+</div>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="500" viewbox="0 0 680 500" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">K-Means Iteration (k=3)</text>
+  <!-- Panel 1: Random initialization -->
+  <rect x="15" y="45" width="200" height="200" rx="6" fill="white" stroke="#e5e7eb" />
+  <text x="115" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">1. Random Centroids</text>
+  <!-- Data points (grey - unassigned) -->
+  <circle cx="55" cy="100" r="4" fill="#9ca3af" /><circle cx="70" cy="115" r="4" fill="#9ca3af" />
+  <circle cx="45" cy="120" r="4" fill="#9ca3af" /><circle cx="65" cy="105" r="4" fill="#9ca3af" />
+  <circle cx="80" cy="110" r="4" fill="#9ca3af" /><circle cx="50" cy="108" r="4" fill="#9ca3af" />
+  <circle cx="140" cy="150" r="4" fill="#9ca3af" /><circle cx="155" cy="165" r="4" fill="#9ca3af" />
+  <circle cx="160" cy="145" r="4" fill="#9ca3af" /><circle cx="145" cy="158" r="4" fill="#9ca3af" />
+  <circle cx="150" cy="140" r="4" fill="#9ca3af" /><circle cx="135" cy="155" r="4" fill="#9ca3af" />
+  <circle cx="85" cy="195" r="4" fill="#9ca3af" /><circle cx="95" cy="210" r="4" fill="#9ca3af" />
+  <circle cx="75" cy="205" r="4" fill="#9ca3af" /><circle cx="100" cy="195" r="4" fill="#9ca3af" />
+  <circle cx="90" cy="215" r="4" fill="#9ca3af" /><circle cx="80" cy="200" r="4" fill="#9ca3af" />
+  <!-- Random centroids (X marks) -->
+  <text x="100" y="100" text-anchor="middle" font-size="18" font-weight="bold" fill="#2563eb">+</text>
+  <text x="170" y="200" text-anchor="middle" font-size="18" font-weight="bold" fill="#dc2626">+</text>
+  <text x="130" y="120" text-anchor="middle" font-size="18" font-weight="bold" fill="#16a34a">+</text>
+  <text x="115" y="238" text-anchor="middle" font-size="10" fill="#6b7280">Centroids placed randomly</text>
+  <!-- Panel 2: Points assigned to nearest centroid -->
+  <rect x="240" y="45" width="200" height="200" rx="6" fill="white" stroke="#e5e7eb" />
+  <text x="340" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">2. Assign to Nearest</text>
+  <!-- Blue cluster -->
+  <circle cx="280" cy="100" r="4" fill="#3b82f6" /><circle cx="295" cy="115" r="4" fill="#3b82f6" />
+  <circle cx="270" cy="120" r="4" fill="#3b82f6" /><circle cx="290" cy="105" r="4" fill="#3b82f6" />
+  <circle cx="305" cy="110" r="4" fill="#3b82f6" /><circle cx="275" cy="108" r="4" fill="#3b82f6" />
+  <!-- Green cluster -->
+  <circle cx="365" cy="150" r="4" fill="#22c55e" /><circle cx="380" cy="165" r="4" fill="#22c55e" />
+  <circle cx="385" cy="145" r="4" fill="#22c55e" /><circle cx="370" cy="158" r="4" fill="#22c55e" />
+  <circle cx="375" cy="140" r="4" fill="#22c55e" /><circle cx="360" cy="155" r="4" fill="#22c55e" />
+  <!-- Red cluster -->
+  <circle cx="310" cy="195" r="4" fill="#ef4444" /><circle cx="320" cy="210" r="4" fill="#ef4444" />
+  <circle cx="300" cy="205" r="4" fill="#ef4444" /><circle cx="325" cy="195" r="4" fill="#ef4444" />
+  <circle cx="315" cy="215" r="4" fill="#ef4444" /><circle cx="305" cy="200" r="4" fill="#ef4444" />
+  <!-- Centroids still at old positions -->
+  <text x="325" y="100" text-anchor="middle" font-size="18" font-weight="bold" fill="#2563eb">+</text>
+  <text x="395" y="200" text-anchor="middle" font-size="18" font-weight="bold" fill="#dc2626">+</text>
+  <text x="355" y="120" text-anchor="middle" font-size="18" font-weight="bold" fill="#16a34a">+</text>
+  <text x="340" y="238" text-anchor="middle" font-size="10" fill="#6b7280">Colors show assignments</text>
+  <!-- Panel 3: Centroids move to means -->
+  <rect x="465" y="45" width="200" height="200" rx="6" fill="white" stroke="#e5e7eb" />
+  <text x="565" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">3. Update Centroids</text>
+  <!-- Blue cluster -->
+  <circle cx="505" cy="100" r="4" fill="#3b82f6" /><circle cx="520" cy="115" r="4" fill="#3b82f6" />
+  <circle cx="495" cy="120" r="4" fill="#3b82f6" /><circle cx="515" cy="105" r="4" fill="#3b82f6" />
+  <circle cx="530" cy="110" r="4" fill="#3b82f6" /><circle cx="500" cy="108" r="4" fill="#3b82f6" />
+  <!-- Green cluster -->
+  <circle cx="590" cy="150" r="4" fill="#22c55e" /><circle cx="605" cy="165" r="4" fill="#22c55e" />
+  <circle cx="610" cy="145" r="4" fill="#22c55e" /><circle cx="595" cy="158" r="4" fill="#22c55e" />
+  <circle cx="600" cy="140" r="4" fill="#22c55e" /><circle cx="585" cy="155" r="4" fill="#22c55e" />
+  <!-- Red cluster -->
+  <circle cx="535" cy="195" r="4" fill="#ef4444" /><circle cx="545" cy="210" r="4" fill="#ef4444" />
+  <circle cx="525" cy="205" r="4" fill="#ef4444" /><circle cx="550" cy="195" r="4" fill="#ef4444" />
+  <circle cx="540" cy="215" r="4" fill="#ef4444" /><circle cx="530" cy="200" r="4" fill="#ef4444" />
+  <!-- Centroids at cluster centers now -->
+  <text x="511" y="113" text-anchor="middle" font-size="20" font-weight="bold" fill="#2563eb">+</text>
+  <text x="538" y="207" text-anchor="middle" font-size="20" font-weight="bold" fill="#dc2626">+</text>
+  <text x="598" y="155" text-anchor="middle" font-size="20" font-weight="bold" fill="#16a34a">+</text>
+  <text x="565" y="238" text-anchor="middle" font-size="10" fill="#6b7280">Centroids at cluster means</text>
+  <!-- Arrows between panels -->
+<p><text x="227" y="150" text-anchor="middle" font-size="22" fill="#9ca3af">→</text>
+<text x="452" y="150" text-anchor="middle" font-size="22" fill="#9ca3af">→</text></p>
+  <!-- Legend -->
+  <rect x="15" y="258" width="650" height="28" rx="4" fill="#f1f5f9" />
+  <text x="30" y="276" font-size="18" font-weight="bold" fill="#2563eb">+</text>
+  <text x="46" y="276" font-size="11" fill="#6b7280">Blue centroid</text>
+  <text x="160" y="276" font-size="18" font-weight="bold" fill="#dc2626">+</text>
+  <text x="176" y="276" font-size="11" fill="#6b7280">Red centroid</text>
+  <text x="280" y="276" font-size="18" font-weight="bold" fill="#16a34a">+</text>
+  <text x="296" y="276" font-size="11" fill="#6b7280">Green centroid</text>
+  <text x="420" y="276" font-size="11" fill="#6b7280">Repeat steps 2-3 until convergence</text>
+  <!-- Dendrogram section -->
+<p><text x="340" y="310" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Hierarchical Clustering: Dendrogram</text></p>
+  <!-- Leaf labels -->
+<p><text x="60" y="488" text-anchor="middle" font-size="10" fill="#6b7280">S1</text>
+<text x="120" y="488" text-anchor="middle" font-size="10" fill="#6b7280">S2</text>
+<text x="180" y="488" text-anchor="middle" font-size="10" fill="#6b7280">S3</text>
+<text x="240" y="488" text-anchor="middle" font-size="10" fill="#6b7280">S4</text>
+<text x="330" y="488" text-anchor="middle" font-size="10" fill="#6b7280">S5</text>
+<text x="400" y="488" text-anchor="middle" font-size="10" fill="#6b7280">S6</text>
+<text x="490" y="488" text-anchor="middle" font-size="10" fill="#6b7280">S7</text>
+<text x="560" y="488" text-anchor="middle" font-size="10" fill="#6b7280">S8</text></p>
+  <!-- Vertical lines from leaves -->
+  <line x1="60" y1="475" x2="60" y2="445" stroke="#3b82f6" stroke-width="2" />
+  <line x1="120" y1="475" x2="120" y2="445" stroke="#3b82f6" stroke-width="2" />
+  <line x1="180" y1="475" x2="180" y2="430" stroke="#3b82f6" stroke-width="2" />
+  <line x1="240" y1="475" x2="240" y2="430" stroke="#3b82f6" stroke-width="2" />
+  <line x1="330" y1="475" x2="330" y2="440" stroke="#dc2626" stroke-width="2" />
+  <line x1="400" y1="475" x2="400" y2="440" stroke="#dc2626" stroke-width="2" />
+  <line x1="490" y1="475" x2="490" y2="435" stroke="#16a34a" stroke-width="2" />
+  <line x1="560" y1="475" x2="560" y2="435" stroke="#16a34a" stroke-width="2" />
+  <!-- First merge level: S1+S2, S3+S4, S5+S6, S7+S8 -->
+  <line x1="60" y1="445" x2="120" y2="445" stroke="#3b82f6" stroke-width="2" />
+  <line x1="180" y1="430" x2="240" y2="430" stroke="#3b82f6" stroke-width="2" />
+  <line x1="330" y1="440" x2="400" y2="440" stroke="#dc2626" stroke-width="2" />
+  <line x1="490" y1="435" x2="560" y2="435" stroke="#16a34a" stroke-width="2" />
+  <!-- Second merge: (S1,S2)+(S3,S4), (S5,S6)+(S7,S8) -->
+  <line x1="90" y1="445" x2="90" y2="400" stroke="#3b82f6" stroke-width="2" />
+  <line x1="210" y1="430" x2="210" y2="400" stroke="#3b82f6" stroke-width="2" />
+  <line x1="90" y1="400" x2="210" y2="400" stroke="#3b82f6" stroke-width="2" />
+  <line x1="365" y1="440" x2="365" y2="395" stroke="#dc2626" stroke-width="2" />
+  <line x1="525" y1="435" x2="525" y2="395" stroke="#16a34a" stroke-width="2" />
+  <line x1="365" y1="395" x2="525" y2="395" stroke="#7c3aed" stroke-width="2" />
+  <!-- Third merge: all together -->
+  <line x1="150" y1="400" x2="150" y2="350" stroke="#7c3aed" stroke-width="2" />
+  <line x1="445" y1="395" x2="445" y2="350" stroke="#7c3aed" stroke-width="2" />
+  <line x1="150" y1="350" x2="445" y2="350" stroke="#7c3aed" stroke-width="2" />
+  <!-- Cut line -->
+  <line x1="20" y1="410" x2="650" y2="410" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="8,4" />
+  <text x="630" y="405" text-anchor="end" font-size="11" font-weight="bold" fill="#dc2626">Cut here → 3 clusters</text>
+  <!-- Height axis label -->
+  <text x="18" y="420" font-size="10" fill="#9ca3af">Height</text>
+  <!-- Cluster color bars at bottom -->
+  <rect x="40" y="493" width="220" height="4" rx="2" fill="#3b82f6" />
+  <rect x="310" y="493" width="110" height="4" rx="2" fill="#dc2626" />
+  <rect x="470" y="493" width="110" height="4" rx="2" fill="#16a34a" />
+</svg>
+</div>
+
+<h3 id="the-initialization-problem"><a class="header" href="#the-initialization-problem">The Initialization Problem</a></h3>
+<p>Because k-means starts with random centroids, different runs can give different results. A bad initialization might converge to a suboptimal solution. The standard fix is to run k-means multiple times (say 10-50) with different random seeds and keep the solution with the lowest total within-cluster variance.</p>
+<pre><code class="language-bio">set_seed(42)
+# K-means clustering on PCA-reduced expression data
+let result = pca(expression_matrix)
+let pca_scores = result.scores |&gt; take_cols(0..20)  # first 20 PCs
+
+let clusters = kmeans(pca_scores, 4)
+print("Cluster sizes: " + str(clusters.sizes))
+print("Total within-cluster variance: " + str(clusters.total_within_ss))
+</code></pre>
+<h2 id="choosing-k-the-elbow-method"><a class="header" href="#choosing-k-the-elbow-method">Choosing k: The Elbow Method</a></h2>
+<p>The hardest part of k-means is choosing k. If you pick k = 500, every tumor gets its own cluster — perfect within-cluster similarity but meaningless. If you pick k = 1, everything is in one group — also meaningless. The right k is somewhere in between.</p>
+<p>The <strong>elbow method</strong> runs k-means for k = 1, 2, 3, …, K and plots the total within-cluster sum of squares (WCSS) against k. As k increases, WCSS always decreases (more clusters = tighter fits). The “elbow” — where the rate of decrease sharply levels off — suggests the best k.</p>
+<pre><code class="language-bio">set_seed(42)
+# Elbow plot to find optimal k
+let wcss = seq(1, 15) |&gt; map(|k| {
+  let cl = kmeans(pca_scores, k)
+  {k: k, within_ss: cl.total_within_ss}
+}) |&gt; to_table()
+plot(wcss, {type: "line", x: "k", y: "within_ss",
+  title: "Elbow Plot — Optimal Number of Clusters"})
+</code></pre>
+<blockquote>
+<p><strong>Common pitfall:</strong> The elbow is often ambiguous. Real data rarely shows a sharp bend. If the elbow plot suggests k could be 3, 4, or 5, use biological knowledge or validation metrics (like silhouette scores) to decide.</p>
+</blockquote>
+<h2 id="hierarchical-clustering"><a class="header" href="#hierarchical-clustering">Hierarchical Clustering</a></h2>
+<p>Hierarchical clustering builds a tree (dendrogram) of nested clusters rather than producing a flat partition. It does not require you to choose k in advance — you can cut the tree at any height to get the desired number of clusters.</p>
+<h3 id="agglomerative-bottom-up-algorithm"><a class="header" href="#agglomerative-bottom-up-algorithm">Agglomerative (Bottom-Up) Algorithm</a></h3>
+<ol>
+<li>Start with each sample as its own cluster (500 clusters for 500 tumors).</li>
+<li>Find the two closest clusters and merge them (now 499 clusters).</li>
+<li>Repeat until everything is in one cluster.</li>
+<li>The dendrogram records every merge and the distance at which it occurred.</li>
+</ol>
+<h3 id="linkage-methods"><a class="header" href="#linkage-methods">Linkage Methods</a></h3>
+<p>“Distance between clusters” is ambiguous when clusters contain multiple points. The linkage method resolves this:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Linkage</th><th>Distance between clusters A and B</th><th>Tendency</th></tr>
+</thead>
+<tbody>
+<tr><td>Single</td><td>Minimum distance between any pair</td><td>Produces long, chained clusters</td></tr>
+<tr><td>Complete</td><td>Maximum distance between any pair</td><td>Produces compact, equal-sized clusters</td></tr>
+<tr><td>Average</td><td>Mean pairwise distance</td><td>Compromise between single and complete</td></tr>
+<tr><td>Ward</td><td>Increase in total variance when merged</td><td>Minimizes within-cluster variance (like k-means)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Ward linkage is the most common choice in genomics because it tends to produce balanced, compact clusters similar to k-means.</p>
+<pre><code class="language-bio"># Hierarchical clustering with Ward linkage
+let hc = hclust(pca_scores, "ward")
+
+# Cut tree at k=4 clusters
+let labels = hc |&gt; cut_tree(4)
+print("Hierarchical cluster sizes: " + str(table_counts(labels)))
+</code></pre>
+<h3 id="the-dendrogram"><a class="header" href="#the-dendrogram">The Dendrogram</a></h3>
+<p>The dendrogram is one of the most informative visualizations in genomics. The height of each merge indicates how dissimilar the merged clusters were. A long vertical line before a merge suggests a clear separation; short lines suggest gradual transitions.</p>
+<pre><code class="language-bio"># Dendrogram with colored clusters
+dendrogram(hc, {k: 4, title: "Tumor Expression — Hierarchical Clustering"})
+</code></pre>
+<h2 id="dbscan-density-based-clustering"><a class="header" href="#dbscan-density-based-clustering">DBSCAN: Density-Based Clustering</a></h2>
+<p>DBSCAN (Density-Based Spatial Clustering of Applications with Noise) takes a fundamentally different approach. Instead of assuming spherical clusters, it finds regions of high density separated by regions of low density. It also identifies outliers — points in low-density regions that do not belong to any cluster.</p>
+<h3 id="the-algorithm-1"><a class="header" href="#the-algorithm-1">The Algorithm</a></h3>
+<ol>
+<li>For each point, count neighbors within distance epsilon.</li>
+<li>If a point has at least min_samples neighbors, it is a “core point.”</li>
+<li>Connect core points that are within epsilon of each other.</li>
+<li>Connected components of core points form clusters.</li>
+<li>Non-core points within epsilon of a core point join that cluster.</li>
+<li>Remaining points are labeled as noise (outliers).</li>
+</ol>
+<h3 id="properties-1"><a class="header" href="#properties-1">Properties</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>DBSCAN</th></tr>
+</thead>
+<tbody>
+<tr><td>Shape of clusters</td><td>Any shape (can find crescents, rings, etc.)</td></tr>
+<tr><td>Requires k in advance</td><td>No — finds k automatically</td></tr>
+<tr><td>Handles outliers</td><td>Excellent — explicitly labels them</td></tr>
+<tr><td>Parameters</td><td>epsilon (neighborhood radius), min_samples</td></tr>
+<tr><td>Handles varying density</td><td>Poorly — one epsilon for all regions</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bio">set_seed(42)
+# DBSCAN on PCA scores
+let db = dbscan(pca_scores, 2.5, 10)
+print("Clusters found: " + str(db.n_clusters))
+print("Noise points: " + str(db.n_noise))
+</code></pre>
+<blockquote>
+<p><strong>Key insight:</strong> DBSCAN is excellent for scRNA-seq data where clusters are irregularly shaped and outlier cells (doublets, dying cells) should be flagged rather than forced into a cluster. K-means forces every point into a cluster — DBSCAN does not.</p>
+</blockquote>
+<h2 id="silhouette-scores-validating-clusters"><a class="header" href="#silhouette-scores-validating-clusters">Silhouette Scores: Validating Clusters</a></h2>
+<p>How do you know your clusters are real? The silhouette score provides internal validation. For each point, it measures:</p>
+<ul>
+<li><strong>a</strong> = mean distance to other points in the same cluster</li>
+<li><strong>b</strong> = mean distance to points in the nearest other cluster</li>
+<li><strong>Silhouette = (b - a) / max(a, b)</strong></li>
+</ul>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="650" height="300" viewbox="0 0 650 300" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="325" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Silhouette Score: Measuring Cluster Quality</text>
+  <!-- Cluster A (blue) -->
+  <circle cx="140" cy="160" r="5" fill="#3b82f6" /><circle cx="160" cy="145" r="5" fill="#3b82f6" />
+  <circle cx="125" cy="150" r="5" fill="#3b82f6" /><circle cx="155" cy="170" r="5" fill="#3b82f6" />
+  <circle cx="145" cy="175" r="5" fill="#3b82f6" />
+  <!-- Target point (highlighted) -->
+  <circle cx="180" cy="158" r="7" fill="#2563eb" stroke="#1e293b" stroke-width="2" />
+  <text x="180" y="140" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Point X</text>
+  <!-- Cluster B (red) -->
+  <circle cx="380" cy="130" r="5" fill="#ef4444" /><circle cx="400" cy="145" r="5" fill="#ef4444" />
+  <circle cx="395" cy="120" r="5" fill="#ef4444" /><circle cx="415" cy="135" r="5" fill="#ef4444" />
+  <circle cx="390" cy="150" r="5" fill="#ef4444" />
+  <!-- Cluster C (green) -->
+  <circle cx="350" cy="240" r="5" fill="#22c55e" /><circle cx="370" cy="250" r="5" fill="#22c55e" />
+  <circle cx="340" cy="255" r="5" fill="#22c55e" /><circle cx="365" cy="235" r="5" fill="#22c55e" />
+  <!-- Arrow: a = distance to own cluster -->
+  <line x1="180" y1="162" x2="148" y2="168" stroke="#2563eb" stroke-width="2" stroke-dasharray="4,3" />
+  <text x="105" y="190" font-size="12" font-weight="bold" fill="#2563eb">a = 28</text>
+  <text x="105" y="204" font-size="10" fill="#2563eb">(own cluster)</text>
+  <!-- Arrow: b = distance to nearest other cluster -->
+  <line x1="185" y1="155" x2="375" y2="138" stroke="#dc2626" stroke-width="2" stroke-dasharray="4,3" />
+  <text x="280" y="125" font-size="12" font-weight="bold" fill="#dc2626">b = 215</text>
+  <text x="280" y="139" font-size="10" fill="#dc2626">(nearest other)</text>
+  <!-- Formula -->
+  <rect x="440" y="185" width="195" height="80" rx="6" fill="white" stroke="#e5e7eb" />
+  <text x="538" y="210" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Silhouette Score</text>
+  <text x="538" y="232" text-anchor="middle" font-size="13" fill="#7c3aed">s = (b - a) / max(a, b)</text>
+  <text x="538" y="254" text-anchor="middle" font-size="12" fill="#16a34a">s = (215 - 28) / 215 = 0.87</text>
+  <!-- Cluster labels -->
+  <text x="140" y="105" text-anchor="middle" font-size="12" fill="#3b82f6" font-weight="bold">Cluster A</text>
+  <text x="395" y="100" text-anchor="middle" font-size="12" fill="#ef4444" font-weight="bold">Cluster B</text>
+  <text x="355" y="225" text-anchor="middle" font-size="12" fill="#22c55e" font-weight="bold">Cluster C</text>
+  <!-- Interpretation -->
+  <rect x="15" y="270" width="620" height="22" rx="4" fill="#f1f5f9" />
+  <text x="325" y="286" text-anchor="middle" font-size="11" fill="#6b7280">Close to +1 = well-clustered | Near 0 = on boundary | Negative = probably misassigned</text>
+</svg>
+</div>
+
+<p>The score ranges from -1 to +1:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Score</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>+1</td><td>Point is far from neighboring clusters — excellent clustering</td></tr>
+<tr><td>0</td><td>Point is on the boundary between clusters</td></tr>
+<tr><td>-1</td><td>Point is probably in the wrong cluster</td></tr>
+</tbody>
+</table>
+</div>
+<p>Average silhouette scores:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Average Score</th><th>Quality</th></tr>
+</thead>
+<tbody>
+<tr><td>0.71 - 1.00</td><td>Strong structure</td></tr>
+<tr><td>0.51 - 0.70</td><td>Reasonable structure</td></tr>
+<tr><td>0.26 - 0.50</td><td>Weak structure, possibly artificial</td></tr>
+<tr><td>&lt; 0.25</td><td>No substantial structure found</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bio">set_seed(42)
+# Silhouette analysis for different k
+for k in 2..8 {
+  let cl = kmeans(pca_scores, k)
+  let sil = cl.silhouette
+  print("k=" + str(k) + " silhouette: " + str(round(sil, 3)))
+}
+</code></pre>
+<blockquote>
+<p><strong>Common pitfall:</strong> A high silhouette score does not prove biological relevance. Random data with well-separated clusters in PCA space can have high silhouette scores. Always validate clusters against independent information — clinical outcomes, known markers, or held-out data.</p>
+</blockquote>
+<h2 id="clustering-always-finds-clusters--even-in-noise"><a class="header" href="#clustering-always-finds-clusters--even-in-noise">Clustering Always Finds Clusters — Even in Noise</a></h2>
+<p>This is the single most important warning about clustering. Run k-means with k = 3 on completely random data, and it will dutifully return three clusters. The clusters will look somewhat real in a scatter plot. But they are meaningless.</p>
+<pre><code class="language-bio">set_seed(42)
+# DANGER: Clustering random noise
+let noise = table(500, 20, "rnorm")
+let fake_clusters = kmeans(noise, 3)
+let noise_pca = pca(noise)
+
+# These clusters are pure noise — but the plot looks convincing!
+scatter(noise_pca.scores[0], noise_pca.scores[1])
+
+# Silhouette score will be low
+let sil = fake_clusters.silhouette
+print("Silhouette on noise: " + str(round(sil, 3)))  # ~0.1-0.2
+</code></pre>
+<p>Always compare your clustering against a null — random data of the same dimensions and sample size. If the silhouette score on real data is not substantially higher than on random data, the clusters may not be real.</p>
+<h2 id="heatmaps-with-clustering"><a class="header" href="#heatmaps-with-clustering">Heatmaps with Clustering</a></h2>
+<p>The clustered heatmap is the workhorse visualization of genomics. It shows expression values as colors, with both rows (genes) and columns (samples) reordered by hierarchical clustering. Similar genes are placed next to similar genes; similar samples next to similar samples.</p>
+<pre><code class="language-bio"># Clustered heatmap of top variable genes
+let top_genes = variance_per_column(expression_matrix)
+  |&gt; sort_by(|x| -x.value)
+  |&gt; take(100)
+  |&gt; map(|x| x.name)
+
+let sub_matrix = expression_matrix |&gt; select_cols(top_genes)
+
+heatmap(sub_matrix, {cluster_rows: true, cluster_cols: true,
+  color_scale: "viridis",
+  title: "Top 100 Variable Genes — Clustered Heatmap"})
+</code></pre>
+<h2 id="clustering-in-biolang--complete-pipeline"><a class="header" href="#clustering-in-biolang--complete-pipeline">Clustering in BioLang — Complete Pipeline</a></h2>
+<pre><code class="language-bio">set_seed(42)
+# Full clustering analysis on simulated tumor expression data
+
+# Simulate 500 tumors with 4 molecular subtypes
+let n_per_group = 125
+let n_genes = 200
+
+let subtype_a = table(n_per_group, n_genes, "rnorm")
+let subtype_b = table(n_per_group, n_genes, "rnorm")
+let subtype_c = table(n_per_group, n_genes, "rnorm")
+let subtype_d = table(n_per_group, n_genes, "rnorm")
+
+# Each subtype has distinct gene blocks elevated
+for i in 0..n_per_group {
+  for j in 0..50 { subtype_a[i][j] = subtype_a[i][j] + 3.0 }
+  for j in 50..100 { subtype_b[i][j] = subtype_b[i][j] + 3.0 }
+  for j in 100..150 { subtype_c[i][j] = subtype_c[i][j] + 3.0 }
+  for j in 150..200 { subtype_d[i][j] = subtype_d[i][j] + 3.0 }
+}
+
+let expr = rbind(subtype_a, subtype_b, subtype_c, subtype_d)
+let true_labels = repeat("A", 125) + repeat("B", 125) + repeat("C", 125) + repeat("D", 125)
+
+# 1. PCA for visualization and dimensionality reduction
+let pca_result = pca(expr)
+scatter(pca_result.scores[0], pca_result.scores[1])
+
+# 2. K-means clustering
+let km = kmeans(expr, 4)
+scatter(pca_result.scores[0], pca_result.scores[1])
+
+# 3. Elbow plot
+let wcss = seq(1, 10) |&gt; map(|k| {
+  let cl = kmeans(expr, k)
+  {k: k, within_ss: cl.total_within_ss}
+}) |&gt; to_table()
+plot(wcss, {type: "line", x: "k", y: "within_ss",
+  title: "Elbow Plot"})
+
+# 4. Silhouette analysis
+for k in 2..8 {
+  let cl = kmeans(expr, k)
+  let sil = cl.silhouette
+  print("k=" + str(k) + " silhouette=" + str(round(sil, 3)))
+}
+
+# 5. Hierarchical clustering
+let hc = hclust(expr, "ward")
+dendrogram(hc, {k: 4, title: "Dendrogram — Ward Linkage"})
+
+let hc_labels = hc |&gt; cut_tree(4)
+scatter(pca_result.scores[0], pca_result.scores[1])
+
+# 6. DBSCAN
+let db = dbscan(expr, 8.0, 10)
+print("DBSCAN found " + str(db.n_clusters) + " clusters, " + str(db.n_noise) + " noise")
+
+# 7. Compare clustering to true labels
+print("\nK-means vs true labels:")
+print(cross_tabulate(km.labels, true_labels))
+
+print("\nHierarchical vs true labels:")
+print(cross_tabulate(hc_labels, true_labels))
+
+# 8. Clustered heatmap
+heatmap(expr, {cluster_rows: true, cluster_cols: true,
+  color_scale: "red_blue",
+  title: "Expression Heatmap — K-means Clusters"})
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+from sklearn.metrics import silhouette_score
+from scipy.cluster.hierarchy import dendrogram, linkage
+import seaborn as sns
+
+# K-means
+km = KMeans(n_clusters=4, n_init=25, random_state=42)
+km_labels = km.fit_predict(expr)
+
+# Elbow plot
+wcss = [KMeans(n_clusters=k, n_init=25).fit(expr).inertia_ for k in range(1, 10)]
+plt.plot(range(1, 10), wcss, 'bo-')
+plt.show()
+
+# Silhouette
+for k in range(2, 8):
+    km_k = KMeans(n_clusters=k, n_init=25).fit(expr)
+    print(f"k={k} silhouette={silhouette_score(expr, km_k.labels_):.3f}")
+
+# Hierarchical
+Z = linkage(expr, method='ward')
+dendrogram(Z)
+plt.show()
+
+# Heatmap
+sns.clustermap(expr, method='ward', cmap='RdBu_r')
+plt.show()
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># K-means
+km &lt;- kmeans(expr, centers = 4, nstart = 25)
+table(km$cluster, true_labels)
+
+# Elbow plot
+wcss &lt;- sapply(1:9, function(k) kmeans(expr, k, nstart=25)$tot.withinss)
+plot(1:9, wcss, type="b", xlab="k", ylab="Total within SS")
+
+# Hierarchical
+hc &lt;- hclust(dist(expr), method = "ward.D2")
+plot(hc)
+cutree(hc, k = 4)
+
+# Heatmap
+library(pheatmap)
+pheatmap(expr, clustering_method = "ward.D2", show_rownames = FALSE)
+
+# Silhouette
+library(cluster)
+for (k in 2:7) {
+  cl &lt;- kmeans(expr, k, nstart=25)
+  cat(sprintf("k=%d silhouette=%.3f\n", k, mean(silhouette(cl$cluster, dist(expr))[,3])))
+}
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<ol>
+<li><strong>Three subtypes.</strong> The pathologist says 3 subtypes, but your elbow plot suggests 4 or 5. Simulate 500 tumors with 5 true subtypes (100 each). Run k-means for k = 3, 4, 5, 6. Use silhouette scores and cross-tabulation against true labels. Which k best recovers the truth?</li>
+</ol>
+<pre><code class="language-bio"># Your code: simulate 5 subtypes, test multiple k values
+</code></pre>
+<ol start="2">
+<li><strong>Linkage comparison.</strong> Run hierarchical clustering on the same data with single, complete, average, and Ward linkage. Cut each at k = 5. Which linkage best recovers the true labels? Visualize the four dendrograms.</li>
+</ol>
+<pre><code class="language-bio"># Your code: four linkage methods, compare cross-tabulations
+</code></pre>
+<ol start="3">
+<li><strong>DBSCAN tuning.</strong> On the 5-subtype data, try DBSCAN with epsilon values from 3 to 15 (step 1) and min_samples from 5 to 20. Find the combination that gives 5 clusters with the fewest noise points.</li>
+</ol>
+<pre><code class="language-bio"># Your code: grid search over epsilon and min_samples
+</code></pre>
+<ol start="4">
+<li><strong>Noise test.</strong> Generate pure random data (500 samples x 200 genes, no structure). Run k-means with k = 4. Plot the result. Calculate the silhouette score. Now compare to the silhouette score from the structured data. What is the difference?</li>
+</ol>
+<pre><code class="language-bio"># Your code: cluster noise, compare silhouette to real data
+</code></pre>
+<ol start="5">
+<li><strong>Heatmap with annotation.</strong> Create a clustered heatmap of the top 50 most variable genes, with a color bar showing both k-means cluster assignment and true subtype. Do the two agree?</li>
+</ol>
+<pre><code class="language-bio"># Your code: select top variable genes, heatmap with dual annotation
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li>Clustering is unsupervised grouping — it finds structure without labels, making it essential for discovering molecular subtypes, cell populations, and other hidden patterns.</li>
+<li>K-means is fast and simple but requires choosing k in advance, assumes spherical clusters, and is sensitive to initialization.</li>
+<li>The elbow method and silhouette scores help choose k, but neither is definitive — biological knowledge must guide the final decision.</li>
+<li>Hierarchical clustering produces a dendrogram showing nested relationships; Ward linkage is the default choice for genomics.</li>
+<li>DBSCAN finds arbitrarily shaped clusters and identifies outliers, making it valuable for scRNA-seq data, but requires tuning epsilon and min_samples.</li>
+<li>Silhouette scores validate clustering quality: above 0.5 is reasonable, above 0.7 is strong, but always compare against random data.</li>
+<li>Clustering always finds clusters, even in noise. Never trust clusters without validation against independent evidence.</li>
+<li>Clustered heatmaps are the standard visualization for gene expression patterns across samples.</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>PCA and clustering assume that the data you have is large enough to draw conclusions. But what if your dataset is tiny — six mice per group, far too few to verify normality or trust asymptotic theory? Tomorrow, we meet resampling methods: bootstrap and permutation tests. These techniques let your data speak for itself, building confidence intervals and testing hypotheses without any distributional assumptions, by literally reshuffling the data thousands of times.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-21.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-23.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-21.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-23.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

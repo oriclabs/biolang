@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="bg128" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+  </defs>
+  <!-- Gradient cyan rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#bg128)"/>
+  <!-- Magnifying glass -->
+  <circle cx="54" cy="50" r="26" stroke="#fff" stroke-width="5" fill="none" opacity="0.95"/>
+  <line x1="73" y1="69" x2="94" y2="90" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+  <!-- Glass handle highlight -->
+  <line x1="76" y1="72" x2="90" y2="86" stroke="#a5f3fc" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+  <!-- DNA double helix inside glass -->
+  <g opacity="0.9">
+    <!-- Strand 1 -->
+    <path d="M38 36c5-7 11-7 16-2 5 5 11 5 16-2" stroke="#67e8f9" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M38 48c5-7 11-7 16-2 5 5 11 5 16-2" stroke="#67e8f9" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M38 60c5-7 11-7 16-2 5 5 11 5 16-2" stroke="#67e8f9" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- Strand 2 -->
+    <path d="M38 36c5 7 11 7 16 2 5-5 11-5 16 2" stroke="#a5f3fc" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M38 48c5 7 11 7 16 2 5-5 11-5 16 2" stroke="#a5f3fc" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M38 60c5 7 11 7 16 2 5-5 11-5 16 2" stroke="#a5f3fc" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- Rungs -->
+    <line x1="46" y1="36" x2="46" y2="36" stroke="#fff" stroke-width="1.5" opacity="0.5"/>
+    <line x1="44" y1="39" x2="52" y2="33" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+    <line x1="50" y1="46" x2="58" y2="50" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+    <line x1="44" y1="51" x2="52" y2="45" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+    <line x1="50" y1="58" x2="58" y2="62" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+    <line x1="44" y1="63" x2="52" y2="57" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+  </g>
+  <!-- BIOGIST subtitle -->
+  <text x="64" y="112" text-anchor="middle" fill="#a5f3fc" font-family="system-ui,sans-serif" font-size="12" font-weight="600" letter-spacing="2">BIOGIST</text>
+  <!-- Decorative dots -->
+  <circle cx="104" cy="20" r="3" fill="#22d3ee" opacity="0.6"/>
+  <circle cx="112" cy="28" r="2" fill="#a5f3fc" opacity="0.5"/>
+  <circle cx="18" cy="104" r="2.5" fill="#67e8f9" opacity="0.5"/>
+  <circle cx="26" cy="110" r="1.5" fill="#a5f3fc" opacity="0.4"/>
+  <!-- Nucleotide accents -->
+  <text x="108" y="42" fill="#34d399" font-family="ui-monospace,monospace" font-size="10" font-weight="700" opacity="0.4">A</text>
+  <text x="16" y="30" fill="#f87171" font-family="ui-monospace,monospace" font-size="10" font-weight="700" opacity="0.4">T</text>
+</svg>

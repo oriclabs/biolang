@@ -1,7 +1,7 @@
 // WASM loader for Chrome extension context (CSP blocks inline module scripts)
 (async function() {
   try {
-    var mod = await import("./wasm/br_wasm.js");
+    var mod = await import("./wasm/bl_wasm.js");
     await mod.default();
     mod.init();
     window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset };

@@ -1,0 +1,9 @@
+let seqs = read_fasta("real_data/yeast_genome.fa") |> head(5) |> collect()
+let results = []
+for seq in seqs
+  let sub = slice(seq.seq, 0, 200) |> to_string()
+  let original = dna(sub)
+  let rc = reverse_complement(original) |> to_string()
+  results = append(results, {id: seq.id, original: sub, revcomp: rc})
+end
+print(to_json({sequences: results}))

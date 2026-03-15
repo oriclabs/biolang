@@ -9,7 +9,7 @@ make these chains explicit, readable, and composable.
 The pipe `a |> f(b)` desugars to `f(a, b)`. The left-hand value becomes the first
 argument of the right-hand function:
 
-```
+```biolang
 # These are equivalent:
 gc_content(dna"ATCGATCGATCG")
 dna"ATCGATCGATCG" |> gc_content()
@@ -23,13 +23,13 @@ reads |> filter(|r| mean(r.quality) >= 30)
 
 Without pipes, nested function calls read inside-out:
 
-```
+```biolang
 # Hard to follow -- you read from the innermost call outward
 write_tsv(
   sort(
     summarize(
       group_by(
-        filter(read_vcf("calls.vcf.gz"), |v| v.qual >= 30),
+        filter(read_vcf("data/variants.vcf"), |v| v.qual >= 30),
         "chrom"
       ),
       |chrom, rows| {n: len(rows), mean_qual: mean(col(rows, "qual"))}
@@ -44,8 +44,8 @@ write_tsv(
 With pipes, the same workflow reads top-to-bottom, matching how you think about
 the analysis:
 
-```
-read_vcf("calls.vcf.gz")
+```biolang
+read_vcf("data/variants.vcf")
   |> filter(|v| v.qual >= 30)
   |> group_by("chrom")
   |> summarize(|chrom, rows| {n: len(rows), mean_qual: mean(col(rows, "qual"))})
@@ -60,7 +60,7 @@ Each line is one transformation step. You can read the pipeline like a protocol.
 The real power emerges when you chain multiple operations. Here is a complete
 read-to-report workflow:
 
-```
+```biolang
 # Read a BAM file, compute per-chromosome alignment statistics
 read_bam("sample.sorted.bam")
   |> filter(|r| r.mapq >= 30 && !r.is_duplicate && !r.is_unmapped)
@@ -82,8 +82,8 @@ an intermediate file, printing a progress message -- without disrupting the data
 flow. The tap pipe `|>>` evaluates the right side for its effect but passes the
 left side through unchanged:
 
-```
-read_fastq("sample_R1.fastq.gz")
+```biolang
+read_fastq("data/reads.fastq")
   |>> |reads| print(f"Raw reads: {len(reads)}")
   |> filter(|r| mean(r.quality) >= 25)
   |>> |reads| print(f"After quality filter: {len(reads)}")
@@ -102,8 +102,8 @@ After length filter: 2539847
 
 The tap pipe is invaluable for debugging pipelines:
 
-```
-read_vcf("raw_calls.vcf.gz")
+```biolang
+read_vcf("data/variants.vcf")
   |>> |vs| print(f"Step 0 - Raw: {len(vs)} variants")
   |> filter(|v| v.filter == "PASS")
   |>> |vs| print(f"Step 1 - PASS only: {len(vs)}")
@@ -116,8 +116,8 @@ read_vcf("raw_calls.vcf.gz")
 
 You can also use tap to write intermediate checkpoints:
 
-```
-read_fasta("assembly.fa")
+```biolang
+read_fasta("data/sequences.fasta")
   |> filter(|s| seq_len(s.seq) >= 1000)
   |>> |seqs| write_fasta(seqs, "contigs_gt1kb.fa")
   |> filter(|s| gc_content(s.seq) >= 0.3 && gc_content(s.seq) <= 0.7)
@@ -131,15 +131,15 @@ read_fasta("assembly.fa")
 
 ### `map` -- Transform Each Element
 
-```
+```biolang
 # Extract GC content per contig
-let gc_profile = read_fasta("contigs.fa")
+let gc_profile = read_fasta("data/sequences.fasta")
   |> map(|seq| {id: seq.id, gc: gc_content(seq.seq), length: seq_len(seq.seq)})
 ```
 
 ### `filter` -- Select Elements by Predicate
 
-```
+```biolang
 # Keep only high-quality mapped reads
 let good_reads = read_bam("aligned.bam")
   |> filter(|r| r.mapq >= 30)
@@ -149,9 +149,9 @@ let good_reads = read_bam("aligned.bam")
 
 ### `reduce` -- Accumulate a Single Value
 
-```
+```biolang
 # Total bases across all chromosomes
-let total_bases = read_fasta("reference.fa")
+let total_bases = read_fasta("data/sequences.fasta")
   |> map(|s| seq_len(s.seq))
   |> reduce(0, |acc, n| acc + n)
 
@@ -160,7 +160,7 @@ print(f"Reference genome size: {total_bases / 1e9:.2f} Gb")
 
 ### `sort` -- Order Elements
 
-```
+```biolang
 # Rank genes by expression level
 let top_genes = csv("tpm.csv")
   |> sort("tpm", descending: true)
@@ -172,9 +172,9 @@ let top_genes = csv("tpm.csv")
 
 Essential when each input produces multiple outputs:
 
-```
+```biolang
 # Extract all exons from a gene annotation
-let all_exons = read_gff("genes.gff3")
+let all_exons = read_gff("data/annotations.gff")
   |> filter(|f| f.type == "gene")
   |> flat_map(|gene| gene.children |> filter(|c| c.type == "exon"))
 
@@ -189,9 +189,9 @@ let top_kmers = fasta("contigs.fa")
 
 ### `take_while` -- Stream Until Condition Fails
 
-```
+```biolang
 # Read sorted variants until we pass a genomic position
-let nearby_variants = read_vcf("sorted.vcf.gz")
+let nearby_variants = read_vcf("data/variants.vcf")
   |> filter(|v| v.chrom == "chr17")
   |> take_while(|v| v.pos <= 7700000)
   |> filter(|v| v.pos >= 7660000)
@@ -201,7 +201,7 @@ let nearby_variants = read_vcf("sorted.vcf.gz")
 
 Like `reduce`, but emits every intermediate value:
 
-```
+```biolang
 # Cumulative read count across sorted BAM regions
 let cumulative = read_bam("sorted.bam")
   |> group_by("chrom")
@@ -212,24 +212,24 @@ let cumulative = read_bam("sorted.bam")
 
 ### `window` and `chunk` -- Sliding and Fixed Blocks
 
-```
+```biolang
 # Sliding window GC content
 let gc_track = dna"ATCGATCGATCGATCGCCCCGGGG"
   |> window(size: 10, step: 5)
   |> map(|w| gc_content(w))
 
 # Chunk reads into batches for parallel processing
-let batches = read_fastq("sample.fastq.gz")
+let batches = read_fastq("data/reads.fastq")
   |> chunk(100_000)
   |> map(|batch| {n_reads: len(batch), mean_gc: batch |> map(|r| gc_content(r.seq)) |> mean()})
 ```
 
 ### `zip` -- Pair Two Collections
 
-```
+```biolang
 # Pair forward and reverse reads
-let r1 = read_fastq("sample_R1.fastq.gz")
-let r2 = read_fastq("sample_R2.fastq.gz")
+let r1 = read_fastq("data/reads.fastq")
+let r2 = read_fastq("data/reads.fastq")
 
 let paired = zip(r1, r2) |> map(|pair| {
   id: pair[0].id,
@@ -241,9 +241,9 @@ let paired = zip(r1, r2) |> map(|pair| {
 
 ### `enumerate` -- Track Position
 
-```
+```biolang
 # Number contigs by size rank
-read_fasta("assembly.fa")
+read_fasta("data/sequences.fasta")
   |> sort(|s| seq_len(s.seq), descending: true)
   |> enumerate()
   |> map(|i, seq| {rank: i + 1, id: seq.id, length: seq_len(seq.seq)})
@@ -258,7 +258,7 @@ approach is `let name = expr`. But this reads right-to-left, breaking the flow.
 The `|> into` operator binds the result of a pipe chain to a name while
 preserving left-to-right reading order:
 
-```
+```biolang
 # Traditional style — reads right-to-left:
 let passed = variants |> filter(|v| v.quality >= 30)
 
@@ -273,9 +273,9 @@ the value.
 This is especially useful in multi-step workflows where you need to reference
 intermediate results:
 
-```
+```biolang
 # Multi-step pipeline with into
-read_fastq("reads.fq")
+read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30)
   |> into high_quality
 
@@ -292,7 +292,7 @@ top-to-bottom, matching the conceptual flow of the analysis.
 
 A complete quality filtering workflow with logging at each step.
 
-```
+```biolang
 # quality_filter.bl
 # Multi-step FASTQ quality filtering pipeline.
 
@@ -348,7 +348,7 @@ orphans |> write_fastq("filtered/sample_orphans.fastq.gz")
 
 Read VCF, classify variants, annotate against known databases, filter, and report.
 
-```
+```biolang
 # annotate_variants.bl
 # Variant annotation and classification pipeline.
 
@@ -361,7 +361,7 @@ let gnomad_af = csv("gnomad_af.csv")
   |> group_by("key")
   |> map(|g| {key: g.key, af: first(g.values).af})
 
-read_vcf("somatic_calls.vcf.gz")
+read_vcf("data/variants.vcf")
 
   # Step 1: Basic quality filter
   |> filter(|v| v.qual >= 30 && v.filter == "PASS")
@@ -425,7 +425,7 @@ read_vcf("somatic_calls.vcf.gz")
 
 Compare variant calls across matched tumor-normal pairs and compute concordance.
 
-```
+```biolang
 # multi_sample_compare.bl
 # Compare variant calls across tumor-normal pairs.
 

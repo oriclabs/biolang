@@ -1,0 +1,28 @@
+{
+  "name": "BioGist",
+  "short_name": "BioGist",
+  "description": "Biological Genomic Intelligence in Situ — detect genes, variants, and accessions in scientific text.",
+  "start_url": "/biogist.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0891b2",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "extension/biogist/icons/icon128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "extension/biogist/icons/icon48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "extension/biogist/icons/icon16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["science", "productivity", "utilities"]
+}

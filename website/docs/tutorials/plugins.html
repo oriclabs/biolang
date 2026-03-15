@@ -389,7 +389,7 @@ let logo = motif_logo(alignment, "results/top_motif_logo.svg", "ascii")
 print(logo)
 
 # Scan with a known PWM loaded from CSV
-let pwm = csv("data/known_pwm.csv")
+let pwm = read_csv("data/known_pwm.csv")
 let hits = scan_motif(seqs, pwm, 0.85)
 print(hits)</code></pre>
 

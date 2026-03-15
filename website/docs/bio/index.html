@@ -95,10 +95,10 @@ let prot = protein"MKTLVFGADRHWYCNQEIPS"</code></pre>
           <li><strong class="text-violet-400">MAF</strong> &mdash; Multiple alignment format</li>
         </ul>
         <pre><code class="language-biolang"># Read as a table (reusable) — best for interactive use
-let records = read_fasta("sequences.fa")
+let records = read_fasta("data/sequences.fasta")
 
 # Read as a stream (lazy, one-time) — best for large files
-records = fasta("genome.fa")
+records = read_fasta("data/sequences.fasta")
 
 # Process with pipes
 records
@@ -118,8 +118,8 @@ let exon1 = interval("chr1", 1000, 2000, "+")
 let exon2 = interval("chr1", 1500, 2500)
 
 # Interval set operations work on tables with chrom/start/end columns
-let exons = bed("exons.bed")
-let peaks = bed("peaks.bed")
+let exons = read_bed("data/regions.bed")
+let peaks = read_bed("data/regions.bed")
 let shared = intersect(exons, peaks)</code></pre>
 
         <h2>K-mer Analysis</h2>

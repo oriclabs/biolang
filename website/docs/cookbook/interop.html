@@ -37,10 +37,10 @@ print("Output: #{result.stdout}")</code></pre>
 
         <h3>Inline Python with data exchange</h3>
         <pre><code class="language-biolang"># Prepare data in BioLang, process in Python, read results back
-let counts = csv("gene_counts.csv")
+let counts = read_csv("data/counts.csv")
 write_tsv(counts, "_temp_counts.tsv")
 
-let metadata = csv("sample_info.csv")
+let metadata = read_csv("data/sample_sheet.csv")
 write_tsv(metadata, "_temp_metadata.tsv")
 
 # Run DESeq2-like analysis via Python
@@ -113,12 +113,12 @@ if result.exit_code != 0 {
   exit(1)
 }
 
-let output = csv("output.csv")
+let output = read_csv("output.csv")
 print("R analysis produced #{len(output)} results")</code></pre>
 
         <h3>Inline R for DESeq2</h3>
         <pre><code class="language-biolang"># Prepare count matrix and run DESeq2 in R
-let counts = csv("raw_counts.csv")
+let counts = read_csv("data/counts.csv")
 write_csv(counts, "_deseq_input.csv")
 
 let r_script = "
@@ -140,7 +140,7 @@ write_text(r_script, "_deseq.R")
 let result = shell("Rscript _deseq.R")
 
 if result.exit_code == 0 {
-  let de = csv("_deseq_output.csv")
+  let de = read_csv("_deseq_output.csv")
   let sig = de |> filter(|r| float(r["padj"]) < 0.05)
   print("DESeq2 found #{len(sig)} significant genes")
   write_csv(sig, "deseq2_significant.csv")
@@ -179,7 +179,7 @@ remove("_plot_data.tsv")</code></pre>
 
         <h3>Streaming data to external tools</h3>
         <pre><code class="language-biolang"># Write data then process with an external tool
-write_fastq(fastq("reads.fq"), "_temp.fq")
+write_fastq(read_fastq("data/reads.fastq"), "_temp.fq")
 let result = shell("seqkit stats -T _temp.fq")
 print(result.stdout)
 remove("_temp.fq")</code></pre>
@@ -190,7 +190,7 @@ let flagstat = shell("samtools flagstat aligned.bam")
 print(flagstat.stdout)
 
 # Filter BED then pass to samtools
-let bed_regions = bed("targets.bed")
+let bed_regions = read_bed("data/regions.bed")
   |> filter(|r| r.end - r.start > 100)
 
 write_bed(bed_regions, "_filtered.bed")
@@ -201,8 +201,8 @@ remove("_filtered.bed")</code></pre>
 
         <h3>AnnData exchange with Python</h3>
         <pre><code class="language-biolang"># Exchange data with scanpy via CSV/JSON
-# Export from scanpy: adata.obs.to_csv("obs.csv")
-let obs = csv("obs.csv")
+# Export from scanpy: adata.obs.to_read_csv("obs.csv")
+let obs = read_csv("obs.csv")
 
 # Do something in BioLang
 let cluster_sizes = frequencies(map(obs, |row| row["leiden"]))
@@ -217,7 +217,7 @@ write_json(scores, "custom_scores.json")
 
         <h3>Parquet for large datasets</h3>
         <pre><code class="language-biolang"># Use CSV/TSV for data exchange with Python/R
-let data = csv("huge_table.csv")
+let data = read_csv("data/expression.csv")
 
 # Write as TSV for efficient exchange
 write_tsv(data, "data.tsv")

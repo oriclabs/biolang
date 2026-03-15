@@ -17,7 +17,7 @@ and dozens of other databases. BioLang provides three NCBI functions.
 
 Search any NCBI database (PubMed, Gene, Nucleotide, Protein, etc.).
 
-```
+```biolang
 # requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # Search PubMed for recent CRISPR-Cas9 papers
@@ -36,7 +36,7 @@ summaries |> each(|s| {
 
 Fetch detailed gene information by gene ID or symbol.
 
-```
+```biolang
 # requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # ncbi_gene(symbol_or_query, max_results?)
@@ -51,7 +51,7 @@ print(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
 
 Retrieve nucleotide or protein sequences from NCBI.
 
-```
+```biolang
 # requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # ncbi_sequence(accession) — returns FASTA text
@@ -68,7 +68,7 @@ of the default 3.
 
 Look up a gene via the Ensembl REST API.
 
-```
+```biolang
 # requires: internet connection
 # ensembl_symbol(species, symbol) — lookup by symbol
 let brca1 = ensembl_symbol("human", "BRCA1")
@@ -87,7 +87,7 @@ print("Symbol: " + same.symbol)
 Predict the functional consequences of variants using the Variant Effect
 Predictor.
 
-```
+```biolang
 # requires: internet connection
 # ensembl_vep(hgvs) — predict variant consequences
 let variants = [
@@ -114,7 +114,7 @@ predictions |> each(|pred| {
 
 Search the UniProt protein database.
 
-```
+```biolang
 # requires: internet connection
 # uniprot_search(query, limit?)
 let kinases = uniprot_search("kinase AND organism_id:9606", 50)
@@ -128,7 +128,7 @@ kinases |> take(5) |> each(|k| print(k.accession + " " + k.gene_names))
 
 Get full details for a single UniProt accession.
 
-```
+```biolang
 # requires: internet connection
 let entry = uniprot_entry("P04637")  # TP53
 # Returns: {accession, name, organism, sequence_length, gene_names, function}
@@ -150,7 +150,7 @@ domains |> each(|d| print("  " + d.description + ": " + d.location))
 
 Retrieve genomic sequences from the UCSC Genome Browser.
 
-```
+```biolang
 # requires: internet connection
 # Get the sequence of the BRCA1 promoter region
 # ucsc_sequence(genome, chrom, start, end)
@@ -168,7 +168,7 @@ print("GC content: " + str(gc))
 
 Search KEGG databases (pathway, enzyme, compound, etc.).
 
-```
+```biolang
 # requires: internet connection
 # kegg_find(db, query) — search KEGG databases
 let pathways = kegg_find("pathway", "apoptosis human")
@@ -179,7 +179,7 @@ let pathways = kegg_find("pathway", "apoptosis human")
 
 Retrieve a specific KEGG entry.
 
-```
+```biolang
 # requires: internet connection
 # kegg_get(entry_id) — returns raw KEGG text
 let apoptosis = kegg_get("hsa04210")
@@ -193,7 +193,7 @@ print("Entry text length: " + str(len(apoptosis)) + " chars")
 
 Query protein-protein interaction networks from the STRING database.
 
-```
+```biolang
 # requires: internet connection
 # string_network(identifiers, species)
 # First argument must be a list of protein names
@@ -209,7 +209,7 @@ network |> each(|i| print(i.protein_a + " <-> " + i.protein_b + " (" + str(i.sco
 
 Retrieve protein structure metadata from the Protein Data Bank.
 
-```
+```biolang
 # requires: internet connection
 let structure = pdb_entry("1TUP")  # TP53 DNA-binding domain
 # structure => {
@@ -231,7 +231,7 @@ print("Resolution: " + str(structure.resolution) + " A")
 
 Find pathways associated with a gene or set of genes.
 
-```
+```biolang
 # requires: internet connection
 # reactome_pathways(gene_or_genes)
 let pathways = reactome_pathways("BRCA1")
@@ -246,7 +246,7 @@ pathways |> each(|p| print(p))
 
 Look up a GO term by its identifier.
 
-```
+```biolang
 # requires: internet connection
 let term = go_term("GO:0006915")
 # term => {id: "GO:0006915", name: "apoptotic process",
@@ -258,7 +258,7 @@ let term = go_term("GO:0006915")
 
 Get GO annotations for a gene.
 
-```
+```biolang
 # requires: internet connection
 # go_annotations(gene_or_accession)
 let annotations = go_annotations("TP53")
@@ -273,7 +273,7 @@ annotations |> take(10) |> each(|a| print("  " + a.go_id + " [" + a.aspect + "]:
 
 Query the Catalogue Of Somatic Mutations In Cancer. Requires `COSMIC_API_KEY`.
 
-```
+```biolang
 # requires: internet connection
 # requires: COSMIC_API_KEY
 # cosmic_gene(gene) — requires COSMIC_API_KEY env var
@@ -289,7 +289,7 @@ print(cosmic)
 
 Use the NCBI Datasets API for gene metadata.
 
-```
+```biolang
 # requires: internet connection
 # datasets_gene(symbol_or_id)
 let info = datasets_gene("EGFR")
@@ -312,7 +312,7 @@ Set these in your shell or in a `.env` file before running your script.
 Fetch gene info from NCBI, cross-reference with UniProt, and pull pathways
 from KEGG.
 
-```
+```biolang
 # requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 let gene_list = ["TP53", "BRCA1", "EGFR", "KRAS", "PIK3CA"]
@@ -349,7 +349,7 @@ annotated |> write_json("gene_annotations.json")
 Predict variant effects with Ensembl VEP and check for known cancer mutations
 in COSMIC.
 
-```
+```biolang
 # requires: internet connection
 # requires: COSMIC_API_KEY (for cosmic_gene calls)
 let variants = tsv("candidate_variants.tsv")
@@ -399,7 +399,7 @@ flagged |> write_tsv("flagged_variants.tsv")
 Build a STRING interaction network for a set of differentially expressed genes
 and annotate with Reactome pathways.
 
-```
+```biolang
 # requires: internet connection
 let de_genes = tsv("de_results.tsv")
   |> filter(|r| r.q_value < 0.01 and abs(r.log2fc) > 2.0)

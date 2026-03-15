@@ -1,0 +1,11 @@
+gene,chromosome,function,pathway
+BRCA1,chr17,DNA_repair,homologous_recombination
+TP53,chr17,tumor_suppressor,p53_signaling
+EGFR,chr7,receptor_tyrosine_kinase,EGFR_signaling
+KRAS,chr12,GTPase,RAS_MAPK
+MYC,chr8,transcription_factor,cell_cycle
+PTEN,chr10,phosphatase,PI3K_AKT
+BRAF,chr7,serine_threonine_kinase,RAS_MAPK
+PIK3CA,chr3,lipid_kinase,PI3K_AKT
+APC,chr5,tumor_suppressor,WNT_signaling
+RB1,chr13,tumor_suppressor,cell_cycle

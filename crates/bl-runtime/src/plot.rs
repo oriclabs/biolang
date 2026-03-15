@@ -379,70 +379,426 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Str(canvas.render()))
 }
 
+// ── Heatmap color schemes ──────────────────────────────────────
+
+fn interpolate_viridis(t: f64) -> String {
+    // Viridis: dark purple → teal → yellow (5-stop approximation)
+    let t = t.clamp(0.0, 1.0);
+    let stops: [(f64, f64, f64); 5] = [
+        (68.0, 1.0, 84.0),     // 0.00 — dark purple
+        (59.0, 82.0, 139.0),   // 0.25 — blue-purple
+        (33.0, 145.0, 140.0),  // 0.50 — teal
+        (94.0, 201.0, 98.0),   // 0.75 — green
+        (253.0, 231.0, 37.0),  // 1.00 — yellow
+    ];
+    heatmap_interp_stops(t, &stops)
+}
+
+fn interpolate_plasma(t: f64) -> String {
+    let t = t.clamp(0.0, 1.0);
+    let stops: [(f64, f64, f64); 5] = [
+        (13.0, 8.0, 135.0),    // deep blue
+        (126.0, 3.0, 168.0),   // purple
+        (204.0, 71.0, 120.0),  // pink
+        (248.0, 149.0, 64.0),  // orange
+        (240.0, 249.0, 33.0),  // yellow
+    ];
+    heatmap_interp_stops(t, &stops)
+}
+
+fn interpolate_inferno(t: f64) -> String {
+    let t = t.clamp(0.0, 1.0);
+    let stops: [(f64, f64, f64); 5] = [
+        (0.0, 0.0, 4.0),       // black
+        (87.0, 16.0, 110.0),   // dark purple
+        (188.0, 55.0, 84.0),   // red
+        (249.0, 142.0, 9.0),   // orange
+        (252.0, 255.0, 164.0), // light yellow
+    ];
+    heatmap_interp_stops(t, &stops)
+}
+
+fn interpolate_rdbu(t: f64) -> String {
+    // Diverging: blue (low) → white (mid) → red (high)
+    let t = t.clamp(0.0, 1.0);
+    let stops: [(f64, f64, f64); 5] = [
+        (33.0, 102.0, 172.0),  // strong blue
+        (146.0, 197.0, 222.0), // light blue
+        (247.0, 247.0, 247.0), // white/near-white
+        (239.0, 138.0, 98.0),  // light red
+        (178.0, 24.0, 43.0),   // strong red
+    ];
+    heatmap_interp_stops(t, &stops)
+}
+
+fn interpolate_blues(t: f64) -> String {
+    let t = t.clamp(0.0, 1.0);
+    let r = (247.0 - t * 239.0) as u8;
+    let g = (251.0 - t * 183.0) as u8;
+    let b = (255.0 - t * 69.0) as u8;
+    format!("rgb({r},{g},{b})")
+}
+
+fn interpolate_reds(t: f64) -> String {
+    let t = t.clamp(0.0, 1.0);
+    let r = (255.0 - t * 52.0) as u8;
+    let g = (245.0 - t * 227.0) as u8;
+    let b = (240.0 - t * 240.0) as u8;
+    format!("rgb({r},{g},{b})")
+}
+
+fn interpolate_greens(t: f64) -> String {
+    let t = t.clamp(0.0, 1.0);
+    let r = (247.0 - t * 247.0) as u8;
+    let g = (252.0 - t * 102.0) as u8;
+    let b = (245.0 - t * 200.0) as u8;
+    format!("rgb({r},{g},{b})")
+}
+
+/// Linearly interpolate between N evenly-spaced color stops.
+fn heatmap_interp_stops(t: f64, stops: &[(f64, f64, f64)]) -> String {
+    let n = stops.len();
+    if n == 0 {
+        return "rgb(128,128,128)".into();
+    }
+    if n == 1 {
+        let (r, g, b) = stops[0];
+        return format!("rgb({},{},{})", r as u8, g as u8, b as u8);
+    }
+    let t = t.clamp(0.0, 1.0);
+    let seg = t * (n - 1) as f64;
+    let i = (seg.floor() as usize).min(n - 2);
+    let f = seg - i as f64;
+    let (r0, g0, b0) = stops[i];
+    let (r1, g1, b1) = stops[i + 1];
+    let r = (r0 + f * (r1 - r0)) as u8;
+    let g = (g0 + f * (g1 - g0)) as u8;
+    let b = (b0 + f * (b1 - b0)) as u8;
+    format!("rgb({r},{g},{b})")
+}
+
+fn heatmap_color(t: f64, scheme: &str) -> String {
+    match scheme {
+        "viridis" => interpolate_viridis(t),
+        "plasma" => interpolate_plasma(t),
+        "inferno" => interpolate_inferno(t),
+        "rdbu" => interpolate_rdbu(t),
+        "blues" => interpolate_blues(t),
+        "reds" => interpolate_reds(t),
+        "greens" => interpolate_greens(t),
+        _ => interpolate_viridis(t),
+    }
+}
+
+/// Text color for readability: white on dark cells, black on light cells.
+fn heatmap_text_color(t: f64, scheme: &str) -> &'static str {
+    match scheme {
+        "rdbu" => {
+            // mid-range is white/light, extremes are dark
+            if t < 0.25 || t > 0.75 { "white" } else { "#333" }
+        }
+        "blues" | "greens" | "reds" => {
+            if t > 0.6 { "white" } else { "#333" }
+        }
+        // viridis, plasma, inferno: dark at low end, bright at high end
+        _ => {
+            if t < 0.55 { "white" } else { "#333" }
+        }
+    }
+}
+
+/// Simple row clustering by sorting rows by their mean value.
+fn cluster_rows(row_data: &mut Vec<Vec<f64>>, row_labels: &mut Vec<String>) {
+    let mut indices: Vec<usize> = (0..row_data.len()).collect();
+    indices.sort_by(|&a, &b| {
+        let mean_a: f64 = row_data[a].iter().copied().filter(|v| v.is_finite()).sum::<f64>()
+            / row_data[a].len().max(1) as f64;
+        let mean_b: f64 = row_data[b].iter().copied().filter(|v| v.is_finite()).sum::<f64>()
+            / row_data[b].len().max(1) as f64;
+        mean_a.partial_cmp(&mean_b).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    let orig_rows = row_data.clone();
+    let orig_labels = row_labels.clone();
+    for (new_i, &old_i) in indices.iter().enumerate() {
+        row_data[new_i] = orig_rows[old_i].clone();
+        if old_i < orig_labels.len() {
+            row_labels[new_i] = orig_labels[old_i].clone();
+        }
+    }
+}
+
 fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let width = get_opt_f64(&opts, "width", 800.0);
     let height = get_opt_f64(&opts, "height", 600.0);
     let title = get_opt_str(&opts, "title", "Heatmap").to_string();
+    let scheme = get_opt_str(&opts, "colors", "viridis").to_string();
+    let show_values = opts.get("show_values")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let do_cluster = opts.get("cluster")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
-    // Extract data from Table or Matrix
-    let (col_names, cols_data, all_vals, nrows) = match &args[0] {
+    // User-supplied row/col labels
+    let user_row_labels: Option<Vec<String>> = opts.get("row_labels").and_then(|v| {
+        if let Value::List(items) = v {
+            Some(items.iter().map(|i| format!("{i}")).collect())
+        } else {
+            None
+        }
+    });
+    let user_col_labels: Option<Vec<String>> = opts.get("col_labels").and_then(|v| {
+        if let Value::List(items) = v {
+            Some(items.iter().map(|i| format!("{i}")).collect())
+        } else {
+            None
+        }
+    });
+
+    // Extract data into row-major matrix: row_data[row][col]
+    let (mut col_labels, mut row_data, mut row_labels) = match &args[0] {
         Value::Table(table) => {
-            let mut all_v: Vec<f64> = Vec::new();
-            let mut cd: Vec<Vec<f64>> = Vec::new();
-            for col in &table.columns {
-                let vals = extract_table_col(table, col)?;
-                for &v in &vals { if v.is_finite() { all_v.push(v); } }
-                cd.push(vals);
+            let cl = table.columns.clone();
+            let mut rd: Vec<Vec<f64>> = Vec::with_capacity(table.num_rows());
+            let mut rl: Vec<String> = Vec::with_capacity(table.num_rows());
+            for (ri, row) in table.rows.iter().enumerate() {
+                let mut rv = Vec::with_capacity(row.len());
+                for val in row {
+                    rv.push(match val {
+                        Value::Int(n) => *n as f64,
+                        Value::Float(f) => *f,
+                        Value::Str(s) => s.parse::<f64>().unwrap_or(f64::NAN),
+                        _ => f64::NAN,
+                    });
+                }
+                rd.push(rv);
+                rl.push(format!("{}", ri + 1));
             }
-            let nr = table.num_rows();
-            (table.columns.clone(), cd, all_v, nr)
+            (cl, rd, rl)
         }
         Value::Matrix(m) => {
-            let cn: Vec<String> = m.col_names.clone()
+            let cl = m.col_names.clone()
                 .unwrap_or_else(|| (0..m.ncol).map(|i| format!("col{i}")).collect());
-            let mut all_v: Vec<f64> = Vec::new();
-            let mut cd: Vec<Vec<f64>> = Vec::new();
-            for c in 0..m.ncol {
-                let mut col_v = Vec::with_capacity(m.nrow);
-                for r in 0..m.nrow {
-                    let v = m.data[r * m.ncol + c];
-                    col_v.push(v);
-                    if v.is_finite() { all_v.push(v); }
-                }
-                cd.push(col_v);
+            let mut rd = Vec::with_capacity(m.nrow);
+            let rl: Vec<String> = m.row_names.clone()
+                .unwrap_or_else(|| (0..m.nrow).map(|i| format!("{}", i + 1)).collect());
+            for r in 0..m.nrow {
+                let row_start = r * m.ncol;
+                rd.push(m.data[row_start..row_start + m.ncol].to_vec());
             }
-            (cn, cd, all_v, m.nrow)
+            (cl, rd, rl)
         }
-        _ => return Err(BioLangError::type_error("heatmap() requires Table or Matrix", None)),
+        Value::List(items) => {
+            // List of Lists (matrix) or List of Records
+            if items.is_empty() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError, "heatmap() received empty list", None,
+                ));
+            }
+            match &items[0] {
+                Value::List(_) => {
+                    // List of Lists
+                    let mut rd = Vec::with_capacity(items.len());
+                    let mut max_cols = 0usize;
+                    for item in items {
+                        if let Value::List(row) = item {
+                            let rv: Vec<f64> = row.iter().map(|v| match v {
+                                Value::Int(n) => *n as f64,
+                                Value::Float(f) => *f,
+                                _ => f64::NAN,
+                            }).collect();
+                            if rv.len() > max_cols { max_cols = rv.len(); }
+                            rd.push(rv);
+                        } else {
+                            return Err(BioLangError::type_error(
+                                "heatmap() list items must all be Lists or Records", None,
+                            ));
+                        }
+                    }
+                    let cl: Vec<String> = (0..max_cols).map(|i| format!("col{i}")).collect();
+                    let rl: Vec<String> = (0..rd.len()).map(|i| format!("{}", i + 1)).collect();
+                    (cl, rd, rl)
+                }
+                Value::Record(_) => {
+                    // List of Records — collect all field names as columns
+                    let mut all_keys = Vec::new();
+                    let mut key_set = std::collections::HashSet::new();
+                    for item in items {
+                        if let Value::Record(map) = item {
+                            for k in map.keys() {
+                                if key_set.insert(k.clone()) {
+                                    all_keys.push(k.clone());
+                                }
+                            }
+                        }
+                    }
+                    let mut rd = Vec::with_capacity(items.len());
+                    for item in items {
+                        if let Value::Record(map) = item {
+                            let rv: Vec<f64> = all_keys.iter().map(|k| {
+                                map.get(k).map(|v| match v {
+                                    Value::Int(n) => *n as f64,
+                                    Value::Float(f) => *f,
+                                    _ => f64::NAN,
+                                }).unwrap_or(f64::NAN)
+                            }).collect();
+                            rd.push(rv);
+                        }
+                    }
+                    let rl: Vec<String> = (0..rd.len()).map(|i| format!("{}", i + 1)).collect();
+                    (all_keys, rd, rl)
+                }
+                _ => return Err(BioLangError::type_error(
+                    "heatmap() requires Table, Matrix, List of Lists, or List of Records", None,
+                )),
+            }
+        }
+        _ => return Err(BioLangError::type_error(
+            "heatmap() requires Table, Matrix, List of Lists, or List of Records", None,
+        )),
     };
 
+    // Apply user-supplied labels if given
+    if let Some(ul) = user_row_labels {
+        for (i, label) in ul.into_iter().enumerate() {
+            if i < row_labels.len() {
+                row_labels[i] = label;
+            }
+        }
+    }
+    if let Some(ul) = user_col_labels {
+        col_labels = ul;
+    }
+
+    let nrows = row_data.len();
+    let ncols = if nrows > 0 { row_data[0].len() } else { col_labels.len() };
+
+    if nrows == 0 || ncols == 0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError, "heatmap() received empty data", None,
+        ));
+    }
+
+    // Optional clustering (sort rows by mean)
+    if do_cluster {
+        cluster_rows(&mut row_data, &mut row_labels);
+    }
+
+    // Compute global min/max
+    let mut all_vals = Vec::new();
+    for row in &row_data {
+        for &v in row {
+            if v.is_finite() { all_vals.push(v); }
+        }
+    }
     let (vmin, vmax) = col_range(&all_vals);
+
+    // Compute margins based on label lengths
+    let max_row_label_len = row_labels.iter().map(|s| s.len()).max().unwrap_or(0);
+    let left_margin = 40.0 + (max_row_label_len as f64 * 7.0).min(120.0);
+    let legend_width = 60.0;
+
     let mut canvas = SvgCanvas::new(width, height);
-    canvas.margin.left = 80.0;
-    canvas.margin.bottom = 60.0;
+    canvas.margin.left = left_margin;
+    canvas.margin.bottom = 70.0;
+    canvas.margin.right = 20.0 + legend_width;
+    canvas.margin.top = if title.is_empty() { 20.0 } else { 45.0 };
 
-    let ncols = col_names.len();
-    let cell_w = canvas.plot_width() / ncols as f64;
-    let cell_h = canvas.plot_height() / nrows as f64;
+    let plot_w = canvas.plot_width();
+    let plot_h = canvas.plot_height();
+    let cell_w = plot_w / ncols as f64;
+    let cell_h = plot_h / nrows as f64;
 
-    for (ci, col_data) in cols_data.iter().enumerate() {
-        for (ri, &v) in col_data.iter().enumerate() {
+    // Draw cells
+    for (ri, row) in row_data.iter().enumerate() {
+        for (ci, &v) in row.iter().enumerate() {
             let t = if (vmax - vmin).abs() < f64::EPSILON { 0.5 } else { (v - vmin) / (vmax - vmin) };
-            let color = sequential_color(t);
+            let color = if v.is_finite() {
+                heatmap_color(t, &scheme)
+            } else {
+                "#cccccc".to_string()
+            };
             let x = canvas.margin.left + ci as f64 * cell_w;
             let y = canvas.margin.top + ri as f64 * cell_h;
             canvas.add_rect(x, y, cell_w, cell_h, &color);
+
+            // Cell border for visual separation
+            canvas.elements.push(format!(
+                "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{:.1}\" fill=\"none\" stroke=\"#eee\" stroke-width=\"0.5\" />",
+                x, y, cell_w, cell_h
+            ));
+
+            // Show numeric value in cell
+            if show_values && v.is_finite() {
+                let txt_color = heatmap_text_color(t, &scheme);
+                let label = if v.abs() >= 100.0 || v == 0.0 {
+                    format!("{:.0}", v)
+                } else if v.abs() >= 1.0 {
+                    format!("{:.1}", v)
+                } else {
+                    format!("{:.2}", v)
+                };
+                let font_size = (cell_w.min(cell_h) * 0.35).clamp(7.0, 14.0);
+                canvas.elements.push(format!(
+                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" dominant-baseline="central" font-size="{:.1}" font-family="sans-serif" fill="{}">{}</text>"#,
+                    x + cell_w / 2.0, y + cell_h / 2.0, font_size, txt_color,
+                    label.replace('&', "&amp;").replace('<', "&lt;")
+                ));
+            }
         }
     }
 
-    // Column labels
-    for (ci, col) in col_names.iter().enumerate() {
-        let x = canvas.margin.left + (ci as f64 + 0.5) * cell_w;
-        canvas.add_text_rotated(x, canvas.margin.top + canvas.plot_height() + 10.0, col, 45.0, "start", 10.0);
+    // Column labels (rotated at bottom)
+    for (ci, col) in col_labels.iter().enumerate() {
+        if ci < ncols {
+            let x = canvas.margin.left + (ci as f64 + 0.5) * cell_w;
+            let y = canvas.margin.top + plot_h + 10.0;
+            canvas.add_text_rotated(x, y, col, 45.0, "start", 10.0);
+        }
     }
 
-    canvas.draw_title(&title);
+    // Row labels (on the left)
+    for (ri, label) in row_labels.iter().enumerate() {
+        if ri < nrows {
+            let y = canvas.margin.top + (ri as f64 + 0.5) * cell_h + 4.0;
+            canvas.add_text(canvas.margin.left - 6.0, y, label, "end", 10.0);
+        }
+    }
+
+    // Color legend / scale bar (right side)
+    let legend_x = canvas.margin.left + plot_w + 15.0;
+    let legend_top = canvas.margin.top;
+    let legend_h = plot_h.min(200.0);
+    let legend_bar_w = 15.0;
+    let legend_steps = 50usize;
+    let step_h = legend_h / legend_steps as f64;
+    for i in 0..legend_steps {
+        let t = 1.0 - (i as f64 / (legend_steps - 1) as f64); // top = max
+        let color = heatmap_color(t, &scheme);
+        let y = legend_top + i as f64 * step_h;
+        canvas.elements.push(format!(
+            r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}" />"#,
+            legend_x, y, legend_bar_w, step_h + 0.5, color
+        ));
+    }
+    // Legend border
+    canvas.elements.push(format!(
+        "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{:.1}\" fill=\"none\" stroke=\"#333\" stroke-width=\"0.5\" />",
+        legend_x, legend_top, legend_bar_w, legend_h
+    ));
+    // Legend tick labels
+    let label_x = legend_x + legend_bar_w + 5.0;
+    canvas.add_text(label_x, legend_top + 4.0, &format!("{vmax:.2}"), "start", 9.0);
+    canvas.add_text(label_x, legend_top + legend_h / 2.0 + 3.0,
+        &format!("{:.2}", (vmin + vmax) / 2.0), "start", 9.0);
+    canvas.add_text(label_x, legend_top + legend_h + 3.0, &format!("{vmin:.2}"), "start", 9.0);
+
+    // Title
+    if !title.is_empty() {
+        canvas.draw_title(&title);
+    }
+
     Ok(Value::Str(canvas.render()))
 }
 

@@ -388,7 +388,7 @@ NCBI_API_KEY=your-key bl run fetch_genes.bl
 ### Read, Filter, Analyze
 
 ```bio
-read_fastq("data.fastq")
+read_fastq("data/reads.fastq")
   |> filter(|r| r.quality >= 30)
   |> map(|r| gc_content(r.sequence))
   |> mean()
@@ -409,7 +409,7 @@ stream_fastq("huge.fastq")
 ### Build a Summary Table
 
 ```bio
-let reads = read_fastq("sample.fastq")
+let reads = read_fastq("data/reads.fastq")
 let rows = reads |> map(|r| {
   name: r.name,
   length: len(r.sequence),
@@ -437,7 +437,7 @@ println(f"Found {len(motifs)} TATA boxes in TP53")
 
 ```bio
 try
-  let variants = read_vcf("sample.vcf")
+  let variants = read_vcf("data/variants.vcf")
   let filtered = variants
     |> filter(|v| v.quality >= 30)
     |> filter(|v| v.alt != ".")

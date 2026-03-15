@@ -19,7 +19,7 @@ code from it.
 `galaxy_search` queries the ToolShed by name or keyword. It returns a list of
 records, each describing a matching repository.
 
-```
+```biolang
 # requires: internet connection (all galaxy_* functions query the Galaxy ToolShed API)
 # Find BWA-related tools in the Galaxy ToolShed
 galaxy_search("bwa")
@@ -40,7 +40,7 @@ The default result set includes all matches. Pass a second argument to cap the
 number of results, which is useful in exploratory sessions where you want a
 quick overview.
 
-```
+```biolang
 # Top 5 matches for short-read aligners
 galaxy_search("bwa", 5)
   |> each(|t| print(t.name + " (" + t.owner + "): " + t.description))
@@ -49,7 +49,7 @@ galaxy_search("bwa", 5)
 Search terms are matched against repository names and descriptions, so broader
 queries work too.
 
-```
+```biolang
 # Find tools related to RNA-seq
 galaxy_search("rna-seq", 10)
   |> filter(|t| t.downloads > 1000)
@@ -62,7 +62,7 @@ galaxy_search("rna-seq", 10)
 sorted by download count descending. This is useful for discovering which
 tools the Galaxy community relies on most heavily.
 
-```
+```biolang
 galaxy_popular(10)
   |> map(|t| { name: t.name, owner: t.owner, downloads: t.downloads })
 ```
@@ -70,7 +70,7 @@ galaxy_popular(10)
 Without an argument, `galaxy_popular()` returns a default set. Pass a limit
 to widen or narrow the list.
 
-```
+```biolang
 # Top 25 Galaxy tools by download count
 galaxy_popular(25)
   |> each(|t| print(t.name + " by " + t.owner + " - " + str(t.downloads) + " downloads"))
@@ -82,7 +82,7 @@ The ToolShed organizes repositories into categories such as "Assembly",
 "Variant Analysis", "RNA", and "Visualization". `galaxy_categories` returns
 them all as a list of records.
 
-```
+```biolang
 galaxy_categories()
   |> each(|c| print(c.name + ": " + c.description))
 ```
@@ -90,7 +90,7 @@ galaxy_categories()
 You can use this to explore what kinds of tools exist before drilling into
 a specific area.
 
-```
+```biolang
 # Find categories related to sequencing
 galaxy_categories()
   |> filter(|c| contains(lower(c.name), "sequenc") or contains(lower(c.description), "sequenc"))
@@ -102,7 +102,7 @@ galaxy_categories()
 `galaxy_tool` returns a detailed record for a single repository, identified
 by owner and name.
 
-```
+```biolang
 let tool = galaxy_tool("devteam", "bwa")
 print("Tool: " + tool.name)
 print("Owner: " + tool.owner)
@@ -115,7 +115,7 @@ The returned record includes fields beyond what the search results provide,
 such as `last_updated` and the full repository URL. Use this to verify that
 a tool is actively maintained before building a workflow around it.
 
-```
+```biolang
 # Check maintenance status of a tool before adopting it
 let tool = galaxy_tool("iuc", "samtools_sort")
 print(tool.name + " last updated: " + tool.last_updated)
@@ -130,7 +130,7 @@ all three registries in a single pass to understand the full landscape --
 whether curated pipelines exist, whether container images are available, and
 whether Galaxy wrappers have been written.
 
-```
+```biolang
 # Search for BWA across all three registries
 let tool = "bwa"
 
@@ -147,7 +147,7 @@ print("Galaxy tools: " + str(len(gx_results)))
 This pattern scales to any tool or keyword. Here is a more thorough version
 that prints details from each registry side by side.
 
-```
+```biolang
 # Compare tool availability across registries
 let tools = ["samtools", "bcftools", "hisat2", "salmon"]
 
@@ -185,7 +185,7 @@ Galaxy workflow as a starting point for a BioLang pipeline.
 string of BioLang code. The expected input format mirrors the structure of a
 Galaxy workflow export.
 
-```
+```biolang
 # Construct a Galaxy workflow record
 let workflow = {
   name: "RNA-seq Analysis",
@@ -206,7 +206,7 @@ The generated code maps each Galaxy step to a BioLang function call, preserving
 the data flow between steps. You can write it directly to a file and use it as
 a starting point for further customization.
 
-```
+```biolang
 # Save the generated code
 let bl_code = galaxy_to_bl(workflow)
 write_file("rnaseq.bl", bl_code)
@@ -216,7 +216,7 @@ print("Pipeline written to rnaseq.bl")
 For more complex workflows with branching and multiple outputs, the generated
 code includes comments marking each step and its connections.
 
-```
+```biolang
 # A branching QC + alignment workflow
 let workflow = {
   name: "QC and Align",
@@ -241,14 +241,14 @@ institutional ToolShed installations.
 
 Set the URL in `~/.biolang/apis.yaml`:
 
-```
+```yaml
 galaxy:
   toolshed_url: "https://toolshed.example.org"
 ```
 
 Or via the environment variable `BIOLANG_GALAXY_TOOLSHED_URL`:
 
-```
+```bash
 export BIOLANG_GALAXY_TOOLSHED_URL="https://toolshed.example.org"
 ```
 
@@ -263,7 +263,7 @@ running them outside Galaxy. This script searches Galaxy for tools matching a
 keyword, then cross-references each one with BioContainers to check container
 availability.
 
-```
+```biolang
 # Build a tool inventory for variant analysis
 let keyword = "variant"
 
@@ -315,7 +315,7 @@ print("  Without container:    " + str(len(without_container)))
 You can extend this pattern to cover additional registries or to export the
 inventory as a structured file.
 
-```
+```biolang
 # Export as JSON for downstream use
 inventory |> write_json("variant_tool_inventory.json")
 ```
@@ -326,7 +326,7 @@ When moving a project from Galaxy to BioLang, you can combine the ToolShed
 lookup with code generation in a single script. Look up each tool to verify
 it exists, then generate the BioLang equivalent.
 
-```
+```biolang
 # Define the workflow steps from a Galaxy export
 let workflow = {
   name: "Whole Genome Variant Calling",

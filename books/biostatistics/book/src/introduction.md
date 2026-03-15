@@ -176,8 +176,8 @@ Here is what statistical analysis looks like in BioLang. This script loads gene 
 
 ```bio
 # Load expression data for two conditions
-let ctrl = read_csv("control_expression.csv")
-let treat = read_csv("treated_expression.csv")
+let ctrl = read_csv("data/expression.csv")
+let treat = read_csv("data/expression.csv")
 
 # Run t-tests for every gene, correct for multiple testing
 let results = ctrl
@@ -202,7 +202,7 @@ Twelve lines. No imports. No boilerplate. The pipe operator makes the analytical
 Here is another example — survival analysis in three lines:
 
 ```bio
-let patients = read_csv("clinical_outcomes.csv")
+let patients = read_csv("data/clinical.csv")
 
 patients
   |> kaplan_meier("months", "deceased", "treatment")
@@ -275,7 +275,7 @@ Multi-language comparisons appear with labeled blocks:
 
 **BioLang:**
 ```bio
-let data = read_csv("expression.csv")
+let data = read_csv("data/expression.csv")
 data |> ttest(ctrl, treated) |> println()
 ```
 

@@ -108,7 +108,7 @@ test "collection assertions" {
 test "error assertions" {
   assert_throws(|| error("boom"))
   assert_throws_matching(
-    || fasta("nonexistent.fa"),
+    || read_fasta("nonexistent.fa"),
     "not found"
   )
 }</code></pre>
@@ -165,13 +165,13 @@ describe "file-based tests" {
   }
 
   test "reads FASTA sequences" {
-    let records = fasta("#{test_dir}/test.fa") |> collect
+    let records = read_fasta("#{test_dir}/test.fa") |> collect
     assert_eq(len(records), 2)
     assert_eq(records[0].id, "seq1")
   }
 
   test "filters by length" {
-    let long_seqs = fasta("#{test_dir}/test.fa")
+    let long_seqs = read_fasta("#{test_dir}/test.fa")
       |> filter(|r| len(r.seq) >= 8)
       |> collect
     assert_eq(len(long_seqs), 2)
@@ -210,7 +210,7 @@ chr1\t300\t.\tT\tA\t99\tPASS\t.
 let FIXTURES = "tests/fixtures"
 
 test "parse Illumina sample sheet" {
-  let samples = csv("#{FIXTURES}/SampleSheet.csv")
+  let samples = read_csv("#{FIXTURES}/SampleSheet.csv")
   assert(len(samples) > 0)
   assert(all(samples, |s| s["Sample_ID"] != nil))
 }
@@ -322,7 +322,7 @@ bl test tests/ --filter "not @slow"</code></pre>
         <pre><code class="language-biolang"># Tag tests that take a long time
 @slow
 test "full genome variant calling" {
-  let data = vcf("tests/fixtures/whole_genome.vcf.gz")
+  let data = read_vcf("tests/fixtures/whole_genome.vcf.gz")
   let filtered = data |> filter(|v| v.filter == "PASS") |> collect
   assert(len(filtered) > 1000000)
 }

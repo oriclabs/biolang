@@ -1,0 +1,38 @@
+let lines = read_lines("real_data/ecoli_genes.bed") |> collect()
+let intervals = []
+for line in lines
+  let parts = split(line, "\t")
+  if len(parts) >= 3
+    intervals = append(intervals, {chrom: parts[0], start: to_int(parts[1]), end: to_int(parts[2])})
+  end
+end
+let n = len(intervals)
+let total_span = intervals |> map(|i| i["end"] - i["start"]) |> sum()
+
+let per_chrom = {}
+for iv in intervals
+  let c = iv["chrom"]
+  if has_key(per_chrom, c)
+    per_chrom[c] = per_chrom[c] + 1
+  else
+    per_chrom[c] = 1
+  end
+end
+
+let sorted_ivs = intervals |> sort_by(|i| i["start"])
+let merged = []
+let cur = sorted_ivs[0]
+for i in range(1, len(sorted_ivs))
+  let iv = sorted_ivs[i]
+  if iv["chrom"] == cur["chrom"] and iv["start"] <= cur["end"]
+    if iv["end"] > cur["end"]
+      cur["end"] = iv["end"]
+    end
+  else
+    merged = append(merged, cur)
+    cur = iv
+  end
+end
+merged = append(merged, cur)
+
+print(to_json({n_intervals: n, total_span: total_span, per_chromosome: per_chrom, merged_count: len(merged)}))

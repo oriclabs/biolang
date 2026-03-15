@@ -1,0 +1,936 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Day 19: Effect Sizes — Beyond p-Values - Practical Biostatistics in 30 Days</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-1b969532.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f5d8e804.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Practical Biostatistics in 30 Days</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="day-19-effect-sizes--beyond-p-values"><a class="header" href="#day-19-effect-sizes--beyond-p-values">Day 19: Effect Sizes — Beyond p-Values</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Two papers land on Dr. Rachel Nguyen’s desk the same morning.</p>
+<p><strong>Paper A:</strong> “GENE_X is significantly differentially expressed between tumor and normal tissue (p = 0.00001, n = 5,000).” She looks at the supplementary data: the mean difference is <strong>0.02 FPKM</strong> on a scale where genes range from 0 to 50,000 FPKM. The fold change is 1.001.</p>
+<p><strong>Paper B:</strong> “DRUG_Y showed a non-significant trend toward tumor reduction (p = 0.08, n = 24).” She looks at the data: the median tumor volume shrank by <strong>40%</strong> in the treatment arm.</p>
+<p>Paper A is “highly significant” but biologically meaningless — the difference is lost in measurement noise. Paper B fails the significance threshold but describes a potentially life-changing clinical effect that just needs more patients.</p>
+<p><strong>The p-value alone tells you almost nothing.</strong> You need <strong>effect sizes</strong>.</p>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="360" viewbox="0 0 660 360" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">P-Value vs. Effect Size: They Measure Different Things</text>
+  <g transform="translate(80, 45)">
+    <!-- Axes -->
+    <line x1="60" y1="260" x2="480" y2="260" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="60" y1="260" x2="60" y2="20" stroke="#6b7280" stroke-width="1.5" />
+    <text x="270" y="295" text-anchor="middle" font-size="12" fill="#6b7280">Effect Size (Cohen's d)</text>
+    <text x="15" y="140" text-anchor="middle" font-size="12" fill="#6b7280" transform="rotate(-90, 15, 140)">-log10(p-value)</text>
+    <!-- Y-axis: significance scale -->
+    <text x="52" y="264" text-anchor="end" font-size="10" fill="#6b7280">0</text>
+    <text x="52" y="212" text-anchor="end" font-size="10" fill="#6b7280">1</text>
+    <text x="52" y="164" text-anchor="end" font-size="10" fill="#6b7280">2</text>
+    <text x="52" y="116" text-anchor="end" font-size="10" fill="#6b7280">3</text>
+    <text x="52" y="68" text-anchor="end" font-size="10" fill="#6b7280">4</text>
+    <text x="52" y="24" text-anchor="end" font-size="10" fill="#6b7280">5</text>
+    <!-- X-axis -->
+    <text x="60" y="278" text-anchor="middle" font-size="10" fill="#6b7280">0</text>
+    <text x="165" y="278" text-anchor="middle" font-size="10" fill="#6b7280">0.25</text>
+    <text x="270" y="278" text-anchor="middle" font-size="10" fill="#6b7280">0.50</text>
+    <text x="375" y="278" text-anchor="middle" font-size="10" fill="#6b7280">0.75</text>
+    <text x="480" y="278" text-anchor="middle" font-size="10" fill="#6b7280">1.00</text>
+    <!-- Significance threshold line (p=0.05 => -log10 = 1.3) -->
+    <line x1="60" y1="197" x2="480" y2="197" stroke="#dc2626" stroke-width="1" stroke-dasharray="5,3" />
+    <text x="485" y="195" font-size="9" fill="#dc2626">p = 0.05</text>
+    <!-- Quadrant shading -->
+    <!-- Top-left: significant but small effect (BAD) -->
+    <rect x="60" y="20" width="150" height="177" fill="#fef2f2" opacity="0.3" />
+    <!-- Top-right: significant and large effect (GOOD) -->
+    <rect x="210" y="20" width="270" height="177" fill="#f0fdf4" opacity="0.3" />
+    <!-- Bottom-right: not significant but large effect (underpowered) -->
+    <rect x="210" y="197" width="270" height="63" fill="#fffbeb" opacity="0.3" />
+    <!-- Quadrant labels -->
+    <text x="135" y="50" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">Significant</text>
+    <text x="135" y="62" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">but trivial</text>
+    <text x="135" y="77" text-anchor="middle" font-size="9" fill="#dc2626">(large n inflates p)</text>
+    <text x="380" y="50" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="bold">Significant AND</text>
+    <text x="380" y="62" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="bold">meaningful</text>
+    <text x="380" y="230" text-anchor="middle" font-size="10" fill="#b45309" font-weight="bold">Large effect but</text>
+    <text x="380" y="242" text-anchor="middle" font-size="10" fill="#b45309" font-weight="bold">not significant</text>
+    <text x="380" y="257" text-anchor="middle" font-size="9" fill="#b45309">(needs more samples)</text>
+    <!-- Scatter: large n, tiny effect (top-left) -->
+    <circle cx="85" cy="60" r="7" fill="#dc2626" opacity="0.5" />
+    <text x="100" y="58" font-size="8" fill="#dc2626">n=5000</text>
+    <circle cx="105" cy="80" r="6" fill="#dc2626" opacity="0.4" />
+    <circle cx="130" cy="100" r="5" fill="#dc2626" opacity="0.4" />
+    <!-- Scatter: good studies (top-right) -->
+    <circle cx="310" cy="90" r="6" fill="#16a34a" opacity="0.5" />
+    <circle cx="370" cy="50" r="7" fill="#16a34a" opacity="0.5" />
+    <circle cx="420" cy="70" r="6" fill="#16a34a" opacity="0.5" />
+    <circle cx="280" cy="120" r="5" fill="#16a34a" opacity="0.5" />
+    <circle cx="350" cy="110" r="5" fill="#16a34a" opacity="0.5" />
+    <!-- Scatter: underpowered (bottom-right) -->
+    <circle cx="400" cy="230" r="6" fill="#b45309" opacity="0.5" />
+    <text x="412" y="220" font-size="8" fill="#b45309">n=12</text>
+    <circle cx="320" cy="240" r="5" fill="#b45309" opacity="0.4" />
+    <circle cx="450" cy="220" r="5" fill="#b45309" opacity="0.4" />
+  </g>
+</svg>
+</div>
+
+<h2 id="the-tyranny-of-p-values"><a class="header" href="#the-tyranny-of-p-values">The Tyranny of p-Values</a></h2>
+<p>In 2016, the American Statistical Association took the extraordinary step of issuing a formal statement on p-values — the first time in its 177-year history. Key points:</p>
+<ol>
+<li>P-values do NOT measure the probability that the hypothesis is true</li>
+<li>P-values do NOT measure the size or importance of an effect</li>
+<li>Scientific conclusions should NOT be based only on whether p &lt; 0.05</li>
+<li>A p-value near 0.05 provides only weak evidence against the null</li>
+</ol>
+<blockquote>
+<p><strong>Key insight:</strong> A p-value is a function of <strong>effect size</strong> AND <strong>sample size</strong>. With enough data, any trivial difference becomes “significant.” With too few data, any real effect becomes “non-significant.” The p-value alone is fundamentally incomplete.</p>
+</blockquote>
+<h3 id="the-problem-of-large-n"><a class="header" href="#the-problem-of-large-n">The Problem of Large n</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>True Effect Size</th><th>n per group</th><th>p-value</th><th>Significant?</th><th>Meaningful?</th></tr>
+</thead>
+<tbody>
+<tr><td>d = 0.01 (trivial)</td><td>50,000</td><td>0.02</td><td>Yes</td><td>No</td></tr>
+<tr><td>d = 0.8 (large)</td><td>5</td><td>0.12</td><td>No</td><td>Yes</td></tr>
+<tr><td>d = 0.5 (medium)</td><td>64</td><td>0.04</td><td>Yes</td><td>Likely</td></tr>
+<tr><td>d = 0.3 (small)</td><td>30</td><td>0.15</td><td>No</td><td>Maybe</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="what-are-effect-sizes"><a class="header" href="#what-are-effect-sizes">What Are Effect Sizes?</a></h2>
+<p>An effect size quantifies <strong>how large</strong> a difference or association is, independent of sample size. There are two families:</p>
+<h3 id="standardized-effect-sizes-unit-free"><a class="header" href="#standardized-effect-sizes-unit-free">Standardized Effect Sizes (unit-free)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Metric</th><th>Used For</th><th>Scale</th></tr>
+</thead>
+<tbody>
+<tr><td>Cohen’s d</td><td>Two-group mean difference</td><td>0.2 small, 0.5 medium, 0.8 large</td></tr>
+<tr><td>Odds Ratio (OR)</td><td>Binary outcome association</td><td>1.0 = no effect</td></tr>
+<tr><td>Relative Risk (RR)</td><td>Binary outcome risk</td><td>1.0 = no effect</td></tr>
+<tr><td>Cramér’s V</td><td>Categorical association</td><td>0 to 1</td></tr>
+<tr><td>Eta-squared (η²)</td><td>ANOVA variance explained</td><td>0 to 1</td></tr>
+<tr><td>R²</td><td>Regression variance explained</td><td>0 to 1</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="unstandardized-effect-sizes-original-units"><a class="header" href="#unstandardized-effect-sizes-original-units">Unstandardized Effect Sizes (original units)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Metric</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>Mean difference</td><td>“Treatment reduces tumor volume by 2.3 cm³”</td></tr>
+<tr><td>Regression slope</td><td>“Each year of age increases risk by 3%”</td></tr>
+<tr><td>Median survival difference</td><td>“Treatment arm survived 6 months longer”</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Key insight:</strong> Unstandardized effect sizes are often MORE useful than standardized ones because they’re in meaningful units. “The drug reduced blood pressure by 8 mmHg” is more interpretable than “Cohen’s d = 0.5.”</p>
+</blockquote>
+<h2 id="cohens-d-standardized-mean-difference"><a class="header" href="#cohens-d-standardized-mean-difference">Cohen’s d: Standardized Mean Difference</a></h2>
+<p>$$d = \frac{\bar{X}_1 - \bar{X}<em>2}{s</em>{pooled}}$$</p>
+<p>where the pooled standard deviation is:</p>
+<p>$$s_{pooled} = \sqrt{\frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1 + n_2 - 2}}$$</p>
+<p>Cohen’s benchmarks (widely used, sometimes criticized as arbitrary):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>d</th><th>Label</th><th>What It Means</th></tr>
+</thead>
+<tbody>
+<tr><td>0.2</td><td>Small</td><td>Groups overlap ~85%</td></tr>
+<tr><td>0.5</td><td>Medium</td><td>Groups overlap ~67%</td></tr>
+<tr><td>0.8</td><td>Large</td><td>Groups overlap ~53%</td></tr>
+<tr><td>1.2</td><td>Very large</td><td>Groups overlap ~40%</td></tr>
+<tr><td>2.0</td><td>Huge</td><td>Groups barely overlap</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Common pitfall:</strong> Cohen himself warned that “small/medium/large” are context-dependent. In pharmacogenomics, d = 0.3 might be clinically important. In quality control, d = 2.0 might be necessary. Always judge effect sizes in your domain context.</p>
+</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="680" height="340" viewbox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Cohen's d: How Much Do Distributions Overlap?</text>
+  <!-- Top row: d=0.2 (small) -->
+  <g transform="translate(30, 45)">
+    <text x="150" y="12" text-anchor="middle" font-size="12" font-weight="bold" fill="#6b7280">d = 0.2 (Small Effect)</text>
+    <!-- Axis -->
+    <line x1="20" y1="120" x2="280" y2="120" stroke="#9ca3af" stroke-width="0.5" />
+    <!-- Distribution A -->
+    <path d="M 20,120 C 40,118 60,108 80,88 C 100,62 120,40 140,32 C 160,40 180,62 200,88 C 220,108 240,118 260,120" fill="#2563eb" opacity="0.2" stroke="#2563eb" stroke-width="1.5" />
+    <!-- Distribution B (shifted slightly) -->
+    <path d="M 40,120 C 60,118 80,108 100,88 C 120,62 140,40 160,32 C 180,40 200,62 220,88 C 240,108 260,118 280,120" fill="#dc2626" opacity="0.2" stroke="#dc2626" stroke-width="1.5" />
+    <!-- Overlap annotation -->
+    <text x="150" y="140" text-anchor="middle" font-size="10" fill="#6b7280">~85% overlap</text>
+    <!-- Means -->
+    <line x1="140" y1="28" x2="140" y2="120" stroke="#2563eb" stroke-width="1" stroke-dasharray="3,2" opacity="0.5" />
+    <line x1="160" y1="28" x2="160" y2="120" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2" opacity="0.5" />
+  </g>
+  <!-- Top row: d=0.8 (large) -->
+  <g transform="translate(370, 45)">
+    <text x="150" y="12" text-anchor="middle" font-size="12" font-weight="bold" fill="#6b7280">d = 0.8 (Large Effect)</text>
+    <!-- Axis -->
+    <line x1="0" y1="120" x2="300" y2="120" stroke="#9ca3af" stroke-width="0.5" />
+    <!-- Distribution A -->
+    <path d="M 0,120 C 15,118 30,108 50,88 C 70,62 90,40 110,32 C 130,40 150,62 170,88 C 190,108 210,118 230,120" fill="#2563eb" opacity="0.2" stroke="#2563eb" stroke-width="1.5" />
+    <!-- Distribution B (shifted far) -->
+    <path d="M 70,120 C 85,118 100,108 120,88 C 140,62 160,40 180,32 C 200,40 220,62 240,88 C 260,108 275,118 300,120" fill="#dc2626" opacity="0.2" stroke="#dc2626" stroke-width="1.5" />
+    <!-- Overlap annotation -->
+    <text x="150" y="140" text-anchor="middle" font-size="10" fill="#6b7280">~53% overlap</text>
+    <!-- Means -->
+    <line x1="110" y1="28" x2="110" y2="120" stroke="#2563eb" stroke-width="1" stroke-dasharray="3,2" opacity="0.5" />
+    <line x1="180" y1="28" x2="180" y2="120" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2" opacity="0.5" />
+  </g>
+  <!-- Legend -->
+  <g transform="translate(180, 200)">
+    <rect x="0" y="0" width="320" height="24" rx="4" fill="white" stroke="#e5e7eb" stroke-width="0.5" />
+    <rect x="20" y="6" width="16" height="12" fill="#2563eb" opacity="0.4" rx="2" />
+    <text x="44" y="16" font-size="10" fill="#1e293b">Control group</text>
+    <rect x="160" y="6" width="16" height="12" fill="#dc2626" opacity="0.4" rx="2" />
+    <text x="184" y="16" font-size="10" fill="#1e293b">Treatment group</text>
+  </g>
+  <!-- Bottom scale -->
+  <g transform="translate(80, 238)">
+    <line x1="0" y1="20" x2="520" y2="20" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="0" y1="16" x2="0" y2="24" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="130" y1="16" x2="130" y2="24" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="260" y1="16" x2="260" y2="24" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="390" y1="16" x2="390" y2="24" stroke="#6b7280" stroke-width="1.5" />
+    <line x1="520" y1="16" x2="520" y2="24" stroke="#6b7280" stroke-width="1.5" />
+    <text x="0" y="40" text-anchor="middle" font-size="10" fill="#6b7280">0.0</text>
+    <text x="130" y="40" text-anchor="middle" font-size="10" fill="#6b7280">0.2</text>
+    <text x="260" y="40" text-anchor="middle" font-size="10" fill="#6b7280">0.5</text>
+    <text x="390" y="40" text-anchor="middle" font-size="10" fill="#6b7280">0.8</text>
+    <text x="520" y="40" text-anchor="middle" font-size="10" fill="#6b7280">1.2+</text>
+    <text x="65" y="55" text-anchor="middle" font-size="9" fill="#9ca3af">Negligible</text>
+    <text x="195" y="55" text-anchor="middle" font-size="9" fill="#9ca3af">Small</text>
+    <text x="325" y="55" text-anchor="middle" font-size="9" fill="#7c3aed" font-weight="bold">Medium</text>
+    <text x="455" y="55" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">Large</text>
+    <text x="260" y="72" text-anchor="middle" font-size="11" fill="#6b7280">Cohen's d Scale</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="odds-ratio-and-relative-risk"><a class="header" href="#odds-ratio-and-relative-risk">Odds Ratio and Relative Risk</a></h2>
+<p>For binary outcomes (response/no response, mutation/wild-type), two key measures:</p>
+<h3 id="odds-ratio-or"><a class="header" href="#odds-ratio-or">Odds Ratio (OR)</a></h3>
+<p>$$OR = \frac{a \cdot d}{b \cdot c}$$</p>
+<p>From a 2x2 table:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th>Outcome +</th><th>Outcome -</th></tr>
+</thead>
+<tbody>
+<tr><td>Exposed</td><td>a</td><td>b</td></tr>
+<tr><td>Unexposed</td><td>c</td><td>d</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="relative-risk-rr"><a class="header" href="#relative-risk-rr">Relative Risk (RR)</a></h3>
+<p>$$RR = \frac{a/(a+b)}{c/(c+d)}$$</p>
+<h3 id="or-vs-rr-why-they-differ"><a class="header" href="#or-vs-rr-why-they-differ">OR vs. RR: Why They Differ</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Baseline Risk</th><th>OR</th><th>RR</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>1% (rare)</td><td>2.0</td><td>2.0</td><td>Nearly identical (rare disease approximation)</td></tr>
+<tr><td>10%</td><td>2.0</td><td>1.8</td><td>Starting to diverge</td></tr>
+<tr><td>30%</td><td>2.0</td><td>1.5</td><td>Substantial difference</td></tr>
+<tr><td>50%</td><td>2.0</td><td>1.3</td><td>OR greatly overstates RR</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Clinical relevance:</strong> Case-control studies can only estimate OR (not RR). Cohort studies and RCTs can estimate both. When reporting to patients, RR or absolute risk difference is more intuitive: “Your risk goes from 10% to 15%” is clearer than “OR = 1.6.”</p>
+</blockquote>
+<h2 id="cramérs-v-categorical-associations"><a class="header" href="#cramérs-v-categorical-associations">Cramér’s V: Categorical Associations</a></h2>
+<p>For larger contingency tables (beyond 2x2), Cramér’s V measures association strength:</p>
+<p>$$V = \sqrt{\frac{\chi^2}{n \cdot (k-1)}}$$</p>
+<p>where k = min(rows, columns).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>V</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>0.0</td><td>No association</td></tr>
+<tr><td>0.1</td><td>Weak</td></tr>
+<tr><td>0.3</td><td>Moderate</td></tr>
+<tr><td>0.5</td><td>Strong</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="eta-squared-anova-effect-size"><a class="header" href="#eta-squared-anova-effect-size">Eta-squared: ANOVA Effect Size</a></h2>
+<p>For ANOVA (comparing means across multiple groups):</p>
+<p>$$\eta^2 = \frac{SS_{between}}{SS_{total}}$$</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>η²</th><th>Interpretation</th></tr>
+</thead>
+<tbody>
+<tr><td>0.01</td><td>Small</td></tr>
+<tr><td>0.06</td><td>Medium</td></tr>
+<tr><td>0.14</td><td>Large</td></tr>
+</tbody>
+</table>
+</div>
+<p>Eta-squared tells you what fraction of total variance is explained by group membership.</p>
+<h2 id="forest-plots-the-standard-display"><a class="header" href="#forest-plots-the-standard-display">Forest Plots: The Standard Display</a></h2>
+<p><strong>Forest plots</strong> are the gold standard for displaying effect sizes across multiple comparisons. Each row shows:</p>
+<ul>
+<li>A point estimate (the effect size)</li>
+<li>A horizontal line (the confidence interval)</li>
+<li>A vertical reference line (null effect: 0 for differences, 1 for ratios)</li>
+</ul>
+<p>They’re essential for:</p>
+<ul>
+<li>Meta-analyses (combining studies)</li>
+<li>Multi-gene comparisons (e.g., DE genes ranked by effect size)</li>
+<li>Subgroup analyses (effect by age, sex, stage)</li>
+<li>Cox regression hazard ratios</li>
+</ul>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="660" height="320" viewbox="0 0 660 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="330" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Anatomy of a Forest Plot</text>
+  <g transform="translate(20, 45)">
+    <!-- Headers -->
+    <text x="80" y="14" text-anchor="end" font-size="11" fill="#6b7280" font-weight="bold">Study</text>
+    <text x="340" y="14" text-anchor="middle" font-size="11" fill="#6b7280" font-weight="bold">Effect Size (95% CI)</text>
+    <text x="540" y="14" text-anchor="middle" font-size="11" fill="#6b7280" font-weight="bold">d [CI]</text>
+    <line x1="0" y1="22" x2="620" y2="22" stroke="#e5e7eb" stroke-width="1" />
+    <!-- No-effect reference line -->
+    <line x1="340" y1="25" x2="340" y2="218" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4,3" />
+    <!-- Axis -->
+    <line x1="180" y1="218" x2="500" y2="218" stroke="#9ca3af" stroke-width="0.5" />
+    <text x="180" y="234" text-anchor="middle" font-size="9" fill="#9ca3af">-1.0</text>
+    <text x="260" y="234" text-anchor="middle" font-size="9" fill="#9ca3af">-0.5</text>
+    <text x="340" y="234" text-anchor="middle" font-size="9" fill="#9ca3af">0</text>
+    <text x="420" y="234" text-anchor="middle" font-size="9" fill="#9ca3af">+0.5</text>
+    <text x="500" y="234" text-anchor="middle" font-size="9" fill="#9ca3af">+1.0</text>
+    <!-- Annotations -->
+    <!-- Point estimate annotation -->
+    <line x1="445" y1="45" x2="480" y2="32" stroke="#6b7280" stroke-width="0.5" />
+    <text x="485" y="35" font-size="9" fill="#6b7280" font-style="italic">Point estimate</text>
+    <!-- CI line annotation -->
+    <line x1="285" y1="45" x2="260" y2="32" stroke="#6b7280" stroke-width="0.5" />
+    <text x="220" y="35" font-size="9" fill="#6b7280" font-style="italic">Confidence interval</text>
+    <!-- Study 1: BRCA1, d=0.65 [0.2, 1.1] -->
+    <text x="80" y="52" text-anchor="end" font-size="11" fill="#1e293b">BRCA1</text>
+    <line x1="372" y1="48" x2="516" y2="48" stroke="#2563eb" stroke-width="2" />
+    <rect x="440" y="42" width="10" height="10" fill="#2563eb" rx="1" />
+    <text x="540" y="52" text-anchor="middle" font-size="10" fill="#1e293b">0.65 [0.20, 1.10]</text>
+    <!-- Study 2: TP53, d=0.82 [0.45, 1.19] -->
+    <text x="80" y="82" text-anchor="end" font-size="11" fill="#1e293b">TP53</text>
+    <line x1="412" y1="78" x2="530" y2="78" stroke="#2563eb" stroke-width="2" />
+    <rect x="471" y="72" width="12" height="12" fill="#2563eb" rx="1" />
+    <text x="540" y="82" text-anchor="middle" font-size="10" fill="#1e293b">0.82 [0.45, 1.19]</text>
+    <!-- Study 3: EGFR, d=0.15 [-0.3, 0.6] — crosses zero -->
+    <text x="80" y="112" text-anchor="end" font-size="11" fill="#1e293b">EGFR</text>
+    <line x1="292" y1="108" x2="436" y2="108" stroke="#9ca3af" stroke-width="2" />
+    <rect x="362" y="103" width="8" height="8" fill="#9ca3af" rx="1" />
+    <text x="540" y="112" text-anchor="middle" font-size="10" fill="#9ca3af">0.15 [-0.30, 0.60]</text>
+    <!-- Study 4: KRAS, d=0.45 [0.05, 0.85] -->
+    <text x="80" y="142" text-anchor="end" font-size="11" fill="#1e293b">KRAS</text>
+    <line x1="348" y1="138" x2="476" y2="138" stroke="#2563eb" stroke-width="2" />
+    <rect x="412" y="133" width="9" height="9" fill="#2563eb" rx="1" />
+    <text x="540" y="142" text-anchor="middle" font-size="10" fill="#1e293b">0.45 [0.05, 0.85]</text>
+    <!-- Study 5: MYC, d=-0.10 [-0.55, 0.35] — crosses zero -->
+    <text x="80" y="172" text-anchor="end" font-size="11" fill="#1e293b">MYC</text>
+    <line x1="252" y1="168" x2="396" y2="168" stroke="#9ca3af" stroke-width="2" />
+    <rect x="322" y="163" width="8" height="8" fill="#9ca3af" rx="1" />
+    <text x="540" y="172" text-anchor="middle" font-size="10" fill="#9ca3af">-0.10 [-0.55, 0.35]</text>
+    <!-- Pooled diamond -->
+    <polygon points="340,200 380,208 340,216 300,208" fill="#7c3aed" opacity="0.6" stroke="#7c3aed" stroke-width="1" />
+    <text x="80" y="212" text-anchor="end" font-size="11" fill="#7c3aed" font-weight="bold">Pooled</text>
+    <text x="540" y="212" text-anchor="middle" font-size="10" fill="#7c3aed" font-weight="bold">0.40 [0.20, 0.60]</text>
+    <!-- Labels below -->
+    <text x="340" y="252" text-anchor="middle" font-size="10" fill="#1e293b">No effect (d = 0)</text>
+    <text x="240" y="262" text-anchor="middle" font-size="9" fill="#6b7280">Favors control</text>
+    <text x="440" y="262" text-anchor="middle" font-size="9" fill="#6b7280">Favors treatment</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="the-reporting-checklist"><a class="header" href="#the-reporting-checklist">The Reporting Checklist</a></h2>
+<p>Every statistical result should include all four pieces:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Element</th><th>What It Answers</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Effect size</strong></td><td>How large?</td><td>d = 0.72</td></tr>
+<tr><td><strong>Confidence interval</strong></td><td>How precise?</td><td>95% CI [0.35, 1.09]</td></tr>
+<tr><td><strong>p-value</strong></td><td>Could it be chance?</td><td>p = 0.003</td></tr>
+<tr><td><strong>Sample size</strong></td><td>How much data?</td><td>n = 45 per group</td></tr>
+</tbody>
+</table>
+</div>
+<p>Omitting any one of these leaves the reader unable to fully evaluate the finding.</p>
+<h2 id="effect-sizes-in-biolang"><a class="header" href="#effect-sizes-in-biolang">Effect Sizes in BioLang</a></h2>
+<h3 id="cohens-d-for-gene-expression"><a class="header" href="#cohens-d-for-gene-expression">Cohen’s d for Gene Expression</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Compare expression of a gene between tumor and normal
+let n = 50
+
+let tumor = rnorm(n, 12.5, 3.0)
+let normal_expr = rnorm(n, 10.0, 2.8)
+
+# Cohen's d — compute inline
+let pooled_sd = sqrt((variance(tumor) + variance(normal_expr)) / 2.0)
+let d = (mean(tumor) - mean(normal_expr)) / pooled_sd
+print("=== Cohen's d ===")
+print("d = {d |&gt; round(3)}")
+
+let interpretation = if abs(d) &gt;= 0.8 { "large" }
+    else if abs(d) &gt;= 0.5 { "medium" }
+    else if abs(d) &gt;= 0.2 { "small" }
+    else { "negligible" }
+
+print("Interpretation: {interpretation} effect")
+print("")
+
+# Also report the raw difference
+let mean_diff = mean(tumor) - mean(normal_expr)
+print("Mean difference: {mean_diff |&gt; round(2)} FPKM")
+print("This means tumor expression is ~{(mean_diff / mean(normal_expr) * 100) |&gt; round(0)}% higher")
+
+# Complete report: effect + CI + p + n
+let t = ttest(tumor, normal_expr)
+print("\n=== Complete Report ===")
+print("Cohen's d = {d |&gt; round(2)}")
+print("p = {t.p_value |&gt; round(4)}, n = {n} per group")
+</code></pre>
+<h3 id="odds-ratio-and-relative-risk-1"><a class="header" href="#odds-ratio-and-relative-risk-1">Odds Ratio and Relative Risk</a></h3>
+<pre><code class="language-bio"># Immunotherapy response by PD-L1 status
+
+# 2x2 table:
+#              Respond  Non-respond
+# PD-L1 high     35        15        (70% response)
+# PD-L1 low      20        30        (40% response)
+
+let a = 35  # PD-L1 high + respond
+let b = 15  # PD-L1 high + non-respond
+let c = 20  # PD-L1 low + respond
+let d_val = 30  # PD-L1 low + non-respond
+
+# Odds ratio — compute inline
+let or_val = (a * d_val) / (b * c)
+print("=== Odds Ratio ===")
+print("OR = {or_val |&gt; round(2)}")
+
+# Relative risk — compute inline
+let risk_high = a / (a + b)
+let risk_low = c / (c + d_val)
+let rr_val = risk_high / risk_low
+print("\n=== Relative Risk ===")
+print("RR = {rr_val |&gt; round(2)}")
+
+# Absolute risk difference
+let ard = risk_high - risk_low
+print("\n=== Absolute Risk Difference ===")
+print("Risk (PD-L1 high): {(risk_high * 100) |&gt; round(1)}%")
+print("Risk (PD-L1 low):  {(risk_low * 100) |&gt; round(1)}%")
+print("Absolute difference: {(ard * 100) |&gt; round(1)} percentage points")
+print("NNT: {(1 / ard) |&gt; round(1)} (treat this many to get 1 extra responder)")
+
+# Fisher's exact test for significance
+let fe = fisher_exact(a, b, c, d_val)
+print("Fisher's exact p-value: {fe.p_value |&gt; round(4)}")
+
+# Note: OR overstates the relative risk when the outcome is common
+</code></pre>
+<h3 id="cramérs-v-for-categorical-data"><a class="header" href="#cramérs-v-for-categorical-data">Cramér’s V for Categorical Data</a></h3>
+<pre><code class="language-bio"># Association between tumor subtype (4 types) and treatment response (3 levels)
+# observed counts in a 4x3 contingency table
+let observed = [
+    [30, 15, 5],   # Luminal A
+    [20, 20, 10],  # Luminal B
+    [10, 15, 25],  # HER2+
+    [5, 10, 35]    # Triple-neg
+]
+
+# Flatten for chi-square test
+let obs_flat = [30, 15, 5, 20, 20, 10, 10, 15, 25, 5, 10, 35]
+let total = obs_flat |&gt; sum
+let chi2 = chi_square(obs_flat, obs_flat |&gt; map(|x| total / len(obs_flat)))
+
+# Compute Cramer's V inline
+let n_obs = total
+let k = 3  # min(rows, cols)
+let v = sqrt(chi2.statistic / (n_obs * (k - 1)))
+
+print("=== Cramer's V ===")
+print("Chi-square: {chi2.statistic |&gt; round(2)}")
+print("p-value: {chi2.p_value |&gt; round(4)}")
+print("Cramer's V: {v |&gt; round(3)}")
+print("Interpretation: {if v &gt; 0.3 { "moderate to strong" } else { "weak" }} association")
+</code></pre>
+<h3 id="eta-squared-for-anova"><a class="header" href="#eta-squared-for-anova">Eta-squared for ANOVA</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Expression differences across 4 cancer subtypes
+let subtype_a = rnorm(30, 10, 3)
+let subtype_b = rnorm(30, 12, 3)
+let subtype_c = rnorm(30, 11, 3)
+let subtype_d = rnorm(30, 15, 3)
+
+let aov = anova([subtype_a, subtype_b, subtype_c, subtype_d])
+
+# Compute eta-squared inline from ANOVA output
+# eta2 = SS_between / SS_total
+let eta2 = aov.ss_between / aov.ss_total
+
+print("=== Eta-squared (ANOVA Effect Size) ===")
+print("F = {aov.f_statistic |&gt; round(2)}, p = {aov.p_value |&gt; round(4)}")
+print("eta2 = {eta2 |&gt; round(3)}")
+print("{(eta2 * 100) |&gt; round(1)}% of expression variance is explained by subtype")
+
+let eta_interp = if eta2 &gt;= 0.14 { "large" }
+    else if eta2 &gt;= 0.06 { "medium" }
+    else { "small" }
+print("Interpretation: {eta_interp} effect")
+</code></pre>
+<h3 id="forest-plot-for-multiple-genes"><a class="header" href="#forest-plot-for-multiple-genes">Forest Plot for Multiple Genes</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# Cohen's d for 10 differentially expressed genes
+let gene_names = ["BRCA1", "TP53", "EGFR", "KRAS", "MYC",
+                  "PTEN", "PIK3CA", "BRAF", "CDH1", "RB1"]
+let effect_sizes = []
+let ci_lowers = []
+let ci_uppers = []
+
+for i in 0..10 {
+    let true_effect = rnorm(1, 0.5, 0.4)[0]
+    let tumor_g = rnorm(40, 10 + true_effect, 2)
+    let normal_g = rnorm(40, 10, 2)
+
+    # Compute Cohen's d inline
+    let pooled = sqrt((variance(tumor_g) + variance(normal_g)) / 2.0)
+    let d = (mean(tumor_g) - mean(normal_g)) / pooled
+    let se_d = sqrt(2 / 40 + d ** 2 / (4 * 40))
+
+    effect_sizes = effect_sizes + [d]
+    ci_lowers = ci_lowers + [d - 1.96 * se_d]
+    ci_uppers = ci_uppers + [d + 1.96 * se_d]
+}
+
+# Forest plot — the standard effect size visualization
+let forest_data = table({
+    "gene": gene_names,
+    "effect": effect_sizes,
+    "ci_lower": ci_lowers,
+    "ci_upper": ci_uppers
+})
+forest_plot(forest_data)
+</code></pre>
+<h3 id="contrasting-significant-tiny-vs-non-significant-large"><a class="header" href="#contrasting-significant-tiny-vs-non-significant-large">Contrasting “Significant Tiny” vs. “Non-Significant Large”</a></h3>
+<pre><code class="language-bio">set_seed(42)
+# The key lesson: significance does not equal importance
+
+# Scenario 1: huge n, tiny effect
+let n_large = 5000
+let group1_large = rnorm(n_large, 10.000, 2)
+let group2_large = rnorm(n_large, 10.020, 2)
+
+let t_large = ttest(group1_large, group2_large)
+let pooled_lg = sqrt((variance(group1_large) + variance(group2_large)) / 2.0)
+let d_large = (mean(group1_large) - mean(group2_large)) / pooled_lg
+
+print("=== Scenario 1: Large n, Tiny Effect ===")
+print("n = {n_large} per group")
+print("Mean difference: {(mean(group1_large) - mean(group2_large)) |&gt; abs |&gt; round(4)}")
+print("Cohen's d: {d_large |&gt; round(4)}")
+print("p-value: {t_large.p_value |&gt; round(6)}")
+print("Significant? {if t_large.p_value &lt; 0.05 { "YES" } else { "NO" }}")
+print("Biologically meaningful? VERY UNLIKELY (d ~ 0.01)")
+
+# Scenario 2: small n, large effect
+let n_small = 12
+let group1_small = rnorm(n_small, 10, 3)
+let group2_small = rnorm(n_small, 13, 3)
+
+let t_small = ttest(group1_small, group2_small)
+let pooled_sm = sqrt((variance(group1_small) + variance(group2_small)) / 2.0)
+let d_small = (mean(group1_small) - mean(group2_small)) / pooled_sm
+
+print("\n=== Scenario 2: Small n, Large Effect ===")
+print("n = {n_small} per group")
+print("Mean difference: {(mean(group1_small) - mean(group2_small)) |&gt; abs |&gt; round(2)}")
+print("Cohen's d: {d_small |&gt; round(2)}")
+print("p-value: {t_small.p_value |&gt; round(4)}")
+print("Significant? {if t_small.p_value &lt; 0.05 { "YES" } else { "NO" }}")
+print("Biologically meaningful? LIKELY (d ~ 1.0) — needs more samples")
+
+print("\n=== Lesson ===")
+print("Scenario 1 is 'significant' but meaningless")
+print("Scenario 2 is 'non-significant' but potentially important")
+print("ALWAYS report effect sizes alongside p-values")
+</code></pre>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python">from scipy.stats import norm
+import numpy as np
+
+# Cohen's d
+def cohens_d(x, y):
+    nx, ny = len(x), len(y)
+    pooled_sd = np.sqrt(((nx-1)*np.var(x, ddof=1) + (ny-1)*np.var(y, ddof=1)) / (nx+ny-2))
+    return (np.mean(x) - np.mean(y)) / pooled_sd
+
+# Odds ratio (from statsmodels)
+from statsmodels.stats.contingency_tables import Table2x2
+table = np.array([[35, 15], [20, 30]])
+t = Table2x2(table)
+print(f"OR = {t.oddsratio:.2f}, 95% CI: {t.oddsratio_confint()}")
+print(f"RR = {t.riskratio:.2f}")
+
+# Cramér's V
+from scipy.stats import chi2_contingency
+chi2, p, dof, expected = chi2_contingency(table)
+n = table.sum()
+cramers_v = np.sqrt(chi2 / (n * (min(table.shape) - 1)))
+
+# Forest plot (using matplotlib)
+import matplotlib.pyplot as plt
+plt.errorbar(effect_sizes, range(len(genes)), xerr=ci_widths, fmt='o')
+plt.axvline(0, color='black', linestyle='--')
+</code></pre>
+<p><strong>R:</strong></p>
+<pre><code class="language-r"># Cohen's d
+library(effectsize)
+cohens_d(tumor ~ group)
+
+# Odds ratio
+library(epitools)
+oddsratio(table)
+riskratio(table)
+
+# Cramér's V
+library(rcompanion)
+cramerV(table)
+
+# Eta-squared
+library(effectsize)
+eta_squared(aov_result)
+
+# Forest plot
+library(forestplot)
+forestplot(labeltext = gene_names,
+           mean = effect_sizes,
+           lower = ci_lower,
+           upper = ci_upper)
+</code></pre>
+<h2 id="exercises"><a class="header" href="#exercises">Exercises</a></h2>
+<h3 id="exercise-1-cohens-d-across-genes"><a class="header" href="#exercise-1-cohens-d-across-genes">Exercise 1: Cohen’s d Across Genes</a></h3>
+<p>Compute Cohen’s d for 20 genes comparing tumor vs. normal. Rank them by effect size and create a forest plot. Which genes have the largest biological impact (not just the smallest p-value)?</p>
+<pre><code class="language-bio">let n = 30
+
+# Generate 20 genes with varying true effects
+# Some have large effects, some small, some zero
+# 1. Compute Cohen's d inline for each gene
+# 2. Compute p-value via ttest() for each gene
+# 3. Create a forest_plot() sorted by effect size
+# 4. Find a gene that is significant (p &lt; 0.05) but has d &lt; 0.2
+# 5. Find a gene that is non-significant but has d &gt; 0.5
+</code></pre>
+<h3 id="exercise-2-or-vs-rr"><a class="header" href="#exercise-2-or-vs-rr">Exercise 2: OR vs. RR</a></h3>
+<p>Create three 2x2 tables where the outcome prevalence is 5%, 30%, and 60%. Set the true relative risk to 2.0 in all three. Show that OR ≈ RR when prevalence is low but OR &gt;&gt; RR when prevalence is high.</p>
+<pre><code class="language-bio"># Table 1: rare outcome (5% baseline)
+# Table 2: moderate outcome (30% baseline)
+# Table 3: common outcome (60% baseline)
+
+# For each: compute OR = (a*d)/(b*c) and RR = (a/(a+b))/(c/(c+d))
+# Show the divergence as prevalence increases
+# Which metric should you report to patients?
+</code></pre>
+<h3 id="exercise-3-complete-reporting"><a class="header" href="#exercise-3-complete-reporting">Exercise 3: Complete Reporting</a></h3>
+<p>Given the following analysis, write a complete results paragraph with effect size, CI, p-value, and sample size. Then write it again omitting the effect size — notice how much information is lost.</p>
+<pre><code class="language-bio">set_seed(42)
+let treatment = rnorm(45, 15, 4)
+let control = rnorm(45, 12, 4)
+
+# Compute: ttest(), Cohen's d inline, mean difference
+# Write: "Treatment group showed significantly higher X
+# (mean = __, SD = __) compared to control (mean = __, SD = __),
+# with a [small/medium/large] effect (d = __),
+# p = __."
+</code></pre>
+<h3 id="exercise-4-the-winners-curse-revisited"><a class="header" href="#exercise-4-the-winners-curse-revisited">Exercise 4: The Winner’s Curse Revisited</a></h3>
+<p>Run 100 simulations of an underpowered study (n=10, true d=0.3). For the significant results only, compute the observed d. Show that “published” effect sizes are inflated.</p>
+<pre><code class="language-bio">set_seed(42)
+let true_d = 0.3
+let n = 10
+let n_sims = 100
+
+# 1. Simulate 100 ttest() calls
+# 2. Record which are significant (p &lt; 0.05)
+# 3. For significant studies, compute observed Cohen's d inline
+# 4. Compare mean "published d" to true d = 0.3
+# 5. Plot histogram of published d values
+</code></pre>
+<h3 id="exercise-5-forest-plot-for-a-meta-analysis"><a class="header" href="#exercise-5-forest-plot-for-a-meta-analysis">Exercise 5: Forest Plot for a Meta-Analysis</a></h3>
+<p>Combine results from 8 “studies” of the same drug effect (true d = 0.5) with varying sample sizes (n = 10 to 200). Show that larger studies give more precise estimates (narrower CIs) and cluster closer to the true effect.</p>
+<pre><code class="language-bio">set_seed(42)
+let study_sizes = [10, 15, 25, 40, 60, 100, 150, 200]
+
+# 1. Simulate each study
+# 2. Compute Cohen's d and 95% CI inline for each
+# 3. Create a forest_plot()
+# 4. Which studies have CIs that include the true d = 0.5?
+# 5. Do larger studies provide better estimates?
+</code></pre>
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ul>
+<li><strong>P-values conflate effect size with sample size</strong> — a tiny effect can be “significant” with enough data, and a large effect can be “non-significant” with too few data</li>
+<li><strong>Always report effect sizes</strong> with confidence intervals alongside p-values: this is the modern reporting standard</li>
+<li><strong>Cohen’s d</strong> quantifies standardized mean differences: 0.2 small, 0.5 medium, 0.8 large (but context matters)</li>
+<li><strong>Odds ratio ≠ relative risk</strong> when the outcome is common (&gt;10% prevalence) — OR overstates RR</li>
+<li><strong>Cramér’s V</strong> measures categorical association strength; <strong>eta-squared</strong> measures variance explained in ANOVA</li>
+<li><strong>Forest plots</strong> are the standard visualization for effect sizes across multiple comparisons or studies</li>
+<li>The <strong>winner’s curse</strong>: underpowered studies that reach significance overestimate the true effect</li>
+<li>A complete result reports <strong>effect size + confidence interval + p-value + sample size</strong> — omitting any element is incomplete reporting</li>
+</ul>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<p>We’ve learned to quantify and test effects. But what happens when technical artifacts overwhelm biology? Day 20 tackles the critical problem of <strong>batch effects and confounders</strong> — when your PCA reveals that the dominant signal in your data is the lab that processed the sample, not the biology you’re studying.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="day-18.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="day-20.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="day-18.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="day-20.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-e928fb09.js"></script>
+        <script src="theme/book-runner-ee861d9e.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -32,7 +32,7 @@
         <h3>Catching file errors</h3>
         <pre><code class="language-biolang"># Basic try/catch for file operations
 try {
-  let data = vcf("variants.vcf.gz")
+  let data = read_vcf("data/variants.vcf")
   let cnt = data |> filter(|v| v.filter == "PASS") |> count
   print("PASS variants: #{cnt}")
 } catch e {
@@ -43,7 +43,7 @@ try {
         <h3>Catching specific error types</h3>
         <pre><code class="language-biolang"># Handle different error scenarios
 try {
-  let data = csv("input.csv")
+  let data = read_csv("data/expression.csv")
   let processed = data |> map(|row| {
     let val = float(row["score"])
     if val < 0 { error("Negative score at row #{row}") }
@@ -61,7 +61,7 @@ let tmp_dir = "tmp_pipeline"
 mkdir(tmp_dir)
 
 try {
-  let reads = fastq("input.fq.gz")
+  let reads = read_fastq("data/reads.fastq")
   reads
     |> filter(|r| mean_phred(r.quality) >= 30.0)
     |> write_fastq("#{tmp_dir}/filtered.fq.gz")
@@ -94,7 +94,7 @@ fn parse_score(text) {
 }
 
 # Parse all rows
-let results = csv("scores.csv")
+let results = read_csv("data/expression.csv")
   |> map(|row| parse_score(row["score"]))
 
 # Handle mixed results
@@ -160,7 +160,7 @@ let skipped = 0
 let processed = 0
 let results = []
 
-for row in csv("messy_data.csv") {
+for row in read_csv("data/expression.csv") {
   try {
     let score = float(row["score"])
     let gene = trim(row["gene"])
@@ -244,7 +244,7 @@ let mapped_pct = float(len(mapped)) / float(total) * 100.0
 assert(mapped_pct > 50.0, "Mapping rate too low: #{round(mapped_pct, 1)}%")
 
 # Assertions in data processing
-let variants = vcf("filtered.vcf")
+let variants = read_vcf("data/variants.vcf")
   |> filter(|v| v.filter == "PASS")
   |> collect
 

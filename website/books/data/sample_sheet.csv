@@ -1,0 +1,7 @@
+sample_id,patient,tissue,condition,batch,reads_file
+S001,P001,blood,treatment,batch1,data/reads.fastq
+S002,P002,tumor,treatment,batch1,data/reads.fastq
+S003,P003,blood,control,batch1,data/reads.fastq
+S004,P004,tumor,control,batch2,data/reads.fastq
+S005,P005,blood,treatment,batch2,data/reads.fastq
+S006,P006,tumor,treatment,batch2,data/reads.fastq
