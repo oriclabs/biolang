@@ -1004,7 +1004,7 @@
   // --- Merge from all tabs ---
   // --- Tab dropdown ---
   const $tabSelect = document.getElementById("tab-select");
-  const $tabCount = document.getElementById("tab-count");
+  const $scanAllBtn = document.getElementById("btn-scan-all");
 
   function refreshTabDropdown() {
     chrome.runtime.sendMessage({ type: "get-all-tab-entities" }, (resp) => {
@@ -1017,9 +1017,8 @@
           const title = (s.title || "").substring(0, 40);
           $tabSelect.innerHTML += '<option value="' + s.tabId + '">' + escapeHtml(title) + ' (' + s.count + ')</option>';
         });
-        $tabCount.textContent = resp.sources.length + " scanned";
+        // tab count shown via dropdown options
       } else {
-        $tabCount.textContent = "";
       }
       // Restore selection to match viewMode
       if (viewMode && $tabSelect.querySelector('option[value="' + viewMode + '"]')) {
