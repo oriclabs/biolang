@@ -105,6 +105,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // Get entities for a specific tab by ID
+  if (msg.type === "get-specific-tab") {
+    const stored = msg.tabId && tabEntities[msg.tabId] ? tabEntities[msg.tabId] : null;
+    sendResponse({
+      entities: stored ? stored.entities : [],
+      title: stored ? stored.title : "",
+      tabId: msg.tabId
+    });
+    return true;
+  }
+
   // Clear current tab's entities
   if (msg.type === "clear-tab-entities") {
     if (msg.tabId) {

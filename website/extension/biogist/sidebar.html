@@ -363,11 +363,18 @@
   </div>
   <div class="header-actions">
     <button class="btn" id="btn-settings" title="Settings">&#x2699;</button>
-    <button class="btn" id="btn-clear" title="Clear all entities" style="font-size:11px;color:#f87171">Clear</button>
-    <button class="btn" id="btn-merge" title="Merge entities from all open tabs" style="font-size:11px">Merge</button>
+    <button class="btn" id="btn-clear" title="Clear all" style="font-size:11px;color:#f87171">Clear</button>
     <button class="btn" id="btn-paste-text" title="Paste text to scan" style="font-size:11px">Paste</button>
     <button class="btn btn-primary" id="btn-scan" title="Scan current page">Scan</button>
   </div>
+</div>
+
+<!-- Tab selector -->
+<div id="tab-selector" style="padding:4px 14px;background:#0f172a;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:6px">
+  <select id="tab-select" style="flex:1;padding:3px 6px;border-radius:4px;border:1px solid #334155;background:#020617;color:#e2e8f0;font-size:11px;cursor:pointer;">
+    <option value="current">Current tab</option>
+  </select>
+  <span id="tab-count" style="font-size:10px;color:#475569"></span>
 </div>
 
 <!-- Search -->

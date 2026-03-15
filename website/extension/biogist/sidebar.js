@@ -9,8 +9,7 @@
   let currentEntities = []; // flat list of {type, id, subtype} for Copy IDs
   let activeEntity = null;
   let searchFilter = "";
-  let mergedMode = false;
-  let mergedSources = []; // [{tabId, title, count}] when in merged mode
+  let viewMode = "current"; // "current", "all", or a tab ID string
   let currentTabId = null;
   const collapsed = {};
   const expandedSections = {}; // tracks "Show all" state per type
@@ -145,14 +144,6 @@
     $empty.style.display = total === 0 ? "block" : "none";
     $sections.innerHTML = "";
 
-    // Show merged sources header
-    if (mergedMode && mergedSources.length > 0) {
-      const srcDiv = document.createElement("div");
-      srcDiv.style.cssText = "padding:8px 14px;background:#0f172a;border-bottom:1px solid #1e293b;font-size:11px;color:#64748b;";
-      srcDiv.innerHTML = '<span style="color:#06b6d4;font-weight:600">Merged from ' + mergedSources.length + ' tabs:</span><br>' +
-        mergedSources.map(s => '<span style="color:#94a3b8">' + escapeHtml(s.title.substring(0, 50)) + ' (' + s.count + ')</span>').join('<br>');
-      $sections.appendChild(srcDiv);
-    }
 
     for (const [type, items] of Object.entries(entities)) {
       if (items.length === 0) continue;
@@ -189,7 +180,7 @@
       for (const item of visibleItems) {
         const name = typeof item === "string" ? item : (item.id || String(item));
         const count = (typeof item === "object" && item.count) ? item.count : null;
-        const source = (mergedMode && typeof item === "object" && item.source) ? item.source : null;
+        const source = (viewMode === "all" && typeof item === "object" && item.source) ? item.source : null;
         const li = document.createElement("li");
         li.className = "entity-item" + (activeEntity === `${type}:${name}` ? " active" : "");
         li.innerHTML = `
@@ -871,6 +862,7 @@
             clearInterval(poll);
             $loading.style.display = "none";
             loadEntitiesFromArray(resp.entities);
+            refreshTabDropdown();
             render();
           } else if (attempts >= 12) {
             clearInterval(poll);
@@ -907,7 +899,8 @@
   }
 
   document.getElementById("btn-scan").addEventListener("click", () => {
-    mergedMode = false;
+    viewMode = "current";
+    $tabSelect.value = "current";
     $empty.querySelector("strong").textContent = "No entities detected";
     $empty.querySelector("p").innerHTML = 'Click <b>Scan</b> to analyze the current page.';
 
@@ -926,36 +919,69 @@
   });
 
   // --- Merge from all tabs ---
-  document.getElementById("btn-merge").addEventListener("click", () => {
+  // --- Tab dropdown ---
+  const $tabSelect = document.getElementById("tab-select");
+  const $tabCount = document.getElementById("tab-count");
+
+  function refreshTabDropdown() {
     chrome.runtime.sendMessage({ type: "get-all-tab-entities" }, (resp) => {
-      if (chrome.runtime.lastError || !resp) {
-        showToast("Could not merge tabs");
-        return;
+      if (chrome.runtime.lastError || !resp) return;
+      const currentVal = $tabSelect.value;
+      $tabSelect.innerHTML = '<option value="current">Current tab</option>';
+      if (resp.sources && resp.sources.length > 0) {
+        $tabSelect.innerHTML += '<option value="all">All tabs (' + resp.entities.length + ')</option>';
+        resp.sources.forEach(s => {
+          const title = (s.title || "").substring(0, 40);
+          $tabSelect.innerHTML += '<option value="' + s.tabId + '">' + escapeHtml(title) + ' (' + s.count + ')</option>';
+        });
+        $tabCount.textContent = resp.sources.length + " scanned";
+      } else {
+        $tabCount.textContent = "";
       }
-      if (!resp.entities || resp.entities.length === 0) {
-        showToast("No entities found across tabs — scan some pages first");
-        return;
+      // Restore selection if still valid
+      if (currentVal && $tabSelect.querySelector('option[value="' + currentVal + '"]')) {
+        $tabSelect.value = currentVal;
       }
-      loadEntitiesFromArray(resp.entities);
-      document.getElementById("detail-panel").classList.remove("active");
-      mergedMode = true;
-
-      // Show source summary at top
-      let summary = "Merged from " + resp.tabCount + " tabs:";
-      if (resp.sources) {
-        resp.sources.forEach(s => { summary += "\n• " + s.title + " (" + s.count + ")"; });
-      }
-      showToast("Merged " + resp.entities.length + " entities from " + resp.tabCount + " tabs");
-
-      // Store sources for display
-      mergedSources = resp.sources || [];
-      render();
     });
+  }
+
+  $tabSelect.addEventListener("change", () => {
+    viewMode = $tabSelect.value;
+    document.getElementById("detail-panel").classList.remove("active");
+    activeEntity = null;
+
+    if (viewMode === "current") {
+      // Pull current tab's entities
+      chrome.runtime.sendMessage({ type: "get-tab-entities" }, (resp) => {
+        if (chrome.runtime.lastError) return;
+        loadEntitiesFromArray(resp && resp.entities ? resp.entities : []);
+        render();
+      });
+    } else if (viewMode === "all") {
+      // Pull all merged
+      chrome.runtime.sendMessage({ type: "get-all-tab-entities" }, (resp) => {
+        if (chrome.runtime.lastError || !resp) return;
+        loadEntitiesFromArray(resp.entities || []);
+        render();
+      });
+    } else {
+      // Specific tab ID
+      chrome.runtime.sendMessage({ type: "get-specific-tab", tabId: parseInt(viewMode) }, (resp) => {
+        if (chrome.runtime.lastError || !resp) return;
+        loadEntitiesFromArray(resp.entities || []);
+        render();
+      });
+    }
   });
+
+  // Refresh dropdown periodically and after scans
+  setInterval(refreshTabDropdown, 5000);
+  setTimeout(refreshTabDropdown, 1000);
 
   // --- Clear button ---
   document.getElementById("btn-clear").addEventListener("click", () => {
-    mergedMode = false;
+    viewMode = "current";
+    $tabSelect.value = "current";
     allEntities = { gene: [], variant: [], accession: [], file: [], species: [] };
     currentEntities = [];
     activeEntity = null;
@@ -1075,23 +1101,25 @@
     }
 
     if (msg.type === "tab-switched") {
-      if (mergedMode) return;
       currentTabId = msg.tabId || null;
-      // Pull entities for the new tab from background
-      document.getElementById("detail-panel").classList.remove("active");
-      chrome.runtime.sendMessage({ type: "get-tab-entities" }, (resp) => {
-        if (chrome.runtime.lastError) return;
-        const newEntities = (resp && resp.entities) ? resp.entities : [];
-        loadEntitiesFromArray(newEntities);
-        activeEntity = null;
-        searchFilter = "";
-        $search.value = "";
-        if (newEntities.length === 0) {
-          $empty.querySelector("strong").textContent = "Not scanned yet";
-          $empty.querySelector("p").innerHTML = 'Click <b>Scan</b> to analyze this page.';
-        }
-        render();
-      });
+      refreshTabDropdown();
+      // Only update view if in "current tab" mode
+      if (viewMode === "current") {
+        document.getElementById("detail-panel").classList.remove("active");
+        chrome.runtime.sendMessage({ type: "get-tab-entities" }, (resp) => {
+          if (chrome.runtime.lastError) return;
+          const newEntities = (resp && resp.entities) ? resp.entities : [];
+          loadEntitiesFromArray(newEntities);
+          activeEntity = null;
+          searchFilter = "";
+          $search.value = "";
+          if (newEntities.length === 0) {
+            $empty.querySelector("strong").textContent = "Not scanned yet";
+            $empty.querySelector("p").innerHTML = 'Click <b>Scan</b> to analyze this page.';
+          }
+          render();
+        });
+      }
     }
   });
 
