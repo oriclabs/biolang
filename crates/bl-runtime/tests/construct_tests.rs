@@ -273,9 +273,7 @@ fn test_pipe_trailing_lambda_each() {
     let result = eval(r#"
 [1, 2, 3] |> each |n| n * 2
 "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(2), Value::Int(4), Value::Int(6),
-    ]));
+    assert_eq!(result, Value::Nil);
 }
 
 #[test]
@@ -318,22 +316,21 @@ fn test_pipe_trailing_lambda_last_in_chain() {
 // ============================================================================
 
 #[test]
-fn test_each_returns_list() {
+fn test_each_returns_nil() {
+    // each() is side-effect only — returns Nil, not a mapped list
     let result = eval(r#"
 [1, 2, 3] |> each(|n| n * 2)
 "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(2), Value::Int(4), Value::Int(6),
-    ]));
+    assert_eq!(result, Value::Nil);
 }
 
 #[test]
-fn test_each_on_table_returns_list() {
+fn test_each_on_table_returns_nil() {
     let result = eval(r#"
 let t = from_records([{a: 1, b: 10}, {a: 2, b: 20}])
 t |> each(|r| r.a + r.b)
 "#);
-    assert_eq!(result, Value::List(vec![Value::Int(11), Value::Int(22)]));
+    assert_eq!(result, Value::Nil);
 }
 
 #[test]
@@ -342,9 +339,7 @@ fn test_each_with_record_transform() {
 let data = [{name: "a", val: 1}, {name: "b", val: 2}]
 data |> each |r| r.name
 "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Str("a".into()), Value::Str("b".into()),
-    ]));
+    assert_eq!(result, Value::Nil);
 }
 
 #[test]
@@ -352,7 +347,7 @@ fn test_each_empty_list() {
     let result = eval(r#"
 [] |> each(|n| n * 2)
 "#);
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::Nil);
 }
 
 // ============================================================================
@@ -708,14 +703,12 @@ labels
 
 #[test]
 fn test_each_pipe_with_record_transform() {
+    // each() executes side effects, returns Nil
     let result = eval(r#"
 let data = [{name: "Alice", age: 30}, {name: "Bob", age: 25}]
 data |> each |p| p.name
 "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Str("Alice".into()),
-        Value::Str("Bob".into()),
-    ]));
+    assert_eq!(result, Value::Nil);
 }
 
 #[test]

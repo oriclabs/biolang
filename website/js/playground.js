@@ -225,6 +225,8 @@
     resultEl.innerHTML = '';
 
     var t0 = performance.now();
+    // Reset interpreter state so variables from previous runs don't shadow builtins
+    if (wasm.reset) { try { wasm.reset(); } catch(_) {} }
     var resultJson;
     try {
       resultJson = wasm.evaluate(code);

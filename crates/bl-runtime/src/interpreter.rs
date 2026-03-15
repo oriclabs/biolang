@@ -2765,11 +2765,10 @@ impl Interpreter {
                 let collection = args.pop().unwrap();
                 match collection {
                     Value::List(items) => {
-                        let mut results = Vec::with_capacity(items.len());
                         for item in items {
-                            results.push(self.call_value(&func, vec![item], span)?);
+                            self.call_value(&func, vec![item], span)?;
                         }
-                        Ok(Value::List(results))
+                        Ok(Value::Nil)
                     }
                     Value::Stream(s) => {
                         if s.is_exhausted() {
@@ -2790,12 +2789,11 @@ impl Interpreter {
                         Ok(Value::Nil)
                     }
                     Value::Table(t) => {
-                        let mut results = Vec::with_capacity(t.num_rows());
                         for i in 0..t.num_rows() {
                             let row_rec = Value::Record(t.row_to_record(i));
-                            results.push(self.call_value(&func, vec![row_rec], span)?);
+                            self.call_value(&func, vec![row_rec], span)?;
                         }
-                        Ok(Value::List(results))
+                        Ok(Value::Nil)
                     }
                     other => {
                         Err(BioLangError::type_error(
