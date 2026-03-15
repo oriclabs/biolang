@@ -116,9 +116,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // Clear current tab's entities
+  // Store pasted text entities under a virtual tab ID
+  if (msg.type === "store-pasted-entities") {
+    tabEntities["pasted"] = {
+      entities: msg.entities || [],
+      title: "Pasted text",
+      url: ""
+    };
+  }
+
+  // Clear entities
   if (msg.type === "clear-tab-entities") {
-    if (msg.tabId) {
+    if (msg.scope === "all") {
+      // Clear everything
+      for (const key of Object.keys(tabEntities)) delete tabEntities[key];
+    } else if (msg.tabId) {
       delete tabEntities[msg.tabId];
     } else {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

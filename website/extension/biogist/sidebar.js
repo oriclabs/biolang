@@ -916,9 +916,15 @@
       const text = document.getElementById("paste-textarea").value.trim();
       if (!text || text.length < 10) { showToast("Paste some text first"); return; }
       const entities = detectEntitiesFromText(text);
+      // Store as virtual "pasted" tab in background
+      chrome.runtime.sendMessage({ type: "store-pasted-entities", entities });
       loadEntitiesFromArray(entities);
       showToast("Found " + entities.length + " entities");
       panel.remove();
+      // Switch view to pasted
+      viewMode = "pasted";
+      refreshTabDropdown();
+      setTimeout(() => { $tabSelect.value = "pasted"; }, 500);
       render();
     });
   });
@@ -1044,8 +1050,9 @@
         render();
       });
     } else {
-      // Specific tab ID
-      chrome.runtime.sendMessage({ type: "get-specific-tab", tabId: parseInt(viewMode) }, (resp) => {
+      // Specific tab ID or "pasted"
+      const tabId = viewMode === "pasted" ? "pasted" : parseInt(viewMode);
+      chrome.runtime.sendMessage({ type: "get-specific-tab", tabId }, (resp) => {
         if (chrome.runtime.lastError || !resp) return;
         loadEntitiesFromArray(resp.entities || []);
         render();
@@ -1086,19 +1093,34 @@
 
   // --- Clear button ---
   document.getElementById("btn-clear").addEventListener("click", () => {
-    viewMode = "current";
-    $tabSelect.value = "current";
     allEntities = { gene: [], variant: [], accession: [], file: [], species: [] };
     currentEntities = [];
     activeEntity = null;
     searchFilter = "";
     $search.value = "";
     document.getElementById("detail-panel").classList.remove("active");
-    // Tell background + content script to clear
-    chrome.runtime.sendMessage({ type: "clear-tab-entities" });
+
+    if (viewMode === "all") {
+      // Clear all tabs
+      chrome.runtime.sendMessage({ type: "clear-tab-entities", scope: "all" });
+    } else if (viewMode === "pasted") {
+      chrome.runtime.sendMessage({ type: "clear-tab-entities", tabId: "pasted" });
+    } else if (viewMode !== "current") {
+      // Specific tab
+      chrome.runtime.sendMessage({ type: "clear-tab-entities", tabId: parseInt(viewMode) });
+    } else {
+      // Current tab
+      chrome.runtime.sendMessage({ type: "clear-tab-entities" });
+    }
+
+    // Clear highlights on current page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: "clear-highlights" }).catch(() => {});
     });
+
+    viewMode = "current";
+    $tabSelect.value = "current";
+    refreshTabDropdown();
     render();
   });
 
