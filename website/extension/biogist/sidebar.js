@@ -1007,7 +1007,7 @@
       $tabSelect.innerHTML = '<option value="current">Current tab</option>';
       if (resp.sources && resp.sources.length > 0) {
         $tabSelect.innerHTML += '<option value="all">All tabs (' + resp.entities.length + ')</option>';
-        resp.sources.forEach(s => {
+        resp.sources.filter(s => s.count > 0).forEach(s => {
           const title = (s.title || "").substring(0, 40);
           $tabSelect.innerHTML += '<option value="' + s.tabId + '">' + escapeHtml(title) + ' (' + s.count + ')</option>';
         });
