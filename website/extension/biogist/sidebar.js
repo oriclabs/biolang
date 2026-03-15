@@ -11,6 +11,17 @@
   let searchFilter = "";
   let viewMode = "current"; // "current", "all", or a tab ID string
   let currentTabId = null;
+  let pinnedEntities = new Set(); // "gene:BRCA1", "variant:rs123" etc.
+
+  // Load pinned entities from storage
+  chrome.storage.local.get("biogist_pinned", (data) => {
+    if (data.biogist_pinned && Array.isArray(data.biogist_pinned)) {
+      pinnedEntities = new Set(data.biogist_pinned);
+    }
+  });
+  function savePinnedEntities() {
+    chrome.storage.local.set({ biogist_pinned: Array.from(pinnedEntities) });
+  }
   const collapsed = {};
   const expandedSections = {}; // tracks "Show all" state per type
   const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -141,9 +152,34 @@
     const entities = filteredEntities();
     const total = Object.values(entities).reduce((s, a) => s + a.length, 0);
 
-    $empty.style.display = total === 0 ? "block" : "none";
+    const hasPinned = pinnedEntities.size > 0;
+    $empty.style.display = (total === 0 && !hasPinned) ? "block" : "none";
     $sections.innerHTML = "";
 
+    // Show pinned entities section at top (always visible, regardless of tab)
+    if (hasPinned) {
+      const pinSection = document.createElement("div");
+      pinSection.style.cssText = "padding:6px 14px;background:#1a1a2e;border-bottom:1px solid #1e293b;";
+      pinSection.innerHTML = '<div style="font-size:10px;color:#fbbf24;font-weight:600;margin-bottom:4px">\u2605 Pinned</div>';
+      const pinList = document.createElement("div");
+      pinList.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;";
+      pinnedEntities.forEach(key => {
+        const [pType, pName] = key.split(":");
+        const chip = document.createElement("span");
+        chip.style.cssText = "font-size:11px;padding:2px 8px;border-radius:10px;background:#334155;color:#e2e8f0;cursor:pointer;display:inline-flex;align-items:center;gap:4px;";
+        chip.innerHTML = escapeHtml(pName) + '<span style="color:#64748b;font-size:9px">\u2715</span>';
+        chip.addEventListener("click", () => selectEntity(pType, pName));
+        chip.querySelector("span").addEventListener("click", (e) => {
+          e.stopPropagation();
+          pinnedEntities.delete(key);
+          savePinnedEntities();
+          render();
+        });
+        pinList.appendChild(chip);
+      });
+      pinSection.appendChild(pinList);
+      $sections.appendChild(pinSection);
+    }
 
     for (const [type, items] of Object.entries(entities)) {
       if (items.length === 0) continue;
@@ -175,6 +211,14 @@
 
       const MAX_VISIBLE = 5;
       const expanded = expandedSections[type] === true;
+      // Sort pinned entities to top
+      items.sort((a, b) => {
+        const aId = typeof a === "string" ? a : (a.id || "");
+        const bId = typeof b === "string" ? b : (b.id || "");
+        const aPin = pinnedEntities.has(type + ":" + aId) ? 0 : 1;
+        const bPin = pinnedEntities.has(type + ":" + bId) ? 0 : 1;
+        return aPin - bPin;
+      });
       const visibleItems = expanded ? items : items.slice(0, MAX_VISIBLE);
 
       for (const item of visibleItems) {
@@ -190,6 +234,39 @@
           <span class="entity-badge ${meta.cls}">${meta.badge}</span>
         ` + (source ? `<div style="font-size:9px;color:#475569;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%">${escapeHtml(source.substring(0, 60))}</div>` : '');
         li.addEventListener("click", () => selectEntity(type, name, item));
+
+        // Pin/bookmark button
+        const pinBtn = document.createElement("button");
+        const isPinned = pinnedEntities.has(type + ":" + name);
+        pinBtn.textContent = isPinned ? "\u2605" : "\u2606";
+        pinBtn.title = isPinned ? "Unpin" : "Pin entity";
+        pinBtn.style.cssText = "background:none;border:none;cursor:pointer;font-size:13px;padding:1px 3px;flex-shrink:0;color:" + (isPinned ? "#fbbf24" : "#475569") + ";";
+        pinBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const key = type + ":" + name;
+          if (pinnedEntities.has(key)) {
+            pinnedEntities.delete(key);
+          } else {
+            pinnedEntities.add(key);
+          }
+          savePinnedEntities();
+          render();
+        });
+        li.appendChild(pinBtn);
+
+        // Quick copy button
+        const copyIcon = document.createElement("button");
+        copyIcon.textContent = "\u{1F4CB}";
+        copyIcon.title = "Copy " + name;
+        copyIcon.style.cssText = "background:none;border:none;cursor:pointer;font-size:11px;padding:1px 3px;opacity:0.4;flex-shrink:0;";
+        copyIcon.addEventListener("mouseenter", () => { copyIcon.style.opacity = "1"; });
+        copyIcon.addEventListener("mouseleave", () => { copyIcon.style.opacity = "0.4"; });
+        copyIcon.addEventListener("click", (e) => {
+          e.stopPropagation();
+          navigator.clipboard.writeText(name);
+          showToast("Copied: " + name);
+        });
+        li.appendChild(copyIcon);
 
         // Inline "Open in BLViewer" button for file entities
         if (type === "file") {
@@ -977,6 +1054,33 @@
   // Refresh dropdown periodically and after scans
   setInterval(refreshTabDropdown, 5000);
   setTimeout(refreshTabDropdown, 1000);
+
+  // --- Scan All Tabs ---
+  document.getElementById("btn-scan-all").addEventListener("click", () => {
+    showToast("Scanning all tabs...");
+    chrome.tabs.query({ currentWindow: true }, (tabs) => {
+      let scanned = 0;
+      tabs.forEach(tab => {
+        if (tab.url && !tab.url.startsWith("chrome://") && !tab.url.startsWith("chrome-extension://")) {
+          chrome.tabs.sendMessage(tab.id, { type: "scan" }, () => {
+            void chrome.runtime.lastError;
+            scanned++;
+            if (scanned === tabs.length) {
+              setTimeout(() => {
+                refreshTabDropdown();
+                showToast("Scanned " + tabs.length + " tabs");
+                // Switch to "All tabs" view
+                $tabSelect.value = "all";
+                $tabSelect.dispatchEvent(new Event("change"));
+              }, 2000);
+            }
+          });
+        } else {
+          scanned++;
+        }
+      });
+    });
+  });
 
   // --- Clear button ---
   document.getElementById("btn-clear").addEventListener("click", () => {
