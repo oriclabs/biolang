@@ -1015,9 +1015,11 @@
       } else {
         $tabCount.textContent = "";
       }
-      // Restore selection if still valid
-      if (currentVal && $tabSelect.querySelector('option[value="' + currentVal + '"]')) {
-        $tabSelect.value = currentVal;
+      // Restore selection to match viewMode
+      if (viewMode && $tabSelect.querySelector('option[value="' + viewMode + '"]')) {
+        $tabSelect.value = viewMode;
+      } else {
+        $tabSelect.value = "current";
       }
     });
   }
