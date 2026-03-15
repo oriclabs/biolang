@@ -11,6 +11,7 @@
 //! - `# @skip` -- don't execute
 //! - `# @echo` -- print code before executing
 //! - `# @hide-output` -- execute but suppress printed output
+//! - `# @chat` -- send cell content to LLM via chat() builtin instead of executing
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -23,6 +24,7 @@ enum CellDirective {
     Skip,
     Echo,
     HideOutput,
+    Chat, // Send cell content to LLM via chat() builtin
 }
 
 #[derive(Debug, Clone)]
@@ -77,6 +79,9 @@ fn parse_directives(raw: &str) -> (Vec<CellDirective>, String) {
                 continue;
             } else if t == "# @hide-output" {
                 directives.push(CellDirective::HideOutput);
+                continue;
+            } else if t == "# @chat" {
+                directives.push(CellDirective::Chat);
                 continue;
             }
             still_scanning = false;
@@ -186,6 +191,21 @@ fn execute_notebook(path: &str) -> Vec<ExecutedBlock> {
             Block::Code(ref cb) => {
                 if cb.directives.contains(&CellDirective::Skip) {
                     results.push(ExecutedBlock { block, output: None });
+                    continue;
+                }
+
+                // @chat cells: send text to LLM instead of interpreting as code
+                if cb.directives.contains(&CellDirective::Chat) {
+                    let prompt = cb.code.trim().to_string();
+                    let output = match bl_runtime::llm::call_llm_builtin(
+                        "chat",
+                        vec![bl_core::value::Value::Str(prompt)],
+                    ) {
+                        Ok(bl_core::value::Value::Str(s)) => Some(s + "\n"),
+                        Ok(other) => Some(format!("{other}\n")),
+                        Err(e) => Some(format!("Chat error: {e}\n")),
+                    };
+                    results.push(ExecutedBlock { block, output });
                     continue;
                 }
 

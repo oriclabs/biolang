@@ -445,12 +445,20 @@
     var records = [];
     var lines = text.split("\n");
     var header = "", seq = [];
+    function fastaGC(s) {
+      var gc = 0, total = 0;
+      for (var j = 0; j < s.length; j++) {
+        var ch = s.charCodeAt(j) | 32; // lowercase
+        if (ch === 97 || ch === 116 || ch === 99 || ch === 103) { total++; if (ch === 99 || ch === 103) gc++; }
+      }
+      return total > 0 ? Math.round(gc / total * 1000) / 10 : 0;
+    }
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trimEnd();
       if (line.charAt(0) === ">") {
         if (header || seq.length) {
           var s = seq.join("");
-          records.push({ id: header.split(/\s/)[0], description: header, sequence: s, length: s.length });
+          records.push({ id: header.split(/\s/)[0], description: header, sequence: s, length: s.length, gc: fastaGC(s) });
         }
         header = line.substring(1);
         seq = [];
@@ -460,12 +468,12 @@
     }
     if (header || seq.length) {
       var s = seq.join("");
-      records.push({ id: header.split(/\s/)[0], description: header, sequence: s, length: s.length });
+      records.push({ id: header.split(/\s/)[0], description: header, sequence: s, length: s.length, gc: fastaGC(s) });
     }
     return {
-      columns: ["id", "description", "length", "sequence"],
-      colTypes: ["str", "str", "num", "seq"],
-      rows: records.map(function(r) { return [r.id, r.description, r.length, r.sequence]; }),
+      columns: ["id", "description", "length", "gc_pct", "sequence"],
+      colTypes: ["str", "str", "num", "num", "seq"],
+      rows: records.map(function(r) { return [r.id, r.description, r.length, r.gc, r.sequence]; }),
       stats: fastaStats(records)
     };
   }
@@ -3588,6 +3596,13 @@
         showToast("Reverse complement copied");
       }});
     }
+    // Translate to protein for sequence cells
+    if (colType === "seq" && cellVal.length >= 3 && cellVal.length <= 9000) {
+      items.push({ label: "Translate to Protein", key: "", action: function() {
+        navigator.clipboard.writeText(translateDNA(cellVal));
+        showToast("Protein translation copied");
+      }});
+    }
     // BLAST option for sequence columns
     if (colType === "seq" && cellVal.length >= 10) {
       items.push({ label: "BLAST this sequence", key: "", action: function() { openBLAST(cellVal); } });
@@ -4326,6 +4341,59 @@
     var aa = [];
     for (var i = 0; i + 2 < s.length; i += 3) aa.push(codons[s.substr(i, 3)] || "?");
     return aa.join("");
+  }
+
+  function compressDNA2bit(fastaText) {
+    var records = [];
+    var lines = fastaText.split("\n");
+    var header = "", seq = [];
+    function flush() {
+      if (header || seq.length) {
+        var s = seq.join("");
+        var bytes = [];
+        var map = {A:0, a:0, C:1, c:1, G:2, g:2, T:3, t:3};
+        for (var i = 0; i < s.length; i += 4) {
+          var b = 0;
+          for (var j = 0; j < 4 && i+j < s.length; j++) {
+            b |= ((map[s[i+j]] || 0) << (6 - j*2));
+          }
+          bytes.push(b);
+        }
+        var bin = String.fromCharCode.apply(null, bytes);
+        records.push([header, btoa(bin), s.length]);
+      }
+    }
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trimEnd();
+      if (line.charAt(0) === ">") {
+        flush();
+        header = line.substring(1);
+        seq = [];
+      } else { seq.push(line); }
+    }
+    flush();
+    return btoa(unescape(encodeURIComponent(JSON.stringify(records))));
+  }
+
+  function decompressDNA2bit(encoded) {
+    var json = decodeURIComponent(escape(atob(encoded)));
+    var records = JSON.parse(json);
+    var bases = "ACGT";
+    var lines = [];
+    for (var r = 0; r < records.length; r++) {
+      lines.push(">" + records[r][0]);
+      var bin = atob(records[r][1]);
+      var len = records[r][2];
+      var seq = "";
+      for (var i = 0; i < bin.length; i++) {
+        var b = bin.charCodeAt(i);
+        for (var j = 0; j < 4 && seq.length < len; j++) {
+          seq += bases[(b >> (6 - j*2)) & 3];
+        }
+      }
+      for (var i = 0; i < seq.length; i += 80) lines.push(seq.substring(i, i + 80));
+    }
+    return lines.join("\n");
   }
 
   function showSeqPopup(x, y, seq) {
@@ -5203,7 +5271,13 @@
       alert("File too large to encode in URL (max 100KB). Use Export instead.");
       return;
     }
-    var compressed = btoa(unescape(encodeURIComponent(text)));
+    // Detect FASTA — use 2-bit compression for smaller URLs
+    var compressed;
+    if (f.name && /\.(fa|fasta|fna|fas)$/i.test(f.name)) {
+      compressed = "2b:" + compressDNA2bit(text);
+    } else {
+      compressed = btoa(unescape(encodeURIComponent(text)));
+    }
     var base = window.location.origin + window.location.pathname;
     var shareUrl = base + "?name=" + encodeURIComponent(f.name) + "&data=" + encodeURIComponent(compressed);
 
@@ -5797,7 +5871,13 @@
     var shareData = params.get("data");
     if (shareData) {
       try {
-        var decoded = decodeURIComponent(escape(atob(decodeURIComponent(shareData))));
+        var raw = decodeURIComponent(shareData);
+        var decoded;
+        if (raw.indexOf("2b:") === 0) {
+          decoded = decompressDNA2bit(raw.substring(3));
+        } else {
+          decoded = decodeURIComponent(escape(atob(raw)));
+        }
         var shareName = params.get("name") || "shared-file.txt";
         addFile(shareName, decoded.length, decoded, false);
       } catch (e) {

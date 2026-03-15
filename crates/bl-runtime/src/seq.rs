@@ -3,13 +3,14 @@
 //! These provide `transcribe`, `translate`, `gc_content`, `complement`,
 //! `reverse_complement`, `base_counts`, `dna`, `rna`, `protein`, `subseq`,
 //! `find_motif`, `kmers`, `find_orfs`, `seq_len`, `codon_usage`, `tm`,
-//! and `validate_seq`.
+//! `validate_seq`, `ani`, `containment`, `dereplicate`, `enrichment_score`,
+//! and `gsea_score`.
 //!
 //! All logic delegates to `bio_core::seq_ops` — pure string transforms.
 
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Arity, BioSequence, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn seq_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
@@ -30,6 +31,11 @@ pub fn seq_builtin_list() -> Vec<(&'static str, Arity)> {
         ("codon_usage", Arity::Exact(1)),
         ("tm", Arity::Exact(1)),
         ("validate_seq", Arity::Exact(1)),
+        ("ani", Arity::Exact(2)),
+        ("containment", Arity::Exact(2)),
+        ("dereplicate", Arity::Exact(2)),
+        ("enrichment_score", Arity::Exact(2)),
+        ("gsea_score", Arity::Exact(2)),
     ]
 }
 
@@ -53,6 +59,11 @@ pub fn is_seq_builtin(name: &str) -> bool {
             | "codon_usage"
             | "tm"
             | "validate_seq"
+            | "ani"
+            | "containment"
+            | "dereplicate"
+            | "enrichment_score"
+            | "gsea_score"
     )
 }
 
@@ -271,6 +282,271 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 || bl_core::bio_core::seq_ops::is_valid_rna(&data);
             Ok(Value::Bool(is_valid))
         }
+        "ani" => {
+            let s1 = get_seq_data_or_str(&args[0], "ani")?;
+            let s2 = get_seq_data_or_str(&args[1], "ani")?;
+            let k = 21;
+            if s1.len() < k || s2.len() < k {
+                return Ok(Value::Float(0.0));
+            }
+            let set1: HashSet<&str> = (0..=s1.len() - k).map(|i| &s1[i..i + k]).collect();
+            let set2: HashSet<&str> = (0..=s2.len() - k).map(|i| &s2[i..i + k]).collect();
+            let intersection = set1.intersection(&set2).count() as f64;
+            let union = set1.union(&set2).count() as f64;
+            let jaccard = if union > 0.0 {
+                intersection / union
+            } else {
+                0.0
+            };
+            Ok(Value::Float(jaccard))
+        }
+        "containment" => {
+            let s1 = get_seq_data_or_str(&args[0], "containment")?;
+            let s2 = get_seq_data_or_str(&args[1], "containment")?;
+            let k = 21;
+            if s1.len() < k || s2.len() < k {
+                return Ok(Value::Float(0.0));
+            }
+            let set1: HashSet<&str> = (0..=s1.len() - k).map(|i| &s1[i..i + k]).collect();
+            let set2: HashSet<&str> = (0..=s2.len() - k).map(|i| &s2[i..i + k]).collect();
+            let intersection = set1.intersection(&set2).count() as f64;
+            let containment = if !set1.is_empty() {
+                intersection / set1.len() as f64
+            } else {
+                0.0
+            };
+            Ok(Value::Float(containment))
+        }
+        "dereplicate" => {
+            let sequences = match &args[0] {
+                Value::List(list) => list.clone(),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "dereplicate() requires a List of sequences, got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
+            };
+            let threshold = match &args[1] {
+                Value::Float(f) => *f,
+                Value::Int(n) => *n as f64,
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "dereplicate() threshold requires Float, got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
+            };
+
+            let k = 21;
+            // Pre-extract k-mer sets for each sequence
+            let seq_data: Vec<String> = sequences
+                .iter()
+                .map(|v| get_seq_data_or_str(v, "dereplicate"))
+                .collect::<Result<Vec<_>>>()?;
+
+            let kmer_sets: Vec<HashSet<String>> = seq_data
+                .iter()
+                .map(|s| {
+                    if s.len() < k {
+                        HashSet::new()
+                    } else {
+                        (0..=s.len() - k).map(|i| s[i..i + k].to_string()).collect()
+                    }
+                })
+                .collect();
+
+            // Greedy clustering
+            let mut clusters: Vec<(usize, Vec<usize>)> = Vec::new(); // (representative, members)
+
+            for i in 0..sequences.len() {
+                let mut assigned = false;
+                for cluster in &mut clusters {
+                    let rep = cluster.0;
+                    // Compute ANI (Jaccard) between i and representative
+                    let intersection = kmer_sets[i].iter().filter(|k| kmer_sets[rep].contains(k.as_str())).count() as f64;
+                    let union_size = kmer_sets[i].len() + kmer_sets[rep].len()
+                        - kmer_sets[i].iter().filter(|k| kmer_sets[rep].contains(k.as_str())).count();
+                    let jaccard = if union_size > 0 {
+                        intersection / union_size as f64
+                    } else {
+                        0.0
+                    };
+                    if jaccard >= threshold {
+                        cluster.1.push(i);
+                        assigned = true;
+                        break;
+                    }
+                }
+                if !assigned {
+                    clusters.push((i, vec![i]));
+                }
+            }
+
+            let result: Vec<Value> = clusters
+                .into_iter()
+                .map(|(rep, members)| {
+                    let mut fields = HashMap::new();
+                    fields.insert("representative".to_string(), Value::Int(rep as i64));
+                    fields.insert(
+                        "members".to_string(),
+                        Value::List(members.iter().map(|&m| Value::Int(m as i64)).collect()),
+                    );
+                    fields.insert("size".to_string(), Value::Int(members.len() as i64));
+                    Value::Record(fields)
+                })
+                .collect();
+            Ok(Value::List(result))
+        }
+        "enrichment_score" => {
+            let values = match &args[0] {
+                Value::Record(map) => map.clone(),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "enrichment_score() requires a Record of gene:value, got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
+            };
+            let gene_set = match &args[1] {
+                Value::List(list) => list.clone(),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "enrichment_score() gene_set requires a List, got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
+            };
+
+            // Compute mean of all values
+            let all_vals: Vec<f64> = values
+                .values()
+                .filter_map(|v| match v {
+                    Value::Float(f) => Some(*f),
+                    Value::Int(n) => Some(*n as f64),
+                    _ => None,
+                })
+                .collect();
+            let global_mean = if all_vals.is_empty() {
+                0.0
+            } else {
+                all_vals.iter().sum::<f64>() / all_vals.len() as f64
+            };
+
+            // Compute mean of gene set values that exist in the record
+            let mut set_sum = 0.0;
+            let mut set_count = 0usize;
+            for gene in &gene_set {
+                let gene_name = match gene {
+                    Value::Str(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                if let Some(val) = values.get(&gene_name) {
+                    match val {
+                        Value::Float(f) => {
+                            set_sum += f;
+                            set_count += 1;
+                        }
+                        Value::Int(n) => {
+                            set_sum += *n as f64;
+                            set_count += 1;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            let set_mean = if set_count == 0 {
+                0.0
+            } else {
+                set_sum / set_count as f64
+            };
+
+            let score = if global_mean != 0.0 {
+                set_mean / global_mean
+            } else {
+                0.0
+            };
+            Ok(Value::Float(score))
+        }
+        "gsea_score" => {
+            let ranked_list = match &args[0] {
+                Value::List(list) => list.clone(),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "gsea_score() requires a ranked List of gene names, got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
+            };
+            let gene_set = match &args[1] {
+                Value::List(list) => list.clone(),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "gsea_score() gene_set requires a List, got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
+            };
+
+            let gene_set_names: HashSet<String> = gene_set
+                .iter()
+                .map(|v| match v {
+                    Value::Str(s) => s.clone(),
+                    other => other.to_string(),
+                })
+                .collect();
+
+            let n = ranked_list.len() as f64;
+            let nh = gene_set_names.len() as f64;
+
+            if n == 0.0 || nh == 0.0 || n == nh {
+                return Ok(Value::Float(0.0));
+            }
+
+            // Standard GSEA walking sum:
+            // hit increment = sqrt((N - Nh) / Nh)
+            // miss decrement = sqrt(Nh / (N - Nh))
+            let hit_inc = ((n - nh) / nh).sqrt();
+            let miss_dec = (nh / (n - nh)).sqrt();
+
+            let mut running_sum = 0.0_f64;
+            let mut max_dev = 0.0_f64;
+
+            for gene_val in &ranked_list {
+                let gene_name = match gene_val {
+                    Value::Str(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                if gene_set_names.contains(&gene_name) {
+                    running_sum += hit_inc;
+                } else {
+                    running_sum -= miss_dec;
+                }
+                if running_sum.abs() > max_dev.abs() {
+                    max_dev = running_sum;
+                }
+            }
+
+            Ok(Value::Float(max_dev))
+        }
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown seq builtin: {name}"),
@@ -352,6 +628,20 @@ fn require_nucleic<'a>(val: &'a Value, func: &str) -> Result<&'a BioSequence> {
         Value::DNA(seq) | Value::RNA(seq) => Ok(seq),
         other => Err(BioLangError::type_error(
             format!("{func}() requires DNA or RNA, got {}", other.type_of()),
+            None,
+        )),
+    }
+}
+
+fn get_seq_data_or_str(val: &Value, func: &str) -> Result<String> {
+    match val {
+        Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => Ok(seq.data.clone()),
+        Value::Str(s) => Ok(s.to_uppercase()),
+        other => Err(BioLangError::type_error(
+            format!(
+                "{func}() requires a sequence type or Str, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }

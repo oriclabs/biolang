@@ -123,6 +123,9 @@ pub fn apis_builtin_list() -> Vec<(&'static str, Arity)> {
         ("galaxy_tool", Arity::Exact(2)),
         // Config
         ("api_endpoints", Arity::Exact(0)),
+        // Utility
+        ("bio_icon", Arity::Exact(1)),
+        ("paper_score", Arity::Range(1, 2)),
     ]
 }
 
@@ -184,6 +187,8 @@ pub fn is_apis_builtin(name: &str) -> bool {
             | "galaxy_categories"
             | "galaxy_tool"
             | "api_endpoints"
+            | "bio_icon"
+            | "paper_score"
     )
 }
 
@@ -260,6 +265,9 @@ pub fn call_apis_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "galaxy_tool" => builtin_galaxy_tool(args),
         // Config
         "api_endpoints" => builtin_api_endpoints(),
+        // Utility
+        "bio_icon" => builtin_bio_icon(args),
+        "paper_score" => builtin_paper_score(args),
 
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
@@ -1575,4 +1583,198 @@ fn builtin_api_endpoints() -> Result<Value> {
     rec.insert("biocontainers".into(), Value::Str(resolve_url("biocontainers", "https://api.biocontainers.pro/ga4gh/trs/v2")));
     rec.insert("galaxy_toolshed".into(), Value::Str(resolve_url("galaxy_toolshed", "https://toolshed.g2.bx.psu.edu")));
     Ok(Value::Record(rec))
+}
+
+// ---------------------------------------------------------------------------
+// Utility builtins
+// ---------------------------------------------------------------------------
+
+/// `bio_icon(name)` — Return BioIcons search URL and category info for an icon keyword.
+fn builtin_bio_icon(args: Vec<Value>) -> Result<Value> {
+    let name = require_str(&args[0], "bio_icon")?;
+    let encoded = name.replace(' ', "+");
+    let url = format!("https://bioicons.com/?search={encoded}");
+
+    let categories = vec![
+        "cell_biology",
+        "chemistry",
+        "genetics",
+        "microbiology",
+        "molecular_biology",
+        "neuroscience",
+        "oncology",
+        "organisms",
+        "physiology",
+        "safety_symbols",
+        "tissues",
+        "equipment",
+    ];
+
+    let mut map = HashMap::new();
+    map.insert("name".into(), Value::Str(name.to_string()));
+    map.insert("url".into(), Value::Str(url));
+    map.insert(
+        "categories".into(),
+        Value::List(categories.into_iter().map(|c| Value::Str(c.into())).collect()),
+    );
+    map.insert(
+        "tip".into(),
+        Value::Str("Visit the URL to browse and download SVG icons".into()),
+    );
+    Ok(Value::Record(map))
+}
+
+/// `paper_score(query, db?)` — Search PubMed and return study metadata with quality indicators.
+///
+/// If the first argument looks like a numeric PMID, fetches that paper directly.
+/// Otherwise searches PubMed for the query and summarizes the top result.
+fn builtin_paper_score(args: Vec<Value>) -> Result<Value> {
+    // Determine PMID: either directly given as Int/numeric string, or search first
+    let pmid = match &args[0] {
+        Value::Int(n) => n.to_string(),
+        Value::Str(s) if s.chars().all(|c| c.is_ascii_digit()) && !s.is_empty() => s.clone(),
+        Value::Str(query) => {
+            // Search PubMed for the query, take the top result
+            let db = if args.len() > 1 {
+                require_str(&args[1], "paper_score")?
+            } else {
+                "pubmed"
+            };
+            let result = api_call(&format!("paper_score: esearch({db}, \"{query}\")"), || {
+                NCBI.with(|c| c.esearch(db, query, 1))
+            })?;
+            if result.ids.is_empty() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("paper_score(): no results found for \"{query}\""),
+                    None,
+                ));
+            }
+            result.ids.into_iter().next().unwrap()
+        }
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "paper_score() requires Int (PMID) or Str (query), got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+
+    // Fetch summary for this PMID
+    let summaries = api_call(&format!("paper_score: esummary(pubmed, {pmid})"), || {
+        NCBI.with(|c| c.esummary("pubmed", &[pmid.as_str()]))
+    })?;
+
+    if summaries.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("paper_score(): no summary found for PMID {pmid}"),
+            None,
+        ));
+    }
+
+    let doc = &summaries[0];
+    let fields = &doc.fields;
+
+    // Extract metadata
+    let title = fields
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let source = fields
+        .get("source")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let pub_date = fields
+        .get("pubdate")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let doi = fields
+        .get("elocationid")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    // Authors list
+    let authors: Vec<Value> = fields
+        .get("authors")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|a| a.get("name").and_then(|n| n.as_str()))
+                .map(|s| Value::Str(s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // Publication types
+    let pub_types: Vec<Value> = fields
+        .get("pubtype")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str())
+                .map(|s| Value::Str(s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // Quality indicators: scan title and pub_types for study design keywords
+    let title_lower = title.to_lowercase();
+    let pub_types_lower: Vec<String> = pub_types
+        .iter()
+        .filter_map(|v| {
+            if let Value::Str(s) = v {
+                Some(s.to_lowercase())
+            } else {
+                None
+            }
+        })
+        .collect();
+    let combined = format!("{} {}", title_lower, pub_types_lower.join(" "));
+
+    let quality_keywords = [
+        "meta-analysis",
+        "systematic review",
+        "randomized",
+        "randomised",
+        "cohort",
+        "case-control",
+        "double-blind",
+        "placebo-controlled",
+        "prospective",
+        "retrospective",
+        "cross-sectional",
+        "longitudinal",
+        "multicenter",
+        "multicentre",
+        "genome-wide",
+        "gwas",
+        "clinical trial",
+        "sample size",
+        "n =",
+    ];
+
+    let indicators: Vec<Value> = quality_keywords
+        .iter()
+        .filter(|kw| combined.contains(**kw))
+        .map(|kw| Value::Str(kw.to_string()))
+        .collect();
+
+    let mut map = HashMap::new();
+    map.insert("pmid".into(), Value::Str(pmid));
+    map.insert("title".into(), Value::Str(title));
+    map.insert("journal".into(), Value::Str(source));
+    map.insert("pub_date".into(), Value::Str(pub_date));
+    map.insert("doi".into(), Value::Str(doi));
+    map.insert("authors".into(), Value::List(authors));
+    map.insert("pub_types".into(), Value::List(pub_types));
+    map.insert("quality_indicators".into(), Value::List(indicators));
+    Ok(Value::Record(map))
 }
