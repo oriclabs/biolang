@@ -807,35 +807,52 @@
         for (const item of items) {
           const id = typeof item === "string" ? item : item.id;
           const entry = { id };
-          // Try to get cached details
+          if (typeof item === "object" && item.source) entry.source = item.source;
           const cached = await cacheGet(`biogist:v${CACHE_VERSION}:${type}:${id}`);
           if (cached) entry.details = cached;
           entries.push(entry);
         }
         obj[type] = entries;
       }
-      // Add source URL and timestamp
-      obj._source = await new Promise(r => {
-        chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-          r(tabs[0] ? { url: tabs[0].url, title: tabs[0].title } : {});
+      // Add sources based on view mode
+      if (viewMode === "all") {
+        const resp = await new Promise(r => {
+          chrome.runtime.sendMessage({ type: "get-all-tab-entities" }, r);
         });
-      });
+        if (resp && resp.sources) {
+          obj._sources = resp.sources.map(s => ({ title: s.title, count: s.count }));
+        }
+      } else {
+        obj._source = await new Promise(r => {
+          chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+            r(tabs[0] ? { url: tabs[0].url, title: tabs[0].title } : {});
+          });
+        });
+      }
       obj._exported = new Date().toISOString();
+      obj._viewMode = viewMode;
       return obj;
     }
 
     function buildMarkdown(obj) {
       let md = "## BioGist Scan Results\n\n";
-      if (obj._source) {
+      if (obj._sources && obj._sources.length > 0) {
+        md += "**Sources (" + obj._sources.length + " tabs):**\n";
+        obj._sources.forEach(s => { md += "- " + s.title + " (" + s.count + " entities)\n"; });
+        md += "\n";
+      } else if (obj._source) {
         md += "**Source:** " + (obj._source.title || "") + "\n";
-        md += obj._source.url + "\n\n";
+        if (obj._source.url) md += obj._source.url + "\n";
+        md += "\n";
       }
       if (obj._exported) md += "*Exported: " + obj._exported + "*\n\n";
       for (const [type, entries] of Object.entries(obj)) {
         if (type.startsWith("_") || !entries || !Array.isArray(entries) || entries.length === 0) continue;
         md += "### " + (TYPE_META[type] ? TYPE_META[type].label : type) + "\n\n";
         for (const entry of entries) {
-          md += "**" + entry.id + "**\n";
+          md += "**" + entry.id + "**";
+          if (entry.source) md += " *(from: " + entry.source + ")*";
+          md += "\n";
           if (entry.details) {
             for (const [k, v] of Object.entries(entry.details)) {
               if (v && !String(v).startsWith("http"))
