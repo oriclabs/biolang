@@ -1,7 +1,7 @@
 {
   "name": "BioGist",
   "short_name": "BioGist",
-  "description": "Biological Genomic Intelligence in Situ — detect genes, variants, and accessions in scientific text.",
+  "description": "Get the biological gist of any research paper — detect genes, variants, and accessions in scientific text.",
   "start_url": "/biogist.html",
   "display": "standalone",
   "background_color": "#0f172a",

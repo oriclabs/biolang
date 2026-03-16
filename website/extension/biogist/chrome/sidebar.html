@@ -41,7 +41,8 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  .header-actions { display: flex; gap: 6px; }
+  .header-actions { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; }
+  .tool-btn { font-size: 10px; padding: 4px 7px; }
 
   /* --- Buttons --- */
   button {
@@ -171,6 +172,19 @@
   .badge-accession { background: #1a3329; color: #4ade80; }
   .badge-file { background: #3b2f1a; color: #fbbf24; }
   .badge-species { background: #1a3333; color: #5eead4; }
+  .badge-method { background: #1a2740; color: #38bdf8; }
+  .badge-genome_build { background: #2d1f3b; color: #d8b4fe; }
+  .badge-sample_size { background: #1a2e33; color: #67e8f9; }
+  .badge-stat_method { background: #1f2937; color: #a5b4fc; }
+  .badge-platform { background: #2a2a1a; color: #d4d494; }
+  .badge-cell_line { background: #2d2040; color: #e879f9; }
+  .badge-tissue { background: #2d1a1a; color: #fca5a5; }
+  .badge-drug { background: #1a2d1a; color: #86efac; }
+  .badge-finding { background: #2d2a1a; color: #fcd34d; }
+  .badge-trial { background: #1a2d2d; color: #5eead4; }
+  .badge-funding { background: #2d2d1a; color: #fde68a; }
+  .badge-repository { background: #1a1a2d; color: #a5b4fc; }
+  .badge-p_value { background: #2d1a2d; color: #f0abfc; }
 
   /* --- Detail panel (full-screen flip) --- */
   .detail-panel {
@@ -325,6 +339,94 @@
   }
   .toggle.on::after { transform: translateX(16px); }
 
+  /* --- Full-screen overlay panels (shared) --- */
+  .overlay-panel {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #020617;
+    z-index: 25;
+    flex-direction: column;
+  }
+  .overlay-panel.visible { display: flex; }
+  .overlay-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+  }
+  .overlay-body {
+    padding: 14px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  body.light-theme .overlay-panel { background: #f8fafc; }
+  body.light-theme .overlay-header { background: #fff; border-color: #e2e8f0; }
+
+  /* --- Compare columns --- */
+  .compare-cols { display: flex; gap: 4px; flex: 1; overflow-y: auto; }
+  .compare-col { flex: 1; min-width: 0; }
+  .compare-col-header { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; padding: 6px 8px; text-align: center; }
+  .compare-item { font-size: 11px; padding: 3px 8px; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .compare-only { color: #f87171; }
+  .compare-shared { color: #4ade80; }
+
+  /* --- Matrix grid --- */
+  .matrix-grid { display: grid; gap: 1px; font-size: 10px; }
+  .matrix-cell { padding: 4px; text-align: center; border-radius: 2px; cursor: default; }
+  .matrix-label { font-size: 9px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 2px; }
+
+  /* --- History timeline --- */
+  .history-date { font-size: 10px; font-weight: 700; color: #64748b; padding: 8px 0 4px; border-bottom: 1px solid #1e293b; margin-bottom: 4px; }
+  .history-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 11px; }
+  .history-item-id { color: #f1f5f9; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history-item-src { font-size: 9px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+  .history-item-time { font-size: 9px; color: #475569; flex-shrink: 0; }
+
+  /* --- Note editor --- */
+  .note-box { background: rgba(251,191,36,0.08); border-left: 3px solid #fbbf24; padding: 8px 10px; border-radius: 0 6px 6px 0; margin: 6px 0; font-size: 11px; color: #fbbf24; }
+  .note-input { width: 100%; padding: 6px 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 11px; resize: vertical; min-height: 40px; font-family: inherit; }
+  body.light-theme .note-box { background: rgba(251,191,36,0.1); color: #92400e; }
+  body.light-theme .note-input { background: #f1f5f9; border-color: #cbd5e1; color: #1e293b; }
+
+  /* --- More dropdown --- */
+  .more-wrap { position: relative; }
+  .more-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 4px 0;
+    min-width: 150px;
+    z-index: 30;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .more-menu.open { display: block; }
+  .more-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #cbd5e1;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+  }
+  .more-menu-item:hover { background: #334155; color: #f1f5f9; }
+  body.light-theme .more-menu { background: #fff; border-color: #e2e8f0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+  body.light-theme .more-menu-item { color: #334155; }
+  body.light-theme .more-menu-item:hover { background: #f1f5f9; }
+
   /* --- Scrollbar --- */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -363,6 +465,19 @@
   body.light-theme .badge-accession { background: #dcfce7; color: #166534; }
   body.light-theme .badge-file { background: #fef3c7; color: #92400e; }
   body.light-theme .badge-species { background: #ccfbf1; color: #115e59; }
+  body.light-theme .badge-method { background: #e0f2fe; color: #075985; }
+  body.light-theme .badge-genome_build { background: #f3e8ff; color: #581c87; }
+  body.light-theme .badge-sample_size { background: #cffafe; color: #155e75; }
+  body.light-theme .badge-stat_method { background: #e0e7ff; color: #3730a3; }
+  body.light-theme .badge-platform { background: #fefce8; color: #713f12; }
+  body.light-theme .badge-cell_line { background: #fae8ff; color: #86198f; }
+  body.light-theme .badge-tissue { background: #fee2e2; color: #991b1b; }
+  body.light-theme .badge-drug { background: #dcfce7; color: #14532d; }
+  body.light-theme .badge-finding { background: #fef9c3; color: #854d0e; }
+  body.light-theme .badge-trial { background: #ccfbf1; color: #115e59; }
+  body.light-theme .badge-funding { background: #fef9c3; color: #713f12; }
+  body.light-theme .badge-repository { background: #e0e7ff; color: #3730a3; }
+  body.light-theme .badge-p_value { background: #fae8ff; color: #86198f; }
   body.light-theme .section-count { color: #64748b; }
   body.light-theme .toggle { background: #cbd5e1; }
   body.light-theme .toggle.on { background: #06b6d4; }
@@ -377,6 +492,21 @@
     <span class="brand">BioGist</span>
   </div>
   <div class="header-actions">
+    <button class="btn tool-btn" id="btn-export-inline" title="Export">Export</button>
+    <button class="btn tool-btn" id="btn-history-inline" title="History">History</button>
+    <button class="btn tool-btn" id="btn-compare-inline" title="Compare Tabs">Diff</button>
+    <button class="btn tool-btn" id="btn-matrix-inline" title="Co-occurrence">Matrix</button>
+    <button class="btn tool-btn" id="btn-batch-inline" title="Batch Scan">Batch</button>
+    <div class="more-wrap">
+      <button class="btn" id="btn-more" title="More tools" style="font-size:12px;display:none">&#x22EF;</button>
+      <div class="more-menu" id="more-menu">
+        <button class="more-menu-item" id="menu-export">&#x1F4E4; Export</button>
+        <button class="more-menu-item" id="menu-history">&#x1F4C5; History</button>
+        <button class="more-menu-item" id="menu-compare">&#x1F504; Compare Tabs</button>
+        <button class="more-menu-item" id="menu-matrix">&#x1F4CA; Co-occurrence</button>
+        <button class="more-menu-item" id="menu-batch">&#x1F517; Batch Scan</button>
+      </div>
+    </div>
     <button class="btn" id="btn-settings" title="Settings">&#x2699;</button>
     <button class="btn" id="btn-clear" title="Clear all" style="font-size:11px;color:#f87171">Clear</button>
     <button class="btn" id="btn-paste-text" title="Paste text to scan" style="font-size:11px">Paste</button>
@@ -448,15 +578,76 @@
       <span class="setting-label">Cache API results (24h)</span>
       <div class="toggle on" id="toggle-cache" data-key="cache"></div>
     </div>
+
+    <div style="margin-top:14px;padding-top:10px;border-top:1px solid #1e293b">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8">Entity Types</span>
+        <button id="btn-toggle-all-types" class="btn" style="font-size:10px;padding:2px 8px">All on</button>
+      </div>
+      <div id="entity-type-toggles"></div>
+    </div>
+
     <div style="margin-top:16px;padding-top:12px;border-top:1px solid #1e293b">
       <a href="help.html" target="_blank" style="font-size:12px;color:#06b6d4;text-decoration:none">Help &amp; Documentation &#8594;</a>
     </div>
     <div style="margin-top:8px">
-      <a href="https://lang.bio" target="_blank" style="font-size:11px;color:#475569;text-decoration:none">BioGist v1.0 &mdash; Oric Labs</a>
+      <a href="https://github.com/oriclabs/biolang/issues" target="_blank" style="font-size:11px;color:#06b6d4;text-decoration:none">Report Issue / Request Feature &#8594;</a>
+    </div>
+    <div style="margin-top:8px">
+      <a href="https://lang.bio" target="_blank" style="font-size:11px;color:#475569;text-decoration:none">BioGist v1.1 &mdash; Oric Labs</a>
     </div>
   </div>
 </div>
 
+<!-- Compare panel -->
+<div class="overlay-panel" id="compare-panel">
+  <div class="overlay-header">
+    <button class="detail-back" id="btn-close-compare">&#8592; Back</button>
+    <span class="detail-title">Compare Tabs</span>
+  </div>
+  <div style="padding:8px 14px;display:flex;gap:6px;border-bottom:1px solid #1e293b">
+    <select id="compare-a" style="flex:1;padding:4px;border-radius:4px;border:1px solid #334155;background:#020617;color:#e2e8f0;font-size:11px"></select>
+    <span style="color:#64748b;font-size:11px;align-self:center">vs</span>
+    <select id="compare-b" style="flex:1;padding:4px;border-radius:4px;border:1px solid #334155;background:#020617;color:#e2e8f0;font-size:11px"></select>
+    <button class="btn btn-primary" id="btn-compare-run" style="font-size:10px;padding:4px 8px">Compare</button>
+  </div>
+  <div id="compare-body" class="overlay-body"></div>
+</div>
+
+<!-- Matrix panel -->
+<div class="overlay-panel" id="matrix-panel">
+  <div class="overlay-header">
+    <button class="detail-back" id="btn-close-matrix">&#8592; Back</button>
+    <span class="detail-title">Co-occurrence Matrix</span>
+  </div>
+  <div id="matrix-body" class="overlay-body"></div>
+</div>
+
+<!-- History panel -->
+<div class="overlay-panel" id="history-panel">
+  <div class="overlay-header">
+    <button class="detail-back" id="btn-close-history">&#8592; Back</button>
+    <span class="detail-title" style="flex:1">Entity History</span>
+    <button class="btn" id="btn-clear-history" style="font-size:10px;color:#f87171">Clear</button>
+  </div>
+  <div id="history-body" class="overlay-body"></div>
+</div>
+
+<!-- Batch scan panel -->
+<div class="overlay-panel" id="batch-panel">
+  <div class="overlay-header">
+    <button class="detail-back" id="btn-close-batch">&#8592; Back</button>
+    <span class="detail-title">Batch Scan URLs</span>
+  </div>
+  <div class="overlay-body">
+    <textarea id="batch-urls" placeholder="Paste URLs, one per line...&#10;https://pubmed.ncbi.nlm.nih.gov/12345678&#10;https://www.nature.com/articles/..." style="width:100%;height:120px;padding:8px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:11px;resize:vertical;font-family:inherit"></textarea>
+    <div id="batch-progress" style="font-size:11px;color:#64748b;margin:8px 0;display:none"></div>
+    <button class="btn btn-primary" id="btn-batch-run" style="width:100%;margin-top:8px;justify-content:center">Scan All URLs</button>
+  </div>
+</div>
+
+<script src="hgnc-symbols.js"></script>
+<script src="biogist-core.js"></script>
 <script src="sidebar.js"></script>
 </body>
 </html>

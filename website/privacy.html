@@ -3,52 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy — BLViewer</title>
+  <title>Privacy Policy — Oric Labs</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; max-width: 680px; margin: 40px auto; padding: 0 20px; color: #1e293b; line-height: 1.7; }
     h1 { font-size: 1.6rem; margin-bottom: 4px; }
     h2 { font-size: 1.1rem; margin-top: 28px; color: #334155; }
+    h3 { font-size: 1rem; margin-top: 20px; color: #475569; }
     .date { color: #64748b; font-size: 0.85rem; margin-bottom: 28px; }
     a { color: #7c3aed; }
     ul { padding-left: 20px; }
     .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 0.85rem; color: #64748b; }
+    .product { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+    .product h3 { margin-top: 0; color: #1e293b; }
   </style>
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p class="date">Effective date: March 15, 2026</p>
+  <p class="date">Effective date: March 16, 2026</p>
 
-  <p>BLViewer is a browser-based bioinformatics file viewer built by <strong>Oric Labs</strong>. This policy covers the BLViewer Chrome extension and the web version at <a href="https://lang.bio/viewer">lang.bio/viewer</a>.</p>
+  <p>This policy covers all browser extensions and web tools built by <strong>Oric Labs</strong>, including BioGist, BLViewer, and the web applications at <a href="https://lang.bio">lang.bio</a>.</p>
+
+  <h2>Core Principle</h2>
+  <p>All Oric Labs tools process data <strong>entirely in your browser</strong>. We do not operate servers that receive, store, or process your data. Your files, page content, and browsing activity never leave your device.</p>
 
   <h2>Data Collection</h2>
-  <p>BLViewer does <strong>not</strong> collect, transmit, or store any personal data. Specifically:</p>
+  <p>Oric Labs tools do <strong>not</strong> collect, transmit, or store any personal data. Specifically:</p>
   <ul>
     <li>No analytics or tracking scripts</li>
     <li>No cookies (other than local theme preference)</li>
     <li>No telemetry or usage reporting</li>
     <li>No account or login required</li>
-    <li>No data is sent to any server</li>
+    <li>No data is sent to any Oric Labs server</li>
+    <li>No advertising or monetization of user data</li>
   </ul>
 
-  <h2>How Your Files Are Processed</h2>
-  <p>All file parsing and viewing happens <strong>entirely in your browser</strong> using JavaScript and WebAssembly. Your files never leave your device. No data is uploaded, cached on a server, or shared with any third party.</p>
+  <h2>Products</h2>
 
-  <h2>Local Storage</h2>
-  <p>BLViewer uses your browser's local storage solely to remember:</p>
-  <ul>
-    <li>Your theme preference (light or dark)</li>
-    <li>A list of recently opened file names (names only, not file contents)</li>
-  </ul>
-  <p>This data stays on your device and can be cleared at any time through your browser settings.</p>
+  <div class="product">
+    <h3>BioGist — Browser Extension</h3>
+    <p>BioGist scans webpages for biological entities (genes, variants, drugs, species, etc.) using pattern matching that runs entirely in your browser.</p>
+    <p><strong>Local storage used for:</strong></p>
+    <ul>
+      <li>Theme preference (light or dark)</li>
+      <li>Pinned entities and annotation notes</li>
+      <li>Entity type toggle preferences</li>
+      <li>Entity detection history (capped at 2,000 entries)</li>
+      <li>Cached API responses (auto-expire after 24 hours)</li>
+    </ul>
+    <p><strong>External API calls:</strong> BioGist contacts public bioinformatics APIs <em>only when you click an entity</em> to view details or find related papers. These APIs are:</p>
+    <ul>
+      <li>NCBI E-utilities (gene summaries, accession metadata, PubMed search)</li>
+      <li>UniProt (protein function and domains)</li>
+      <li>myvariant.info (gnomAD allele frequencies)</li>
+      <li>CrossRef (DOI citation metadata)</li>
+      <li>OpenAlex (citation counts, open access URLs)</li>
+    </ul>
+    <p>These are public, free APIs operated by government and academic institutions. No authentication tokens or user identifiers are sent. Only the entity ID (e.g., a gene symbol or DOI) is included in the request.</p>
+    <p><strong>Page content:</strong> BioGist reads the visible text of webpages to detect biological entities. This text is processed locally and is never transmitted to any server. The content script runs on all URLs because scientific papers appear across many publisher websites.</p>
+  </div>
+
+  <div class="product">
+    <h3>BLViewer — Browser Extension &amp; Web App</h3>
+    <p>BLViewer is a bioinformatics file viewer that parses FASTA, FASTQ, VCF, BED, GFF, and other formats entirely in your browser using JavaScript and WebAssembly.</p>
+    <p><strong>Local storage used for:</strong></p>
+    <ul>
+      <li>Theme preference (light or dark)</li>
+      <li>Recently opened file names (names only, not file contents)</li>
+    </ul>
+    <p>Your files never leave your device. No data is uploaded, cached on a server, or shared with any third party.</p>
+  </div>
+
+  <div class="product">
+    <h3>lang.bio — Website</h3>
+    <p>The BioLang website at <a href="https://lang.bio">lang.bio</a> hosts documentation, a code playground, and web versions of the tools above. The playground runs BioLang code in WebAssembly entirely in your browser. No code or data is sent to a server for execution.</p>
+  </div>
 
   <h2>Third-Party Services</h2>
-  <p>BLViewer does not integrate with any third-party services, advertising networks, or analytics platforms.</p>
+  <p>Oric Labs tools do not integrate with any advertising networks, analytics platforms, or data brokers. The only external requests are to the public bioinformatics APIs listed above, and only when explicitly triggered by user action.</p>
+
+  <h2>Data Sharing</h2>
+  <ul>
+    <li>Data is <strong>not</strong> sold to third parties</li>
+    <li>Data is <strong>not</strong> used for purposes unrelated to the tool's functionality</li>
+    <li>Data is <strong>not</strong> used for creditworthiness or lending purposes</li>
+    <li>Data is <strong>not</strong> shared with any entity for advertising or profiling</li>
+  </ul>
+
+  <h2>Your Control</h2>
+  <p>All locally stored data (preferences, pinned entities, history, cache) can be cleared at any time through your browser's extension settings or by using the Clear/Reset options within each tool.</p>
 
   <h2>Changes</h2>
   <p>If this policy changes, the updated version will be posted at this URL with a new effective date.</p>
 
   <h2>Contact</h2>
   <p>Questions about this policy can be sent to <a href="mailto:oriclabsau@gmail.com">oriclabsau@gmail.com</a>.</p>
+  <p>Report issues: <a href="https://github.com/oriclabs/biolang/issues">github.com/oriclabs/biolang/issues</a></p>
 
   <div class="footer">&copy; 2026 Oric Labs</div>
 </body>

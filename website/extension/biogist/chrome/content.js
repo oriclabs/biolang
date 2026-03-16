@@ -511,8 +511,9 @@
         setTimeout(function() {
           detected = scanPage();
           if (detected.length > 0) {
+            var pageText = document.body ? document.body.innerText.substring(0, 500000) : "";
             try {
-              chrome.runtime.sendMessage({ type: "entities-detected", entities: detected, url: location.href, title: document.title });
+              chrome.runtime.sendMessage({ type: "entities-detected", entities: detected, pageText: pageText, url: location.href, title: document.title });
               chrome.runtime.sendMessage({ type: "badge-count", count: detected.length });
             } catch(e) {}
           } else {
@@ -557,9 +558,12 @@
         return true;
       }
       detected = scanPage();
+      // Get page text for sidebar to run full detection (methods, drugs, etc.)
+      var pageText = document.body ? document.body.innerText.substring(0, 500000) : "";
       chrome.runtime.sendMessage({
         type: "entities-detected",
         entities: detected,
+        pageText: pageText,
         url: location.href,
         title: document.title
       });
@@ -677,6 +681,7 @@
             chrome.runtime.sendMessage({
               type: "entities-detected",
               entities: detected,
+              pageText: pdfText,
               url: location.href,
               title: document.title || "PDF Document"
             });
@@ -698,10 +703,12 @@
       try { chrome.runtime.sendMessage({ type: "scanning" }); } catch(e) {}
       detected = scanPage();
       if (detected.length > 0) {
+        var pageText = document.body ? document.body.innerText.substring(0, 500000) : "";
         try {
           chrome.runtime.sendMessage({
             type: "entities-detected",
             entities: detected,
+            pageText: pageText,
             url: location.href,
             title: document.title
           });

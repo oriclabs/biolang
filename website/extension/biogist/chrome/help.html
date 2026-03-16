@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioGist Help</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #020617; color: #c0caf5; font-family: system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.7; padding: 24px 32px 60px; max-width: 880px; margin: 0 auto; }
+    h1 { color: #22d3ee; font-size: 1.8rem; margin-bottom: 6px; }
+    h1 span { color: #06b6d4; }
+    .subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 28px; }
+    h2 { color: #67e8f9; font-size: 1.15rem; margin: 28px 0 10px; border-bottom: 1px solid rgba(6,182,212,0.2); padding-bottom: 6px; }
+    a { color: #06b6d4; text-decoration: none; }
+    a:hover { color: #22d3ee; text-decoration: underline; }
+    code { font-family: 'Courier New', monospace; font-size: 0.85em; background: rgba(6,182,212,0.12); color: #67e8f9; padding: 2px 6px; border-radius: 4px; }
+    pre { background: #0d1117; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 10px 0; }
+    pre code { background: none; padding: 0; font-size: 0.82em; color: #e2e8f0; }
+
+    details { background: rgba(15,23,42,0.5); border: 1px solid rgba(100,116,139,0.15); border-radius: 10px; margin: 8px 0; }
+    details[open] { border-color: rgba(6,182,212,0.25); }
+    summary { cursor: pointer; padding: 12px 18px; font-weight: 600; color: #67e8f9; list-style: none; display: flex; align-items: center; gap: 8px; user-select: none; }
+    summary::before { content: '\25B6'; font-size: 0.65em; transition: transform 0.15s; color: #06b6d4; }
+    details[open] > summary::before { transform: rotate(90deg); }
+    summary::-webkit-details-marker { display: none; }
+    .detail-body { padding: 0 18px 16px; }
+    .detail-body p { color: #94a3b8; font-size: 0.9rem; margin: 6px 0; }
+    .detail-body ol, .detail-body ul { color: #94a3b8; font-size: 0.9rem; padding-left: 20px; margin: 6px 0; }
+    .detail-body li { margin: 4px 0; }
+    .detail-body li strong { color: #c0caf5; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 10px 0; }
+    thead { color: #67e8f9; border-bottom: 1px solid #334155; }
+    th { padding: 8px 12px; text-align: left; font-weight: 600; }
+    td { padding: 7px 12px; border-bottom: 1px solid rgba(51,65,85,0.4); }
+    tbody tr:hover { background: rgba(6,182,212,0.04); }
+
+    .kbd { display: inline-block; font-family: 'Courier New', monospace; font-size: 0.78rem; padding: 1px 7px; border-radius: 4px; background: rgba(6,182,212,0.15); color: #67e8f9; border: 1px solid rgba(6,182,212,0.3); }
+    .tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag-purple { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+    .tag-cyan { background: rgba(6,182,212,0.15); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3); }
+    .tag-amber { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+    .tag-green { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+    .tag-rose { background: rgba(244,63,94,0.15); color: #fb7185; border: 1px solid rgba(244,63,94,0.3); }
+    .note { background: rgba(251,191,36,0.08); border-left: 3px solid #fbbf24; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 0.85rem; color: #fbbf24; }
+    .note strong { color: #fcd34d; }
+    .info { background: rgba(34,211,238,0.06); border-left: 3px solid #22d3ee; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 0.85rem; color: #67e8f9; }
+    .toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 24px; }
+    .toc a { font-size: 0.8rem; padding: 4px 10px; border-radius: 6px; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.2); color: #22d3ee; }
+    .toc a:hover { background: rgba(6,182,212,0.2); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<h1><span>Bio</span>Gist Help</h1>
+<p class="subtitle">Get the biological gist of any research paper &mdash; instant detection of genes, variants, accessions, methods, drugs, cell lines, and more.</p>
+
+<nav class="toc">
+  <a href="#getting-started">Getting Started</a>
+  <a href="#detects">What It Detects</a>
+  <a href="#features">Features</a>
+  <a href="#settings">Settings</a>
+  <a href="#export">Export</a>
+  <a href="#details">Detail Panels</a>
+  <a href="#shortcuts">Shortcuts</a>
+  <a href="#tips">Tips</a>
+  <a href="#privacy">Privacy</a>
+  <a href="#troubleshooting">Troubleshooting</a>
+  <a href="#about">About</a>
+</nav>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="getting-started">Getting Started</h2>
+
+<details open>
+  <summary>Quick Start</summary>
+  <div class="detail-body">
+    <ol>
+      <li><strong>Click the BioGist icon</strong> in your toolbar to open the sidebar</li>
+      <li><strong>Visit any scientific paper</strong> &mdash; PubMed, bioRxiv, Nature, Cell, Science, etc.</li>
+      <li><strong>Click "Scan"</strong> or <strong>"Scan All"</strong> &mdash; BioGist detects 18 entity types including genes, variants, accessions, clinical trials, funding, repositories, p-values, methods, drugs, cell lines, species, and more</li>
+      <li><strong>Click any entity</strong> for instant details from NCBI, UniProt, gnomAD, CrossRef, and OpenAlex</li>
+    </ol>
+    <div class="info">BioGist works on any webpage. Click <strong>Scan</strong> to detect entities on the current page. The content script is injected on demand when you scan &mdash; no background page access is needed.</div>
+    <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:12px">
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/landing.png" alt="BioGist clean header with responsive toolbar" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Clean header with adaptive toolbar</p>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/more-menu.png" alt="BioGist More menu with tools" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">More menu (narrow sidebar)</p>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/pinned.png" alt="BioGist scanned with pinned entities" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Scan results with pinned entities</p>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:12px">
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/pubmed.png" alt="BioGist detail with PubMed results" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Gene detail + inline PubMed papers</p>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/citation.png" alt="BioGist DOI citation" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">DOI citation in APA format</p>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/settings.png" alt="BioGist settings with entity type toggles" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Settings with entity type toggles</p>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:12px">
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/export.png" alt="BioGist export dialog" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Export with scope &amp; format</p>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/history.png" alt="BioGist entity history" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Entity history with search &amp; filter</p>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/all-tabs.png" alt="BioGist all tabs merged view" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">All tabs merged view</p>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:12px">
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/diff.png" alt="BioGist compare tabs diff" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Compare two tabs (entity diff)</p>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/matrix.png" alt="BioGist co-occurrence matrix" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Co-occurrence matrix</p>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <img src="screenshots/paste.png" alt="BioGist paste text scan" style="width:100%;border-radius:8px;border:1px solid rgba(100,116,139,0.2)">
+        <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:4px">Paste text to scan (PDF workaround)</p>
+      </div>
+    </div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="detects">What BioGist Detects</h2>
+
+<details open>
+  <summary>18 Entity Types</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Type</th><th>Examples</th><th>Highlight</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Genes</strong></td>
+          <td>BRCA1, TP53, EGFR, KRAS, MTHFR, APOE &mdash; 44,959 HGNC symbols (full set loaded from separate file, with fallback to 330 curated symbols)</td>
+          <td><span class="tag tag-purple">purple</span></td>
+        </tr>
+        <tr>
+          <td><strong>Variants</strong></td>
+          <td>rsIDs (<code>rs28934576</code>), HGVS (<code>NM_007294.4:c.5266dupC</code>), ClinVar (<code>VCV...</code>), COSMIC (<code>COSM...</code>)</td>
+          <td><span class="tag tag-cyan">cyan</span></td>
+        </tr>
+        <tr>
+          <td><strong>Accessions</strong></td>
+          <td>GEO (<code>GSE/GSM</code>), SRA (<code>SRR/SRP</code>), BioProject (<code>PRJNA</code>), Ensembl (<code>ENSG</code>), PDB, PMID, DOI &mdash; 27 patterns total</td>
+          <td><span class="tag tag-amber">amber</span></td>
+        </tr>
+        <tr>
+          <td><strong>Methods &amp; Tools</strong></td>
+          <td>BWA-MEM2, GATK, DESeq2, Salmon, STAR, Bowtie2, Samtools &mdash; ~200 bioinformatics tools with version detection</td>
+          <td><span class="tag tag-cyan">cyan</span></td>
+        </tr>
+        <tr>
+          <td><strong>Genome Builds</strong></td>
+          <td>GRCh38, GRCh37, hg19, hg38, T2T-CHM13, GRCm39, mm10 &mdash; human and mouse reference builds</td>
+          <td><span class="tag tag-cyan">cyan</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sample Sizes</strong></td>
+          <td><code>n=1,234</code>, <code>N = 500</code>, <code>n=12,345</code> &mdash; numeric sample size patterns</td>
+          <td><span class="tag tag-amber">amber</span></td>
+        </tr>
+        <tr>
+          <td><strong>Statistical Methods</strong></td>
+          <td>Fisher's exact test, Bonferroni, Benjamini-Hochberg, Kaplan-Meier, Cox regression &mdash; 30+ methods</td>
+          <td><span class="tag tag-cyan">cyan</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sequencing Platforms</strong></td>
+          <td>Illumina NovaSeq, PacBio HiFi, Oxford Nanopore, 10x Genomics, Ion Torrent, MGI</td>
+          <td><span class="tag tag-cyan">cyan</span></td>
+        </tr>
+        <tr>
+          <td><strong>Cell Lines</strong></td>
+          <td>HeLa, HEK293, MCF-7, A549, Jurkat, K562 &mdash; ~120 common lines organized by organ</td>
+          <td><span class="tag tag-green">green</span></td>
+        </tr>
+        <tr>
+          <td><strong>Tissues</strong></td>
+          <td>Hippocampus, Cerebellum, Liver, Kidney, Pancreas &mdash; ~35 anatomical terms</td>
+          <td><span class="tag tag-green">green</span></td>
+        </tr>
+        <tr>
+          <td><strong>Drugs</strong></td>
+          <td>Olaparib, Pembrolizumab, Imatinib, Trastuzumab &mdash; ~60 oncology and clinical drugs</td>
+          <td><span class="tag tag-rose">rose</span></td>
+        </tr>
+        <tr>
+          <td><strong>Key Findings</strong></td>
+          <td>Sentences containing genes paired with significance keywords (e.g., "BRCA1 was significantly associated with...")</td>
+          <td><span class="tag tag-amber">amber</span></td>
+        </tr>
+        <tr>
+          <td><strong>Species</strong></td>
+          <td>Human, Mouse, Zebrafish, Arabidopsis, E. coli, SARS-CoV-2 &mdash; ~45 organisms across mammals, fish, plants, fungi, bacteria, and viruses</td>
+          <td><span class="tag tag-green">green</span></td>
+        </tr>
+        <tr>
+          <td><strong>File Links</strong></td>
+          <td>FASTQ, BAM, VCF, BED, GFF, CSV, and 20+ other bioinformatics formats detected as links on the page</td>
+          <td><span class="tag tag-rose">rose</span></td>
+        </tr>
+        <tr>
+          <td><strong>Clinical Trials</strong></td>
+          <td>NCT numbers (<code>NCT04035486</code>, <code>NCT06127589</code>) &mdash; links to ClinicalTrials.gov registry entries</td>
+          <td><span class="tag tag-cyan">cyan</span></td>
+        </tr>
+        <tr>
+          <td><strong>Funding</strong></td>
+          <td>NIH grants (<code>R01CA123456</code>, <code>U01HG009088</code>), ERC grants, NSF awards &mdash; links to NIH Reporter</td>
+          <td><span class="tag tag-amber">amber</span></td>
+        </tr>
+        <tr>
+          <td><strong>Repositories</strong></td>
+          <td>GitHub (<code>github.com/user/repo</code>), Zenodo (<code>zenodo.org/record/...</code>), PyPI, Bioconductor, CRAN URLs</td>
+          <td><span class="tag tag-cyan">cyan</span></td>
+        </tr>
+        <tr>
+          <td><strong>P-values</strong></td>
+          <td><code>p < 0.05</code>, <code>p = 3.2e-8</code>, <code>FDR < 0.01</code>, <code>q-value = 0.03</code> &mdash; statistical significance values</td>
+          <td><span class="tag tag-amber">amber</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="note"><strong>18 entity types, all local:</strong> Gene detection loads 44,959 HGNC symbols from a separate data file, with a fallback to 330 curated symbols if the file is unavailable. An expanded exclusion list of ~600 common English words (SET, IMPACT, REST, NOT, CAN, etc.) prevents false positives with the larger gene set. All 18 entity types &mdash; including clinical trials, funding, repositories, and p-values &mdash; are detected entirely client-side.</div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="features">Features</h2>
+
+<details>
+  <summary>Entity Highlighting</summary>
+  <div class="detail-body">
+    <p>After scanning, BioGist highlights detected entities directly on the page. Genes appear in <span class="tag tag-purple">purple</span>, variants/methods/platforms/stats/builds in <span class="tag tag-cyan">cyan</span>, accessions/sample sizes/key findings in <span class="tag tag-amber">amber</span>, species/cell lines/tissues in <span class="tag tag-green">green</span>, and drugs/files in <span class="tag tag-rose">rose</span>. Click any highlighted term to jump to its details in the sidebar.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Gene Details</summary>
+  <div class="detail-body">
+    <p>Click a detected gene to see:</p>
+    <ul>
+      <li><strong>NCBI Gene summary</strong> &mdash; official full name, description, and gene ID</li>
+      <li><strong>UniProt protein function</strong> &mdash; protein function, subcellular localization, and UniProt accession</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Variant Details</summary>
+  <div class="detail-body">
+    <p>Click a detected variant (rsID, HGVS, ClinVar, or COSMIC) to see:</p>
+    <ul>
+      <li><strong>dbSNP info</strong> &mdash; variant class, alleles, and genomic position</li>
+      <li><strong>gnomAD allele frequency</strong> &mdash; population frequency across global cohorts</li>
+      <li><strong>ClinVar significance</strong> &mdash; clinical interpretation (pathogenic, benign, VUS, etc.)</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Dataset Details</summary>
+  <div class="detail-body">
+    <p>Click a GEO or SRA accession to see:</p>
+    <ul>
+      <li><strong>GEO metadata</strong> &mdash; title, summary, platform, sample count, organism</li>
+      <li><strong>SRA metadata</strong> &mdash; experiment type, library strategy, read count</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Copy All IDs</summary>
+  <div class="detail-body">
+    <p>One click copies all detected accessions as a newline-separated list, ready to paste into a spreadsheet, script, or search tool. For more export options (JSON, Markdown, download), use the Export menu.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Open in BLViewer</summary>
+  <div class="detail-body">
+    <p>When BioGist detects links to bioinformatics files (FASTQ, VCF, BED, etc.) on the page, click <strong>"Open in BLViewer"</strong> to send them directly to BLViewer for visualization and analysis.</p>
+  </div>
+</details>
+
+<details>
+  <summary>SRA Download Command</summary>
+  <div class="detail-body">
+    <p>For detected SRR accessions, BioGist generates a ready-to-use <code>fasterq-dump</code> command:</p>
+    <pre><code>fasterq-dump --split-3 SRR1234567 -O ./output</code></pre>
+    <p>Click to copy the command to your clipboard.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Tab Dropdown Selector</summary>
+  <div class="detail-body">
+    <p>Use the tab dropdown at the top of the sidebar to choose which tab to scan: <strong>Current tab</strong>, <strong>All tabs</strong>, or pick a specific tab by name. The <strong>"Scan All Tabs"</strong> button scans every open tab and merges the results into a single entity list. Each entity shows which tab(s) it was found in.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Pin / Bookmark Entities</summary>
+  <div class="detail-body">
+    <p>Click the star icon next to any entity to pin it. Pinned entities appear at the top of the list and persist across sessions via Chrome storage. Useful for tracking key genes or variants across multiple papers.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Quick Copy Icon</summary>
+  <div class="detail-body">
+    <p>Each entity in the sidebar has a small copy icon. Click it to copy the entity name or ID to your clipboard instantly, without opening the detail panel.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Occurrence Count &amp; Snippet Context</summary>
+  <div class="detail-body">
+    <p>Each detected entity shows an occurrence count badge indicating how many times it appears on the page. Click the badge to expand snippet context showing the surrounding text for each occurrence, making it easy to see how the entity is discussed.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Search &amp; Filter</summary>
+  <div class="detail-body">
+    <p>Use the search box at the top of the sidebar to filter detected entities by keyword. Matches are filtered across all entity types in real time.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Right-Click Lookup</summary>
+  <div class="detail-body">
+    <p>Select any text on a webpage, right-click, and choose <strong>"Look up in BioGist"</strong> from the context menu. BioGist will attempt to identify it as a gene, variant, or accession and show details in the sidebar.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Paste Button (PDF Workaround)</summary>
+  <div class="detail-body">
+    <p>For PDFs and other content that cannot be scanned directly, click the <strong>Paste</strong> button in the sidebar header, then paste copied text from the PDF. BioGist scans the pasted text for entities just like it would scan a webpage. This works around the limitation that browser extensions cannot access PDF content directly.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="settings">Settings</h2>
+
+<details>
+  <summary>Entity Type Toggles</summary>
+  <div class="detail-body">
+    <p>Click the <strong>gear icon</strong> in the sidebar header to open Settings. Under <strong>Entity Types</strong>, toggle individual types on or off:</p>
+    <ul>
+      <li>Each of the 18 entity types has its own on/off toggle switch</li>
+      <li>Disabled types are hidden from scan results in the sidebar</li>
+      <li>Use the <strong>"All on"</strong> / <strong>"All off"</strong> button to bulk toggle</li>
+      <li>Your preferences are saved and persist across sessions</li>
+      <li>The Export dialog has its own independent type filter for per-export control</li>
+    </ul>
+    <p>This is useful for reducing clutter &mdash; for example, a variant analyst can disable Methods, Cell Lines, and Tissues to focus on Genes and Variants.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Other Settings</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Theme</strong> &mdash; toggle between dark and light mode</li>
+      <li><strong>Auto-scan bio pages</strong> &mdash; reserved for future use</li>
+      <li><strong>Highlight entities on page</strong> &mdash; underline detected entities on the web page</li>
+      <li><strong>Cache API results (24h)</strong> &mdash; cache lookups locally to reduce API calls</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="export">Export &amp; Citations</h2>
+
+<details>
+  <summary>Citation Support (DOI)</summary>
+  <div class="detail-body">
+    <p>When BioGist detects a DOI, the detail panel includes a <strong>Cite</strong> button. Click it to generate a citation in your preferred format:</p>
+    <ul>
+      <li><strong>APA</strong> &mdash; American Psychological Association style</li>
+      <li><strong>Vancouver</strong> &mdash; numbered reference style used in medical journals</li>
+      <li><strong>Harvard</strong> &mdash; author-date style</li>
+      <li><strong>BibTeX</strong> &mdash; LaTeX-compatible citation entry</li>
+      <li><strong>RIS</strong> &mdash; importable into reference managers (Zotero, Mendeley, EndNote)</li>
+    </ul>
+    <p>Citation data is fetched from the <strong>CrossRef API</strong>.</p>
+  </div>
+</details>
+
+<details>
+  <summary>DOI Metadata</summary>
+  <div class="detail-body">
+    <p>DOI entities are enriched with metadata from the <strong>OpenAlex API</strong>:</p>
+    <ul>
+      <li><strong>Citation count</strong> &mdash; how many times the work has been cited</li>
+      <li><strong>Authors</strong> &mdash; full author list</li>
+      <li><strong>Journal</strong> &mdash; publication venue and year</li>
+      <li><strong>Open Access URL</strong> &mdash; direct link to the free full-text version when available</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Export Dialog</summary>
+  <div class="detail-body">
+    <p>Click the export button in the sidebar footer to open the full-screen export dialog with fine-grained control:</p>
+    <ul>
+      <li><strong>Scope</strong> &mdash; choose <em>Current view</em>, <em>All tabs</em>, or <em>Pinned only</em></li>
+      <li><strong>Include</strong> &mdash; checkboxes for each entity type (Genes, Variants, Accessions, Methods, etc.)</li>
+      <li><strong>Format</strong> &mdash; Plain text, JSON, Markdown, CSV, or BibTeX</li>
+      <li><strong>Actions</strong> &mdash; <em>Copy to Clipboard</em> or <em>Download</em> as a file</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Source Links in Detail Panel</summary>
+  <div class="detail-body">
+    <p>The entity detail panel shows direct links to external databases based on entity type:</p>
+    <ul>
+      <li><strong>Genes</strong> &mdash; NCBI Gene, Ensembl, GeneCards, UniProt</li>
+      <li><strong>Variants</strong> &mdash; dbSNP, gnomAD, ClinVar</li>
+      <li><strong>Accessions</strong> &mdash; NCBI, Ensembl (context-appropriate links)</li>
+      <li><strong>Clinical Trials</strong> &mdash; ClinicalTrials.gov</li>
+      <li><strong>Funding</strong> &mdash; NIH Reporter</li>
+      <li><strong>Repositories</strong> &mdash; direct link to GitHub, Zenodo, PyPI, etc.</li>
+    </ul>
+    <p>Click any link to open the database entry in a new tab.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Copy Details Button</summary>
+  <div class="detail-body">
+    <p>In the entity detail view, click the <strong>"Copy Details"</strong> button to copy all displayed information (summary, function, location, links) as formatted text to your clipboard.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Species Details</summary>
+  <div class="detail-body">
+    <p>Detected species show enriched details in the detail panel including genome assembly, approximate gene count, chromosome count, and taxonomic lineage. Useful for quick reference when reading comparative genomics papers.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Light / Dark Theme</summary>
+  <div class="detail-body">
+    <p>Click the theme toggle icon in the sidebar header to switch between dark and light mode. Your preference is saved and applied automatically on next open.</p>
+  </div>
+</details>
+
+<details>
+  <summary>On-Demand Scanning</summary>
+  <div class="detail-body">
+    <p>BioGist does not run in the background or automatically scan pages. When you click <strong>Scan</strong> (or press <span class="kbd">Ctrl+Shift+S</span>), the content script is injected into the active tab and scans the page text. This privacy-first approach means BioGist never accesses page content until you explicitly request it.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Per-Tab Entity Persistence</summary>
+  <div class="detail-body">
+    <p>Scan results are stored per-tab via the background service worker. When you switch between tabs and return, your previous scan results are restored without re-scanning. Entity data persists until the tab is closed or a new scan is triggered.</p>
+  </div>
+</details>
+
+<details>
+  <summary>24-Hour Caching</summary>
+  <div class="detail-body">
+    <p>API results from NCBI, UniProt, gnomAD, CrossRef, and OpenAlex are cached locally in browser storage for 24 hours. Repeat lookups for the same entities load instantly without additional API calls.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Inline PubMed Search</summary>
+  <div class="detail-body">
+    <p>In the detail panel for genes, variants, drugs, cell lines, and methods, click <strong>"Find Related Papers"</strong> to search PubMed directly from the sidebar. The top 5 results are displayed inline with clickable titles, authors, journal, and year. A "More on PubMed" link opens the full search. Results are cached for 24 hours.</p>
+    <p>Search queries are tailored per entity type: genes search with <code>[Gene] AND human[Organism]</code>, drugs with <code>[MeSH Terms]</code>, cell lines and methods with <code>[Title/Abstract]</code>.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Database Links</summary>
+  <div class="detail-body">
+    <p>Every entity detail panel shows "View on" links to relevant databases:</p>
+    <ul>
+      <li><strong>All types</strong> &mdash; PubMed, Google Scholar</li>
+      <li><strong>Genes</strong> &mdash; NCBI Gene, Ensembl, UniProt, GeneCards, OMIM, ClinicalTrials.gov</li>
+      <li><strong>Variants</strong> &mdash; dbSNP, gnomAD, ClinVar, ClinicalTrials.gov</li>
+      <li><strong>Drugs</strong> &mdash; DrugBank, ClinicalTrials.gov, RxList</li>
+      <li><strong>Cell Lines</strong> &mdash; Cellosaurus</li>
+      <li><strong>Methods</strong> &mdash; bio.tools</li>
+      <li><strong>Species</strong> &mdash; NCBI Taxonomy</li>
+      <li><strong>Clinical Trials</strong> &mdash; ClinicalTrials.gov</li>
+      <li><strong>Funding</strong> &mdash; NIH Reporter</li>
+      <li><strong>Repositories</strong> &mdash; GitHub, Zenodo, PyPI, Bioconductor, CRAN (direct link)</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Compare Two Tabs</summary>
+  <div class="detail-body">
+    <p>Open the <strong>More menu (&hellip;) &rarr; Compare Tabs</strong> to see a side-by-side diff of entities between two scanned papers. Select two tabs from the dropdowns and click Compare to see:</p>
+    <ul>
+      <li><strong style="color:#f87171">Only in Tab A</strong> &mdash; entities unique to the first paper</li>
+      <li><strong style="color:#4ade80">Shared</strong> &mdash; entities found in both papers</li>
+      <li><strong style="color:#f87171">Only in Tab B</strong> &mdash; entities unique to the second paper</li>
+    </ul>
+    <p>A Jaccard similarity score shows how much the two papers overlap in detected entities.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Co-occurrence Matrix</summary>
+  <div class="detail-body">
+    <p>Open the <strong>More menu (&hellip;) &rarr; Co-occurrence</strong> to see which entity types appear together across your scanned tabs. Each cell shows how many tabs contain both entity types. Purple intensity indicates frequency. Requires at least 2 scanned tabs.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Entity History</summary>
+  <div class="detail-body">
+    <p>Open the <strong>More menu (&hellip;) &rarr; History</strong> to see all entities detected across sessions. History is persistent (stored locally) and shows:</p>
+    <ul>
+      <li>Unique entities grouped by date</li>
+      <li>Detection count and last source page</li>
+      <li><strong>Search box</strong> &mdash; filter by entity name or source page title</li>
+      <li><strong>Type dropdown</strong> &mdash; filter by entity type (Genes, Drugs, etc.)</li>
+      <li><strong>Clear</strong> button to reset history</li>
+    </ul>
+    <p>History is capped at 2,000 entries to prevent storage bloat.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Batch Scan URLs</summary>
+  <div class="detail-body">
+    <p>Open the <strong>More menu (&hellip;) &rarr; Batch Scan</strong> to scan multiple papers at once. Paste up to 20 URLs (one per line) and click "Scan All URLs". BioGist will:</p>
+    <ol>
+      <li>Check if any URLs are already open in existing tabs (reuses them)</li>
+      <li>Open new background tabs for the rest</li>
+      <li>Open each URL in a new tab</li>
+      <li>Show progress ("Scanning 3/10...")</li>
+      <li>Switch to "All tabs" view when complete</li>
+      <li><em>Note: each opened tab needs a manual Scan click for full entity detection. For bulk text analysis, Paste is more efficient.</em></li>
+    </ol>
+  </div>
+</details>
+
+<details>
+  <summary>Annotation Notes</summary>
+  <div class="detail-body">
+    <p>In any entity detail panel, click <strong>"Add Note"</strong> at the bottom to attach a personal annotation. Notes are stored locally and persist across sessions. Useful for tracking thoughts like "Check this variant in our cohort" or "Relevant to grant proposal".</p>
+  </div>
+</details>
+
+<details>
+  <summary>Adaptive Header</summary>
+  <div class="detail-body">
+    <p>The sidebar header automatically adapts to the available width. On wide sidebars, all tool buttons (Export, History, Diff, Matrix, Batch) are shown inline. On narrow sidebars, overflowing buttons collapse into a <strong>&hellip; More</strong> dropdown menu. This is handled automatically via ResizeObserver &mdash; no configuration needed.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="details">Detail Panels</h2>
+
+<details>
+  <summary>Entity-Specific Detail Panels</summary>
+  <div class="detail-body">
+    <p>Each of the 18 entity types has its own detail panel with type-specific information:</p>
+    <table>
+      <thead><tr><th>Entity Type</th><th>Detail Fields</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Genes</strong></td><td>NCBI Gene summary, UniProt protein function, inline PubMed papers, links to NCBI, Ensembl, GeneCards, UniProt, OMIM, ClinicalTrials, PubMed, Scholar</td></tr>
+        <tr><td><strong>Variants</strong></td><td>dbSNP info, gnomAD allele frequency, ClinVar significance</td></tr>
+        <tr><td><strong>Accessions</strong></td><td>GEO/SRA metadata, context-appropriate database links</td></tr>
+        <tr><td><strong>DOIs</strong></td><td>Citation count, authors, journal, open access URL (OpenAlex), Cite button (CrossRef)</td></tr>
+        <tr><td><strong>Methods &amp; Tools</strong></td><td>Category, description, homepage URL</td></tr>
+        <tr><td><strong>Genome Builds</strong></td><td>Organism, release year, compatibility notes</td></tr>
+        <tr><td><strong>Sample Sizes</strong></td><td>Parsed numeric value</td></tr>
+        <tr><td><strong>Statistical Methods</strong></td><td>Category, use case description</td></tr>
+        <tr><td><strong>Sequencing Platforms</strong></td><td>Technology, read length, throughput</td></tr>
+        <tr><td><strong>Cell Lines</strong></td><td>Tissue of origin, species, notes, link to Cellosaurus</td></tr>
+        <tr><td><strong>Tissues</strong></td><td>Organ system</td></tr>
+        <tr><td><strong>Drugs</strong></td><td>Drug class, molecular target, FDA status, indication, links to DrugBank, ClinicalTrials, RxList</td></tr>
+        <tr><td><strong>Key Findings</strong></td><td>Full sentence with context</td></tr>
+        <tr><td><strong>Species</strong></td><td>Genome assembly, gene count, chromosome count, taxonomic lineage</td></tr>
+        <tr><td><strong>Clinical Trials</strong></td><td>NCT number, link to ClinicalTrials.gov registry entry</td></tr>
+        <tr><td><strong>Funding</strong></td><td>Grant ID, agency, link to NIH Reporter</td></tr>
+        <tr><td><strong>Repositories</strong></td><td>Repository name, direct link to GitHub/Zenodo/PyPI/Bioconductor/CRAN</td></tr>
+        <tr><td><strong>P-values</strong></td><td>Parsed significance value, threshold indicator</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="shortcuts">Keyboard Shortcuts</h2>
+
+<details open>
+  <summary>Shortcuts &amp; Interactions</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Action</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td>Toggle sidebar</td><td><span class="kbd">Ctrl+Shift+B</span> or click the BioGist extension icon</td></tr>
+        <tr><td>Scan page</td><td><span class="kbd">Ctrl+Shift+S</span> or click <strong>"Scan"</strong> button</td></tr>
+        <tr><td>Look up selected text</td><td>Select text on page, right-click &rarr; <strong>"Look up in BioGist"</strong></td></tr>
+        <tr><td>Scan all tabs</td><td>Click <strong>"Scan All"</strong> next to the tab dropdown</td></tr>
+        <tr><td>Pin entity</td><td>Click the star icon next to any entity</td></tr>
+        <tr><td>Quick copy</td><td>Click the clipboard icon next to any entity name</td></tr>
+        <tr><td>Export</td><td><strong>More (&hellip;) &rarr; Export</strong> &rarr; choose scope, types, format</td></tr>
+        <tr><td>Compare tabs</td><td><strong>More (&hellip;) &rarr; Compare Tabs</strong> &rarr; select two tabs</td></tr>
+        <tr><td>Co-occurrence</td><td><strong>More (&hellip;) &rarr; Co-occurrence</strong> (needs 2+ scanned tabs)</td></tr>
+        <tr><td>History</td><td><strong>More (&hellip;) &rarr; History</strong> &rarr; search and filter</td></tr>
+        <tr><td>Batch scan</td><td><strong>More (&hellip;) &rarr; Batch Scan</strong> &rarr; paste URLs</td></tr>
+        <tr><td>Find papers</td><td>Open entity detail &rarr; click <strong>"Find Related Papers"</strong></td></tr>
+        <tr><td>Cite DOI</td><td>Open DOI detail &rarr; click <strong>"Cite"</strong> &rarr; APA / Vancouver / Harvard / BibTeX / RIS</td></tr>
+        <tr><td>Add note</td><td>Open entity detail &rarr; click <strong>"Add Note"</strong> at the bottom</td></tr>
+        <tr><td>Paste text</td><td>Click <strong>"Paste"</strong> button, then paste text from clipboard</td></tr>
+        <tr><td>Settings</td><td>Click <strong>gear icon</strong> &rarr; theme, entity types, cache, highlights</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="tips">Tips</h2>
+
+<details>
+  <summary>Getting the Best Results</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Works on any site:</strong> Open the sidebar and click <strong>Scan</strong> on any webpage &mdash; PubMed, bioRxiv, Nature, Springer, Elsevier, or any other journal. BioGist injects its scanner on demand when you click Scan.</li>
+      <li><strong>No auto-scan:</strong> BioGist does not run in the background or automatically scan pages. You control when scanning happens by clicking the Scan button or using the <span class="kbd">Ctrl+Shift+S</span> shortcut.</li>
+      <li><strong>Batch scan:</strong> Batch scan opens URLs in new tabs. Each tab needs a manual Scan click since there is no background content script. For bulk analysis, use the Paste button with copied text instead.</li>
+      <li><strong>Right-click lookup:</strong> Select text on any page and use "Look up in BioGist" from the context menu</li>
+      <li><strong>Gene accuracy:</strong> The full 44,959 HGNC gene set is used by default, with ~600 common English words excluded to prevent false positives. If a gene is still not detected, use right-click lookup</li>
+      <li><strong>Multiple papers:</strong> Each tab maintains its own scan results &mdash; switch between tabs to compare entities across papers. Use "Scan All Tabs" to aggregate entities from all open papers.</li>
+      <li><strong>PDF workaround:</strong> For PDFs, copy the text and use the Paste button in the sidebar to scan it</li>
+      <li><strong>Pin important entities:</strong> Star key genes or variants to keep them at the top of the list across sessions</li>
+      <li><strong>SRA downloads:</strong> For detected SRR accessions, BioGist shows a ready-to-use <code>fasterq-dump</code> command you can copy</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="privacy">Privacy</h2>
+
+<details open>
+  <summary>Data Handling</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Local scanning</strong> &mdash; all page scanning and entity detection runs entirely in your browser</li>
+      <li><strong>Direct API calls</strong> &mdash; lookups go directly to NCBI, UniProt, myvariant.info, CrossRef, and OpenAlex (no proxy server)</li>
+      <li><strong>No data uploaded</strong> &mdash; no data is sent to any Oric Labs server, ever</li>
+      <li><strong>No analytics</strong> &mdash; no telemetry, tracking, or usage analytics of any kind</li>
+      <li><strong>Local cache only</strong> &mdash; API results are cached in local Chrome storage and never leave your machine</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<details>
+  <summary>Common Issues</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>No entities detected</strong></td>
+          <td>The page may not contain recognized gene symbols or accessions. Try selecting specific text and right-clicking &rarr; "Look up in BioGist".</td>
+        </tr>
+        <tr>
+          <td><strong>API errors or timeouts</strong></td>
+          <td>NCBI has rate limits (3 requests/sec without an API key). Wait a moment and try again. Cached results are not affected.</td>
+        </tr>
+        <tr>
+          <td><strong>Sidebar not opening</strong></td>
+          <td>Ensure the extension is enabled at <code>chrome://extensions</code>. Try refreshing the page, then clicking the icon again.</td>
+        </tr>
+        <tr>
+          <td><strong>Highlights not visible</strong></td>
+          <td>Some sites use CSS that conflicts with highlighting. Entity results are still available in the sidebar even if page highlights do not appear.</td>
+        </tr>
+        <tr>
+          <td><strong>Missing gene symbol</strong></td>
+          <td>BioGist loads 44,959 HGNC symbols but excludes ~600 common English words to avoid false positives. If a gene name matches an excluded word, select it and use right-click &rarr; "Look up in BioGist".</td>
+        </tr>
+        <tr>
+          <td><strong>"Page needs reload" message</strong></td>
+          <td>Tabs that were open before the extension was installed or updated need a page refresh. BioGist shows a "Page needs reload" message &mdash; click it or refresh the tab manually, then scan again.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="about">About</h2>
+
+<details>
+  <summary>BioGist</summary>
+  <div class="detail-body">
+    <p><strong>BioGist</strong> &mdash; the biological gist of any research paper</p>
+    <p>Built by <a href="https://lang.bio">Oric Labs</a>. Part of the <a href="https://lang.bio">BioLang</a> ecosystem.</p>
+    <p style="margin-top:12px"><strong>Report issues or request features:</strong> <a href="https://github.com/oriclabs/biolang/issues">GitHub Issues</a></p>
+    <p style="margin-top: 12px; color: #64748b; font-size: 0.85rem;">
+      BioGist is designed for researchers, bioinformaticians, and students who read scientific papers
+      and want instant context on the genes, variants, methods, drugs, and datasets mentioned in them &mdash; without
+      leaving the page.
+    </p>
+    <p style="margin-top: 8px; color: #64748b; font-size: 0.85rem;">
+      <strong>Multi-browser support:</strong> BioGist is built with a shared core (<code>shared/</code>) and browser-specific adapters (<code>chrome/</code>, <code>firefox/</code>) with build scripts for each platform.
+    </p>
+  </div>
+</details>
+
+<div style="margin-top:40px;padding-top:16px;border-top:1px solid #1e293b;color:#475569;font-size:0.8rem">
+  BioGist &mdash; 100% client-side. Your data never leaves your browser.
+</div>
+
+</body>
+</html>

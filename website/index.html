@@ -286,98 +286,6 @@ genes
     </div>
   </section>
 
-  <!-- Code Examples -->
-  <section class="py-20 bg-slate-900/30">
-    <div class="max-w-6xl mx-auto px-6">
-      <h2 class="text-3xl font-bold text-white text-center mb-4">See it in action</h2>
-      <p class="text-slate-400 text-center mb-12">Real bioinformatics tasks, concise code.</p>
-      <div class="grid lg:grid-cols-3 gap-6">
-        <!-- Example 1 -->
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-violet-400"></span>
-            <span class="text-sm font-medium text-slate-300">Sequence Analysis</span>
-          </div>
-          <div class="p-4">
-<pre class="!m-0 text-sm"><code class="language-biolang">let seq = dna"ATCGATCGATCG"
-
-# GC content, reverse complement, translate
-println(f"GC: {gc_content(seq)}")
-println(f"RC: {reverse_complement(seq)}")
-let protein = seq |> translate()
-println(f"Protein: {protein}")</code></pre>
-          </div>
-        </div>
-        <!-- Example 2 -->
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-            <span class="text-sm font-medium text-slate-300">Data Pipeline</span>
-          </div>
-          <div class="p-4">
-<pre class="!m-0 text-sm"><code class="language-biolang"># VCF → filter → analyze
-let variants = read_vcf("data/variants.vcf")
-  |> collect()
-  |> filter(|v| v.QUAL >= 30)
-  |> filter(|v| v.FILTER == "PASS")
-variants |> each(|v| println(f"{v.CHROM}:{v.POS} {v.INFO.GENE}"))</code></pre>
-          </div>
-        </div>
-        <!-- Example 3 -->
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-violet-400"></span>
-            <span class="text-sm font-medium text-slate-300">API Query</span>
-          </div>
-          <div class="p-4">
-<pre class="!m-0 text-sm"><code class="language-biolang"># Fetch BRCA1 info from NCBI
-# Search NCBI for a gene
-let results = ncbi_search("gene", "BRCA1 human")
-println(f"Found {len(results)} results")
-
-# Get gene details
-let gene = ncbi_gene("BRCA1")
-print(gene)</code></pre>
-          </div>
-        </div>
-        <!-- Example 4 -->
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-            <span class="text-sm font-medium text-slate-300">LLM Chat</span>
-          </div>
-          <div class="p-4">
-<pre class="!m-0 text-sm"><code class="language-biolang"># Ask an LLM about your results
-let snps = read_vcf("data/variants.vcf")
-  |> collect() |> filter(|v| is_snp(v)) |> len()
-
-chat("Found " + str(snps) + " SNPs. "
-  + "Typical Ti/Tv for exomes?")
-
-# Generate code from a prompt
-chat_code("GC content per chrom")</code></pre>
-          </div>
-        </div>
-        <!-- Example 5 -->
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-violet-400"></span>
-            <span class="text-sm font-medium text-slate-300">Notebooks</span>
-          </div>
-          <div class="p-4">
-<pre class="!m-0 text-sm"><code class="language-bash"># Literate .bln notebooks
-bl notebook analysis.bln
-
-# Export to HTML report
-bl notebook analysis.bln --export html
-
-# Jupyter interop
-bl notebook data.ipynb --export bln</code></pre>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- Comparison -->
   <section class="py-20 bg-slate-950">
@@ -568,6 +476,21 @@ print(df.describe())</code></pre>
           <div class="flex items-center gap-3">
             <a href="studio.html" class="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors">Open &rarr;</a>
             <a href="docs/tools/studio-help.html" class="text-xs text-slate-500 hover:text-slate-400 transition-colors">Help</a>
+          </div>
+        </div>
+        <!-- BioGist -->
+        <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 flex flex-col">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-teal-500/15 text-teal-400 text-xl shrink-0">&#128270;</span>
+            <div>
+              <h3 class="text-lg font-bold text-teal-400">BioGist</h3>
+              <span class="text-xs text-slate-500">Gene intelligence sidebar</span>
+            </div>
+          </div>
+          <p class="text-sm text-slate-400 mb-4 flex-1">Auto-detects genes, variants, accessions, and species on any webpage. Click any entity for instant details from NCBI, UniProt, gnomAD, and ClinVar. Chrome sidebar extension + PWA.</p>
+          <div class="flex items-center gap-3">
+            <a href="biogist.html" class="text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors">Try PWA &rarr;</a>
+            <a href="extension/biogist/shared/help.html" class="text-xs text-slate-500 hover:text-slate-400 transition-colors">Help</a>
           </div>
         </div>
       </div>

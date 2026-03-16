@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0891b2">
-<title>BioGist — Biological Genomic Intelligence in Situ</title>
+<title>BioGist — The biological gist of any research paper</title>
 <meta name="description" content="Detect genes, variants, and accessions in scientific text. Paste text or a URL to scan.">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="manifest" href="manifest-biogist.json">
@@ -76,7 +76,7 @@
 
 <div class="hero-bar">
   <h1><span>BioGist</span></h1>
-  <p>Biological Genomic Intelligence in Situ &mdash; detect genes, variants &amp; accessions in scientific text</p>
+  <p>The essential biology of any page, at a glance &mdash; detect genes, variants, accessions, methods, drugs, and more in scientific text</p>
 </div>
 
 <div class="two-panel">
@@ -129,87 +129,22 @@
 </div>
 
 <script src="js/main.js"></script>
+<script src="js/hgnc-symbols.js"></script>
+<script src="js/biogist-core.js"></script>
 <script>
 (function(){
 "use strict";
+var core = window.BioGistCore;
+var scanText = core.scanText;
+var escapeHtml = core.escapeHtml;
+var TYPE_META = core.TYPE_META;
+var SPECIES_DATA = core.SPECIES_DATA;
+var buildSourceLinks = core.buildSourceLinks;
+var groupEntities = core.groupEntities;
+var buildMarkdown = core.buildMarkdown;
+var buildJson = core.buildJson;
 
-var GENE_SYMBOLS = new Set("TP53,BRCA1,BRCA2,PTEN,RB1,APC,VHL,WT1,NF1,NF2,CDKN2A,CDKN2B,SMAD4,FBXW7,BAP1,SMARCB1,STK11,MEN1,TSC1,TSC2,PTCH1,SUFU,MYC,MYCN,MYCL,KRAS,NRAS,HRAS,BRAF,RAF1,PIK3CA,PIK3CB,PIK3R1,AKT1,AKT2,AKT3,MTOR,EGFR,ERBB2,ERBB3,HER2,ALK,RET,MET,ROS1,FGFR1,FGFR2,FGFR3,FGFR4,FLT3,KIT,PDGFRA,PDGFRB,ABL1,BCR,JAK2,JAK1,JAK3,STAT3,STAT5A,STAT5B,CDK4,CDK6,CDK2,CCND1,CCNE1,MDM2,MDM4,MAP2K1,MAP2K2,MAP3K1,MAPK1,CTNNB1,AXIN1,AXIN2,NOTCH1,NOTCH2,NOTCH3,NOTCH4,ATM,ATR,CHEK1,CHEK2,PALB2,RAD51,RAD51C,RAD51D,BRIP1,BARD1,NBN,MRE11,POLE,POLD1,MUTYH,FANCA,FANCC,MLH1,MSH2,MSH6,PMS2,EPCAM,DNMT3A,DNMT3B,DNMT1,TET2,TET1,IDH1,IDH2,EZH2,SUZ12,EED,ARID1A,ARID1B,ARID2,SMARCA4,SMARCA2,KMT2A,KMT2C,KMT2D,SETD2,NSD1,NSD2,NPM1,CEBPA,RUNX1,GATA1,GATA2,FLI1,PAX5,BCL2,BCL6,MCL1,MYD88,BTK,ASXL1,CALR,MPL,SF3B1,SRSF2,U2AF1,VEGFA,KDR,TGFB1,SMAD2,SMAD3,SOX2,POU5F1,NANOG,KLF4,TERT,TERC,DICER1,GAPDH,ACTB,HPRT1,B2M,APP,PSEN1,PSEN2,APOE,MAPT,GRN,C9orf72,SOD1,FUS,TARDBP,SNCA,LRRK2,PARK2,PINK1,GBA,HTT,FMR1,MECP2,LDLR,PCSK9,APOB,MTHFR,F5,F2,SERPINA1,MYBPC3,MYH7,SCN5A,KCNQ1,KCNH2,LMNA,TTN,RYR2,CYP2D6,CYP2C19,CYP2C9,CYP3A4,CYP3A5,CYP1A2,CYP2B6,DPYD,UGT1A1,TPMT,NUDT15,SLCO1B1,ABCB1,VKORC1,CFTR,DMD,SMN1,SMN2,HBB,HBA1,HBA2,G6PD,PKD1,PKD2,COL1A1,COL1A2,GJB2,PAH,GAA,GLA,CD274,PDCD1,CTLA4,LAG3,CD8A,CD4,FOXP3,CD19,CD38,ACE2,TMPRSS2,FURIN,AR,ESR1,ESR2,PGR,GATA3,FOXA1,PARP1,PARP2,AURKA,AURKB,SRC,NTRK1,NTRK2,NTRK3,IGF1R,INSR,ERCC1,MGMT,ATRX,DAXX,H3F3A,PBRM1,KDM5C,KDM6A,STAG2,RAD21".split(","));
-
-var EXCLUDE = new Set("THE,AND,FOR,NOT,ARE,BUT,WAS,HAS,HAD,HIS,HER,ITS,ALL,CAN,DID,GET,GOT,LET,MAY,NEW,NOW,OLD,OUR,OWN,SAY,SHE,TOO,USE,WAY,WHO,SET,TRY,ASK,MEN,RUN,TOP,YES,ADD,AGE,AGO,END,FAR,FEW,URL,PDF,CSV,TSV,TXT,PNG,JPG,SVG,API,AWS,GCP,CPU,GPU,RAM,SSD,USB,MAC,USA,NIH,FDA,CDC,DOI,PMID,NCI,MIT,BSD,GPL,HTTP,HTML,CSS,SQL,GIT,YAML,JSON,TOML,WASM,REST,POST,FROM,WITH,THAT,THIS,HAVE,BEEN,WILL,THAN,EACH,MAKE,LIKE,LONG,MANY,MOST,MUCH,MUST,NAME,NEED,NEXT,ONLY,OPEN,OVER,PART,PLAN,READ,SAME,SAVE,SHOW,SIDE,SIZE,SOME,SORT,STEP,STOP,SUCH,SURE,TAKE,TELL,TEST,TEXT,THEN,THEY,TIME,TRUE,TURN,TYPE,UNIT,UPON,USED,USER,VERY,WANT,WELL,WHAT,WHEN,WIDE,WORD,WORK,YEAR,ALSO,BACK,CALL,COME,DOES,DOWN,EVEN,FIND,GIVE,GOES,GOOD,HELP,HERE,HIGH,HOME,INTO,JUST,KEEP,KIND,KNOW,LAST,LATE,LEFT,LIFE,LINE,LIST,LIVE,LOOK,MADE,MAIN,MEAN,MOVE,NOTE,PAGE,PASS,PATH,PICK,PULL,PUSH,RATE,RULE,SCAN,SELF,SEND,VIEW,WAIT,WALK,WEEK,ZERO,BEST,BOTH,CASE,CITY,COPY,DATA,DATE,DAYS,DONE,DRAW,DROP,EDIT,FAIL,FAST,FILE,FILL,FLAG,FLOW,FORM,FREE,FULL,HEAD,HOLD,HOST,ICON,INFO,ITEM,JOIN,JUMP,KEYS,LACK,LAND,LEAD,LINK,LOAD,LOCK,LOOP,LOSS,MARK,MASK,MASS,MATH,MODE,PLAY".split(","));
-
-// ── Detection ────────────────────────────────────────────────────────────
-function detectGenes(text) {
-  var results = [], seen = new Set(), re = /\b([A-Z][A-Z0-9]{1,9})\b/g, m;
-  while ((m = re.exec(text)) !== null) {
-    var s = m[1];
-    if (!seen.has(s) && !EXCLUDE.has(s) && GENE_SYMBOLS.has(s)) { seen.add(s); results.push({type:"gene",id:s}); }
-  }
-  return results;
-}
-
-function detectVariants(text) {
-  var results = [], seen = new Set(), m;
-  var rsRe = /\b(rs\d{3,12})\b/gi;
-  while ((m = rsRe.exec(text)) !== null) { var id = m[1].toLowerCase(); if (!seen.has(id)) { seen.add(id); results.push({type:"variant",id:id,subtype:"rsid"}); } }
-  var hgvsRe = /\b((?:NM_|NP_|NC_)\d+(?:\.\d+)?:[cpg]\.\S+?)(?=[\s,;)\]]|$)/g;
-  while ((m = hgvsRe.exec(text)) !== null) { if (!seen.has(m[1])) { seen.add(m[1]); results.push({type:"variant",id:m[1],subtype:"hgvs"}); } }
-  var clinvarRe = /\b(VCV\d{9,12})\b/g;
-  while ((m = clinvarRe.exec(text)) !== null) { if (!seen.has(m[1])) { seen.add(m[1]); results.push({type:"variant",id:m[1],subtype:"clinvar"}); } }
-  var cosmicRe = /\b(COSM\d{3,10})\b/g;
-  while ((m = cosmicRe.exec(text)) !== null) { if (!seen.has(m[1])) { seen.add(m[1]); results.push({type:"variant",id:m[1],subtype:"cosmic"}); } }
-  return results;
-}
-
-function detectAccessions(text) {
-  var results = [], seen = new Set(), m;
-  var patterns = [
-    {re:/\b(GSE\d{3,8})\b/g,sub:"geo"},{re:/\b(GSM\d{3,8})\b/g,sub:"geo"},
-    {re:/\b(SRR\d{5,10})\b/g,sub:"sra"},{re:/\b(SRX\d{5,10})\b/g,sub:"sra"},
-    {re:/\b(SRP\d{5,10})\b/g,sub:"sra"},{re:/\b(SRS\d{5,10})\b/g,sub:"sra"},
-    {re:/\b(ERR\d{5,10})\b/g,sub:"ena"},{re:/\b(ERX\d{5,10})\b/g,sub:"ena"},
-    {re:/\b(PRJNA\d{4,8})\b/g,sub:"bioproject"},{re:/\b(PRJEB\d{4,8})\b/g,sub:"bioproject"},
-    {re:/\b(SAMN\d{6,10})\b/g,sub:"biosample"},
-    {re:/\b(ENSG\d{11})\b/g,sub:"ensembl"},{re:/\b(ENST\d{11})\b/g,sub:"ensembl"},
-    {re:/\b(ENSP\d{11})\b/g,sub:"ensembl"},
-    {re:/\b(NM_\d{6,9}(?:\.\d+)?)\b/g,sub:"refseq"},
-    {re:/\b(NP_\d{6,9}(?:\.\d+)?)\b/g,sub:"refseq"},
-    {re:/\b(NC_\d{6,9}(?:\.\d+)?)\b/g,sub:"refseq"},
-    {re:/\b(\d[A-Z][A-Z0-9]{2})\b/g,sub:"pdb"},
-    {re:/PMID:\s*(\d{5,9})/g,sub:"pubmed"},
-    {re:/\b(10\.\d{4,9}\/[^\s,;)}\]]+)/g,sub:"doi"}
-  ];
-  for (var i = 0; i < patterns.length; i++) {
-    var p = patterns[i]; p.re.lastIndex = 0;
-    while ((m = p.re.exec(text)) !== null) {
-      var key = p.sub+":"+m[1];
-      if (!seen.has(key)) { seen.add(key); results.push({type:"accession",id:m[1],subtype:p.sub}); }
-    }
-  }
-  return results;
-}
-
-function detectSpecies(text) {
-  var species = [
-    {pat:/\b(Homo sapiens|human|H\. sapiens)\b/gi,name:"Human",taxid:"9606"},
-    {pat:/\b(Mus musculus|mouse|M\. musculus)\b/gi,name:"Mouse",taxid:"10090"},
-    {pat:/\b(Rattus norvegicus|rat|R\. norvegicus)\b/gi,name:"Rat",taxid:"10116"},
-    {pat:/\b(Drosophila melanogaster|fruit fly|D\. melanogaster)\b/gi,name:"Fruit fly",taxid:"7227"},
-    {pat:/\b(Caenorhabditis elegans|C\. elegans)\b/gi,name:"C. elegans",taxid:"6239"},
-    {pat:/\b(Danio rerio|zebrafish|D\. rerio)\b/gi,name:"Zebrafish",taxid:"7955"},
-    {pat:/\b(Saccharomyces cerevisiae|yeast|S\. cerevisiae)\b/gi,name:"Yeast",taxid:"4932"},
-    {pat:/\b(Escherichia coli|E\. coli)\b/gi,name:"E. coli",taxid:"562"}
-  ];
-  var found = [], seen = new Set();
-  species.forEach(function(sp) {
-    sp.pat.lastIndex = 0;
-    if (sp.pat.test(text) && !seen.has(sp.name)) { seen.add(sp.name); found.push({type:"species",id:sp.name,subtype:sp.taxid}); }
-  });
-  return found;
-}
-
-function scanText(text) {
-  return [].concat(detectGenes(text), detectVariants(text), detectAccessions(text), detectSpecies(text));
-}
+// Detection functions loaded from biogist-core.js (BioGistCore)
 
 // ── State ────────────────────────────────────────────────────────────────
 var allEntities = [];
@@ -226,15 +161,10 @@ var $copyBar = document.getElementById("copy-bar");
 var $statusMsg = document.getElementById("status-msg");
 var $filterInput = document.getElementById("filter-input");
 
-var TYPE_META = {
-  gene:      {label:"Genes",      cls:"badge-gene"},
-  variant:   {label:"Variants",   cls:"badge-variant"},
-  accession: {label:"Accessions", cls:"badge-accession"},
-  species:   {label:"Species",    cls:"badge-species"}
-};
+// Use TYPE_META from biogist-core.js (already imported as core.TYPE_META)
 
-function escHtml(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
-function truncate(s, n) { return s.length > n ? s.slice(0, n) + "..." : s; }
+function escHtml(s) { return core.escapeHtml(s); }
+function truncate(s, n) { return core.truncate(s, n); }
 
 // ── Render ───────────────────────────────────────────────────────────────
 function render() {
@@ -251,10 +181,10 @@ function render() {
   $copyBar.style.display = total > 0 ? "flex" : "none";
   $sections.innerHTML = "";
 
-  ["gene","variant","accession","species"].forEach(function(type) {
+  Object.keys(grouped).forEach(function(type) {
     var items = grouped[type];
     if (!items || items.length === 0) return;
-    var meta = TYPE_META[type];
+    var meta = TYPE_META[type] || { icon: "\u2022", badge: type, label: type };
 
     var section = document.createElement("div");
     section.className = "section";
@@ -270,8 +200,14 @@ function render() {
       var key = e.type + ":" + e.id;
       var li = document.createElement("li");
       li.className = "entity-item" + (activeKey === key ? " active" : "");
-      li.innerHTML = '<span class="entity-name">' + escHtml(e.id) + '</span>' +
-        (e.subtype ? '<span class="entity-badge ' + meta.cls + '">' + escHtml(e.subtype) + '</span>' : '<span class="entity-badge ' + meta.cls + '">' + type + '</span>');
+      var badgeCls = "badge-" + type;
+      var displayId = e.id;
+      if (displayId.length > 80) displayId = displayId.substring(0, 80) + "...";
+      var countLabel = e.count && e.count > 1 ? ' <span style="font-size:10px;color:#64748b">\u00d7' + e.count + '</span>' : '';
+      var versionLabel = e.version ? ' <span style="font-size:10px;color:#06b6d4">v' + escHtml(e.version) + '</span>' : '';
+      li.innerHTML = (meta.icon ? '<span style="margin-right:4px">' + meta.icon + '</span>' : '') +
+        '<span class="entity-name">' + escHtml(displayId) + '</span>' + versionLabel + countLabel +
+        '<span class="entity-badge ' + badgeCls + '">' + escHtml(meta.badge || type) + '</span>';
       li.addEventListener("click", function() { selectEntity(e); });
       ul.appendChild(li);
     });

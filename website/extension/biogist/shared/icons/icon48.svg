@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="bg48" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+  </defs>
+  <!-- Gradient cyan rounded square -->
+  <rect x="1" y="1" width="46" height="46" rx="10" fill="url(#bg48)"/>
+  <!-- Magnifying glass -->
+  <circle cx="21" cy="20" r="10" stroke="#fff" stroke-width="2.5" fill="none" opacity="0.95"/>
+  <line x1="28.5" y1="27.5" x2="36" y2="35" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.95"/>
+  <!-- DNA helix inside glass -->
+  <g opacity="0.9">
+    <path d="M16 15c3-4 7-4 10 0" stroke="#67e8f9" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M16 20c3 4 7 4 10 0" stroke="#a5f3fc" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M16 25c3-4 7-4 10 0" stroke="#67e8f9" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- Rungs -->
+    <line x1="19" y1="16" x2="23" y2="16" stroke="#fff" stroke-width="1" opacity="0.6"/>
+    <line x1="18" y1="20" x2="24" y2="20" stroke="#fff" stroke-width="1" opacity="0.6"/>
+    <line x1="19" y1="24" x2="23" y2="24" stroke="#fff" stroke-width="1" opacity="0.6"/>
+  </g>
+  <!-- Accent dots -->
+  <circle cx="40" cy="10" r="2" fill="#22d3ee" opacity="0.6"/>
+  <circle cx="8" cy="40" r="1.5" fill="#a5f3fc" opacity="0.5"/>
+</svg>

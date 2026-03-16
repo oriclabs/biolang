@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "BioGist",
+  "short_name": "BioGist",
+  "version": "1.0.0",
+  "description": "Get the biological gist of any research paper. Auto-detects genes, variants, and datasets on any webpage.",
+  "author": "Oric Labs",
+  "homepage_url": "https://lang.bio",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus",
+    "scripting",
+    "tabs",
+    "webNavigation"
+  ],
+  "sidebar_action": {
+    "default_panel": "sidebar.html",
+    "default_icon": "icons/icon48.png",
+    "default_title": "BioGist"
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content.js"],
+    "run_at": "document_idle"
+  }],
+  "action": {
+    "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png" },
+    "default_title": "BioGist — Toggle sidebar"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "biogist@oriclabs.com"
+    }
+  }
+}

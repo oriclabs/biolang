@@ -124,7 +124,9 @@
     // LLM chat
     if (/\b(chat|chat_code|llm|ask_llm)\s*\(/.test(text)) return true;
     // Notebooks and pipelines
-    if (/\b(notebook|pipeline|import\s+")\b/.test(text)) return true;
+    if (/\b(notebook|import\s+")\b/.test(text)) return true;
+    // pipeline keyword — only match if it starts a line (not in comments)
+    if (/^\s*pipeline\s+\w/m.test(text)) return true;
     return false;
   }
 
@@ -164,7 +166,7 @@
       var wrapper = pre.parentNode;
       if (!wrapper.style.position || wrapper.style.position === 'static') {
         var div = document.createElement('div');
-        div.style.cssText = 'position:relative';
+        div.style.cssText = 'position:relative;overflow:hidden';
         pre.parentNode.insertBefore(div, pre);
         div.appendChild(pre);
         wrapper = div;
@@ -256,12 +258,15 @@
   }
 
   function executeCode(code, btn, timingEl, resultEl, outputEl) {
-    btn.innerHTML = '&#9654; Running...';
+    var hasFileOps = /\bread_(csv|fasta|fastq|vcf|bed|gff|parquet)\s*\(/.test(code);
+    btn.innerHTML = hasFileOps ? '&#9654; Loading data...' : '&#9654; Running...';
     outputEl.style.display = 'block';
     var pre = outputEl.previousElementSibling || outputEl.parentNode.querySelector('pre');
     if (pre) pre.style.borderRadius = '8px 8px 0 0';
-    resultEl.innerHTML = '';
+    resultEl.innerHTML = hasFileOps ? '<span style="color:#94a3b8">Fetching data files...</span>' : '';
 
+    // Use setTimeout to let the UI update before blocking on sync XHR
+    setTimeout(function() {
     var t0 = performance.now();
     // Reset interpreter state so variables from previous runs don't shadow builtins
     if (wasm.reset) { try { wasm.reset(); } catch(_) {} }
@@ -333,6 +338,7 @@
     timingEl.textContent = formatElapsed(t0);
     saveToHistory(code);
     resetButton(btn);
+    }, 50); // end setTimeout — allows UI to show "Loading data..." before sync XHR blocks
   }
 
   function saveToHistory(code) {
