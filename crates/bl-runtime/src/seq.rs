@@ -52,6 +52,7 @@ pub fn seq_builtin_list() -> Vec<(&'static str, Arity)> {
         ("blast_remote", Arity::Range(1, 2)),
         ("scan_bio", Arity::Exact(1)),
         ("read_pdf", Arity::Exact(1)),
+        ("cite", Arity::Range(1, 2)),
     ]
 }
 
@@ -93,6 +94,7 @@ pub fn is_seq_builtin(name: &str) -> bool {
             | "blast_remote"
             | "scan_bio"
             | "read_pdf"
+            | "cite"
     )
 }
 
@@ -589,6 +591,7 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "blast_remote" => builtin_blast_remote(&args),
         "scan_bio" => builtin_scan_bio(&args),
         "read_pdf" => builtin_read_pdf(&args),
+        "cite" => builtin_cite(&args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown seq builtin: {name}"),
@@ -2500,4 +2503,124 @@ fn validate_rna(s: &str) -> Result<()> {
         }
     }
     Ok(())
+}
+
+// ── cite(doi, [style]) — fetch citation from CrossRef and format ───────
+
+fn builtin_cite(args: &[Value]) -> Result<Value> {
+    let doi = require_str(&args[0], "cite")?;
+    let style = if args.len() > 1 {
+        require_str(&args[1], "cite")?.to_lowercase()
+    } else {
+        "all".to_string()
+    };
+
+    let url = format!("https://api.crossref.org/works/{}", doi);
+    let json = fetch_json(&url)?;
+
+    let msg = &json["message"];
+    if msg.is_null() {
+        return Err(BioLangError::runtime(ErrorKind::IOError, format!("cite: DOI not found: {doi}"), None));
+    }
+
+    let title = msg["title"].as_array()
+        .and_then(|a| a.first())
+        .and_then(|t| t.as_str())
+        .unwrap_or("Untitled");
+
+    let authors: Vec<String> = msg["author"].as_array()
+        .map(|arr| arr.iter().map(|a| {
+            let family = a["family"].as_str().unwrap_or("");
+            let given = a["given"].as_str().unwrap_or("");
+            if given.is_empty() { family.to_string() }
+            else { format!("{family}, {}.", given.chars().next().unwrap_or(' ')) }
+        }).collect())
+        .unwrap_or_default();
+
+    let year = msg["published-print"]["date-parts"].as_array()
+        .or_else(|| msg["published-online"]["date-parts"].as_array())
+        .or_else(|| msg["created"]["date-parts"].as_array())
+        .and_then(|dp| dp.first())
+        .and_then(|d| d.as_array())
+        .and_then(|d| d.first())
+        .and_then(|y| y.as_u64())
+        .map(|y| y.to_string())
+        .unwrap_or_else(|| "n.d.".to_string());
+
+    let journal = msg["container-title"].as_array()
+        .and_then(|a| a.first())
+        .and_then(|j| j.as_str())
+        .unwrap_or("");
+
+    let volume = msg["volume"].as_str().unwrap_or("");
+    let pages = msg["page"].as_str().unwrap_or("");
+    let doi_str = msg["DOI"].as_str().unwrap_or(&doi);
+
+    let author_str = if authors.is_empty() { "Unknown".to_string() }
+        else if authors.len() <= 3 { authors.join(", ") }
+        else { format!("{} et al.", authors[0]) };
+
+    let full_authors = authors.join(" and ");
+
+    let apa = format!(
+        "{} ({}). {}. {}{}{}. https://doi.org/{}",
+        author_str, year, title, journal,
+        if !volume.is_empty() { format!(", {volume}") } else { String::new() },
+        if !pages.is_empty() { format!(", {pages}") } else { String::new() },
+        doi_str
+    );
+
+    let bibtex = format!(
+        "@article{{{doi_key},\n  author = {{{full_authors}}},\n  title = {{{{{title}}}}},\n  journal = {{{journal}}},\n  year = {{{year}}},\n  volume = {{{volume}}},\n  pages = {{{pages}}},\n  doi = {{{doi_str}}}\n}}",
+        doi_key = doi_str.replace('/', "_").replace('.', "_"),
+    );
+
+    let ris = format!(
+        "TY  - JOUR\n{}TI  - {}\nJO  - {}\nVL  - {}\nSP  - {}\nPY  - {}\nDO  - {}\nER  -",
+        authors.iter().map(|a| format!("AU  - {a}\n")).collect::<String>(),
+        title, journal, volume, pages, year, doi_str
+    );
+
+    // Vancouver
+    let vancouver = format!(
+        "{}. {}. {}. {}{}{}.  doi:{}",
+        author_str, title, journal, year,
+        if !volume.is_empty() { format!(";{volume}") } else { String::new() },
+        if !pages.is_empty() { format!(":{pages}") } else { String::new() },
+        doi_str
+    );
+
+    // Harvard
+    let harvard = format!(
+        "{} ({}) '{}', {}{}{}.  https://doi.org/{}",
+        author_str, year, title, journal,
+        if !volume.is_empty() { format!(", {volume}") } else { String::new() },
+        if !pages.is_empty() { format!(", pp. {pages}") } else { String::new() },
+        doi_str
+    );
+
+    if style == "apa" {
+        Ok(Value::Str(apa))
+    } else if style == "vancouver" {
+        Ok(Value::Str(vancouver))
+    } else if style == "harvard" {
+        Ok(Value::Str(harvard))
+    } else if style == "bibtex" || style == "bib" {
+        Ok(Value::Str(bibtex))
+    } else if style == "ris" {
+        Ok(Value::Str(ris))
+    } else {
+        let mut result = HashMap::new();
+        result.insert("title".to_string(), Value::Str(title.to_string()));
+        result.insert("authors".to_string(), Value::Str(full_authors));
+        result.insert("year".to_string(), Value::Str(year));
+        result.insert("journal".to_string(), Value::Str(journal.to_string()));
+        result.insert("doi".to_string(), Value::Str(doi_str.to_string()));
+        result.insert("apa".to_string(), Value::Str(apa));
+        result.insert("vancouver".to_string(), Value::Str(vancouver));
+        result.insert("harvard".to_string(), Value::Str(harvard));
+        result.insert("bibtex".to_string(), Value::Str(bibtex));
+        result.insert("ris".to_string(), Value::Str(ris));
+        Ok(Value::Record(result))
+    }
 }

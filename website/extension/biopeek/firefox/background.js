@@ -102,14 +102,27 @@ browser.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     sendResponse({ ok: true });
   } else if (msg.type === "fetch-for-viewer") {
     // BioGist or other extension asks us to fetch a URL (we bypass CORS)
+    var name = msg.url.split("/").pop().split("?")[0] || "remote-file.txt";
+    var isGz = /\.(gz|bgz)$/i.test(name);
+
     fetch(msg.url).then(function(resp) {
       if (!resp.ok) throw new Error("HTTP " + resp.status);
-      return resp.text();
-    }).then(function(text) {
-      var name = msg.url.split("/").pop().split("?")[0] || "remote-file.txt";
-      browser.storage.session.set({
-        pendingFile: { name: name, content: text }
-      }).then(function() {
+      return isGz ? resp.arrayBuffer() : resp.text();
+    }).then(function(data) {
+      var pendingFile;
+      if (isGz) {
+        var bytes = new Uint8Array(data);
+        var chunks = [];
+        var chunkSize = 8192;
+        for (var i = 0; i < bytes.length; i += chunkSize) {
+          var slice = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+          chunks.push(String.fromCharCode.apply(null, slice));
+        }
+        pendingFile = { name: name, content: btoa(chunks.join("")), binary: true };
+      } else {
+        pendingFile = { name: name, content: data, binary: false };
+      }
+      browser.storage.session.set({ pendingFile: pendingFile }).then(function() {
         browser.tabs.create({
           url: browser.runtime.getURL("viewer.html") + "?source=extension"
         });

@@ -4734,8 +4734,11 @@ impl Interpreter {
                     Ok(Value::List(result))
                 }
                 (Value::Str(a), Value::Str(b)) => Ok(Value::Str(format!("{a}{b}"))),
+                (Value::DNA(a), Value::DNA(b)) => Ok(Value::DNA(bl_core::value::BioSequence { data: format!("{}{}", a.data, b.data) })),
+                (Value::RNA(a), Value::RNA(b)) => Ok(Value::RNA(bl_core::value::BioSequence { data: format!("{}{}", a.data, b.data) })),
+                (Value::Protein(a), Value::Protein(b)) => Ok(Value::Protein(bl_core::value::BioSequence { data: format!("{}{}", a.data, b.data) })),
                 _ => Err(BioLangError::type_error(
-                    format!("cannot concatenate {} and {} (++ requires two lists or two strings)", lhs.type_of(), rhs.type_of()),
+                    format!("cannot concatenate {} and {} (++ requires matching types)", lhs.type_of(), rhs.type_of()),
                     Some(span),
                 )),
             },

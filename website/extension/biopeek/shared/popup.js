@@ -7,29 +7,74 @@
   var dropZone = document.getElementById("drop-zone");
   var statusEl = document.getElementById("status");
 
+  // ── Gz detection ─────────────────────────────────────────────
+
+  function isGzFile(file) {
+    return /\.(gz|bgz)$/i.test(file.name);
+  }
+
+  function arrayBufferToBase64(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var chunks = [];
+    var chunkSize = 8192;
+    for (var i = 0; i < bytes.length; i += chunkSize) {
+      var slice = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      chunks.push(String.fromCharCode.apply(null, slice));
+    }
+    return btoa(chunks.join(""));
+  }
+
   // ── File handling ─────────────────────────────────────────────
+
+  // chrome.storage.session has ~10MB quota; base64 adds ~33% overhead
+  var MAX_SESSION_SIZE = 7 * 1024 * 1024; // 7MB original → ~9.3MB base64
 
   function openFilesInViewer(fileList) {
     if (!fileList || fileList.length === 0) return;
 
     Array.from(fileList).forEach(function (file) {
-      var reader = new FileReader();
-      reader.onload = function () {
-        // Store file content in session storage, open viewer tab
-        var data = {
-          name: file.name,
-          size: file.size,
-          content: reader.result,
-          timestamp: Date.now()
-        };
+      if (isGzFile(file) && file.size > MAX_SESSION_SIZE) {
+        // Too large for session storage — open viewer directly, user will re-drop
+        addToRecent(file.name, file.size);
+        chrome.tabs.create({ url: chrome.runtime.getURL("viewer.html") + "?large=1&name=" + encodeURIComponent(file.name) });
+        return;
+      }
 
-        // Use chrome.storage.session for passing data to viewer tab
-        chrome.storage.session.set({ pendingFile: data }, function () {
-          chrome.tabs.create({ url: chrome.runtime.getURL("viewer.html") + "?source=extension" });
-          addToRecent(file.name, file.size);
-        });
-      };
-      reader.readAsText(file);
+      if (isGzFile(file)) {
+        // Binary gz: read as ArrayBuffer, encode as base64 for session storage
+        var reader = new FileReader();
+        reader.onload = function () {
+          var data = {
+            name: file.name,
+            size: file.size,
+            content: arrayBufferToBase64(reader.result),
+            binary: true,
+            timestamp: Date.now()
+          };
+          chrome.storage.session.set({ pendingFile: data }, function () {
+            chrome.tabs.create({ url: chrome.runtime.getURL("viewer.html") + "?source=extension" });
+            addToRecent(file.name, file.size);
+          });
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        // Text files: read as text
+        var reader = new FileReader();
+        reader.onload = function () {
+          var data = {
+            name: file.name,
+            size: file.size,
+            content: reader.result,
+            binary: false,
+            timestamp: Date.now()
+          };
+          chrome.storage.session.set({ pendingFile: data }, function () {
+            chrome.tabs.create({ url: chrome.runtime.getURL("viewer.html") + "?source=extension" });
+            addToRecent(file.name, file.size);
+          });
+        };
+        reader.readAsText(file);
+      }
     });
   }
 
@@ -111,7 +156,7 @@
   }
 
   function getFormatFromName(name) {
-    var ext = name.split(".").pop().toLowerCase();
+    var ext = name.replace(/\.(gz|bgz)$/i, "").split(".").pop().toLowerCase();
     var map = {
       fasta: "fasta", fa: "fasta", fna: "fasta", faa: "fasta",
       fastq: "fastq", fq: "fastq",

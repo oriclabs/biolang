@@ -74,7 +74,7 @@
   <summary>Loading Files</summary>
   <div class="detail-body">
     <p><strong>Drag &amp; drop</strong> any supported file onto the viewer, use the file picker, or <strong>paste</strong> text with <span class="kbd">Ctrl+V</span>. Pasted bioinformatics data (starting with <code>&gt;</code>, <code>@</code>, <code>##</code>, etc.) is auto-detected and opened as a new tab.</p>
-    <p><strong>URL loading:</strong> Append <code>?url=https://example.com/data.vcf</code> to load a remote file (requires CORS).</p>
+    <p><strong>URL loading:</strong> Append <code>?url=https://example.com/data.vcf</code> to load a remote file. If the remote server lacks CORS headers, BioPeek automatically retries through a CORS proxy fallback.</p>
     <img src="screenshots/landing.png" alt="BioPeek landing page" loading="lazy" style="margin:10px 0">
     <table>
       <thead><tr><th>Format</th><th>Extensions</th><th>Auto-detected by</th></tr></thead>
@@ -93,6 +93,8 @@
       <div><img src="screenshots/loading-fasta.png" alt="FASTA" loading="lazy"><div class="img-cap">FASTA</div></div>
       <div><img src="screenshots/loading-fastq.png" alt="FASTQ" loading="lazy"><div class="img-cap">FASTQ</div></div>
     </div>
+    <p><strong>GZ decompression:</strong> <code>.gz</code> files are transparently decompressed using the browser's native <code>DecompressionStream</code> API. Drop a <code>.vcf.gz</code>, <code>.fastq.gz</code>, or any gzipped file and it is decompressed on the fly.</p>
+    <p><strong>Smart paste:</strong> Pasted content is auto-detected &mdash; raw sequences become FASTA, tab-delimited genomic rows become BED, comma-separated data becomes CSV. No manual format selection needed.</p>
     <div class="note"><strong>Binary files:</strong> BAM, BCF, and CRAM are detected and cannot be viewed directly. Convert to text formats first.</div>
   </div>
 </details>
@@ -105,7 +107,7 @@
   <div class="detail-body">
     <ul>
       <li><strong>Table</strong> (<span class="kbd">1</span>) &mdash; Sortable columns, ATCG coloring (A=green, T=red, G=amber, C=blue), search/filter, anomaly highlighting, sparklines</li>
-      <li><strong>Stats</strong> (<span class="kbd">2</span>) &mdash; Format-specific statistics: N50, GC% (FASTA); Q30%, mean quality (FASTQ); Ti/Tv, SNP/indel breakdown (VCF); coverage (BED). SVG charts with download. Export as JSON, TSV, or clipboard.</li>
+      <li><strong>Stats</strong> (<span class="kbd">2</span>) &mdash; Format-specific statistics: N50, GC% (FASTA); Q30%, mean quality, quality histogram (FASTQ); Ti/Tv, SNP/indel breakdown, variant density chart, FILTER pie chart (VCF); coverage (BED). SVG charts with download. Export as JSON, TSV, or clipboard.</li>
       <li><strong>Raw</strong> (<span class="kbd">3</span>) &mdash; Line-numbered text view with search highlighting</li>
       <li><strong>BioLang</strong> (<span class="kbd">4</span>) &mdash; WASM-powered console with file pre-loaded as a <code>data</code> Table variable</li>
     </ul>
@@ -225,6 +227,119 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
 </details>
 
 <details>
+  <summary>GZ Decompression</summary>
+  <div class="detail-body">
+    <p>BioPeek transparently decompresses <code>.gz</code> and <code>.bgz</code> files using the browser's native <code>DecompressionStream</code> API. Drop a <code>.vcf.gz</code>, <code>.fastq.gz</code>, <code>.fa.gz</code>, <code>.bed.gz</code>, or any gzipped bioinformatics file and it is decompressed on the fly without any server.</p>
+    <p>This works across all entry points: drag-and-drop onto the viewer, file picker, extension popup, context menu ("Open in BioPeek"), and URL loading. Files up to 7 MB can be opened from the extension popup; larger gz files open the viewer directly for drag-and-drop.</p>
+    <div class="note"><strong>Browser support:</strong> Requires Chrome 80+, Firefox 113+, or Safari 16.4+. Older browsers will show a decompression error with a <code>gunzip</code> command hint.</div>
+  </div>
+</details>
+
+<details>
+  <summary>Chunked Preview for Large Files</summary>
+  <div class="detail-body">
+    <p>Files larger than 5 MB are loaded using chunked preview. The first chunk is parsed and displayed immediately while the rest of the file continues loading in the background. You can start exploring the table without waiting for the full file.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Genomic Coordinate Navigation</summary>
+  <div class="detail-body">
+    <p>Press <span class="kbd">Ctrl+Shift+G</span> to search by genomic coordinate. Type <code>chr1:12345</code> or <code>chr1:10000-20000</code> to filter the table to rows overlapping that region. Works with VCF, BED, GFF, and SAM files.</p>
+  </div>
+</details>
+
+<details>
+  <summary>FASTQ QC Panel</summary>
+  <div class="detail-body">
+    <p>FASTQ files display a dedicated QC panel in the Stats view with read statistics, Q30% metric, per-base quality histogram, per-position quality chart, and GC content distribution.</p>
+  </div>
+</details>
+
+<details>
+  <summary>FASTQ Quality Heatmap Bars</summary>
+  <div class="detail-body">
+    <p>In the table view, FASTQ quality strings are rendered as colored heatmap bars: green for high quality (&ge; Q30), amber for medium (Q20&ndash;Q29), and red for low (&lt; Q20).</p>
+  </div>
+</details>
+
+<details>
+  <summary>VCF Variant Density Chart</summary>
+  <div class="detail-body">
+    <p>VCF files show a per-chromosome variant density chart in the Stats view. Click a chromosome bar to filter the table to that chromosome.</p>
+  </div>
+</details>
+
+<details>
+  <summary>VCF FILTER Pie Chart</summary>
+  <div class="detail-body">
+    <p>VCF Stats view includes a donut chart showing the distribution of FILTER values (PASS vs. filter flags). Click a segment to filter the table to that FILTER value.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Strand Indicators</summary>
+  <div class="detail-body">
+    <p>BED and GFF files display visual strand indicators: plus strand (<code>+</code>) as a right-pointing green arrow, minus strand (<code>-</code>) as a left-pointing rose arrow.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Protein Sequence Support</summary>
+  <div class="detail-body">
+    <p>BioPeek auto-detects protein FASTA files (<code>.faa</code> or by content analysis). Protein sequences are colored by physicochemical property using the Zappo scheme:</p>
+    <table>
+      <thead><tr><th>Property</th><th>Residues</th><th>Color</th></tr></thead>
+      <tbody>
+        <tr><td>Hydrophobic</td><td>A, I, L, M, V</td><td style="color:#fbbf24">Amber</td></tr>
+        <tr><td>Aromatic</td><td>F, W, Y</td><td style="color:#c084fc">Purple</td></tr>
+        <tr><td>Polar</td><td>S, T, N, Q</td><td style="color:#34d399">Green</td></tr>
+        <tr><td>Positive charge</td><td>K, R, H</td><td style="color:#60a5fa">Blue</td></tr>
+        <tr><td>Negative charge</td><td>D, E</td><td style="color:#f87171">Red</td></tr>
+        <tr><td>Special</td><td>C, G, P</td><td style="color:#22d3ee">Cyan</td></tr>
+        <tr><td>Stop codon</td><td>*</td><td style="color:#f43f5e">Rose (bold)</td></tr>
+      </tbody>
+    </table>
+    <p>Protein files show residue count instead of bp, display amino acid composition statistics (top residues), and skip the GC% column offer since it's irrelevant for protein sequences.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Codon Coloring for DNA FASTA</summary>
+  <div class="detail-body">
+    <p>DNA FASTA sequences display codon-level coloring with alternating tint bands per triplet. Nucleotides use standard coloring: <span style="color:#34d399">A</span> green, <span style="color:#f87171">T</span> red, <span style="color:#60a5fa">C</span> blue, <span style="color:#fbbf24">G</span> amber, <span style="color:#94a3b8">N</span> grey.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Sequence Motif Search</summary>
+  <div class="detail-body">
+    <p>Search for DNA/RNA motifs using IUPAC ambiguity codes (e.g., <code>TATAWR</code>, <code>CANNTG</code>) or regex patterns. Matching positions are highlighted inline within sequence cells.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Copy as BioLang / FASTA / BED</summary>
+  <div class="detail-body">
+    <p>Right-click the table view to <strong>"Copy as BioLang"</strong> &mdash; generates pipe code reproducing your current filters and sort. Right-click cells for <strong>"Copy as FASTA"</strong> or <strong>"Copy as BED"</strong> for format-aware clipboard output.</p>
+  </div>
+</details>
+
+<details>
+  <summary>PostMessage File Receive</summary>
+  <div class="detail-body">
+    <p>BioPeek listens for <code>postMessage</code> events from other browser contexts. The BioGist extension uses this to send detected file links directly to BioPeek for visualization.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Inline Docs Hover Tooltips</summary>
+  <div class="detail-body">
+    <p>In the BioLang console, hovering over builtin function names shows inline documentation tooltips with the function signature, description, and usage example.</p>
+  </div>
+</details>
+
+<details>
   <summary>Anomaly Detection &amp; Validation</summary>
   <div class="detail-body">
     <p>Rows with data quality issues get an amber left border. Hover for details.</p>
@@ -307,7 +422,10 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
         <tr><td><span class="kbd">F11</span></td><td>Fullscreen</td></tr>
         <tr class="cat-row"><td colspan="2">Search &amp; Filter</td></tr>
         <tr><td><span class="kbd">/</span></td><td>Focus search box</td></tr>
+        <tr><td><span class="kbd">Ctrl+K</span></td><td>Quick search (command palette)</td></tr>
         <tr><td><span class="kbd">Ctrl+Shift+F</span></td><td>Find column by name</td></tr>
+        <tr><td><span class="kbd">Ctrl+Shift+G</span></td><td>Genomic coordinate navigation (chr1:12345)</td></tr>
+        <tr><td><span class="kbd">Ctrl+E</span></td><td>Export current view</td></tr>
         <tr><td><span class="kbd">Esc</span></td><td>Close overlay / search</td></tr>
         <tr class="cat-row"><td colspan="2">Selection &amp; Editing</td></tr>
         <tr><td><span class="kbd">Enter</span></td><td>Copy cell / confirm edit / expand detail</td></tr>
@@ -344,7 +462,7 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
     <table>
       <thead><tr><th>File Size</th><th>Behavior</th></tr></thead>
       <tbody>
-        <tr><td><code>&lt; 5 MB</code></td><td>Full content cached in IndexedDB for session restore</td></tr>
+        <tr><td><code>&lt; 5 MB</code></td><td>Full content cached in IndexedDB for session restore. Chunked preview loads first chunk immediately for files &gt; 5 MB.</td></tr>
         <tr><td><code>&lt; 10 MB</code></td><td>Full text in memory for raw view and console</td></tr>
         <tr><td><code>&lt; 50 MB</code></td><td>Full text parsed; raw view shows all content</td></tr>
         <tr><td><code>&gt; 50 MB</code></td><td>First 50 MB parsed. "Compute full stats" button streams the entire file.</td></tr>
@@ -369,6 +487,20 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
       <li><strong>Popup quick-open</strong> &mdash; Drop files or paste URLs in the extension popup for instant viewing</li>
     </ul>
     <div class="note"><strong>Extension limitations:</strong> Share links and PWA features (file handling, install prompt, session restore) are not available in the extension due to <code>chrome-extension://</code> URLs.</div>
+  </div>
+</details>
+
+<h2>Recent Changes</h2>
+
+<details open>
+  <summary>v1.3.0</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Protein FASTA support</strong> &mdash; Auto-detects protein sequences (<code>.faa</code> or by content). Amino acids colored by physicochemical property (Zappo scheme). Protein-specific stats (top residues, composition). GC% offer suppressed for protein files.</li>
+      <li><strong>GZ files via extension popup</strong> &mdash; Fixed: opening <code>.gz</code> files from the extension popup or context menu no longer shows "Binary file" error. Gzipped files are now properly preserved as binary through session storage and decompressed in the viewer.</li>
+      <li><strong>Overlay auto-cleanup</strong> &mdash; Warnings, error popups, GC% offers, and preview banners are now automatically dismissed when switching tabs, closing tabs, or loading new files. No more stale notifications from a previously viewed file.</li>
+      <li><strong>Large GZ handling</strong> &mdash; Compressed files over 7 MB open the viewer directly instead of attempting to pass through session storage (which has a 10 MB quota). Drop the file onto the viewer for seamless decompression.</li>
+    </ul>
   </div>
 </details>
 

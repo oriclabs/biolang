@@ -442,7 +442,29 @@
   }
 
   // ── Parsers ────────────────────────────────────────────────────
-  function parseFasta(text) {
+
+  // Detect whether sequences are protein or nucleotide.
+  // Sample up to 5 sequences; if >20% of residues are amino-acid-only
+  // (not in ATCGNUatcgnu), classify as protein.
+  function detectSeqType(records, nameHint) {
+    if (nameHint && /\.faa$/i.test(nameHint)) return "protein";
+    if (nameHint && /\.(fna|fnt)$/i.test(nameHint)) return "dna";
+    var sample = records.slice(0, 5);
+    var aaOnly = 0, total = 0;
+    for (var i = 0; i < sample.length; i++) {
+      var s = sample[i].sequence.toUpperCase();
+      for (var j = 0; j < Math.min(s.length, 200); j++) {
+        var c = s.charAt(j);
+        if (/[A-Z]/.test(c)) {
+          total++;
+          if ("DEFHIKLMPQRSVWY".indexOf(c) >= 0) aaOnly++;
+        }
+      }
+    }
+    return (total > 0 && aaOnly / total > 0.15) ? "protein" : "dna";
+  }
+
+  function parseFasta(text, nameHint) {
     var records = [];
     var lines = text.split("\n");
     var header = "", seq = [];
@@ -471,11 +493,25 @@
       var s = seq.join("");
       records.push({ id: header.split(/\s/)[0], description: header, sequence: s, length: s.length, gc: fastaGC(s) });
     }
+
+    var seqType = detectSeqType(records, nameHint);
+    var isProtein = seqType === "protein";
+
+    if (isProtein) {
+      return {
+        columns: ["id", "description", "length", "sequence"],
+        colTypes: ["str", "str", "num", "pseq"],
+        rows: records.map(function(r) { return [r.id, r.description, r.length, r.sequence]; }),
+        stats: proteinStats(records),
+        seqType: "protein"
+      };
+    }
     return {
       columns: ["id", "description", "length", "gc_pct", "sequence"],
       colTypes: ["str", "str", "num", "num", "seq"],
       rows: records.map(function(r) { return [r.id, r.description, r.length, r.gc, r.sequence]; }),
-      stats: fastaStats(records)
+      stats: fastaStats(records),
+      seqType: "dna"
     };
   }
 
@@ -499,6 +535,34 @@
       "Avg length": Math.round(total / records.length),
       "Min length": sorted[sorted.length - 1], "Max length": sorted[0],
       "N50": n50, "GC %": totalBp ? (gcCount / totalBp * 100).toFixed(1) + "%" : "N/A"
+    };
+  }
+
+  function proteinStats(records) {
+    if (!records.length) return {};
+    var lens = records.map(function(r) { return r.length; });
+    var total = lens.reduce(function(a, b) { return a + b; }, 0);
+    var sorted = lens.slice().sort(function(a, b) { return b - a; });
+    // Amino acid composition of first 10 sequences (sampled)
+    var aaCounts = {};
+    var sampleTotal = 0;
+    records.slice(0, 10).forEach(function(r) {
+      for (var j = 0; j < r.sequence.length; j++) {
+        var c = r.sequence.charAt(j).toUpperCase();
+        if (/[A-Z]/.test(c)) {
+          aaCounts[c] = (aaCounts[c] || 0) + 1;
+          sampleTotal++;
+        }
+      }
+    });
+    // Most abundant amino acids
+    var topAA = Object.entries(aaCounts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 5)
+      .map(function(e) { return e[0] + " " + (e[1] / sampleTotal * 100).toFixed(1) + "%"; }).join(", ");
+    return {
+      "Sequences": records.length, "Total residues": total,
+      "Avg length": Math.round(total / records.length),
+      "Min length": sorted[sorted.length - 1], "Max length": sorted[0],
+      "Type": "Protein", "Top residues": topAA
     };
   }
 
@@ -716,7 +780,7 @@
     var t0 = performance.now();
     var result;
     switch (fmt) {
-      case "fasta": result = parseFasta(text); break;
+      case "fasta": result = parseFasta(text, name); break;
       case "fastq": result = parseFastq(text); break;
       case "vcf":   result = parseVcf(text); break;
       case "bed":   result = parseBed(text); break;
@@ -928,6 +992,7 @@
   }
 
   function addFile(name, size, text, truncated, fileRef) {
+    dismissAllOverlays();
     // Chunked preview: for large files, only parse first N lines
     var fullText = null;
     var linePreview = null;
@@ -1147,7 +1212,21 @@
     });
   }
 
+  // Dismiss all transient overlays (warnings, offers, errors, toasts)
+  function dismissAllOverlays() {
+    var ids = ["vw-file-error", "vw-file-warning", "vw-gc-offer"];
+    ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    // Remove any preview banners
+    document.querySelectorAll(".vw-preview-banner").forEach(function(el) { el.remove(); });
+    // Remove lingering toasts
+    document.querySelectorAll("[style*='position:fixed'][style*='bottom:60px']").forEach(function(el) { el.remove(); });
+  }
+
   function switchTab(idx) {
+    dismissAllOverlays();
     // Save current sort state before switching
     if (activeTab >= 0) {
       tabSortState[activeTab] = { col: sortCol, asc: sortAsc, sortCols: sortCols.slice() };
@@ -1171,6 +1250,7 @@
   }
 
   function closeTab(idx) {
+    dismissAllOverlays();
     files.splice(idx, 1);
     if (files.length === 0) {
       workspace.classList.remove("active");
@@ -1202,7 +1282,7 @@
     // Show "Open in Browser" for coordinate-based formats
     browserBtn.style.display = "none"; // BioBrowser bridge disabled — needs more testing
     // Show motif search for formats with sequence columns
-    var hasSeq = f.parsed.colTypes.some(function(t) { return t === "seq"; });
+    var hasSeq = f.parsed.colTypes.some(function(t) { return isSeqType(t); });
     var motifInput = document.getElementById("vw-motif-input");
     if (motifInput) motifInput.style.display = hasSeq ? "" : "none";
 
@@ -1342,9 +1422,9 @@
         var td = document.createElement("td");
         var val = rows[ri].row[ci];
         var colType = f.parsed.colTypes[ci];
-        if (colType === "seq") {
+        if (isSeqType(colType)) {
           td.className = "seq-cell";
-          td.innerHTML = colorSequence(String(val).substring(0, 40));
+          td.innerHTML = colorSequence(String(val).substring(0, 40), colType);
         } else if (colType === "num") {
           td.className = "num-cell";
           td.textContent = typeof val === "number" ? val.toLocaleString() : val;
@@ -1887,7 +1967,7 @@
       td.style.cssText = "font-family:var(--vw-mono);padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;";
       td.textContent = sc.text;
       if (sc.title) td.title = sc.title;
-      if (sc.type === "seq") td.style.color = "var(--vw-green)";
+      if (isSeqType(sc.type)) td.style.color = sc.type === "pseq" ? "var(--vw-cyan, #22d3ee)" : "var(--vw-green)";
       if (hiddenCols[activeTab] && hiddenCols[activeTab].has(ci)) td.style.display = "none";
       summaryTr.appendChild(td);
     });
@@ -2075,17 +2155,20 @@
           td.innerHTML = colorCigar(String(val));
         } else if (colName === "FILTER" && isVcf) {
           td.innerHTML = colorFilter(val);
-        } else if (colType === "seq") {
+        } else if (isSeqType(colType)) {
           td.className = "seq-cell";
           var seqStr = String(val).substring(0, 120);
-          if (motifTerm && motifTerm.length > 0) {
+          if (colType === "pseq") {
+            td.innerHTML = colorProtein(seqStr);
+          } else if (motifTerm && motifTerm.length > 0) {
             td.innerHTML = colorSequenceWithMotif(seqStr, motifTerm);
           } else if (isFasta && seqStr.length > 6) {
             td.innerHTML = colorSequenceWithCodons(seqStr);
           } else {
             td.innerHTML = colorSequence(seqStr);
           }
-          if (String(val).length > 120) td.innerHTML += '<span style="color:var(--vw-text-muted)">... (' + String(val).length + ' bp)</span>';
+          var unitLabel = colType === "pseq" ? " aa" : " bp";
+          if (String(val).length > 120) td.innerHTML += '<span style="color:var(--vw-text-muted)">... (' + String(val).length + unitLabel + ')</span>';
         } else if (colType === "qual") {
           td.className = "qual-cell";
           var qstr = String(val);
@@ -4054,7 +4137,7 @@
     });
     // For sequence formats, show total bp
     var seqCols = [];
-    f.parsed.colTypes.forEach(function(t, i) { if (t === "seq") seqCols.push(i); });
+    f.parsed.colTypes.forEach(function(t, i) { if (isSeqType(t)) seqCols.push(i); });
     if (seqCols.length > 0) {
       var totalBp = 0;
       selectedRows.forEach(function(idx) {
@@ -4098,7 +4181,7 @@
       try {
         var motifRe = new RegExp(motifTerm, "i");
         var ff = files[activeTab];
-        var seqCols = ff ? ff.parsed.colTypes.map(function(t, i) { return t === "seq" ? i : -1; }).filter(function(i) { return i >= 0; }) : [];
+        var seqCols = ff ? ff.parsed.colTypes.map(function(t, i) { return isSeqType(t) ? i : -1; }).filter(function(i) { return i >= 0; }) : [];
         if (seqCols.length > 0) {
           rows = rows.filter(function(item) {
             return seqCols.some(function(ci) {
@@ -4184,12 +4267,49 @@
     return (b / 1073741824).toFixed(2) + " GB";
   }
 
-  function colorSequence(seq) {
+  // Helper: check if colType is any sequence type (DNA or protein)
+  function isSeqType(t) { return t === "seq" || t === "pseq"; }
+
+  function colorSequence(seq, colType) {
+    if (colType === "pseq") return colorProtein(seq);
     var parts = [];
     for (var i = 0; i < seq.length; i++) {
       var c = seq.charAt(i).toUpperCase();
       if (c === "A" || c === "T" || c === "C" || c === "G" || c === "U" || c === "N") {
         parts.push('<span class="nt-' + (c === "U" ? "T" : c) + '">' + seq.charAt(i) + '</span>');
+      } else {
+        parts.push(seq.charAt(i));
+      }
+    }
+    return parts.join("");
+  }
+
+  // Amino acid coloring by physicochemical property (Zappo scheme)
+  // Hydrophobic (amber): A, I, L, M, F, W, V
+  // Polar (green): S, T, N, Q
+  // Positive charge (blue): K, R, H
+  // Negative charge (red): D, E
+  // Aromatic (purple): F, W, Y  (F,W overlap with hydrophobic — aromatic takes precedence)
+  // Special (cyan): C, G, P
+  var AA_CLASS = {
+    A:"aa-hyd",I:"aa-hyd",L:"aa-hyd",M:"aa-hyd",V:"aa-hyd",
+    F:"aa-aro",W:"aa-aro",Y:"aa-aro",
+    S:"aa-pol",T:"aa-pol",N:"aa-pol",Q:"aa-pol",
+    K:"aa-pos",R:"aa-pos",H:"aa-pos",
+    D:"aa-neg",E:"aa-neg",
+    C:"aa-spc",G:"aa-spc",P:"aa-spc",
+    X:"aa-unk",U:"aa-spc",O:"aa-spc",B:"aa-unk",Z:"aa-unk",J:"aa-unk"
+  };
+
+  function colorProtein(seq) {
+    var parts = [];
+    for (var i = 0; i < seq.length; i++) {
+      var c = seq.charAt(i).toUpperCase();
+      var cls = AA_CLASS[c];
+      if (cls) {
+        parts.push('<span class="' + cls + '">' + seq.charAt(i) + '</span>');
+      } else if (c === "*") {
+        parts.push('<span class="aa-stop">*</span>');
       } else {
         parts.push(seq.charAt(i));
       }
@@ -6574,6 +6694,8 @@
   // ── Feature 13: GC% Auto-Offer ─────────────────────────────────
   function showGcOffer(f) {
     if (f.parsed.format !== "fasta" && f.parsed.format !== "fastq") return;
+    // Don't offer GC% for protein sequences
+    if (f.parsed.seqType === "protein") return;
     // Check if GC% column already exists
     if (f.parsed.columns.indexOf("GC%") >= 0) return;
 
@@ -7675,7 +7797,7 @@
       var firstFound = false;
       for (var ri = 0; ri < f.parsed.rows.length; ri++) {
         for (var ci = 0; ci < f.parsed.columns.length; ci++) {
-          if (f.parsed.colTypes[ci] === "seq" || f.parsed.colTypes[ci] === "qual") continue; // skip sequence/quality
+          if (isSeqType(f.parsed.colTypes[ci]) || f.parsed.colTypes[ci] === "qual") continue; // skip sequence/quality
           var val = String(f.parsed.rows[ri][ci]);
           if (val.indexOf(find) !== -1) {
             if (!all && firstFound) continue;

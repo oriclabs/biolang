@@ -229,7 +229,9 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
 <details>
   <summary>GZ Decompression</summary>
   <div class="detail-body">
-    <p>BioPeek transparently decompresses <code>.gz</code> files using the browser's native <code>DecompressionStream</code> API. Drop a <code>.vcf.gz</code>, <code>.fastq.gz</code>, <code>.bed.gz</code>, or any gzipped bioinformatics file and it is decompressed on the fly without any server.</p>
+    <p>BioPeek transparently decompresses <code>.gz</code> and <code>.bgz</code> files using the browser's native <code>DecompressionStream</code> API. Drop a <code>.vcf.gz</code>, <code>.fastq.gz</code>, <code>.fa.gz</code>, <code>.bed.gz</code>, or any gzipped bioinformatics file and it is decompressed on the fly without any server.</p>
+    <p>This works across all entry points: drag-and-drop onto the viewer, file picker, extension popup, context menu ("Open in BioPeek"), and URL loading. Files up to 7 MB can be opened from the extension popup; larger gz files open the viewer directly for drag-and-drop.</p>
+    <div class="note"><strong>Browser support:</strong> Requires Chrome 80+, Firefox 113+, or Safari 16.4+. Older browsers will show a decompression error with a <code>gunzip</code> command hint.</div>
   </div>
 </details>
 
@@ -283,9 +285,29 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
 </details>
 
 <details>
-  <summary>Codon Coloring for FASTA</summary>
+  <summary>Protein Sequence Support</summary>
   <div class="detail-body">
-    <p>FASTA sequences display codon-level coloring when a reading frame is selected. Each codon is tinted by amino acid property: hydrophobic (amber), polar (cyan), positive (violet), negative (rose). Stop codons are marked in red.</p>
+    <p>BioPeek auto-detects protein FASTA files (<code>.faa</code> or by content analysis). Protein sequences are colored by physicochemical property using the Zappo scheme:</p>
+    <table>
+      <thead><tr><th>Property</th><th>Residues</th><th>Color</th></tr></thead>
+      <tbody>
+        <tr><td>Hydrophobic</td><td>A, I, L, M, V</td><td style="color:#fbbf24">Amber</td></tr>
+        <tr><td>Aromatic</td><td>F, W, Y</td><td style="color:#c084fc">Purple</td></tr>
+        <tr><td>Polar</td><td>S, T, N, Q</td><td style="color:#34d399">Green</td></tr>
+        <tr><td>Positive charge</td><td>K, R, H</td><td style="color:#60a5fa">Blue</td></tr>
+        <tr><td>Negative charge</td><td>D, E</td><td style="color:#f87171">Red</td></tr>
+        <tr><td>Special</td><td>C, G, P</td><td style="color:#22d3ee">Cyan</td></tr>
+        <tr><td>Stop codon</td><td>*</td><td style="color:#f43f5e">Rose (bold)</td></tr>
+      </tbody>
+    </table>
+    <p>Protein files show residue count instead of bp, display amino acid composition statistics (top residues), and skip the GC% column offer since it's irrelevant for protein sequences.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Codon Coloring for DNA FASTA</summary>
+  <div class="detail-body">
+    <p>DNA FASTA sequences display codon-level coloring with alternating tint bands per triplet. Nucleotides use standard coloring: <span style="color:#34d399">A</span> green, <span style="color:#f87171">T</span> red, <span style="color:#60a5fa">C</span> blue, <span style="color:#fbbf24">G</span> amber, <span style="color:#94a3b8">N</span> grey.</p>
   </div>
 </details>
 
@@ -465,6 +487,20 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
       <li><strong>Popup quick-open</strong> &mdash; Drop files or paste URLs in the extension popup for instant viewing</li>
     </ul>
     <div class="note"><strong>Extension limitations:</strong> Share links and PWA features (file handling, install prompt, session restore) are not available in the extension due to <code>chrome-extension://</code> URLs.</div>
+  </div>
+</details>
+
+<h2>Recent Changes</h2>
+
+<details open>
+  <summary>v1.3.0</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Protein FASTA support</strong> &mdash; Auto-detects protein sequences (<code>.faa</code> or by content). Amino acids colored by physicochemical property (Zappo scheme). Protein-specific stats (top residues, composition). GC% offer suppressed for protein files.</li>
+      <li><strong>GZ files via extension popup</strong> &mdash; Fixed: opening <code>.gz</code> files from the extension popup or context menu no longer shows "Binary file" error. Gzipped files are now properly preserved as binary through session storage and decompressed in the viewer.</li>
+      <li><strong>Overlay auto-cleanup</strong> &mdash; Warnings, error popups, GC% offers, and preview banners are now automatically dismissed when switching tabs, closing tabs, or loading new files. No more stale notifications from a previously viewed file.</li>
+      <li><strong>Large GZ handling</strong> &mdash; Compressed files over 7 MB open the viewer directly instead of attempting to pass through session storage (which has a 10 MB quota). Drop the file onto the viewer for seamless decompression.</li>
+    </ul>
   </div>
 </details>
 

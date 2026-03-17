@@ -1,7 +1,7 @@
 {
-  "name": "br-wasm",
+  "name": "bl-wasm",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "files": [
     "bl_wasm_bg.wasm",
     "bl_wasm.js",
