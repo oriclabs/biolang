@@ -32,11 +32,23 @@ DNA has a unique structure: two strands wound around each other in a **double he
 
 ![The DNA Double Helix](images/dna-double-helix.svg)
 
-When we write a DNA sequence like `ATGCGATCG`, we mean the **coding strand read 5' to 3'**. The other strand is implied — you can always reconstruct it using the base pairing rules.
+Each DNA strand has a direction, like a one-way street. Every nucleotide has a sugar with numbered carbon atoms. The **5' (five-prime) carbon** connects to the next nucleotide's **3' (three-prime) carbon** via a phosphate bond — so the strand has a built-in direction: 5'→3'. Both strands are built the same way, but they run in **opposite directions** (called **antiparallel**):
+
+```
+5'──A──T──G──C──G──3'   ← coding strand (read left to right)
+    |  |  |  |  |
+3'──T──A──C──G──C──5'   ← template strand (runs the other way)
+```
+
+The base pairing (A-T, C-G) holds the two strands together, but notice the 5' and 3' ends are flipped. This antiparallel arrangement is why enzymes like RNA polymerase can only read in one direction (3'→5' on the template, producing mRNA in 5'→3').
+
+When we write a DNA sequence like `ATGCGATCG`, we mean the **coding strand read 5'→3'** — this is the universal convention in biology and bioinformatics. The other strand is implied — you can always reconstruct it using the base pairing rules.
 
 ### RNA — The Single-Stranded Messenger
 
-**RNA** is the working copy. When a cell needs to use a gene, it copies that region of DNA into RNA through a process called *transcription*. RNA uses almost the same alphabet, except it swaps T for **U**racil. So an `A` in DNA becomes a `U` in RNA's complement, while the sequence being copied replaces every `T` with `U`: `ATGCG` in DNA becomes `AUGCG` in RNA.
+**RNA** is the working copy. When a cell needs to use a gene, it copies that region of DNA into RNA through a process called *transcription*. Remember that DNA has two strands. The cell's RNA polymerase reads the **template strand** (also called the antisense strand) and builds a complementary RNA. The resulting mRNA sequence ends up matching the **coding strand** (the other strand, also called the sense strand) — except RNA uses **U**racil (U) instead of Thymine (T). So in practice, every `T` in the coding strand becomes `U` in the mRNA: `ATGCG` in DNA becomes `AUGCG` in RNA.
+
+> **Why bioinformatics uses the coding strand:** When databases like NCBI store a gene sequence, they store the coding strand (5'→3'). To get the mRNA, just replace T with U. You rarely need to think about the template strand directly.
 
 Unlike DNA's stable double helix, RNA is **single-stranded** — it is a temporary copy meant to be read and then degraded:
 
@@ -262,7 +274,12 @@ println(f"GC content: {gc_content(genome_fragment)}")
 # GC content: 0.4782608695652174
 ```
 
-GC content matters because G-C base pairs form three hydrogen bonds (versus two for A-T), making GC-rich regions more thermally stable. Organisms have characteristic GC content — *Plasmodium falciparum* (malaria parasite) has about 19% GC, while *Streptomyces* bacteria can exceed 70%. If you sequence a sample and see unusual GC content, it might indicate contamination or a novel organism.
+**Why GC content and not AT content?** Since GC% + AT% = 100%, knowing one tells you the other. The convention is to report GC because it's the biologically interesting number:
+
+- **Thermal stability** — G-C base pairs form three hydrogen bonds (versus two for A-T), so GC-rich regions are harder to melt apart. This directly affects PCR primer design — you need primers with the right melting temperature.
+- **Gene density** — GC-rich regions in the human genome tend to be gene-dense, and CpG islands (clusters of CG dinucleotides) mark promoter regions where genes start.
+- **Sequencing quality** — Illumina sequencers have lower coverage in regions with very high or very low GC content, so checking GC distribution is a standard quality control step.
+- **Species fingerprint** — Organisms have characteristic GC content. *Plasmodium falciparum* (malaria parasite) has about 19% GC, while *Streptomyces* bacteria can exceed 70%. If you sequence a sample and see unexpected GC content, it might indicate contamination or a novel organism.
 
 ### Finding patterns in DNA
 

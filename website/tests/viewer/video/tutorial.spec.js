@@ -93,7 +93,7 @@ async function step(page, title, subtitle, durationMs = 1800) {
 // Single continuous test — one VCF file, all key features
 // ---------------------------------------------------------------------------
 
-test('BLViewer Feature Tutorial', async ({ page }) => {
+test('BioPeek Feature Tutorial', async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1440, height: 900 });
 
@@ -106,7 +106,7 @@ test('BLViewer Feature Tutorial', async ({ page }) => {
   }
 
   await step(page,
-    'Welcome to BLViewer',
+    'Welcome to BioPeek',
     '100% client-side bioinformatics file viewer. Your data never leaves your browser.',
     2500);
 
@@ -253,7 +253,7 @@ test('BLViewer Feature Tutorial', async ({ page }) => {
 
   // ── OUTRO ──
   await step(page,
-    "That's BLViewer!",
+    "That's BioPeek!",
     'No uploads. No server. Works offline as a PWA or Chrome extension. Try it at lang.bio/viewer',
     3000);
 

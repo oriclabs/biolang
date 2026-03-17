@@ -1,6 +1,6 @@
 {
-  "name": "BLViewer",
-  "short_name": "BLViewer",
+  "name": "BioPeek",
+  "short_name": "BioPeek",
   "description": "View and analyze FASTA, FASTQ, VCF, BED, GFF, CSV bioinformatics files in your browser. No upload, no server — runs entirely offline.",
   "start_url": "/viewer.html",
   "display": "standalone",

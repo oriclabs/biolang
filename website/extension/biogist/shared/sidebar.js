@@ -226,7 +226,7 @@
         });
         li.appendChild(copyIcon);
 
-        // Inline "Open in BLViewer" button for file entities (toggle)
+        // Inline "Open in BioPeek" button for file entities (toggle)
         if (type === "file") {
           const viewBtn = document.createElement("button");
           viewBtn.textContent = "\u{1F441}";
@@ -265,7 +265,7 @@
 
   // escapeHtml imported from BioGistCore
 
-  // --- Open file in BLViewer ---
+  // --- Open file in BioPeek ---
   let activeFilePanel = null; // track which URL's panel is open
   let activeFileBtn = null;   // track the highlighted eye button
 
@@ -308,7 +308,7 @@
         '<button class="file-panel-download" style="flex:1;padding:6px;border-radius:6px;border:none;background:#06b6d4;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Download</button>' +
         '<button class="file-panel-copy" style="flex:1;padding:6px;border-radius:6px;border:none;background:#334155;color:#e2e8f0;font-size:12px;font-weight:600;cursor:pointer">Copy URL</button>' +
       '</div>' +
-      '<div style="font-size:10px;color:#475569;margin-top:6px">Download and drop into BLViewer, or copy URL to paste in viewer.</div>';
+      '<div style="font-size:10px;color:#475569;margin-top:6px">Download and drop into BioPeek, or copy URL to paste in viewer.</div>';
     document.body.appendChild(panel);
 
     panel.querySelector(".file-panel-download").addEventListener("click", () => {
@@ -319,7 +319,7 @@
         a.download = name;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-        showToast("Downloaded — drop it into BLViewer");
+        showToast("Downloaded — drop it into BioPeek");
         closeFilePanel();
       }).catch(() => {
         navigator.clipboard.writeText(url);

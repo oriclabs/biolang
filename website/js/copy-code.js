@@ -7,7 +7,7 @@
 
       // Wrap pre in a container for proper button positioning
       var wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position:relative';
+      wrapper.style.cssText = 'position:relative;overflow:hidden;max-width:100%';
       pre.parentNode.insertBefore(wrapper, pre);
       wrapper.appendChild(pre);
 

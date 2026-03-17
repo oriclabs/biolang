@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BLViewer — BioLang</title>
+  <title>BioPeek — BioLang</title>
   <link rel="icon" href="../../assets/favicon.svg">
   <link rel="stylesheet" href="../../assets/styles.css">
   <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -34,9 +34,9 @@
         <span class="text-slate-300">Viewer</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>BLViewer</h1>
+        <h1>BioPeek</h1>
         <p>
-          BLViewer is a client-side bioinformatics file viewer. Drop FASTA, FASTQ, VCF, BED,
+          BioPeek is a client-side bioinformatics file viewer. Drop FASTA, FASTQ, VCF, BED,
           GFF, CSV, TSV, or SAM files into your browser for instant parsing, statistics, and
           analysis. Your data never leaves your machine &mdash; everything runs 100% in the browser.
         </p>
@@ -53,7 +53,7 @@
         </div>
 
         <div class="diagram" style="padding:0;overflow:hidden;border-radius:10px">
-          <img src="screenshots/landing.png" alt="BLViewer landing page with drop zone" style="width:100%;display:block;border-radius:10px" loading="lazy">
+          <img src="screenshots/landing.png" alt="BioPeek landing page with drop zone" style="width:100%;display:block;border-radius:10px" loading="lazy">
         </div>
 
         <!-- ═══════════════════════════════════════════════════════════ -->
@@ -270,14 +270,14 @@
               <!-- Step 3: Viewer -->
               <rect x="400" y="30" width="130" height="60" rx="8" fill="#151b2b" stroke="#34d399" stroke-width="1"/>
               <text x="465" y="52" text-anchor="middle" fill="#6ee7b7" font-family="system-ui" font-size="10" font-weight="600">Recipient's</text>
-              <text x="465" y="68" text-anchor="middle" fill="#6ee7b7" font-family="system-ui" font-size="10" font-weight="600">BLViewer</text>
+              <text x="465" y="68" text-anchor="middle" fill="#6ee7b7" font-family="system-ui" font-size="10" font-weight="600">BioPeek</text>
               <defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#475569"/></marker></defs>
             </svg>
           </div>
 
           <div class="note-box">
-            <strong>Hosting matters:</strong> Share links only work when BLViewer is hosted on a public URL (e.g., <code>lang.bio/viewer.html</code>).
-            If you run BLViewer locally (<code>file://</code> or <code>localhost</code>), the generated URL points to your local machine and <strong>cannot be opened by others</strong>.
+            <strong>Hosting matters:</strong> Share links only work when BioPeek is hosted on a public URL (e.g., <code>lang.bio/viewer.html</code>).
+            If you run BioPeek locally (<code>file://</code> or <code>localhost</code>), the generated URL points to your local machine and <strong>cannot be opened by others</strong>.
             The Chrome extension also cannot generate working share links.
           </div>
 
@@ -305,7 +305,7 @@
         <!-- ── Anomaly Detection ─────────────────────────────────── -->
         <div class="feature-card">
           <h3>&#9888; Anomaly Detection</h3>
-          <p>BLViewer automatically scans files for common data quality issues and highlights affected rows with an amber left border. Hover over a highlighted row to see the anomaly description.</p>
+          <p>BioPeek automatically scans files for common data quality issues and highlights affected rows with an amber left border. Hover over a highlighted row to see the anomaly description.</p>
           <div class="diagram">
             <svg viewBox="0 0 440 110" xmlns="http://www.w3.org/2000/svg">
               <rect x="0" y="0" width="440" height="110" rx="6" fill="#0d1117" stroke="#1e293b" stroke-width="1"/>
@@ -353,7 +353,7 @@
         <!-- ── File Validation ───────────────────────────────────── -->
         <div class="feature-card">
           <h3>&#9888; File Validation Report</h3>
-          <p>When a file is loaded, BLViewer automatically checks for format-level issues (missing headers, wrong column counts, etc.) and shows a validation panel at the bottom if problems are found. This is separate from row-level anomaly detection.</p>
+          <p>When a file is loaded, BioPeek automatically checks for format-level issues (missing headers, wrong column counts, etc.) and shows a validation panel at the bottom if problems are found. This is separate from row-level anomaly detection.</p>
           <div class="diagram">
             <svg viewBox="0 0 500 70" xmlns="http://www.w3.org/2000/svg">
               <rect x="0" y="0" width="500" height="70" rx="6" fill="#0d1117" stroke="#fbbf24" stroke-width="1.5"/>
@@ -408,8 +408,9 @@
 
         <!-- ── Clipboard Paste ───────────────────────────────────── -->
         <div class="feature-card">
-          <h3>Clipboard Paste</h3>
-          <p>Paste text directly into BLViewer with <span class="key-combo">Ctrl+V</span>. If the pasted text looks like bioinformatics data (starts with <code>&gt;</code>, <code>@</code>, <code>##</code>, etc.), it is auto-parsed as a new file tab named <code>pasted-&lt;timestamp&gt;</code>. Useful for quick inspection of sequences from papers or terminal output.</p>
+          <h3>Clipboard Paste &amp; Smart Paste</h3>
+          <p>Paste text directly into BioPeek with <span class="key-combo">Ctrl+V</span>. If the pasted text looks like bioinformatics data (starts with <code>&gt;</code>, <code>@</code>, <code>##</code>, etc.), it is auto-parsed as a new file tab named <code>pasted-&lt;timestamp&gt;</code>. Useful for quick inspection of sequences from papers or terminal output.</p>
+          <p><strong>Smart paste</strong> auto-detects the format of pasted content. Raw nucleotide sequences without headers are wrapped as FASTA. Tab-delimited rows with chromosome columns are detected as BED. Comma-separated data becomes CSV. No manual format selection needed.</p>
         </div>
 
         <!-- ── Sequence Tools ────────────────────────────────────── -->
@@ -422,6 +423,18 @@
             <li><strong>Codon translation</strong> &mdash; 3-frame translation to amino acids</li>
             <li><strong>Copy buttons</strong> for each result</li>
           </ul>
+        </div>
+
+        <!-- ── Sequence Motif Search ─────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Sequence Motif Search</h3>
+          <p>Search for DNA/RNA motifs across all sequence columns. Use IUPAC ambiguity codes (e.g., <code>TATAWR</code> for TATA box, <code>CANNTG</code> for E-box) or regex patterns. Matching positions are highlighted inline within sequence cells. The results panel shows match count and positions per sequence.</p>
+        </div>
+
+        <!-- ── Codon Coloring ────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Codon Coloring for FASTA</h3>
+          <p>FASTA sequence cells display codon-level coloring when a reading frame is selected. Each three-nucleotide codon is tinted by amino acid property: hydrophobic (amber), polar (cyan), positive (violet), negative (rose). Stop codons are marked in red. Toggle codon coloring from the column header context menu on sequence columns.</p>
         </div>
 
         <!-- ── BLAST ─────────────────────────────────────────────── -->
@@ -596,13 +609,19 @@
         <!-- ── GC% Auto-offer ──────────────────────────────────────── -->
         <div class="feature-card">
           <h3>GC% Auto-offer</h3>
-          <p>When BLViewer detects a column containing DNA or RNA sequences, it automatically offers to compute GC content. A small <strong>GC%</strong> badge appears next to the column header. Click it to add a computed GC% column to the table. The GC percentage is calculated as <code>(G+C) / (A+T+G+C) &times; 100</code>.</p>
+          <p>When BioPeek detects a column containing DNA or RNA sequences, it automatically offers to compute GC content. A small <strong>GC%</strong> badge appears next to the column header. Click it to add a computed GC% column to the table. The GC percentage is calculated as <code>(G+C) / (A+T+G+C) &times; 100</code>.</p>
         </div>
 
         <!-- ── Coordinate Jump ─────────────────────────────────────── -->
         <div class="feature-card">
           <h3>Coordinate Jump</h3>
           <p>Press <span class="key-combo">Ctrl+G</span> to open the "Go to Row" dialog. Type a row number and press Enter to scroll directly to that row. Useful for navigating large files with thousands of rows.</p>
+        </div>
+
+        <!-- ── Genomic Coordinate Navigation ─────────────────────── -->
+        <div class="feature-card">
+          <h3>Genomic Coordinate Navigation</h3>
+          <p>Press <span class="key-combo">Ctrl+Shift+G</span> to open the genomic coordinate search. Type a coordinate like <code>chr1:12345</code> or a range like <code>chr1:10000-20000</code> and press Enter. BioPeek filters the table to show only rows overlapping that region. Works with VCF, BED, GFF, and SAM files that have chromosome and position columns.</p>
         </div>
 
         <!-- ── Keyboard Help ───────────────────────────────────────── -->
@@ -617,7 +636,7 @@
         <!-- ── Recent Files ────────────────────────────────────────── -->
         <div class="feature-card">
           <h3>Recent Files</h3>
-          <p>The BLViewer landing page shows a list of recently opened files. Each entry displays the file name, format icon, file size, row count, and the date it was last opened. Files cached in IndexedDB show a green dot and restore instantly on click. Recent file history is stored in <code>localStorage</code>.</p>
+          <p>The BioPeek landing page shows a list of recently opened files. Each entry displays the file name, format icon, file size, row count, and the date it was last opened. Files cached in IndexedDB show a green dot and restore instantly on click. Recent file history is stored in <code>localStorage</code>.</p>
         </div>
 
         <!-- ── Drag-to-Group ───────────────────────────────────────── -->
@@ -736,7 +755,7 @@
         <!-- ── BLAST Link ──────────────────────────────────────────── -->
         <div class="feature-card">
           <h3>&#127981; External Database Links</h3>
-          <p>Right-click cells to open external biological databases in a new tab. BLViewer detects the data type and offers the appropriate link:</p>
+          <p>Right-click cells to open external biological databases in a new tab. BioPeek detects the data type and offers the appropriate link:</p>
           <div class="not-prose overflow-x-auto my-3">
             <table class="w-full text-sm text-left">
               <thead class="text-violet-400 border-b border-slate-700">
@@ -921,6 +940,88 @@
           </ul>
         </div>
 
+        <!-- ── GZ Decompression ────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>GZ Decompression</h3>
+          <p>BioPeek transparently decompresses <code>.gz</code> files using the browser's native <code>DecompressionStream</code> API. Drop a <code>.vcf.gz</code>, <code>.fastq.gz</code>, <code>.bed.gz</code>, or any gzipped bioinformatics file and it is decompressed on the fly &mdash; no server needed. The decompressed content is parsed and displayed exactly like a regular file.</p>
+          <div class="info-box">
+            Requires a modern browser with DecompressionStream support (Chrome 80+, Edge 80+, Firefox 113+, Safari 16.4+).
+          </div>
+        </div>
+
+        <!-- ── Chunked Preview ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Chunked Preview for Large Files</h3>
+          <p>Files larger than 5 MB are loaded using chunked preview. The first chunk is parsed and displayed immediately while the rest of the file continues loading in the background. A progress indicator shows loading status. Table navigation is available as soon as the first chunk is ready, so you can start exploring without waiting for the full file.</p>
+        </div>
+
+        <!-- ── FASTQ QC Panel ────────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>FASTQ QC Panel</h3>
+          <p>FASTQ files display a dedicated quality control panel in the Stats view with:</p>
+          <ul style="color:#94a3b8;font-size:0.9rem">
+            <li><strong>Read statistics</strong> &mdash; total reads, mean/median length, min/max length</li>
+            <li><strong>Q30%</strong> &mdash; percentage of bases with quality score &ge; 30</li>
+            <li><strong>Quality histogram</strong> &mdash; SVG bar chart of per-base quality distribution</li>
+            <li><strong>Per-position quality</strong> &mdash; box-plot style chart showing quality across read positions</li>
+            <li><strong>GC content distribution</strong> &mdash; per-read GC% histogram</li>
+          </ul>
+        </div>
+
+        <!-- ── FASTQ Quality Heatmap ─────────────────────────────── -->
+        <div class="feature-card">
+          <h3>FASTQ Quality Heatmap Bars</h3>
+          <p>In the table view, FASTQ quality strings are rendered as colored heatmap bars. Each character in the quality string is mapped to a color: green for high quality (&ge; Q30), amber for medium (Q20&ndash;Q29), and red for low (&lt; Q20). This gives instant visual feedback on per-base quality without switching to the Stats view.</p>
+        </div>
+
+        <!-- ── VCF Variant Density Chart ─────────────────────────── -->
+        <div class="feature-card">
+          <h3>VCF Variant Density Chart</h3>
+          <p>VCF files show a per-chromosome variant density chart in the Stats view. Each chromosome is displayed as a horizontal bar with variant count. The chart gives an immediate overview of variant distribution across the genome. Click a chromosome bar to filter the table to that chromosome.</p>
+        </div>
+
+        <!-- ── VCF FILTER Pie Chart ──────────────────────────────── -->
+        <div class="feature-card">
+          <h3>VCF FILTER Pie Chart</h3>
+          <p>VCF Stats view includes a donut chart showing the distribution of FILTER values (PASS vs. various filter flags). Hover over segments to see counts and percentages. Click a segment to filter the table to that FILTER value. Useful for quick assessment of variant call quality.</p>
+        </div>
+
+        <!-- ── Strand Indicators ─────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Strand Indicators</h3>
+          <p>BED and GFF files display visual strand indicators in the strand column. Plus strand (<code>+</code>) is shown with a right-pointing arrow in green, minus strand (<code>-</code>) with a left-pointing arrow in rose, and unknown strand (<code>.</code>) with a dot in gray. Makes strand orientation immediately visible when scanning the table.</p>
+        </div>
+
+        <!-- ── Copy as BioLang ───────────────────────────────────── -->
+        <div class="feature-card">
+          <h3>Copy as BioLang</h3>
+          <p>Right-click any table view and select <strong>"Copy as BioLang"</strong> to generate BioLang pipe code that reproduces your current view. The generated code includes the file load, any active filters, sort order, and column selection. Paste it into the BioLang console or a <code>.bl</code> script to reproduce the analysis programmatically.</p>
+        </div>
+
+        <!-- ── Copy as FASTA / Copy as BED ───────────────────────── -->
+        <div class="feature-card">
+          <h3>Copy as FASTA / Copy as BED</h3>
+          <p>The cell context menu includes format-aware copy options. Right-click a sequence cell and select <strong>"Copy as FASTA"</strong> to copy it wrapped with a FASTA header. Right-click a row in a genomic file and select <strong>"Copy as BED"</strong> to copy the region as a BED line. Useful for quickly extracting data for use in other tools.</p>
+        </div>
+
+        <!-- ── URL Loading with CORS Proxy ───────────────────────── -->
+        <div class="feature-card">
+          <h3>URL Loading with CORS Proxy Fallback</h3>
+          <p>When loading a remote file via the <code>?url=</code> parameter, BioPeek first attempts a direct fetch. If the request fails due to CORS restrictions, it automatically retries through a CORS proxy. A notification indicates when the proxy fallback is used. This allows loading files from servers that do not set CORS headers, such as many FTP mirrors and institutional repositories.</p>
+        </div>
+
+        <!-- ── PostMessage File Receive ──────────────────────────── -->
+        <div class="feature-card">
+          <h3>PostMessage File Receive</h3>
+          <p>BioPeek listens for <code>postMessage</code> events from other browser contexts. The BioGist extension uses this to send detected file links directly to BioPeek for visualization. Other integrations can send file content or URLs via the <code>window.postMessage</code> API with the message type <code>biopeek-open</code>.</p>
+        </div>
+
+        <!-- ── Inline Docs Hover Tooltips ────────────────────────── -->
+        <div class="feature-card">
+          <h3>Inline Docs Hover Tooltips</h3>
+          <p>In the BioLang console (view mode 4), hovering over builtin function names shows inline documentation tooltips with the function signature, description, and a usage example. This provides quick reference without leaving the console or switching to the docs.</p>
+        </div>
+
         <!-- ── Streaming Full-File Stats ───────────────────────────── -->
         <div class="feature-card">
           <h3>&#9881; Streaming Full-File Stats</h3>
@@ -958,7 +1059,10 @@
               <tr><td class="py-2 px-4"><span class="key-combo">F11</span></td><td class="py-2 px-4">Toggle fullscreen mode</td></tr>
               <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">Search &amp; Filter</td></tr>
               <tr><td class="py-2 px-4"><span class="key-combo">/</span></td><td class="py-2 px-4">Focus search box</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+K</span></td><td class="py-2 px-4">Quick search (search box focus with command palette)</td></tr>
               <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+Shift+F</span></td><td class="py-2 px-4">Find column by name</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+Shift+G</span></td><td class="py-2 px-4">Genomic coordinate navigation (chr1:12345)</td></tr>
+              <tr><td class="py-2 px-4"><span class="key-combo">Ctrl+E</span></td><td class="py-2 px-4">Export current view</td></tr>
               <tr><td class="py-2 px-4"><span class="key-combo">Esc</span></td><td class="py-2 px-4">Close overlay, panel, or search</td></tr>
               <tr><td colspan="2" class="py-2 px-4 text-violet-400 font-semibold text-xs uppercase tracking-wider">Selection &amp; Editing</td></tr>
               <tr><td class="py-2 px-4"><span class="key-combo">Enter</span></td><td class="py-2 px-4">Copy cell value / confirm edit / expand row detail</td></tr>
@@ -992,10 +1096,10 @@
         <h2>URL Loading</h2>
         <p>Load a remote file by appending a <code>url</code> query parameter:</p>
         <pre><code>https://lang.bio/viewer.html?url=https://example.com/data.vcf</code></pre>
-        <p>The file is fetched client-side &mdash; the server never sees your data URL. Requires CORS headers on the remote server.</p>
+        <p>The file is fetched client-side &mdash; the server never sees your data URL. If the remote server does not set CORS headers, BioPeek automatically retries through a CORS proxy fallback.</p>
 
         <h3>Protocol Handler</h3>
-        <p>BLViewer registers the <code>web+bioview:</code> protocol. Other tools and scripts can link to:</p>
+        <p>BioPeek registers the <code>web+bioview:</code> protocol. Other tools and scripts can link to:</p>
         <pre><code>web+bioview:https://example.com/data.vcf</code></pre>
 
         <h3>Share Link Format</h3>
@@ -1007,19 +1111,19 @@
         <h2>PWA &amp; Offline</h2>
         <ul>
           <li><strong>Installable</strong> &mdash; click the install prompt or use your browser's install option. Works offline after first visit.</li>
-          <li><strong>File Handling API</strong> &mdash; when installed as PWA, double-click .vcf, .fasta, .bed, etc. files to open directly in BLViewer</li>
-          <li><strong>Session restore</strong> &mdash; files under 5 MB are cached in IndexedDB. On next visit, BLViewer offers to restore your last session.</li>
+          <li><strong>File Handling API</strong> &mdash; when installed as PWA, double-click .vcf, .fasta, .bed, etc. files to open directly in BioPeek</li>
+          <li><strong>Session restore</strong> &mdash; files under 5 MB are cached in IndexedDB. On next visit, BioPeek offers to restore your last session.</li>
           <li><strong>Recent files history</strong> &mdash; the landing page shows recently opened files with format, size, row count, and time. Cached files (green dot) restore instantly.</li>
         </ul>
 
         <!-- ═══════════════════════════════════════════════════════════ -->
         <h2>Chrome Extension</h2>
-        <p>The Chrome extension provides BLViewer directly in your browser with additional integration features:</p>
+        <p>The Chrome extension provides BioPeek directly in your browser with additional integration features:</p>
         <ul>
-          <li><strong>Context menu</strong> &mdash; right-click any link to a bioinformatics file and select "Open in BLViewer"</li>
+          <li><strong>Context menu</strong> &mdash; right-click any link to a bioinformatics file and select "Open in BioPeek"</li>
           <li><strong>Download interception</strong> &mdash; automatically offers to open downloaded bio files</li>
           <li><strong>Popup quick-open</strong> &mdash; drop files or paste URLs in the extension popup</li>
-          <li><strong>Text selection</strong> &mdash; select sequence text on any page, right-click, "Analyze selection in BLViewer"</li>
+          <li><strong>Text selection</strong> &mdash; select sequence text on any page, right-click, "Analyze selection in BioPeek"</li>
         </ul>
         <div class="note-box">
           <strong>Extension limitations:</strong> Share links and PWA features (file handling, install prompt) are not available in the extension. The extension uses <code>chrome-extension://</code> URLs that cannot be shared externally.
@@ -1029,7 +1133,7 @@
         <h2>Binary File Detection</h2>
         <p>
           BAM, BCF, and CRAM files are binary formats that cannot be parsed in the browser text viewer.
-          BLViewer detects these and suggests extracting regions to text formats using BioLang or
+          BioPeek detects these and suggests extracting regions to text formats using BioLang or
           samtools before viewing.
         </p>
 
@@ -1079,7 +1183,7 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
         </div>
 
         <p class="mt-8">
-          <a href="../../viewer.html" class="text-violet-400 hover:text-violet-300">Open BLViewer &rarr;</a>
+          <a href="../../viewer.html" class="text-violet-400 hover:text-violet-300">Open BioPeek &rarr;</a>
         </p>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

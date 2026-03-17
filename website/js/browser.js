@@ -218,7 +218,7 @@
           case "bed": data = parseBed(text); break;
           case "gff": data = parseGff(text); break;
           default:
-            alert("Unsupported format: " + file.name + "\n\nBioBrowser supports SAM, VCF, BED, and GFF files.\nFor other formats, use BLViewer instead.");
+            alert("Unsupported format: " + file.name + "\n\nBioBrowser supports SAM, VCF, BED, and GFF files.\nFor other formats, use BioPeek instead.");
             return;
         }
         if (data.records.length === 0) {
@@ -916,7 +916,7 @@
     if (tracks.length) render();
   });
 
-  // ── Pick up file from BLViewer via sessionStorage ──────────
+  // ── Pick up file from BioPeek via sessionStorage ──────────
   try {
     var incoming = sessionStorage.getItem("biobrowser_file");
     if (incoming) {

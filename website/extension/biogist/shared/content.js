@@ -734,7 +734,7 @@
     }, 5000);
   }
 
-  // ── Inject file into BLViewer when opened from BioGist ──
+  // ── Inject file into BioPeek when opened from BioGist ──
   // If we're on the viewer page with ?source=biogist, read stored file and inject
   if (location.href.includes("lang.bio/viewer") || location.href.includes("localhost") && location.href.includes("viewer")) {
     var params = new URLSearchParams(location.search);

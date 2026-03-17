@@ -166,7 +166,7 @@
       var wrapper = pre.parentNode;
       if (!wrapper.style.position || wrapper.style.position === 'static') {
         var div = document.createElement('div');
-        div.style.cssText = 'position:relative;overflow:hidden';
+        div.style.cssText = 'position:relative;overflow:hidden;max-width:100%';
         pre.parentNode.insertBefore(div, pre);
         div.appendChild(pre);
         wrapper = div;

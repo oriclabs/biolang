@@ -66,12 +66,12 @@ read_fastq("data/reads.fastq")
 
 # Native DNA literal + operations
 let seq = dna"ATCGATCGATCG"
-let gc = gc_content(seq)           # 0.5
-let rc = reverse_complement(seq)
+println(gc_content(seq))            # 0.5
+println(reverse_complement(seq))    # DNA(CGATCGATCGAT)
 
-# Query NCBI in one line
-ncbi_gene("BRCA1")
-  |> print()</code></pre>
+# Query NCBI for gene info
+println("Fetching BRCA1 from NCBI...")
+ncbi_gene("BRCA1") |> println()</code></pre>
           </div>
         </div>
       </div>
@@ -92,7 +92,7 @@ ncbi_gene("BRCA1")
         <a href="viewer.html" target="_blank" class="group rounded-xl bg-cyan-500/5 border border-cyan-500/25 hover:border-cyan-400/50 hover:bg-cyan-500/10 transition-all p-4 flex items-center gap-3" style="text-decoration:none;color:inherit">
           <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/15 text-cyan-400 text-xl shrink-0">&#128269;</span>
           <div style="min-width:0">
-            <div class="text-sm font-semibold text-cyan-400 group-hover:text-cyan-300 transition-colors">BLViewer</div>
+            <div class="text-sm font-semibold text-cyan-400 group-hover:text-cyan-300 transition-colors">BioPeek</div>
             <div class="text-xs text-slate-500">File viewer</div>
           </div>
         </a>
@@ -244,19 +244,19 @@ ncbi_gene("BRCA1")
       <h2 class="text-3xl font-bold text-white text-center mb-4">Try it in your browser</h2>
       <p class="text-slate-400 text-center mb-4">BioLang runs right here via WebAssembly. Click <strong class="text-violet-400">Run</strong> on any example below — no install needed.</p>
       <p class="text-slate-500 text-center text-sm mb-10">First click downloads the runtime (~4 MB), then it's cached for the session. Every code block across the docs is interactive too.</p>
-      <div class="grid md:grid-cols-2 gap-6">
-        <div>
+      <div class="grid md:grid-cols-2 gap-6 overflow-hidden">
+        <div class="min-w-0">
           <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">DNA Operations</h3>
-<pre class="text-sm rounded-lg"><code class="language-biolang">let seq = dna"ATCGATCGATCG"
+<pre class="text-sm rounded-lg overflow-x-auto max-w-full"><code class="language-biolang">let seq = dna"ATCGATCGATCG"
 println(f"GC content: {gc_content(seq)}")
 println(f"Complement: {complement(seq)}")
 println(f"Rev-comp:   {reverse_complement(seq)}")
 println(f"Transcribe: {transcribe(seq)}")
 println(f"Length:     {seq_len(seq)} bp")</code></pre>
         </div>
-        <div>
+        <div class="min-w-0">
           <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Translation &amp; K-mers</h3>
-<pre class="text-sm rounded-lg"><code class="language-biolang">let coding = dna"ATGAAAGCTTTTGACTGA"
+<pre class="text-sm rounded-lg overflow-x-auto max-w-full"><code class="language-biolang">let coding = dna"ATGAAAGCTTTTGACTGA"
 let prot = translate(coding)
 println(f"Protein: {prot}")
 
@@ -264,18 +264,18 @@ let seq = dna"ATCGATCGATCG"
 let kmer_list = kmers(seq, 4)
 println(f"4-mers: {kmer_list}")</code></pre>
         </div>
-        <div>
+        <div class="min-w-0">
           <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Statistics</h3>
-<pre class="text-sm rounded-lg"><code class="language-biolang">let normal = [5.2, 4.8, 5.1, 4.9, 5.3]
+<pre class="text-sm rounded-lg overflow-x-auto max-w-full"><code class="language-biolang">let normal = [5.2, 4.8, 5.1, 4.9, 5.3]
 let tumor = [8.1, 7.9, 8.5, 7.6, 8.3]
 let result = ttest(normal, tumor)
 println(f"t = {round(result.statistic, 3)}")
 println(f"p = {result.p_value}")
 println(f"Significant: {result.p_value < 0.05}")</code></pre>
         </div>
-        <div>
+        <div class="min-w-0">
           <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Pipes &amp; Lambdas</h3>
-<pre class="text-sm rounded-lg"><code class="language-biolang"># Pipe-first: data flows left to right
+<pre class="text-sm rounded-lg overflow-x-auto max-w-full"><code class="language-biolang"># Pipe-first: data flows left to right
 let genes = ["BRCA1", "TP53", "EGFR", "KRAS"]
 genes
   |> filter(|g| len(g) <= 4)

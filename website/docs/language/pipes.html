@@ -159,7 +159,7 @@ println(result)   # [hello, world, foo, bar]</code></pre>
         <pre><code class="language-biolang">let first_three = [10, 20, 30, 40, 50] |> take(3)
 println(first_three)   # [10, 20, 30]
 
-let rest = [10, 20, 30, 40, 50] |> skip(2)
+let rest = slice([10, 20, 30, 40, 50], 2, 5)
 println(rest)   # [30, 40, 50]</code></pre>
 
         <h3>zip</h3>
@@ -191,7 +191,7 @@ let data = [
 # Filter significant, sort by fold change, report
 data
   |> filter(|r| r.pvalue < 0.05)
-  |> sort_by(|a, b| b.log2fc - a.log2fc)
+  |> sort_by(|a, b| if b.log2fc > a.log2fc then 1 else -1)
   |> each(|r| println(f"{r.gene}: log2FC={r.log2fc}, p={r.pvalue}"))
 # BRCA1: log2FC=3.2, p=0.001
 # MYC: log2FC=2.8, p=0.01

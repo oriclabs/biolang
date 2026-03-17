@@ -1,6 +1,6 @@
-# BLViewer Test Suite
+# BioPeek Test Suite
 
-Automated test suite for BLViewer (`viewer.html`), using [Playwright](https://playwright.dev/) for end-to-end and visual regression testing.
+Automated test suite for BioPeek (`viewer.html`), using [Playwright](https://playwright.dev/) for end-to-end and visual regression testing.
 
 ## Prerequisites
 
@@ -102,7 +102,7 @@ tests/viewer/
 
 ## Documentation Screenshots
 
-Generate high-quality screenshots of every BLViewer feature for use in documentation and help files:
+Generate high-quality screenshots of every BioPeek feature for use in documentation and help files:
 
 ```bash
 npm run screenshots

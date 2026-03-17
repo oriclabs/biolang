@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+
+# Block old standalone book copies (canonical versions are under /books/)
+Disallow: /biostatistics/
+Disallow: /clinical-genomics/
+Disallow: /data-wrangling/
+Disallow: /funcgenomics/
+Disallow: /genomic-visualization/
+Disallow: /proteomics-structural/
+Disallow: /reproducible-pipelines/
+Disallow: /sequence-analysis/
+
+# Block old/duplicate book versions
+Disallow: /books/biostatisticsold/
+
+# Block non-content paths
+Disallow: /practice/
+Disallow: /tests/
+Disallow: /extension/
+Disallow: /components/
+Disallow: /src/
+
+Sitemap: https://lang.bio/sitemap.xml

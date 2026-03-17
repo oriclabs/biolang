@@ -181,21 +181,19 @@ print(type(protein))    # Protein</code></pre>
         </p>
         <pre><code class="language-biolang">let seq = dna"ATGCGATCGATCGATCG"
 
-# Slice: [start..end)
-let first_five = seq[0..5]
-print(first_five)  # ATGCG
+# slice(sequence, start, end)
+let first_five = slice(seq, 0, 5)
+println(first_five)  # ATGCG
 
 # From position 5 to the end
-let rest = seq[5..]
-print(rest)        # ATCGATCGATCG
+let rest = slice(seq, 5, seq_len(seq))
+println(rest)        # ATCGATCGATCG
 
-# Last 4 bases
-let tail = seq[-4..]
-print(tail)        # ATCG
+# First codon
+let codon = slice(seq, 0, 3)
+println(codon)       # ATG
 
-# You can also use substr() for named clarity
-let codon = substr(seq, 0, 3)
-print(codon)       # ATG</code></pre>
+println(f"Length: {seq_len(seq)}")</code></pre>
 
         <!-- Step 7 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Pattern Matching on Sequences</h2>
@@ -206,19 +204,16 @@ print(codon)       # ATG</code></pre>
         <pre><code class="language-biolang">let seq = dna"ATGCGATCG"
 
 # Classify by GC content
-let gc_class = match gc_content(seq) {
-  gc if gc > 0.6  => "high GC",
-  gc if gc > 0.4  => "medium GC",
-  _ => "low GC",
-}
-print(gc_class)  # medium GC
+let gc = gc_content(seq)
+let gc_class = if gc > 0.6 then "high GC"
+  else if gc > 0.4 then "medium GC"
+  else "low GC"
+println(gc_class)  # medium GC
 
 # Check for a start codon
-let has_start = match seq[0..3] {
-  dna"ATG" => true,
-  _        => false,
-}
-print(f"Starts with ATG: {has_start}")  # true</code></pre>
+let first_three = slice(seq, 0, 3)
+let has_start = first_three == dna"ATG"
+println(f"Starts with ATG: {has_start}")  # true</code></pre>
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Putting It All Together</h2>
@@ -275,20 +270,19 @@ C: ######## (8)</code></pre>
           Variables declared with <code>let</code> can be reassigned freely.
         </p>
         <pre><code class="language-biolang">let seq = dna"ATG"
-print(seq)  # ATG
+println(seq)  # ATG
 
-seq = concat(seq, dna"CCC")
-print(seq)  # ATGCCC
+seq = seq ++ dna"CCC"
+println(seq)  # ATGCCC
 
-seq = concat(seq, dna"GGG")
-print(seq)  # ATGCCCGGG
+seq = seq ++ dna"GGG"
+println(seq)  # ATGCCCGGG
 
 # Build a sequence in a loop
-let result = dna""
-for codon in [dna"ATG", dna"GCT", dna"TAA"] {
-  result = concat(result, codon)
-}
-print(result)  # ATGGCTTAA</code></pre>
+let result = dna"ATG"
+result = result ++ dna"GCT"
+result = result ++ dna"TAA"
+println(result)  # ATGGCTTAA</code></pre>
 
         <!-- Step 10 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Writing Functions</h2>
@@ -311,7 +305,7 @@ fn summarize(seq: Dna) -> Map {
     length:     len(seq),
     gc_content: gc_content(seq),
     gc_class:   classify_gc(seq),
-    has_start:  seq[0..3] == dna"ATG",
+    has_start:  slice(seq, 0, 3) == dna"ATG",
   }
 }
 
@@ -324,7 +318,7 @@ let sequences = [
 
 for seq in sequences {
   let info = summarize(seq)
-  print(f"{seq[0..6]}... => GC: {info.gc_class}, len: {info.length}")
+  println(f"len={info.length}, GC={info.gc_class}, start={info.has_start}")
 }</code></pre>
 
         <!-- Next steps -->

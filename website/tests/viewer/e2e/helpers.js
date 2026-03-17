@@ -1,4 +1,4 @@
-// Shared helpers for BLViewer E2E tests
+// Shared helpers for BioPeek E2E tests
 const path = require('path');
 
 const VIEWER_URL = 'file:///' + path.resolve(__dirname, '..', '..', '..', 'viewer.html').replace(/\\/g, '/');

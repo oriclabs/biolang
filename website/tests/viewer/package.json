@@ -1,8 +1,8 @@
 {
-  "name": "blviewer-tests",
+  "name": "biopeek-tests",
   "version": "1.0.0",
   "private": true,
-  "description": "Automated test suite for BLViewer",
+  "description": "Automated test suite for BioPeek",
   "scripts": {
     "test": "npx playwright test",
     "test:unit": "npx playwright test --grep @unit",

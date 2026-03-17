@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg128" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background - cyan -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#bg128)"/>
+  <!-- Eye shape (peek) -->
+  <ellipse cx="64" cy="58" rx="38" ry="24" fill="none" stroke="#0f172a" stroke-width="5"/>
+  <!-- Pupil -->
+  <circle cx="64" cy="58" r="13" fill="#0f172a"/>
+  <!-- Iris highlight -->
+  <circle cx="60" cy="54" r="4.5" fill="#67e8f9" opacity="0.9"/>
+  <!-- DNA helix inside eye -->
+  <path d="M 46 52 Q 55 48 64 52 Q 73 56 82 52" fill="none" stroke="#0f172a" stroke-width="2" opacity="0.4"/>
+  <path d="M 46 62 Q 55 58 64 62 Q 73 66 82 62" fill="none" stroke="#0f172a" stroke-width="2" opacity="0.4"/>
+  <!-- File lines below eye -->
+  <line x1="38" y1="92" x2="90" y2="92" stroke="#0f172a" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <line x1="38" y1="100" x2="82" y2="100" stroke="#0f172a" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
+  <line x1="38" y1="108" x2="74" y2="108" stroke="#0f172a" stroke-width="3" stroke-linecap="round" opacity="0.2"/>
+</svg>

@@ -78,15 +78,17 @@ println(f"Sum:    {sum(data)}")</code></pre>
         <p>
           Tables are a built-in type with familiar dplyr-style verbs for data manipulation:
         </p>
-        <pre><code class="language-biolang">let t = table(
-  gene = ["BRCA1", "TP53", "EGFR", "MYC", "KRAS"],
-  score = [0.95, 0.87, 0.72, 0.91, 0.65],
-  chrom = ["chr17", "chr17", "chr7", "chr8", "chr12"]
-)
+        <pre><code class="language-biolang">let t = from_records([
+  {gene: "BRCA1", score: 0.95, chrom: "chr17"},
+  {gene: "TP53",  score: 0.87, chrom: "chr17"},
+  {gene: "EGFR",  score: 0.72, chrom: "chr7"},
+  {gene: "MYC",   score: 0.91, chrom: "chr8"},
+  {gene: "KRAS",  score: 0.65, chrom: "chr12"},
+])
 
 let top = t
   |> filter(|r| r.score > 0.8)
-  |> arrange("-score")
+  |> arrange("score")
 
 println(top)</code></pre>
 

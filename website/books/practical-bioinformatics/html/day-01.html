@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2b7ec08a.js";
+            window.path_to_searchindex_js = "searchindex-beee4806.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -194,9 +194,18 @@
 <p><strong>DNA</strong> is the blueprint. It is a long molecule made of four chemical bases: <strong>A</strong>denine, <strong>T</strong>hymine, <strong>C</strong>ytosine, and <strong>G</strong>uanine. Your entire genome — all the instructions to build and run your body — is written in these four letters. The human genome is about 3.2 billion base pairs long, organized into 23 pairs of chromosomes.</p>
 <p>DNA has a unique structure: two strands wound around each other in a <strong>double helix</strong>, connected by base pairs. A always pairs with T (2 hydrogen bonds), and C always pairs with G (3 hydrogen bonds — making CG pairs stronger):</p>
 <p><img src="images/dna-double-helix.svg" alt="The DNA Double Helix"></p>
-<p>When we write a DNA sequence like <code>ATGCGATCG</code>, we mean the <strong>coding strand read 5’ to 3’</strong>. The other strand is implied — you can always reconstruct it using the base pairing rules.</p>
+<p>Each DNA strand has a direction, like a one-way street. Every nucleotide has a sugar with numbered carbon atoms. The <strong>5’ (five-prime) carbon</strong> connects to the next nucleotide’s <strong>3’ (three-prime) carbon</strong> via a phosphate bond — so the strand has a built-in direction: 5’→3’. Both strands are built the same way, but they run in <strong>opposite directions</strong> (called <strong>antiparallel</strong>):</p>
+<pre><code>5'──A──T──G──C──G──3'   ← coding strand (read left to right)
+    |  |  |  |  |
+3'──T──A──C──G──C──5'   ← template strand (runs the other way)
+</code></pre>
+<p>The base pairing (A-T, C-G) holds the two strands together, but notice the 5’ and 3’ ends are flipped. This antiparallel arrangement is why enzymes like RNA polymerase can only read in one direction (3’→5’ on the template, producing mRNA in 5’→3’).</p>
+<p>When we write a DNA sequence like <code>ATGCGATCG</code>, we mean the <strong>coding strand read 5’→3’</strong> — this is the universal convention in biology and bioinformatics. The other strand is implied — you can always reconstruct it using the base pairing rules.</p>
 <h3 id="rna--the-single-stranded-messenger"><a class="header" href="#rna--the-single-stranded-messenger">RNA — The Single-Stranded Messenger</a></h3>
-<p><strong>RNA</strong> is the working copy. When a cell needs to use a gene, it copies that region of DNA into RNA through a process called <em>transcription</em>. RNA uses almost the same alphabet, except it swaps T for <strong>U</strong>racil. So an <code>A</code> in DNA becomes a <code>U</code> in RNA’s complement, while the sequence being copied replaces every <code>T</code> with <code>U</code>: <code>ATGCG</code> in DNA becomes <code>AUGCG</code> in RNA.</p>
+<p><strong>RNA</strong> is the working copy. When a cell needs to use a gene, it copies that region of DNA into RNA through a process called <em>transcription</em>. Remember that DNA has two strands. The cell’s RNA polymerase reads the <strong>template strand</strong> (also called the antisense strand) and builds a complementary RNA. The resulting mRNA sequence ends up matching the <strong>coding strand</strong> (the other strand, also called the sense strand) — except RNA uses <strong>U</strong>racil (U) instead of Thymine (T). So in practice, every <code>T</code> in the coding strand becomes <code>U</code> in the mRNA: <code>ATGCG</code> in DNA becomes <code>AUGCG</code> in RNA.</p>
+<blockquote>
+<p><strong>Why bioinformatics uses the coding strand:</strong> When databases like NCBI store a gene sequence, they store the coding strand (5’→3’). To get the mRNA, just replace T with U. You rarely need to think about the template strand directly.</p>
+</blockquote>
 <p>Unlike DNA’s stable double helix, RNA is <strong>single-stranded</strong> — it is a temporary copy meant to be read and then degraded:</p>
 <p><img src="images/rna-single-strand.svg" alt="DNA vs RNA"></p>
 <p>There are several types of RNA, but the one most relevant to the central dogma is <strong>mRNA</strong> (messenger RNA) — the copy that carries gene instructions to the ribosome for protein synthesis.</p>
@@ -404,7 +413,13 @@ println(f"GC content: {gc_content(genome_fragment)}")
 # Base composition: {A: 6, T: 6, G: 6, C: 5, N: 0, GC: 0.4782608695652174}
 # GC content: 0.4782608695652174
 </code></pre>
-<p>GC content matters because G-C base pairs form three hydrogen bonds (versus two for A-T), making GC-rich regions more thermally stable. Organisms have characteristic GC content — <em>Plasmodium falciparum</em> (malaria parasite) has about 19% GC, while <em>Streptomyces</em> bacteria can exceed 70%. If you sequence a sample and see unusual GC content, it might indicate contamination or a novel organism.</p>
+<p><strong>Why GC content and not AT content?</strong> Since GC% + AT% = 100%, knowing one tells you the other. The convention is to report GC because it’s the biologically interesting number:</p>
+<ul>
+<li><strong>Thermal stability</strong> — G-C base pairs form three hydrogen bonds (versus two for A-T), so GC-rich regions are harder to melt apart. This directly affects PCR primer design — you need primers with the right melting temperature.</li>
+<li><strong>Gene density</strong> — GC-rich regions in the human genome tend to be gene-dense, and CpG islands (clusters of CG dinucleotides) mark promoter regions where genes start.</li>
+<li><strong>Sequencing quality</strong> — Illumina sequencers have lower coverage in regions with very high or very low GC content, so checking GC distribution is a standard quality control step.</li>
+<li><strong>Species fingerprint</strong> — Organisms have characteristic GC content. <em>Plasmodium falciparum</em> (malaria parasite) has about 19% GC, while <em>Streptomyces</em> bacteria can exceed 70%. If you sequence a sample and see unexpected GC content, it might indicate contamination or a novel organism.</li>
+</ul>
 <h3 id="finding-patterns-in-dna"><a class="header" href="#finding-patterns-in-dna">Finding patterns in DNA</a></h3>
 <pre><code class="language-bio"># Finding a restriction enzyme site
 let seq = dna"ATCGATCGAATTCGATCGATCG"

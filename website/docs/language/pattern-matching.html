@@ -112,17 +112,18 @@ bases |> each(|b| {
 
         <h2>Enum Variant Patterns</h2>
         <p>
-          Match on user-defined enum variants with optional bindings:
+          Match on string values for classification:
         </p>
-        <pre><code class="language-biolang">enum Color { Red, Green, Blue }
+        <pre><code class="language-biolang">let variant_type = "missense"
 
-let c = Color.Green
-let label = match c {
-  Red => "red",
-  Green => "green",
-  Blue => "blue"
+let impact = match variant_type {
+  "frameshift" => "HIGH",
+  "nonsense" => "HIGH",
+  "missense" => "MODERATE",
+  "synonymous" => "LOW",
+  _ => "UNKNOWN"
 }
-println(f"Color is {label}")</code></pre>
+println(f"Impact: {impact}")</code></pre>
 
         <h2>Match as an Expression</h2>
         <p>

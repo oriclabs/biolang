@@ -1,5 +1,5 @@
 #!/bin/bash
-# BLViewer Chrome Extension — Build & Package Script
+# BioPeek Chrome Extension — Build & Package Script
 # Usage:
 #   ./build.sh          Build only (sync files, load unpacked)
 #   ./build.sh --zip    Build + create .zip for Chrome Web Store upload
@@ -11,7 +11,7 @@ WEBSITE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 VERSION=$(grep '"version"' "$SCRIPT_DIR/manifest.json" | head -1 | sed 's/.*: *"\(.*\)".*/\1/')
 
 echo ""
-echo "  BLViewer Chrome Extension v$VERSION"
+echo "  BioPeek Chrome Extension v$VERSION"
 echo "  ================================="
 echo ""
 
@@ -75,7 +75,7 @@ echo ""
 
 # ── Zip for Chrome Web Store ──────────────────────────────────────
 if [ "$1" = "--zip" ]; then
-  ZIP_NAME="blviewer-chrome-v$VERSION.zip"
+  ZIP_NAME="biopeek-chrome-v$VERSION.zip"
   ZIP_PATH="$SCRIPT_DIR/$ZIP_NAME"
 
   rm -f "$ZIP_PATH"

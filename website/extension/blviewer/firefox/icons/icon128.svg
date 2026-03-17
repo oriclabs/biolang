@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="bg128" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+  </defs>
+  <!-- Gradient purple rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#bg128)"/>
+  <!-- BL monogram - large bold -->
+  <text x="64" y="72" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="56" font-weight="800">BL</text>
+  <!-- Subtitle -->
+  <text x="64" y="92" text-anchor="middle" fill="#c4b5fd" font-family="system-ui,sans-serif" font-size="12" font-weight="600" letter-spacing="2">VIEWER</text>
+  <!-- DNA helix accent - left side -->
+  <g opacity="0.5">
+    <path d="M20 30c4-6 4-14 0-18" stroke="#22d3ee" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M25 30c4-6 4-14 0-18" stroke="#34d399" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <line x1="20" y1="18" x2="25" y2="18" stroke="#fff" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="24" x2="25" y2="24" stroke="#fff" stroke-width="1" opacity="0.4"/>
+  </g>
+  <!-- Data dots accent - bottom right -->
+  <circle cx="100" cy="100" r="3" fill="#22d3ee" opacity="0.6"/>
+  <circle cx="110" cy="106" r="2" fill="#34d399" opacity="0.5"/>
+  <circle cx="104" cy="110" r="2.5" fill="#fbbf24" opacity="0.5"/>
+  <!-- Nucleotide letters accent - top right -->
+  <text x="100" y="28" fill="#34d399" font-family="ui-monospace,monospace" font-size="10" font-weight="700" opacity="0.5">A</text>
+  <text x="110" y="22" fill="#f87171" font-family="ui-monospace,monospace" font-size="10" font-weight="700" opacity="0.5">T</text>
+  <text x="106" y="36" fill="#60a5fa" font-family="ui-monospace,monospace" font-size="10" font-weight="700" opacity="0.5">C</text>
+</svg>
