@@ -70,18 +70,47 @@ None. BioPeek does not collect personally identifiable information, health infor
 ## Privacy policy URL
 https://lang.bio/privacy
 
+## Firefox Notes to Reviewer
+No account, API key, or login is required.
+
+To test:
+1. Click the BioPeek icon and select "Open Viewer"
+2. Drag and drop any FASTA, FASTQ, VCF, BED, GFF, or CSV file
+3. The file is parsed and displayed with format-specific views
+4. Try a gzipped file (.vcf.gz) - it decompresses automatically
+5. Right-click any bio file link on a webpage for "Open in BioPeek"
+6. Try the motif search, coordinate jump, and export features
+
+The WASM binary (bl_wasm_bg.wasm) is compiled from the open-source BioLang project: https://github.com/oriclabs/biolang
+
+All innerHTML assignments use an escapeHtml() function that sanitizes input via createElement/textContent before insertion. No raw user input is ever assigned directly to innerHTML.
+
+No data is collected, uploaded, or shared. All file parsing runs locally in JavaScript and WebAssembly.
+
+## Firefox Categories
+Web Development, Search Tools
+
+## Firefox License
+MIT License
+
 
 # Microsoft Edge Add-ons — Additional Fields
 
-## Notes for certification
-BioPeek is a file viewer extension that opens bioinformatics data files (FASTA, FASTQ, VCF, BED, GFF, CSV) in the browser. All parsing runs locally in JavaScript/WebAssembly — no data is uploaded to any server. The extension uses minimal permissions (activeTab for file detection, storage for theme preference). No remote code, no analytics, no tracking. Previously published as BLViewer on Chrome Web Store.
+## Notes for Certification (less than 2000 chars)
 
-## Testing instructions
-1. Click the BioPeek icon or navigate to the viewer page
-2. Drag and drop any FASTA, FASTQ, VCF, BED, or CSV file
-3. The file is parsed and displayed with format-specific visualizations
-4. Try the motif search, coordinate navigation, and copy features
-5. Toggle between dark and light themes
+BioPeek is a file viewer for bioinformatics data. To test:
+
+1. Click the BioPeek icon to open the popup. Click "Open Viewer" to open the viewer tab.
+2. Drag and drop a FASTA file onto the viewer. The file is parsed locally and displayed with per-base nucleotide coloring (A=green, T=red, C=blue, G=amber).
+3. Try dropping a FASTQ file. Quality scores are shown as a color heatmap. Stats view shows Q30%, per-base quality chart.
+4. Try a VCF file. Variants appear in a sortable, filterable table with Ti/Tv ratio and chromosome density chart.
+5. Try a gzipped file (.vcf.gz, .fastq.gz). It is decompressed in the browser using the DecompressionStream API.
+6. Right-click a link to a bio file on any webpage. Context menu shows "Open in BioPeek".
+7. Select sequence text on any page, right-click, and choose "Analyze selection in BioPeek".
+8. In the viewer, try searching for a DNA motif (e.g. TATAWR) using IUPAC codes.
+9. Toggle between dark and light themes. Try the BioLang console tab for WASM-powered analysis.
+
+All parsing runs locally in JavaScript and WebAssembly. No file data is uploaded anywhere. The extension uses activeTab (to detect bio file links), storage (theme preference and recent file names only), contextMenus (right-click options), and downloads (to detect downloaded bio files and offer to open them). No remote code, no content scripts injected, no analytics, no tracking.
 
 ## Website
 https://lang.bio/viewer

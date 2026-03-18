@@ -21,7 +21,7 @@
   <h1>Privacy Policy</h1>
   <p class="date">Effective date: March 16, 2026</p>
 
-  <p>This policy covers all browser extensions and web tools built by <strong>Oric Labs</strong>, including BioGist, BioPeek, and the web applications at <a href="https://lang.bio">lang.bio</a>.</p>
+  <p>This policy covers all browser extensions and web tools built by <strong>Oric Labs</strong>, including BioGist, BioPeek, BioKhoj, and the web applications at <a href="https://lang.bio">lang.bio</a>.</p>
 
   <h2>Core Principle</h2>
   <p>All Oric Labs tools process data <strong>entirely in your browser</strong>. We do not operate servers that receive, store, or process your data. Your files, page content, and browsing activity never leave your device.</p>
@@ -71,6 +71,29 @@
       <li>Recently opened file names (names only, not file contents)</li>
     </ul>
     <p>Your files never leave your device. No data is uploaded, cached on a server, or shared with any third party.</p>
+  </div>
+
+  <div class="product">
+    <h3>BioKhoj — Browser Extension &amp; PWA</h3>
+    <p>BioKhoj is a literature monitoring tool that checks PubMed and bioRxiv for papers matching your watchlist of genes, drugs, variants, and other biological entities. All scoring and data storage runs in your browser.</p>
+    <p><strong>Local storage used for:</strong></p>
+    <ul>
+      <li>Watchlist entities (names and types)</li>
+      <li>Fetched paper metadata (titles, authors, journals, dates, signal scores)</li>
+      <li>User preferences (theme, check frequency, signal mute threshold, notification settings)</li>
+      <li>Browsing history (titles and URLs of papers you opened, capped at 15 entries)</li>
+      <li>Reading list (papers you saved, with notes and tags)</li>
+    </ul>
+    <p><strong>External API calls:</strong> BioKhoj contacts public APIs to search for papers and fetch metadata. These calls happen on a user-configured schedule (default every hour when the app is open) or when manually triggered. The APIs are:</p>
+    <ul>
+      <li>NCBI E-utilities / PubMed (paper search, summaries, abstracts)</li>
+      <li>bioRxiv API (preprint search)</li>
+      <li>OpenAlex (citation counts, author information)</li>
+      <li>ClinicalTrials.gov (clinical trial search)</li>
+      <li>UniProt (protein search)</li>
+    </ul>
+    <p>These are public, free APIs. No authentication tokens or user identifiers are sent. Only search terms from your watchlist (e.g., gene symbols) are included in requests.</p>
+    <p><strong>No page content is read.</strong> BioKhoj does not use content scripts or read webpage content. The extension only reads selected text when you use the right-click context menu.</p>
   </div>
 
   <div class="product">

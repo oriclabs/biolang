@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BioKhoj — Your personal research radar for biology. Monitor genes, pathways, and topics across PubMed.">
+  <meta name="theme-color" content="#F4C430">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BioKhoj">
+  <title>BioKhoj — Research Radar</title>
+  <link rel="manifest" href="/biokhoj/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>🔬</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            saffron: { 50:'#fefce8', 100:'#fef9c3', 200:'#fef08a', 300:'#fde047', 400:'#F4C430', 500:'#eab308', 600:'#ca8a04', 700:'#a16207', 800:'#854d0e', 900:'#713f12' },
+            surface: { 50:'#f8fafc', 100:'#f1f5f9', 200:'#e2e8f0', 700:'#1e293b', 800:'#0f172a', 900:'#020617' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .fade-in { animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .sparkline { display: inline-block; vertical-align: middle; }
+    .signal-high { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+    .signal-normal { background: linear-gradient(135deg, #0ea5e9, #38bdf8); }
+    .signal-low { background: linear-gradient(135deg, #64748b, #94a3b8); }
+    .tab-active { border-bottom: 2px solid #F4C430; color: #F4C430; }
+    .chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 500; }
+    .pwa-install-banner { background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid #F4C430; }
+    /* Light mode overrides */
+    html:not(.dark) .dark\:bg-surface-900 { background: #f8fafc; }
+    html:not(.dark) .dark\:text-white { color: #0f172a; }
+
+    /* Skeleton loading shimmer */
+    .skeleton {
+      background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skeleton-card {
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      background: #0f172a;
+    }
+    .skeleton-chip {
+      display: inline-block;
+      height: 24px;
+      width: 72px;
+      border-radius: 9999px;
+    }
+
+    /* Keyboard-selected paper */
+    .paper-selected {
+      border-color: #F4C430 !important;
+      box-shadow: 0 0 0 1px rgba(244, 196, 48, 0.3);
+    }
+
+    /* Warning banner */
+    .warning-banner {
+      background: rgba(234, 179, 8, 0.1);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .warning-banner.error-banner {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Onboarding card */
+    .onboarding-card {
+      background: linear-gradient(135deg, rgba(244, 196, 48, 0.08), rgba(168, 85, 247, 0.08));
+      border: 1px solid rgba(244, 196, 48, 0.3);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .onboarding-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: rgba(244, 196, 48, 0.1);
+      color: #F4C430;
+      border: 1px solid rgba(244, 196, 48, 0.25);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .onboarding-chip:hover {
+      background: rgba(244, 196, 48, 0.2);
+      border-color: rgba(244, 196, 48, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-surface-900 text-slate-100 h-screen flex flex-col overflow-hidden">
+
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 pwa-install-banner p-3 flex items-center justify-between shadow-lg">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🔬</span>
+      <div>
+        <p class="font-semibold text-sm text-white">Install BioKhoj</p>
+        <p class="text-xs text-slate-400">Add to home screen for offline access</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="installPWA()" class="px-3 py-1 bg-saffron-400 text-surface-900 rounded-md text-sm font-semibold hover:bg-saffron-300 transition">Install</button>
+      <button onclick="dismissInstallBanner()" class="px-3 py-1 text-slate-400 hover:text-white text-sm transition">Later</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 bg-surface-900/95 backdrop-blur border-b border-slate-800">
+    <div class="flex items-center justify-between px-4 py-3 max-w-screen-2xl mx-auto">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl" role="img" aria-label="microscope">🔬</span>
+        <div>
+          <h1 class="text-lg font-bold text-white tracking-tight">Bio<span class="text-saffron-400">Khoj</span></h1>
+          <p class="text-[10px] text-slate-500 -mt-0.5 hidden sm:block">research radar</p>
+        </div>
+      </div>
+
+      <!-- Search bar -->
+      <div class="hidden sm:flex flex-1 max-w-md mx-6">
+        <div class="relative w-full">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input id="global-search" type="text" placeholder="Search papers, genes, pathways..." class="w-full pl-10 pr-4 py-2 bg-surface-800 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-saffron-400/50 focus:ring-1 focus:ring-saffron-400/30 transition">
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Notification bell -->
+        <button id="notification-bell" class="relative p-2 rounded-lg hover:bg-surface-800 transition" title="Notifications">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span id="notification-badge" class="hidden absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">0</span>
+        </button>
+        <!-- Settings gear -->
+        <button onclick="switchTab('settings')" class="p-2 rounded-lg hover:bg-surface-800 transition" title="Settings">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Desktop tab bar -->
+    <nav class="hidden sm:flex items-center gap-1 px-4 max-w-screen-2xl mx-auto" id="desktop-tabs">
+      <button class="tab-btn tab-active px-4 py-2 text-sm font-medium transition hover:text-saffron-300" data-tab="feed">
+        <span class="mr-1.5">📡</span>Feed
+      </button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-slate-400 transition hover:text-saffron-300" data-tab="discover">
+        <span class="mr-1.5">🔭</span>Discover
+      </button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-slate-400 transition hover:text-saffron-300" data-tab="watchlist">
+        <span class="mr-1.5">👁</span>Watchlist
+      </button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-slate-400 transition hover:text-saffron-300" data-tab="trends">
+        <span class="mr-1.5">📈</span>Trends
+      </button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-slate-400 transition hover:text-saffron-300" data-tab="reading-list">
+        <span class="mr-1.5">📚</span>Reading List
+      </button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-slate-400 transition hover:text-saffron-300" data-tab="settings">
+        <span class="mr-1.5">⚙</span>Settings
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main layout -->
+  <div class="flex flex-1 overflow-hidden max-w-screen-2xl mx-auto w-full">
+
+    <!-- Desktop sidebar: watchlist summary -->
+    <aside id="sidebar" class="hidden lg:flex flex-col w-72 border-r border-slate-800 bg-surface-900">
+      <div class="flex-1 overflow-y-auto scrollbar-thin p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Watchlist</h2>
+          <button onclick="switchTab('watchlist')" class="text-xs text-saffron-400 hover:text-saffron-300 transition">View all</button>
+        </div>
+        <div id="sidebar-watchlist" class="space-y-1">
+          <!-- Populated by app.js -->
+        </div>
+      </div>
+      <div class="flex-shrink-0 p-4 border-t border-slate-800">
+        <div class="flex items-center justify-between text-xs text-slate-500">
+          <span id="sidebar-last-check">Last check: --</span>
+          <button id="sidebar-refresh-btn" onclick="triggerManualCheck()" class="text-saffron-400 hover:text-saffron-300 transition" title="Check now">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="flex-1 overflow-y-auto scrollbar-thin pb-20 sm:pb-4" id="main-content">
+
+      <!-- Feed Tab -->
+      <section id="tab-feed" class="tab-panel p-4 sm:p-6 fade-in">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white">Paper Feed</h2>
+            <p class="text-sm text-slate-400 mt-0.5" id="feed-subtitle">Papers matching your watchlist</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="feed-sort" class="bg-surface-800 border border-slate-700 rounded-lg text-sm text-slate-300 px-3 py-1.5 focus:outline-none focus:border-saffron-400/50">
+              <option value="signal">Sort by Signal</option>
+              <option value="date">Sort by Date</option>
+              <option value="journal">Sort by Journal</option>
+            </select>
+            <button onclick="triggerManualCheck()" class="p-2 rounded-lg bg-surface-800 border border-slate-700 hover:border-saffron-400/50 transition" title="Refresh">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Morning briefing -->
+        <div id="feed-briefing" class="hidden mb-3"></div>
+
+        <!-- Feed filters (primary) -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <button id="comention-filter-btn" class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs font-medium text-slate-400 hover:border-purple-500/50 hover:text-purple-300 transition">Multi-entity</button>
+          <button id="feed-unread-filter-btn" class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs font-medium text-slate-400 hover:border-saffron-400/50 hover:text-saffron-400 transition">Unread</button>
+          <button id="feed-highsignal-filter-btn" class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs font-medium text-slate-400 hover:border-purple-500/50 hover:text-purple-300 transition">High signal</button>
+          <button id="bulk-tag-btn" class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs font-medium text-slate-400 hover:border-slate-600 hover:text-slate-300 transition hidden">&#127991; Tag selected</button>
+          <!-- Insights dropdown -->
+          <div class="relative ml-auto">
+            <button id="insights-dropdown-btn" class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs font-medium text-slate-400 hover:border-slate-600 hover:text-slate-300 transition">Insights &#9662;</button>
+            <div id="insights-dropdown" class="hidden absolute right-0 mt-1 w-44 bg-surface-800 border border-slate-700 rounded-lg shadow-xl z-10 py-1">
+              <button id="jc-toggle-btn" class="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-surface-700 transition">&#127942; Journal Club</button>
+              <button id="collab-toggle-btn" class="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-surface-700 transition">&#129309; Collaborators</button>
+              <button id="digest-toggle-btn" class="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-surface-700 transition">&#128203; Weekly Digest</button>
+              <div class="border-t border-slate-700/50 my-1"></div>
+              <button id="share-view-btn" class="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-surface-700 transition">&#128279; Share watchlist</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backlog catch-up banner -->
+        <div id="backlog-banner" class="hidden mb-4"></div>
+
+        <!-- Warning banner (error recovery) -->
+        <div id="feed-warning-banner" class="hidden mb-4"></div>
+
+        <!-- Onboarding card (first-time user) -->
+        <div id="onboarding-card" class="hidden mb-4"></div>
+
+        <!-- Journal Club pick card -->
+        <div id="journal-club-container" class="hidden"></div>
+
+        <!-- Co-mention alerts -->
+        <div id="comention-alerts" class="hidden mb-4"></div>
+
+        <!-- Paper cards -->
+        <div id="feed-papers" class="space-y-3">
+          <!-- Populated by app.js -->
+        </div>
+
+        <!-- Feed empty state -->
+        <div id="feed-empty" class="hidden text-center py-16">
+          <div class="text-5xl mb-4">📡</div>
+          <h3 class="text-lg font-semibold text-white mb-2">Your feed is empty</h3>
+          <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">Add genes, proteins, pathways, or topics to your watchlist and BioKhoj will find matching papers from PubMed.</p>
+          <button onclick="switchTab('watchlist')" class="px-5 py-2 bg-saffron-400 text-surface-900 rounded-lg text-sm font-semibold hover:bg-saffron-300 transition">Set Up Watchlist</button>
+        </div>
+
+        <!-- Loading state -->
+        <div id="feed-loading" class="hidden text-center py-12">
+          <div class="inline-block w-8 h-8 border-2 border-saffron-400/30 border-t-saffron-400 rounded-full animate-spin"></div>
+          <p class="text-sm text-slate-400 mt-3">Checking PubMed...</p>
+        </div>
+      </section>
+
+      <!-- Watchlist Tab -->
+      <section id="tab-watchlist" class="tab-panel hidden p-4 sm:p-6 fade-in">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-white">Watchlist</h2>
+            <p class="text-sm text-slate-400 mt-0.5">Entities you're tracking across PubMed</p>
+          </div>
+          <button id="import-biogist-btn" class="text-xs text-saffron-400 hover:text-saffron-300 border border-saffron-400/30 rounded-lg px-3 py-1.5 transition">Import from BioGist</button>
+        </div>
+
+        <!-- Add entity form -->
+        <div class="bg-surface-800 border border-slate-700 rounded-xl p-4 mb-6">
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Add Entity</h3>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+              <input id="add-entity-input" type="text" placeholder="e.g. BRCA1, p53, MAPK pathway, single-cell RNA-seq..." class="w-full px-3 py-2 bg-surface-900 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-saffron-400/50 focus:ring-1 focus:ring-saffron-400/30 transition">
+              <p id="entity-type-hint" class="text-xs text-slate-500 mt-1 hidden">Detected: <span class="text-saffron-400 font-medium"></span></p>
+            </div>
+            <select id="add-entity-priority" class="bg-surface-900 border border-slate-700 rounded-lg text-sm text-slate-300 px-3 py-2 focus:outline-none focus:border-saffron-400/50">
+              <option value="high">High priority</option>
+              <option value="normal" selected>Normal</option>
+              <option value="low">Low priority</option>
+            </select>
+            <button id="add-entity-btn" class="px-5 py-2 bg-saffron-400 text-surface-900 rounded-lg text-sm font-semibold hover:bg-saffron-300 transition whitespace-nowrap">+ Add</button>
+          </div>
+          <div id="add-entity-tags" class="mt-3 hidden">
+            <label class="text-xs text-slate-400">Tags (comma-separated)</label>
+            <input id="entity-tags-input" type="text" placeholder="e.g. cancer, thesis, collaborator" class="w-full mt-1 px-3 py-1.5 bg-surface-900 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-saffron-400/50 transition">
+          </div>
+        </div>
+
+        <!-- Preset packs -->
+        <div id="preset-packs" class="mb-6">
+          <h3 class="text-sm font-semibold text-slate-300 mb-2">Quick start packs</h3>
+          <div class="flex flex-wrap gap-2" id="preset-packs-list"></div>
+        </div>
+
+        <!-- Concept suggestions -->
+        <div id="concept-suggestions" class="hidden mb-6">
+          <h3 class="text-sm font-semibold text-slate-300 mb-2">Suggested related entities</h3>
+          <div id="concept-suggestions-list" class="flex flex-wrap gap-2">
+            <!-- Populated by app.js -->
+          </div>
+        </div>
+
+        <!-- Watchlist entities -->
+        <div id="watchlist-entities" class="space-y-2">
+          <!-- Populated by app.js -->
+        </div>
+
+        <!-- Watchlist empty state -->
+        <div id="watchlist-empty" class="hidden text-center py-12">
+          <div class="text-5xl mb-4">👁</div>
+          <h3 class="text-lg font-semibold text-white mb-2">Start your watchlist</h3>
+          <p class="text-sm text-slate-400 max-w-md mx-auto mb-4">Add genes, proteins, pathways, diseases, or topics you want to track. BioKhoj will monitor PubMed and bioRxiv for new papers.</p>
+
+          <div class="max-w-md mx-auto text-left mb-6">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Quick start &mdash; pick a pack above, or type any of these:</p>
+            <div class="flex flex-wrap justify-center gap-2">
+              <button class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-saffron-400/50 hover:text-saffron-400 transition" onclick="document.getElementById('add-entity-input').value='TP53';document.getElementById('add-entity-input').focus()">TP53 <span class="text-slate-600">gene</span></button>
+              <button class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-saffron-400/50 hover:text-saffron-400 transition" onclick="document.getElementById('add-entity-input').value='CRISPR-Cas9';document.getElementById('add-entity-input').focus()">CRISPR-Cas9 <span class="text-slate-600">technique</span></button>
+              <button class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-saffron-400/50 hover:text-saffron-400 transition" onclick="document.getElementById('add-entity-input').value='rs1801133';document.getElementById('add-entity-input').focus()">rs1801133 <span class="text-slate-600">variant</span></button>
+              <button class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-saffron-400/50 hover:text-saffron-400 transition" onclick="document.getElementById('add-entity-input').value='olaparib';document.getElementById('add-entity-input').focus()">olaparib <span class="text-slate-600">drug</span></button>
+              <button class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-saffron-400/50 hover:text-saffron-400 transition" onclick="document.getElementById('add-entity-input').value='Alzheimer disease';document.getElementById('add-entity-input').focus()">Alzheimer disease <span class="text-slate-600">disease</span></button>
+              <button class="px-3 py-1.5 bg-surface-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-saffron-400/50 hover:text-saffron-400 transition" onclick="document.getElementById('add-entity-input').value='spatial transcriptomics';document.getElementById('add-entity-input').focus()">spatial transcriptomics <span class="text-slate-600">technique</span></button>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-600 max-w-sm mx-auto">BioKhoj auto-detects entity types: genes, variants (rsID, HGVS), drugs, diseases, pathways (GO, KEGG, Reactome), species, and more.</p>
+        </div>
+      </section>
+
+      <!-- Discover Tab -->
+      <section id="tab-discover" class="tab-panel hidden p-4 sm:p-6 fade-in">
+        <!-- Unified Database Search (primary) -->
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-white mb-1">Search Across Databases</h2>
+          <p class="text-sm text-slate-400 mb-3">Query PubMed, NCBI Gene, ClinVar, ClinicalTrials.gov, and UniProt simultaneously</p>
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input id="discover-search-input" type="text" placeholder="Search genes, variants, drugs across databases..." class="w-full pl-10 pr-4 py-2.5 bg-surface-800 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-saffron-400/50 focus:ring-1 focus:ring-saffron-400/30 transition">
+            </div>
+            <button id="discover-search-btn" class="px-5 py-2.5 bg-saffron-400 text-surface-900 rounded-lg text-sm font-semibold hover:bg-saffron-300 transition whitespace-nowrap">Search</button>
+          </div>
+        </div>
+
+        <!-- Search results -->
+        <div id="discover-results" class="space-y-4">
+          <!-- Populated by app.js -->
+        </div>
+        <div id="discover-search-loading" class="hidden space-y-4">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4 text-saffron-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+            <span class="text-xs text-slate-400">Searching PubMed, NCBI Gene, ClinVar, ClinicalTrials.gov, UniProt...</span>
+          </div>
+          <div class="skeleton-card"><div class="space-y-2"><div class="skeleton" style="height:16px;width:120px;"></div><div class="skeleton" style="height:12px;width:90%;"></div><div class="skeleton" style="height:12px;width:70%;"></div><div class="skeleton" style="height:12px;width:80%;"></div></div></div>
+          <div class="skeleton-card"><div class="space-y-2"><div class="skeleton" style="height:16px;width:100px;"></div><div class="skeleton" style="height:12px;width:85%;"></div><div class="skeleton" style="height:12px;width:60%;"></div></div></div>
+          <div class="skeleton-card"><div class="space-y-2"><div class="skeleton" style="height:16px;width:90px;"></div><div class="skeleton" style="height:12px;width:75%;"></div><div class="skeleton" style="height:12px;width:65%;"></div></div></div>
+        </div>
+        <div id="discover-no-results" class="hidden text-center py-12">
+          <div class="text-3xl mb-2">🔍</div>
+          <p class="text-sm text-slate-400">No results found. Try a different search term.</p>
+        </div>
+
+        <!-- Trending on bioRxiv (collapsed, bottom) -->
+        <details id="discover-trending-section" class="mt-8 bg-surface-800 border border-slate-700/50 rounded-xl">
+          <summary class="flex items-center justify-between px-4 py-3 cursor-pointer select-none hover:bg-surface-700/30 transition rounded-xl">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🔥</span>
+              <span class="text-sm font-semibold text-slate-300">What's Hot in Biology</span>
+              <span id="discover-trending-count" class="text-[10px] font-bold text-saffron-400 bg-saffron-400/10 px-1.5 py-0.5 rounded-full"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="discover-refresh-trending" class="p-1.5 rounded-lg hover:bg-surface-700 transition" title="Refresh trending" onclick="event.stopPropagation()">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              </button>
+              <svg class="w-4 h-4 text-slate-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </summary>
+          <div class="px-4 pb-4">
+            <p class="text-xs text-slate-500 mb-3">Recent preprints and papers from the past 7 days</p>
+            <div id="discover-trending" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Populated by app.js -->
+            </div>
+            <div id="discover-trending-loading" class="hidden">
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-saffron-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                <span id="discover-trending-status" class="text-xs text-slate-400">Fetching what's hot in biology...</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="skeleton-card"><div class="space-y-2"><div class="skeleton" style="height:14px;width:85%;"></div><div class="skeleton" style="height:14px;width:60%;"></div><div class="flex gap-2 mt-2"><div class="skeleton skeleton-chip"></div><div class="skeleton" style="height:10px;width:80px;"></div></div></div></div>
+                <div class="skeleton-card"><div class="space-y-2"><div class="skeleton" style="height:14px;width:75%;"></div><div class="skeleton" style="height:14px;width:55%;"></div><div class="flex gap-2 mt-2"><div class="skeleton skeleton-chip"></div><div class="skeleton" style="height:10px;width:70px;"></div></div></div></div>
+              </div>
+            </div>
+            <div id="discover-trending-empty" class="hidden text-center py-6">
+              <p class="text-sm text-slate-500">No trending preprints found. Try refreshing.</p>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- Trends Tab -->
+      <section id="tab-trends" class="tab-panel hidden p-4 sm:p-6 fade-in">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-white">Trends</h2>
+            <p class="text-sm text-slate-400 mt-0.5">Publication trends for your watchlist entities</p>
+          </div>
+          <select id="trends-range" class="bg-surface-800 border border-slate-700 rounded-lg text-sm text-slate-300 px-3 py-1.5 focus:outline-none focus:border-saffron-400/50">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last year</option>
+          </select>
+        </div>
+
+        <div id="trends-charts" class="space-y-6">
+          <!-- Chart containers -->
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Publication Volume</h3>
+            <div class="relative h-64">
+              <canvas id="chart-volume"></canvas>
+            </div>
+          </div>
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Co-mention Network</h3>
+            <div class="relative h-64">
+              <canvas id="chart-comention"></canvas>
+            </div>
+          </div>
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Journal Distribution</h3>
+            <div class="relative h-64">
+              <canvas id="chart-journals"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trends empty state -->
+        <div id="trends-empty" class="hidden text-center py-16">
+          <div class="text-5xl mb-4">📈</div>
+          <h3 class="text-lg font-semibold text-white mb-2">No trend data yet</h3>
+          <p class="text-sm text-slate-400 max-w-md mx-auto">Trends will appear after BioKhoj has collected papers over multiple checks. Add entities to your watchlist and check back later.</p>
+        </div>
+      </section>
+
+      <!-- Reading List Tab -->
+      <section id="tab-reading-list" class="tab-panel hidden p-4 sm:p-6 fade-in">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-white">Reading List</h2>
+            <p class="text-sm text-slate-400 mt-0.5" id="reading-list-count">0 saved papers</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="reading-sort" class="bg-surface-800 border border-slate-700 rounded-lg text-sm text-slate-300 px-3 py-1.5 focus:outline-none focus:border-saffron-400/50">
+              <option value="saved">Date saved</option>
+              <option value="date">Publication date</option>
+              <option value="signal">Signal score</option>
+              <option value="citations">Citations</option>
+            </select>
+            <div class="relative">
+              <button id="export-btn" class="p-2 rounded-lg bg-surface-800 border border-slate-700 hover:border-saffron-400/50 transition" title="Export">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              </button>
+              <div id="export-dropdown" class="hidden absolute right-0 mt-1 w-40 bg-surface-800 border border-slate-700 rounded-lg shadow-xl z-10">
+                <button onclick="exportReadingList('bibtex')" class="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-surface-700 rounded-t-lg transition">BibTeX</button>
+                <button onclick="exportReadingList('ris')" class="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-surface-700 transition">RIS</button>
+                <button onclick="exportReadingList('markdown')" class="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-surface-700 transition">Markdown</button>
+                <button onclick="exportReadingList('csv')" class="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-surface-700 transition">CSV</button>
+                <div class="border-t border-slate-700/50"></div>
+                <button onclick="exportReadingList('pandas')" class="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-surface-700 transition">Copy as <span class="text-blue-400">pandas</span></button>
+                <button onclick="exportReadingList('r')" class="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-surface-700 rounded-b-lg transition">Copy as <span class="text-blue-400">R tibble</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tag filter -->
+        <div id="reading-tags-filter" class="hidden flex flex-wrap gap-2 mb-4">
+          <!-- Populated by app.js -->
+        </div>
+
+        <!-- Reading list papers -->
+        <div id="reading-list-papers" class="space-y-3">
+          <!-- Populated by app.js -->
+        </div>
+
+        <!-- Reading list empty state -->
+        <div id="reading-list-empty" class="hidden text-center py-16">
+          <div class="text-5xl mb-4">📚</div>
+          <h3 class="text-lg font-semibold text-white mb-2">Reading list is empty</h3>
+          <p class="text-sm text-slate-400 max-w-md mx-auto">Save papers from your feed by clicking the bookmark icon. Add notes and tags to organize your reading.</p>
+        </div>
+      </section>
+
+      <!-- Settings Tab -->
+      <section id="tab-settings" class="tab-panel hidden p-4 sm:p-6 fade-in">
+        <h2 class="text-xl font-bold text-white mb-6">Settings</h2>
+
+        <div class="space-y-6 max-w-2xl">
+          <!-- NCBI API Key -->
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-1">NCBI API Key</h3>
+            <p class="text-xs text-slate-500 mb-3">Get one free at <a href="https://www.ncbi.nlm.nih.gov/account/settings/" target="_blank" rel="noopener" class="text-saffron-400 hover:underline">ncbi.nlm.nih.gov/account/settings</a>. Without a key, requests are limited to 3/sec.</p>
+            <div class="flex gap-2">
+              <input id="settings-api-key" type="password" placeholder="Your NCBI API key" class="flex-1 px-3 py-2 bg-surface-900 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-saffron-400/50 transition">
+              <button id="save-api-key-btn" class="px-4 py-2 bg-saffron-400 text-surface-900 rounded-lg text-sm font-semibold hover:bg-saffron-300 transition">Save</button>
+            </div>
+          </div>
+
+          <!-- Search Budget -->
+          <div id="api-budget-card" class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-1">NCBI Search Budget</h3>
+            <p class="text-xs text-slate-500 mb-3">API calls used in the last hour. NCBI allows <span id="budget-rate">3</span> requests/sec (<span id="budget-hourly">10,800</span>/hr).</p>
+            <div class="flex items-center gap-3 mb-2">
+              <div class="flex-1 bg-surface-900 rounded-full h-3 overflow-hidden">
+                <div id="budget-bar" class="h-3 rounded-full transition-all duration-500 bg-emerald-500" style="width: 0%"></div>
+              </div>
+              <span id="budget-label" class="text-xs font-mono text-slate-400 w-20 text-right">0 / 10,800</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span id="budget-status" class="text-xs text-emerald-400">All clear</span>
+              <span id="budget-key-status" class="text-xs text-slate-500">No API key</span>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Notifications</h3>
+            <label class="flex items-center justify-between cursor-pointer">
+              <div>
+                <p class="text-sm text-slate-200">Push notifications</p>
+                <p class="text-xs text-slate-500">Get notified when new papers match high-priority entities</p>
+              </div>
+              <div class="relative">
+                <input id="settings-notifications" type="checkbox" class="sr-only peer">
+                <div class="w-10 h-5 bg-slate-700 rounded-full peer-checked:bg-saffron-400 transition"></div>
+                <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Theme -->
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Appearance</h3>
+            <label class="flex items-center justify-between cursor-pointer">
+              <div>
+                <p class="text-sm text-slate-200">Dark theme</p>
+                <p class="text-xs text-slate-500">Toggle between dark and light mode</p>
+              </div>
+              <div class="relative">
+                <input id="settings-theme" type="checkbox" checked class="sr-only peer">
+                <div class="w-10 h-5 bg-slate-700 rounded-full peer-checked:bg-saffron-400 transition"></div>
+                <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Refresh Interval -->
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-1">Check Frequency</h3>
+            <p class="text-xs text-slate-500 mb-3">How often BioKhoj checks PubMed and bioRxiv for new papers when the app is open.</p>
+            <select id="settings-refresh-interval" class="w-full px-3 py-2 bg-surface-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-saffron-400/50">
+              <option value="30">Every 30 minutes</option>
+              <option value="60" selected>Every hour</option>
+              <option value="360">Every 6 hours</option>
+              <option value="1440">Once a day</option>
+              <option value="10080">Once a week</option>
+            </select>
+            <p id="settings-check-status" class="text-xs text-slate-600 mt-2"></p>
+          </div>
+
+          <!-- Signal Mute Threshold -->
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-1">Signal Mute Threshold</h3>
+            <p class="text-xs text-slate-500 mb-3">Hide papers below this signal score from your feed. Useful for broad watchlists.</p>
+            <div class="flex items-center gap-3">
+              <input id="settings-mute-threshold" type="range" min="0" max="80" step="5" value="0" class="flex-1 accent-saffron-400">
+              <span id="settings-mute-label" class="text-sm font-mono text-slate-300 w-8 text-right">0</span>
+            </div>
+            <p class="text-xs text-slate-600 mt-1">0 = show all papers. 40 = hide low signal. 70 = only high signal.</p>
+          </div>
+
+          <!-- Journal Tiers -->
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-1">Journal Tier Editor</h3>
+            <p class="text-xs text-slate-500 mb-3">Customize journal impact tiers for Signal Score calculation. Higher tiers boost the score.</p>
+            <div class="space-y-2" id="journal-tiers-editor">
+              <div>
+                <label class="text-xs text-slate-400">Tier 1 (highest impact)</label>
+                <input id="tier1-journals" type="text" placeholder="Nature, Science, Cell, NEJM..." class="w-full mt-1 px-3 py-1.5 bg-surface-900 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-saffron-400/50 transition">
+              </div>
+              <div>
+                <label class="text-xs text-slate-400">Tier 2</label>
+                <input id="tier2-journals" type="text" placeholder="Nature Genetics, Genome Research..." class="w-full mt-1 px-3 py-1.5 bg-surface-900 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-saffron-400/50 transition">
+              </div>
+              <div>
+                <label class="text-xs text-slate-400">Tier 3</label>
+                <input id="tier3-journals" type="text" placeholder="PLoS ONE, BMC Genomics..." class="w-full mt-1 px-3 py-1.5 bg-surface-900 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-saffron-400/50 transition">
+              </div>
+            </div>
+            <button id="save-tiers-btn" class="mt-3 px-4 py-1.5 bg-saffron-400 text-surface-900 rounded-lg text-sm font-semibold hover:bg-saffron-300 transition">Save Tiers</button>
+          </div>
+
+          <!-- Export / Import Watchlist -->
+          <div class="bg-surface-800 border border-slate-700 rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Data Management</h3>
+            <div class="flex flex-wrap gap-3">
+              <button id="export-watchlist-btn" class="px-4 py-2 bg-surface-900 border border-slate-600 rounded-lg text-sm text-slate-300 hover:border-saffron-400/50 transition">Export Watchlist (JSON)</button>
+              <label class="px-4 py-2 bg-surface-900 border border-slate-600 rounded-lg text-sm text-slate-300 hover:border-saffron-400/50 transition cursor-pointer">
+                Import Watchlist
+                <input id="import-watchlist-input" type="file" accept=".json" class="hidden">
+              </label>
+              <button id="clear-data-btn" class="px-4 py-2 bg-red-900/40 border border-red-800/50 rounded-lg text-sm text-red-300 hover:bg-red-900/60 transition">Clear All Data</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Mobile bottom tab bar -->
+  <nav id="mobile-tabs" class="sm:hidden fixed bottom-0 left-0 right-0 bg-surface-900/95 backdrop-blur border-t border-slate-800 z-40">
+    <div class="flex items-center justify-around py-2">
+      <button class="mobile-tab-btn flex flex-col items-center gap-0.5 px-3 py-1 text-saffron-400" data-tab="feed">
+        <span class="text-lg">📡</span>
+        <span class="text-[10px] font-medium">Feed</span>
+      </button>
+      <button class="mobile-tab-btn flex flex-col items-center gap-0.5 px-3 py-1 text-slate-500" data-tab="discover">
+        <span class="text-lg">🔭</span>
+        <span class="text-[10px] font-medium">Discover</span>
+      </button>
+      <button class="mobile-tab-btn flex flex-col items-center gap-0.5 px-3 py-1 text-slate-500" data-tab="watchlist">
+        <span class="text-lg">👁</span>
+        <span class="text-[10px] font-medium">Watch</span>
+      </button>
+      <button class="mobile-tab-btn flex flex-col items-center gap-0.5 px-3 py-1 text-slate-500" data-tab="trends">
+        <span class="text-lg">📈</span>
+        <span class="text-[10px] font-medium">Trends</span>
+      </button>
+      <button class="mobile-tab-btn flex flex-col items-center gap-0.5 px-3 py-1 text-slate-500" data-tab="reading-list">
+        <span class="text-lg">📚</span>
+        <span class="text-[10px] font-medium">Read</span>
+      </button>
+      <button class="mobile-tab-btn flex flex-col items-center gap-0.5 px-3 py-1 text-slate-500" data-tab="settings">
+        <span class="text-lg">⚙</span>
+        <span class="text-[10px] font-medium">Settings</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Rate limit warning modal -->
+  <div id="rate-limit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-surface-800 border border-slate-700 rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
+      <div class="text-3xl mb-3">⚠️</div>
+      <h3 class="text-lg font-bold text-white mb-2">Rate Limit Reached</h3>
+      <p class="text-sm text-slate-400 mb-4">NCBI limits requests to 3/second without an API key (10/sec with key). Please wait a moment or add your API key in Settings.</p>
+      <div class="flex gap-3">
+        <button onclick="switchTab('settings');closeModal('rate-limit-modal')" class="flex-1 px-4 py-2 bg-saffron-400 text-surface-900 rounded-lg text-sm font-semibold hover:bg-saffron-300 transition">Add API Key</button>
+        <button onclick="closeModal('rate-limit-modal')" class="px-4 py-2 bg-surface-700 text-slate-300 rounded-lg text-sm hover:bg-surface-600 transition">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signal score breakdown popover (positioned via JS) -->
+  <div id="signal-popover" class="hidden fixed z-50 bg-surface-800 border border-slate-700 rounded-xl p-4 shadow-2xl max-w-xs">
+    <h4 class="text-sm font-semibold text-white mb-2">Signal Score Breakdown</h4>
+    <div id="signal-popover-content" class="space-y-1 text-xs"></div>
+    <button onclick="document.getElementById('signal-popover').classList.add('hidden')" class="mt-3 text-xs text-slate-500 hover:text-slate-300 transition">Close</button>
+  </div>
+
+  <!-- Collaborators Modal -->
+  <div id="collaborators-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-surface-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">&#129309;</span>
+          <h3 class="text-lg font-bold text-white">Top Collaborators</h3>
+        </div>
+        <button id="collab-close" class="p-1 rounded-lg hover:bg-surface-700 transition">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p class="text-xs text-slate-500 mb-3">Authors who appear most frequently in papers matching your watchlist.</p>
+      <div id="collaborators-container" class="flex-1 overflow-y-auto scrollbar-thin space-y-0.5">
+        <!-- Populated by app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly Digest / Lab Meeting Prep Modal -->
+  <div id="digest-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-surface-800 border border-slate-700 rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">&#128203;</span>
+          <h3 class="text-lg font-bold text-white">Weekly Digest</h3>
+        </div>
+        <button id="digest-close" class="p-1 rounded-lg hover:bg-surface-700 transition">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="flex gap-2 mb-4">
+        <button id="digest-copy-md" class="px-3 py-1.5 bg-saffron-400 text-surface-900 rounded-lg text-xs font-semibold hover:bg-saffron-300 transition">Copy Markdown</button>
+        <button id="digest-copy-slides" class="px-3 py-1.5 bg-surface-700 text-slate-300 rounded-lg text-xs hover:bg-surface-600 transition">Copy as Slides</button>
+      </div>
+      <pre id="digest-preview" class="flex-1 overflow-y-auto scrollbar-thin bg-surface-900 border border-slate-700 rounded-xl p-4 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap font-mono"></pre>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/dexie@3/dist/dexie.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="/js/biokhoj-core.js"></script>
+  <script src="/js/biokhoj-storage.js"></script>
+  <script src="/biokhoj/app.js"></script>
+</body>
+</html>

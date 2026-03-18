@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioKhoj Help</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #020617; color: #c0caf5; font-family: system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.7; padding: 24px 32px 60px; max-width: 880px; margin: 0 auto; }
+    h1 { color: #F4C430; font-size: 1.4rem; margin-bottom: 4px; }
+    h1 span { color: #d4a017; }
+    .subtitle { color: #64748b; font-size: 0.82rem; margin-bottom: 20px; }
+    h2 { color: #f5d660; font-size: 1.05rem; margin: 22px 0 8px; border-bottom: 1px solid rgba(244,196,48,0.2); padding-bottom: 5px; }
+    a { color: #F4C430; text-decoration: none; }
+    a:hover { color: #f5d660; text-decoration: underline; }
+    code { font-family: 'Courier New', monospace; font-size: 0.85em; background: rgba(244,196,48,0.12); color: #f5d660; padding: 2px 5px; border-radius: 3px; }
+
+    details { background: rgba(15,23,42,0.5); border: 1px solid rgba(100,116,139,0.15); border-radius: 8px; margin: 6px 0; }
+    details[open] { border-color: rgba(244,196,48,0.25); }
+    summary { cursor: pointer; padding: 10px 14px; font-weight: 600; color: #f5d660; list-style: none; display: flex; align-items: center; gap: 7px; user-select: none; font-size: 0.92rem; }
+    summary::before { content: '\25B6'; font-size: 0.6em; transition: transform 0.15s; color: #F4C430; }
+    details[open] > summary::before { transform: rotate(90deg); }
+    summary::-webkit-details-marker { display: none; }
+    .detail-body { padding: 0 14px 12px; }
+    .detail-body p { color: #94a3b8; font-size: 0.85rem; margin: 5px 0; }
+    .detail-body ol, .detail-body ul { color: #94a3b8; font-size: 0.85rem; padding-left: 18px; margin: 5px 0; }
+    .detail-body li { margin: 3px 0; }
+    .detail-body li strong { color: #c0caf5; }
+
+    .kbd { display: inline-block; font-family: 'Courier New', monospace; font-size: 0.75rem; padding: 1px 6px; border-radius: 3px; background: rgba(244,196,48,0.15); color: #f5d660; border: 1px solid rgba(244,196,48,0.3); }
+    .tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .tag-saffron { background: rgba(244,196,48,0.15); color: #F4C430; border: 1px solid rgba(244,196,48,0.3); }
+    .tag-rose { background: rgba(244,63,94,0.15); color: #fb7185; border: 1px solid rgba(244,63,94,0.3); }
+    .score-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; }
+    .score-high { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.4); }
+    .score-normal { background: rgba(244,196,48,0.2); color: #F4C430; border: 1px solid rgba(244,196,48,0.4); }
+    .score-low { background: rgba(100,116,139,0.2); color: #94a3b8; border: 1px solid rgba(100,116,139,0.4); }
+    .info { background: rgba(244,196,48,0.06); border-left: 3px solid #f5d660; padding: 8px 12px; border-radius: 0 6px 6px 0; margin: 8px 0; font-size: 0.82rem; color: #f5d660; }
+  </style>
+</head>
+<body>
+
+<h1>&#128300; <span>Bio</span>Khoj Help</h1>
+<p class="subtitle">Personal literature radar &mdash; track what matters in biomedical research.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Quick Start</h2>
+
+<details open>
+  <summary>Get Started in 30 Seconds</summary>
+  <div class="detail-body">
+    <ol>
+      <li><strong>Open the sidebar</strong> &mdash; click the BioKhoj icon in your toolbar or press <span class="kbd">Ctrl+Shift+K</span></li>
+      <li><strong>Go to the Watch tab</strong> &mdash; add a gene (<code>BRCA1</code>), disease (<code>glioblastoma</code>), drug, pathway, or any biomedical concept</li>
+      <li><strong>Switch to Recent</strong> &mdash; BioKhoj queries PubMed, bioRxiv, and OpenAlex, then ranks results by signal bars</li>
+      <li><strong>Browse Hot</strong> &mdash; see trending preprints across bioRxiv, medRxiv, PubMed, and Europe PMC</li>
+    </ol>
+    <div class="info">The sidebar uses a 4-tab layout: Recent, Watch, Search, and Hot. Tabs are shown at the top of the sidebar. Below 300px width, tab labels hide and only icons are shown.</div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Sidebar Tabs</h2>
+
+<details open>
+  <summary>Recent (default tab)</summary>
+  <div class="detail-body">
+    <p>Your paper feed. Papers are grouped by date (Today, Yesterday, This Week, Older) and sorted by relevance.</p>
+    <ul>
+      <li><strong>Signal bars</strong> &mdash; 1&ndash;4 bars indicate relevance strength based on recency, citations, journal tier, and entity match</li>
+      <li><strong>Unread dots</strong> &mdash; blue dot on papers you have not yet opened; cleared on click</li>
+      <li><strong>Entity chips</strong> &mdash; matched watchlist entities shown as colored chips on each paper card (same deterministic color as in Watch tab)</li>
+      <li><strong>Actions</strong> &mdash; bookmark, open in new tab, or dismiss individual papers</li>
+    </ul>
+    <p>This is the default tab when opening the sidebar normally.</p>
+    <div style="margin:12px 0"><img src="screenshots/recent.png" alt="Recent tab showing paper feed with signal bars and entity chips" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<details open>
+  <summary>Watch</summary>
+  <div class="detail-body">
+    <p>Manage your tracked entities. Each entity is shown as a colored chip.</p>
+    <ul>
+      <li><strong>Add bar</strong> &mdash; type an entity name and press Enter to add. Auto-classifies the type (gene, disease, drug, pathway, organism, method).</li>
+      <li><strong>Entity chips</strong> &mdash; colored with deterministic hash-based colors (see Entity Colors below). Click <strong>&times;</strong> to remove.</li>
+      <li><strong>Onboarding</strong> &mdash; when the watchlist is empty, helpful prompts guide you to add your first entities</li>
+    </ul>
+    <p>The sidebar opens directly to this tab when you use "Watch in BioKhoj" from the right-click menu.</p>
+    <div style="margin:12px 0"><img src="screenshots/watch.png" alt="Watch tab with entity chips for tracked genes and diseases" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<details open>
+  <summary>Search</summary>
+  <div class="detail-body">
+    <p>Unified database search across multiple biomedical sources in a single query:</p>
+    <ul>
+      <li><strong>PubMed</strong> &mdash; literature search</li>
+      <li><strong>NCBI Gene</strong> &mdash; gene records</li>
+      <li><strong>ClinVar</strong> &mdash; clinical variant annotations</li>
+      <li><strong>ClinicalTrials</strong> &mdash; clinical trial records</li>
+      <li><strong>UniProt</strong> &mdash; protein entries</li>
+    </ul>
+    <p>Results from all databases appear together, grouped by source. Click any result to open the full record.</p>
+    <div style="margin:12px 0"><img src="screenshots/search.png" alt="Search tab showing unified database results from PubMed, NCBI Gene, ClinVar, and more" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<details open>
+  <summary>Hot</summary>
+  <div class="detail-body">
+    <p>Trending preprints and recent papers from multiple sources:</p>
+    <ul>
+      <li><strong>bioRxiv</strong> &mdash; biology preprints</li>
+      <li><strong>medRxiv</strong> &mdash; medical preprints</li>
+      <li><strong>PubMed</strong> &mdash; recently published articles</li>
+      <li><strong>Europe PMC</strong> &mdash; European life sciences literature</li>
+    </ul>
+    <p>Each source has a collapsible, color-coded header. Expand or collapse individual sources to focus on what you care about. Papers are ranked by attention and recency within each source.</p>
+    <div style="margin:12px 0"><img src="screenshots/whatshot.png" alt="Hot tab showing trending preprints from bioRxiv, medRxiv, PubMed, and Europe PMC" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Paper Selection &amp; Cleanup</h2>
+
+<details open>
+  <summary>Managing Your Paper List</summary>
+  <div class="detail-body">
+    <p>The Recent tab supports explicit paper management via select mode:</p>
+    <ol>
+      <li><strong>Enter select mode</strong> &mdash; click the <strong>"Select"</strong> button at the top of the Recent tab</li>
+      <li><strong>Check papers</strong> &mdash; checkboxes appear next to each paper; click to select individual papers</li>
+      <li><strong>Delete selected</strong> &mdash; remove the checked papers from your feed</li>
+      <li><strong>Clear all</strong> &mdash; remove all papers at once</li>
+    </ol>
+    <p>Select mode exits automatically after a delete action, or click "Cancel" to exit without changes.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Recently Opened History</h2>
+
+<details open>
+  <summary>Track What You Have Read</summary>
+  <div class="detail-body">
+    <p>At the bottom of the Recent tab, a collapsible <strong>"Recently Opened"</strong> section shows the last 15 papers you clicked on.</p>
+    <ul>
+      <li><strong>Title and time ago</strong> &mdash; each entry shows the paper title and relative time ("2 min ago", "3 hours ago")</li>
+      <li><strong>Persisted across sessions</strong> &mdash; history survives browser restarts and sidebar closes</li>
+      <li><strong>Collapsible</strong> &mdash; click the header to expand or collapse the list</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Entity Colors</h2>
+
+<details open>
+  <summary>Deterministic Color Coding</summary>
+  <div class="detail-body">
+    <p>Entity chips use hash-based deterministic colors from an 8-color palette. The same entity always gets the same color everywhere:</p>
+    <ul>
+      <li><strong>Watch tab</strong> &mdash; entity chips in your watchlist</li>
+      <li><strong>Recent tab</strong> &mdash; matched entity chips on paper cards</li>
+    </ul>
+    <p>Colors are computed from the entity name, so <code>BRCA1</code> always appears in the same hue regardless of where it is displayed. No configuration needed.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Context Menu Actions</h2>
+
+<details open>
+  <summary>Right-Click Integration</summary>
+  <div class="detail-body">
+    <p><strong>Selected text</strong> &mdash; select any text on a webpage, then right-click:</p>
+    <ul>
+      <li><strong>"Watch in BioKhoj"</strong> &mdash; adds the selected text as a new watchlist entity (opens Watch tab)</li>
+      <li><strong>"Lookup in BioKhoj"</strong> &mdash; searches for the selected text across all databases (opens Search tab)</li>
+    </ul>
+    <p><strong>Links to papers</strong> &mdash; right-click any PubMed, bioRxiv, or DOI link:</p>
+    <ul>
+      <li><strong>"Save to BioKhoj reading list"</strong> &mdash; bookmarks the paper for later reading</li>
+    </ul>
+    <p>These actions work on any webpage &mdash; PubMed, journal sites, Wikipedia, lab wikis, or anywhere you encounter a term or paper link.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Keyboard Shortcuts</h2>
+
+<details open>
+  <summary>Navigate Without a Mouse</summary>
+  <div class="detail-body">
+    <ul>
+      <li><span class="kbd">Ctrl+Shift+K</span> &mdash; toggle sidebar open/closed</li>
+      <li><span class="kbd">1</span> <span class="kbd">2</span> <span class="kbd">3</span> <span class="kbd">4</span> &mdash; switch to Recent, Watch, Search, Hot tabs</li>
+      <li><span class="kbd">j</span> / <span class="kbd">k</span> &mdash; navigate down/up in paper lists</li>
+      <li><span class="kbd">Enter</span> &mdash; open the selected paper</li>
+      <li><span class="kbd">Escape</span> &mdash; close overlays or deselect</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Smart Tab Defaults</h2>
+
+<details>
+  <summary>Which Tab Opens When</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Normal open</strong> (toolbar icon or <span class="kbd">Ctrl+Shift+K</span>) &mdash; opens the <strong>Recent</strong> tab</li>
+      <li><strong>Right-click "Watch in BioKhoj"</strong> &mdash; opens the <strong>Watch</strong> tab with the new entity added</li>
+      <li><strong>Right-click "Lookup in BioKhoj"</strong> &mdash; opens the <strong>Search</strong> tab with query pre-filled</li>
+      <li><strong>Last tab remembered</strong> &mdash; if you switch tabs manually, your last active tab is restored on next open</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Narrow Width</h2>
+
+<details>
+  <summary>Responsive Layout</summary>
+  <div class="detail-body">
+    <p>When the sidebar is narrower than <strong>300px</strong>, tab labels are hidden and only icons are shown. This keeps the tab bar usable even in very narrow sidebar configurations. All functionality remains the same.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Full App</h2>
+
+<details>
+  <summary>More Features on the Web</summary>
+  <div class="detail-body">
+    <p>The extension sidebar provides the core experience. For advanced features, open the full BioKhoj app:</p>
+    <p style="margin:10px 0"><a href="https://lang.bio/biokhoj" style="padding:6px 14px;border-radius:6px;background:rgba(244,196,48,0.15);border:1px solid rgba(244,196,48,0.3)">Open BioKhoj at lang.bio/biokhoj</a></p>
+    <p>The full app includes:</p>
+    <ul>
+      <li><strong>Trend charts</strong> &mdash; publication volume over time for each entity, with sparklines and overlays</li>
+      <li><strong>Reading list</strong> &mdash; save papers, add notes/tags, track read status, export</li>
+      <li><strong>Author tracking</strong> &mdash; watch specific authors and get alerts on new publications</li>
+      <li><strong>Concept expansion</strong> &mdash; suggestions for related entities from OpenAlex and MeSH</li>
+      <li><strong>Export</strong> &mdash; BibTeX, RIS, Markdown, weekly digest, watchlist JSON backup</li>
+      <li><strong>Journal tiers</strong> &mdash; customize journal rankings that affect Signal Score</li>
+    </ul>
+    <div style="margin:12px 0"><img src="screenshots/reading.png" alt="Reading list overlay with saved papers, notes, and tags" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+    <div style="margin:12px 0"><img src="screenshots/trends.png" alt="Trends overlay showing publication volume charts over time" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+    <div style="margin:12px 0"><img src="screenshots/digest.png" alt="Weekly digest summarizing recent papers matching your watchlist" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+    <div style="margin:12px 0"><img src="screenshots/export.png" alt="Export options for BibTeX, RIS, Markdown, and watchlist backup" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+    <div style="margin:12px 0"><img src="screenshots/settings.png" alt="Settings panel for configuring journal tiers and preferences" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+    <p>Your watchlist syncs between the extension and PWA via shared local storage.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>Privacy</h2>
+
+<details open>
+  <summary>Your Data Stays Local</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>100% local storage</strong> &mdash; watchlist, reading list, history, and settings never leave your browser</li>
+      <li><strong>API calls only for papers</strong> &mdash; queries go directly to PubMed, bioRxiv, NCBI, UniProt, ClinVar, and Europe PMC (no proxy)</li>
+      <li><strong>No analytics</strong> &mdash; no telemetry, tracking, or usage data collected</li>
+      <li><strong>No account required</strong> &mdash; works without sign-up or login</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>About</h2>
+
+<details>
+  <summary>BioKhoj</summary>
+  <div class="detail-body">
+    <p><strong>BioKhoj</strong> &mdash; personal literature radar for biomedical research.</p>
+    <p>Built by <a href="https://lang.bio">Oric Labs</a>. Part of the <a href="https://lang.bio">BioLang</a> ecosystem.</p>
+    <p style="margin-top:10px"><strong>Report issues:</strong> <a href="https://github.com/oriclabs/biolang/issues">GitHub Issues</a></p>
+    <p style="margin-top:8px;color:#64748b;font-size:0.8rem">For full documentation including Signal Score formula, co-mention algorithms, and all settings, see the <a href="https://lang.bio/biokhoj/help.html">complete help page</a>.</p>
+  </div>
+</details>
+
+<div style="margin-top:28px;padding-top:12px;border-top:1px solid #1e293b;color:#475569;font-size:0.75rem">
+  BioKhoj &mdash; 100% client-side. Your data never leaves your browser.
+</div>
+
+</body>
+</html>

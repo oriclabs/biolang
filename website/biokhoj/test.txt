@@ -1,0 +1,438 @@
+BioKhoj — Manual Test Plan
+===========================
+
+Load extension unpacked: chrome://extensions → Developer mode → Load unpacked
+Point to: website/extension/biokhoj/chrome/
+
+
+================================================================
+ EXTENSION SIDEBAR — BASIC
+================================================================
+
+[ ] 1. Click extension icon → sidebar opens
+[ ] 2. Ctrl+Shift+K → sidebar toggles open/close
+[ ] 3. Header shows logo, brand, action buttons
+[ ] 4. Add bar visible with input + "Watch" button
+[ ] 5. Tab bar shows 4 tabs: Recent, Watch, Search, Hot
+[ ] 6. Default tab is "Recent"
+[ ] 7. Close sidebar → reopen → last active tab restored
+[ ] 8. Dark theme is default
+[ ] 9. Click moon icon → switches to light theme
+[ ] 10. Click moon icon again → back to dark theme
+[ ] 11. Theme persists across sidebar close/reopen
+[ ] 12. "?" button shows keyboard shortcuts tooltip
+[ ] 13. Click outside tooltip → closes
+[ ] 14. Popout button (arrow icon) opens full PWA in new tab
+
+
+================================================================
+ EXTENSION SIDEBAR — TAB: WATCH
+================================================================
+
+[ ] 15. Click "Watch" tab → shows entity management
+[ ] 16. Type "TP53" in add bar → click Watch → entity appears as chip
+[ ] 17. Entity chip has correct hash-based color
+[ ] 18. Type "TP53" again → shows "already watched" toast (no duplicate)
+[ ] 19. Type "tp53" (lowercase) → still detected as duplicate
+[ ] 20. Add "BRCA1" → different color than TP53
+[ ] 21. Add "olaparib" → classified as drug
+[ ] 22. Add "rs1801133" → classified as variant
+[ ] 23. Add "Alzheimer disease" → classified as disease
+[ ] 24. Watchlist count updates correctly
+[ ] 25. Click X on a chip → entity removed, toast shown
+[ ] 26. Removed entity stays removed after sidebar close/reopen
+[ ] 27. With 0 entities → empty state message shown
+[ ] 28. With many entities (>8) → chips scroll horizontally
+[ ] 29. Onboarding card shows for first-time users with quick-add chips
+[ ] 30. Click onboarding chip → entity added, card dismisses
+
+
+================================================================
+ EXTENSION SIDEBAR — TAB: RECENT
+================================================================
+
+[ ] 31. Click "Recent" tab → shows paper feed
+[ ] 32. With entities watched → click refresh (header button) → papers load
+[ ] 33. Papers grouped by date: "Today", "This week", "Older"
+[ ] 34. Date group headers show count in parentheses
+[ ] 35. Each paper has signal color bar on left edge:
+       - Purple for high signal (70+)
+       - Saffron/amber for mid signal (40-69)
+       - Slate/grey for low signal (<40)
+[ ] 36. Unread papers have saffron dot indicator
+[ ] 37. Read papers are dimmed (opacity)
+[ ] 38. Paper card shows: title, journal, date, signal badge, entity chip
+[ ] 39. Entity chip on paper has SAME color as the chip in Watch tab
+[ ] 40. Action buttons visible: Open, Cite, Save, Mark Read/Unread
+[ ] 41. Click "Open" → paper opens in new tab on PubMed
+[ ] 42. After opening → paper marked as read, dot disappears, card dims
+[ ] 43. Click "Mark Unread" → dot reappears, card un-dims
+[ ] 44. Click "Cite" → citation text copied to clipboard
+[ ] 45. Click "Save" → paper saved to reading list
+[ ] 46. Search filter: type in search box → papers filter by title/author
+[ ] 47. Sort dropdown: change to "Date" → papers re-sorted
+[ ] 48. Sort dropdown: change to "Journal" → papers re-sorted
+[ ] 49. Sort dropdown: change back to "Signal" → highest score first
+[ ] 50. Papers count badge updates with total count
+[ ] 51. Status text shows "X unread of Y papers"
+
+
+================================================================
+ EXTENSION SIDEBAR — TAB: RECENT — SELECTION MODE
+================================================================
+
+[ ] 52. Click "Select" button → checkboxes appear on all papers
+[ ] 53. Action bar appears: "0 selected", "Clear all", "Cancel"
+[ ] 54. Check 2 papers → "2 selected" shown, "Delete selected" appears
+[ ] 55. Click "Delete selected" → checked papers removed, count updates
+[ ] 56. Click "Clear all" → confirmation dialog → all papers cleared
+[ ] 57. Click "Cancel" → exits select mode, checkboxes hidden
+[ ] 58. Click "Done" (same button as Select) → exits select mode
+
+
+================================================================
+ EXTENSION SIDEBAR — TAB: RECENT — HISTORY
+================================================================
+
+[ ] 59. Open a paper → "Recently opened" section appears at bottom
+[ ] 60. Section collapsed by default → click to expand
+[ ] 61. Shows paper title (1 line), journal, time ago
+[ ] 62. Click history item → reopens paper in new tab
+[ ] 63. Open same paper again → moves to top, no duplicate
+[ ] 64. Max 15 items in history
+[ ] 65. History persists across sidebar close/reopen
+
+
+================================================================
+ EXTENSION SIDEBAR — TAB: SEARCH
+================================================================
+
+[ ] 66. Click "Search" tab → search input focused
+[ ] 67. Type "BRCA1" → click Search → results appear
+[ ] 68. Results grouped by source with colored headers:
+       - PubMed (blue)
+       - NCBI Gene (blue)
+       - ClinVar (purple)
+       - ClinicalTrials.gov (orange)
+       - UniProt (cyan)
+[ ] 69. Each result has title, subtitle, "Watch" button
+[ ] 70. Click "Watch" on a gene result → adds to watchlist
+[ ] 71. Switch to Watch tab → new entity visible
+[ ] 72. Source headers clickable → collapse/expand results
+[ ] 73. Empty search → no action
+[ ] 74. Search with no results → "No results found" shown
+[ ] 75. Press Enter in input → triggers search (same as button)
+
+
+================================================================
+ EXTENSION SIDEBAR — TAB: HOT (TRENDS)
+================================================================
+
+[ ] 76. Click "Hot" tab → trending preprints load
+[ ] 77. Header shows "Trending in Biology" with count badge
+[ ] 78. Results grouped by source with colored headers:
+       - bioRxiv (amber)
+       - medRxiv (cyan)
+       - PubMed (blue)
+       - Europe PMC (green)
+[ ] 79. Source category headers have larger font (12px)
+[ ] 80. Category headers clickable → collapse/expand
+[ ] 81. Up to 10 papers per source
+[ ] 82. Click a preprint → opens in new tab (DOI link)
+[ ] 83. Click "Refresh" → fetches fresh data
+[ ] 84. Cached data shown if <6 hours old
+
+
+================================================================
+ EXTENSION SIDEBAR — KEYBOARD SHORTCUTS
+================================================================
+
+[ ] 85. Press 1 → switches to Recent tab
+[ ] 86. Press 2 → switches to Watch tab
+[ ] 87. Press 3 → switches to Search tab
+[ ] 88. Press 4 → switches to Hot tab
+[ ] 89. j/k → navigate papers in Recent tab
+[ ] 90. Enter → open selected paper
+[ ] 91. Escape → close any open overlay/modal
+[ ] 92. Shortcuts don't fire when typing in input fields
+
+
+================================================================
+ EXTENSION — CONTEXT MENUS
+================================================================
+
+[ ] 93. Select text "BRCA1" on any page → right-click
+[ ] 94. Context menu shows "Watch in BioKhoj"
+[ ] 95. Click it → notification "Now watching BRCA1 (gene)"
+[ ] 96. Sidebar shows BRCA1 in Watch tab (auto-refresh)
+[ ] 97. Select same text → right-click → Watch → notification "already on watchlist"
+[ ] 98. Context menu shows "Lookup in BioKhoj" → opens sidebar
+
+[ ] 99. Right-click a PubMed link (e.g., pubmed.ncbi.nlm.nih.gov/12345)
+[ ] 100. Context menu shows "Save to BioKhoj reading list"
+[ ] 101. Click it → notification "Saved to BioKhoj" with paper title
+[ ] 102. Paper appears in Recent tab
+[ ] 103. Right-click a non-bio link → context menu option NOT shown
+
+
+================================================================
+ EXTENSION — BACKGROUND & NOTIFICATIONS
+================================================================
+
+[ ] 104. With entities watched → wait or trigger alarm
+[ ] 105. Badge on extension icon shows unread count
+[ ] 106. Badge color: purple for 1-10, saffron for 10+
+[ ] 107. High-signal paper (70+) triggers push notification
+[ ] 108. Notification shows signal score + entity + journal
+[ ] 109. Click notification → sidebar opens
+[ ] 110. Mark all papers read → badge clears
+
+
+================================================================
+ EXTENSION — OVERLAY PANELS
+================================================================
+
+[ ] 111. Header "Trends" button → opens trends overlay (charts)
+[ ] 112. Header "Reading" button → opens reading list overlay
+[ ] 113. Header "Export" button → opens export overlay
+[ ] 114. Header "Digest" button → opens weekly digest overlay
+[ ] 115. Close button (back arrow) on each overlay works
+[ ] 116. Settings gear → opens settings panel (API key, notifications, theme, tiers)
+
+
+================================================================
+ EXTENSION — SETTINGS
+================================================================
+
+[ ] 117. Enter NCBI API key → save → persists
+[ ] 118. Toggle notifications → browser permission requested if enabling
+[ ] 119. Toggle theme → applies immediately
+[ ] 120. Journal tier editor → save custom tiers
+
+
+================================================================
+ EXTENSION — ERROR HANDLING
+================================================================
+
+[ ] 121. Disable network → open sidebar → "Error loading data" with Retry button
+[ ] 122. Click Retry → attempts again
+[ ] 123. Rate limited by NCBI → warning banner shown
+[ ] 124. Service worker asleep → sidebar retries sendMsg after 500ms
+
+
+================================================================
+ EXTENSION — NARROW WIDTH
+================================================================
+
+[ ] 125. Resize sidebar to <300px
+[ ] 126. Tab labels hide, icons only shown
+[ ] 127. All content still accessible and scrollable
+[ ] 128. Paper cards don't overflow horizontally
+
+
+================================================================
+ PWA — BASIC NAVIGATION
+================================================================
+
+[ ] 129. Open https://lang.bio/biokhoj (or local)
+[ ] 130. 6 tabs visible: Feed, Discover, Watchlist, Trends, Reading List, Settings
+[ ] 131. Desktop sidebar shows watchlist summary
+[ ] 132. Mobile: bottom nav shows 6 tabs
+[ ] 133. PWA install banner shown on first visit
+[ ] 134. Click Install → PWA installs
+[ ] 135. Click Later → banner dismissed, doesn't reappear
+
+
+================================================================
+ PWA — FEED TAB
+================================================================
+
+[ ] 136. Papers shown with signal badges, entity chips, abstract preview
+[ ] 137. Click abstract "more" → expands full abstract inline
+[ ] 138. Click "less" → collapses back
+[ ] 139. Hover tooltip NOT shown (replaced by click expand)
+[ ] 140. Filter chips: "Multi-entity", "Unread", "High signal"
+[ ] 141. Click "Multi-entity" → filters to papers with 2+ entities
+[ ] 142. Click "Unread" → shows only unread papers
+[ ] 143. Click "High signal" → shows only score 70+
+[ ] 144. Multiple filters compose (e.g., unread + high signal)
+[ ] 145. Subtitle updates: "12 papers (unread, high signal)"
+[ ] 146. "Insights" dropdown → Journal Club, Collaborators, Digest, Share
+[ ] 147. Shift+click papers → multi-select, "Tag selected" button appears
+[ ] 148. Click "Tag selected" → prompt for tag → applied to selected
+
+[ ] 149. Signal score badge → click → popover with breakdown
+[ ] 150. Paper actions: mark read/unread, star, save, copy citation
+[ ] 151. Sort: signal / date / journal
+
+[ ] 152. Backlog banner shows after >1 day gap
+[ ] 153. "Review backlog" → sorts by date
+[ ] 154. "Mark all read" → clears backlog
+[ ] 155. "Dismiss" → hides banner
+
+
+================================================================
+ PWA — SIDEBAR (DESKTOP)
+================================================================
+
+[ ] 156. Shows active watchlist entities (up to 12)
+[ ] 157. Activity dots: purple pulse = high-signal, saffron = new, grey = quiet
+[ ] 158. Unread count badges per entity
+[ ] 159. Last check timestamp shown
+[ ] 160. Refresh button triggers manual check
+
+
+================================================================
+ PWA — DISCOVER TAB
+================================================================
+
+[ ] 161. Search bar at top (primary)
+[ ] 162. Type "BRCA1" → Search → results grouped by 5 databases
+[ ] 163. Each group collapsible with chevron
+[ ] 164. "Watch" buttons on each result
+[ ] 165. Loading spinner + status text during search
+[ ] 166. Trending bioRxiv at bottom, collapsed by default
+[ ] 167. Click to expand → preprint cards shown
+[ ] 168. Count badge on trending header
+[ ] 169. Refresh button on trending
+[ ] 170. Gene extraction from preprint titles → "Watch" buttons
+
+
+================================================================
+ PWA — WATCHLIST TAB
+================================================================
+
+[ ] 171. Add entity form with type detection hint
+[ ] 172. Priority dropdown (high/normal/low)
+[ ] 173. Tags input (comma-separated)
+[ ] 174. Preset packs shown when <5 entities:
+       - Cancer Genomics, CRISPR, Single-Cell, Clinical Variants, Metagenomics
+[ ] 175. Click a pack → entities added with tag, pack greys out
+[ ] 176. Packs hidden when >5 entities
+[ ] 177. Concept suggestions appear after adding entity
+[ ] 178. Click suggestion → adds related entity
+[ ] 179. Entity cards: term, type badge, priority badge, tags, pause/delete
+[ ] 180. Pause button → entity paused (dimmed, excluded from checks)
+[ ] 181. Delete button → entity removed
+[ ] 182. Empty state with quick-add chips and type labels
+
+
+================================================================
+ PWA — TRENDS TAB
+================================================================
+
+[ ] 183. Insight summary box at top (if data exists):
+       - "TP53 up 32% this week"
+       - "Nature Genetics contributed 4 papers"
+       - Co-mention spikes
+[ ] 184. Publication volume line chart (Chart.js)
+[ ] 185. Journal distribution doughnut chart
+[ ] 186. Empty state when no trend data
+
+
+================================================================
+ PWA — READING LIST TAB
+================================================================
+
+[ ] 187. Shows saved papers
+[ ] 188. Sort: save date, pub date, signal, citations
+[ ] 189. Tag filter chips (if papers have tags)
+[ ] 190. Notes textarea per paper → saves on change
+[ ] 191. Citation badges with sparklines (from OpenAlex)
+[ ] 192. Export dropdown:
+       - BibTeX → file download
+       - RIS → file download
+       - Markdown → file download
+       - CSV → file download
+       - Copy as pandas → clipboard
+       - Copy as R tibble → clipboard
+[ ] 193. Verify pandas output starts with "import pandas as pd"
+[ ] 194. Verify R output starts with "library(tibble)"
+
+
+================================================================
+ PWA — SETTINGS TAB
+================================================================
+
+[ ] 195. NCBI API key input → save → persists
+[ ] 196. Search budget visualizer:
+       - Progress bar (green/amber/red)
+       - Shows used / limit count
+       - Rate indicator (3 or 10 req/s)
+       - API key status badge
+       - Auto-refreshes while tab is open
+[ ] 197. Signal mute threshold slider (0-80)
+       - Move to 40 → feed hides papers below 40
+       - Subtitle shows "score >=40"
+       - Move back to 0 → all papers shown
+[ ] 198. Push notifications toggle
+[ ] 199. Dark/light theme toggle
+[ ] 200. Journal tier editor → save custom tiers
+[ ] 201. Export watchlist (JSON) → file download
+[ ] 202. Import watchlist (JSON) → entities added (deduped)
+[ ] 203. Clear all data → confirmation → everything wiped
+
+
+================================================================
+ PWA — BACKLOG CATCH-UP
+================================================================
+
+[ ] 204. Close PWA for >1 day → reopen
+[ ] 205. Progress banner shows: "Catching up on X days..."
+[ ] 206. Progress bar fills incrementally
+[ ] 207. Papers tagged as "backlog" with blue badge
+[ ] 208. Welcome back banner with 3 options
+[ ] 209. 30-day cap warning if gap >30 days
+
+
+================================================================
+ PWA — SHARE / IMPORT URL
+================================================================
+
+[ ] 210. Click "Share" (in Insights dropdown) → URL copied to clipboard
+[ ] 211. URL contains ?import= parameter with base64 watchlist
+[ ] 212. Open URL in new browser → entities auto-imported
+[ ] 213. Duplicate entities skipped
+[ ] 214. URL cleaned from address bar after import
+[ ] 215. Watchlist too large → "Use Export instead" toast
+
+
+================================================================
+ PWA — CITATION VELOCITY ALERTS
+================================================================
+
+[ ] 216. Save papers to reading list → wait for citation fetch
+[ ] 217. On next app open → toast if any paper gained 5+ citations
+
+
+================================================================
+ PWA — KEYBOARD SHORTCUTS
+================================================================
+
+[ ] 218. j/k → navigate papers in feed
+[ ] 219. Enter → open selected paper on PubMed
+[ ] 220. / → focus search input
+[ ] 221. Escape → close modals/popovers, blur inputs
+[ ] 222. Shift+click → multi-select papers
+
+
+================================================================
+ PWA — SERVICE WORKER / OFFLINE
+================================================================
+
+[ ] 223. Load PWA once → go offline → reload → cached page loads
+[ ] 224. Offline: existing papers still visible from IndexedDB
+[ ] 225. Offline: API calls fail gracefully (no crash)
+[ ] 226. Come back online → refresh works
+
+
+================================================================
+ CROSS-CUTTING
+================================================================
+
+[ ] 227. No console errors on clean load (sidebar)
+[ ] 228. No console errors on clean load (PWA)
+[ ] 229. All toasts auto-dismiss after ~2.5 seconds
+[ ] 230. All modals close with Escape key
+[ ] 231. Light theme: all text readable, no invisible elements
+[ ] 232. Dark theme: all text readable, no invisible elements

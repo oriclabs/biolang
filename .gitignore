@@ -70,5 +70,12 @@ Thumbs.db
 !/books/language/
 !/books/practical-bioinformatics/
 
+# BioKhoj internal notes (not shipped)
+/website/biokhoj/maybe.txt
+/website/biokhoj/uximprovements.txt
+/website/biokhoj/tabsux.txt
+/website/biokhoj/layout.txt
+/website/biokhoj/REQUIREMENTS.md
+
 # Node modules (website build)
 node_modules/

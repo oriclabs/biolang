@@ -100,3 +100,84 @@ None of the listed categories apply. BioGist does not collect personally identif
 
 ## Privacy policy URL
 https://lang.bio/privacy
+
+## Firefox Notes to Reviewer
+No account, API key, or login is required.
+
+To test:
+1. Navigate to any PubMed paper (e.g. pubmed.ncbi.nlm.nih.gov/35882136)
+2. Click the BioGist icon to open the sidebar
+3. Click "Scan" to detect genes, variants, drugs, and species
+4. Click any detected entity for details from NCBI/UniProt/ClinVar
+5. Right-click selected text for "Look up in BioGist"
+6. Try Compare, Export, and History features
+
+Entity detection runs locally using bundled JavaScript and the HGNC gene symbol list. Network requests only occur when the user clicks an entity to fetch details from public APIs (NCBI, UniProt, myvariant.info, CrossRef, OpenAlex).
+
+No data is collected or shared. All innerHTML uses escapeHtml() sanitization.
+
+## Firefox Categories
+Search Tools, Web Development
+
+## Firefox License
+MIT License
+
+
+# Microsoft Edge Add-ons
+
+## Short Description
+Biological entity detector for research papers. Auto-detect genes, variants, drugs, species on any webpage. Inline PubMed search. Local.
+
+## Category
+Productivity
+
+## Search Terms (7 terms, max 30 chars each, max 21 words total)
+1. gene variant detector sidebar
+2. bioinformatics research paper
+3. PubMed inline search
+4. genomics entity recognition
+5. biological data annotation
+6. NCBI UniProt ClinVar lookup
+7. science paper analysis tool
+
+## Notes for Certification (less than 2000 chars)
+
+BioGist is a sidebar extension that scans webpages for biological entities and shows contextual details from public databases. To test:
+
+1. Navigate to any PubMed paper (e.g. pubmed.ncbi.nlm.nih.gov/35882136).
+2. Click the BioGist icon to open the sidebar.
+3. Click "Scan" to detect entities on the page. Genes, variants, drugs, species, and 14 other entity types are detected.
+4. Click any detected entity (e.g. a gene name) to see details from NCBI, UniProt, gnomAD, and ClinVar.
+5. Click "Find Related Papers" in any entity detail to see PubMed results in the sidebar.
+6. Right-click selected text on any page. Context menu shows "Look up in BioGist" and "Scan selection in BioGist".
+7. Try the Compare, Export, and History features from the toolbar.
+
+No account or API key is required. Entity detection runs locally using bundled JavaScript. Network requests are made only when the user clicks an entity to fetch details from public APIs (NCBI E-utilities, UniProt REST, myvariant.info, CrossRef, OpenAlex). No page content or user data is uploaded to any server operated by the developer.
+
+The extension uses activeTab + scripting to read page text on demand (user clicks Scan), sidePanel for the sidebar UI, storage for preferences and 24-hour API cache, contextMenus for right-click options, tabs for multi-tab tracking, and webNavigation for cleanup on page navigation.
+
+Keyboard shortcut: Ctrl+Shift+G toggles the sidebar.
+
+## Website
+https://lang.bio/biogist
+
+## Support URL
+https://github.com/oriclabs/biolang/issues
+
+## Privacy Policy URL
+https://lang.bio/privacy
+
+
+# Firefox Add-ons
+
+## Add-on ID
+biogist@oriclabs.com
+
+## Category
+Search Tools
+
+## Tags
+biology, bioinformatics, genomics, genes, research, pubmed
+
+## License
+MIT

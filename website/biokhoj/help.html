@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioKhoj Help</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #020617; color: #c0caf5; font-family: system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.7; padding: 24px 32px 60px; max-width: 880px; margin: 0 auto; }
+    h1 { color: #F4C430; font-size: 1.8rem; margin-bottom: 6px; }
+    h1 span { color: #d4a017; }
+    .subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 28px; }
+    h2 { color: #f5d660; font-size: 1.15rem; margin: 28px 0 10px; border-bottom: 1px solid rgba(244,196,48,0.2); padding-bottom: 6px; }
+    a { color: #F4C430; text-decoration: none; }
+    a:hover { color: #f5d660; text-decoration: underline; }
+    code { font-family: 'Courier New', monospace; font-size: 0.85em; background: rgba(244,196,48,0.12); color: #f5d660; padding: 2px 6px; border-radius: 4px; }
+    pre { background: #0d1117; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 10px 0; }
+    pre code { background: none; padding: 0; font-size: 0.82em; color: #e2e8f0; }
+
+    details { background: rgba(15,23,42,0.5); border: 1px solid rgba(100,116,139,0.15); border-radius: 10px; margin: 8px 0; }
+    details[open] { border-color: rgba(244,196,48,0.25); }
+    summary { cursor: pointer; padding: 12px 18px; font-weight: 600; color: #f5d660; list-style: none; display: flex; align-items: center; gap: 8px; user-select: none; }
+    summary::before { content: '\25B6'; font-size: 0.65em; transition: transform 0.15s; color: #F4C430; }
+    details[open] > summary::before { transform: rotate(90deg); }
+    summary::-webkit-details-marker { display: none; }
+    .detail-body { padding: 0 18px 16px; }
+    .detail-body p { color: #94a3b8; font-size: 0.9rem; margin: 6px 0; }
+    .detail-body ol, .detail-body ul { color: #94a3b8; font-size: 0.9rem; padding-left: 20px; margin: 6px 0; }
+    .detail-body li { margin: 4px 0; }
+    .detail-body li strong { color: #c0caf5; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 10px 0; }
+    thead { color: #f5d660; border-bottom: 1px solid #334155; }
+    th { padding: 8px 12px; text-align: left; font-weight: 600; }
+    td { padding: 7px 12px; border-bottom: 1px solid rgba(51,65,85,0.4); }
+    tbody tr:hover { background: rgba(244,196,48,0.04); }
+
+    .kbd { display: inline-block; font-family: 'Courier New', monospace; font-size: 0.78rem; padding: 1px 7px; border-radius: 4px; background: rgba(244,196,48,0.15); color: #f5d660; border: 1px solid rgba(244,196,48,0.3); }
+    .tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag-saffron { background: rgba(244,196,48,0.15); color: #F4C430; border: 1px solid rgba(244,196,48,0.3); }
+    .tag-green { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+    .tag-rose { background: rgba(244,63,94,0.15); color: #fb7185; border: 1px solid rgba(244,63,94,0.3); }
+    .tag-cyan { background: rgba(6,182,212,0.15); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3); }
+    .tag-purple { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+    .note { background: rgba(244,196,48,0.08); border-left: 3px solid #F4C430; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 0.85rem; color: #f5d660; }
+    .note strong { color: #fcd34d; }
+    .info { background: rgba(244,196,48,0.06); border-left: 3px solid #f5d660; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 0.85rem; color: #f5d660; }
+    .toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 24px; }
+    .toc a { font-size: 0.8rem; padding: 4px 10px; border-radius: 6px; background: rgba(244,196,48,0.1); border: 1px solid rgba(244,196,48,0.2); color: #F4C430; }
+    .toc a:hover { background: rgba(244,196,48,0.2); text-decoration: none; }
+
+    .score-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; }
+    .score-high { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.4); }
+    .score-normal { background: rgba(244,196,48,0.2); color: #F4C430; border: 1px solid rgba(244,196,48,0.4); }
+    .score-low { background: rgba(100,116,139,0.2); color: #94a3b8; border: 1px solid rgba(100,116,139,0.4); }
+
+    .formula { background: #0d1117; border: 1px solid rgba(244,196,48,0.2); border-radius: 8px; padding: 16px 20px; margin: 12px 0; font-family: 'Courier New', monospace; font-size: 0.88rem; color: #f5d660; line-height: 1.8; }
+    .formula .label { color: #94a3b8; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+<h1>&#128300; <span>Bio</span>Khoj Help</h1>
+<p class="subtitle">Your personal literature radar &mdash; track genes, pathways, diseases, and authors across the biomedical literature with intelligent signal scoring.</p>
+
+<nav class="toc">
+  <a href="#getting-started">Getting Started</a>
+  <a href="#watchlist">Watchlist</a>
+  <a href="#paper-feed">Paper Feed</a>
+  <a href="#feed-toolbar">Feed Toolbar</a>
+  <a href="#feed-filters">Unread &amp; High Signal Filters</a>
+  <a href="#click-to-expand">Click-to-Expand Abstracts</a>
+  <a href="#sidebar-dots">Sidebar Activity Dots</a>
+  <a href="#signal-score">Signal Score</a>
+  <a href="#signal-mute">Signal Mute Threshold</a>
+  <a href="#concept-expansion">Concept Expansion</a>
+  <a href="#co-mention">Co-mention Alerts</a>
+  <a href="#trends">Trends</a>
+  <a href="#trends-insights">Trends Insights Summary</a>
+  <a href="#reading-list">Reading List</a>
+  <a href="#author-tracking">Author Tracking</a>
+  <a href="#export">Export</a>
+  <a href="#settings">Settings</a>
+  <a href="#biogist">BioGist Integration</a>
+  <a href="#privacy">Privacy</a>
+  <a href="#shortcuts">Keyboard Shortcuts</a>
+  <a href="#preset-packs">Preset Packs</a>
+  <a href="#co-mention-filter">Co-Mention Filter</a>
+  <a href="#share-watchlist">Share Watchlist</a>
+  <a href="#bulk-tagging">Bulk Tagging</a>
+  <a href="#citation-velocity-alerts">Citation Velocity</a>
+  <a href="#export-r-python">Export to R/Python</a>
+  <a href="#api-budget">API Budget</a>
+  <a href="#backlog-catchup">Backlog Catch-Up</a>
+  <a href="#extension-context-menu">Context Menu</a>
+  <a href="#about">About</a>
+</nav>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="getting-started">Getting Started</h2>
+
+<details open>
+  <summary>What BioKhoj Does</summary>
+  <div class="detail-body">
+    <p><strong>BioKhoj</strong> (from Hindi <em>khoj</em>, meaning "search" or "discovery") is a personal literature radar for biomedical researchers. It continuously monitors the published literature for topics you care about and surfaces the most relevant new papers using an intelligent Signal Score.</p>
+    <ol>
+      <li><strong>Add entities to your watchlist</strong> &mdash; genes (BRCA1), diseases (glioblastoma), pathways (mTOR signaling), drugs (olaparib), or any biomedical concept</li>
+      <li><strong>BioKhoj finds papers</strong> &mdash; queries PubMed, bioRxiv, and OpenAlex for recent publications mentioning your watchlist entities</li>
+      <li><strong>Papers are scored</strong> &mdash; each paper gets a Signal Score (0&ndash;100) based on recency, citation velocity, journal tier, entity match strength, and novelty of co-mentions</li>
+      <li><strong>You stay informed</strong> &mdash; high-signal papers surface to the top, co-mention alerts flag unexpected connections, and trend charts show how your topics evolve over time</li>
+    </ol>
+    <div class="info">BioKhoj runs 100% in your browser. Your watchlist, reading list, and settings are stored locally. The only network requests are API calls to fetch paper metadata from PubMed, bioRxiv, and OpenAlex.</div>
+  </div>
+</details>
+
+<details>
+  <summary>First-Run Demo</summary>
+  <div class="detail-body">
+    <p>When you first open BioKhoj, you will see an empty watchlist. Here is how to get started in 60 seconds:</p>
+    <ol>
+      <li>Click <strong>"+ Add Entity"</strong> and type <code>TP53</code> &mdash; BioKhoj auto-classifies it as a gene</li>
+      <li>Add a second entity: <code>glioblastoma</code> &mdash; classified as a disease</li>
+      <li>Click <strong>"Refresh Feed"</strong> &mdash; BioKhoj fetches recent papers mentioning either entity</li>
+      <li>Papers appear sorted by Signal Score &mdash; the most relevant papers are at the top</li>
+      <li>Look for <span class="tag tag-rose">co-mention</span> badges &mdash; these flag papers that mention both TP53 and glioblastoma together, which may indicate novel connections</li>
+    </ol>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="watchlist">Watchlist</h2>
+
+<details open>
+  <summary>Adding and Removing Entities</summary>
+  <div class="detail-body">
+    <p>Your watchlist is the core of BioKhoj. Each entry is a biomedical concept you want to track.</p>
+    <ul>
+      <li><strong>Add</strong> &mdash; click <strong>"+ Add Entity"</strong>, type a name, and press Enter. BioKhoj auto-classifies the entity type (gene, disease, pathway, drug, organism, method, or custom).</li>
+      <li><strong>Remove</strong> &mdash; click the <strong>&times;</strong> button next to any entity to remove it from your watchlist</li>
+      <li><strong>Edit</strong> &mdash; click an entity name to edit it inline, or change its type/tags</li>
+      <li><strong>Bulk add</strong> &mdash; paste a comma-separated list of entities to add multiple at once</li>
+    </ul>
+    <div style="margin:12px 0"><img src="screenshots/pwa/watchlist.png" alt="Watchlist tab showing tracked entities with type badges and priority indicators" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<details>
+  <summary>Priority Levels</summary>
+  <div class="detail-body">
+    <p>Each watchlist entity can be assigned a priority level that affects how papers are scored:</p>
+    <table>
+      <thead><tr><th>Priority</th><th>Indicator</th><th>Effect on Signal Score</th></tr></thead>
+      <tbody>
+        <tr><td><strong>High</strong></td><td><span class="tag tag-rose">!!!</span></td><td>+10 bonus to entity match component</td></tr>
+        <tr><td><strong>Normal</strong></td><td><span class="tag tag-saffron">!!</span></td><td>Standard scoring (default)</td></tr>
+        <tr><td><strong>Low</strong></td><td><span class="tag tag-cyan">!</span></td><td>Entity match component scaled to 50%</td></tr>
+      </tbody>
+    </table>
+    <p>Use high priority for your primary research focus and low priority for tangentially related topics you want to keep an eye on.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Tags</summary>
+  <div class="detail-body">
+    <p>Tag entities with custom labels (e.g., <code>thesis</code>, <code>grant-R01</code>, <code>collab-smith-lab</code>) to organize your watchlist. Tags are used for:</p>
+    <ul>
+      <li><strong>Filtering</strong> &mdash; filter the paper feed to show only papers matching entities with a specific tag</li>
+      <li><strong>Grouping</strong> &mdash; view your watchlist grouped by tag in the sidebar</li>
+      <li><strong>Export</strong> &mdash; export papers filtered by tag</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Pause and Auto-Classification</summary>
+  <div class="detail-body">
+    <p><strong>Pause</strong> &mdash; temporarily pause an entity to exclude it from feed queries without removing it. Paused entities appear dimmed in the watchlist and can be resumed at any time.</p>
+    <p><strong>Auto-classification</strong> &mdash; when you add an entity, BioKhoj automatically classifies it into one of these types:</p>
+    <table>
+      <thead><tr><th>Type</th><th>Examples</th><th>Detection</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag tag-purple">Gene</span></td><td>BRCA1, TP53, EGFR</td><td>Matches HGNC symbol patterns</td></tr>
+        <tr><td><span class="tag tag-rose">Disease</span></td><td>glioblastoma, ALS, COPD</td><td>MeSH disease terms</td></tr>
+        <tr><td><span class="tag tag-green">Pathway</span></td><td>mTOR signaling, Wnt pathway</td><td>Known pathway names</td></tr>
+        <tr><td><span class="tag tag-cyan">Drug</span></td><td>olaparib, pembrolizumab</td><td>Known drug names</td></tr>
+        <tr><td><span class="tag tag-saffron">Organism</span></td><td>zebrafish, Arabidopsis</td><td>NCBI taxonomy terms</td></tr>
+        <tr><td><span class="tag tag-purple">Method</span></td><td>CRISPR, scRNA-seq</td><td>Common method keywords</td></tr>
+        <tr><td>Custom</td><td>anything else</td><td>Free text query</td></tr>
+      </tbody>
+    </table>
+    <p>You can override the auto-classification by clicking the type badge and selecting a different type.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="paper-feed">Paper Feed</h2>
+
+<details open>
+  <summary>How Papers Are Found</summary>
+  <div class="detail-body">
+    <p>BioKhoj queries multiple sources to find papers related to your watchlist entities:</p>
+    <ul>
+      <li><strong>PubMed</strong> &mdash; via NCBI E-utilities (esearch + esummary), fetches recent papers matching entity names using field-tagged queries (e.g., <code>BRCA1[Gene] AND human[Organism]</code>)</li>
+      <li><strong>bioRxiv/medRxiv</strong> &mdash; via the bioRxiv API, fetches recent preprints</li>
+      <li><strong>OpenAlex</strong> &mdash; via the OpenAlex API, provides citation data, author information, and concept tagging</li>
+    </ul>
+    <p>Results are deduplicated by DOI/PMID, merged, and scored. The feed updates when you click <strong>Refresh</strong> or on the schedule configured in Settings.</p>
+    <div style="margin:12px 0"><img src="screenshots/pwa/feed.png" alt="Feed tab showing paper list with signal scores, entity badges, and filter controls" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<details>
+  <summary>Signal Score Badges</summary>
+  <div class="detail-body">
+    <p>Every paper in the feed shows a Signal Score badge indicating its relevance to you:</p>
+    <table>
+      <thead><tr><th>Badge</th><th>Score Range</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><span class="score-badge score-high">85</span></td><td>70 &ndash; 100</td><td><strong>High signal</strong> &mdash; highly relevant, recent, well-cited, or novel co-mention</td></tr>
+        <tr><td><span class="score-badge score-normal">52</span></td><td>40 &ndash; 69</td><td><strong>Normal signal</strong> &mdash; moderately relevant, worth a glance</td></tr>
+        <tr><td><span class="score-badge score-low">23</span></td><td>0 &ndash; 39</td><td><strong>Low signal</strong> &mdash; tangential match, older paper, or low-tier journal</td></tr>
+      </tbody>
+    </table>
+    <p>Click the badge to see the full score breakdown for that paper.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Sorting and Filtering</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Sort by</strong> &mdash; Signal Score (default), date, citation count, or journal tier</li>
+      <li><strong>Filter by entity</strong> &mdash; show papers matching a specific watchlist entity</li>
+      <li><strong>Filter by tag</strong> &mdash; show papers matching entities with a specific tag</li>
+      <li><strong>Filter by score</strong> &mdash; show only high-signal papers (>=70) or hide low-signal (<40)</li>
+      <li><strong>Filter by source</strong> &mdash; PubMed only, preprints only, or all</li>
+      <li><strong>Time range</strong> &mdash; last 7 days, 30 days, 90 days, or 1 year</li>
+    </ul>
+    <div style="margin:12px 0"><img src="screenshots/pwa/discover.png" alt="Discover tab with search and filtering options" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+    <div style="margin:12px 0"><img src="screenshots/pwa/search.png" alt="Search results showing papers matching a query" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="feed-toolbar">Feed Toolbar</h2>
+
+<details open>
+  <summary>Filter Row and Insights Dropdown</summary>
+  <div class="detail-body">
+    <p>The feed toolbar is the primary control row above the paper list. It contains three filter toggle buttons and an Insights dropdown:</p>
+    <ul>
+      <li><strong>Multi-entity</strong> &mdash; show only papers mentioning 2+ watched entities (co-mention filter)</li>
+      <li><strong>Unread</strong> &mdash; show only papers you have not yet opened or marked as read</li>
+      <li><strong>High signal</strong> &mdash; show only papers scoring above the high-signal threshold (default &ge;70)</li>
+    </ul>
+    <p>All three filters are composable &mdash; enable any combination to narrow your feed. The <strong>"Insights"</strong> dropdown (right side of the toolbar) provides four actions:</p>
+    <ul>
+      <li><strong>Journal Club</strong> &mdash; curated list of the week's top papers for group discussion</li>
+      <li><strong>Collaborators</strong> &mdash; papers by watched authors or co-authors of your saved papers</li>
+      <li><strong>Weekly Digest</strong> &mdash; formatted summary of the past week's high-signal papers</li>
+      <li><strong>Share watchlist</strong> &mdash; copy a shareable URL encoding your watchlist entities</li>
+    </ul>
+    <div style="margin:12px 0"><img src="screenshots/pwa/feed.png" alt="Feed toolbar with Multi-entity, Unread, and High signal filter buttons and Insights dropdown" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="feed-filters">Unread and High Signal Filters</h2>
+
+<details>
+  <summary>Feed Filter Toggles</summary>
+  <div class="detail-body">
+    <p>Two dedicated toggle buttons in the feed toolbar let you quickly focus on what matters:</p>
+    <ul>
+      <li><strong>Unread</strong> &mdash; filters the feed to papers you have not opened. BioKhoj tracks read status automatically when you click into a paper or expand its abstract. The feed subtitle shows the count of unread papers.</li>
+      <li><strong>High Signal</strong> &mdash; filters to papers scoring at or above the high-signal threshold (default &ge;70). Combine with <strong>Unread</strong> to see only unread high-signal papers &mdash; the fastest way to triage new results.</li>
+    </ul>
+    <p>Both filters compose with the <strong>Multi-entity</strong> co-mention filter, so you can apply all three simultaneously to find unread, high-signal, cross-topic papers.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="click-to-expand">Click-to-Expand Abstracts</h2>
+
+<details>
+  <summary>Inline Abstract Preview</summary>
+  <div class="detail-body">
+    <p>Each paper card in the feed shows a 180-character abstract preview followed by a <strong>"more"</strong> link. Click <strong>"more"</strong> to expand the full abstract inline beneath the paper title. Click <strong>"less"</strong> to collapse it back to the preview. This replaces the old hover tooltip and works better on touch devices and narrow screens.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="sidebar-dots">Sidebar Activity Dots</h2>
+
+<details>
+  <summary>Watchlist Activity Indicators</summary>
+  <div class="detail-body">
+    <p>On desktop, the sidebar displays your watchlist entities with colored activity dots that reflect real-time feed state:</p>
+    <table>
+      <thead><tr><th>Dot Color</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag tag-purple">Purple (pulsing)</span></td><td>High-signal unread papers (&ge;70) for this entity</td></tr>
+        <tr><td><span class="tag tag-saffron">Saffron</span></td><td>New papers found since last check, but none high-signal</td></tr>
+        <tr><td><span style="color:#94a3b8">Grey</span></td><td>Up to date &mdash; no new papers</td></tr>
+      </tbody>
+    </table>
+    <p>The dots update after each feed refresh. The purple pulse animation draws attention to entities with the most actionable new results.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="signal-score">Signal Score</h2>
+
+<details open>
+  <summary>Score Formula</summary>
+  <div class="detail-body">
+    <p>The Signal Score is a composite score from 0 to 100 that ranks papers by how relevant and important they are to your research. It is computed from six weighted components:</p>
+    <div class="formula">
+      Signal Score = Recency + Citation Velocity + Journal Tier + Co-mention Novelty + Entity Match + Author Reputation<br>
+      <span class="label">Max: 25 + 20 + 15 + 20 + 10 + 10 = 100</span>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary>Component Breakdown</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Component</th><th>Range</th><th>How It Works</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Recency</strong></td>
+          <td>0 &ndash; 25</td>
+          <td>Exponential decay based on publication date. Papers published today score 25; papers from 7 days ago score ~18; 30 days ~10; 90 days ~3; older than 1 year ~0. Preprints get a small recency bonus since they represent the latest findings.</td>
+        </tr>
+        <tr>
+          <td><strong>Citation Velocity</strong></td>
+          <td>0 &ndash; 20</td>
+          <td>Citations per month since publication, normalized against the field average. A paper with 10 citations in its first month in a field averaging 2/month scores high. Data from OpenAlex. New papers (&lt;30 days) use Altmetric attention score as a proxy when available.</td>
+        </tr>
+        <tr>
+          <td><strong>Journal Tier</strong></td>
+          <td>0 &ndash; 15</td>
+          <td>Based on the journal's configured tier (see Settings). Tier 1 (Nature, Science, Cell) = 15; Tier 2 (PNAS, eLife, Genome Research) = 10; Tier 3 (field-specific journals) = 6; Unranked = 3; Preprint servers = 5.</td>
+        </tr>
+        <tr>
+          <td><strong>Co-mention Novelty</strong></td>
+          <td>0 &ndash; 20</td>
+          <td>Measures how novel it is for two of your watchlist entities to appear together in the same paper. If BRCA1 and mTOR rarely co-occur in the literature but this paper discusses both, the novelty score is high. Computed from historical co-occurrence frequency via OpenAlex concept co-occurrence data.</td>
+        </tr>
+        <tr>
+          <td><strong>Entity Match</strong></td>
+          <td>0 &ndash; 10</td>
+          <td>How many of your watchlist entities the paper mentions, weighted by priority. A paper matching 3 high-priority entities scores 10; a paper matching 1 low-priority entity scores ~2.</td>
+        </tr>
+        <tr>
+          <td><strong>Author Reputation</strong></td>
+          <td>0 &ndash; 10</td>
+          <td>Bonus for papers by authors you are tracking (see Author Tracking) or authors with high h-index in the field. Watched authors get a flat +7 bonus. Other authors are scored by their OpenAlex citation metrics.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<details>
+  <summary>Threshold Table</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Threshold</th><th>Label</th><th>Notification</th></tr></thead>
+      <tbody>
+        <tr><td><span class="score-badge score-high">&ge;70</span></td><td>High Signal</td><td>Desktop notification (if enabled), badge count on extension icon</td></tr>
+        <tr><td><span class="score-badge score-normal">40&ndash;69</span></td><td>Normal Signal</td><td>Appears in feed, no notification</td></tr>
+        <tr><td><span class="score-badge score-low">&lt;40</span></td><td>Low Signal</td><td>Hidden by default (show via filter toggle)</td></tr>
+      </tbody>
+    </table>
+    <p>You can customize these thresholds in Settings.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="signal-mute">Signal Mute Threshold</h2>
+
+<details>
+  <summary>Hide Low-Scoring Papers</summary>
+  <div class="detail-body">
+    <p>The Signal Mute Threshold is a slider in Settings (range 0&ndash;80) that hides all papers scoring below your chosen cutoff from the feed. Unlike the high-signal filter toggle (which shows only &ge;70), the mute threshold is a persistent baseline &mdash; papers below it never appear in your feed at all.</p>
+    <p>When a mute threshold is active, the feed subtitle shows the active value (e.g., <em>"Muted below 30"</em>). Set it to 0 to see everything, or raise it to 20&ndash;40 to suppress noise from tangential matches. The threshold does not affect papers already saved to your reading list.</p>
+    <div style="margin:12px 0"><img src="screenshots/pwa/settings.png" alt="Settings tab with signal mute threshold slider" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="concept-expansion">Concept Expansion</h2>
+
+<details open>
+  <summary>How Suggestions Work</summary>
+  <div class="detail-body">
+    <p>BioKhoj can suggest related concepts to expand your watchlist coverage. When enabled, it uses:</p>
+    <ul>
+      <li><strong>OpenAlex concepts</strong> &mdash; papers matching your entities are tagged with OpenAlex concepts; frequently co-occurring concepts that are not already in your watchlist are suggested</li>
+      <li><strong>MeSH term expansion</strong> &mdash; for disease and pathway entities, BioKhoj looks up the MeSH hierarchy and suggests parent/child terms (e.g., if you watch "glioblastoma", it may suggest "glioma" or "brain neoplasms")</li>
+      <li><strong>Gene interaction partners</strong> &mdash; for gene entities, suggests commonly co-studied genes based on STRING interaction data</li>
+    </ul>
+    <p>Suggestions appear in a <strong>"Suggested"</strong> section below your watchlist with a brief rationale for each.</p>
+  </div>
+</details>
+
+<details>
+  <summary>One-Click Add</summary>
+  <div class="detail-body">
+    <p>Each suggestion has an <strong>"+ Add"</strong> button. Click it to instantly add the concept to your watchlist with auto-classification. Click <strong>"Dismiss"</strong> to hide the suggestion permanently.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="co-mention">Co-mention Alerts</h2>
+
+<details open>
+  <summary>What Co-mention Alerts Are</summary>
+  <div class="detail-body">
+    <p>A co-mention alert fires when a paper discusses two or more of your watchlist entities together in a way that is <strong>statistically unusual</strong> based on historical co-occurrence data.</p>
+    <p>For example, if your watchlist contains <code>BRCA1</code> and <code>ferroptosis</code>, and a new paper discusses both, BioKhoj flags this as a co-mention alert because these two concepts rarely appear together in the literature &mdash; this could represent a novel research direction.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Novel Detection</summary>
+  <div class="detail-body">
+    <p>BioKhoj computes novelty by comparing the observed co-occurrence count against the expected count based on each entity's individual frequency:</p>
+    <ul>
+      <li><strong>Expected co-occurrence</strong> = (freq_A * freq_B) / total_papers</li>
+      <li><strong>Observed co-occurrence</strong> = actual number of papers mentioning both</li>
+      <li>If observed is significantly lower than expected (rare combination), the co-mention novelty score is high</li>
+    </ul>
+    <p>Co-mention alerts appear with a <span class="tag tag-rose">CO-MENTION</span> badge in the feed and contribute to the Signal Score's co-mention novelty component.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Examples</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Entity A</th><th>Entity B</th><th>Why It Is Flagged</th></tr></thead>
+      <tbody>
+        <tr><td>BRCA1</td><td>ferroptosis</td><td>DNA repair gene + cell death pathway is an emerging intersection</td></tr>
+        <tr><td>TP53</td><td>gut microbiome</td><td>Tumor suppressor + microbiome is a novel cross-domain link</td></tr>
+        <tr><td>CRISPR</td><td>prion disease</td><td>Gene editing + rare neurodegeneration is an uncommon pairing</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="trends">Trends</h2>
+
+<details open>
+  <summary>Trend Charts and Sparklines</summary>
+  <div class="detail-body">
+    <p>The Trends view shows publication volume over time for each watchlist entity:</p>
+    <ul>
+      <li><strong>Sparklines</strong> &mdash; compact inline charts next to each entity in the watchlist showing 12-month publication trend at a glance</li>
+      <li><strong>Full trend chart</strong> &mdash; click any entity to see a detailed chart with monthly publication counts, citation averages, and preprint vs. published ratios</li>
+      <li><strong>Overlay mode</strong> &mdash; select multiple entities to overlay their trends on a single chart for comparison</li>
+    </ul>
+    <div style="margin:12px 0"><img src="screenshots/pwa/trends.png" alt="Trends tab showing publication volume charts for watched entities" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<details>
+  <summary>Time Ranges</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>3 months</strong> &mdash; recent activity, weekly granularity</li>
+      <li><strong>6 months</strong> &mdash; medium-term view, bi-weekly granularity</li>
+      <li><strong>1 year</strong> &mdash; annual trend, monthly granularity (default)</li>
+      <li><strong>5 years</strong> &mdash; long-term trajectory, quarterly granularity</li>
+    </ul>
+    <p>Trend data is fetched from OpenAlex and cached locally for 24 hours.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="trends-insights">Trends Insights Summary</h2>
+
+<details>
+  <summary>At-a-Glance Trends Overview</summary>
+  <div class="detail-body">
+    <p>Above the trend charts, BioKhoj displays a text-based insights summary box with four data points:</p>
+    <ul>
+      <li><strong>Entity activity changes</strong> &mdash; week-over-week publication volume shifts (e.g., <em>"TP53 up 32% this week"</em>, <em>"CRISPR down 12%"</em>)</li>
+      <li><strong>Top journals</strong> &mdash; which journals published the most papers matching your watchlist this period</li>
+      <li><strong>Co-mention spikes</strong> &mdash; entity pairs whose co-occurrence rate spiked above historical baseline</li>
+      <li><strong>High-signal count</strong> &mdash; total number of papers scoring &ge;70 in the current period</li>
+    </ul>
+    <p>The summary refreshes whenever trend data is recalculated and provides a quick narrative you can scan before diving into the charts.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="reading-list">Reading List</h2>
+
+<details open>
+  <summary>Save, Notes, and Tags</summary>
+  <div class="detail-body">
+    <p>Save any paper from the feed to your Reading List for later reading. Your reading list is stored locally and persists across sessions.</p>
+    <ul>
+      <li><strong>Save</strong> &mdash; click the bookmark icon on any paper in the feed</li>
+      <li><strong>Notes</strong> &mdash; add personal notes to saved papers (e.g., "Check methods section", "Relevant to aim 2")</li>
+      <li><strong>Tags</strong> &mdash; tag saved papers with custom labels for organization</li>
+      <li><strong>Status</strong> &mdash; mark papers as <em>Unread</em>, <em>Reading</em>, <em>Read</em>, or <em>Archived</em></li>
+    </ul>
+    <div style="margin:12px 0"><img src="screenshots/pwa/reading.png" alt="Reading list tab with saved papers, notes, and status indicators" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<details>
+  <summary>Sort and Export</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Sort by</strong> &mdash; date saved, Signal Score, publication date, or title</li>
+      <li><strong>Filter by</strong> &mdash; status (unread/reading/read), tags, or search by title/author</li>
+      <li><strong>Export</strong> &mdash; export your reading list as BibTeX, RIS, Markdown, CSV, pandas DataFrame, or R tibble (see <a href="#export">Export</a> and <a href="#export-r-python">Export to R/Python</a> sections)</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="author-tracking">Author Tracking</h2>
+
+<details open>
+  <summary>Watch Authors</summary>
+  <div class="detail-body">
+    <p>Add specific authors to your watch list to get notified when they publish new papers:</p>
+    <ul>
+      <li><strong>Add from paper</strong> &mdash; click an author name in any paper's detail view, then click <strong>"Watch Author"</strong></li>
+      <li><strong>Add manually</strong> &mdash; enter an author name or ORCID in the Author Tracking section</li>
+      <li><strong>OpenAlex matching</strong> &mdash; BioKhoj resolves author names to OpenAlex author IDs for reliable tracking across name variants</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>New Publication Alerts</summary>
+  <div class="detail-body">
+    <p>When a watched author publishes a new paper, it appears in your feed with an <span class="tag tag-saffron">WATCHED AUTHOR</span> badge and receives a +7 bonus to the Author Reputation component of its Signal Score. If notifications are enabled, you will get a desktop notification.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="export">Export</h2>
+
+<details open>
+  <summary>Export Formats</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Format</th><th>Use Case</th></tr></thead>
+      <tbody>
+        <tr><td><strong>BibTeX</strong></td><td>Import into LaTeX reference managers, Zotero, Mendeley</td></tr>
+        <tr><td><strong>RIS</strong></td><td>Import into EndNote, RefWorks, Papers</td></tr>
+        <tr><td><strong>Markdown</strong></td><td>Paste into notes, READMEs, or lab notebooks</td></tr>
+        <tr><td><strong>CSV</strong></td><td>Standard CSV with title, authors, DOI, journal, date, Signal Score, and tags</td></tr>
+        <tr><td><strong>pandas DataFrame</strong></td><td>Copy a <code>pd.DataFrame(...)</code> snippet ready to paste into a Jupyter notebook</td></tr>
+        <tr><td><strong>R tibble</strong></td><td>Copy a <code>tibble(...)</code> snippet ready to paste into RStudio</td></tr>
+        <tr><td><strong>Watchlist JSON</strong></td><td>Back up your watchlist or share it with collaborators</td></tr>
+        <tr><td><strong>Weekly Digest</strong></td><td>A formatted summary of the past week's high-signal papers, suitable for email or Slack</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<details>
+  <summary>Export Scope</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>Current feed</strong> &mdash; export all papers currently visible in the feed (respects active filters)</li>
+      <li><strong>Reading list</strong> &mdash; export saved papers (with notes and tags)</li>
+      <li><strong>Selected papers</strong> &mdash; export only checked papers</li>
+      <li><strong>Watchlist</strong> &mdash; export your entity watchlist as JSON for backup or sharing</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="settings">Settings</h2>
+
+<details open>
+  <summary>Configuration Options</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>NCBI API Key</strong></td><td>Optional. Increases PubMed rate limit from 3 req/s to 10 req/s. Get one free at <a href="https://www.ncbi.nlm.nih.gov/account/settings/">NCBI</a>.</td></tr>
+        <tr><td><strong>Notifications</strong></td><td>Enable/disable desktop notifications for high-signal papers and co-mention alerts. Configure notification threshold (default: 70).</td></tr>
+        <tr><td><strong>Journal Tiers</strong></td><td>Customize journal tier assignments. BioKhoj ships with a default tier list; you can promote, demote, or add journals.</td></tr>
+        <tr><td><strong>Theme</strong></td><td>Switch between dark mode and light mode.</td></tr>
+        <tr><td><strong>Feed refresh</strong></td><td>Configure automatic refresh interval: manual only, every 6 hours, every 12 hours, or daily.</td></tr>
+        <tr><td><strong>Score thresholds</strong></td><td>Customize the boundaries for high/normal/low Signal Score badges (defaults: 70, 40).</td></tr>
+        <tr><td><strong>Cache duration</strong></td><td>How long API results are cached locally (default: 24 hours).</td></tr>
+        <tr><td><strong>Max feed size</strong></td><td>Maximum number of papers to keep in the feed (default: 500).</td></tr>
+        <tr><td><strong>Signal mute threshold</strong></td><td>Slider (0&ndash;80) that persistently hides papers scoring below the cutoff from the feed. Set to 0 to see everything. See <a href="#signal-mute">Signal Mute Threshold</a> for details.</td></tr>
+      </tbody>
+    </table>
+    <div style="margin:12px 0"><img src="screenshots/pwa/settings.png" alt="Settings tab with API key, notifications, journal tiers, signal mute threshold slider, and API budget bar" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="biogist">BioGist Integration</h2>
+
+<details open>
+  <summary>Import from BioGist</summary>
+  <div class="detail-body">
+    <p>If you use <a href="https://lang.bio/extension/biogist">BioGist</a> (the entity scanner extension), you can import detected entities directly into your BioKhoj watchlist:</p>
+    <ol>
+      <li>Scan a paper in BioGist to detect genes, drugs, pathways, etc.</li>
+      <li>Click <strong>"Send to BioKhoj"</strong> in BioGist's sidebar (or use the export menu)</li>
+      <li>BioKhoj receives the entities and adds them to your watchlist with auto-classification</li>
+    </ol>
+    <p>Both extensions use a shared entity format, so entities transfer cleanly between them. Pinned entities in BioGist are imported as high-priority watchlist entries.</p>
+    <div class="note"><strong>Shared format:</strong> BioGist and BioKhoj use the same entity type taxonomy (Gene, Disease, Drug, Pathway, Method, Organism). Import preserves entity types without re-classification.</div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="privacy">Privacy</h2>
+
+<details open>
+  <summary>Data Handling</summary>
+  <div class="detail-body">
+    <ul>
+      <li><strong>100% local storage</strong> &mdash; your watchlist, reading list, notes, tags, and settings are stored in your browser's local storage. Nothing is uploaded to any server.</li>
+      <li><strong>API calls for paper queries only</strong> &mdash; the only network requests BioKhoj makes are to PubMed (NCBI), bioRxiv, and OpenAlex to fetch paper metadata. These are standard public APIs.</li>
+      <li><strong>No proxy server</strong> &mdash; all API calls go directly from your browser to the data source. There is no Oric Labs server in between.</li>
+      <li><strong>No analytics</strong> &mdash; no telemetry, tracking, or usage analytics of any kind.</li>
+      <li><strong>No account required</strong> &mdash; BioKhoj works without sign-up or login.</li>
+      <li><strong>Exportable data</strong> &mdash; you can export your entire watchlist and reading list as JSON at any time for backup or portability.</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="shortcuts">Keyboard Shortcuts</h2>
+
+<details open>
+  <summary>Shortcuts</summary>
+  <div class="detail-body">
+    <table>
+      <thead><tr><th>Action</th><th>Shortcut</th></tr></thead>
+      <tbody>
+        <tr><td>Toggle BioKhoj (extension)</td><td><span class="kbd">Ctrl+Shift+K</span></td></tr>
+        <tr><td>Refresh feed</td><td><span class="kbd">Ctrl+Shift+R</span> (within BioKhoj)</td></tr>
+        <tr><td>Add entity</td><td><span class="kbd">Ctrl+Shift+A</span> (within BioKhoj)</td></tr>
+        <tr><td>Search feed</td><td><span class="kbd">/</span> (within BioKhoj)</td></tr>
+        <tr><td>Navigate papers</td><td><span class="kbd">j</span> / <span class="kbd">k</span> (down / up)</td></tr>
+        <tr><td>Open paper</td><td><span class="kbd">Enter</span> or <span class="kbd">o</span></td></tr>
+        <tr><td>Save to reading list</td><td><span class="kbd">s</span></td></tr>
+        <tr><td>Switch tabs (extension popup)</td><td><span class="kbd">1</span> Feed &middot; <span class="kbd">2</span> Watchlist &middot; <span class="kbd">3</span> Trends &middot; <span class="kbd">4</span> Reading List</td></tr>
+        <tr><td>Switch tabs (full page)</td><td><span class="kbd">1</span> Feed &middot; <span class="kbd">2</span> Watchlist &middot; <span class="kbd">3</span> Trends &middot; <span class="kbd">4</span> Reading List &middot; <span class="kbd">5</span> Settings</td></tr>
+        <tr><td>Multi-select papers</td><td><span class="kbd">Shift+click</span> &mdash; select a range of papers for bulk tagging or export</td></tr>
+        <tr><td>Close modals / popovers</td><td><span class="kbd">Escape</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="preset-packs">Preset Entity Packs</h2>
+
+<details>
+  <summary>Built-in Starter Packs</summary>
+  <div class="detail-body">
+    <p>BioKhoj ships with 5 curated starter packs to help you bootstrap a watchlist quickly. Each pack contains 6&ndash;8 hand-picked entities relevant to a major research area. Open the <strong>Watchlist</strong> tab and click a pack to import all its entities in one click. Available packs:</p>
+    <ul>
+      <li><strong>Cancer Genomics</strong> &mdash; TP53, BRCA1, KRAS, EGFR, PIK3CA, PTEN, MYC, APC</li>
+      <li><strong>CRISPR &amp; Gene Editing</strong> &mdash; CRISPR-Cas9, base editing, prime editing, guide RNA, off-target effects, Cas12a</li>
+      <li><strong>Single-Cell Genomics</strong> &mdash; scRNA-seq, UMAP, cell atlas, spatial transcriptomics, trajectory inference, Seurat</li>
+      <li><strong>Clinical Variants</strong> &mdash; ClinVar, ACMG, pathogenic variant, VUS, pharmacogenomics, BRCA2</li>
+      <li><strong>Metagenomics</strong> &mdash; 16S rRNA, microbiome, shotgun metagenomics, taxonomic profiling, antimicrobial resistance, QIIME2</li>
+    </ul>
+    <p>Preset packs are auto-hidden once your watchlist has more than 5 entities, keeping the interface clean. You can always re-access them from Settings.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="co-mention-filter">Co-Mention Filter</h2>
+
+<details>
+  <summary>Multi-Entity Only Mode</summary>
+  <div class="detail-body">
+    <p>Toggle the <strong>"Multi-entity"</strong> button in the feed toolbar to filter the feed down to papers that mention <strong>2 or more</strong> of your watched entities. This filter composes with the Unread and High Signal toggles &mdash; enable all three to find unread, high-signal papers bridging multiple topics. This is exactly the kind of cross-domain work that is easy to miss with single-keyword searches.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="share-watchlist">Share Watchlist</h2>
+
+<details>
+  <summary>Shareable Watchlist URLs</summary>
+  <div class="detail-body">
+    <p>Click <strong>"Share"</strong> in the feed toolbar to copy a shareable URL containing your entire watchlist encoded in the URL hash. Anyone who opens the link will be prompted to import the entities (deduplicated against their existing watchlist). No server is involved &mdash; the watchlist data is encoded directly in the URL fragment, so it works entirely client-side.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="bulk-tagging">Bulk Tagging</h2>
+
+<details>
+  <summary>Tag Multiple Papers at Once</summary>
+  <div class="detail-body">
+    <p>Hold <span class="kbd">Shift</span> and click papers in the feed to multi-select them. A <strong>"Tag selected"</strong> button appears in the toolbar. Click it to apply a tag (e.g., <code>methods to read</code>, <code>thesis chapter 3</code>) to all selected papers at once. This is much faster than tagging papers one by one when triaging a large batch of new results.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="citation-velocity-alerts">Citation Velocity Alerts</h2>
+
+<details>
+  <summary>Citation Spike Notifications</summary>
+  <div class="detail-body">
+    <p>On app open, BioKhoj checks whether any paper in your reading list has gained <strong>5 or more new citations</strong> since the last check. If so, it shows a toast notification with the paper title and the citation spike count. This helps you spot papers that are suddenly gaining traction in the community &mdash; a potential signal that the work is being validated or sparking follow-up research.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="export-r-python">Export to R / Python</h2>
+
+<details>
+  <summary>Code-Ready Export Formats</summary>
+  <div class="detail-body">
+    <p>The reading list export dropdown now includes three additional formats alongside BibTeX, RIS, and Markdown:</p>
+    <ul>
+      <li><strong>Copy as pandas</strong> &mdash; generates a <code>pd.DataFrame(...)</code> snippet ready to paste into a Jupyter notebook</li>
+      <li><strong>Copy as R tibble</strong> &mdash; generates a <code>tibble(...)</code> snippet ready to paste into RStudio</li>
+      <li><strong>CSV file export</strong> &mdash; downloads a standard CSV file with columns for title, authors, DOI, journal, date, Signal Score, and tags</li>
+    </ul>
+    <p>All clipboard formats copy directly to your clipboard &mdash; just paste into your analysis environment.</p>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="api-budget">NCBI Search Budget</h2>
+
+<details>
+  <summary>API Usage Progress Bar</summary>
+  <div class="detail-body">
+    <p>The Settings tab shows a visual progress bar of NCBI API calls used in the last hour. It is color-coded: <span class="tag tag-green">green</span> when under 50% usage, <span class="tag tag-saffron">amber</span> at 50&ndash;80%, and <span class="tag tag-rose">red</span> above 80%. The bar also displays your current rate limit (3 req/s without an API key, 10 req/s with one) and the remaining budget. It auto-refreshes every 5 seconds while the Settings tab is open.</p>
+    <div style="margin:12px 0"><img src="screenshots/pwa/settings.png" alt="Settings tab showing NCBI API budget progress bar" loading="lazy" style="max-width:100%;border-radius:8px;border:1px solid #1e293b"></div>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="backlog-catchup">Backlog Catch-Up</h2>
+
+<details>
+  <summary>Automatic Missed-Paper Retrieval</summary>
+  <div class="detail-body">
+    <p>When you have been away for more than 1 day, BioKhoj automatically fetches papers you missed. It queries in 7-day windows, going back up to 30 days maximum. A progress bar shows the catch-up status, and a <strong>"Welcome back"</strong> banner offers three options:</p>
+    <ul>
+      <li><strong>Review backlog</strong> &mdash; browse the missed papers sorted by Signal Score</li>
+      <li><strong>Mark all read</strong> &mdash; dismiss the backlog and start fresh</li>
+      <li><strong>Dismiss</strong> &mdash; hide the banner (backlog papers remain in the feed)</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="extension-context-menu">Extension: Context Menu Actions</h2>
+
+<details>
+  <summary>Right-Click Integration (Chrome Extension)</summary>
+  <div class="detail-body">
+    <p>For Chrome extension users, BioKhoj adds context menu actions for quick interactions:</p>
+    <ul>
+      <li><strong>Selected text</strong> &mdash; right-click highlighted text to <strong>"Watch in BioKhoj"</strong> (adds to watchlist) or <strong>"Lookup in BioKhoj"</strong> (opens feed filtered to that term)</li>
+      <li><strong>Links to PubMed, bioRxiv, or DOI URLs</strong> &mdash; right-click a link to <strong>"Save to BioKhoj reading list"</strong>, which fetches the paper metadata and adds it directly to your reading list</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="about">About</h2>
+
+<details open>
+  <summary>BioKhoj</summary>
+  <div class="detail-body">
+    <p><strong>BioKhoj</strong> &mdash; your personal literature radar for biomedical research.</p>
+    <p>Built by <a href="https://lang.bio">Oric Labs</a>. Part of the <a href="https://lang.bio">BioLang</a> ecosystem.</p>
+    <p style="margin-top:12px"><strong>Report issues or request features:</strong> <a href="https://github.com/oriclabs/biolang/issues">GitHub Issues</a></p>
+    <p style="margin-top:12px;color:#64748b;font-size:0.85rem">
+      BioKhoj is designed for researchers, bioinformaticians, and graduate students who want to stay on top of the literature
+      without manually checking PubMed every day. It brings the most relevant papers to you, scored and ranked by what matters
+      to your specific research interests.
+    </p>
+  </div>
+</details>
+
+<div style="margin-top:40px;padding-top:16px;border-top:1px solid #1e293b;color:#475569;font-size:0.8rem">
+  BioKhoj &mdash; 100% client-side. Your watchlist and reading list never leave your browser.
+</div>
+
+</body>
+</html>
