@@ -16,6 +16,22 @@
   var pinColumnsMode = false;
   var pinnedCols = new Set(); // Feature 4: per-column pinning
   var motifTerm = ""; // regex pattern for sequence motif search
+
+  // IUPAC ambiguity code expansion for motif search
+  var IUPAC_MAP = {
+    R: "[AG]", Y: "[CT]", S: "[GC]", W: "[AT]", K: "[GT]", M: "[AC]",
+    B: "[CGT]", D: "[AGT]", H: "[ACT]", V: "[ACG]", N: "[ACGT]"
+  };
+  function expandIUPAC(pattern) {
+    // Only expand if pattern looks like a DNA motif (letters only, no regex metacharacters)
+    if (/^[ATCGURYSWKMBDHVNatcguryswkmbdhvn]+$/.test(pattern)) {
+      return pattern.split("").map(function(c) {
+        return IUPAC_MAP[c.toUpperCase()] || c;
+      }).join("");
+    }
+    return pattern; // Already a regex, don't modify
+  }
+  var seqColorEnabled = localStorage.getItem("vw-seq-color") !== "0"; // default on
   var tabSortState = {}; // {tabIdx: {col, asc}}
   var modifiedCells = new Set(); // Feature 18: "rowIdx:colIdx" strings
   var savedViews = JSON.parse(localStorage.getItem("vw-saved-views") || "{}"); // Feature 9
@@ -882,8 +898,10 @@
   }
 
   // ── Chunked preview for large files ───────────────────────────
-  var MAX_PREVIEW_LINES = 50000;
-  var MAX_PREVIEW_BYTES = 5 * 1024 * 1024; // 5MB threshold for line-based preview
+  var MAX_PREVIEW_LINES = 200000;
+  var MAX_PREVIEW_BYTES = 20 * 1024 * 1024; // 20MB threshold for line-based preview
+
+  // Streaming index for large files — planned for v2.1
 
   function previewText(text, maxLines) {
     var lines = text.split("\n");
@@ -1015,7 +1033,7 @@
     var rawPreview = text.substring(0, 500000); // keep first 500K chars for raw view
 
     files.push({ name: name, size: size, text: keepText, rawPreview: rawPreview, parsed: parsed, truncated: truncated, fileRef: fileRef || null,
-      _fullText: fullText, _previewLines: linePreview ? MAX_PREVIEW_LINES : null, _totalLines: linePreview ? linePreview.totalLines : null });
+      _fullText: fullText, _previewLines: linePreview ? Math.min(MAX_PREVIEW_LINES, linePreview.totalLines) : null, _totalLines: linePreview ? linePreview.totalLines : null });
     dropZone.style.display = "none";
     workspace.classList.add("active");
     renderTabs();
@@ -1311,7 +1329,10 @@
         "background:rgba(255,180,0,0.1);border:1px solid var(--vw-amber);border-radius:8px;margin:8px 12px;" +
         "font-family:var(--vw-sans);font-size:13px;color:var(--vw-amber);";
       var infoSpan = document.createElement("span");
-      infoSpan.textContent = "Showing first " + f._previewLines.toLocaleString() + " lines of ~" + f._totalLines.toLocaleString() + " total (preview mode).";
+      var recordInfo = (f.parsed.format === "fasta" || f.parsed.format === "fastq")
+        ? f.parsed.rows.length.toLocaleString() + " records from first " + f._previewLines.toLocaleString() + " lines of ~" + f._totalLines.toLocaleString() + " total"
+        : "first " + f._previewLines.toLocaleString() + " lines of ~" + f._totalLines.toLocaleString() + " total";
+      infoSpan.textContent = "Showing " + recordInfo + " (preview mode). Click Load Full File to parse all.";
       banner.appendChild(infoSpan);
       var loadBtn = document.createElement("button");
       loadBtn.className = "vw-tbtn";
@@ -1321,9 +1342,34 @@
       loadBtn.addEventListener("click", function() {
         var idx = activeTab;
         var entry = files[idx];
-        if (!entry || !entry._fullText) return;
+        if (!entry) return;
+        // If _fullText was already consumed, re-read from fileRef
+        if (!entry._fullText && entry.fileRef) {
+          showLoadingOverlay(entry.name, entry.size);
+          updateLoadingOverlay("Re-reading full file...", 20);
+          var reader = new FileReader();
+          reader.onload = function() {
+            updateLoadingOverlay("Parsing full file...", 50);
+            setTimeout(function() {
+              var fullParsed = parseFile(entry.name, reader.result);
+              validateParsed(fullParsed, entry.name);
+              entry.parsed = fullParsed;
+              entry.truncated = false;
+              entry.text = reader.result.length <= 10 * 1024 * 1024 ? reader.result : null;
+              entry.rawPreview = reader.result.substring(0, 500000);
+              entry._previewLines = null;
+              entry._totalLines = null;
+              hideLoadingOverlay();
+              renderView();
+              updateFooter(entry);
+            }, 10);
+          };
+          reader.readAsText(entry.fileRef);
+          return;
+        }
+        if (!entry._fullText) return;
         showLoadingOverlay(entry.name, entry.size);
-        updateLoadingOverlay("Parsing full file...", 50);
+        updateLoadingOverlay("Parsing full file (" + Math.round(entry._fullText.length / 1024 / 1024) + " MB)...", 50);
         setTimeout(function() {
           var fullParsed = parseFile(entry.name, entry._fullText);
           validateParsed(fullParsed, entry.name);
@@ -1443,7 +1489,11 @@
   function showColumnFilter(f, colIndex, colName, anchorEl) {
     // Remove existing dropdown
     var existing = document.getElementById("vw-col-filter");
-    if (existing) existing.remove();
+    if (existing) {
+      existing.remove();
+      // If clicking the same column's filter icon, toggle off
+      if (existing._colIndex === colIndex) return;
+    }
 
     // Collect unique values (sample up to 10000 rows)
     var uniqMap = {};
@@ -1459,6 +1509,7 @@
 
     var drop = document.createElement("div");
     drop.id = "vw-col-filter";
+    drop._colIndex = colIndex;
     drop.style.cssText = "position:absolute;z-index:200;background:var(--vw-panel);border:1px solid var(--vw-border);" +
       "border-radius:8px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.4);max-height:320px;width:220px;" +
       "display:flex;flex-direction:column;font-family:var(--vw-sans);font-size:12px;";
@@ -1648,7 +1699,9 @@
     // Computed column options
     var computeOpts = [];
     if (f.parsed.colTypes[colIndex] === "seq") {
-      computeOpts.push({ label: "+ GC%", type: "gc" });
+      if (f.parsed.columns.indexOf("GC%") < 0 && f.parsed.columns.indexOf("gc_pct") < 0) {
+        computeOpts.push({ label: "+ GC%", type: "gc" });
+      }
       computeOpts.push({ label: "+ Length", type: "length" });
     } else if (f.parsed.colTypes[colIndex] === "num") {
       computeOpts.push({ label: "+ log₂", type: "log2" });
@@ -1806,7 +1859,7 @@
     f.parsed.columns.forEach(function(col, ci) {
       var th = document.createElement("th");
       // Feature 3 & 7: Sort indicator with multi-sort priority
-      var arrow = "";
+      var arrow = " \u21C5"; // ⇅ default unsorted indicator
       var isSorted = false;
       if (sortCols.length > 1) {
         for (var si = 0; si < sortCols.length; si++) {
@@ -1822,15 +1875,19 @@
         isSorted = true;
       }
       // Feature 5: Inline filter icon
-      var filterIcon = '<span class="col-filter-icon" style="margin-left:4px;cursor:pointer;opacity:0.4;font-size:10px" title="Filter this column">\u25BC</span>';
+      var hasFilter = !!colFilters[ci];
+      var fColor = hasFilter ? 'var(--vw-green)' : 'currentColor';
+      var fOpacity = hasFilter ? '1' : '0.4';
+      var filterIcon = '<span class="col-filter-icon" style="margin-left:6px;cursor:pointer;opacity:' + fOpacity + ';vertical-align:middle;display:inline-block;width:10px;height:10px" title="Filter this column"><svg viewBox="0 0 10 10" width="10" height="10"><polygon points="0,0 10,0 6,5 6,10 4,10 4,5" fill="' + fColor + '"/></svg></span>';
       th.innerHTML = escapeHtml(col) + '<span class="sort-arrow">' + arrow + '</span>' + filterIcon;
       if (isSorted) th.classList.add("sorted");
-      if (colFilters[ci]) th.style.borderBottom = "2px solid var(--vw-green)";
+      if (hasFilter) th.style.borderBottom = "2px solid var(--vw-green)";
       if (f.parsed.colTypes[ci] === "num") th.classList.add("num-col");
-      th.title = f.parsed._colHints[ci];
+      th.title = "Click: sort | ▼ icon: filter | Double-click: column details";
       th.addEventListener("click", function(e) {
         if (e.target.classList.contains("col-resizer")) return;
-        if (e.target.classList.contains("col-filter-icon")) return;
+        if (e.target.closest && e.target.closest(".col-filter-icon")) return;
+        if (e.target.classList && e.target.classList.contains("col-filter-icon")) return;
         pushUndo();
         if (e.shiftKey) {
           // Feature 7: Multi-column sort — Shift+click adds secondary sort
@@ -2168,7 +2225,12 @@
             td.innerHTML = colorSequence(seqStr);
           }
           var unitLabel = colType === "pseq" ? " aa" : " bp";
-          if (String(val).length > 120) td.innerHTML += '<span style="color:var(--vw-text-muted)">... (' + String(val).length + unitLabel + ')</span>';
+          if (String(val).length > 120) {
+            var lenSpan = document.createElement("span");
+            lenSpan.style.color = "var(--vw-text-muted)";
+            lenSpan.textContent = "... (" + String(val).length + unitLabel + ")";
+            td.appendChild(lenSpan);
+          }
         } else if (colType === "qual") {
           td.className = "qual-cell";
           var qstr = String(val);
@@ -2333,10 +2395,15 @@
         pagBar.appendChild(jumpInput);
       }
 
-      wrap.appendChild(pagBar);
     }
 
     contentEl.appendChild(wrap);
+
+    // Append pagination OUTSIDE the scroll container so it stays sticky at bottom
+    if (totalPages > 1) {
+      pagBar.style.cssText += "flex-shrink:0;background:var(--vw-panel);";
+      contentEl.appendChild(pagBar);
+    }
 
     // Mini-map: row density strip (toggled via toolbar, off by default)
     if (showMinimap && totalPages >= 3 && totalFiltered >= 300) {
@@ -2665,6 +2732,99 @@
     return svgHistogram(gcValues, { color: "#22d3ee", label: "GC %", bins: 30 });
   }
 
+  // GC% sliding window line chart for a single sequence
+  function svgGcSlidingWindow(seq, windowSize) {
+    if (!seq || seq.length < windowSize * 2) return null;
+    var points = [];
+    var w = 400, h = 120, pad = 30;
+    var step = Math.max(1, Math.floor(seq.length / 200)); // sample ~200 points
+    for (var i = 0; i <= seq.length - windowSize; i += step) {
+      var gc = 0, total = 0;
+      for (var j = i; j < i + windowSize; j++) {
+        var c = seq.charCodeAt(j) | 32;
+        if (c === 103 || c === 99) { gc++; total++; }
+        else if (c === 97 || c === 116 || c === 117) { total++; }
+      }
+      if (total > 0) points.push({ x: i, y: (gc / total) * 100 });
+    }
+    if (points.length < 2) return null;
+
+    var maxX = points[points.length - 1].x;
+    var svg = svgEl("svg", { width: w, height: h, viewBox: "0 0 " + w + " " + h });
+
+    // Y axis: 0-100%
+    [0, 25, 50, 75, 100].forEach(function(pct) {
+      var y = pad + (h - pad * 2) * (1 - pct / 100);
+      svg.appendChild(svgEl("line", { x1: pad, y1: y, x2: w - 10, y2: y, stroke: "var(--vw-border)", "stroke-width": 0.5 }));
+      var txt = svgEl("text", { x: pad - 4, y: y + 3, fill: "var(--vw-text-muted)", "font-size": 9, "text-anchor": "end" });
+      txt.textContent = pct + "%";
+      svg.appendChild(txt);
+    });
+
+    // Line path
+    var pathD = points.map(function(p, i) {
+      var x = pad + (p.x / maxX) * (w - pad - 10);
+      var y = pad + (h - pad * 2) * (1 - p.y / 100);
+      return (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1);
+    }).join(" ");
+    svg.appendChild(svgEl("path", { d: pathD, fill: "none", stroke: "#22d3ee", "stroke-width": 1.5 }));
+
+    // 50% reference line
+    var y50 = pad + (h - pad * 2) * 0.5;
+    svg.appendChild(svgEl("line", { x1: pad, y1: y50, x2: w - 10, y2: y50, stroke: "#f59e0b", "stroke-width": 1, "stroke-dasharray": "4 3", opacity: 0.5 }));
+
+    // X axis label
+    var xLabel = svgEl("text", { x: w / 2, y: h - 4, fill: "var(--vw-text-muted)", "font-size": 9, "text-anchor": "middle" });
+    xLabel.textContent = "Position (bp)";
+    svg.appendChild(xLabel);
+
+    return svg;
+  }
+
+  // K-mer frequency table
+  function renderKmerTable(sequences, k, topN) {
+    if (!sequences || sequences.length === 0) return null;
+    var counts = {};
+    var totalKmers = 0;
+    sequences.forEach(function(seq) {
+      if (!seq) return;
+      var s = seq.toUpperCase();
+      for (var i = 0; i <= s.length - k; i++) {
+        var kmer = s.substring(i, i + k);
+        if (/^[ACGT]+$/.test(kmer)) {
+          counts[kmer] = (counts[kmer] || 0) + 1;
+          totalKmers++;
+        }
+      }
+    });
+    if (totalKmers === 0) return null;
+
+    var sorted = Object.entries(counts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, topN);
+
+    var table = document.createElement("table");
+    table.style.cssText = "width:100%;font-size:11px;font-family:var(--vw-mono);border-collapse:collapse;";
+    table.innerHTML = '<thead><tr><th style="text-align:left;padding:2px 6px;color:var(--vw-text-dim);border-bottom:1px solid var(--vw-border)">K-mer</th>' +
+      '<th style="text-align:right;padding:2px 6px;color:var(--vw-text-dim);border-bottom:1px solid var(--vw-border)">Count</th>' +
+      '<th style="text-align:right;padding:2px 6px;color:var(--vw-text-dim);border-bottom:1px solid var(--vw-border)">Freq %</th>' +
+      '<th style="padding:2px 6px;border-bottom:1px solid var(--vw-border)"></th></tr></thead>';
+
+    var tbody = document.createElement("tbody");
+    var maxCount = sorted[0][1];
+    sorted.forEach(function(entry) {
+      var tr = document.createElement("tr");
+      var pct = (entry[1] / totalKmers * 100).toFixed(2);
+      var barWidth = Math.round(entry[1] / maxCount * 60);
+      tr.innerHTML =
+        '<td style="padding:2px 6px;color:var(--vw-text)">' + escapeHtml(entry[0]) + '</td>' +
+        '<td style="padding:2px 6px;text-align:right;color:var(--vw-text-dim)">' + entry[1].toLocaleString() + '</td>' +
+        '<td style="padding:2px 6px;text-align:right;color:var(--vw-text-dim)">' + pct + '</td>' +
+        '<td style="padding:2px 6px"><div style="height:8px;width:' + barWidth + 'px;background:var(--vw-accent);border-radius:2px;opacity:0.6"></div></td>';
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+  }
+
   // Chromosome distribution bar chart (VCF/BED/GFF/SAM)
   function svgChromDistribution(rows, chromCol) {
     var chromCounts = {};
@@ -2924,6 +3084,24 @@
       var lenVals = f.parsed.rows.map(function(r) { return r[2]; });
       addChartCard(container, "Length Distribution", svgHistogram(lenVals, { color: "#34d399", label: "Sequence length (bp)" }), 3);
       addChartCard(container, "GC Content Distribution", svgGcContent(f.parsed.rows), 3);
+
+      // GC sliding window plot (first sequence only, if long enough)
+      if (f.parsed.seqType !== "protein") {
+        var seqCol = f.parsed.colTypes.indexOf("seq");
+        if (seqCol >= 0 && f.parsed.rows.length > 0) {
+          var gcWindowSvg = svgGcSlidingWindow(f.parsed.rows[0][seqCol], 100);
+          if (gcWindowSvg) addChartCard(container, "GC% Sliding Window (100bp, seq #1)", gcWindowSvg, 3);
+        }
+      }
+
+      // K-mer frequency table (k=4, sampled from first 5 sequences)
+      if (f.parsed.seqType !== "protein") {
+        var seqCol2 = f.parsed.colTypes.indexOf("seq");
+        if (seqCol2 >= 0) {
+          var kmerEl = renderKmerTable(f.parsed.rows.slice(0, 5).map(function(r) { return r[seqCol2]; }), 4, 20);
+          if (kmerEl) addChartCard(container, "Top 4-mer Frequencies", kmerEl, 2);
+        }
+      }
     }
 
     // FASTQ: Per-base quality + Length distribution + Quality distribution + GC
@@ -3546,12 +3724,17 @@
     var out = document.getElementById("vw-console-output");
     if (!out) return;
     var colors = { cmd: "var(--vw-cyan)", out: "var(--vw-text)", value: "var(--vw-green)", error: "var(--vw-red)", info: "var(--vw-accent)", dim: "var(--vw-text-muted)" };
-    out.innerHTML += '<span style="color:' + (colors[type] || colors.out) + '">' + escapeHtml(text) + '</span>\n';
+    var span = document.createElement("span");
+    span.style.color = colors[type] || colors.out;
+    span.textContent = text;
+    out.appendChild(span);
+    out.appendChild(document.createTextNode("\n"));
     out.scrollTop = out.scrollHeight;
   }
 
   // ── Motif highlighting ─────────────────────────────────────────
   function colorSequenceWithMotif(seq, pattern) {
+    if (!seqColorEnabled) return seq;
     try {
       var re = new RegExp(pattern, "gi");
     } catch (e) {
@@ -3757,11 +3940,30 @@
       var tag = document.createElement("span");
       tag.className = "vw-chrom-tag";
       tag.innerHTML = escapeHtml(e[0]) + ' <span class="chrom-count">' + e[1].toLocaleString() + '</span>';
-      tag.addEventListener("click", function() {
-        // Quick filter to this chromosome
-        if (!colFilters[chromCol]) colFilters[chromCol] = new Set([e[0]]);
-        else if (colFilters[chromCol].has(e[0]) && colFilters[chromCol].size === 1) delete colFilters[chromCol];
-        else colFilters[chromCol] = new Set([e[0]]);
+      tag.setAttribute("data-chrom", e[0]);
+      // Show active state if already filtered
+      if (colFilters[chromCol] && colFilters[chromCol].has(e[0])) {
+        tag.classList.add("vw-chrom-active");
+      }
+      tag.addEventListener("click", function(evt) {
+        evt.stopPropagation();
+        // Multi-select: toggle individual chromosomes
+        if (!colFilters[chromCol]) {
+          colFilters[chromCol] = new Set([e[0]]);
+        } else if (colFilters[chromCol].has(e[0])) {
+          colFilters[chromCol].delete(e[0]);
+          if (colFilters[chromCol].size === 0) delete colFilters[chromCol];
+        } else {
+          colFilters[chromCol].add(e[0]);
+        }
+        // Invalidate filter cache
+        _filterCache = null;
+        currentPage = 0;
+        // Update active state on all chrom tags in DOM (current strip may be replaced)
+        document.querySelectorAll(".vw-chrom-tag").forEach(function(t) {
+          var isActive = colFilters[chromCol] && colFilters[chromCol].has(t.getAttribute("data-chrom"));
+          t.classList.toggle("vw-chrom-active", !!isActive);
+        });
         renderView();
       });
       strip.appendChild(tag);
@@ -4162,7 +4364,8 @@
   var _filterCache = null, _filterKey = "";
   function getFilteredRows(f) {
     // Cache key: avoid recomputing when called multiple times per render
-    var key = activeTab + "|" + searchTerm + "|" + motifTerm + "|" + Object.keys(colFilters).join(",") + "|" + f.parsed.rows.length + "|rx:" + regexSearch + "|bf:" + bookmarkFilterActive;
+    var cfKey = Object.keys(colFilters).map(function(k) { return k + ":" + Array.from(colFilters[k]).sort().join("+"); }).join(",");
+    var key = activeTab + "|" + searchTerm + "|" + motifTerm + "|" + cfKey + "|" + f.parsed.rows.length + "|rx:" + regexSearch + "|bf:" + bookmarkFilterActive;
     if (_filterCache && _filterKey === key) return _filterCache;
 
     var rows = getAllWrapped(f);
@@ -4271,6 +4474,7 @@
   function isSeqType(t) { return t === "seq" || t === "pseq"; }
 
   function colorSequence(seq, colType) {
+    if (!seqColorEnabled) return seq;
     if (colType === "pseq") return colorProtein(seq);
     var parts = [];
     for (var i = 0; i < seq.length; i++) {
@@ -4302,6 +4506,7 @@
   };
 
   function colorProtein(seq) {
+    if (!seqColorEnabled) return seq;
     var parts = [];
     for (var i = 0; i < seq.length; i++) {
       var c = seq.charAt(i).toUpperCase();
@@ -4318,6 +4523,7 @@
   }
 
   function colorSequenceWithCodons(seq) {
+    if (!seqColorEnabled) return seq;
     if (seq.length <= 6) return colorSequence(seq);
     var parts = [];
     for (var i = 0; i < seq.length; i++) {
@@ -5231,7 +5437,7 @@
       hiddenCols: hiddenCols[activeTab] ? Array.from(hiddenCols[activeTab]) : [],
       highlightRule: highlightRule ? JSON.parse(JSON.stringify(highlightRule)) : null
     });
-    if (undoStack.length > 20) undoStack.shift();
+    if (undoStack.length > 10) undoStack.shift();
   }
 
   function popUndo() {
@@ -5766,16 +5972,18 @@
     onlyIn1.slice(0, maxShow).forEach(function(idx) {
       var tr = document.createElement("tr");
       tr.className = "vw-diff-removed";
-      tr.innerHTML = '<td><span class="vw-diff-badge-rm">&#9664; ' + escapeHtml(f1.name.substring(0, 15)) + '</span></td>';
-      f1.parsed.rows[idx].slice(0, 6).forEach(function(v) { tr.innerHTML += '<td>' + escapeHtml(String(v || "")) + '</td>'; });
+      var rowHtml = '<td><span class="vw-diff-badge-rm">&#9664; ' + escapeHtml(f1.name.substring(0, 15)) + '</span></td>';
+      f1.parsed.rows[idx].slice(0, 6).forEach(function(v) { rowHtml += '<td>' + escapeHtml(String(v || "")) + '</td>'; });
+      tr.innerHTML = rowHtml;
       tbody.appendChild(tr);
     });
 
     onlyIn2.slice(0, maxShow).forEach(function(idx) {
       var tr = document.createElement("tr");
       tr.className = "vw-diff-added";
-      tr.innerHTML = '<td><span class="vw-diff-badge-add">&#9654; ' + escapeHtml(f2.name.substring(0, 15)) + '</span></td>';
-      f2.parsed.rows[idx].slice(0, 6).forEach(function(v) { tr.innerHTML += '<td>' + escapeHtml(String(v || "")) + '</td>'; });
+      var rowHtml = '<td><span class="vw-diff-badge-add">&#9654; ' + escapeHtml(f2.name.substring(0, 15)) + '</span></td>';
+      f2.parsed.rows[idx].slice(0, 6).forEach(function(v) { rowHtml += '<td>' + escapeHtml(String(v || "")) + '</td>'; });
+      tr.innerHTML = rowHtml;
       tbody.appendChild(tr);
     });
 
@@ -6063,6 +6271,167 @@
     });
   });
 
+  // ── NCBI Fetch ────────────────────────────────────────────────
+  function fetchWithTimeout(url, ms) {
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, ms || 15000);
+    return fetch(url, { signal: controller.signal }).finally(function() { clearTimeout(timer); });
+  }
+
+  function fetchFromNCBI(accession) {
+    accession = accession.trim();
+    if (!accession) { showToast("Enter an accession"); return; }
+    showLoadingOverlay(accession, 0);
+    updateLoadingOverlay("Fetching " + accession + " from NCBI...", 30);
+
+    // Try efetch FASTA first
+    var url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&rettype=fasta&retmode=text&id=" + encodeURIComponent(accession);
+    fetchWithTimeout(url, 15000).then(function(resp) {
+      if (!resp.ok) {
+        // Try protein database
+        return fetchWithTimeout("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=protein&rettype=fasta&retmode=text&id=" + encodeURIComponent(accession), 15000);
+      }
+      return resp;
+    }).then(function(resp) {
+      if (!resp.ok) throw new Error("NCBI returned " + resp.status);
+      return resp.text();
+    }).then(function(text) {
+      if (!text || !text.startsWith(">")) {
+        // Try UniProt
+        return fetchWithTimeout("https://rest.uniprot.org/uniprotkb/" + encodeURIComponent(accession) + ".fasta", 10000)
+          .then(function(r) { return r.text(); });
+      }
+      return text;
+    }).then(function(text) {
+      if (!text || (!text.startsWith(">") && !text.includes(">"))) {
+        hideLoadingOverlay();
+        showToast("No sequence found for " + accession);
+        return;
+      }
+      updateLoadingOverlay("Parsing sequence...", 70);
+      setTimeout(function() {
+        addFile(accession + ".fasta", text.length, text, false, null);
+        hideLoadingOverlay();
+        showToast("Loaded " + accession);
+      }, 10);
+    }).catch(function(err) {
+      hideLoadingOverlay();
+      showToast("Fetch failed: " + err.message);
+    });
+  }
+
+  function fetchBatchNCBI(accessions) {
+    if (!accessions || accessions.length === 0) return;
+    showLoadingOverlay("Batch fetch", 0);
+    var results = [];
+    var total = accessions.length;
+    var failed = [];
+
+    function fetchNext(i) {
+      if (i >= total) {
+        // All done — combine results
+        hideLoadingOverlay();
+        if (results.length === 0) {
+          showToast("No sequences found for " + total + " accessions");
+          return;
+        }
+        var combined = results.join("\n");
+        addFile("batch_" + total + "_sequences.fasta", combined.length, combined, false, null);
+        showToast("Loaded " + results.length + " of " + total + " sequences" + (failed.length > 0 ? " (" + failed.length + " failed)" : ""));
+        return;
+      }
+      var acc = accessions[i];
+      updateLoadingOverlay("Fetching " + (i + 1) + " of " + total + ": " + acc, Math.round(i / total * 100));
+      var url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&rettype=fasta&retmode=text&id=" + encodeURIComponent(acc);
+      fetchWithTimeout(url, 15000).then(function(resp) {
+        if (!resp.ok) return fetchWithTimeout("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=protein&rettype=fasta&retmode=text&id=" + encodeURIComponent(acc), 15000);
+        return resp;
+      }).then(function(resp) {
+        return resp.text();
+      }).then(function(text) {
+        if (text && text.startsWith(">")) {
+          results.push(text.trim());
+        } else {
+          failed.push(acc);
+        }
+      }).catch(function() {
+        failed.push(acc);
+      }).finally(function() {
+        // Delay between requests to respect NCBI rate limit
+        setTimeout(function() { fetchNext(i + 1); }, 350);
+      });
+    }
+
+    fetchNext(0);
+  }
+
+  // Drop zone NCBI fetch button
+  var ncbiFetchBtn = document.getElementById("vw-ncbi-fetch-btn");
+  var ncbiInput = document.getElementById("vw-ncbi-input");
+  if (ncbiFetchBtn && ncbiInput) {
+    function handleNcbiInput() {
+      var v = ncbiInput.value.trim();
+      if (!v) return;
+      var accs = v.split(/[,\s\n]+/).map(function(s) { return s.trim(); }).filter(Boolean);
+      if (accs.length > 1) fetchBatchNCBI(accs); else fetchFromNCBI(accs[0]);
+    }
+    ncbiFetchBtn.addEventListener("click", handleNcbiInput);
+    ncbiInput.addEventListener("keydown", function(e) { if (e.key === "Enter") handleNcbiInput(); });
+  }
+
+  // Toolbar NCBI button — shows modal dialog
+  var ncbiToolbarBtn = document.getElementById("vw-ncbi-toolbar-btn");
+  if (ncbiToolbarBtn) {
+    ncbiToolbarBtn.addEventListener("click", function() {
+      var existing = document.getElementById("vw-ncbi-modal");
+      if (existing) { existing.remove(); return; }
+
+      var overlay = document.createElement("div");
+      overlay.id = "vw-ncbi-modal";
+      overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:center;justify-content:center;";
+
+      var modal = document.createElement("div");
+      modal.style.cssText = "background:var(--vw-panel);border:1px solid var(--vw-border);border-radius:12px;padding:20px 24px;width:380px;max-width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.5);font-family:var(--vw-sans);";
+
+      modal.innerHTML =
+        '<div style="font-size:14px;font-weight:600;color:var(--vw-accent);margin-bottom:4px">Fetch from NCBI</div>' +
+        '<div style="font-size:11px;color:var(--vw-text-muted);margin-bottom:12px">Enter accessions (comma or space separated for batch fetch).</div>' +
+        '<input id="vw-ncbi-modal-input" type="text" placeholder="NM_007294, NC_000017, NP_009225, P38398" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--vw-border);background:var(--vw-bg);color:var(--vw-text);font-size:13px;font-family:var(--vw-mono);outline:none;box-sizing:border-box;margin-bottom:12px" />' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+          '<button id="vw-ncbi-modal-cancel" style="padding:6px 14px;border-radius:6px;border:1px solid var(--vw-border);background:transparent;color:var(--vw-text-dim);cursor:pointer;font-size:12px">Cancel</button>' +
+          '<button id="vw-ncbi-modal-fetch" style="padding:6px 14px;border-radius:6px;border:none;background:var(--vw-accent);color:#fff;cursor:pointer;font-size:12px;font-weight:600">Fetch</button>' +
+        '</div>';
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      var input = document.getElementById("vw-ncbi-modal-input");
+      input.focus();
+
+      function close() { overlay.remove(); }
+      function submit() {
+        var v = input.value.trim();
+        if (!v) return;
+        close();
+        // Support multiple accessions (comma, space, or newline separated)
+        var accessions = v.split(/[,\s\n]+/).map(function(s) { return s.trim(); }).filter(Boolean);
+        if (accessions.length > 1) {
+          fetchBatchNCBI(accessions);
+        } else {
+          fetchFromNCBI(accessions[0]);
+        }
+      }
+
+      document.getElementById("vw-ncbi-modal-cancel").addEventListener("click", close);
+      document.getElementById("vw-ncbi-modal-fetch").addEventListener("click", submit);
+      input.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") submit();
+        if (e.key === "Escape") close();
+      });
+      overlay.addEventListener("click", function(e) { if (e.target === overlay) close(); });
+    });
+  }
+
   // Number keys 1-4 to switch views
   document.addEventListener("keydown", function(e) {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -6089,6 +6458,18 @@
       localStorage.setItem("theme", "dark");
     }
   });
+
+  // Sequence color toggle
+  var colorToggleBtn = document.getElementById("vw-color-toggle");
+  if (colorToggleBtn) {
+    if (seqColorEnabled) colorToggleBtn.classList.add("vw-tbtn-on");
+    colorToggleBtn.addEventListener("click", function() {
+      seqColorEnabled = !seqColorEnabled;
+      localStorage.setItem("vw-seq-color", seqColorEnabled ? "1" : "0");
+      colorToggleBtn.classList.toggle("vw-tbtn-on", seqColorEnabled);
+      renderView();
+    });
+  }
 
   // Pin columns toggle
   var pinToggleBtn = document.getElementById("vw-pin-toggle");
@@ -6120,7 +6501,7 @@
       contentEl.style.pointerEvents = "none";
     }
     motifTimer = setTimeout(function() {
-      motifTerm = val;
+      motifTerm = expandIUPAC(val);
       contentEl.style.opacity = "";
       contentEl.style.pointerEvents = "";
       if (currentView === "table") renderView();
@@ -6696,8 +7077,8 @@
     if (f.parsed.format !== "fasta" && f.parsed.format !== "fastq") return;
     // Don't offer GC% for protein sequences
     if (f.parsed.seqType === "protein") return;
-    // Check if GC% column already exists
-    if (f.parsed.columns.indexOf("GC%") >= 0) return;
+    // Check if GC% column already exists (parser adds "gc_pct", computed adds "GC%")
+    if (f.parsed.columns.indexOf("GC%") >= 0 || f.parsed.columns.indexOf("gc_pct") >= 0) return;
 
     var bar = document.createElement("div");
     bar.id = "vw-gc-offer";

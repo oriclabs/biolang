@@ -1936,7 +1936,7 @@ function getCitationBadgeHtml(pmid) {
   if (!cite || cite.currentCount === undefined) return '';
   let html = `<span class="inline-flex items-center gap-1 ml-2 text-[11px] text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded-full font-medium">\uD83D\uDCC8 ${cite.currentCount} citations`;
   if (cite.history && cite.history.length >= 2) {
-    html += ` <span class="text-emerald-300/70" title="Citation history: ${cite.history.map(h => h.count).join(' \u2192 ')}">${citationSparkline(cite.history)}</span>`;
+    html += ` <span class="text-emerald-300/70" title="Citation history: ${escapeHtml(cite.history.map(h => h.count).join(' \u2192 '))}">${citationSparkline(cite.history)}</span>`;
   }
   html += '</span>';
   return html;

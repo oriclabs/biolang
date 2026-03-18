@@ -108,15 +108,16 @@
     .vw-bookmark-btn.active { background: rgba(251, 191, 36, 0.15); color: var(--vw-amber); border-color: var(--vw-amber); }
 
     .vw-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
-    .vw-table-wrap { flex: 1; overflow: auto; }
+    .vw-table-wrap { flex: 1; overflow: auto; min-height: 0; position: relative; }
     .vw-table { width: 100%; border-collapse: collapse; font-family: var(--vw-mono); font-size: 12px; }
-    .vw-table th { position: sticky; top: 0; background: var(--vw-tab-bg); color: var(--vw-text-dim); font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--vw-border); white-space: nowrap; z-index: 1; cursor: pointer; user-select: none; }
+    .vw-table th { position: sticky; top: 0; background: var(--vw-tab-bg); color: var(--vw-text-dim); font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--vw-border); white-space: nowrap; z-index: 4; cursor: pointer; user-select: none; }
     .vw-table th:hover { color: var(--vw-accent); }
-    .vw-table th .sort-arrow { font-size: 10px; margin-left: 4px; opacity: 0.4; }
+    .vw-table th .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.25; }
+    .vw-table th:hover .sort-arrow { opacity: 0.6; }
     .vw-table th.sorted .sort-arrow { opacity: 1; color: var(--vw-accent); }
     .vw-table th.num-col { text-align: right; }
-    .vw-table th .col-resizer { position: absolute; top: 0; right: 0; width: 5px; height: 100%; cursor: col-resize; background: transparent; z-index: 2; }
-    .vw-table th .col-resizer:hover { background: var(--vw-accent); opacity: 0.6; }
+    .vw-table th .col-resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; z-index: 5; background: transparent; border-right: 2px solid var(--vw-border); }
+    .vw-table th .col-resizer:hover { border-right-color: var(--vw-accent); }
     .vw-table td { padding: 5px 12px; border-bottom: 1px solid var(--vw-border); color: var(--vw-text); white-space: nowrap; max-width: 400px; overflow: hidden; text-overflow: ellipsis; }
     .vw-table tr:nth-child(even) { background: var(--vw-row-alt); }
     .vw-table tr:hover { background: var(--vw-row-hover); }
@@ -125,6 +126,7 @@
     .vw-table td:first-child, .vw-table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--vw-bg); }
     .vw-table thead th:first-child { z-index: 3; }
 
+    .vw-tbtn-on { background: rgba(251, 191, 36, 0.15); color: var(--vw-amber); border-color: var(--vw-amber); }
     .nt-A { color: #34d399; } .nt-T { color: #f87171; } .nt-C { color: #60a5fa; } .nt-G { color: #fbbf24; } .nt-N { color: #94a3b8; }
     .aa-hyd { color: #fbbf24; } .aa-pol { color: #34d399; } .aa-pos { color: #60a5fa; } .aa-neg { color: #f87171; } .aa-aro { color: #c084fc; } .aa-spc { color: #22d3ee; } .aa-unk { color: #94a3b8; } .aa-stop { color: #f43f5e; font-weight: 700; }
     .q-hi { color: #34d399; } .q-md { color: #fbbf24; } .q-lo { color: #f87171; } .q-bad { color: #ef4444; font-weight: 700; }
@@ -144,9 +146,10 @@
     .vw-detail-close { background: none; border: none; color: var(--vw-text-muted); cursor: pointer; font-size: 18px; padding: 2px 8px; border-radius: 4px; }
     .vw-detail-close:hover { color: var(--vw-red); }
     .vw-detail-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
-    .vw-detail-row { display: flex; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--vw-border); }
+    .vw-detail-row { display: flex; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--vw-border); min-width: 0; }
     .vw-detail-label { color: var(--vw-text-dim); width: 120px; flex-shrink: 0; font-weight: 600; }
-    .vw-detail-value { color: var(--vw-text); word-break: break-all; white-space: pre-wrap; }
+    .vw-detail-value { color: var(--vw-text); word-break: break-all; white-space: pre-wrap; overflow-wrap: break-word; min-width: 0; }
+    .vw-detail-seq { font-size: 11px; max-height: 200px; overflow-y: auto; line-height: 1.6; }
 
     .vw-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 16px; overflow-y: auto; }
     .vw-stat-card { background: var(--vw-panel); border: 1px solid var(--vw-border); border-radius: 8px; padding: 12px 16px; position: relative; }
@@ -192,6 +195,7 @@
     .vw-chrom-strip { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-bottom: 1px solid var(--vw-border); background: var(--vw-tab-bg); flex-shrink: 0; overflow-x: auto; }
     .vw-chrom-tag { font-family: var(--vw-mono); font-size: 10px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--vw-border); color: var(--vw-text-dim); background: var(--vw-panel); white-space: nowrap; cursor: pointer; transition: all 0.15s; }
     .vw-chrom-tag:hover { border-color: var(--vw-accent); color: var(--vw-accent); }
+    .vw-chrom-tag.vw-chrom-active { border-color: var(--vw-accent); color: var(--vw-accent); background: rgba(99,102,241,0.15); font-weight: 700; }
 
     .vw-table th.pinned, .vw-table td.pinned { position: sticky; left: 0; z-index: 3; background: var(--vw-tab-bg); }
     .vw-table td.pinned { background: var(--vw-panel); }
@@ -339,6 +343,11 @@
         <button class="vw-drop-btn" id="vw-open-btn">Open Files</button>
         <span style="font-size:12px;color:var(--vw-text-muted)">or drag &amp; drop</span>
       </div>
+      <div style="margin-top:16px;display:flex;gap:8px;align-items:center">
+        <input type="text" id="vw-ncbi-input" placeholder="NCBI accession (NM_007294, NC_000017...)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--vw-border);background:var(--vw-panel);color:var(--vw-text);font-size:12px;font-family:var(--vw-mono);width:280px;outline:none" />
+        <button class="vw-drop-btn" id="vw-ncbi-fetch-btn" style="font-size:12px;padding:6px 14px">Fetch from NCBI</button>
+      </div>
+      <div style="font-size:10px;color:var(--vw-text-muted);margin-top:4px">GenBank, RefSeq, UniProt accessions supported (e.g. NM_007294.4, NC_000017, NP_009225, U00096)</div>
       <input type="file" id="vw-file-input" multiple accept=".fasta,.fa,.fna,.faa,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.csv,.tsv,.sam,.txt" style="display:none">
       <div class="vw-recent-panel" id="vw-recent-panel" style="display:none">
         <div class="vw-recent-header">
@@ -368,12 +377,14 @@
         </div>
         <div class="vw-toolbar-sep"></div>
         <input class="vw-search" id="vw-search" type="text" placeholder="Search / filter...">
-        <input class="vw-motif-input" id="vw-motif-input" type="text" placeholder="Motif regex..." title="Sequence motif search" style="display:none">
+        <input class="vw-motif-input" id="vw-motif-input" type="text" placeholder="Motif (TATAWR, CANNTG, or regex)..." title="IUPAC codes supported: R=AG Y=CT S=GC W=AT K=GT M=AC B=CGT D=AGT H=ACT V=ACG N=ACGT" style="display:none">
         <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
           <button class="vw-tbtn vw-bookmark-btn" id="vw-bookmark-toggle" title="Toggle bookmark column">&#9734; Bookmarks</button>
           <button class="vw-tbtn" id="vw-pin-toggle" title="Pin first 2 columns">&#128204; Pin Cols</button>
           <button class="vw-tbtn vw-detail-toggle" id="vw-detail-toggle" title="Toggle row detail panel">&#8597; Detail</button>
           <button class="vw-tbtn vw-theme-btn" id="vw-theme-toggle" title="Toggle light/dark theme">&#9788; Theme</button>
+          <button class="vw-tbtn" id="vw-color-toggle" title="Toggle sequence coloring">&#127912; Color</button>
+          <button class="vw-tbtn" id="vw-ncbi-toolbar-btn" title="Fetch sequence from NCBI by accession">&#127981; NCBI</button>
           <button class="vw-tbtn vw-browser-btn" id="vw-browser-btn" style="display:none">&#127758; Browser</button>
           <button class="vw-tbtn" id="vw-split-toggle" title="Split view: table + stats">&#9776; Split</button>
           <button class="vw-tbtn" id="vw-diff-btn" style="display:none" title="Compare two files">&#8800; Diff</button>
