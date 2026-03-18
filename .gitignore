@@ -70,6 +70,9 @@ Thumbs.db
 !/books/language/
 !/books/practical-bioinformatics/
 
+# Unfinished extensions (local only)
+/website/extension/biotally/
+
 # Extension store listings (local only, not shipped)
 /website/extension/*/STORE_LISTING.md
 /website/extension/*/dist/STORE_LISTING.md
