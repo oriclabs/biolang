@@ -70,6 +70,10 @@ Thumbs.db
 !/books/language/
 !/books/practical-bioinformatics/
 
+# Extension store listings (local only, not shipped)
+/website/extension/*/STORE_LISTING.md
+/website/extension/*/dist/STORE_LISTING.md
+
 # BioKhoj internal notes (not shipped)
 /website/biokhoj/maybe.txt
 /website/biokhoj/uximprovements.txt
