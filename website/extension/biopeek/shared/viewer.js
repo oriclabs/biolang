@@ -2212,7 +2212,7 @@
     }
     var summaryTr = document.createElement("tr");
     summaryTr.className = "vw-summary-row";
-    summaryTr.style.cssText = "background:var(--vw-tab-bg);font-size:10px;color:var(--vw-text-dim);border-bottom:2px solid var(--vw-border);position:sticky;top:0;z-index:2;";
+    summaryTr.style.cssText = "background:var(--vw-tab-bg);font-size:10px;color:var(--vw-text-dim);border-bottom:2px solid var(--vw-border);position:sticky;top:30px;z-index:3;";
     if (bookmarkMode) {
       var sTd = document.createElement("td");
       sTd.style.width = "30px";
