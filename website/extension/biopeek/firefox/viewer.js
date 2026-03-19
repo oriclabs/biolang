@@ -1554,10 +1554,15 @@
             validateParsed(fullParsed, entry.name);
             entry.parsed = fullParsed;
             entry.truncated = false;
+            entry._previewLines = null;
+            entry._totalLines = null;
             entry.text = reader.result.length <= 10 * 1024 * 1024 ? reader.result : null;
             entry.rawPreview = reader.result.substring(0, 500000);
             hideLoadingOverlay();
             _cachedFile = null; _cachedAll = null; _filterCache = null;
+            heatmapCols = {};
+            renderTabs();
+            updateToolbar();
             renderView();
             updateFooter(entry);
           }, 10);
