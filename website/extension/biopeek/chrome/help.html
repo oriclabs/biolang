@@ -504,6 +504,62 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
   </div>
 </details>
 
+<h2>v1.3.0 — New Features</h2>
+
+<details open>
+  <summary>NCBI Sequence Fetch</summary>
+  <div class="detail-body">
+    <p>Fetch FASTA sequences directly from NCBI by accession number. Enter a GenBank, RefSeq, or UniProt accession (e.g., <code>NM_007294</code>, <code>NC_000017</code>, <code>NP_009225</code>, <code>P38398</code>) in the input on the drop zone or click the <strong>NCBI</strong> toolbar button.</p>
+    <p><strong>Batch fetch:</strong> Enter multiple accessions separated by commas or spaces. Each is fetched sequentially with rate limiting (350ms delay). Results are combined into a multi-sequence FASTA file.</p>
+    <p>Tries NCBI nucleotide database first, falls back to protein database, then UniProt. All requests have a 15-second timeout.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Sequence Color Toggle</summary>
+  <div class="detail-body">
+    <p>Click the <strong>Color</strong> toolbar button to toggle nucleotide/amino acid coloring on or off. When on, the button shows an amber highlight. When off, sequences display as plain monospace text. Setting is persisted across sessions.</p>
+  </div>
+</details>
+
+<details>
+  <summary>GC% Sliding Window Plot</summary>
+  <div class="detail-body">
+    <p>In the Stats view for FASTA files, a line chart shows GC% across a 100bp sliding window for the first sequence. The Y-axis ranges from 0-100% with gridlines at 25% intervals. A dashed amber line marks the 50% reference. Approximately 200 sample points are plotted.</p>
+  </div>
+</details>
+
+<details>
+  <summary>K-mer Frequency Table</summary>
+  <div class="detail-body">
+    <p>In the Stats view for FASTA files, a table shows the top 20 most frequent 4-mers with count, frequency percentage, and an inline bar chart. Sampled from the first 5 sequences. Only ACGT k-mers are counted (N-containing k-mers are skipped).</p>
+  </div>
+</details>
+
+<details>
+  <summary>Chromosome Multi-Select</summary>
+  <div class="detail-body">
+    <p>In VCF/BED/GFF/SAM files, clicking chromosome tags in the strip now supports multi-select. Click <code>chr1</code>, then click <code>chr2</code> to see both. Active tags show an accent highlight. Click an active tag again to deselect it. Deselecting all clears the filter.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Large File Streaming Mode</summary>
+  <div class="detail-body">
+    <p>Files larger than 10 MB activate streaming mode automatically. BioPeek scans the file to count records (without loading the full content), then reads and parses the first 5 MB as a preview. This keeps memory usage low and the UI responsive.</p>
+    <p>A cyan banner shows: <em>"Showing 1,200 of 500,000 total records (preview mode)."</em> Click <strong>Load All Records</strong> to read and parse the entire file when you need full sort/filter capabilities.</p>
+    <p>Supported formats: FASTA, FASTQ, VCF, BED, GFF, CSV, TSV. Files under 10 MB use the existing full-parse path with no changes.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Sort &amp; Filter Column Icons</summary>
+  <div class="detail-body">
+    <p>Column headers now show visible indicators: a <strong>sort arrow</strong> (<code>⇅</code>) and a <strong>filter funnel</strong> icon. Click the column name to sort. Click the funnel icon to open the filter dropdown. The sort arrow turns accent-colored when active. The funnel turns green when a filter is applied. Column resize handles show as a visible border on the right edge of each header.</p>
+    <p><strong>Tooltip:</strong> Hover any column header to see: <em>"Click: sort | funnel: filter | Double-click: column details"</em></p>
+  </div>
+</details>
+
 <div style="margin-top:40px;padding-top:16px;border-top:1px solid #1e293b;color:#475569;font-size:0.8rem">
   BioPeek &mdash; 100% client-side. Your data never leaves your browser.
 </div>

@@ -460,10 +460,17 @@
 
     // Check for very low parse rate (might be wrong format)
     if (result.format !== "txt" && result.rows.length > 0) {
-      // Estimate total lines vs parsed records
       var approxLines = (result._rawLineCount || 0);
       if (approxLines > 10 && result.rows.length < approxLines * 0.1) {
-        warnings.push("Only " + result.rows.length + " of ~" + approxLines + " lines parsed. Format may be misdetected.");
+        var hint = "Only " + result.rows.length + " records parsed from ~" + approxLines.toLocaleString() + " lines.";
+        if (result.format === "fasta") {
+          hint += " Each FASTA record spans multiple lines (header + sequence). This is normal for multi-line FASTA.";
+        } else if (result.format === "fastq") {
+          hint += " Each FASTQ record uses 4 lines. " + result.rows.length + " records = " + (result.rows.length * 4) + " lines expected.";
+        } else {
+          hint += " The file may be in a different format than detected (" + result.format + "). Try renaming with the correct extension.";
+        }
+        warnings.push(hint);
       }
     }
 
@@ -916,26 +923,24 @@
   var MAX_PREVIEW_BYTES = 20 * 1024 * 1024; // 20MB threshold for line-based preview
 
   // ── Streaming mode for large files (>10MB) ────────────────────
-  // Builds a byte-offset index without loading full content into memory.
-  // Pages are parsed on demand via File.slice().
+  // Counts records without loading full content, then parses a preview.
+  // "Load All Records" re-reads the entire file for full parsing.
   var STREAM_THRESHOLD = 10 * 1024 * 1024; // 10MB
-  var STREAM_CHUNK = 2 * 1024 * 1024; // 2MB read chunks for indexing
-  var STREAM_PAGE = 500; // records per page in streaming mode
+  var STREAM_CHUNK = 2 * 1024 * 1024; // 2MB read chunks
+  var STREAM_PREVIEW_BYTES = 5 * 1024 * 1024; // Read first 5MB for initial preview
 
-  // Build index by scanning for record boundaries
-  function streamIndex(file, format, onProgress, onDone) {
-    var offsets = []; // each entry: byte offset of record start
+  // Count records by scanning file in chunks (memory-efficient)
+  function streamCount(file, format, onProgress, onDone) {
+    var count = 0;
     var pos = 0;
     var fileSize = file.size;
-    var tail = ""; // leftover from previous chunk boundary
-    var bytePos = 0; // absolute byte position
-    var lineInRecord = 0; // for FASTQ 4-line tracking
-    var headerRow = null; // for tabular formats (VCF/BED/GFF/CSV)
-    var isTabular = (format === "vcf" || format === "bed" || format === "gff" || format === "csv" || format === "tsv");
+    var tail = "";
+    var lineInRecord = 0;
+    var headerRow = null;
 
     function nextChunk() {
       if (pos >= fileSize) {
-        onDone({ offsets: offsets, headerRow: headerRow, format: format });
+        onDone({ totalRecords: count, headerRow: headerRow, format: format });
         return;
       }
       var end = Math.min(pos + STREAM_CHUNK, fileSize);
@@ -943,217 +948,32 @@
       reader.onload = function() {
         var text = tail + reader.result;
         tail = "";
-        // Track byte offset per character (approximate for multi-byte, exact for ASCII bio data)
-        var chunkStartByte = pos - (text.length - reader.result.length); // adjust for tail
-
         var lines = text.split("\n");
-        // Last line may be incomplete — save as tail
         if (text.charAt(text.length - 1) !== "\n" && end < fileSize) {
           tail = lines.pop();
         }
-
         for (var i = 0; i < lines.length; i++) {
           var line = lines[i];
-          if (!line && i === lines.length - 1) continue; // trailing empty
-
           if (format === "fasta") {
-            if (line.charAt(0) === ">") {
-              offsets.push(bytePos);
-            }
+            if (line.charAt(0) === ">") count++;
           } else if (format === "fastq") {
-            if (lineInRecord === 0 && line.charAt(0) === "@") {
-              offsets.push(bytePos);
-            }
+            if (lineInRecord === 0 && line.charAt(0) === "@") count++;
             lineInRecord = (lineInRecord + 1) % 4;
-          } else if (isTabular) {
-            // Skip comment/header lines
-            if (line.charAt(0) === "#" || (offsets.length === 0 && !headerRow && /^[a-zA-Z]/.test(line))) {
+          } else {
+            if (line.charAt(0) === "#" || (!headerRow && count === 0 && /^[a-zA-Z]/.test(line))) {
               if (!headerRow) headerRow = line;
             } else if (line.trim()) {
-              offsets.push(bytePos);
+              count++;
             }
           }
-          bytePos += line.length + 1; // +1 for \n
         }
-
         pos = end;
         onProgress(Math.round(pos / fileSize * 100));
-        setTimeout(nextChunk, 0); // yield to UI
+        setTimeout(nextChunk, 0);
       };
       reader.readAsText(file.slice(pos, end));
     }
     nextChunk();
-  }
-
-  // Read a slice of the file and parse specific records
-  function streamReadPage(file, indexData, pageStart, pageCount, callback) {
-    var offsets = indexData.offsets;
-    var endIdx = Math.min(pageStart + pageCount, offsets.length);
-    if (pageStart >= offsets.length) { callback([]); return; }
-
-    // Determine byte range to read
-    var startByte = offsets[pageStart];
-    var endByte = (endIdx < offsets.length) ? offsets[endIdx] : file.size;
-
-    var reader = new FileReader();
-    reader.onload = function() {
-      var text = reader.result;
-      var format = indexData.format;
-      var rows = [];
-
-      if (format === "fasta") {
-        var records = text.split(/(?=^>)/m);
-        records.forEach(function(rec) {
-          rec = rec.trim();
-          if (!rec || rec.charAt(0) !== ">") return;
-          var nl = rec.indexOf("\n");
-          var header = nl > 0 ? rec.substring(1, nl) : rec.substring(1);
-          var seq = nl > 0 ? rec.substring(nl + 1).replace(/\n/g, "") : "";
-          var id = header.split(/\s/)[0];
-          var gc = 0, total = 0;
-          for (var j = 0; j < seq.length; j++) {
-            var c = seq.charCodeAt(j) | 32;
-            if (c === 97 || c === 116 || c === 99 || c === 103) { total++; if (c === 99 || c === 103) gc++; }
-          }
-          var gcPct = total > 0 ? Math.round(gc / total * 1000) / 10 : 0;
-          rows.push([id, header, seq.length, gcPct, seq]);
-        });
-      } else if (format === "fastq") {
-        var lines = text.split("\n");
-        for (var i = 0; i + 3 < lines.length; i += 4) {
-          if (lines[i].charAt(0) !== "@") continue;
-          var id = lines[i].substring(1).split(/\s/)[0];
-          var seq = lines[i + 1];
-          var qual = lines[i + 3];
-          var qvals = [];
-          for (var q = 0; q < qual.length; q++) qvals.push(qual.charCodeAt(q) - 33);
-          var meanQ = qvals.length ? (qvals.reduce(function(a, b) { return a + b; }, 0) / qvals.length).toFixed(1) : 0;
-          rows.push([id, seq.length, meanQ, seq, qual]);
-        }
-      } else {
-        // Tabular (VCF/BED/GFF/CSV/TSV)
-        var sep = (format === "csv") ? "," : "\t";
-        var lines = text.split("\n");
-        lines.forEach(function(line) {
-          line = line.trim();
-          if (!line || line.charAt(0) === "#") return;
-          rows.push(line.split(sep));
-        });
-      }
-      callback(rows);
-    };
-    reader.readAsText(file.slice(startByte, endByte));
-  }
-
-  // Add a file in streaming mode — only index is built, pages loaded on demand
-  function addStreamingFile(name, size, file, indexData) {
-    var format = indexData.format;
-    var totalRecords = indexData.offsets.length;
-
-    // Build minimal parsed structure compatible with existing rendering
-    var columns, colTypes;
-    if (format === "fasta") {
-      columns = ["id", "description", "length", "gc_pct", "sequence"];
-      colTypes = ["str", "str", "num", "num", "seq"];
-    } else if (format === "fastq") {
-      columns = ["id", "length", "mean_quality", "sequence", "quality"];
-      colTypes = ["str", "num", "num", "seq", "qual"];
-    } else {
-      // Tabular: derive columns from header
-      var sep = (format === "csv") ? "," : "\t";
-      if (indexData.headerRow) {
-        columns = indexData.headerRow.split(sep).map(function(c) { return c.replace(/^#/, "").trim(); });
-      } else {
-        columns = [];
-        for (var ci = 0; ci < 20; ci++) columns.push("col" + (ci + 1));
-      }
-      colTypes = columns.map(function() { return "str"; }); // detect later on first page
-    }
-
-    // Placeholder rows array — will be filled page by page
-    // We pre-fill with nulls so pagination knows total count
-    var rows = new Array(totalRecords);
-
-    var parsed = {
-      format: format,
-      columns: columns,
-      colTypes: colTypes,
-      rows: rows,
-      stats: { "Records": totalRecords, "File size": formatBytes(size), "Mode": "Streaming" },
-      seqType: format === "fasta" ? "dna" : undefined,
-      _streaming: true,
-      _indexData: indexData,
-      _loadedPages: {}, // pageNum → true
-      _summaryCache: null,
-      _colHints: null
-    };
-
-    var entry = {
-      name: name, size: size, text: null, rawPreview: "", parsed: parsed,
-      truncated: false, fileRef: file,
-      _fullText: null, _previewLines: null, _totalLines: totalRecords
-    };
-
-    files.push(entry);
-    dropZone.style.display = "none";
-    workspace.classList.add("active");
-    renderTabs();
-    activeTab = files.length - 1;
-
-    // Load first page immediately
-    loadStreamingPage(entry, 0, function() {
-      // Detect column types from first page data
-      if (format !== "fasta" && format !== "fastq") {
-        detectColTypes(parsed);
-      }
-      renderView();
-      updateFooter(entry);
-    });
-  }
-
-  // Load a specific page of streaming data
-  function loadStreamingPage(entry, pageNum, callback) {
-    var parsed = entry.parsed;
-    if (!parsed._streaming || !entry.fileRef) { if (callback) callback(); return; }
-    if (parsed._loadedPages[pageNum]) { if (callback) callback(); return; }
-
-    var start = pageNum * STREAM_PAGE;
-    streamReadPage(entry.fileRef, parsed._indexData, start, STREAM_PAGE, function(pageRows) {
-      // Fill in the rows array at the right positions
-      for (var i = 0; i < pageRows.length; i++) {
-        parsed.rows[start + i] = pageRows[i];
-      }
-      parsed._loadedPages[pageNum] = true;
-      if (callback) callback();
-    });
-  }
-
-  // Detect column types from loaded data
-  function detectColTypes(parsed) {
-    var sample = parsed.rows.filter(function(r) { return r != null; }).slice(0, 100);
-    if (sample.length === 0) return;
-    parsed.colTypes = parsed.columns.map(function(col, ci) {
-      var nums = 0, total = 0;
-      sample.forEach(function(row) {
-        if (row[ci] != null) {
-          total++;
-          var v = parseFloat(row[ci]);
-          if (!isNaN(v) && String(row[ci]).trim() !== "") nums++;
-        }
-      });
-      if (total > 0 && nums / total > 0.8) return "num";
-      return "str";
-    });
-    // Convert detected numeric columns
-    parsed.rows.forEach(function(row) {
-      if (!row) return;
-      parsed.colTypes.forEach(function(type, ci) {
-        if (type === "num" && row[ci] != null) {
-          var v = parseFloat(row[ci]);
-          if (!isNaN(v)) row[ci] = v;
-        }
-      });
-    });
   }
 
   function previewText(text, maxLines) {
@@ -1213,15 +1033,42 @@
         if (file.size > STREAM_THRESHOLD && !check.gzipped) {
           var fmt = detectFormatFromName(file.name);
           if (fmt && (fmt === "fasta" || fmt === "fastq" || fmt === "vcf" || fmt === "bed" || fmt === "gff" || fmt === "csv" || fmt === "tsv")) {
-            updateLoadingOverlay("Building index...", 10);
-            streamIndex(file, fmt, function(pct) {
-              updateLoadingOverlay("Indexing... " + pct + "%", 10 + Math.round(pct * 0.7));
-            }, function(indexData) {
-              updateLoadingOverlay("Loading first page...", 85);
-              setTimeout(function() {
-                addStreamingFile(file.name, file.size, file, indexData);
-                hideLoadingOverlay();
-              }, 10);
+            // Step 1: Count records (fast scan, no parsing)
+            updateLoadingOverlay("Counting records...", 10);
+            streamCount(file, fmt, function(pct) {
+              updateLoadingOverlay("Scanning... " + pct + "%", 10 + Math.round(pct * 0.5));
+            }, function(countData) {
+              // Step 2: Read preview (first 5MB) and parse it
+              updateLoadingOverlay("Reading preview...", 65);
+              var previewBlob = file.slice(0, STREAM_PREVIEW_BYTES);
+              var previewReader = new FileReader();
+              previewReader.onload = function() {
+                updateLoadingOverlay("Parsing preview...", 80);
+                setTimeout(function() {
+                  var parsed = parseFile(file.name, previewReader.result);
+                  validateParsed(parsed, file.name);
+                  // Mark as streaming with total count
+                  parsed._streaming = true;
+                  parsed._totalRecords = countData.totalRecords;
+                  var rawPreview = previewReader.result.substring(0, 500000);
+                  files.push({
+                    name: file.name, size: file.size, text: null,
+                    rawPreview: rawPreview, parsed: parsed,
+                    truncated: true, fileRef: file,
+                    _fullText: null,
+                    _previewLines: parsed.rows.length,
+                    _totalLines: countData.totalRecords
+                  });
+                  dropZone.style.display = "none";
+                  workspace.classList.add("active");
+                  renderTabs();
+                  activeTab = files.length - 1;
+                  hideLoadingOverlay();
+                  renderView();
+                  updateFooter(files[activeTab]);
+                }, 10);
+              };
+              previewReader.readAsText(previewBlob);
             });
             return;
           }
@@ -1667,11 +1514,10 @@
       sBanner.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:8px 16px;" +
         "background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.3);border-radius:8px;margin:8px 12px;" +
         "font-family:var(--vw-sans);font-size:13px;color:var(--vw-cyan);";
-      var totalRecs = f.parsed._indexData.offsets.length;
-      var loadedPages = Object.keys(f.parsed._loadedPages).length;
-      var totalPages = Math.ceil(totalRecs / STREAM_PAGE);
-      sBanner.innerHTML = '<span>&#9889; Streaming mode: ' + totalRecs.toLocaleString() + ' records indexed, ' +
-        loadedPages + ' of ' + totalPages + ' pages loaded. Sort/filter work on loaded pages only.</span>';
+      var totalRecs = f.parsed._totalRecords || 0;
+      var loadedRecs = f.parsed.rows.length;
+      sBanner.innerHTML = '<span>&#9889; Showing ' + loadedRecs.toLocaleString() + ' of ' + totalRecs.toLocaleString() +
+        ' total records (preview mode). Load all records to enable full sort/filter.</span>';
       var loadAllBtn = document.createElement("button");
       loadAllBtn.className = "vw-tbtn";
       loadAllBtn.style.cssText = "margin-left:12px;padding:4px 14px;border-radius:6px;border:1px solid var(--vw-cyan);" +
@@ -1689,6 +1535,7 @@
             var fullParsed = parseFile(entry.name, reader.result);
             validateParsed(fullParsed, entry.name);
             entry.parsed = fullParsed;
+            entry.truncated = false;
             entry.text = reader.result.length <= 10 * 1024 * 1024 ? reader.result : null;
             entry.rawPreview = reader.result.substring(0, 500000);
             hideLoadingOverlay();
@@ -2102,24 +1949,6 @@
   }
 
   function renderTableView(f) {
-    // Streaming mode: ensure current page data is loaded before rendering
-    if (f.parsed._streaming && f.fileRef) {
-      _cachedFile = null; _cachedAll = null; _filterCache = null; // invalidate caches for streaming
-      var streamPageNum = Math.floor((currentPage * pageSize) / STREAM_PAGE);
-      var entry = files[activeTab];
-      if (!f.parsed._loadedPages[streamPageNum]) {
-        var loadingDiv = document.createElement("div");
-        loadingDiv.style.cssText = "display:flex;align-items:center;justify-content:center;gap:8px;padding:40px;color:var(--vw-text-muted);font-family:var(--vw-sans);";
-        loadingDiv.innerHTML = '<div style="width:16px;height:16px;border:2px solid var(--vw-border);border-top-color:var(--vw-accent);border-radius:50%;animation:spin 0.8s linear infinite"></div> Loading page...';
-        contentEl.appendChild(loadingDiv);
-        loadStreamingPage(entry, streamPageNum, function() {
-          loadingDiv.remove();
-          renderTableView(f); // re-render with data loaded
-        });
-        return;
-      }
-    }
-
     var wrap = document.createElement("div");
     wrap.className = "vw-table-wrap";
 
@@ -2652,10 +2481,20 @@
       pagBar.className = "vw-pagination";
       pagBar.style.cssText = "display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px;font-family:var(--vw-sans);font-size:12px;color:var(--vw-text-dim);border-top:1px solid var(--vw-border);";
 
+      var btnStyle = "background:var(--vw-tab-bg);border:1px solid var(--vw-border);border-radius:4px;padding:3px 10px;color:var(--vw-text);cursor:pointer;font-size:11px;";
+
+      var firstBtn = document.createElement("button");
+      firstBtn.textContent = "⏮ First";
+      firstBtn.disabled = currentPage === 0;
+      firstBtn.style.cssText = btnStyle;
+      if (firstBtn.disabled) firstBtn.style.opacity = "0.4";
+      firstBtn.addEventListener("click", function() { currentPage = 0; renderView(); });
+      pagBar.appendChild(firstBtn);
+
       var prevBtn = document.createElement("button");
       prevBtn.textContent = "◀ Prev";
       prevBtn.disabled = currentPage === 0;
-      prevBtn.style.cssText = "background:var(--vw-tab-bg);border:1px solid var(--vw-border);border-radius:4px;padding:3px 10px;color:var(--vw-text);cursor:pointer;font-size:11px;";
+      prevBtn.style.cssText = btnStyle;
       if (prevBtn.disabled) prevBtn.style.opacity = "0.4";
       prevBtn.addEventListener("click", function() { currentPage--; renderView(); });
       pagBar.appendChild(prevBtn);
@@ -2667,10 +2506,18 @@
       var nextBtn = document.createElement("button");
       nextBtn.textContent = "Next ▶";
       nextBtn.disabled = currentPage >= totalPages - 1;
-      nextBtn.style.cssText = "background:var(--vw-tab-bg);border:1px solid var(--vw-border);border-radius:4px;padding:3px 10px;color:var(--vw-text);cursor:pointer;font-size:11px;";
+      nextBtn.style.cssText = btnStyle;
       if (nextBtn.disabled) nextBtn.style.opacity = "0.4";
       nextBtn.addEventListener("click", function() { currentPage++; renderView(); });
       pagBar.appendChild(nextBtn);
+
+      var lastBtn = document.createElement("button");
+      lastBtn.textContent = "Last ⏭";
+      lastBtn.disabled = currentPage >= totalPages - 1;
+      lastBtn.style.cssText = btnStyle;
+      if (lastBtn.disabled) lastBtn.style.opacity = "0.4";
+      lastBtn.addEventListener("click", function() { currentPage = totalPages - 1; renderView(); });
+      pagBar.appendChild(lastBtn);
 
       // Page size selector
       var sizeLabel = document.createElement("span");
@@ -4689,10 +4536,7 @@
   function getAllWrapped(f) {
     if (_cachedFile === f && _cachedAll) return _cachedAll;
     _cachedFile = f;
-    _cachedAll = [];
-    for (var i = 0; i < f.parsed.rows.length; i++) {
-      if (f.parsed.rows[i] != null) _cachedAll.push({ row: f.parsed.rows[i], idx: i });
-    }
+    _cachedAll = f.parsed.rows.map(function(r, i) { return { row: r, idx: i }; });
     return _cachedAll;
   }
 
