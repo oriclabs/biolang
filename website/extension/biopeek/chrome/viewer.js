@@ -1385,6 +1385,7 @@
     searchTerm = "";
     colFilters = {};
     heatmapCols = {}; // reset per-tab — auto-recomputed in renderTableView
+    _cachedFile = null; _cachedAll = null; _filterCache = null;
     motifTerm = "";
     currentPage = 0;
     groupByCol = -1;
