@@ -1050,6 +1050,14 @@
                   // Mark as streaming with total count
                   parsed._streaming = true;
                   parsed._totalRecords = countData.totalRecords;
+                  // Update stats to show total vs loaded
+                  if (parsed.stats) {
+                    var seqKey = Object.keys(parsed.stats).find(function(k) { return /sequences|records/i.test(k); });
+                    if (seqKey) {
+                      parsed.stats[seqKey] = parsed.rows.length.toLocaleString() + " of " + countData.totalRecords.toLocaleString() + " total";
+                    }
+                    parsed.stats["File size"] = formatBytes(file.size);
+                  }
                   var rawPreview = previewReader.result.substring(0, 500000);
                   files.push({
                     name: file.name, size: file.size, text: null,
@@ -2173,7 +2181,8 @@
     if (ff && ff.truncated) {
       sNumTd.textContent = "\u03a3~";
       sNumTd.style.cssText = "text-align:right;width:50px;font-weight:600;color:var(--vw-amber);";
-      sNumTd.title = "Stats are approximate — file truncated to first 50 MB of " + formatBytes(ff.size);
+      var approxBytes = ff.parsed._streaming ? STREAM_PREVIEW_BYTES : MAX_PREVIEW;
+      sNumTd.title = approxBytes < ff.size ? "Stats are approximate — showing first " + formatBytes(approxBytes) + " of " + formatBytes(ff.size) : "Stats for loaded records";
     } else {
       sNumTd.textContent = "\u03a3";
       sNumTd.style.cssText = "text-align:right;width:50px;font-weight:600;color:var(--vw-accent);";
@@ -3340,8 +3349,13 @@
       var estTime = Math.max(1, Math.round(f.size / (1024 * 1024) / 100));
 
       var warnInner = document.createElement("div");
-      warnInner.innerHTML = '<div class="vw-stat-label" style="color:var(--vw-amber)">Partial Load (first 50 MB of ' + formatBytes(f.size) + ')</div>' +
-        '<div style="font-size:13px;color:var(--vw-text-dim);margin:6px 0">' + loadedRows + ' rows loaded — stats above reflect only the loaded portion.</div>';
+      var loadedBytes = f.parsed._streaming ? STREAM_PREVIEW_BYTES : MAX_PREVIEW;
+      var isReallyPartial = loadedBytes < f.size;
+      warnInner.innerHTML = '<div class="vw-stat-label" style="color:var(--vw-amber)">' +
+        (isReallyPartial ? 'Partial Load (first ' + formatBytes(loadedBytes) + ' of ' + formatBytes(f.size) + ')' : 'Loaded') +
+        '</div>' +
+        '<div style="font-size:13px;color:var(--vw-text-dim);margin:6px 0">' + loadedRows + ' records loaded' +
+        (isReallyPartial ? ' — stats above reflect only the loaded portion.' : '.') + '</div>';
 
       // Full-file stats button (only if we have the File reference)
       if (f.fileRef) {
@@ -4623,7 +4637,11 @@
       groupLabel = " · " + groups.size + " groups";
     }
     var hlLabel = highlightRule ? " · highlight: " + f.parsed.columns[highlightRule.col] + " " + highlightRule.op + " " + highlightRule.value : "";
-    var truncLabel = (ff && ff.truncated) ? " · PARTIAL (first 50 MB of " + formatBytes(ff.size) + ")" : "";
+    var truncLabel = "";
+    if (ff && ff.truncated) {
+      var loadedSize = ff.parsed._streaming ? STREAM_PREVIEW_BYTES : MAX_PREVIEW;
+      truncLabel = loadedSize < ff.size ? " · PREVIEW (" + formatBytes(loadedSize) + " of " + formatBytes(ff.size) + ")" : "";
+    }
     footerRows.textContent = total.toLocaleString() + " rows" + pageLabel + groupLabel + hlLabel + truncLabel;
     if (ff && ff.truncated) footerRows.style.color = "var(--vw-amber)";
     else footerRows.style.color = "";
