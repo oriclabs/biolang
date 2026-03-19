@@ -500,6 +500,23 @@ data |> filter(|r| r.gc > 0.5)</code></pre>
       <li><strong>GZ files via extension popup</strong> &mdash; Fixed: opening <code>.gz</code> files from the extension popup or context menu no longer shows "Binary file" error. Gzipped files are now properly preserved as binary through session storage and decompressed in the viewer.</li>
       <li><strong>Overlay auto-cleanup</strong> &mdash; Warnings, error popups, GC% offers, and preview banners are now automatically dismissed when switching tabs, closing tabs, or loading new files. No more stale notifications from a previously viewed file.</li>
       <li><strong>Large GZ handling</strong> &mdash; Compressed files over 7 MB open the viewer directly instead of attempting to pass through session storage (which has a 10 MB quota). Drop the file onto the viewer for seamless decompression.</li>
+      <li><strong>Responsive Display Dropdown</strong> &mdash; Toolbar toggle buttons (Color, Heatmap, Detail, Bookmarks, Pin Columns, Transpose, Highlight, Split) collapsed into a &ldquo;Display&rdquo; dropdown on narrow screens. Auto-expands to inline buttons on wide screens (&gt;1200px). Active toggles show amber border and checkmarks.</li>
+      <li><strong>Heatmap Toggle</strong> &mdash; Global heatmap on/off from the Display menu. Auto-detects numeric columns (including string values that parse as numbers). Active toggles show amber highlight. Resets per tab.</li>
+      <li><strong>Sticky Summary Row</strong> &mdash; The summary row (mean/unique counts) below column headers now stays fixed while scrolling, right below the sticky header.</li>
+      <li><strong>Screenshot Improvements</strong> &mdash; Screenshots now include heatmap colors on numeric cells, render quality as heatmap bars (matching table view), and respect the color toggle on/off state.</li>
+      <li><strong>Version Update Banner</strong> &mdash; Returning users see a one-time dismissable banner after updates showing what changed, with a link to help docs.</li>
+    </ul>
+    <p style="color:#c4b5fd;font-weight:600;margin-top:14px;">Bug Fixes</p>
+    <ul>
+      <li>Stack overflow on large files (<code>Math.min/max.apply</code> replaced with loop-based <code>safeMin</code>/<code>safeMax</code>)</li>
+      <li>Heatmap not applying on tab switch or to CSV string columns</li>
+      <li>HTML export now includes all rows (capped at 10K for HTML, unlimited for CSV)</li>
+      <li>Screenshot quality column showed raw ASCII instead of heatmap bars</li>
+      <li>Race condition guards on <code>FileReader</code> callbacks</li>
+      <li>Light theme nucleotide colors too faint (darkened for white background)</li>
+      <li>Highlight dialog now shows active rule and pre-populates values</li>
+      <li>Toolbar chips not updating after Load All Records</li>
+      <li>Filter cache key didn&rsquo;t include Set values (stale multi-select)</li>
     </ul>
   </div>
 </details>

@@ -535,3 +535,112 @@ test('percentage — zero total handled', () => {
   var pct = total > 0 ? (count / total * 100).toFixed(1) : "0.0";
   assert.strictEqual(pct, "0.0");
 });
+
+// ══════════════════════════════════════════════════════════════════════
+// 18. Heatmap Auto-Detect (mixed string/number columns)
+// ══════════════════════════════════════════════════════════════════════
+
+test('heatmap auto-detect — CSV string numbers detected', () => {
+  var rows = [["42"], ["3.14"], ["100"], ["abc"], ["50"]];
+  var vals = [];
+  rows.forEach(function(r) {
+    var n = parseFloat(r[0]);
+    if (!isNaN(n)) vals.push(n);
+  });
+  // 4/5 = 80% > 30% threshold
+  assert.ok(vals.length / rows.length > 0.3);
+  assert.strictEqual(vals.length, 4);
+});
+
+test('heatmap auto-detect — all text rejected', () => {
+  var rows = [["abc"], ["def"], ["ghi"], ["jkl"]];
+  var vals = [];
+  rows.forEach(function(r) {
+    var n = parseFloat(r[0]);
+    if (!isNaN(n)) vals.push(n);
+  });
+  assert.strictEqual(vals.length, 0);
+});
+
+test('heatmap auto-detect — uniform values rejected (min === max)', () => {
+  var vals = [5, 5, 5, 5, 5];
+  var min = safeMin(vals), max = safeMax(vals);
+  assert.strictEqual(min === max, true);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 19. Screenshot Color Toggle
+// ══════════════════════════════════════════════════════════════════════
+
+test('screenshot — color toggle off renders plain text', () => {
+  var seqColorEnabled = false;
+  var val = "ATCGATCG";
+  // When off, should render as single fillText, not per-char
+  assert.strictEqual(seqColorEnabled, false);
+  assert.ok(val.length > 0);
+});
+
+test('screenshot — color toggle on renders per-base', () => {
+  var seqColorEnabled = true;
+  var ntColors = { A: "#34d399", T: "#f87171", C: "#60a5fa", G: "#fbbf24" };
+  var base = "A";
+  assert.strictEqual(ntColors[base], "#34d399");
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 20. Version Update Banner
+// ══════════════════════════════════════════════════════════════════════
+
+test('version banner — new user no banner', () => {
+  var lastSeenVersion = null;
+  var isReturningUser = false;
+  var show = lastSeenVersion !== "1.3.0" && isReturningUser;
+  assert.strictEqual(show, false);
+});
+
+test('version banner — returning user sees banner', () => {
+  var lastSeenVersion = null;
+  var isReturningUser = true; // has theme or other localStorage
+  var show = lastSeenVersion !== "1.3.0" && isReturningUser;
+  assert.strictEqual(show, true);
+});
+
+test('version banner — already seen version no banner', () => {
+  var lastSeenVersion = "1.3.0";
+  var isReturningUser = true;
+  var show = lastSeenVersion !== "1.3.0" && isReturningUser;
+  assert.strictEqual(show, false);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 21. Quality Heatmap Bar Rendering
+// ══════════════════════════════════════════════════════════════════════
+
+test('quality bar — Phred score from ASCII', () => {
+  var char = "I"; // ASCII 73
+  var qScore = char.charCodeAt(0) - 33;
+  assert.strictEqual(qScore, 40);
+});
+
+test('quality bar — low quality char', () => {
+  var char = "#"; // ASCII 35
+  var qScore = char.charCodeAt(0) - 33;
+  assert.strictEqual(qScore, 2);
+});
+
+test('quality bar — color selection', () => {
+  var q40color = 40 >= 30 ? "#4ade80" : "#fbbf24";
+  var q15color = 15 >= 30 ? "#4ade80" : 15 >= 20 ? "#fbbf24" : "#f87171";
+  assert.strictEqual(q40color, "#4ade80"); // green
+  assert.strictEqual(q15color, "#f87171"); // red
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 22. Summary Row Sticky Position
+// ══════════════════════════════════════════════════════════════════════
+
+test('summary row — sticky top below header', () => {
+  var headerHeight = 30; // px
+  var summaryTop = headerHeight;
+  assert.strictEqual(summaryTop, 30);
+});

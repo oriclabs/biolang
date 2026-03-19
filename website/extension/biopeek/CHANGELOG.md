@@ -12,15 +12,37 @@
 - **GC% sliding window plot** — FASTA stats view shows a line chart of GC% across a 100bp sliding window for the first sequence. Y-axis 0-100%, 50% reference line, ~200 sample points.
 - **K-mer frequency table** — FASTA stats view shows top 20 4-mers with count, frequency %, and bar chart. Sampled from first 5 sequences.
 
+- **Responsive Display dropdown** — toolbar toggle buttons (Color, Heatmap, Detail, Bookmarks, Pin, Transpose, Highlight, Split) collapse into a "Display" dropdown on narrow screens. Auto-expands to inline buttons on wide screens (>1200px). Active toggles show amber border and checkmarks.
+- **Heatmap toggle** — global on/off from Display menu. Auto-detects numeric columns including CSV string values. Amber highlight when active. Resets per tab.
+- **Streaming mode** — files >10MB: counts records via chunk scan, parses first 5MB as preview. "Load All Records" for full parse. Memory-efficient.
+- **Sticky summary row** — mean/unique counts row sticks below column headers while scrolling.
+- **First/Last pagination** — ⏮ First and Last ⏭ buttons added to pagination bar.
+- **Version update banner** — returning users see one-time dismissable banner after updates.
+
 ### Fixes
-- **GZ files via extension popup** — opening .gz files from the popup or context menu no longer shows "Binary file" error. Binary data preserved through base64 session storage. Files >7MB open viewer directly for drag-and-drop.
-- **Sequence overflow in detail panel** — long sequences no longer break out of the detail overlay. Sequences scroll inside a 200px max-height container with proper word-break.
-- **Sticky table headers** — column headers now reliably stay fixed when scrolling through data rows (z-index increased to 4).
-- **Overlay auto-cleanup** — warnings, error popups, GC% offers, and preview banners automatically dismissed when switching tabs, closing tabs, or loading new files.
+- **Stack overflow on large files** — Math.min/max.apply replaced with loop-based safeMin/safeMax (crashes at >30K elements)
+- **Heatmap not applying on tab switch** — cache invalidation + parseFloat on string columns
+- **HTML export page-only** — now exports all filtered rows (capped at 10K for HTML, unlimited for CSV)
+- **Screenshot quality bars** — renders heatmap bars matching table view, not raw ASCII chars
+- **Screenshot color toggle** — respects on/off state for sequence coloring
+- **Screenshot heatmap** — includes heatmap gradient on numeric cells
+- **Race condition guards** — FileReader callbacks check activeTab hasn't changed
+- **Light theme nucleotide colors** — darkened for readability on white background
+- **Highlight dialog** — shows active rule, pre-populates column/operator/value
+- **Toolbar chips after Load All Records** — updates record count and drops streaming label
+- **Filter cache key** — includes Set values to prevent stale multi-select results
+- **GC% offer** — suppressed when gc_pct column already exists from parser
+- **Partial load message** — shows actual bytes loaded, not hardcoded "50 MB"
+- **GZ files via extension popup** — binary data preserved through session storage
+- **Sequence overflow in detail panel** — scrolls inside 200px container
+- **Overlay auto-cleanup** — dismissed on tab switch/close/file load
+- **Sort/filter icons** — SVG funnel + visible resize handles on column headers
+- **innerHTML XSS prevention** — replaced innerHTML += with createElement/appendChild
 
 ### Improvements
 - **Early development banner removed** — replaced with clean feedback link
-- Help file updated with protein support, gz fixes, changelog
+- 91 automated tests (was 0)
+- Help file updated with all v1.3.0 features and bug fixes
 
 ## v1.2.0 (published)
 
