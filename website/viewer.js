@@ -6669,23 +6669,48 @@
   // Sequence color toggle
   var colorToggleBtn = document.getElementById("vw-color-toggle");
   if (colorToggleBtn) {
-    if (seqColorEnabled) colorToggleBtn.classList.add("vw-tbtn-on");
     colorToggleBtn.addEventListener("click", function() {
       seqColorEnabled = !seqColorEnabled;
       localStorage.setItem("vw-seq-color", seqColorEnabled ? "1" : "0");
-      colorToggleBtn.classList.toggle("vw-tbtn-on", seqColorEnabled);
+      updateViewChecks();
       renderView();
     });
   }
 
+  // View dropdown menu
+  var viewMenuBtn = document.getElementById("vw-view-menu-btn");
+  var viewMenu = document.getElementById("vw-view-menu");
+  if (viewMenuBtn && viewMenu) {
+    viewMenuBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      viewMenu.style.display = viewMenu.style.display === "none" ? "" : "none";
+    });
+    document.addEventListener("click", function() { if (viewMenu) viewMenu.style.display = "none"; });
+    viewMenu.addEventListener("click", function(e) { e.stopPropagation(); });
+  }
+
+  function updateViewChecks() {
+    var checks = {
+      "vw-vi-color": seqColorEnabled,
+      "vw-vi-heatmap": heatmapGlobal,
+      "vw-vi-detail": rowDetailEnabled,
+      "vw-vi-bookmark": bookmarkMode,
+      "vw-vi-pin": pinColumnsMode
+    };
+    for (var id in checks) {
+      var el = document.getElementById(id);
+      if (el) el.classList.toggle("on", !!checks[id]);
+    }
+  }
+  updateViewChecks();
+
   // Heatmap toggle
   var heatmapToggleBtn = document.getElementById("vw-heatmap-toggle");
   if (heatmapToggleBtn) {
-    if (heatmapGlobal) heatmapToggleBtn.classList.add("vw-tbtn-on");
     heatmapToggleBtn.addEventListener("click", function() {
       heatmapGlobal = !heatmapGlobal;
       localStorage.setItem("vw-heatmap", heatmapGlobal ? "1" : "0");
-      heatmapToggleBtn.classList.toggle("vw-tbtn-on", heatmapGlobal);
+      updateViewChecks();
       renderView();
     });
   }

@@ -127,6 +127,22 @@
     .vw-table thead th:first-child { z-index: 3; }
 
     .vw-tbtn-on { background: rgba(251, 191, 36, 0.15); color: var(--vw-amber); border-color: var(--vw-amber); }
+    /* View dropdown menu items */
+    .vw-view-item { display:flex;align-items:center;gap:8px;width:100%;padding:6px 12px;border:none;background:none;color:var(--vw-text-dim);cursor:pointer;font-size:12px;font-family:var(--vw-sans);text-align:left; }
+    .vw-view-item:hover { background:rgba(124,58,237,0.1);color:var(--vw-text); }
+    .vw-vi-icon { width:18px;text-align:center;flex-shrink:0; }
+    .vw-vi-check { margin-left:auto;color:var(--vw-green);font-size:11px;opacity:0; }
+    .vw-vi-check.on { opacity:1; }
+    /* Wide screens: hide dropdown, show individual buttons */
+    @media (min-width: 1200px) {
+      #vw-view-menu-btn { display:none !important; }
+      #vw-view-menu { display:flex !important;position:static !important;flex-direction:row;background:none !important;border:none !important;box-shadow:none !important;padding:0 !important;gap:4px;min-width:auto !important;margin:0 !important; }
+      .vw-view-item { width:auto;padding:4px 10px;border:1px solid var(--vw-border);border-radius:6px;background:var(--vw-panel);gap:4px;font-size:11px; }
+      .vw-view-item:hover { border-color:var(--vw-accent); }
+      .vw-vi-check { display:none; }
+      .vw-view-item .vw-vi-icon { width:auto; }
+      #vw-view-menu > div { display:none; } /* hide separator */
+    }
     .nt-A { color: #34d399; } .nt-T { color: #f87171; } .nt-C { color: #60a5fa; } .nt-G { color: #fbbf24; } .nt-N { color: #94a3b8; }
     .aa-hyd { color: #fbbf24; } .aa-pol { color: #34d399; } .aa-pos { color: #60a5fa; } .aa-neg { color: #f87171; } .aa-aro { color: #c084fc; } .aa-spc { color: #22d3ee; } .aa-unk { color: #94a3b8; } .aa-stop { color: #f43f5e; font-weight: 700; }
     .q-hi { color: #34d399; } .q-md { color: #fbbf24; } .q-lo { color: #f87171; } .q-bad { color: #ef4444; font-weight: 700; }
@@ -379,21 +395,29 @@
         <input class="vw-search" id="vw-search" type="text" placeholder="Search / filter...">
         <input class="vw-motif-input" id="vw-motif-input" type="text" placeholder="Motif (TATAWR, CANNTG, or regex)..." title="IUPAC codes supported: R=AG Y=CT S=GC W=AT K=GT M=AC B=CGT D=AGT H=ACT V=ACG N=ACGT" style="display:none">
         <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
-          <button class="vw-tbtn vw-bookmark-btn" id="vw-bookmark-toggle" title="Toggle bookmark column">&#9734; Bookmarks</button>
-          <button class="vw-tbtn" id="vw-pin-toggle" title="Pin first 2 columns">&#128204; Pin Cols</button>
-          <button class="vw-tbtn vw-detail-toggle" id="vw-detail-toggle" title="Toggle row detail panel">&#8597; Detail</button>
-          <button class="vw-tbtn vw-theme-btn" id="vw-theme-toggle" title="Toggle light/dark theme">&#9788; Theme</button>
-          <button class="vw-tbtn" id="vw-color-toggle" title="Toggle sequence coloring">&#127912; Color</button>
-          <button class="vw-tbtn" id="vw-heatmap-toggle" title="Toggle column heatmap bars">&#127777; Heatmap</button>
-          <button class="vw-tbtn" id="vw-ncbi-toolbar-btn" title="Fetch sequence from NCBI by accession">&#127981; NCBI</button>
-          <button class="vw-tbtn vw-browser-btn" id="vw-browser-btn" style="display:none">&#127758; Browser</button>
-          <button class="vw-tbtn" id="vw-split-toggle" title="Split view: table + stats">&#9776; Split</button>
+          <!-- View dropdown (toggles) -->
+          <div style="position:relative">
+            <button class="vw-tbtn" id="vw-view-menu-btn" title="Display options">Display &#9662;</button>
+            <div id="vw-view-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--vw-panel);border:1px solid var(--vw-border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;min-width:180px;padding:4px 0;font-family:var(--vw-sans);font-size:12px">
+              <button class="vw-view-item" id="vw-color-toggle" title="Toggle sequence coloring"><span class="vw-vi-icon">&#127912;</span> Color <span class="vw-vi-check" id="vw-vi-color">&#10003;</span></button>
+              <button class="vw-view-item" id="vw-heatmap-toggle" title="Toggle column heatmap"><span class="vw-vi-icon">&#127777;</span> Heatmap <span class="vw-vi-check" id="vw-vi-heatmap">&#10003;</span></button>
+              <button class="vw-view-item vw-detail-toggle" id="vw-detail-toggle" title="Toggle row detail panel"><span class="vw-vi-icon">&#8597;</span> Detail Panel <span class="vw-vi-check" id="vw-vi-detail"></span></button>
+              <button class="vw-view-item vw-bookmark-btn" id="vw-bookmark-toggle" title="Toggle bookmark column"><span class="vw-vi-icon">&#9734;</span> Bookmarks <span class="vw-vi-check" id="vw-vi-bookmark"></span></button>
+              <button class="vw-view-item" id="vw-pin-toggle" title="Pin first columns"><span class="vw-vi-icon">&#128204;</span> Pin Columns <span class="vw-vi-check" id="vw-vi-pin"></span></button>
+              <div style="border-top:1px solid var(--vw-border);margin:4px 0"></div>
+              <button class="vw-view-item" id="vw-transpose-btn" title="Transpose view"><span class="vw-vi-icon">&#8633;</span> Transpose</button>
+              <button class="vw-view-item" id="vw-highlight-btn" title="Conditional highlighting"><span class="vw-vi-icon">&#9733;</span> Highlight</button>
+              <button class="vw-view-item" id="vw-split-toggle" title="Split view"><span class="vw-vi-icon">&#9776;</span> Split View</button>
+            </div>
+          </div>
+          <!-- Primary actions (always visible) -->
+          <button class="vw-tbtn vw-theme-btn" id="vw-theme-toggle" title="Toggle light/dark theme">&#9788;</button>
+          <button class="vw-tbtn" id="vw-ncbi-toolbar-btn" title="Fetch from NCBI">&#127981; NCBI</button>
+          <button class="vw-tbtn vw-browser-btn" id="vw-browser-btn" style="display:none">&#127758;</button>
           <button class="vw-tbtn" id="vw-diff-btn" style="display:none" title="Compare two files">&#8800; Diff</button>
-          <button class="vw-tbtn" id="vw-merge-btn" style="display:none" title="Merge same-format tabs">&#8853; Merge</button>
-          <button class="vw-tbtn" id="vw-transpose-btn" title="Transpose view (Ctrl+T)">&#8633; Transpose</button>
-          <button class="vw-tbtn" id="vw-highlight-btn" title="Conditional row highlighting">&#9733; Highlight</button>
-          <button class="vw-tbtn" id="vw-screenshot-btn" title="Screenshot current view">&#128247; Screenshot</button>
-          <button class="vw-tbtn" id="vw-share-btn" title="Generate shareable link">&#128279; Share</button>
+          <button class="vw-tbtn" id="vw-merge-btn" style="display:none" title="Merge tabs">&#8853; Merge</button>
+          <button class="vw-tbtn" id="vw-screenshot-btn" title="Screenshot">&#128247;</button>
+          <button class="vw-tbtn" id="vw-share-btn" title="Share link">&#128279;</button>
           <button class="vw-tbtn vw-export-btn" id="vw-export-btn">Export &#9662;</button>
         </div>
       </div>
