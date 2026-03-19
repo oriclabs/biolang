@@ -1973,27 +1973,30 @@
   }
 
   function renderTableView(f) {
-    // Auto-compute heatmap for numeric columns when global toggle is on
+    // Auto-compute heatmap for all columns with numeric values
     if (heatmapGlobal && Object.keys(heatmapCols).length === 0 && f.parsed.rows.length > 0) {
-      f.parsed.colTypes.forEach(function(type, ci) {
-        var vals = [];
-        var count = Math.min(f.parsed.rows.length, 5000);
-        for (var ri = 0; ri < count; ri++) {
-          var row = f.parsed.rows[ri];
-          if (!row) continue;
-          var v = row[ci];
-          if (typeof v === "number" && !isNaN(v)) { vals.push(v); continue; }
-          // Try parsing string values as numbers
-          if (type === "str" && v != null) {
-            var n = parseFloat(v);
-            if (!isNaN(n) && String(v).trim() !== "") vals.push(n);
+      var sampleCount = Math.min(f.parsed.rows.length, 5000);
+      for (var hci = 0; hci < f.parsed.columns.length; hci++) {
+        // Skip sequence/quality columns
+        var ct = f.parsed.colTypes[hci];
+        if (ct === "seq" || ct === "pseq" || ct === "qual") continue;
+        var hvals = [];
+        for (var hri = 0; hri < sampleCount; hri++) {
+          var hrow = f.parsed.rows[hri];
+          if (!hrow) continue;
+          var hv = hrow[hci];
+          if (typeof hv === "number" && !isNaN(hv)) { hvals.push(hv); continue; }
+          if (hv != null && hv !== "") {
+            var hn = parseFloat(hv);
+            if (!isNaN(hn)) hvals.push(hn);
           }
         }
-        // Only enable if >50% of sampled values are numeric
-        if (vals.length > count * 0.5 && vals.length > 1) {
-          heatmapCols[ci] = { min: safeMin(vals), max: safeMax(vals), enabled: true };
+        // Enable if >30% of sampled values are numeric and min != max
+        if (hvals.length > sampleCount * 0.3 && hvals.length > 1) {
+          var hmin = safeMin(hvals), hmax = safeMax(hvals);
+          if (hmin !== hmax) heatmapCols[hci] = { min: hmin, max: hmax, enabled: true };
         }
-      });
+      }
     }
 
     var wrap = document.createElement("div");
@@ -6776,25 +6779,8 @@
     heatmapToggleBtn.addEventListener("click", function() {
       heatmapGlobal = !heatmapGlobal;
       localStorage.setItem("vw-heatmap", heatmapGlobal ? "1" : "0");
-      // Auto-enable heatmap on all numeric columns when turning on
-      if (heatmapGlobal) {
-        var f = files[activeTab];
-        if (f) {
-          f.parsed.colTypes.forEach(function(type, ci) {
-            if (type === "num" && !heatmapCols[ci]) {
-              var vals = [];
-              var count = Math.min(f.parsed.rows.length, 10000);
-              for (var ri = 0; ri < count; ri++) {
-                var v = f.parsed.rows[ri][ci];
-                if (typeof v === "number" && !isNaN(v)) vals.push(v);
-              }
-              if (vals.length) heatmapCols[ci] = { min: safeMin(vals), max: safeMax(vals), enabled: true };
-            }
-          });
-        }
-      } else {
-        heatmapCols = {};
-      }
+      // Always clear — renderTableView auto-computes when heatmapGlobal is on
+      heatmapCols = {};
       updateViewChecks();
       renderView();
     });
