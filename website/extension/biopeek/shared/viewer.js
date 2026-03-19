@@ -6365,6 +6365,31 @@
     deferredPrompt = null;
   });
 
+  // ── Version update banner ─────────────────────────────────────
+  var CURRENT_VERSION = "1.3.0";
+  var lastSeenVersion = localStorage.getItem("vw-last-version");
+  var isReturningUser = localStorage.getItem("vw-install-dismissed") || localStorage.getItem("theme") || localStorage.getItem("vw-row-detail");
+  if (lastSeenVersion !== CURRENT_VERSION && isReturningUser) {
+    var updateBanner = document.createElement("div");
+    updateBanner.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:8px 16px;" +
+      "background:linear-gradient(90deg,rgba(124,58,237,0.1),rgba(34,211,238,0.08));" +
+      "border-bottom:1px solid rgba(124,58,237,0.25);font-family:var(--vw-sans);font-size:12px;color:var(--vw-accent);flex-shrink:0;";
+    updateBanner.innerHTML = '<span>&#9889; Updated to v' + CURRENT_VERSION + ': NCBI fetch, IUPAC motifs, streaming mode, heatmap toggle, 7 bug fixes. ' +
+      '<a href="https://lang.bio/docs/tools/viewer-help.html" target="_blank" style="color:var(--vw-cyan);text-decoration:underline">Details</a></span>';
+    var dismissBtn = document.createElement("button");
+    dismissBtn.textContent = "\u00D7";
+    dismissBtn.style.cssText = "background:none;border:none;color:var(--vw-text-muted);cursor:pointer;font-size:16px;padding:0 4px;margin-left:12px;";
+    dismissBtn.addEventListener("click", function() {
+      updateBanner.remove();
+      localStorage.setItem("vw-last-version", CURRENT_VERSION);
+    });
+    updateBanner.appendChild(dismissBtn);
+    // Insert at top of workspace
+    var ws = document.getElementById("vw-workspace");
+    if (ws) ws.insertBefore(updateBanner, ws.firstChild);
+  }
+  localStorage.setItem("vw-last-version", CURRENT_VERSION);
+
   // ── Experimental banner dismiss ────────────────────────────────
   (function() {
     var expBanner = document.getElementById("vw-experimental-banner");
