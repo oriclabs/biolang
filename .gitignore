@@ -72,6 +72,7 @@ Thumbs.db
 
 # Unfinished extensions (local only)
 /website/extension/biotally/
+/website/extension/statpeek/
 
 # Extension store listings (local only, not shipped)
 /website/extension/*/STORE_LISTING.md
