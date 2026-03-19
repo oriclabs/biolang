@@ -6780,18 +6780,17 @@
 
   // Pin columns toggle
   var pinToggleBtn = document.getElementById("vw-pin-toggle");
-  pinToggleBtn.addEventListener("click", function() {
+  if (pinToggleBtn) pinToggleBtn.addEventListener("click", function() {
     pinColumnsMode = !pinColumnsMode;
-    pinToggleBtn.classList.toggle("active", pinColumnsMode);
+    updateViewChecks();
     if (currentView === "table") renderView();
   });
 
   // Bookmark toggle
   var bmToggleBtn = document.getElementById("vw-bookmark-toggle");
-  bmToggleBtn.addEventListener("click", function() {
+  if (bmToggleBtn) bmToggleBtn.addEventListener("click", function() {
     bookmarkMode = !bookmarkMode;
-    bmToggleBtn.classList.toggle("active", bookmarkMode);
-    bmToggleBtn.innerHTML = bookmarkMode ? "&#9733; Bookmarks" : "&#9734; Bookmarks";
+    updateViewChecks();
     if (currentView === "table") renderView();
   });
 
@@ -6858,11 +6857,10 @@
 
   // Row detail toggle
   var detailToggleBtn = document.getElementById("vw-detail-toggle");
-  if (rowDetailEnabled) detailToggleBtn.classList.add("active");
-  detailToggleBtn.addEventListener("click", function() {
+  if (detailToggleBtn) detailToggleBtn.addEventListener("click", function() {
     rowDetailEnabled = !rowDetailEnabled;
     localStorage.setItem("vw-row-detail", rowDetailEnabled ? "1" : "0");
-    detailToggleBtn.classList.toggle("active", rowDetailEnabled);
+    updateViewChecks();
     if (!rowDetailEnabled) closeDetailPanel();
   });
 
