@@ -8086,8 +8086,9 @@
     var f = files[activeTab];
     if (!f) return;
     var rows = getFilteredRows(f);
-    var ps = currentPage * pageSize;
-    var pageRows = rows.slice(ps, ps + pageSize);
+    var HTML_EXPORT_MAX = 10000;
+    var pageRows = rows.length > HTML_EXPORT_MAX ? rows.slice(0, HTML_EXPORT_MAX) : rows;
+    var truncatedHtml = rows.length > HTML_EXPORT_MAX;
 
     var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + escapeHtml(f.displayName || f.name) + '</title>';
     html += '<style>';
@@ -8101,7 +8102,7 @@
     html += 'h2{color:#7c3aed;font-size:16px;margin:0 0 12px}';
     html += '</style></head><body>';
     html += '<h2>' + escapeHtml(f.displayName || f.name) + ' — ' + f.parsed.format.toUpperCase() + '</h2>';
-    html += '<p style="color:#565f89;font-size:11px">' + f.parsed.rows.length.toLocaleString() + ' total rows, showing ' + pageRows.length + ' rows</p>';
+    html += '<p style="color:#565f89;font-size:11px">' + rows.length.toLocaleString() + ' total rows, showing ' + pageRows.length.toLocaleString() + ' rows' + (truncatedHtml ? ' (HTML export capped at ' + HTML_EXPORT_MAX.toLocaleString() + ' — use CSV for full export)' : '') + '</p>';
     html += '<table><thead><tr>';
     html += '<th>#</th>';
     f.parsed.columns.forEach(function(col) { html += '<th>' + escapeHtml(col) + '</th>'; });
