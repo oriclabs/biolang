@@ -1069,8 +1069,8 @@
                   });
                   dropZone.style.display = "none";
                   workspace.classList.add("active");
-                  renderTabs();
                   activeTab = files.length - 1;
+                  renderTabs();
                   hideLoadingOverlay();
                   renderView();
                   updateFooter(files[activeTab]);
@@ -1420,7 +1420,11 @@
     if (!f) return;
     var info = FORMAT_MAP[f.parsed.format] || FORMAT_MAP.txt;
     formatChip.textContent = f.parsed.format.toUpperCase();
-    countChip.textContent = f.parsed.rows.length + " records";
+    if (f.parsed._streaming && f.parsed._totalRecords) {
+      countChip.textContent = f.parsed.rows.length.toLocaleString() + " of " + f.parsed._totalRecords.toLocaleString() + " records";
+    } else {
+      countChip.textContent = f.parsed.rows.length.toLocaleString() + " records";
+    }
     sizeChip.textContent = formatBytes(f.size);
     footerParse.textContent = "parsed in " + f.parsed.parseTime + "s";
     // Show "Open in Browser" for coordinate-based formats
