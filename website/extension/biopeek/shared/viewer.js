@@ -3912,7 +3912,7 @@
         if (result.ok) {
           appendConsole("Loaded " + maxRows + " rows into 'data' variable", "info");
           if (maxRows < f.parsed.rows.length) {
-            appendConsole("(showing first " + maxRows + " of " + f.parsed.rows.length + " rows)", "dim");
+            appendConsole("(BioLang console limited to first " + maxRows.toLocaleString() + " of " + f.parsed.rows.length.toLocaleString() + " rows for memory safety. Use CSV export for full data.)", "dim");
           }
         } else {
           appendConsole("Error loading data: " + (result.error || "unknown"), "error");
