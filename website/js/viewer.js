@@ -6710,6 +6710,25 @@
     heatmapToggleBtn.addEventListener("click", function() {
       heatmapGlobal = !heatmapGlobal;
       localStorage.setItem("vw-heatmap", heatmapGlobal ? "1" : "0");
+      // Auto-enable heatmap on all numeric columns when turning on
+      if (heatmapGlobal) {
+        var f = files[activeTab];
+        if (f) {
+          f.parsed.colTypes.forEach(function(type, ci) {
+            if (type === "num" && !heatmapCols[ci]) {
+              var vals = [];
+              var count = Math.min(f.parsed.rows.length, 10000);
+              for (var ri = 0; ri < count; ri++) {
+                var v = f.parsed.rows[ri][ci];
+                if (typeof v === "number" && !isNaN(v)) vals.push(v);
+              }
+              if (vals.length) heatmapCols[ci] = { min: safeMin(vals), max: safeMax(vals), enabled: true };
+            }
+          });
+        }
+      } else {
+        heatmapCols = {};
+      }
       updateViewChecks();
       renderView();
     });
