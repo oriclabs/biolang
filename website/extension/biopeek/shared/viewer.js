@@ -232,6 +232,10 @@
     pdb: 1, mol: 1, sdf: 1, phr: 1, nhr: 1, qual: 1
   };
 
+  // Safe min/max for large arrays (Math.min.apply crashes at >30K elements)
+  function safeMin(arr) { var m = Infinity; for (var i = 0; i < arr.length; i++) { if (arr[i] < m) m = arr[i]; } return m === Infinity ? 0 : m; }
+  function safeMax(arr) { var m = -Infinity; for (var i = 0; i < arr.length; i++) { if (arr[i] > m) m = arr[i]; } return m === -Infinity ? 0 : m; }
+
   function checkExtension(name) {
     var ext = (name.match(/\.([^.]+)$/) || [,""])[1].toLowerCase();
     if (BIO_EXTS[ext] || FORMAT_MAP[ext]) return null; // known data format
@@ -626,8 +630,8 @@
         "Reads": records.length,
         "Total bp": lens.reduce(function(a, b) { return a + b; }, 0),
         "Avg length": records.length ? Math.round(lens.reduce(function(a, b) { return a + b; }, 0) / records.length) : 0,
-        "Min length": records.length ? Math.min.apply(null, lens) : 0,
-        "Max length": records.length ? Math.max.apply(null, lens) : 0,
+        "Min length": records.length ? safeMin(lens) : 0,
+        "Max length": records.length ? safeMax(lens) : 0,
         "Mean quality": records.length ? (quals.reduce(function(a, b) { return a + b; }, 0) / records.length).toFixed(1) : 0,
         "Q30+ reads": records.length ? (quals.filter(function(q) { return q >= 30; }).length / records.length * 100).toFixed(1) + "%" : "0%"
       }
@@ -1071,6 +1075,7 @@
                   workspace.classList.add("active");
                   activeTab = files.length - 1;
                   renderTabs();
+                  updateToolbar();
                   hideLoadingOverlay();
                   renderView();
                   updateFooter(files[activeTab]);
@@ -1757,7 +1762,7 @@
             if (typeof v === "number" && !isNaN(v)) vals.push(v);
           }
           if (vals.length) {
-            heatmapCols[colIndex] = { min: Math.min.apply(null, vals), max: Math.max.apply(null, vals), enabled: true };
+            heatmapCols[colIndex] = { min: safeMin(vals), max: safeMax(vals), enabled: true };
           }
         }
         drop.remove();
@@ -2723,12 +2728,12 @@
     values = values.filter(function(v) { return typeof v === "number" && !isNaN(v); });
     if (!values.length) return document.createTextNode("(no numeric data)");
 
-    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var min = safeMin(values), max = safeMax(values);
     if (min === max) { max = min + 1; }
     var binW = (max - min) / bins;
     var counts = new Array(bins).fill(0);
     values.forEach(function(v) { counts[Math.min(Math.floor((v - min) / binW), bins - 1)]++; });
-    var maxC = Math.max.apply(null, counts);
+    var maxC = safeMax(counts);
 
     var cw = w - pad.left - pad.right, ch = h - pad.top - pad.bottom;
     var svg = svgEl("svg", { width: w, height: h, viewBox: "0 0 " + w + " " + h });
@@ -4894,8 +4899,8 @@
     if (!values.length) return "(no data)";
     values = values.filter(function(v) { return typeof v === "number" && !isNaN(v); });
     if (!values.length) return "(no numeric data)";
-    var min = Math.min.apply(null, values);
-    var max = Math.max.apply(null, values);
+    var min = safeMin(values);
+    var max = safeMax(values);
     if (min === max) return "All values: " + min;
     var bins = 20;
     var binWidth = (max - min) / bins;
@@ -4904,7 +4909,7 @@
       var b = Math.min(Math.floor((v - min) / binWidth), bins - 1);
       counts[b]++;
     });
-    var maxCount = Math.max.apply(null, counts);
+    var maxCount = safeMax(counts);
     var barWidth = 30;
     var lines = [];
     for (var i = 0; i < bins; i++) {
@@ -5233,7 +5238,7 @@
         var bi = Math.min(Math.floor((v - min) / binWidth), bins - 1);
         counts[bi]++;
       });
-      var maxCount = Math.max.apply(null, counts);
+      var maxCount = safeMax(counts);
       var svgW = 280, svgH = 120, barW = svgW / bins;
       var svg = '<svg width="' + svgW + '" height="' + svgH + '" xmlns="http://www.w3.org/2000/svg">';
       counts.forEach(function(c, i) {
@@ -8453,7 +8458,7 @@
         if (!bins) return;
         var th = ths[ci + offset];
         if (!th || th.querySelector(".vw-sparkline")) return;
-        var maxBin = Math.max.apply(null, bins);
+        var maxBin = safeMax(bins);
         if (maxBin === 0) return;
 
         var svg = '<svg class="vw-sparkline" width="50" height="16" style="display:inline-block;vertical-align:middle;margin-left:4px;opacity:0.7">';
@@ -9213,14 +9218,14 @@
 
       // Build read-length histogram as inline SVG
       var histBins = 20;
-      var minLen = Math.min.apply(null, lens), maxLen = Math.max.apply(null, lens);
+      var minLen = safeMin(lens), maxLen = safeMax(lens);
       var binWidth = maxLen > minLen ? (maxLen - minLen) / histBins : 1;
       var bins = new Array(histBins).fill(0);
       for (var i = 0; i < lens.length; i++) {
         var bi = Math.min(Math.floor((lens[i] - minLen) / binWidth), histBins - 1);
         bins[bi]++;
       }
-      var maxBin = Math.max.apply(null, bins) || 1;
+      var maxBin = safeMax(bins) || 1;
       var svgW = 320, svgH = 80, barW = svgW / histBins;
       var histSvg = '<svg width="' + svgW + '" height="' + (svgH + 16) + '" style="display:block;margin:8px 0">';
       for (var i = 0; i < histBins; i++) {
