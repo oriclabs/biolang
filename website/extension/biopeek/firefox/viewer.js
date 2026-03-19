@@ -1974,16 +1974,24 @@
 
   function renderTableView(f) {
     // Auto-compute heatmap for numeric columns when global toggle is on
-    if (heatmapGlobal && Object.keys(heatmapCols).length === 0) {
+    if (heatmapGlobal && Object.keys(heatmapCols).length === 0 && f.parsed.rows.length > 0) {
       f.parsed.colTypes.forEach(function(type, ci) {
-        if (type === "num") {
-          var vals = [];
-          var count = Math.min(f.parsed.rows.length, 10000);
-          for (var ri = 0; ri < count; ri++) {
-            var v = f.parsed.rows[ri] ? f.parsed.rows[ri][ci] : null;
-            if (typeof v === "number" && !isNaN(v)) vals.push(v);
+        var vals = [];
+        var count = Math.min(f.parsed.rows.length, 5000);
+        for (var ri = 0; ri < count; ri++) {
+          var row = f.parsed.rows[ri];
+          if (!row) continue;
+          var v = row[ci];
+          if (typeof v === "number" && !isNaN(v)) { vals.push(v); continue; }
+          // Try parsing string values as numbers
+          if (type === "str" && v != null) {
+            var n = parseFloat(v);
+            if (!isNaN(n) && String(v).trim() !== "") vals.push(n);
           }
-          if (vals.length > 1) heatmapCols[ci] = { min: safeMin(vals), max: safeMax(vals), enabled: true };
+        }
+        // Only enable if >50% of sampled values are numeric
+        if (vals.length > count * 0.5 && vals.length > 1) {
+          heatmapCols[ci] = { min: safeMin(vals), max: safeMax(vals), enabled: true };
         }
       });
     }
@@ -2481,10 +2489,11 @@
         // Hidden columns
         if (hiddenCols[activeTab] && hiddenCols[activeTab].has(ci)) td.style.display = "none";
         // Heatmap coloring
-        if (heatmapGlobal && heatmapCols[ci] && heatmapCols[ci].enabled && typeof val === "number" && !isNaN(val)) {
+        var numVal = typeof val === "number" ? val : parseFloat(val);
+        if (heatmapGlobal && heatmapCols[ci] && heatmapCols[ci].enabled && !isNaN(numVal)) {
           var hm = heatmapCols[ci];
           var range = hm.max - hm.min || 1;
-          var ratio = Math.max(0, Math.min(1, (val - hm.min) / range));
+          var ratio = Math.max(0, Math.min(1, (numVal - hm.min) / range));
           // Blue (cold) → Yellow (mid) → Red (hot)
           var r = Math.round(ratio < 0.5 ? ratio * 2 * 255 : 255);
           var g = Math.round(ratio < 0.5 ? ratio * 2 * 200 : (1 - ratio) * 2 * 200);
@@ -5987,10 +5996,11 @@
             }
           } else {
             // Heatmap background for numeric columns
-            if (heatmapGlobal && heatmapCols[ci] && heatmapCols[ci].enabled && type === "num" && typeof rawVal === "number" && !isNaN(rawVal)) {
+            var ssNumVal = typeof rawVal === "number" ? rawVal : parseFloat(rawVal);
+            if (heatmapGlobal && heatmapCols[ci] && heatmapCols[ci].enabled && !isNaN(ssNumVal)) {
               var hm = heatmapCols[ci];
               var range = hm.max - hm.min || 1;
-              var ratio = Math.max(0, Math.min(1, (rawVal - hm.min) / range));
+              var ratio = Math.max(0, Math.min(1, (ssNumVal - hm.min) / range));
               var hr = Math.round(ratio < 0.5 ? ratio * 2 * 255 : 255);
               var hg = Math.round(ratio < 0.5 ? ratio * 2 * 200 : (1 - ratio) * 2 * 200);
               var hb = Math.round(ratio < 0.5 ? (1 - ratio * 2) * 255 : 0);
