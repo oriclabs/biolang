@@ -5546,7 +5546,13 @@
     dlg.id = "vw-highlight-dialog";
     dlg.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:300;background:var(--vw-panel);border:1px solid var(--vw-border);border-radius:12px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);width:320px;font-family:var(--vw-sans);";
 
-    dlg.innerHTML = '<div style="font-weight:600;color:var(--vw-accent);margin-bottom:10px;font-size:13px">Conditional Highlight</div>';
+    var headerText = 'Conditional Highlight';
+    if (highlightRule) {
+      headerText += '<div style="font-size:11px;font-weight:400;color:var(--vw-green);margin-top:4px">Active: ' +
+        escapeHtml(f.parsed.columns[highlightRule.col] || '') + ' ' +
+        escapeHtml(highlightRule.op) + ' ' + escapeHtml(highlightRule.value) + '</div>';
+    }
+    dlg.innerHTML = '<div style="font-weight:600;color:var(--vw-accent);margin-bottom:10px;font-size:13px">' + headerText + '</div>';
 
     // Column select
     var colSel = document.createElement("select");
@@ -5555,6 +5561,7 @@
       var opt = document.createElement("option");
       opt.value = ci;
       opt.textContent = col;
+      if (highlightRule && highlightRule.col === ci) opt.selected = true;
       colSel.appendChild(opt);
     });
     dlg.appendChild(colSel);
@@ -5565,6 +5572,7 @@
     [">", ">=", "<", "<=", "=", "!=", "contains"].forEach(function(op) {
       var opt = document.createElement("option");
       opt.value = op; opt.textContent = op;
+      if (highlightRule && highlightRule.op === op) opt.selected = true;
       opSel.appendChild(opt);
     });
     dlg.appendChild(opSel);
@@ -5573,6 +5581,7 @@
     var valInput = document.createElement("input");
     valInput.type = "text";
     valInput.placeholder = "Value...";
+    if (highlightRule) valInput.value = highlightRule.value;
     valInput.style.cssText = "width:100%;background:var(--vw-tab-bg);border:1px solid var(--vw-border);border-radius:6px;padding:5px;color:var(--vw-text);font-size:12px;margin-bottom:10px;box-sizing:border-box;";
     dlg.appendChild(valInput);
 
