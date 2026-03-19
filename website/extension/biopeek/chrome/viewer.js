@@ -6879,6 +6879,14 @@
     menu.style.cssText = "position:fixed;z-index:200;background:var(--vw-panel);border:1px solid var(--vw-border);" +
       "border-radius:8px;padding:4px;box-shadow:0 8px 20px rgba(0,0,0,0.3);font-family:var(--vw-sans);font-size:12px;";
 
+    // Streaming warning
+    if (f.parsed._streaming) {
+      var warn = document.createElement("div");
+      warn.style.cssText = "padding:6px 10px;font-size:11px;color:var(--vw-amber);border-bottom:1px solid var(--vw-border);margin-bottom:4px;";
+      warn.textContent = "Preview mode: exporting " + f.parsed.rows.length.toLocaleString() + " of " + (f.parsed._totalRecords || "?").toLocaleString() + " records. Load All Records first for full export.";
+      menu.appendChild(warn);
+    }
+
     var formats = [{ label: "CSV", fmt: "csv" }, { label: "TSV", fmt: "tsv" }];
     if (f.parsed.format === "bed") formats.push({ label: "BED", fmt: "bed" });
     if (f.parsed.format === "vcf") formats.push({ label: "VCF", fmt: "vcf" });
