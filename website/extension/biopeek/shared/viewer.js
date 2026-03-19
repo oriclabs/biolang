@@ -43,6 +43,7 @@
   var currentPage = 0;  // current page index
   var hiddenCols = {};  // {tabIdx: Set of colIndex}
   var heatmapCols = {}; // {colIndex: {min, max, enabled}}
+  var heatmapGlobal = localStorage.getItem("vw-heatmap") !== "0"; // default on
   var groupByCol = -1;  // column index for row grouping (-1 = off)
   var highlightRule = null; // {col, op, value} for conditional row highlighting
   var undoStack = []; // state snapshots for undo
@@ -2459,7 +2460,7 @@
         // Hidden columns
         if (hiddenCols[activeTab] && hiddenCols[activeTab].has(ci)) td.style.display = "none";
         // Heatmap coloring
-        if (heatmapCols[ci] && heatmapCols[ci].enabled && typeof val === "number" && !isNaN(val)) {
+        if (heatmapGlobal && heatmapCols[ci] && heatmapCols[ci].enabled && typeof val === "number" && !isNaN(val)) {
           var hm = heatmapCols[ci];
           var range = hm.max - hm.min || 1;
           var ratio = Math.max(0, Math.min(1, (val - hm.min) / range));
@@ -6673,6 +6674,18 @@
       seqColorEnabled = !seqColorEnabled;
       localStorage.setItem("vw-seq-color", seqColorEnabled ? "1" : "0");
       colorToggleBtn.classList.toggle("vw-tbtn-on", seqColorEnabled);
+      renderView();
+    });
+  }
+
+  // Heatmap toggle
+  var heatmapToggleBtn = document.getElementById("vw-heatmap-toggle");
+  if (heatmapToggleBtn) {
+    if (heatmapGlobal) heatmapToggleBtn.classList.add("vw-tbtn-on");
+    heatmapToggleBtn.addEventListener("click", function() {
+      heatmapGlobal = !heatmapGlobal;
+      localStorage.setItem("vw-heatmap", heatmapGlobal ? "1" : "0");
+      heatmapToggleBtn.classList.toggle("vw-tbtn-on", heatmapGlobal);
       renderView();
     });
   }
