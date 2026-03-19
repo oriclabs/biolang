@@ -5984,14 +5984,20 @@
           ctx.rect(x, y, colWidths[ci], rowH);
           ctx.clip();
 
-          // Sequence columns: per-base ATCG coloring
+          // Sequence columns: per-base ATCG coloring (respects color toggle)
           if (type === "seq" && val.length > 0) {
             var cx = x + padX;
-            for (var si = 0; si < Math.min(val.length, maxCharPerCol); si++) {
-              var base = val.charAt(si).toUpperCase();
-              ctx.fillStyle = ntColors[base] || (isDark ? "#94a3b8" : "#64748b");
-              ctx.fillText(val.charAt(si), cx, y + 13);
-              cx += charW;
+            if (seqColorEnabled) {
+              for (var si = 0; si < Math.min(val.length, maxCharPerCol); si++) {
+                var base = val.charAt(si).toUpperCase();
+                ctx.fillStyle = ntColors[base] || (isDark ? "#94a3b8" : "#64748b");
+                ctx.fillText(val.charAt(si), cx, y + 13);
+                cx += charW;
+              }
+            } else {
+              ctx.fillStyle = isDark ? "#e2e8f0" : "#1e293b";
+              ctx.fillText(val.substring(0, maxCharPerCol), cx, y + 13);
+              cx += Math.min(val.length, maxCharPerCol) * charW;
             }
             if (val.length > maxCharPerCol) {
               ctx.fillStyle = isDark ? "#475569" : "#94a3b8";
