@@ -419,3 +419,119 @@ test('cache key — empty filters', () => {
   }).join(",");
   assert.strictEqual(cfKey, '');
 });
+
+// ══════════════════════════════════════════════════════════════════════
+// 13. safeMin / safeMax (replaces Math.min/max.apply)
+// ══════════════════════════════════════════════════════════════════════
+
+function safeMin(arr) { var m = Infinity; for (var i = 0; i < arr.length; i++) { if (arr[i] < m) m = arr[i]; } return m === Infinity ? 0 : m; }
+function safeMax(arr) { var m = -Infinity; for (var i = 0; i < arr.length; i++) { if (arr[i] > m) m = arr[i]; } return m === -Infinity ? 0 : m; }
+
+test('safeMin — normal array', () => {
+  assert.strictEqual(safeMin([5, 3, 8, 1, 9]), 1);
+});
+
+test('safeMax — normal array', () => {
+  assert.strictEqual(safeMax([5, 3, 8, 1, 9]), 9);
+});
+
+test('safeMin — empty array returns 0', () => {
+  assert.strictEqual(safeMin([]), 0);
+});
+
+test('safeMax — empty array returns 0', () => {
+  assert.strictEqual(safeMax([]), 0);
+});
+
+test('safeMin — single element', () => {
+  assert.strictEqual(safeMin([42]), 42);
+});
+
+test('safeMax — large array (would crash Math.max.apply)', () => {
+  var arr = [];
+  for (var i = 0; i < 50000; i++) arr.push(Math.random() * 100);
+  arr.push(999);
+  assert.strictEqual(safeMax(arr), 999);
+});
+
+test('safeMin — negative values', () => {
+  assert.strictEqual(safeMin([-5, -3, -8, -1]), -8);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 14. Heatmap Auto-Compute (string columns with numbers)
+// ══════════════════════════════════════════════════════════════════════
+
+test('heatmap — parseFloat on string values', () => {
+  var vals = ["42", "3.14", "100", "abc", ""];
+  var nums = vals.map(v => parseFloat(v)).filter(v => !isNaN(v));
+  assert.strictEqual(nums.length, 3);
+  assert.strictEqual(nums[0], 42);
+  assert.strictEqual(nums[1], 3.14);
+});
+
+test('heatmap — >50% numeric threshold', () => {
+  var values = ["1", "2", "3", "abc", "def"];
+  var count = values.length;
+  var numCount = values.filter(v => !isNaN(parseFloat(v))).length;
+  assert.ok(numCount / count > 0.5); // 3/5 = 60%
+});
+
+test('heatmap — <50% numeric rejects', () => {
+  var values = ["abc", "def", "ghi", "1", "2"];
+  var count = values.length;
+  var numCount = values.filter(v => !isNaN(parseFloat(v)) && v.trim() !== "").length;
+  assert.ok(numCount / count <= 0.5); // 2/5 = 40%
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 15. HTML Export Limits
+// ══════════════════════════════════════════════════════════════════════
+
+test('html export — caps at 10K rows', () => {
+  var HTML_EXPORT_MAX = 10000;
+  var rows = new Array(50000);
+  var pageRows = rows.length > HTML_EXPORT_MAX ? rows.slice(0, HTML_EXPORT_MAX) : rows;
+  assert.strictEqual(pageRows.length, 10000);
+});
+
+test('html export — small file not capped', () => {
+  var HTML_EXPORT_MAX = 10000;
+  var rows = new Array(500);
+  var pageRows = rows.length > HTML_EXPORT_MAX ? rows.slice(0, HTML_EXPORT_MAX) : rows;
+  assert.strictEqual(pageRows.length, 500);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 16. Null Row Guard (streaming/k-mer)
+// ══════════════════════════════════════════════════════════════════════
+
+test('kmer — null/undefined rows filtered', () => {
+  var rows = [null, undefined, "ATCG", "", "GCTA"];
+  var seqs = rows.map(r => r && r ? r : "").filter(Boolean);
+  assert.strictEqual(seqs.length, 2);
+});
+
+test('heatmap — null row skipped', () => {
+  var row = null;
+  var v = row ? row[0] : null;
+  assert.strictEqual(v, null);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 17. Division by Zero Guards
+// ══════════════════════════════════════════════════════════════════════
+
+test('heatmap ratio — zero range handled', () => {
+  var min = 5, max = 5, val = 5;
+  var range = max - min || 1;
+  var ratio = Math.max(0, Math.min(1, (val - min) / range));
+  assert.strictEqual(ratio, 0);
+  assert.strictEqual(range, 1);
+});
+
+test('percentage — zero total handled', () => {
+  var count = 0, total = 0;
+  var pct = total > 0 ? (count / total * 100).toFixed(1) : "0.0";
+  assert.strictEqual(pct, "0.0");
+});

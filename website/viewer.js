@@ -1486,6 +1486,7 @@
           updateLoadingOverlay("Re-reading full file...", 20);
           var reader = new FileReader();
           reader.onload = function() {
+            if (activeTab !== idx) { hideLoadingOverlay(); return; } // tab changed during load
             updateLoadingOverlay("Parsing full file...", 50);
             setTimeout(function() {
               var fullParsed = parseFile(entry.name, reader.result);
@@ -1497,8 +1498,7 @@
               entry._previewLines = null;
               entry._totalLines = null;
               hideLoadingOverlay();
-              renderView();
-              updateFooter(entry);
+              if (activeTab === idx) { renderView(); updateFooter(entry); }
             }, 10);
           };
           reader.readAsText(entry.fileRef);
@@ -1543,12 +1543,14 @@
         "background:transparent;color:var(--vw-cyan);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;";
       loadAllBtn.textContent = "Load All Records";
       loadAllBtn.addEventListener("click", function() {
-        var entry = files[activeTab];
+        var idx = activeTab;
+        var entry = files[idx];
         if (!entry || !entry.fileRef) return;
         showLoadingOverlay(entry.name, entry.size);
         updateLoadingOverlay("Reading full file...", 20);
         var reader = new FileReader();
         reader.onload = function() {
+          if (activeTab !== idx) { hideLoadingOverlay(); return; }
           updateLoadingOverlay("Parsing " + Math.round(reader.result.length / 1024 / 1024) + " MB...", 50);
           setTimeout(function() {
             var fullParsed = parseFile(entry.name, reader.result);
@@ -1562,10 +1564,7 @@
             hideLoadingOverlay();
             _cachedFile = null; _cachedAll = null; _filterCache = null;
             heatmapCols = {};
-            renderTabs();
-            updateToolbar();
-            renderView();
-            updateFooter(entry);
+            if (activeTab === idx) { renderTabs(); updateToolbar(); renderView(); updateFooter(entry); }
           }, 10);
         };
         reader.readAsText(entry.fileRef);
@@ -2822,7 +2821,7 @@
     var w = opts.width || 460, barH = 22, gap = 4;
     var pad = { top: 8, right: 12, bottom: 8, left: opts.labelWidth || 80 };
     var h = pad.top + items.length * (barH + gap) + pad.bottom;
-    var maxV = Math.max.apply(null, items.map(function(d) { return d.value; })) || 1;
+    var maxV = safeMax(items.map(function(d) { return d.value; })) || 1;
     var cw = w - pad.left - pad.right;
 
     var svg = svgEl("svg", { width: w, height: h, viewBox: "0 0 " + w + " " + h });
@@ -3326,7 +3325,7 @@
       if (f.parsed.seqType !== "protein") {
         var seqCol2 = f.parsed.colTypes.indexOf("seq");
         if (seqCol2 >= 0) {
-          var kmerEl = renderKmerTable(f.parsed.rows.slice(0, 5).map(function(r) { return r[seqCol2]; }), 4, 20);
+          var kmerEl = renderKmerTable(f.parsed.rows.slice(0, 5).map(function(r) { return r && r[seqCol2] ? r[seqCol2] : ""; }), 4, 20);
           if (kmerEl) addChartCard(container, "Top 4-mer Frequencies", kmerEl, 2);
         }
       }
@@ -9461,7 +9460,7 @@
         return na.localeCompare(nb);
       }).slice(0, 30);
 
-      var maxCount = Math.max.apply(null, entries.map(function(e) { return e[1]; })) || 1;
+      var maxCount = safeMax(entries.map(function(e) { return e[1]; })) || 1;
       var totalVariants = f.parsed.rows.length;
 
       // Build inline SVG horizontal bar chart
