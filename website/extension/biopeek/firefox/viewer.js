@@ -1967,6 +1967,21 @@
   }
 
   function renderTableView(f) {
+    // Auto-compute heatmap for numeric columns when global toggle is on
+    if (heatmapGlobal && Object.keys(heatmapCols).length === 0) {
+      f.parsed.colTypes.forEach(function(type, ci) {
+        if (type === "num") {
+          var vals = [];
+          var count = Math.min(f.parsed.rows.length, 10000);
+          for (var ri = 0; ri < count; ri++) {
+            var v = f.parsed.rows[ri] ? f.parsed.rows[ri][ci] : null;
+            if (typeof v === "number" && !isNaN(v)) vals.push(v);
+          }
+          if (vals.length > 1) heatmapCols[ci] = { min: safeMin(vals), max: safeMax(vals), enabled: true };
+        }
+      });
+    }
+
     var wrap = document.createElement("div");
     wrap.className = "vw-table-wrap";
 
