@@ -5985,6 +5985,17 @@
               ctx.fillText("...", cx, y + 13);
             }
           } else {
+            // Heatmap background for numeric columns
+            if (heatmapGlobal && heatmapCols[ci] && heatmapCols[ci].enabled && type === "num" && typeof rawVal === "number" && !isNaN(rawVal)) {
+              var hm = heatmapCols[ci];
+              var range = hm.max - hm.min || 1;
+              var ratio = Math.max(0, Math.min(1, (rawVal - hm.min) / range));
+              var hr = Math.round(ratio < 0.5 ? ratio * 2 * 255 : 255);
+              var hg = Math.round(ratio < 0.5 ? ratio * 2 * 200 : (1 - ratio) * 2 * 200);
+              var hb = Math.round(ratio < 0.5 ? (1 - ratio * 2) * 255 : 0);
+              ctx.fillStyle = "rgba(" + hr + "," + hg + "," + hb + ",0.25)";
+              ctx.fillRect(x, y, colWidths[ci], rowH);
+            }
             // Determine text color
             if (type === "num") {
               ctx.fillStyle = isDark ? "#22d3ee" : "#0891b2";
