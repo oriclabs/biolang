@@ -6032,7 +6032,7 @@
             }
 
             // Quality string: per-char coloring
-            if (colName === "QUAL_STR" || colName === "quality" || (f.parsed.format === "fastq" && ci === 3)) {
+            if (colName === "QUAL_STR" || colName === "quality" || type === "qual") {
               var cx = x + padX;
               for (var qi = 0; qi < Math.min(val.length, maxCharPerCol); qi++) {
                 var qScore = val.charCodeAt(qi) - 33;
