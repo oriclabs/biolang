@@ -6031,17 +6031,24 @@
               if (flg & 4) ctx.fillStyle = isDark ? "#f87171" : "#dc2626"; // unmapped
             }
 
-            // Quality string: per-char coloring
+            // Quality string: render as heatmap bar (matching table view)
             if (colName === "QUAL_STR" || colName === "quality" || type === "qual") {
               var cx = x + padX;
-              for (var qi = 0; qi < Math.min(val.length, maxCharPerCol); qi++) {
+              var barW = 3, barH = 12, barGap = 1;
+              var barY = y + (rowH - barH) / 2;
+              // Show length label first
+              ctx.fillStyle = isDark ? "#64748b" : "#94a3b8";
+              ctx.font = "9px monospace";
+              ctx.fillText(val.length + "bp", cx, y + 13);
+              cx += tmpCtx.measureText(val.length + "bp").width + 6;
+              ctx.font = "11px monospace";
+              // Draw quality bars
+              var maxBars = Math.min(val.length, Math.floor((colWidths[ci] - cx + x) / (barW + barGap)));
+              for (var qi = 0; qi < maxBars; qi++) {
                 var qScore = val.charCodeAt(qi) - 33;
-                ctx.fillStyle = qScore >= 30 ? (isDark ? "#34d399" : "#059669") :
-                                qScore >= 20 ? (isDark ? "#fbbf24" : "#d97706") :
-                                qScore >= 10 ? (isDark ? "#fb923c" : "#ea580c") :
-                                (isDark ? "#f87171" : "#dc2626");
-                ctx.fillText(val.charAt(qi), cx, y + 13);
-                cx += charW;
+                ctx.fillStyle = qScore >= 30 ? "#4ade80" : qScore >= 20 ? "#fbbf24" : "#f87171";
+                ctx.fillRect(cx, barY, barW, barH);
+                cx += barW + barGap;
               }
             } else {
               var displayVal = val.substring(0, maxCharPerCol);
