@@ -6699,16 +6699,31 @@
   }
 
   function updateViewChecks() {
-    var checks = {
+    var toggleMap = {
+      "vw-color-toggle": seqColorEnabled,
+      "vw-heatmap-toggle": heatmapGlobal,
+      "vw-detail-toggle": rowDetailEnabled,
+      "vw-bookmark-toggle": bookmarkMode,
+      "vw-pin-toggle": pinColumnsMode
+    };
+    var checkMap = {
       "vw-vi-color": seqColorEnabled,
       "vw-vi-heatmap": heatmapGlobal,
       "vw-vi-detail": rowDetailEnabled,
       "vw-vi-bookmark": bookmarkMode,
       "vw-vi-pin": pinColumnsMode
     };
-    for (var id in checks) {
+    // Update checkmarks (dropdown mode)
+    for (var id in checkMap) {
       var el = document.getElementById(id);
-      if (el) el.classList.toggle("on", !!checks[id]);
+      if (el) el.classList.toggle("on", !!checkMap[id]);
+    }
+    // Update button amber border (inline mode on wide screens)
+    for (var btnId in toggleMap) {
+      var btn = document.getElementById(btnId);
+      if (btn) {
+        btn.classList.toggle("vw-view-active", !!toggleMap[btnId]);
+      }
     }
   }
   updateViewChecks();
