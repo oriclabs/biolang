@@ -1384,6 +1384,7 @@
     activeTab = idx;
     searchTerm = "";
     colFilters = {};
+    heatmapCols = {}; // reset per-tab — auto-recomputed in renderTableView
     motifTerm = "";
     currentPage = 0;
     groupByCol = -1;
