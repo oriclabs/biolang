@@ -102,8 +102,8 @@ records = read_fasta("data/sequences.fasta")
 
 # Process with pipes
 records
-  |> filter(|r| seq_len(r.seq) > 1000)
-  |> map(|r| { id: r.id, gc: gc_content(r.seq) })
+  |> filter(|r| len(r.sequence) > 1000)
+  |> map(|r| { id: r.id, gc: gc_content(r.sequence) })
   |> to_table()
   |> print()</code></pre>
 
@@ -116,11 +116,13 @@ records
         <pre><code class="language-biolang"># Create intervals (positional args: chrom, start, end, strand)
 let exon1 = interval("chr1", 1000, 2000, "+")
 let exon2 = interval("chr1", 1500, 2500)
+println(exon1)
+println(exon2)
 
-# Interval set operations work on tables with chrom/start/end columns
-let exons = read_bed("data/regions.bed")
-let peaks = read_bed("data/regions.bed")
-let shared = intersect(exons, peaks)</code></pre>
+# Build an interval tree for fast overlap queries
+let tree = interval_tree([exon1, exon2])
+let hits = query_overlaps(tree, "chr1", 1200, 1600)
+println("Overlapping:", hits)</code></pre>
 
         <h2>K-mer Analysis</h2>
         <p>
@@ -140,13 +142,14 @@ let mins = minimizers(seq, 21, 11)</code></pre>
           Local and global sequence alignment with configurable scoring matrices, plus
           position weight matrix (PWM) scanning for motif discovery:
         </p>
-        <pre><code class="language-biolang"># Pairwise alignment
+        <pre><code class="language-biolang"># Pairwise alignment (native only — requires bl CLI)
 let result = align(dna"ATCGATCG", dna"ATCAATCG")
-print(result.score)
-print(result.cigar)
+println(result.score)
+println(result.cigar)
 
-# Motif finding (IUPAC patterns)
-let hits = motif_find(dna"ATCGATCGATCGATCG", "ATCG")</code></pre>
+# Motif finding (works in WASM playground)
+let hits = motif_find(dna"ATCGATCGATCGATCG", "ATCG")
+println(hits)</code></pre>
 
         <h2>Advanced Analytics</h2>
         <p>
@@ -154,15 +157,21 @@ let hits = motif_find(dna"ATCGATCGATCGATCG", "ATCG")</code></pre>
           reduction, clustering, and pathway enrichment &mdash; all accessible without
           importing external libraries:
         </p>
-        <pre><code class="language-biolang"># Dimensionality reduction on an expression matrix
-let coords = umap(expr_matrix)
+        <pre><code class="language-biolang"># K-means clustering
+let data = [[1.0, 2.0], [1.5, 1.8], [5.0, 8.0], [8.0, 8.0], [1.0, 0.6], [9.0, 11.0]]
+let clusters = kmeans(data, 2)
+println(clusters)
 
-# Leiden clustering
-let clusters = leiden(adj_matrix)
+# Correlation
+let x = [1, 2, 3, 4, 5]
+let y = [2, 4, 5, 4, 5]
+println("Correlation:", cor(x, y))
 
-# Gene set enrichment
-let gene_sets = read_gmt("pathways.gmt")
-let results = gsea(ranked_genes, gene_sets)</code></pre>
+# Statistical test
+let group_a = [23.1, 27.5, 22.8, 25.1, 24.3]
+let group_b = [30.2, 28.9, 31.5, 29.7, 32.1]
+let result = ttest(group_a, group_b)
+println(result)</code></pre>
 
         <h2>Explore This Section</h2>
         <p>
@@ -206,7 +215,7 @@ let mouse = genome("GRCm39")
 
 # Access chromosome info
 for c in hg38.chromosomes {
-  println(c[0], ":", c[1], "bp")
+  println(c.name, ":", c.length, "bp")
 }</code></pre>
         </section>
       </article>
