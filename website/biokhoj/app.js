@@ -1211,8 +1211,19 @@ function applyTheme() {
     } else {
       document.documentElement.classList.add('dark');
     }
+    // Sync settings checkbox if visible
+    const cb = document.getElementById('settings-theme');
+    if (cb) cb.checked = theme !== 'light';
   });
 }
+
+// Header theme toggle button
+document.getElementById('theme-toggle-btn')?.addEventListener('click', async () => {
+  const current = await store.getSetting('theme');
+  const next = current === 'light' ? 'dark' : 'light';
+  await store.saveSetting('theme', next);
+  applyTheme();
+});
 
 // ---------------------------------------------------------------------------
 // 13b. API Budget Visualizer

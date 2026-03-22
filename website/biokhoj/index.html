@@ -41,9 +41,72 @@
     .tab-active { border-bottom: 2px solid #F4C430; color: #F4C430; }
     .chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 500; }
     .pwa-install-banner { background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid #F4C430; }
-    /* Light mode overrides */
-    html:not(.dark) .dark\:bg-surface-900 { background: #f8fafc; }
-    html:not(.dark) .dark\:text-white { color: #0f172a; }
+    /* ═══ Light Mode Overrides ═══ */
+    /* When html.dark is removed, override all dark-first colors */
+    html:not(.dark) body { background: #f8fafc; color: #1e293b; }
+
+    /* Backgrounds */
+    html:not(.dark) .bg-surface-900,
+    html:not(.dark) .bg-surface-900\/95 { background: #f8fafc !important; }
+    html:not(.dark) .bg-surface-800 { background: #ffffff !important; }
+    html:not(.dark) .bg-slate-900 { background: #f1f5f9 !important; }
+    html:not(.dark) .bg-slate-800 { background: #e2e8f0 !important; }
+    html:not(.dark) .bg-slate-800\/30 { background: rgba(241,245,249,0.5) !important; }
+    html:not(.dark) .bg-slate-800\/60 { background: rgba(241,245,249,0.6) !important; }
+
+    /* Text */
+    html:not(.dark) .text-white { color: #0f172a !important; }
+    html:not(.dark) .text-slate-200 { color: #334155 !important; }
+    html:not(.dark) .text-slate-300 { color: #475569 !important; }
+    html:not(.dark) .text-slate-400 { color: #64748b !important; }
+    html:not(.dark) .text-slate-500 { color: #94a3b8 !important; }
+
+    /* Borders */
+    html:not(.dark) .border-slate-700 { border-color: #cbd5e1 !important; }
+    html:not(.dark) .border-slate-700\/50 { border-color: rgba(203,213,225,0.5) !important; }
+    html:not(.dark) .border-slate-800 { border-color: #e2e8f0 !important; }
+    html:not(.dark) .border-slate-800\/50 { border-color: rgba(226,232,240,0.5) !important; }
+
+    /* Cards & panels */
+    html:not(.dark) .skeleton-card { background: #ffffff; border-color: #e2e8f0; }
+    html:not(.dark) .skeleton { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; }
+    html:not(.dark) .pwa-install-banner { background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-color: #F4C430; }
+    html:not(.dark) .warning-banner { background: rgba(234, 179, 8, 0.05); }
+
+    /* Inputs */
+    html:not(.dark) input[type="text"],
+    html:not(.dark) textarea,
+    html:not(.dark) select { background: #ffffff !important; color: #1e293b !important; border-color: #cbd5e1 !important; }
+    html:not(.dark) input::placeholder { color: #94a3b8 !important; }
+
+    /* Scrollbar */
+    html:not(.dark) .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; }
+    html:not(.dark) .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Tabs */
+    html:not(.dark) .tab-btn { color: #64748b; }
+    html:not(.dark) .tab-active { color: #ca8a04 !important; border-bottom-color: #ca8a04 !important; }
+
+    /* Signal badges */
+    html:not(.dark) .signal-low { background: linear-gradient(135deg, #94a3b8, #cbd5e1); }
+
+    /* Paper cards hover */
+    html:not(.dark) .paper-selected { border-color: #ca8a04 !important; box-shadow: 0 0 0 1px rgba(202,138,4,0.3); }
+
+    /* Chip */
+    html:not(.dark) .chip { background: rgba(0,0,0,0.05); }
+
+    /* Header sticky */
+    html:not(.dark) header { background: rgba(248,250,252,0.95) !important; border-bottom-color: #e2e8f0 !important; }
+
+    /* Mobile nav */
+    html:not(.dark) #mobile-tabs { background: rgba(248,250,252,0.95) !important; border-top-color: #e2e8f0 !important; }
+
+    /* Theme toggle icon swap */
+    html:not(.dark) #theme-icon-moon { display: none !important; }
+    html:not(.dark) #theme-icon-sun { display: block !important; }
+    html.dark #theme-icon-sun { display: none !important; }
+    html.dark #theme-icon-moon { display: block !important; }
 
     /* Skeleton loading shimmer */
     .skeleton {
@@ -156,6 +219,11 @@
       </div>
 
       <div class="flex items-center gap-2">
+        <!-- Theme toggle -->
+        <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-surface-800 dark:hover:bg-surface-800 hover:bg-slate-200 transition" title="Toggle light/dark theme">
+          <svg id="theme-icon-sun" class="w-5 h-5 text-saffron-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="theme-icon-moon" class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
         <!-- Notification bell -->
         <button id="notification-bell" class="relative p-2 rounded-lg hover:bg-surface-800 transition" title="Notifications">
           <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
