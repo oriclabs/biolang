@@ -14,6 +14,9 @@ Disallow: /sequence-analysis/
 # Block old/duplicate book versions
 Disallow: /books/biostatisticsold/
 
+# Block mdBook print pages (duplicate of chapter content)
+Disallow: /*/print.html
+
 # Block non-content paths
 Disallow: /practice/
 Disallow: /tests/
