@@ -1444,6 +1444,12 @@
         <button class="more-menu-item" id="menu-help" style="border-top:1px solid #334155;margin-top:2px;padding-top:10px">&#x2753; Help</button>
       </div>
     </div>
+    <span style="display:inline-flex;align-items:center;border:1px solid #334155;border-radius:4px;overflow:hidden;margin:0 2px">
+      <button class="btn" id="font-decrease" title="Decrease font" style="padding:3px 5px;font-size:10px;border-radius:0;background:transparent">A-</button>
+      <button class="btn" id="font-reset" title="Reset font" style="padding:3px 4px;font-size:10px;border-radius:0;background:transparent;border-left:1px solid #334155;border-right:1px solid #334155">A</button>
+      <button class="btn" id="font-increase" title="Increase font" style="padding:3px 5px;font-size:10px;border-radius:0;background:transparent">A+</button>
+    </span>
+    <button class="btn" id="btn-theme-toggle" title="Toggle theme" style="font-size:14px;padding:4px 6px">&#x25D0;</button>
     <button class="btn" id="btn-settings-inline" title="Settings">&#x2699;</button>
     <button class="btn" id="btn-popout" title="Open in full page">&#x2197;</button>
     <button class="btn" id="btn-refresh" title="Check now">&#x21BB;</button>
@@ -1850,5 +1856,58 @@
 <!-- (Status text moved into panel-recent status-bar) -->
 
 <script src="sidebar.js"></script>
+<script>
+// Font size controls
+(function() {
+  var SIZES = [11, 12, 13, 14, 15, 16, 18];
+  var DEFAULT = 14;
+
+  function getSize() {
+    return parseInt(localStorage.getItem('bk_fontSize')) || DEFAULT;
+  }
+  function setSize(s) {
+    localStorage.setItem('bk_fontSize', s);
+    document.documentElement.style.fontSize = s + 'px';
+  }
+  setSize(getSize());
+
+  document.getElementById('font-decrease').addEventListener('click', function() {
+    var cur = getSize(), idx = SIZES.indexOf(cur);
+    setSize(idx > 0 ? SIZES[idx - 1] : SIZES[0]);
+  });
+  document.getElementById('font-increase').addEventListener('click', function() {
+    var cur = getSize(), idx = SIZES.indexOf(cur);
+    setSize(idx < SIZES.length - 1 ? SIZES[idx + 1] : SIZES[SIZES.length - 1]);
+  });
+  document.getElementById('font-reset').addEventListener('click', function() {
+    setSize(DEFAULT);
+  });
+
+  // Theme toggle
+  document.getElementById('btn-theme-toggle').addEventListener('click', function() {
+    var isDark = document.body.style.background !== 'rgb(248, 250, 252)';
+    if (isDark) {
+      document.body.style.background = '#f8fafc';
+      document.body.style.color = '#1e293b';
+      document.querySelector('.header').style.background = '#ffffff';
+      document.querySelector('.header').style.borderColor = '#e2e8f0';
+      localStorage.setItem('bk_theme', 'light');
+    } else {
+      document.body.style.background = '#020617';
+      document.body.style.color = '#e2e8f0';
+      document.querySelector('.header').style.background = '#0f172a';
+      document.querySelector('.header').style.borderColor = '#1e293b';
+      localStorage.setItem('bk_theme', 'dark');
+    }
+  });
+  // Restore theme
+  if (localStorage.getItem('bk_theme') === 'light') {
+    document.body.style.background = '#f8fafc';
+    document.body.style.color = '#1e293b';
+    document.querySelector('.header').style.background = '#ffffff';
+    document.querySelector('.header').style.borderColor = '#e2e8f0';
+  }
+})();
+</script>
 </body>
 </html>
