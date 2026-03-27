@@ -1430,25 +1430,17 @@
     <button class="btn tool-btn" id="btn-trends-inline" title="Trends" style="font-size:10px;padding:4px 7px">Trends</button>
     <button class="btn tool-btn" id="btn-reading-inline" title="Reading List" style="font-size:10px;padding:4px 7px">Reading</button>
     <button class="btn tool-btn" id="btn-export-inline" title="Export" style="font-size:10px;padding:4px 7px">Export</button>
-    <button class="btn tool-btn" id="btn-digest-inline" title="Weekly Digest" style="font-size:10px;padding:4px 7px">Digest</button>
     <div class="more-wrap">
       <button class="btn" id="btn-more" title="More" style="font-size:12px;display:none">&#x22EF;</button>
       <div class="more-menu" id="more-menu">
         <button class="more-menu-item" id="menu-trends">&#x1F4C8; Trends</button>
         <button class="more-menu-item" id="menu-reading-list">&#x1F4DA; Reading List</button>
         <button class="more-menu-item" id="menu-export">&#x1F4E4; Export</button>
-        <button class="more-menu-item" id="menu-digest">&#x1F4CB; Weekly Digest</button>
-        <button class="more-menu-item" id="menu-journal-club">&#x1F3AF; Journal Club</button>
-        <button class="more-menu-item" id="menu-collaborators">&#x1F465; Collaborators</button>
         <button class="more-menu-item" id="menu-settings">&#x2699; Settings</button>
         <button class="more-menu-item" id="menu-help" style="border-top:1px solid #334155;margin-top:2px;padding-top:10px">&#x2753; Help</button>
       </div>
     </div>
-    <span style="display:inline-flex;align-items:center;border:1px solid #334155;border-radius:4px;overflow:hidden;margin:0 2px">
-      <button class="btn" id="font-decrease" title="Decrease font" style="padding:3px 5px;font-size:10px;border-radius:0;background:transparent">A-</button>
-      <button class="btn" id="font-reset" title="Reset font" style="padding:3px 4px;font-size:10px;border-radius:0;background:transparent;border-left:1px solid #334155;border-right:1px solid #334155">A</button>
-      <button class="btn" id="font-increase" title="Increase font" style="padding:3px 5px;font-size:10px;border-radius:0;background:transparent">A+</button>
-    </span>
+    <!-- Digest button removed (PWA-only feature) -->
     <button class="btn" id="btn-settings-inline" title="Settings">&#x2699;</button>
     <button class="btn" id="btn-popout" title="Open in full page">&#x2197;</button>
     <button class="btn" id="btn-refresh" title="Check now">&#x21BB;</button>
@@ -1464,6 +1456,20 @@
       </div>
     </button>
   </div>
+</div>
+
+<!-- Utility row -->
+<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 14px;background:#0f172a;border-bottom:1px solid #1e293b;font-size:10px;color:#64748b">
+  <span>Size:</span>
+  <span style="display:inline-flex;align-items:center;border:1px solid #334155;border-radius:4px;overflow:hidden">
+    <button class="btn" id="font-decrease" title="Decrease font" style="padding:2px 6px;font-size:10px;border-radius:0;background:transparent;color:#94a3b8">A-</button>
+    <button class="btn" id="font-reset" title="Reset font" style="padding:2px 5px;font-size:10px;border-radius:0;background:transparent;color:#94a3b8;border-left:1px solid #334155;border-right:1px solid #334155">A</button>
+    <button class="btn" id="font-increase" title="Increase font" style="padding:2px 6px;font-size:10px;border-radius:0;background:transparent;color:#94a3b8">A+</button>
+  </span>
+  <span style="color:#334155">|</span>
+  <span id="font-size-label" style="font-family:monospace;color:#94a3b8">14px</span>
+  <span style="flex:1"></span>
+  <span style="color:#64748b;font-size:9px">Ctrl+Shift+K toggle</span>
 </div>
 
 <!-- Add entity -->
@@ -1867,6 +1873,8 @@
   function setSize(s) {
     localStorage.setItem('bk_fontSize', s);
     document.documentElement.style.fontSize = s + 'px';
+    var label = document.getElementById('font-size-label');
+    if (label) label.textContent = s + 'px';
   }
   setSize(getSize());
 
