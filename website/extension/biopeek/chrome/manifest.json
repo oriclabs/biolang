@@ -23,7 +23,6 @@
   },
   "permissions": [
     "contextMenus",
-    "downloads",
     "storage",
     "activeTab"
   ],

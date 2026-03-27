@@ -154,6 +154,10 @@
 
     .empty { padding: 20px 16px; text-align: center; color: #475569; font-size: 12px; }
 
+    .btn-zoom { background: none; border: none; color: #94a3b8; cursor: pointer;
+      padding: 3px 7px; font-size: 10px; font-family: inherit; transition: color 0.1s; }
+    .btn-zoom:hover { color: #a78bfa; }
+
     /* Status */
     .status { padding: 8px 16px; font-size: 11px; color: #22d3ee; display: none; }
   </style>
@@ -202,6 +206,18 @@
     <button class="btn btn-secondary" id="open-help" style="flex:none; padding:8px 14px; font-size:11px; color:#a78bfa; border-color:rgba(124,58,237,0.3);">? Help</button>
   </div>
 
+  <!-- Zoom / Settings -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 16px;border-top:1px solid #1e293b;font-size:11px;color:#64748b">
+    <span>Zoom:</span>
+    <span style="display:inline-flex;align-items:center;border:1px solid #334155;border-radius:5px;overflow:hidden">
+      <button class="btn-zoom" id="zoom-out" title="Zoom out">A-</button>
+      <button class="btn-zoom" id="zoom-reset" title="Reset" style="border-left:1px solid #334155;border-right:1px solid #334155">A</button>
+      <button class="btn-zoom" id="zoom-in" title="Zoom in">A+</button>
+    </span>
+    <span id="zoom-label" style="font-family:monospace;font-size:10px;color:#94a3b8;min-width:30px;text-align:center">100%</span>
+    <button id="theme-toggle" style="background:none;border:none;cursor:pointer;font-size:14px;color:#94a3b8;padding:2px 4px" title="Toggle theme">&#x25D0;</button>
+  </div>
+
   <div class="status" id="status"></div>
 
   <div class="recent" id="recent-section" style="display:none">
@@ -215,5 +231,6 @@
   <input type="file" id="file-input" multiple accept=".fasta,.fa,.fna,.faa,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.sam,.csv,.tsv,.txt" style="display:none">
 
   <script src="popup.js"></script>
+  <script src="zoom-controls.js"></script>
 </body>
 </html>

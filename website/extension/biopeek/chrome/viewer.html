@@ -410,6 +410,14 @@
               <button class="vw-view-item" id="vw-transpose-btn" title="Transpose view"><span class="vw-vi-icon">&#8633;</span> Transpose</button>
               <button class="vw-view-item" id="vw-highlight-btn" title="Conditional highlighting"><span class="vw-vi-icon">&#9733;</span> Highlight</button>
               <button class="vw-view-item" id="vw-split-toggle" title="Split view"><span class="vw-vi-icon">&#9776;</span> Split View</button>
+              <div style="border-top:1px solid var(--vw-border);margin:4px 0"></div>
+              <div style="display:flex;align-items:center;gap:4px;padding:4px 12px">
+                <span style="font-size:11px;color:var(--vw-text-muted)">Zoom:</span>
+                <button class="vw-view-item" id="zoom-out" style="padding:2px 8px;flex:none;min-width:0" title="Zoom out">A-</button>
+                <span id="zoom-label" style="font-size:10px;color:var(--vw-text-muted);min-width:30px;text-align:center;font-family:var(--vw-mono)">100%</span>
+                <button class="vw-view-item" id="zoom-in" style="padding:2px 8px;flex:none;min-width:0" title="Zoom in">A+</button>
+                <button class="vw-view-item" id="zoom-reset" style="padding:2px 8px;flex:none;min-width:0" title="Reset zoom">Reset</button>
+              </div>
             </div>
           </div>
           <!-- Primary actions (always visible) -->
@@ -448,5 +456,6 @@
 
   <script src="viewer.js"></script>
   <script src="ext-loader.js"></script>
+  <script src="zoom-controls.js"></script>
 </body>
 </html>
