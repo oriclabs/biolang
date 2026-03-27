@@ -1430,17 +1430,20 @@
     <button class="btn tool-btn" id="btn-trends-inline" title="Trends" style="font-size:10px;padding:4px 7px">Trends</button>
     <button class="btn tool-btn" id="btn-reading-inline" title="Reading List" style="font-size:10px;padding:4px 7px">Reading</button>
     <button class="btn tool-btn" id="btn-export-inline" title="Export" style="font-size:10px;padding:4px 7px">Export</button>
+    <button class="btn tool-btn" id="btn-digest-inline" title="Weekly Digest" style="font-size:10px;padding:4px 7px">Digest</button>
     <div class="more-wrap">
       <button class="btn" id="btn-more" title="More" style="font-size:12px;display:none">&#x22EF;</button>
       <div class="more-menu" id="more-menu">
         <button class="more-menu-item" id="menu-trends">&#x1F4C8; Trends</button>
         <button class="more-menu-item" id="menu-reading-list">&#x1F4DA; Reading List</button>
         <button class="more-menu-item" id="menu-export">&#x1F4E4; Export</button>
+        <button class="more-menu-item" id="menu-digest">&#x1F4CB; Weekly Digest</button>
+        <button class="more-menu-item" id="menu-journal-club">&#x1F3AF; Journal Club</button>
+        <button class="more-menu-item" id="menu-collaborators">&#x1F465; Collaborators</button>
         <button class="more-menu-item" id="menu-settings">&#x2699; Settings</button>
         <button class="more-menu-item" id="menu-help" style="border-top:1px solid #334155;margin-top:2px;padding-top:10px">&#x2753; Help</button>
       </div>
     </div>
-    <!-- Digest button removed (PWA-only feature) -->
     <button class="btn" id="btn-settings-inline" title="Settings">&#x2699;</button>
     <button class="btn" id="btn-popout" title="Open in full page">&#x2197;</button>
     <button class="btn" id="btn-refresh" title="Check now">&#x21BB;</button>
@@ -1872,7 +1875,7 @@
   }
   function setSize(s) {
     localStorage.setItem('bk_fontSize', s);
-    document.documentElement.style.fontSize = s + 'px';
+    document.body.style.fontSize = s + 'px';
     var label = document.getElementById('font-size-label');
     if (label) label.textContent = s + 'px';
   }
