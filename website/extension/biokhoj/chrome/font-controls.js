@@ -1,28 +1,28 @@
-// Font size controls (A- A A+)
+// Font size controls (A- A A+) — uses CSS zoom to scale all content
 (function() {
-  var SIZES = [11, 12, 13, 14, 15, 16, 18];
-  var DEFAULT = 14;
+  var LEVELS = [80, 85, 90, 95, 100, 110, 120, 130];
+  var DEFAULT = 100;
 
-  function getSize() {
-    return parseInt(localStorage.getItem('bk_fontSize')) || DEFAULT;
+  function getZoom() {
+    return parseInt(localStorage.getItem('bk_zoom')) || DEFAULT;
   }
-  function setSize(s) {
-    localStorage.setItem('bk_fontSize', s);
-    document.body.style.fontSize = s + 'px';
+  function applyZoom(z) {
+    localStorage.setItem('bk_zoom', z);
+    document.body.style.zoom = (z / 100).toString();
     var label = document.getElementById('font-size-label');
-    if (label) label.textContent = s + 'px';
+    if (label) label.textContent = z + '%';
   }
-  setSize(getSize());
+  applyZoom(getZoom());
 
   document.getElementById('font-decrease').addEventListener('click', function() {
-    var cur = getSize(), idx = SIZES.indexOf(cur);
-    setSize(idx > 0 ? SIZES[idx - 1] : SIZES[0]);
+    var cur = getZoom(), idx = LEVELS.indexOf(cur);
+    applyZoom(idx > 0 ? LEVELS[idx - 1] : LEVELS[0]);
   });
   document.getElementById('font-increase').addEventListener('click', function() {
-    var cur = getSize(), idx = SIZES.indexOf(cur);
-    setSize(idx < SIZES.length - 1 ? SIZES[idx + 1] : SIZES[SIZES.length - 1]);
+    var cur = getZoom(), idx = LEVELS.indexOf(cur);
+    applyZoom(idx < LEVELS.length - 1 ? LEVELS[idx + 1] : LEVELS[LEVELS.length - 1]);
   });
   document.getElementById('font-reset').addEventListener('click', function() {
-    setSize(DEFAULT);
+    applyZoom(DEFAULT);
   });
 })();
