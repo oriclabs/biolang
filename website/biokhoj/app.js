@@ -1225,6 +1225,38 @@ document.getElementById('theme-toggle-btn')?.addEventListener('click', async () 
   applyTheme();
 });
 
+// Font size controls (A- A A+)
+const FONT_SIZES = [13, 14, 15, 16, 17, 18, 20];
+const DEFAULT_FONT_SIZE = 16;
+
+async function applyFontSize() {
+  const size = (await store.getSetting('fontSize')) || DEFAULT_FONT_SIZE;
+  document.documentElement.style.fontSize = size + 'px';
+}
+
+document.getElementById('font-decrease')?.addEventListener('click', async () => {
+  const current = (await store.getSetting('fontSize')) || DEFAULT_FONT_SIZE;
+  const idx = FONT_SIZES.indexOf(current);
+  const next = idx > 0 ? FONT_SIZES[idx - 1] : FONT_SIZES[0];
+  await store.saveSetting('fontSize', next);
+  applyFontSize();
+});
+
+document.getElementById('font-increase')?.addEventListener('click', async () => {
+  const current = (await store.getSetting('fontSize')) || DEFAULT_FONT_SIZE;
+  const idx = FONT_SIZES.indexOf(current);
+  const next = idx < FONT_SIZES.length - 1 ? FONT_SIZES[idx + 1] : FONT_SIZES[FONT_SIZES.length - 1];
+  await store.saveSetting('fontSize', next);
+  applyFontSize();
+});
+
+document.getElementById('font-reset')?.addEventListener('click', async () => {
+  await store.saveSetting('fontSize', DEFAULT_FONT_SIZE);
+  applyFontSize();
+});
+
+applyFontSize();
+
 // ---------------------------------------------------------------------------
 // 13b. API Budget Visualizer
 // ---------------------------------------------------------------------------
