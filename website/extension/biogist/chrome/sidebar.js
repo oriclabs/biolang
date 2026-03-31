@@ -1505,10 +1505,17 @@
     $empty.querySelector("strong").textContent = "No entities detected";
     $empty.querySelector("p").innerHTML = 'Click <b>Scan</b> to analyze the current page.';
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs[0]) return;
-      currentTabId = tabs[0].id;
-      scanTab(tabs[0].id);
+    // Use lastFocusedWindow to work reliably with sidePanel
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      // Filter out extension pages (sidebar itself, devtools, etc.)
+      var tab = tabs && tabs.find(function(t) { return t.url && !t.url.startsWith("chrome"); });
+      if (!tab) tab = tabs && tabs[0];
+      if (!tab) {
+        showToast("No active tab found");
+        return;
+      }
+      currentTabId = tab.id;
+      scanTab(tab.id);
     });
   });
 
@@ -1695,7 +1702,7 @@
     }
 
     // Clear highlights on current page
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
       if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: "clear-highlights" }).catch(() => {});
     });
 
@@ -1750,7 +1757,7 @@
       chrome.storage.local.set({ [`setting:${key}`]: isOn });
       // Wire highlight toggle to content script
       if (key === "highlight") {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
           if (tabs[0]) {
             chrome.tabs.sendMessage(tabs[0].id, {
               type: isOn ? "highlight" : "clear-highlights"
@@ -1914,7 +1921,7 @@
     if (msg.type === "tab-navigated" && viewMode === "current") {
       closeFilePanel();
       // Check if the navigated tab is the active one
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
         if (tabs[0] && tabs[0].id === msg.tabId) {
           loadEntitiesFromArray([]);
           activeEntity = null;
