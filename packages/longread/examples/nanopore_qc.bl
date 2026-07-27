@@ -1,0 +1,20 @@
+import "longread" as lr
+
+let fq = read_text("data/nanopore_reads.fastq")
+
+# Summary statistics
+lr.stats(fq)
+
+# Filter: keep reads >= 1 kb and mean quality >= Q8
+let filtered = lr.filter(fq, min_length=1000, min_quality=8.0)
+lr.stats(filtered)
+
+# Read length histogram (50 bins)
+# let lengths = [read lengths extracted from stats]
+# lr.length_hist(lengths, bins=50)
+
+# Per-read GC content
+lr.gc_per_read(fq)
+
+# Per-read quality distribution
+lr.quality_dist(fq)

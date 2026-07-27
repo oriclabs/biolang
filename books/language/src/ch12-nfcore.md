@@ -235,7 +235,8 @@ Before launching a whole-genome sequencing analysis with Sarek, you want to
 confirm that your reference genome configuration covers every required parameter
 and that no deprecated options have crept into your config.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Fetch the Sarek parameter schema
 let params = nfcore_params("sarek")
 

@@ -102,14 +102,16 @@ fn disassemble_instruction(chunk: &Chunk, offset: usize, op: &OpCode, out: &mut 
             out.push_str(&format!("{:<20} {:>5}\n", "CALL", argc));
         }
         OpCode::CallNative(id, argc) => {
-            out.push_str(&format!("{:<20} id={:<3} argc={}\n", "CALL_NATIVE", id, argc));
+            out.push_str(&format!(
+                "{:<20} id={:<3} argc={}\n",
+                "CALL_NATIVE", id, argc
+            ));
         }
         OpCode::Return => out.push_str("RETURN\n"),
+        OpCode::Yield => out.push_str("YIELD\n"),
         OpCode::Closure(idx) => {
             let name = match chunk.constants.get(*idx as usize) {
-                Some(Constant::Function(f)) => {
-                    f.name.as_deref().unwrap_or("<closure>").to_string()
-                }
+                Some(Constant::Function(f)) => f.name.as_deref().unwrap_or("<closure>").to_string(),
                 _ => format!("#{}", idx),
             };
             out.push_str(&format!("{:<20} {:>5} ({})\n", "CLOSURE", idx, name));
@@ -125,7 +127,11 @@ fn disassemble_instruction(chunk: &Chunk, offset: usize, op: &OpCode, out: &mut 
             out.push_str(&format!("{:<20} {:>5}\n", "MAKE_SET", n));
         }
         OpCode::MakeRange(inclusive) => {
-            let label = if *inclusive == 1 { "inclusive" } else { "exclusive" };
+            let label = if *inclusive == 1 {
+                "inclusive"
+            } else {
+                "exclusive"
+            };
             out.push_str(&format!("{:<20} ({})\n", "MAKE_RANGE", label));
         }
         OpCode::GetField(idx) => {
@@ -173,11 +179,17 @@ fn disassemble_instruction(chunk: &Chunk, offset: usize, op: &OpCode, out: &mut 
         OpCode::MakeFormula(idx) => {
             out.push_str(&format!("{:<20} {:>5}\n", "MAKE_FORMULA", idx));
         }
-        OpCode::Import(idx, has_alias) => {
+        OpCode::MakeRegex => out.push_str("MAKE_REGEX\n"),
+        OpCode::Import(idx, alias_idx) => {
             let name = name_display(chunk, *idx);
+            let alias = if *alias_idx == u16::MAX {
+                "none".to_string()
+            } else {
+                name_display(chunk, *alias_idx)
+            };
             out.push_str(&format!(
                 "{:<20} {:>5} ({}) alias={}\n",
-                "IMPORT", idx, name, has_alias
+                "IMPORT", idx, name, alias
             ));
         }
         OpCode::AssertCheck => out.push_str("ASSERT_CHECK\n"),

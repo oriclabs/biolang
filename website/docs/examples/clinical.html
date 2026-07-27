@@ -91,12 +91,11 @@ let tier2 = vcf
   })
 
 # Tier 3: Rare variants in disease genes
-let disease_genes = read_text("disease_gene_panel.txt") |> split("
-") |> collect
+let disease_genes = read_lines("disease_gene_panel.txt")
 let tier3 = vcf
   |> filter(|v| { v.filter == "PASS" })
   |> filter(|v| { disease_genes |> contains(v.info["gene"]) })
-  |> filter(|v| { (v.info["gnomAD_AF"] ?? "0") |> float < 0.001 })
+  |> filter(|v| { (v.info["gnomAD_AF"] ?? "0") |> float &lt; 0.001 })
   |> filter(|v| { v.info["IMPACT"] == "HIGH" || v.info["IMPACT"] == "MODERATE" })
 
 print(f"Tier 1 (known pathogenic):  {tier1 |> len}")
@@ -117,7 +116,7 @@ let rare = vcf
   |> filter(|v| {
     let af_all = (v.info["gnomAD_AF"] ?? "0") |> float
     let af_max = (v.info["gnomAD_AF_popmax"] ?? "0") |> float
-    af_all < 0.01 && af_max < 0.01
+    af_all &lt; 0.01 && af_max &lt; 0.01
   })
 
 print(f"Total PASS variants: {vcf |> filter(|v| { v.filter == "PASS" }) |> len}")
@@ -132,8 +131,7 @@ let classify_variant = |v| {
   let evidence = []
 
   # PVS1: Null variant in a gene where LOF is a known mechanism
-  let lof_genes = read_text("lof_genes.txt") |> split("
-") |> collect
+  let lof_genes = read_lines("lof_genes.txt")
   if contains(["nonsense", "frameshift", "splice"], v.consequence) && lof_genes |> contains(v.gene) {
     evidence |> push("PVS1")
   }
@@ -144,7 +142,7 @@ let classify_variant = |v| {
   }
 
   # PM2: Absent from controls (or extremely rare)
-  if (v.gnomad_af ?? 0.0) < 0.0001 {
+  if (v.gnomad_af ?? 0.0) &lt; 0.0001 {
     evidence |> push("PM2")
   }
 
@@ -154,8 +152,7 @@ let classify_variant = |v| {
   }
 
   # BP1: Missense in gene where only truncating cause disease
-  let trunc_only = read_text("truncating_only_genes.txt") |> split("
-") |> collect
+  let trunc_only = read_lines("truncating_only_genes.txt")
   if v.consequence == "missense" && trunc_only |> contains(v.gene) {
     evidence |> push("BP1")
   }
@@ -224,7 +221,7 @@ let pgx_variants = tsv("pgx_reference.tsv")  # star alleles and rsIDs
 let patient_vcf = read_vcf("patient.vcf.gz")
 
 let pgx_hits = pgx_variants |> map(|pgx| {
-  let match = patient_vcf
+  let variant_hit = patient_vcf
     |> filter(|v| { v.chrom == pgx["chrom"] && v.pos == pgx["pos"] |> int })
     |> first
 
@@ -233,7 +230,7 @@ let pgx_hits = pgx_variants |> map(|pgx| {
     star_allele: pgx["star_allele"],
     rsid: pgx["rsid"],
     drug: pgx["drug"],
-    genotype: match?.genotypes |> first ?? "ref/ref",
+    genotype: (variant_hit?.genotypes |> first) ?? "ref/ref",
     phenotype: pgx["phenotype"]
   }
 })

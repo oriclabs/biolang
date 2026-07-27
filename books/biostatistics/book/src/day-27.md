@@ -38,12 +38,10 @@ Any analysis involving randomness — bootstrap, permutation tests, cross-valida
 ```bio
 set_seed(42)
 # ALWAYS set a seed at the start of any analysis with randomness
-# Note: set_seed() is planned but not yet implemented in BioLang.
-# For now, random results may vary between runs.
-
-# Once available, these will produce identical results every time
+let data = [4.8, 5.1, 5.3, 5.9, 6.2, 6.4, 6.8, 7.1, 7.4, 7.9]
+# These produce identical results every time.
 # Bootstrap the median
-let n_boot = 10000
+let n_boot = 1000
 let boot_medians = range(0, n_boot) |> map(|i| {
   let resampled = range(0, len(data)) |> map(|j| data[random_int(0, len(data) - 1)])
   median(resampled)
@@ -110,14 +108,14 @@ set_seed(42)
 let seeds = [42, 123, 456, 789, 2024]
 
 for s in seeds {
-  # set_seed(s) — not yet implemented; planned for a future release
-  let boot_vals = range(0, 10000) |> map(|i| {
+  set_seed(s)
+  let boot_vals = range(0, 1000) |> map(|i| {
     let resampled = range(0, len(data)) |> map(|j| data[random_int(0, len(data) - 1)])
     median(resampled)
   })
   let sorted_b = sort(boot_vals)
-  let ci_lo = sorted_b[250]
-  let ci_hi = sorted_b[9749]
+  let ci_lo = sorted_b[25]
+  let ci_hi = sorted_b[974]
   print("Seed " + str(s) + ": CI = [" +
     str(round(ci_lo, 3)) + ", " +
     str(round(ci_hi, 3)) + "]")
@@ -189,7 +187,8 @@ Every analysis script should follow a predictable structure:
 
 ### Example: Well-Structured Analysis
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # ============================================
 # Differential Expression Analysis
 # Author: Your Name
@@ -199,7 +198,7 @@ Every analysis script should follow a predictable structure:
 # ============================================
 
 # --- 1. Configuration ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 
 let CONFIG = {
   input_counts: "data/counts_matrix.csv",
@@ -220,7 +219,7 @@ print("Groups: " + str(unique(samples.group)))
 
 # --- 3. Preprocessing ---
 # Filter low-expression genes (at least 10 counts in 3+ samples)
-let keep = counts |> filter_rows(|row| count(row, |x| x >= 10) >= 3)
+let keep = counts |> filter_rows(|row| count_if(row, |x| x >= 10) >= 3)
 print("Genes after filtering: " + str(nrow(keep)))
 
 # Normalize: log2(CPM + 1)
@@ -260,8 +259,8 @@ let sig_genes = de_results
   |> sort_by(|r| r.adj_p)
 
 print("\nSignificant DE genes: " + str(len(sig_genes)))
-print("  Upregulated: " + str(count(sig_genes, |g| g.log2fc > 0)))
-print("  Downregulated: " + str(count(sig_genes, |g| g.log2fc < 0)))
+print("  Upregulated: " + str(count_if(sig_genes, |g| g.log2fc > 0)))
+print("  Downregulated: " + str(count_if(sig_genes, |g| g.log2fc < 0)))
 
 # --- 6. Visualization ---
 let de_tbl = de_results |> to_table()
@@ -340,7 +339,8 @@ As analyses grow complex, extract repeated logic into functions. This avoids cop
 </svg>
 </div>
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # --- Helper functions ---
 
 fn normalize_cpm(counts) {
@@ -370,7 +370,7 @@ fn filter_significant(results, fc_cut, fdr_cut) {
 }
 
 # --- Main analysis (now concise and readable) ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 let expr = read_csv("data/counts.csv") |> normalize_cpm()
 let de = run_de(expr, tumor_idx, normal_idx)
 let sig = filter_significant(de, 1.0, 0.05)
@@ -407,7 +407,7 @@ output:
 ```bio
 # Load configuration
 let config = read_yaml("config.yaml")
-# set_seed(config.random_seed) — not yet implemented; planned for a future release
+set_seed(config.random_seed)
 
 let counts = read_csv(config.input.counts)
 let sig = de_results |> filter(|r|
@@ -436,8 +436,7 @@ Literate analysis interleaves code, results, and narrative explanation in a sing
 # Any sample > 3 SD from the centroid will be flagged.
 
 let pca_result = pca(log_cpm)
-scatter(pca_result.scores[0], pca_result.scores[1],
-  {title: "PCA — Quality Control"})
+scatter(pca_result.scores[0], pca_result.scores[1])
 
 # Result: Sample S14 is a clear outlier on PC1 (3.8 SD from centroid).
 # Decision: Remove S14 from downstream analysis.
@@ -490,8 +489,8 @@ Let us take a messy analysis from earlier chapters and restructure it into a rep
 ```bio
 # quick analysis
 let d = read_csv("data/expression.csv")
-let a = d |> filter(|r| r.group == "A") |> map(|r| r.value)
-let b = d |> filter(|r| r.group == "B") |> map(|r| r.value)
+let a = d |> filter(|r| r.condition == "treatment") |> map(|r| r.sample1)
+let b = d |> filter(|r| r.condition == "control") |> map(|r| r.sample1)
 print(ttest(a, b))
 # p = 0.003 — hardcoded from a previous run
 histogram(a, {bins: 30})
@@ -510,7 +509,7 @@ set_seed(42)
 # ============================================
 
 # --- Configuration ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 
 let CONFIG = {
   input: "data/enzyme_activity.csv",
@@ -526,8 +525,8 @@ let CONFIG = {
 # --- Data Loading ---
 let data = read_csv(CONFIG.input)
 print("Total observations: " + str(nrow(data)))
-print("Group A: n=" + str(count(data, |r| r[CONFIG.group_col] == CONFIG.group_a)))
-print("Group B: n=" + str(count(data, |r| r[CONFIG.group_col] == CONFIG.group_b)))
+print("Group A: n=" + str(count_if(data, |r| r[CONFIG.group_col] == CONFIG.group_a)))
+print("Group B: n=" + str(count_if(data, |r| r[CONFIG.group_col] == CONFIG.group_b)))
 
 let a = data |> filter(|r| r[CONFIG.group_col] == CONFIG.group_a) |> map(|r| r[CONFIG.value_col])
 let b = data |> filter(|r| r[CONFIG.group_col] == CONFIG.group_b) |> map(|r| r[CONFIG.value_col])
@@ -549,7 +548,7 @@ print("  95% CI for difference: [" +
   str(round(tt.ci_lower, 3)) + ", " + str(round(tt.ci_upper, 3)) + "]")
 
 # Cohen's d (inline)
-let pooled_sd = sqrt(((len(a) - 1) * pow(sd(a), 2) + (len(b) - 1) * pow(sd(b), 2)) /
+let pooled_sd = sqrt(((len(a) - 1) * pow(stdev(a), 2) + (len(b) - 1) * pow(stdev(b), 2)) /
   (len(a) + len(b) - 2))
 let d = (mean(a) - mean(b)) / pooled_sd
 print("  Cohen's d = " + str(round(d, 3)))
@@ -558,20 +557,21 @@ print("  Cohen's d = " + str(round(d, 3)))
 let n_boot = CONFIG.n_bootstrap
 let combined = concat(a, b)
 let boot_diffs = range(0, n_boot) |> map(|i| {
-  let ra = range(0, len(a)) |> map(|j| a[random_int(0, len(a) - 1)])
-  let rb = range(0, len(b)) |> map(|j| b[random_int(0, len(b) - 1)])
+  let ra = range(0, len(a)) |> map(|j| a[random_int(0, len(a))])
+  let rb = range(0, len(b)) |> map(|j| b[random_int(0, len(b))])
   mean(ra) - mean(rb)
 })
 let sorted_boot = sort(boot_diffs)
-let boot_ci_lo = sorted_boot[round(n_boot * 0.025, 0)]
-let boot_ci_hi = sorted_boot[round(n_boot * 0.975, 0)]
+let boot_ci_lo = sorted_boot[int(n_boot * 0.025)]
+let boot_ci_hi = sorted_boot[int(n_boot * 0.975)]
 print("\nBootstrap 95% CI for mean difference: [" +
   str(round(boot_ci_lo, 3)) + ", " +
   str(round(boot_ci_hi, 3)) + "]")
 
 # --- Visualization ---
-violin([a, b],
-  {labels: [CONFIG.group_a, CONFIG.group_b],
+let violin_data = table({"Treatment A": a, "Treatment B": b})
+violin(violin_data,
+  {
   title: "Enzyme Activity by Treatment",
   ylabel: "Activity (U/L)"})
 

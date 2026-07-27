@@ -1,4 +1,5 @@
 use bl_core::value::Value;
+use bl_runtime::builtins::call_builtin;
 use bl_runtime::matrix::call_matrix_builtin;
 
 // ── Helper ──────────────────────────────────────────────────────
@@ -6,8 +7,8 @@ use bl_runtime::matrix::call_matrix_builtin;
 fn make_matrix_val(rows: Vec<Vec<f64>>) -> Value {
     Value::List(
         rows.into_iter()
-            .map(|row| Value::List(row.into_iter().map(Value::Float).collect()))
-            .collect(),
+            .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+            .collect::<Vec<_>>().into(),
     )
 }
 
@@ -19,10 +20,10 @@ fn mat(rows: Vec<Vec<f64>>) -> Value {
 
 #[test]
 fn test_matrix_construction() {
-    let list = Value::List(vec![
-        Value::List(vec![Value::Int(1), Value::Int(2)]),
-        Value::List(vec![Value::Int(3), Value::Int(4)]),
-    ]);
+    let list = Value::List((vec![
+        Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+        Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
+    ]).into());
     let result = call_matrix_builtin("matrix", vec![list]).unwrap();
     if let Value::Matrix(m) = result {
         assert_eq!(m.nrow, 2);
@@ -36,7 +37,7 @@ fn test_matrix_construction() {
 
 #[test]
 fn test_matrix_construction_from_empty_list() {
-    let list = Value::List(vec![]);
+    let list = Value::List((vec![]).into());
     let result = call_matrix_builtin("matrix", vec![list]);
     // Empty list of rows should produce a 0x0 matrix or error
     // Depends on Matrix::new behavior with 0 rows
@@ -51,19 +52,22 @@ fn test_matrix_construction_from_empty_list() {
 
 #[test]
 fn test_matrix_construction_ragged_rows() {
-    let list = Value::List(vec![
-        Value::List(vec![Value::Int(1), Value::Int(2)]),
-        Value::List(vec![Value::Int(3)]),
-    ]);
+    let list = Value::List((vec![
+        Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+        Value::List((vec![Value::Int(3)]).into()),
+    ]).into());
     let result = call_matrix_builtin("matrix", vec![list]);
     assert!(result.is_err(), "ragged rows should produce an error");
 }
 
 #[test]
 fn test_matrix_construction_non_numeric() {
-    let list = Value::List(vec![Value::List(vec![Value::Str("bad".into())])]);
+    let list = Value::List((vec![Value::List((vec![Value::Str("bad".into())]).into())]).into());
     let result = call_matrix_builtin("matrix", vec![list]);
-    assert!(result.is_err(), "non-numeric values should produce an error");
+    assert!(
+        result.is_err(),
+        "non-numeric values should produce an error"
+    );
 }
 
 #[test]
@@ -106,7 +110,12 @@ fn test_identity_matrix_properties() {
     }
 
     // I * A = A (dot product with identity should be identity)
-    let a = mat(vec![vec![1.0, 2.0, 3.0, 4.0], vec![5.0, 6.0, 7.0, 8.0], vec![9.0, 10.0, 11.0, 12.0], vec![13.0, 14.0, 15.0, 16.0]]);
+    let a = mat(vec![
+        vec![1.0, 2.0, 3.0, 4.0],
+        vec![5.0, 6.0, 7.0, 8.0],
+        vec![9.0, 10.0, 11.0, 12.0],
+        vec![13.0, 14.0, 15.0, 16.0],
+    ]);
     let result = call_matrix_builtin("dot", vec![eye, a.clone()]).unwrap();
     if let (Value::Matrix(r), Value::Matrix(orig)) = (&result, &a) {
         for i in 0..4 {
@@ -124,10 +133,10 @@ fn test_identity_matrix_properties() {
 
 #[test]
 fn test_transpose() {
-    let list = Value::List(vec![
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)]),
-        Value::List(vec![Value::Int(4), Value::Int(5), Value::Int(6)]),
-    ]);
+    let list = Value::List((vec![
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
+        Value::List((vec![Value::Int(4), Value::Int(5), Value::Int(6)]).into()),
+    ]).into());
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("transpose", vec![mat]).unwrap();
     if let Value::Matrix(m) = result {
@@ -138,13 +147,13 @@ fn test_transpose() {
 
 #[test]
 fn test_transpose_1xn_to_nx1() {
-    let list = Value::List(vec![Value::List(vec![
+    let list = Value::List((vec![Value::List((vec![
         Value::Float(1.0),
         Value::Float(2.0),
         Value::Float(3.0),
         Value::Float(4.0),
         Value::Float(5.0),
-    ])]);
+    ]).into())]).into());
     let m = call_matrix_builtin("matrix", vec![list]).unwrap();
     // 1x5 matrix
     if let Value::Matrix(ref mat) = m {
@@ -166,14 +175,14 @@ fn test_transpose_1xn_to_nx1() {
 
 #[test]
 fn test_dot_product() {
-    let a = Value::List(vec![
-        Value::List(vec![Value::Int(1), Value::Int(2)]),
-        Value::List(vec![Value::Int(3), Value::Int(4)]),
-    ]);
-    let b = Value::List(vec![
-        Value::List(vec![Value::Int(5), Value::Int(6)]),
-        Value::List(vec![Value::Int(7), Value::Int(8)]),
-    ]);
+    let a = Value::List((vec![
+        Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+        Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
+    ]).into());
+    let b = Value::List((vec![
+        Value::List((vec![Value::Int(5), Value::Int(6)]).into()),
+        Value::List((vec![Value::Int(7), Value::Int(8)]).into()),
+    ]).into());
     let ma = call_matrix_builtin("matrix", vec![a]).unwrap();
     let mb = call_matrix_builtin("matrix", vec![b]).unwrap();
     let result = call_matrix_builtin("dot", vec![ma, mb]).unwrap();
@@ -184,40 +193,59 @@ fn test_dot_product() {
 }
 
 #[test]
+fn test_mat_mul_is_matrix_product() {
+    let a = mat(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+    let b = mat(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
+    let result = call_matrix_builtin("mat_mul", vec![a, b]).unwrap();
+
+    if let Value::Matrix(m) = result {
+        assert_eq!(m.get(0, 0), 19.0);
+        assert_eq!(m.get(0, 1), 22.0);
+        assert_eq!(m.get(1, 0), 43.0);
+        assert_eq!(m.get(1, 1), 50.0);
+    } else {
+        panic!("expected Matrix");
+    }
+}
+
+#[test]
 fn test_dot_product_dimension_mismatch() {
     // 2x3 * 2x3 => error (inner dimensions 3 != 2)
     let a = mat(vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]]);
     let b = mat(vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]]);
     let result = call_matrix_builtin("dot", vec![a, b]);
-    assert!(result.is_err(), "dot product with mismatched dimensions should error");
+    assert!(
+        result.is_err(),
+        "dot product with mismatched dimensions should error"
+    );
 }
 
 // ── dim ─────────────────────────────────────────────────────────
 
 #[test]
 fn test_dim() {
-    let list = Value::List(vec![Value::List(vec![
+    let list = Value::List((vec![Value::List((vec![
         Value::Int(1),
         Value::Int(2),
         Value::Int(3),
-    ])]);
+    ]).into())]).into());
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("dim", vec![mat]).unwrap();
-    assert_eq!(result, Value::List(vec![Value::Int(1), Value::Int(3)]));
+    assert_eq!(result, Value::List((vec![Value::Int(1), Value::Int(3)]).into()));
 }
 
 // ── Arithmetic ──────────────────────────────────────────────────
 
 #[test]
 fn test_mat_arithmetic() {
-    let a = Value::List(vec![
-        Value::List(vec![Value::Float(1.0), Value::Float(2.0)]),
-        Value::List(vec![Value::Float(3.0), Value::Float(4.0)]),
-    ]);
-    let b = Value::List(vec![
-        Value::List(vec![Value::Float(5.0), Value::Float(6.0)]),
-        Value::List(vec![Value::Float(7.0), Value::Float(8.0)]),
-    ]);
+    let a = Value::List((vec![
+        Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
+        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+    ]).into());
+    let b = Value::List((vec![
+        Value::List((vec![Value::Float(5.0), Value::Float(6.0)]).into()),
+        Value::List((vec![Value::Float(7.0), Value::Float(8.0)]).into()),
+    ]).into());
     let ma = call_matrix_builtin("matrix", vec![a]).unwrap();
     let mb = call_matrix_builtin("matrix", vec![b]).unwrap();
 
@@ -237,39 +265,45 @@ fn test_mat_arithmetic() {
 
 #[test]
 fn test_row_col_aggregation() {
-    let list = Value::List(vec![
-        Value::List(vec![Value::Float(1.0), Value::Float(2.0)]),
-        Value::List(vec![Value::Float(3.0), Value::Float(4.0)]),
-    ]);
+    let list = Value::List((vec![
+        Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
+        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+    ]).into());
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
 
     let rs = call_matrix_builtin("row_sums", vec![mat.clone()]).unwrap();
-    assert_eq!(
-        rs,
-        Value::List(vec![Value::Float(3.0), Value::Float(7.0)])
-    );
+    assert_eq!(rs, Value::List((vec![Value::Float(3.0), Value::Float(7.0)]).into()));
 
     let cm = call_matrix_builtin("col_means", vec![mat]).unwrap();
-    assert_eq!(
-        cm,
-        Value::List(vec![Value::Float(2.0), Value::Float(3.0)])
-    );
+    assert_eq!(cm, Value::List((vec![Value::Float(2.0), Value::Float(3.0)]).into()));
 }
 
 // ── PCA ─────────────────────────────────────────────────────────
 
 #[test]
 fn test_pca() {
-    let list = Value::List(vec![
-        Value::List(vec![Value::Float(1.0), Value::Float(2.0), Value::Float(3.0)]),
-        Value::List(vec![Value::Float(4.0), Value::Float(5.0), Value::Float(6.0)]),
-        Value::List(vec![Value::Float(7.0), Value::Float(8.0), Value::Float(9.0)]),
-        Value::List(vec![
+    let list = Value::List((vec![
+        Value::List((vec![
+            Value::Float(1.0),
+            Value::Float(2.0),
+            Value::Float(3.0),
+        ]).into()),
+        Value::List((vec![
+            Value::Float(4.0),
+            Value::Float(5.0),
+            Value::Float(6.0),
+        ]).into()),
+        Value::List((vec![
+            Value::Float(7.0),
+            Value::Float(8.0),
+            Value::Float(9.0),
+        ]).into()),
+        Value::List((vec![
             Value::Float(10.0),
             Value::Float(11.0),
             Value::Float(12.0),
-        ]),
-    ]);
+        ]).into()),
+    ]).into());
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("pca", vec![mat, Value::Int(2)]).unwrap();
     if let Value::Record(map) = result {
@@ -278,6 +312,17 @@ fn test_pca() {
     } else {
         panic!("expected Record");
     }
+}
+
+#[test]
+fn test_pca_dispatches_matrix_to_matrix_implementation() {
+    let matrix = mat(vec![vec![1.0, 2.0], vec![3.0, 4.0], vec![5.0, 6.0]]);
+    let result = call_builtin("pca", vec![matrix, Value::Int(2)]).unwrap();
+    let Value::Record(fields) = result else {
+        panic!("expected PCA record");
+    };
+    assert!(fields.contains_key("components"));
+    assert!(fields.contains_key("transformed"));
 }
 
 #[test]
@@ -317,11 +362,11 @@ fn test_pca_more_variables_than_samples() {
 
 #[test]
 fn test_cor_matrix() {
-    let list = Value::List(vec![
-        Value::List(vec![Value::Float(1.0), Value::Float(2.0)]),
-        Value::List(vec![Value::Float(3.0), Value::Float(4.0)]),
-        Value::List(vec![Value::Float(5.0), Value::Float(6.0)]),
-    ]);
+    let list = Value::List((vec![
+        Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
+        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+        Value::List((vec![Value::Float(5.0), Value::Float(6.0)]).into()),
+    ]).into());
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("cor_matrix", vec![mat]).unwrap();
     if let Value::Matrix(m) = result {
@@ -333,14 +378,13 @@ fn test_cor_matrix() {
 #[test]
 fn test_cor_matrix_constant_column() {
     // One constant column => correlation with it is degenerate (NaN or 0.0)
-    let m = mat(vec![
-        vec![1.0, 5.0],
-        vec![2.0, 5.0],
-        vec![3.0, 5.0],
-    ]);
+    let m = mat(vec![vec![1.0, 5.0], vec![2.0, 5.0], vec![3.0, 5.0]]);
     let result = call_matrix_builtin("cor_matrix", vec![m]).unwrap();
     if let Value::Matrix(cm) = result {
-        assert!((cm.get(0, 0) - 1.0).abs() < 1e-10, "self-correlation of non-constant column");
+        assert!(
+            (cm.get(0, 0) - 1.0).abs() < 1e-10,
+            "self-correlation of non-constant column"
+        );
         // correlation involving a constant column is degenerate (NaN or 0)
         let cross = cm.get(0, 1);
         assert!(
@@ -356,10 +400,10 @@ fn test_cor_matrix_constant_column() {
 
 #[test]
 fn test_dist_matrix() {
-    let list = Value::List(vec![
-        Value::List(vec![Value::Float(0.0), Value::Float(0.0)]),
-        Value::List(vec![Value::Float(3.0), Value::Float(4.0)]),
-    ]);
+    let list = Value::List((vec![
+        Value::List((vec![Value::Float(0.0), Value::Float(0.0)]).into()),
+        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+    ]).into());
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result =
         call_matrix_builtin("dist_matrix", vec![mat, Value::Str("euclidean".into())]).unwrap();
@@ -404,10 +448,10 @@ fn test_dist_matrix_manhattan() {
 
 #[test]
 fn test_matrix_to_table() {
-    let list = Value::List(vec![
-        Value::List(vec![Value::Float(1.0), Value::Float(2.0)]),
-        Value::List(vec![Value::Float(3.0), Value::Float(4.0)]),
-    ]);
+    let list = Value::List((vec![
+        Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
+        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+    ]).into());
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("matrix_to_table", vec![mat]).unwrap();
     if let Value::Table(t) = result {
@@ -438,7 +482,10 @@ fn test_matrix_to_table_default_column_names() {
 fn test_mat_map_requires_hof() {
     let m = mat(vec![vec![1.0]]);
     let result = call_matrix_builtin("mat_map", vec![m, Value::Int(2)]);
-    assert!(result.is_err(), "mat_map should error via call_matrix_builtin");
+    assert!(
+        result.is_err(),
+        "mat_map should error via call_matrix_builtin"
+    );
 }
 
 // ── Unknown builtin ─────────────────────────────────────────────

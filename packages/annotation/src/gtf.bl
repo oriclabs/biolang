@@ -1,0 +1,4 @@
+fn load(path)                          { read_text(path) |> parse_gtf }
+fn genes(gtf)                          { gene_bodies(gtf) }
+fn promoters(gtf, up=2000, down=200)   { promoters(gtf, up, down) }
+fn id_map(gtf)                         { gene_id_map(gtf) }

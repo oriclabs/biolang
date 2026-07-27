@@ -1,0 +1,30 @@
+[
+  {
+    "backend": "native",
+    "capability": "read_anndata_zarr",
+    "reason": "first available by precedence → native",
+    "ts": 1785124566210,
+    "warnings": []
+  },
+  {
+    "backend": "native",
+    "capability": "differential_expression",
+    "reason": "first available by precedence → native",
+    "ts": 1785124566393,
+    "warnings": []
+  },
+  {
+    "backend": "native",
+    "capability": "read_anndata_zarr",
+    "reason": "first available by precedence → native",
+    "ts": 1785124588618,
+    "warnings": []
+  },
+  {
+    "backend": "native",
+    "capability": "differential_expression",
+    "reason": "first available by precedence → native",
+    "ts": 1785124588934,
+    "warnings": []
+  }
+]

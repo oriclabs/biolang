@@ -91,7 +91,7 @@ let samples = table([
 ### Column Access
 
 ```biolang
-let coverages = samples |> select("coverage")
+let coverages = col(samples, "coverage")
 print(coverages)   # => [35.2, 31.4, 42.1, 36.8]
 
 # Multiple columns
@@ -111,7 +111,7 @@ samples |> each(|row| {
 ### `select` -- Choose Columns
 
 ```biolang
-let qc_summary = full_table |> select("sample_id", "total_reads", "pct_mapped", "mean_coverage")
+let qc_summary = samples |> select("sample_id", "reads", "coverage")
 ```
 
 ### `mutate` -- Add or Transform Columns
@@ -126,8 +126,8 @@ let enriched = samples
 ### `summarize` -- Aggregate Statistics
 
 ```biolang
-let coverages = samples |> select("coverage")
-let all_reads = samples |> select("reads")
+let coverages = col(samples, "coverage")
+let all_reads = col(samples, "reads")
 
 let stats = {
   n_samples: len(samples),
@@ -148,8 +148,8 @@ let by_tissue = samples
   |> summarize(|tissue, group| {
     tissue: tissue,
     n: len(group),
-    mean_cov: mean(group |> select("coverage")),
-    mean_reads: mean(group |> select("reads")),
+    mean_cov: mean(col(group, "coverage")),
+    mean_reads: mean(col(group, "reads")),
   })
 
 by_tissue |> each(|row|
@@ -180,9 +180,10 @@ let good_tumor = samples
   |> filter(|row| row.reads >= 40_000_000)
 ```
 
-### Joins (Conceptual)
+### Joins
 
-Table joins are planned for a future release. Currently, use `map` with lookups:
+Use `inner_join` when only matched rows should remain, or `left_join` when all
+rows from the first table must be preserved:
 
 ```biolang
 let annotations = table([
@@ -191,13 +192,7 @@ let annotations = table([
   {sample_id: "S003", patient: "P202", stage: "II"}
 ])
 
-# Manual left join via lookup
-let ann_map = annotations |> group_by("sample_id")
-let joined = samples |> map(|row| {
-  let ann_rows = ann_map[row.sample_id]
-  let ann = if !is_nil(ann_rows) then first(ann_rows) else nil
-  {...row, patient: ann?.patient ?? "unknown", stage: ann?.stage ?? "unknown"}
-})
+let joined = left_join(samples, annotations, "sample_id")
 ```
 
 ## Ranges
@@ -205,13 +200,13 @@ let joined = samples |> map(|row| {
 Ranges generate sequences of integers, useful for genomic coordinate windows:
 
 ```biolang
-let indices = 0..10          # [0, 1, 2, ..., 9]
-let inclusive = 0..=10       # [0, 1, 2, ..., 10]
-let stepped = 0..100..10    # [0, 10, 20, ..., 90]
+let indices = range(0, 10)          # [0, 1, 2, ..., 9]
+let inclusive = range(0, 11)        # [0, 1, 2, ..., 10]
+let stepped = range(0, 100, 10)     # [0, 10, 20, ..., 90]
 
 # Chromosome positions in 1 Mb windows
 let chrom_length = 248_956_422   # chr1
-let windows = 0..chrom_length..1_000_000
+let windows = range(0, chrom_length, 1_000_000)
   |> map(|start| {
     chrom: "chr1",
     start: start,
@@ -295,7 +290,8 @@ qc_flagged |> write_tsv("qc_summary.csv")
 
 Load a counts matrix, filter low-count genes, and apply TPM normalization.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # expression_normalize.bl
 # Filter low-count genes and compute TPM from a raw counts matrix.
 
@@ -368,7 +364,8 @@ tpm_table |> write_tsv("tpm_normalized.csv")
 
 Combine VCF calls from multiple samples into a unified genotype matrix.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # merge_variants.bl
 # Merge variant calls from multiple samples into a unified table.
 

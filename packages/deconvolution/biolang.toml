@@ -1,0 +1,8 @@
+[package]
+name = "deconvolution"
+version = "0.1.0"
+description = "Bulk RNA-seq cell type deconvolution: NNLS, marker scoring, purity estimation"
+authors = ["BioLang"]
+
+[dependencies]
+rnaseq = { path = "../rnaseq" }

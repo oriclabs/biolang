@@ -17,7 +17,8 @@ fn make_opts(pairs: Vec<(&str, Value)>) -> Value {
         pairs
             .into_iter()
             .map(|(k, v)| (k.to_string(), v))
-            .collect(),
+            .collect::<std::collections::HashMap<_, _>>()
+            .into(),
     )
 }
 
@@ -29,7 +30,10 @@ fn assert_svg(val: &Value) {
     if let Value::Str(s) = val {
         assert!(s.contains("<svg"), "output should contain <svg tag");
     } else {
-        panic!("expected Value::Str with SVG content, got {:?}", val.type_of());
+        panic!(
+            "expected Value::Str with SVG content, got {:?}",
+            val.type_of()
+        );
     }
 }
 
@@ -40,9 +44,21 @@ fn test_manhattan_ascii() {
     let t = make_table(
         vec!["chrom", "pos", "pvalue"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Float(1000.0), Value::Float(0.001)],
-            vec![Value::Str("chr1".into()), Value::Float(2000.0), Value::Float(0.05)],
-            vec![Value::Str("chr2".into()), Value::Float(500.0), Value::Float(1e-8)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(1000.0),
+                Value::Float(0.001),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(2000.0),
+                Value::Float(0.05),
+            ],
+            vec![
+                Value::Str("chr2".into()),
+                Value::Float(500.0),
+                Value::Float(1e-8),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("manhattan", vec![t]).unwrap();
@@ -54,8 +70,16 @@ fn test_manhattan_svg() {
     let t = make_table(
         vec!["chrom", "pos", "pvalue"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Float(1000.0), Value::Float(0.001)],
-            vec![Value::Str("chr2".into()), Value::Float(500.0), Value::Float(1e-8)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(1000.0),
+                Value::Float(0.001),
+            ],
+            vec![
+                Value::Str("chr2".into()),
+                Value::Float(500.0),
+                Value::Float(1e-8),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("manhattan", vec![t, svg_opts()]).unwrap();
@@ -67,9 +91,21 @@ fn test_manhattan_single_chromosome() {
     let t = make_table(
         vec!["chrom", "pos", "pvalue"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Float(100.0), Value::Float(0.01)],
-            vec![Value::Str("chr1".into()), Value::Float(200.0), Value::Float(0.001)],
-            vec![Value::Str("chr1".into()), Value::Float(300.0), Value::Float(1e-9)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(100.0),
+                Value::Float(0.01),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(200.0),
+                Value::Float(0.001),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(300.0),
+                Value::Float(1e-9),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("manhattan", vec![t]).unwrap();
@@ -81,8 +117,16 @@ fn test_manhattan_single_chromosome_svg() {
     let t = make_table(
         vec!["chrom", "pos", "pvalue"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Float(100.0), Value::Float(0.01)],
-            vec![Value::Str("chr1".into()), Value::Float(200.0), Value::Float(1e-9)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(100.0),
+                Value::Float(0.01),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(200.0),
+                Value::Float(1e-9),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("manhattan", vec![t, svg_opts()]).unwrap();
@@ -99,35 +143,35 @@ fn test_manhattan_wrong_type() {
 
 #[test]
 fn test_qq_plot_ascii() {
-    let vals = Value::List(vec![
+    let vals = Value::List((vec![
         Value::Float(0.001),
         Value::Float(0.01),
         Value::Float(0.1),
         Value::Float(0.5),
-    ]);
+    ]).into());
     let r = call_bio_plots_builtin("qq_plot", vec![vals]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_qq_plot_svg() {
-    let vals = Value::List(vec![
+    let vals = Value::List((vec![
         Value::Float(0.001),
         Value::Float(0.01),
         Value::Float(0.1),
         Value::Float(0.5),
-    ]);
+    ]).into());
     let r = call_bio_plots_builtin("qq_plot", vec![vals, svg_opts()]).unwrap();
     assert_svg(&r);
 }
 
 #[test]
 fn test_qq_plot_all_same_pvalues() {
-    let vals = Value::List(vec![
+    let vals = Value::List((vec![
         Value::Float(0.5),
         Value::Float(0.5),
         Value::Float(0.5),
-    ]);
+    ]).into());
     let r = call_bio_plots_builtin("qq_plot", vec![vals]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
@@ -141,7 +185,7 @@ fn test_qq_plot_wrong_type() {
 #[test]
 fn test_qq_plot_empty_after_filter() {
     // All zero / negative p-values get filtered out
-    let vals = Value::List(vec![Value::Float(0.0), Value::Float(-1.0)]);
+    let vals = Value::List((vec![Value::Float(0.0), Value::Float(-1.0)]).into());
     let r = call_bio_plots_builtin("qq_plot", vec![vals]);
     assert!(r.is_err());
 }
@@ -178,8 +222,16 @@ fn test_ideogram_svg() {
     let t = make_table(
         vec!["chrom", "start", "end"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Float(0.0), Value::Float(1e6)],
-            vec![Value::Str("chr2".into()), Value::Float(0.0), Value::Float(2e6)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(0.0),
+                Value::Float(1e6),
+            ],
+            vec![
+                Value::Str("chr2".into()),
+                Value::Float(0.0),
+                Value::Float(2e6),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("ideogram", vec![t, svg_opts()]).unwrap();
@@ -252,8 +304,18 @@ fn test_cnv_plot_ascii() {
     let t = make_table(
         vec!["chrom", "start", "end", "log2ratio"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Float(0.0), Value::Float(1e6), Value::Float(0.5)],
-            vec![Value::Str("chr1".into()), Value::Float(1e6), Value::Float(2e6), Value::Float(-0.3)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(0.0),
+                Value::Float(1e6),
+                Value::Float(0.5),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(1e6),
+                Value::Float(2e6),
+                Value::Float(-0.3),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("cnv_plot", vec![t]).unwrap();
@@ -265,8 +327,18 @@ fn test_cnv_plot_svg() {
     let t = make_table(
         vec!["chrom", "start", "end", "log2ratio"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Float(0.0), Value::Float(1e6), Value::Float(0.5)],
-            vec![Value::Str("chr1".into()), Value::Float(1e6), Value::Float(2e6), Value::Float(-0.3)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(0.0),
+                Value::Float(1e6),
+                Value::Float(0.5),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(1e6),
+                Value::Float(2e6),
+                Value::Float(-0.3),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("cnv_plot", vec![t, svg_opts()]).unwrap();
@@ -317,14 +389,14 @@ fn test_violin_svg() {
 
 #[test]
 fn test_violin_single_value() {
-    let vals = Value::List(vec![Value::Float(42.0)]);
+    let vals = Value::List((vec![Value::Float(42.0)]).into());
     let r = call_bio_plots_builtin("violin", vec![vals]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_violin_single_value_svg() {
-    let vals = Value::List(vec![Value::Float(42.0)]);
+    let vals = Value::List((vec![Value::Float(42.0)]).into());
     let r = call_bio_plots_builtin("violin", vec![vals, svg_opts()]).unwrap();
     assert_svg(&r);
 }
@@ -339,39 +411,39 @@ fn test_violin_wrong_type() {
 
 #[test]
 fn test_density_list() {
-    let vals = Value::List(vec![
+    let vals = Value::List((vec![
         Value::Float(1.0),
         Value::Float(2.0),
         Value::Float(3.0),
         Value::Float(4.0),
         Value::Float(5.0),
-    ]);
+    ]).into());
     let r = call_bio_plots_builtin("density", vec![vals]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_density_svg() {
-    let vals = Value::List(vec![
+    let vals = Value::List((vec![
         Value::Float(1.0),
         Value::Float(2.0),
         Value::Float(3.0),
         Value::Float(4.0),
-    ]);
+    ]).into());
     let r = call_bio_plots_builtin("density", vec![vals, svg_opts()]).unwrap();
     assert_svg(&r);
 }
 
 #[test]
 fn test_density_two_values_minimum() {
-    let vals = Value::List(vec![Value::Float(1.0), Value::Float(2.0)]);
+    let vals = Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into());
     let r = call_bio_plots_builtin("density", vec![vals]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_density_two_values_svg() {
-    let vals = Value::List(vec![Value::Float(1.0), Value::Float(2.0)]);
+    let vals = Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into());
     let r = call_bio_plots_builtin("density", vec![vals, svg_opts()]).unwrap();
     assert_svg(&r);
 }
@@ -415,7 +487,7 @@ fn test_kaplan_meier_svg() {
 
 #[test]
 fn test_kaplan_meier_wrong_type() {
-    let r = call_bio_plots_builtin("kaplan_meier", vec![Value::List(vec![])]);
+    let r = call_bio_plots_builtin("kaplan_meier", vec![Value::List((vec![]).into())]);
     assert!(r.is_err());
 }
 
@@ -426,8 +498,18 @@ fn test_forest_plot_ascii() {
     let t = make_table(
         vec!["label", "estimate", "lower", "upper"],
         vec![
-            vec![Value::Str("Study A".into()), Value::Float(1.5), Value::Float(0.8), Value::Float(2.2)],
-            vec![Value::Str("Study B".into()), Value::Float(0.9), Value::Float(0.5), Value::Float(1.3)],
+            vec![
+                Value::Str("Study A".into()),
+                Value::Float(1.5),
+                Value::Float(0.8),
+                Value::Float(2.2),
+            ],
+            vec![
+                Value::Str("Study B".into()),
+                Value::Float(0.9),
+                Value::Float(0.5),
+                Value::Float(1.3),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("forest_plot", vec![t]).unwrap();
@@ -505,7 +587,11 @@ fn test_roc_curve_perfect_classifier() {
     );
     let r = call_bio_plots_builtin("roc_curve", vec![t, svg_opts()]).unwrap();
     if let Value::Str(s) = &r {
-        assert!(s.contains("AUC = 1.000"), "perfect classifier should have AUC=1, got {}", s);
+        assert!(
+            s.contains("AUC = 1.000"),
+            "perfect classifier should have AUC=1, got {}",
+            s
+        );
     } else {
         panic!("expected svg str");
     }
@@ -585,7 +671,11 @@ fn test_pca_plot_ascii() {
         vec!["PC1", "PC2", "label"],
         vec![
             vec![Value::Float(1.0), Value::Float(2.0), Value::Str("A".into())],
-            vec![Value::Float(-1.0), Value::Float(-0.5), Value::Str("B".into())],
+            vec![
+                Value::Float(-1.0),
+                Value::Float(-0.5),
+                Value::Str("B".into()),
+            ],
             vec![Value::Float(0.5), Value::Float(1.0), Value::Str("A".into())],
         ],
     );
@@ -629,9 +719,21 @@ fn test_oncoprint_ascii() {
     let t = make_table(
         vec!["gene", "sample", "type"],
         vec![
-            vec![Value::Str("TP53".into()), Value::Str("S1".into()), Value::Str("missense".into())],
-            vec![Value::Str("TP53".into()), Value::Str("S2".into()), Value::Str("nonsense".into())],
-            vec![Value::Str("BRCA1".into()), Value::Str("S1".into()), Value::Str("deletion".into())],
+            vec![
+                Value::Str("TP53".into()),
+                Value::Str("S1".into()),
+                Value::Str("missense".into()),
+            ],
+            vec![
+                Value::Str("TP53".into()),
+                Value::Str("S2".into()),
+                Value::Str("nonsense".into()),
+            ],
+            vec![
+                Value::Str("BRCA1".into()),
+                Value::Str("S1".into()),
+                Value::Str("deletion".into()),
+            ],
         ],
     );
     let r = call_bio_plots_builtin("oncoprint", vec![t]).unwrap();
@@ -662,50 +764,74 @@ fn test_oncoprint_wrong_type() {
 
 #[test]
 fn test_venn_ascii() {
-    let rec = Value::Record(HashMap::from([
-        ("A".to_string(), Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])),
-        ("B".to_string(), Value::List(vec![Value::Int(2), Value::Int(3), Value::Int(4)])),
-    ]));
+    let rec = Value::Record((HashMap::from([
+        (
+            "A".to_string(),
+            Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
+        ),
+        (
+            "B".to_string(),
+            Value::List((vec![Value::Int(2), Value::Int(3), Value::Int(4)]).into()),
+        ),
+    ])).into());
     let r = call_bio_plots_builtin("venn", vec![rec]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_venn_svg() {
-    let rec = Value::Record(HashMap::from([
-        ("A".to_string(), Value::List(vec![Value::Int(1), Value::Int(2)])),
-        ("B".to_string(), Value::List(vec![Value::Int(2), Value::Int(3)])),
-    ]));
+    let rec = Value::Record((HashMap::from([
+        (
+            "A".to_string(),
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+        ),
+        (
+            "B".to_string(),
+            Value::List((vec![Value::Int(2), Value::Int(3)]).into()),
+        ),
+    ])).into());
     let r = call_bio_plots_builtin("venn", vec![rec, svg_opts()]).unwrap();
     assert_svg(&r);
 }
 
 #[test]
 fn test_venn_completely_overlapping() {
-    let rec = Value::Record(HashMap::from([
-        ("A".to_string(), Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])),
-        ("B".to_string(), Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])),
-    ]));
+    let rec = Value::Record((HashMap::from([
+        (
+            "A".to_string(),
+            Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
+        ),
+        (
+            "B".to_string(),
+            Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
+        ),
+    ])).into());
     let r = call_bio_plots_builtin("venn", vec![rec]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_venn_disjoint_sets() {
-    let rec = Value::Record(HashMap::from([
-        ("A".to_string(), Value::List(vec![Value::Int(1), Value::Int(2)])),
-        ("B".to_string(), Value::List(vec![Value::Int(3), Value::Int(4)])),
-    ]));
+    let rec = Value::Record((HashMap::from([
+        (
+            "A".to_string(),
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+        ),
+        (
+            "B".to_string(),
+            Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
+        ),
+    ])).into());
     let r = call_bio_plots_builtin("venn", vec![rec]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_venn_disjoint_svg() {
-    let rec = Value::Record(HashMap::from([
-        ("X".to_string(), Value::List(vec![Value::Int(10)])),
-        ("Y".to_string(), Value::List(vec![Value::Int(20)])),
-    ]));
+    let rec = Value::Record((HashMap::from([
+        ("X".to_string(), Value::List((vec![Value::Int(10)]).into())),
+        ("Y".to_string(), Value::List((vec![Value::Int(20)]).into())),
+    ])).into());
     let r = call_bio_plots_builtin("venn", vec![rec, svg_opts()]).unwrap();
     assert_svg(&r);
 }
@@ -718,10 +844,10 @@ fn test_venn_wrong_type() {
 
 #[test]
 fn test_venn_too_few_sets() {
-    let rec = Value::Record(HashMap::from([(
+    let rec = Value::Record((HashMap::from([(
         "A".to_string(),
-        Value::List(vec![Value::Int(1)]),
-    )]));
+        Value::List((vec![Value::Int(1)]).into()),
+    )])).into());
     let r = call_bio_plots_builtin("venn", vec![rec]);
     assert!(r.is_err());
 }
@@ -730,21 +856,36 @@ fn test_venn_too_few_sets() {
 
 #[test]
 fn test_upset_ascii() {
-    let rec = Value::Record(HashMap::from([
-        ("A".to_string(), Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])),
-        ("B".to_string(), Value::List(vec![Value::Int(2), Value::Int(3), Value::Int(4)])),
-        ("C".to_string(), Value::List(vec![Value::Int(3), Value::Int(5)])),
-    ]));
+    let rec = Value::Record((HashMap::from([
+        (
+            "A".to_string(),
+            Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
+        ),
+        (
+            "B".to_string(),
+            Value::List((vec![Value::Int(2), Value::Int(3), Value::Int(4)]).into()),
+        ),
+        (
+            "C".to_string(),
+            Value::List((vec![Value::Int(3), Value::Int(5)]).into()),
+        ),
+    ])).into());
     let r = call_bio_plots_builtin("upset", vec![rec]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_upset_svg() {
-    let rec = Value::Record(HashMap::from([
-        ("A".to_string(), Value::List(vec![Value::Int(1), Value::Int(2)])),
-        ("B".to_string(), Value::List(vec![Value::Int(2), Value::Int(3)])),
-    ]));
+    let rec = Value::Record((HashMap::from([
+        (
+            "A".to_string(),
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+        ),
+        (
+            "B".to_string(),
+            Value::List((vec![Value::Int(2), Value::Int(3)]).into()),
+        ),
+    ])).into());
     let r = call_bio_plots_builtin("upset", vec![rec, svg_opts()]).unwrap();
     assert_svg(&r);
 }
@@ -757,10 +898,10 @@ fn test_upset_wrong_type() {
 
 #[test]
 fn test_upset_too_few_sets() {
-    let rec = Value::Record(HashMap::from([(
+    let rec = Value::Record((HashMap::from([(
         "A".to_string(),
-        Value::List(vec![Value::Int(1)]),
-    )]));
+        Value::List((vec![Value::Int(1)]).into()),
+    )])).into());
     let r = call_bio_plots_builtin("upset", vec![rec]);
     assert!(r.is_err());
 }
@@ -769,42 +910,39 @@ fn test_upset_too_few_sets() {
 
 #[test]
 fn test_sequence_logo_ascii() {
-    let seqs = Value::List(vec![
+    let seqs = Value::List((vec![
         Value::Str("ACGT".into()),
         Value::Str("ACGT".into()),
         Value::Str("ACGA".into()),
-    ]);
+    ]).into());
     let r = call_bio_plots_builtin("sequence_logo", vec![seqs]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_sequence_logo_svg() {
-    let seqs = Value::List(vec![
-        Value::Str("ACGT".into()),
-        Value::Str("ACGT".into()),
-    ]);
+    let seqs = Value::List((vec![Value::Str("ACGT".into()), Value::Str("ACGT".into())]).into());
     let r = call_bio_plots_builtin("sequence_logo", vec![seqs, svg_opts()]).unwrap();
     assert_svg(&r);
 }
 
 #[test]
 fn test_sequence_logo_single_sequence() {
-    let seqs = Value::List(vec![Value::Str("ATCG".into())]);
+    let seqs = Value::List((vec![Value::Str("ATCG".into())]).into());
     let r = call_bio_plots_builtin("sequence_logo", vec![seqs]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_sequence_logo_single_sequence_svg() {
-    let seqs = Value::List(vec![Value::Str("ATCGATCG".into())]);
+    let seqs = Value::List((vec![Value::Str("ATCGATCG".into())]).into());
     let r = call_bio_plots_builtin("sequence_logo", vec![seqs, svg_opts()]).unwrap();
     assert_svg(&r);
 }
 
 #[test]
 fn test_sequence_logo_empty_list() {
-    let seqs = Value::List(vec![]);
+    let seqs = Value::List((vec![]).into());
     let r = call_bio_plots_builtin("sequence_logo", vec![seqs]);
     assert!(r.is_err());
 }
@@ -993,9 +1131,11 @@ fn test_all_svg_plots_contain_svg_tag() {
     // ideogram svg
     let t = make_table(
         vec!["chrom", "start", "end"],
-        vec![
-            vec![Value::Str("chr1".into()), Value::Float(0.0), Value::Float(1e6)],
-        ],
+        vec![vec![
+            Value::Str("chr1".into()),
+            Value::Float(0.0),
+            Value::Float(1e6),
+        ]],
     );
     let r = call_bio_plots_builtin("ideogram", vec![t, svg_opts()]).unwrap();
     assert_svg(&r);
@@ -1015,9 +1155,12 @@ fn test_all_svg_plots_contain_svg_tag() {
     // cnv svg
     let t = make_table(
         vec!["chrom", "start", "end", "log2ratio"],
-        vec![
-            vec![Value::Str("chr1".into()), Value::Float(0.0), Value::Float(1e6), Value::Float(0.5)],
-        ],
+        vec![vec![
+            Value::Str("chr1".into()),
+            Value::Float(0.0),
+            Value::Float(1e6),
+            Value::Float(0.5),
+        ]],
     );
     let r = call_bio_plots_builtin("cnv_plot", vec![t, svg_opts()]).unwrap();
     assert_svg(&r);
@@ -1070,7 +1213,10 @@ fn test_manhattan_many_chroms() {
     }
     let table = make_table(vec!["chrom", "pos", "pvalue"], rows);
     let result = call_bio_plots_builtin("manhattan", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 #[test]
@@ -1078,8 +1224,16 @@ fn test_manhattan_with_title() {
     let table = make_table(
         vec!["chrom", "pos", "pvalue"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Int(1000), Value::Float(0.001)],
-            vec![Value::Str("chr1".into()), Value::Int(5000), Value::Float(0.05)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(1000),
+                Value::Float(0.001),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(5000),
+                Value::Float(0.05),
+            ],
         ],
     );
     let opts = make_opts(vec![
@@ -1098,24 +1252,28 @@ fn test_manhattan_with_title() {
 
 #[test]
 fn test_qq_plot_many_values() {
-    let pvalues = Value::List(
-        (1..=100).map(|i| Value::Float(i as f64 / 100.0)).collect(),
-    );
+    let pvalues = Value::List((1..=100).map(|i| Value::Float(i as f64 / 100.0)).collect::<Vec<_>>().into());
     let result = call_bio_plots_builtin("qq_plot", vec![pvalues]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 #[test]
 fn test_qq_plot_extreme_values() {
-    let pvalues = Value::List(vec![
+    let pvalues = Value::List((vec![
         Value::Float(1e-50),
         Value::Float(1e-20),
         Value::Float(1e-10),
         Value::Float(0.5),
         Value::Float(0.99),
-    ]);
+    ]).into());
     let result = call_bio_plots_builtin("qq_plot", vec![pvalues]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Violin plot advanced tests ────────────────────────────────
@@ -1134,7 +1292,10 @@ fn test_violin_grouped() {
         ],
     );
     let result = call_bio_plots_builtin("violin", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Density plot advanced tests ───────────────────────────────
@@ -1142,10 +1303,15 @@ fn test_violin_grouped() {
 #[test]
 fn test_density_many_values() {
     let values = Value::List(
-        (0..200).map(|i| Value::Float((i as f64 * 0.1).sin())).collect(),
+        (0..200)
+            .map(|i| Value::Float((i as f64 * 0.1).sin()))
+            .collect::<Vec<_>>().into(),
     );
     let result = call_bio_plots_builtin("density", vec![values]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Kaplan-Meier advanced tests ───────────────────────────────
@@ -1162,7 +1328,10 @@ fn test_kaplan_meier_all_events() {
         ],
     );
     let result = call_bio_plots_builtin("kaplan_meier", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 #[test]
@@ -1178,7 +1347,10 @@ fn test_kaplan_meier_with_censoring() {
         ],
     );
     let result = call_bio_plots_builtin("kaplan_meier", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── ROC curve advanced tests ──────────────────────────────────
@@ -1214,29 +1386,36 @@ fn test_forest_plot_many_studies() {
     }
     let table = make_table(vec!["label", "estimate", "lower", "upper"], rows);
     let result = call_bio_plots_builtin("forest_plot", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Sequence logo advanced tests ──────────────────────────────
 
 #[test]
 fn test_sequence_logo_protein() {
-    let seqs = Value::List(vec![
+    let seqs = Value::List((vec![
         Value::Str("MVLSPA".into()),
         Value::Str("MVLSAA".into()),
         Value::Str("MVLSGA".into()),
-    ]);
+    ]).into());
     let result = call_bio_plots_builtin("sequence_logo", vec![seqs]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 #[test]
 fn test_sequence_logo_many_sequences() {
-    let seqs = Value::List(
-        (0..20).map(|_| Value::Str("ATCGATCG".into())).collect(),
-    );
+    let seqs = Value::List((0..20).map(|_| Value::Str("ATCGATCG".into())).collect::<Vec<_>>().into());
     let result = call_bio_plots_builtin("sequence_logo", vec![seqs]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Circos advanced tests ─────────────────────────────────────
@@ -1253,7 +1432,10 @@ fn test_circos_multiple_chromosomes() {
         ],
     );
     let result = call_bio_plots_builtin("circos", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── PCA plot advanced tests ───────────────────────────────────
@@ -1263,14 +1445,33 @@ fn test_pca_plot_with_group() {
     let table = make_table(
         vec!["PC1", "PC2", "group"],
         vec![
-            vec![Value::Float(1.0), Value::Float(2.0), Value::Str("control".into())],
-            vec![Value::Float(3.0), Value::Float(1.0), Value::Str("treatment".into())],
-            vec![Value::Float(2.0), Value::Float(3.0), Value::Str("control".into())],
-            vec![Value::Float(4.0), Value::Float(0.5), Value::Str("treatment".into())],
+            vec![
+                Value::Float(1.0),
+                Value::Float(2.0),
+                Value::Str("control".into()),
+            ],
+            vec![
+                Value::Float(3.0),
+                Value::Float(1.0),
+                Value::Str("treatment".into()),
+            ],
+            vec![
+                Value::Float(2.0),
+                Value::Float(3.0),
+                Value::Str("control".into()),
+            ],
+            vec![
+                Value::Float(4.0),
+                Value::Float(0.5),
+                Value::Str("treatment".into()),
+            ],
         ],
     );
     let result = call_bio_plots_builtin("pca_plot", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Lollipop plot advanced tests ──────────────────────────────
@@ -1286,7 +1487,10 @@ fn test_lollipop_many_positions() {
     }
     let table = make_table(vec!["position", "count"], rows);
     let result = call_bio_plots_builtin("lollipop", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Phylo tree advanced tests ─────────────────────────────────
@@ -1295,7 +1499,10 @@ fn test_lollipop_many_positions() {
 fn test_phylo_tree_complex_newick() {
     let newick = Value::Str("((A:0.1,B:0.2):0.3,(C:0.4,(D:0.5,E:0.6):0.7):0.8);".into());
     let result = call_bio_plots_builtin("phylo_tree", vec![newick]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 #[test]
@@ -1309,22 +1516,43 @@ fn test_phylo_tree_svg_complex() {
 
 #[test]
 fn test_venn_three_sets() {
-    let sets = Value::Record(HashMap::from([
-        ("A".into(), Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])),
-        ("B".into(), Value::List(vec![Value::Int(2), Value::Int(3), Value::Int(4)])),
-        ("C".into(), Value::List(vec![Value::Int(3), Value::Int(4), Value::Int(5)])),
-    ]));
+    let sets = Value::Record((HashMap::from([
+        (
+            "A".into(),
+            Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
+        ),
+        (
+            "B".into(),
+            Value::List((vec![Value::Int(2), Value::Int(3), Value::Int(4)]).into()),
+        ),
+        (
+            "C".into(),
+            Value::List((vec![Value::Int(3), Value::Int(4), Value::Int(5)]).into()),
+        ),
+    ])).into());
     let result = call_bio_plots_builtin("venn", vec![sets]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 #[test]
 fn test_venn_three_sets_svg() {
-    let sets = Value::Record(HashMap::from([
-        ("SetA".into(), Value::List(vec![Value::Int(1), Value::Int(2)])),
-        ("SetB".into(), Value::List(vec![Value::Int(2), Value::Int(3)])),
-        ("SetC".into(), Value::List(vec![Value::Int(3), Value::Int(4)])),
-    ]));
+    let sets = Value::Record((HashMap::from([
+        (
+            "SetA".into(),
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+        ),
+        (
+            "SetB".into(),
+            Value::List((vec![Value::Int(2), Value::Int(3)]).into()),
+        ),
+        (
+            "SetC".into(),
+            Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
+        ),
+    ])).into());
     let result = call_bio_plots_builtin("venn", vec![sets, svg_opts()]).unwrap();
     assert_svg(&result);
 }
@@ -1333,13 +1561,25 @@ fn test_venn_three_sets_svg() {
 
 #[test]
 fn test_upset_three_sets() {
-    let sets = Value::Record(HashMap::from([
-        ("A".into(), Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])),
-        ("B".into(), Value::List(vec![Value::Int(2), Value::Int(3), Value::Int(4)])),
-        ("C".into(), Value::List(vec![Value::Int(1), Value::Int(3), Value::Int(5)])),
-    ]));
+    let sets = Value::Record((HashMap::from([
+        (
+            "A".into(),
+            Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
+        ),
+        (
+            "B".into(),
+            Value::List((vec![Value::Int(2), Value::Int(3), Value::Int(4)]).into()),
+        ),
+        (
+            "C".into(),
+            Value::List((vec![Value::Int(1), Value::Int(3), Value::Int(5)]).into()),
+        ),
+    ])).into());
     let result = call_bio_plots_builtin("upset", vec![sets]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── CNV plot advanced tests ───────────────────────────────────
@@ -1349,14 +1589,37 @@ fn test_cnv_plot_multi_chrom() {
     let table = make_table(
         vec!["chrom", "start", "end", "log2ratio"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Int(0), Value::Int(1000000), Value::Float(0.5)],
-            vec![Value::Str("chr1".into()), Value::Int(1000000), Value::Int(2000000), Value::Float(-0.3)],
-            vec![Value::Str("chr2".into()), Value::Int(0), Value::Int(500000), Value::Float(1.2)],
-            vec![Value::Str("chr2".into()), Value::Int(500000), Value::Int(1500000), Value::Float(-0.8)],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(0),
+                Value::Int(1000000),
+                Value::Float(0.5),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(1000000),
+                Value::Int(2000000),
+                Value::Float(-0.3),
+            ],
+            vec![
+                Value::Str("chr2".into()),
+                Value::Int(0),
+                Value::Int(500000),
+                Value::Float(1.2),
+            ],
+            vec![
+                Value::Str("chr2".into()),
+                Value::Int(500000),
+                Value::Int(1500000),
+                Value::Float(-0.8),
+            ],
         ],
     );
     let result = call_bio_plots_builtin("cnv_plot", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Sashimi plot advanced tests ───────────────────────────────
@@ -1381,21 +1644,29 @@ fn test_sashimi_multi_junctions() {
         ],
     );
     let result = call_bio_plots_builtin("sashimi", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── HiC map advanced tests ───────────────────────────────────
 
 #[test]
 fn test_hic_map_large_matrix() {
-    let data: Vec<f64> = (0..100).map(|i| {
-        let r = i / 10;
-        let c = i % 10;
-        1.0 / ((r as f64 - c as f64).abs() + 1.0)
-    }).collect();
+    let data: Vec<f64> = (0..100)
+        .map(|i| {
+            let r = i / 10;
+            let c = i % 10;
+            1.0 / ((r as f64 - c as f64).abs() + 1.0)
+        })
+        .collect();
     let mat = Matrix::new(data, 10, 10).unwrap();
     let result = call_bio_plots_builtin("hic_map", vec![Value::Matrix(mat)]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Ideogram advanced tests ──────────────────────────────────
@@ -1405,15 +1676,43 @@ fn test_ideogram_multiple_bands() {
     let table = make_table(
         vec!["chrom", "start", "end", "stain"],
         vec![
-            vec![Value::Str("chr1".into()), Value::Int(0), Value::Int(2300000), Value::Str("gneg".into())],
-            vec![Value::Str("chr1".into()), Value::Int(2300000), Value::Int(5400000), Value::Str("gpos25".into())],
-            vec![Value::Str("chr1".into()), Value::Int(5400000), Value::Int(7200000), Value::Str("gneg".into())],
-            vec![Value::Str("chr1".into()), Value::Int(7200000), Value::Int(12700000), Value::Str("gpos75".into())],
-            vec![Value::Str("chr1".into()), Value::Int(12700000), Value::Int(16200000), Value::Str("acen".into())],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(0),
+                Value::Int(2300000),
+                Value::Str("gneg".into()),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(2300000),
+                Value::Int(5400000),
+                Value::Str("gpos25".into()),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(5400000),
+                Value::Int(7200000),
+                Value::Str("gneg".into()),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(7200000),
+                Value::Int(12700000),
+                Value::Str("gpos75".into()),
+            ],
+            vec![
+                Value::Str("chr1".into()),
+                Value::Int(12700000),
+                Value::Int(16200000),
+                Value::Str("acen".into()),
+            ],
         ],
     );
     let result = call_bio_plots_builtin("ideogram", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Clustered heatmap advanced tests ──────────────────────────
@@ -1423,7 +1722,10 @@ fn test_clustered_heatmap_large() {
     let data: Vec<f64> = (0..64).map(|i| (i as f64 * 0.5).sin()).collect();
     let mat = Matrix::new(data, 8, 8).unwrap();
     let result = call_bio_plots_builtin("clustered_heatmap", vec![Value::Matrix(mat)]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Oncoprint advanced tests ─────────────────────────────────
@@ -1433,15 +1735,38 @@ fn test_oncoprint_multi_gene_sample() {
     let table = make_table(
         vec!["gene", "sample", "type"],
         vec![
-            vec![Value::Str("TP53".into()), Value::Str("S1".into()), Value::Str("missense".into())],
-            vec![Value::Str("TP53".into()), Value::Str("S2".into()), Value::Str("frameshift".into())],
-            vec![Value::Str("BRCA1".into()), Value::Str("S1".into()), Value::Str("nonsense".into())],
-            vec![Value::Str("BRCA1".into()), Value::Str("S3".into()), Value::Str("missense".into())],
-            vec![Value::Str("EGFR".into()), Value::Str("S2".into()), Value::Str("amplification".into())],
+            vec![
+                Value::Str("TP53".into()),
+                Value::Str("S1".into()),
+                Value::Str("missense".into()),
+            ],
+            vec![
+                Value::Str("TP53".into()),
+                Value::Str("S2".into()),
+                Value::Str("frameshift".into()),
+            ],
+            vec![
+                Value::Str("BRCA1".into()),
+                Value::Str("S1".into()),
+                Value::Str("nonsense".into()),
+            ],
+            vec![
+                Value::Str("BRCA1".into()),
+                Value::Str("S3".into()),
+                Value::Str("missense".into()),
+            ],
+            vec![
+                Value::Str("EGFR".into()),
+                Value::Str("S2".into()),
+                Value::Str("amplification".into()),
+            ],
         ],
     );
     let result = call_bio_plots_builtin("oncoprint", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }
 
 // ── Rainfall plot advanced tests ──────────────────────────────
@@ -1452,10 +1777,13 @@ fn test_rainfall_many_variants() {
     for i in 0..100 {
         rows.push(vec![
             Value::Str("chr1".into()),
-            Value::Int(i * 1000 + (i * 37 % 500)),  // semi-random positions
+            Value::Int(i * 1000 + (i * 37 % 500)), // semi-random positions
         ]);
     }
     let table = make_table(vec!["chrom", "pos"], rows);
     let result = call_bio_plots_builtin("rainfall", vec![table]).unwrap();
-    assert!(matches!(result, Value::Str(_)), "expected Str output, got {result:?}");
+    assert!(
+        matches!(result, Value::Str(_)),
+        "expected Str output, got {result:?}"
+    );
 }

@@ -1,0 +1,8 @@
+[package]
+name = "methylation"
+version = "0.1.0"
+description = "DNA methylation: beta/M-value conversion, DMR calling, CpG density, epigenetic clocks"
+authors = ["BioLang"]
+
+[dependencies]
+statistics = { path = "../statistics" }

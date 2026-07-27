@@ -82,7 +82,10 @@ impl Variant {
     /// True if all genotype alleles are reference (0).
     pub fn is_hom_ref(&self) -> bool {
         !self.genotypes.is_empty()
-            && self.genotypes.iter().all(|gt| gt.iter().all(|a| *a == Some(0)))
+            && self
+                .genotypes
+                .iter()
+                .all(|gt| gt.iter().all(|a| *a == Some(0)))
     }
 
     /// True if all genotype alleles are the same non-reference allele.
@@ -160,52 +163,113 @@ impl Genome {
 
 fn grch38_chromosomes() -> Vec<(String, i64)> {
     vec![
-        ("chr1".into(), 248956422), ("chr2".into(), 242193529), ("chr3".into(), 198295559),
-        ("chr4".into(), 190214555), ("chr5".into(), 181538259), ("chr6".into(), 170805979),
-        ("chr7".into(), 159345973), ("chr8".into(), 145138636), ("chr9".into(), 138394717),
-        ("chr10".into(), 133797422), ("chr11".into(), 135086622), ("chr12".into(), 133275309),
-        ("chr13".into(), 114364328), ("chr14".into(), 107043718), ("chr15".into(), 101991189),
-        ("chr16".into(), 90338345), ("chr17".into(), 83257441), ("chr18".into(), 80373285),
-        ("chr19".into(), 58617616), ("chr20".into(), 64444167), ("chr21".into(), 46709983),
-        ("chr22".into(), 50818468), ("chrX".into(), 156040895), ("chrY".into(), 57227415),
+        ("chr1".into(), 248956422),
+        ("chr2".into(), 242193529),
+        ("chr3".into(), 198295559),
+        ("chr4".into(), 190214555),
+        ("chr5".into(), 181538259),
+        ("chr6".into(), 170805979),
+        ("chr7".into(), 159345973),
+        ("chr8".into(), 145138636),
+        ("chr9".into(), 138394717),
+        ("chr10".into(), 133797422),
+        ("chr11".into(), 135086622),
+        ("chr12".into(), 133275309),
+        ("chr13".into(), 114364328),
+        ("chr14".into(), 107043718),
+        ("chr15".into(), 101991189),
+        ("chr16".into(), 90338345),
+        ("chr17".into(), 83257441),
+        ("chr18".into(), 80373285),
+        ("chr19".into(), 58617616),
+        ("chr20".into(), 64444167),
+        ("chr21".into(), 46709983),
+        ("chr22".into(), 50818468),
+        ("chrX".into(), 156040895),
+        ("chrY".into(), 57227415),
     ]
 }
 
 fn grch37_chromosomes() -> Vec<(String, i64)> {
     vec![
-        ("chr1".into(), 249250621), ("chr2".into(), 243199373), ("chr3".into(), 198022430),
-        ("chr4".into(), 191154276), ("chr5".into(), 180915260), ("chr6".into(), 171115067),
-        ("chr7".into(), 159138663), ("chr8".into(), 146364022), ("chr9".into(), 141213431),
-        ("chr10".into(), 135534747), ("chr11".into(), 135006516), ("chr12".into(), 133851895),
-        ("chr13".into(), 115169878), ("chr14".into(), 107349540), ("chr15".into(), 102531392),
-        ("chr16".into(), 90354753), ("chr17".into(), 81195210), ("chr18".into(), 78077248),
-        ("chr19".into(), 59128983), ("chr20".into(), 63025520), ("chr21".into(), 48129895),
-        ("chr22".into(), 51304566), ("chrX".into(), 155270560), ("chrY".into(), 59373566),
+        ("chr1".into(), 249250621),
+        ("chr2".into(), 243199373),
+        ("chr3".into(), 198022430),
+        ("chr4".into(), 191154276),
+        ("chr5".into(), 180915260),
+        ("chr6".into(), 171115067),
+        ("chr7".into(), 159138663),
+        ("chr8".into(), 146364022),
+        ("chr9".into(), 141213431),
+        ("chr10".into(), 135534747),
+        ("chr11".into(), 135006516),
+        ("chr12".into(), 133851895),
+        ("chr13".into(), 115169878),
+        ("chr14".into(), 107349540),
+        ("chr15".into(), 102531392),
+        ("chr16".into(), 90354753),
+        ("chr17".into(), 81195210),
+        ("chr18".into(), 78077248),
+        ("chr19".into(), 59128983),
+        ("chr20".into(), 63025520),
+        ("chr21".into(), 48129895),
+        ("chr22".into(), 51304566),
+        ("chrX".into(), 155270560),
+        ("chrY".into(), 59373566),
     ]
 }
 
 fn t2t_chromosomes() -> Vec<(String, i64)> {
     vec![
-        ("chr1".into(), 248387328), ("chr2".into(), 242696752), ("chr3".into(), 201105948),
-        ("chr4".into(), 193574945), ("chr5".into(), 182045439), ("chr6".into(), 172126628),
-        ("chr7".into(), 160567428), ("chr8".into(), 146259331), ("chr9".into(), 150617247),
-        ("chr10".into(), 134758134), ("chr11".into(), 135127769), ("chr12".into(), 133324548),
-        ("chr13".into(), 113566686), ("chr14".into(), 101161492), ("chr15".into(), 99753195),
-        ("chr16".into(), 96330374), ("chr17".into(), 84276897), ("chr18".into(), 80542538),
-        ("chr19".into(), 61707364), ("chr20".into(), 66210255), ("chr21".into(), 45090682),
-        ("chr22".into(), 51324926), ("chrX".into(), 154259566),
+        ("chr1".into(), 248387328),
+        ("chr2".into(), 242696752),
+        ("chr3".into(), 201105948),
+        ("chr4".into(), 193574945),
+        ("chr5".into(), 182045439),
+        ("chr6".into(), 172126628),
+        ("chr7".into(), 160567428),
+        ("chr8".into(), 146259331),
+        ("chr9".into(), 150617247),
+        ("chr10".into(), 134758134),
+        ("chr11".into(), 135127769),
+        ("chr12".into(), 133324548),
+        ("chr13".into(), 113566686),
+        ("chr14".into(), 101161492),
+        ("chr15".into(), 99753195),
+        ("chr16".into(), 96330374),
+        ("chr17".into(), 84276897),
+        ("chr18".into(), 80542538),
+        ("chr19".into(), 61707364),
+        ("chr20".into(), 66210255),
+        ("chr21".into(), 45090682),
+        ("chr22".into(), 51324926),
+        ("chrX".into(), 154259566),
     ]
 }
 
 fn mm39_chromosomes() -> Vec<(String, i64)> {
     vec![
-        ("chr1".into(), 195154279), ("chr2".into(), 181755017), ("chr3".into(), 159745316),
-        ("chr4".into(), 156860686), ("chr5".into(), 151758149), ("chr6".into(), 149588044),
-        ("chr7".into(), 144995196), ("chr8".into(), 130127694), ("chr9".into(), 124359700),
-        ("chr10".into(), 130530862), ("chr11".into(), 121843856), ("chr12".into(), 120092757),
-        ("chr13".into(), 120883175), ("chr14".into(), 125139656), ("chr15".into(), 104073951),
-        ("chr16".into(), 98008968), ("chr17".into(), 95294699), ("chr18".into(), 90720763),
-        ("chr19".into(), 61420004), ("chrX".into(), 169476592), ("chrY".into(), 91455967),
+        ("chr1".into(), 195154279),
+        ("chr2".into(), 181755017),
+        ("chr3".into(), 159745316),
+        ("chr4".into(), 156860686),
+        ("chr5".into(), 151758149),
+        ("chr6".into(), 149588044),
+        ("chr7".into(), 144995196),
+        ("chr8".into(), 130127694),
+        ("chr9".into(), 124359700),
+        ("chr10".into(), 130530862),
+        ("chr11".into(), 121843856),
+        ("chr12".into(), 120092757),
+        ("chr13".into(), 120883175),
+        ("chr14".into(), 125139656),
+        ("chr15".into(), 104073951),
+        ("chr16".into(), 98008968),
+        ("chr17".into(), 95294699),
+        ("chr18".into(), 90720763),
+        ("chr19".into(), 61420004),
+        ("chrX".into(), 169476592),
+        ("chrY".into(), 91455967),
     ]
 }
 
@@ -220,7 +284,9 @@ impl QualityOps {
 
     /// Mean Phred quality score.
     pub fn mean_phred(scores: &[u8]) -> f64 {
-        if scores.is_empty() { return 0.0; }
+        if scores.is_empty() {
+            return 0.0;
+        }
         scores.iter().map(|&q| q as f64).sum::<f64>() / scores.len() as f64
     }
 
@@ -231,7 +297,9 @@ impl QualityOps {
 
     /// Average error rate from Phred scores: P(error) = 10^(-Q/10).
     pub fn error_rate(scores: &[u8]) -> f64 {
-        if scores.is_empty() { return 0.0; }
+        if scores.is_empty() {
+            return 0.0;
+        }
         let total: f64 = scores.iter().map(|&q| 10f64.powf(-(q as f64) / 10.0)).sum();
         total / scores.len() as f64
     }
@@ -240,10 +308,13 @@ impl QualityOps {
     pub fn trim_quality(scores: &[u8], threshold: u8) -> usize {
         // Find the rightmost position where a window of 5bp has mean >= threshold
         let window = 5.min(scores.len());
-        if window == 0 { return 0; }
+        if window == 0 {
+            return 0;
+        }
         let mut best_end = scores.len();
         for i in (window..=scores.len()).rev() {
-            let mean: f64 = scores[i - window..i].iter().map(|&q| q as f64).sum::<f64>() / window as f64;
+            let mean: f64 =
+                scores[i - window..i].iter().map(|&q| q as f64).sum::<f64>() / window as f64;
             if mean >= threshold as f64 {
                 best_end = i;
                 break;

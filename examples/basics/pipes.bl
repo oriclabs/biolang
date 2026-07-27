@@ -44,20 +44,20 @@ println("sum of squares of multiples of 3 (1-20): " + str(result))
 
 # Pipes with named args
 let seq = "ATGCGATCGA"
-let replaced = seq |> str_replace(from: "T", to: "U")
+let replaced = seq |> str_replace("T", "U")
 println("DNA to RNA: " + replaced)
 
 # Pipes into string operations
 let header = ">gi|12345|ref|NM_001.2| Homo sapiens actin"
-let accession = header
-    |> substr(1)
+let header_fields = header
+    |> substr(1, str_len(header) - 1)
     |> split("|")
-    |> at(3)
+let accession = header_fields[3]
 println("accession: " + accession)
 
 # Pipeline with lambdas for custom transforms
 let gc_content = "ATGCGCTAGC"
-    |> chars()
+    |> regex_find(".")
     |> filter(|c| c == "G" || c == "C")
     |> len()
 println("GC bases: " + str(gc_content))

@@ -17,9 +17,16 @@ fn test_par_map_basic() {
 let xs = [1, 2, 3, 4, 5]
 par_map(xs, |x| x * 2)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(2), Value::Int(4), Value::Int(6), Value::Int(8), Value::Int(10),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![
+            Value::Int(2),
+            Value::Int(4),
+            Value::Int(6),
+            Value::Int(8),
+            Value::Int(10),
+        ]).into())
+    );
 }
 
 #[test]
@@ -27,9 +34,10 @@ fn test_par_map_ufcs() {
     let code = r#"
 [10, 20, 30].par_map(|x| x + 1)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(11), Value::Int(21), Value::Int(31),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(11), Value::Int(21), Value::Int(31),]).into())
+    );
 }
 
 #[test]
@@ -49,9 +57,16 @@ fn test_par_map_preserves_order() {
 let xs = [5, 4, 3, 2, 1]
 par_map(xs, |x| x)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![
+            Value::Int(5),
+            Value::Int(4),
+            Value::Int(3),
+            Value::Int(2),
+            Value::Int(1),
+        ]).into())
+    );
 }
 
 // 3.1: par_filter — true parallel execution
@@ -61,9 +76,10 @@ fn test_par_filter_basic() {
 let xs = [1, 2, 3, 4, 5, 6]
 par_filter(xs, |x| x % 2 == 0)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(2), Value::Int(4), Value::Int(6),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(2), Value::Int(4), Value::Int(6),]).into())
+    );
 }
 
 #[test]
@@ -71,9 +87,10 @@ fn test_par_filter_ufcs() {
     let code = r#"
 [10, 15, 20, 25, 30].par_filter(|x| x > 18)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(20), Value::Int(25), Value::Int(30),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(20), Value::Int(25), Value::Int(30),]).into())
+    );
 }
 
 #[test]
@@ -81,7 +98,7 @@ fn test_par_filter_empty_result() {
     let code = r#"
 par_filter([1, 2, 3], |x| x > 100)
 "#;
-    assert_eq!(eval(code), Value::List(vec![]));
+    assert_eq!(eval(code), Value::List((vec![]).into()));
 }
 
 // 3.2: Async/await
@@ -106,9 +123,10 @@ let b = double(20)
 let c = double(30)
 [await a, await b, await c]
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(20), Value::Int(40), Value::Int(60),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(20), Value::Int(40), Value::Int(60),]).into())
+    );
 }
 
 #[test]
@@ -118,9 +136,10 @@ async fn square(x) { x * x }
 let futures = [square(2), square(3), square(4)]
 await_all(futures)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(4), Value::Int(9), Value::Int(16),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(4), Value::Int(9), Value::Int(16),]).into())
+    );
 }
 
 #[test]
@@ -139,9 +158,10 @@ fn test_await_all_mixed() {
 async fn double(x) { x * 2 }
 await_all([double(5), 100, double(15)])
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(10), Value::Int(100), Value::Int(30),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(10), Value::Int(100), Value::Int(30),]).into())
+    );
 }
 
 // ── Additional par_map / par_filter tests ─────────────────────────
@@ -176,12 +196,15 @@ let words = ["hello", "world", "foo", "bar"]
 let result = words |> par_map(|w| upper(w))
 result
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Str("HELLO".into()),
-        Value::Str("WORLD".into()),
-        Value::Str("FOO".into()),
-        Value::Str("BAR".into()),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![
+            Value::Str("HELLO".into()),
+            Value::Str("WORLD".into()),
+            Value::Str("FOO".into()),
+            Value::Str("BAR".into()),
+        ]).into())
+    );
 }
 
 #[test]
@@ -210,9 +233,10 @@ let items = [{x: 1}, {x: 2}, {x: 3}]
 let result = items |> par_map(|r| {x: r.x * 10})
 result |> map(|r| r.x)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(10), Value::Int(20), Value::Int(30),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(10), Value::Int(20), Value::Int(30),]).into())
+    );
 }
 
 #[test]
@@ -221,9 +245,10 @@ fn test_par_map_two_items() {
     let code = r#"
 [1, 2] |> par_map(|x| x + 100)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(101), Value::Int(102),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(101), Value::Int(102),]).into())
+    );
 }
 
 #[test]

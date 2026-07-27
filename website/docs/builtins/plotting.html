@@ -45,7 +45,7 @@
         <section class="mb-12" id="plot">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">plot</span></h2>
           <p class="text-slate-400 mt-2">Generic plot dispatcher. Accepts data and a <code>type</code> option to select the chart kind.</p>
-          <pre><code class="language-biolang">plot(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">plot(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">plot([1, 4, 9, 16, 25], {type: "line", title: "Squares"})
 plot({"A": 30, "T": 25, "C": 28, "G": 27}, {type: "bar"})</code></pre>
         </section>
@@ -53,7 +53,7 @@ plot({"A": 30, "T": 25, "C": 28, "G": 27}, {type: "bar"})</code></pre>
         <section class="mb-12" id="scatter">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">scatter</span></h2>
           <p class="text-slate-400 mt-2">Scatter plot with optional color and size mapping.</p>
-          <pre><code class="language-biolang">scatter(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">scatter(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">let expr = read_csv("data/expression.csv")
 scatter(expr, {
   x: "control_mean",
@@ -126,7 +126,7 @@ scatter(expr, {
         <section class="mb-12" id="heatmap">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">heatmap</span></h2>
           <p class="text-slate-400 mt-2">Heatmap from matrix or table data. Supports clustering and dendrograms.</p>
-          <pre><code class="language-biolang">heatmap(mat, opts?) -> svg</code></pre>
+          <pre><code class="language-text">heatmap(mat, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">let expr_matrix = matrix([
   [10.2, 8.5, 12.1, 9.8],
   [5.3, 4.8, 5.9, 5.1],
@@ -195,7 +195,7 @@ heatmap(expr_matrix, {
 
         <section class="mb-12" id="histogram">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">histogram</span></h2>
-          <pre><code class="language-biolang">histogram(data, opts?) -> svg     # continuous data, binned</code></pre>
+          <pre><code class="language-text">histogram(data, opts?) -> svg     # continuous data, binned</code></pre>
           <pre><code class="language-biolang">histogram(quality_scores, {bins: 30, title: "Quality Score Distribution"})</code></pre>
 <div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
   <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
@@ -239,19 +239,19 @@ heatmap(expr_matrix, {
 
         <section class="mb-12" id="violin">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">violin</span></h2>
-          <pre><code class="language-biolang">violin(groups, opts?) -> svg</code></pre>
-          <pre><code class="language-biolang">let groups = {
+          <pre><code class="language-text">violin(groups, opts?) -> svg</code></pre>
+          <pre><code class="language-biolang">let groups = table({
   "WT": [30, 32, 28, 35, 31],
   "KO": [22, 25, 20, 18, 24],
   "OE": [40, 38, 42, 45, 41]
-}
+})
 violin(groups, {title: "Expression Distribution"})</code></pre>
         </section>
 
         <section class="mb-12" id="volcano">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">volcano</span> / <span class="text-violet-400 font-mono">ma_plot</span></h2>
           <p class="text-slate-400 mt-2">Standard differential expression visualizations.</p>
-          <pre><code class="language-biolang">volcano(tbl, opts?) -> svg
+          <pre><code class="language-text">volcano(tbl, opts?) -> svg
 ma_plot(tbl, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">let de = read_csv("data/expression.csv")
 volcano(de, {
@@ -329,7 +329,7 @@ volcano(de, {
 
         <section class="mb-12" id="save">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">save_svg</span></h2>
-          <pre><code class="language-biolang">save_svg(svg, path) -> string</code></pre>
+          <pre><code class="language-text">save_svg(svg, path) -> string</code></pre>
           <pre><code class="language-biolang">let p = scatter(data, {title: "My Plot"})
 save_svg(p, "plot.svg")</code></pre>
         </section>

@@ -369,7 +369,7 @@ This is the single most important warning about clustering. Run k-means with k =
 ```bio
 set_seed(42)
 # DANGER: Clustering random noise
-let noise = table(500, 20, "rnorm")
+let noise = range(0, 500) |> map(|_| rnorm(20, 0, 1)) |> matrix()
 let fake_clusters = kmeans(noise, 3)
 let noise_pca = pca(noise)
 
@@ -403,7 +403,8 @@ heatmap(sub_matrix, {cluster_rows: true, cluster_cols: true,
 
 ## Clustering in BioLang — Complete Pipeline
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Full clustering analysis on simulated tumor expression data
 

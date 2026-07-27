@@ -103,7 +103,7 @@ let gene = ncbi_gene(gene_name)
 print("Gene:", gene)
 
 # 2. Find recent publications
-let pubs = ncbi_pubmed("{gene_name} AND cancer AND 2024[PDAT]", 10)
+let pubs = ncbi_pubmed(f"{gene_name} AND cancer AND 2024[PDAT]", 10)
 print("\nRecent publications:", pubs)
 
 # 3. Get the reference sequence

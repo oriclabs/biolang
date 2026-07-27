@@ -1,0 +1,19 @@
+# Compute Moran's I for every gene; return table sorted by I descending.
+# Requires obj to have spatial_adj (run neighbors() first).
+fn variable_genes(obj, min_expr = 0.1) {
+  let matrix  = obj.norm_matrix
+  let adj     = obj.spatial_adj
+  let n_genes = n_genes(obj)
+  let scores  = range(n_genes)
+    |> map(fn(g) -> {
+        gene:     g,
+        morans_i: spatial_moransi(matrix |> row(g), adj)
+      })
+    |> filter(fn(r) -> r.morans_i > min_expr)
+    |> sort_by(fn(r) -> r.morans_i, descending = true)
+  obj |> set_field("svg_scores", scores)
+}
+
+fn top_svg(obj, n = 50) {
+  obj.svg_scores |> take(n)
+}

@@ -1,0 +1,21 @@
+[package]
+name = "singlecell"
+version = "0.1.0"
+description = "Single-cell RNA-seq analysis: QC, normalization, clustering, trajectory, and Seurat-compatible workflows"
+authors = ["BioLang Contributors"]
+license = "MIT"
+keywords = ["scrna-seq", "seurat", "clustering", "pseudotime", "10x"]
+categories = ["bioinformatics", "genomics", "single-cell"]
+homepage = "https://biolang.dev/docs/bio/singlecell"
+repository = "https://github.com/biolang/packages/singlecell"
+readme = "README.md"
+
+[dependencies]
+# Uses BioLang core builtins only:
+#   read_10x, normalize_total, log1p_transform, highly_variable_genes,
+#   cell_qc, gene_qc, knn_graph, doublet_score, cell_cycle_score,
+#   module_score, sc_sctransform, sc_integrate, diffusion_pseudotime,
+#   kmeans, mean, variance, sqrt, sum, len, range, map, filter
+
+[lib]
+entry = "src/mod.bl"

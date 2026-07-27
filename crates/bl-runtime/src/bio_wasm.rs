@@ -4,7 +4,7 @@
 //! WASM builds. These parse the full file text returned by `__blFetch.sync`.
 
 use bl_core::error::{BioLangError, ErrorKind, Result};
-use bl_core::value::{Arity, Value};
+use bl_core::value::{Arity, BioSequence, Table, Value};
 use std::collections::HashMap;
 
 // ── Registration ────────────────────────────────────────────────
@@ -85,7 +85,7 @@ fn require_str(args: &[Value], fn_name: &str) -> std::result::Result<String, Bio
 fn parse_fasta(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args, "read_fasta")?;
     let text = fetch_file_text(&path, "read_fasta")?;
-    let mut records: Vec<Value> = Vec::new();
+    let mut rows: Vec<Vec<Value>> = Vec::new();
 
     for entry in text.split('>').skip(1) {
         let mut lines = entry.lines();
@@ -97,18 +97,27 @@ fn parse_fasta(args: Vec<Value>) -> Result<Value> {
         let sequence: String = lines
             .map(|l| l.trim())
             .filter(|l| !l.is_empty())
-            .collect();
+            .collect::<String>()
+            .to_uppercase();
         let length = sequence.len() as i64;
 
-        records.push(Value::Record(HashMap::from([
-            ("id".to_string(), Value::Str(id.to_string())),
-            ("description".to_string(), Value::Str(description.to_string())),
-            ("sequence".to_string(), Value::Str(sequence)),
-            ("length".to_string(), Value::Int(length)),
-        ])));
+        rows.push(vec![
+            Value::Str(id.to_string()),
+            Value::Str(description.to_string()),
+            Value::DNA(BioSequence { data: sequence }),
+            Value::Int(length),
+        ]);
     }
 
-    Ok(Value::List(records))
+    Ok(Value::Table(Table::new(
+        vec![
+            "id".into(),
+            "description".into(),
+            "seq".into(),
+            "length".into(),
+        ],
+        rows,
+    )))
 }
 
 // ── FASTQ ───────────────────────────────────────────────────────
@@ -117,29 +126,44 @@ fn parse_fastq(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args, "read_fastq")?;
     let text = fetch_file_text(&path, "read_fastq")?;
     let lines: Vec<&str> = text.lines().collect();
-    let mut records: Vec<Value> = Vec::new();
+    let mut rows: Vec<Vec<Value>> = Vec::new();
 
     let mut i = 0;
     while i + 3 < lines.len() {
         let header = lines[i];
-        let sequence = lines[i + 1];
+        let sequence = lines[i + 1].to_uppercase();
         // lines[i + 2] is the '+' separator
         let quality = lines[i + 3];
 
-        let id = header.strip_prefix('@').unwrap_or(header);
-        let id = id.split_whitespace().next().unwrap_or(id);
+        let definition = header.strip_prefix('@').unwrap_or(header);
+        let (id, description) = match definition.split_once(char::is_whitespace) {
+            Some((id, desc)) => (id, desc.trim()),
+            None => (definition, ""),
+        };
 
-        records.push(Value::Record(HashMap::from([
-            ("id".to_string(), Value::Str(id.to_string())),
-            ("sequence".to_string(), Value::Str(sequence.to_string())),
-            ("quality".to_string(), Value::Str(quality.to_string())),
-            ("length".to_string(), Value::Int(sequence.len() as i64)),
-        ])));
+        rows.push(vec![
+            Value::Str(id.to_string()),
+            Value::Str(description.to_string()),
+            Value::DNA(BioSequence {
+                data: sequence.clone(),
+            }),
+            Value::Int(sequence.len() as i64),
+            Value::Str(quality.to_string()),
+        ]);
 
         i += 4;
     }
 
-    Ok(Value::List(records))
+    Ok(Value::Table(Table::new(
+        vec![
+            "id".into(),
+            "description".into(),
+            "seq".into(),
+            "length".into(),
+            "quality".into(),
+        ],
+        rows,
+    )))
 }
 
 // ── VCF ─────────────────────────────────────────────────────────
@@ -158,30 +182,29 @@ fn parse_vcf(args: Vec<Value>) -> Result<Value> {
             continue;
         }
 
-        // Parse INFO field into sub-record
-        let mut info_map: HashMap<String, Value> = HashMap::new();
-        for item in cols[7].split(';') {
-            if let Some((k, v)) = item.split_once('=') {
-                info_map.insert(k.to_string(), Value::Str(v.to_string()));
-            } else {
-                // Flag field (no value)
-                info_map.insert(item.to_string(), Value::Bool(true));
-            }
-        }
+        let info = if cols[7] == "." {
+            HashMap::new()
+        } else {
+            HashMap::from([("_raw".to_string(), Value::Str(cols[7].to_string()))])
+        };
+        let quality = match cols[5] {
+            "." => 0.0,
+            value => value.parse::<f64>().unwrap_or(0.0),
+        };
 
-        records.push(Value::Record(HashMap::from([
-            ("CHROM".to_string(), Value::Str(cols[0].to_string())),
-            ("POS".to_string(), Value::Int(cols[1].parse::<i64>().unwrap_or(0))),
-            ("ID".to_string(), Value::Str(cols[2].to_string())),
-            ("REF".to_string(), Value::Str(cols[3].to_string())),
-            ("ALT".to_string(), Value::Str(cols[4].to_string())),
-            ("QUAL".to_string(), Value::Float(cols[5].parse::<f64>().unwrap_or(0.0))),
-            ("FILTER".to_string(), Value::Str(cols[6].to_string())),
-            ("INFO".to_string(), Value::Record(info_map)),
-        ])));
+        records.push(Value::Variant {
+            chrom: cols[0].to_string(),
+            pos: cols[1].parse::<i64>().unwrap_or(0),
+            id: cols[2].to_string(),
+            ref_allele: cols[3].to_string(),
+            alt_allele: cols[4].to_string(),
+            quality,
+            filter: cols[6].to_string(),
+            info,
+        });
     }
 
-    Ok(Value::List(records))
+    Ok(Value::List((records).into()))
 }
 
 // ── BED ─────────────────────────────────────────────────────────
@@ -189,11 +212,16 @@ fn parse_vcf(args: Vec<Value>) -> Result<Value> {
 fn parse_bed(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args, "read_bed")?;
     let text = fetch_file_text(&path, "read_bed")?;
-    let mut records: Vec<Value> = Vec::new();
+    let mut rows: Vec<Vec<Value>> = Vec::new();
+    let mut num_fields = 0usize;
 
     for line in text.lines() {
         let line = line.trim();
-        if line.is_empty() || line.starts_with('#') || line.starts_with("track") || line.starts_with("browser") {
+        if line.is_empty()
+            || line.starts_with('#')
+            || line.starts_with("track")
+            || line.starts_with("browser")
+        {
             continue;
         }
         let cols: Vec<&str> = line.split('\t').collect();
@@ -201,25 +229,40 @@ fn parse_bed(args: Vec<Value>) -> Result<Value> {
             continue;
         }
 
-        let mut rec: HashMap<String, Value> = HashMap::new();
-        rec.insert("chrom".to_string(), Value::Str(cols[0].to_string()));
-        rec.insert("start".to_string(), Value::Int(cols[1].parse::<i64>().unwrap_or(0)));
-        rec.insert("end".to_string(), Value::Int(cols[2].parse::<i64>().unwrap_or(0)));
-
+        let field_count = cols.len().min(6);
+        num_fields = num_fields.max(field_count);
+        let mut row = vec![
+            Value::Str(cols[0].to_string()),
+            Value::Int(cols[1].parse::<i64>().unwrap_or(0)),
+            Value::Int(cols[2].parse::<i64>().unwrap_or(0)),
+        ];
         if cols.len() > 3 {
-            rec.insert("name".to_string(), Value::Str(cols[3].to_string()));
+            row.push(Value::Str(cols[3].to_string()));
         }
         if cols.len() > 4 {
-            rec.insert("score".to_string(), Value::Float(cols[4].parse::<f64>().unwrap_or(0.0)));
+            row.push(match cols[4].parse::<i64>() {
+                Ok(value) => Value::Int(value),
+                Err(_) => Value::Float(cols[4].parse::<f64>().unwrap_or(0.0)),
+            });
         }
         if cols.len() > 5 {
-            rec.insert("strand".to_string(), Value::Str(cols[5].to_string()));
+            row.push(Value::Str(cols[5].to_string()));
         }
 
-        records.push(Value::Record(rec));
+        rows.push(row);
     }
 
-    Ok(Value::List(records))
+    let columns = match num_fields {
+        0..=3 => vec!["chrom", "start", "end"],
+        4 => vec!["chrom", "start", "end", "name"],
+        5 => vec!["chrom", "start", "end", "name", "score"],
+        _ => vec!["chrom", "start", "end", "name", "score", "strand"],
+    }
+    .into_iter()
+    .map(str::to_string)
+    .collect();
+
+    Ok(Value::Table(Table::new(columns, rows)))
 }
 
 // ── GFF ─────────────────────────────────────────────────────────
@@ -227,7 +270,7 @@ fn parse_bed(args: Vec<Value>) -> Result<Value> {
 fn parse_gff(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args, "read_gff")?;
     let text = fetch_file_text(&path, "read_gff")?;
-    let mut records: Vec<Value> = Vec::new();
+    let mut rows: Vec<Vec<Value>> = Vec::new();
 
     for line in text.lines() {
         let line = line.trim();
@@ -239,34 +282,36 @@ fn parse_gff(args: Vec<Value>) -> Result<Value> {
             continue;
         }
 
-        // Parse attributes (col 8): key=value pairs separated by ;
-        let mut attrs: HashMap<String, Value> = HashMap::new();
-        for item in cols[8].split(';') {
-            let item = item.trim();
-            if item.is_empty() {
-                continue;
-            }
-            if let Some((k, v)) = item.split_once('=') {
-                attrs.insert(k.to_string(), Value::Str(v.to_string()));
-            } else {
-                attrs.insert(item.to_string(), Value::Bool(true));
-            }
-        }
-
-        records.push(Value::Record(HashMap::from([
-            ("seqid".to_string(), Value::Str(cols[0].to_string())),
-            ("source".to_string(), Value::Str(cols[1].to_string())),
-            ("type".to_string(), Value::Str(cols[2].to_string())),
-            ("start".to_string(), Value::Int(cols[3].parse::<i64>().unwrap_or(0))),
-            ("end".to_string(), Value::Int(cols[4].parse::<i64>().unwrap_or(0))),
-            ("score".to_string(), Value::Str(cols[5].to_string())),
-            ("strand".to_string(), Value::Str(cols[6].to_string())),
-            ("phase".to_string(), Value::Str(cols[7].to_string())),
-            ("attributes".to_string(), Value::Record(attrs)),
-        ])));
+        rows.push(vec![
+            Value::Str(cols[0].to_string()),
+            Value::Str(cols[1].to_string()),
+            Value::Str(cols[2].to_string()),
+            Value::Int(cols[3].parse::<i64>().unwrap_or(0)),
+            Value::Int(cols[4].parse::<i64>().unwrap_or(0)),
+            match cols[5] {
+                "." => Value::Nil,
+                value => Value::Float(value.parse::<f64>().unwrap_or(0.0)),
+            },
+            Value::Str(cols[6].to_string()),
+            Value::Str(cols[7].to_string()),
+            Value::Str(cols[8].to_string()),
+        ]);
     }
 
-    Ok(Value::List(records))
+    Ok(Value::Table(Table::new(
+        vec![
+            "seqid".into(),
+            "source".into(),
+            "type".into(),
+            "start".into(),
+            "end".into(),
+            "score".into(),
+            "strand".into(),
+            "phase".into(),
+            "attributes".into(),
+        ],
+        rows,
+    )))
 }
 
 // ── GTF ─────────────────────────────────────────────────────────
@@ -304,18 +349,27 @@ fn parse_gtf(args: Vec<Value>) -> Result<Value> {
             }
         }
 
-        records.push(Value::Record(HashMap::from([
-            ("seqid".to_string(), Value::Str(cols[0].to_string())),
-            ("source".to_string(), Value::Str(cols[1].to_string())),
-            ("type".to_string(), Value::Str(cols[2].to_string())),
-            ("start".to_string(), Value::Int(cols[3].parse::<i64>().unwrap_or(0))),
-            ("end".to_string(), Value::Int(cols[4].parse::<i64>().unwrap_or(0))),
-            ("score".to_string(), Value::Str(cols[5].to_string())),
-            ("strand".to_string(), Value::Str(cols[6].to_string())),
-            ("phase".to_string(), Value::Str(cols[7].to_string())),
-            ("attributes".to_string(), Value::Record(attrs)),
-        ])));
+        records.push(Value::Record(
+            HashMap::from([
+                ("seqid".to_string(), Value::Str(cols[0].to_string())),
+                ("source".to_string(), Value::Str(cols[1].to_string())),
+                ("type".to_string(), Value::Str(cols[2].to_string())),
+                (
+                    "start".to_string(),
+                    Value::Int(cols[3].parse::<i64>().unwrap_or(0)),
+                ),
+                (
+                    "end".to_string(),
+                    Value::Int(cols[4].parse::<i64>().unwrap_or(0)),
+                ),
+                ("score".to_string(), Value::Str(cols[5].to_string())),
+                ("strand".to_string(), Value::Str(cols[6].to_string())),
+                ("phase".to_string(), Value::Str(cols[7].to_string())),
+                ("attributes".to_string(), Value::Record(attrs.into())),
+            ])
+            .into(),
+        ));
     }
 
-    Ok(Value::List(records))
+    Ok(Value::List((records).into()))
 }

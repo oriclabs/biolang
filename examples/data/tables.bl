@@ -32,26 +32,29 @@ println("Distinct genes: " + str(distinct(samples, "gene")))
 println("Slice [1,3): " + str(slice(samples, 1, 3)))
 
 # ── Null handling ───────────────────────────────────────────────
-let nulls = table([{id: "A", v: 10}, {id: "B", v: null}, {id: "C", v: 30}])
-println("fill_null: " + str(nrow(fill_null(nulls, "v", 0))))
+let nulls = table([{id: "A", v: 10}, {id: "B", v: nil}, {id: "C", v: 30}])
+println("fill_null: " + str(nrow(fill_null(nulls, 0))))
 println("drop_null: " + str(nrow(drop_null(nulls, "v"))))
 
 # ── Group by + summarize ───────────────────────────────────────
-let by_gene = samples |> group_by("gene") |> summarize(|g| {
-    mean_expr: mean(g.expr), count: nrow(g),
-})
+let by_gene = samples
+    |> group_by("gene")
+    |> summarize(|gene, rows| {gene: gene, mean_expr: mean(col(rows, "expr")), count: nrow(rows)})
 println("Summary: " + str(by_gene))
 println("Counts:  " + str(value_counts(samples, "gene")))
 
 # ── All join types ──────────────────────────────────────────────
 let annot = table([{gene: "BRCA1", pw: "DNA repair"}, {gene: "TP53", pw: "Apoptosis"},
                    {gene: "MYC", pw: "Proliferation"}])
-println("inner=" + str(nrow(inner_join(samples, annot, "gene")))
-      + " left=" + str(nrow(left_join(samples, annot, "gene")))
-      + " right=" + str(nrow(right_join(samples, annot, "gene")))
-      + " outer=" + str(nrow(outer_join(samples, annot, "gene")))
-      + " anti=" + str(nrow(anti_join(samples, annot, "gene")))
-      + " semi=" + str(nrow(semi_join(samples, annot, "gene"))))
+println(format(
+    "inner={} left={} right={} outer={} anti={} semi={}",
+    nrow(inner_join(samples, annot, "gene")),
+    nrow(left_join(samples, annot, "gene")),
+    nrow(right_join(samples, annot, "gene")),
+    nrow(outer_join(samples, annot, "gene")),
+    nrow(anti_join(samples, annot, "gene")),
+    nrow(semi_join(samples, annot, "gene"))
+))
 
 # ── Pivot operations ────────────────────────────────────────────
 let wide = table([{s: "S1", gene: "BRCA1", e: 12.4}, {s: "S1", gene: "TP53", e: 8.1},
@@ -62,7 +65,6 @@ println("Long: " + str(pivoted |> pivot_longer(["BRCA1", "TP53"], "gene", "e")))
 
 # ── Window functions ────────────────────────────────────────────
 println("row_number: " + str(head(samples |> row_number(), 3)))
-println("rank:       " + str(head(samples |> rank("expr"), 3)))
 println("lag(1):     " + str(head(samples |> lag("expr", 1), 3)))
 println("lead(1):    " + str(head(samples |> lead("expr", 1), 3)))
 println("cumsum:     " + str(head(samples |> cumsum("expr"), 4)))

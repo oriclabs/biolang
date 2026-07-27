@@ -101,7 +101,7 @@ let threshold = 28
 let reads = read_fastq("data/reads.fastq")
 
 let below = reads
-  |> filter(|r| mean_phred(r.quality) < threshold)
+  |> filter(|r| mean_phred(r.quality) &lt; threshold)
   |> len
 
 print(below)</code></pre>
@@ -146,7 +146,8 @@ let percentage = 90
 let reads = read_fastq("data/reads.fastq")
 
 let passed = reads |> filter(|r| {
-  let scores = r.quality
+    let scores = range(0, len(r.quality))
+      |> map(|pos| ascii(substr(r.quality, pos, 1)) - 33)
   let total = len(scores)
   let good = scores |> filter(|q| q >= quality_threshold) |> len
   (good * 100) / total >= percentage
@@ -161,37 +162,31 @@ print(len(passed))</code></pre>
           <p class="text-slate-400 mb-4">Given FASTQ reads and a quality threshold, count positions where the average quality falls below it.</p>
           <pre><code class="language-biolang"># Count positions with average quality below threshold
 let threshold = 20
-let reads = read_read_fastq("data/reads.fastq")
+let reads = read_fastq("data/reads.fastq")
 
 # Collect quality scores per position
 let num_positions = reads |> map(|r| len(r.quality)) |> max
 let position_avgs = range(0, num_positions) |> map(|pos| {
   let scores_at_pos = reads
     |> filter(|r| len(r.quality) > pos)
-    |> map(|r| r.quality[pos])
+      |> map(|r| ascii(substr(r.quality, pos, 1)) - 33)
   mean(scores_at_pos)
 })
 
-let below = position_avgs |> filter(|avg| avg < threshold) |> len
+let below = position_avgs |> filter(|avg| avg &lt; threshold) |> len
 print(below)</code></pre>
         </section>
 
         <!-- BFIL -->
         <section id="bfil" class="mt-12">
           <h2 class="text-2xl font-bold text-white mb-2">BFIL &mdash; Base Filtration by Quality</h2>
-          <p class="text-slate-400 mb-4">Trim each FASTQ read from both ends, removing bases below a quality threshold.</p>
+          <p class="text-slate-400 mb-4">Trim FASTQ reads by quality and write the filtered records to a new file.</p>
           <pre><code class="language-biolang"># Trim reads from both ends by quality
 let threshold = 20
-let reads = read_fastq("data/reads.fastq")
+trim_quality("data/reads.fastq", "data/reads.trimmed.fastq", threshold)
 
-for read in reads {
-  let q = read.quality
-  let trimmed = trim_quality(q, threshold)
-  print("@" + read.id)
-  print(read.seq)   # trimmed range
-  print("+")
-  print(trimmed)
-}</code></pre>
+let trimmed_reads = read_fastq("data/reads.trimmed.fastq")
+println("Trimmed reads:", len(trimmed_reads))</code></pre>
         </section>
 
         <!-- ORFR -->

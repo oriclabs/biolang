@@ -210,7 +210,7 @@ let reads = read_fastq("data/reads.fastq")
 
 let clean = reads
     |> filter(|r| len(r.seq) >= 50)
-    |> filter(|r| mean_phred(r.qual) >= 20)
+    |> filter(|r| mean_phred(r.quality) >= 20)
     |> filter(|r| gc_content(r.seq) > 0.2 and gc_content(r.seq) < 0.8)
     |> collect()
 
@@ -235,8 +235,9 @@ Sometimes a read has good bases at the start but degrades toward the end. This i
 
 ```bio
 # Quality trimming --- remove low-quality bases from ends
+trim_quality("data/reads.fastq", "data/reads.trimmed.fastq", 20)
 let reads = read_fastq("data/reads.fastq")
-let trimmed = trim_quality(reads, min_quality: 20)
+let trimmed = read_fastq("data/reads.trimmed.fastq")
 
 # Check how trimming affected lengths
 let original_lengths = reads |> map(|r| len(r.seq))
@@ -284,8 +285,9 @@ Detected adapters: [AGATCGGAAGAGC, CTGTCTCTTATACACATCT]
 
 ```bio
 # Trim adapters
-let reads = read_fastq("data/reads.fastq")
-let trimmed = trim_adapters(reads)
+let adapters = ["AGATCGGAAGAGC"]
+trim_adapters("data/reads.fastq", "data/reads.adapter-trimmed.fastq", adapters)
+let trimmed = read_fastq("data/reads.adapter-trimmed.fastq")
 println(f"Adapter-trimmed reads: {len(trimmed)}")
 ```
 

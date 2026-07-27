@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-e720ecec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -268,10 +268,10 @@ if len(missing) &gt; 0 then {
 <h3 id="extracting-samples-as-records"><a class="header" href="#extracting-samples-as-records">Extracting Samples as Records</a></h3>
 <p>Tables are convenient for viewing data, but for per-sample processing, you want a list of records where each record contains all the information about one sample:</p>
 <pre><code class="language-bio">fn sheet_to_samples(sheet) {
-    let ids = sheet |&gt; select("sample_id") |&gt; flatten()
-    let files = sheet |&gt; select("fastq_file") |&gt; flatten()
-    let tissues = sheet |&gt; select("tissue") |&gt; flatten()
-    let groups = sheet |&gt; select("group") |&gt; flatten()
+    let ids = col(sheet, "sample_id")
+    let files = col(sheet, "reads_file")
+    let tissues = col(sheet, "tissue")
+    let groups = col(sheet, "condition")
     range(0, len(ids)) |&gt; map(|i| {
         id: ids[i],
         fastq: files[i],
@@ -328,7 +328,7 @@ let samples = sheet_to_samples(sheet)
     let reads = read_fastq(sample.fastq)
     let total = len(reads)
 
-    let filtered = reads |&gt; quality_filter(config.min_quality)
+    let filtered = reads |&gt; filter(|r| mean_phred(r.quality) &gt;= config.min_quality)
     let passed = filtered |&gt; filter(|r| len(r.seq) &gt;= config.min_length)
     let pass_count = len(passed)
 
@@ -767,9 +767,9 @@ done
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

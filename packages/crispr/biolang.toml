@@ -1,0 +1,5 @@
+[package]
+name = "crispr"
+version = "0.1.0"
+description = "CRISPR screen analysis: guide counting, MAGeCK scoring, gene essentiality, QC"
+authors = ["BioLang"]

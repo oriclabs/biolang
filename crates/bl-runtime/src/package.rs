@@ -75,14 +75,16 @@ pub fn init_package(dir: &Path, name: &str) -> Result<PathBuf, String> {
         .map_err(|e| format!("Failed to serialize manifest: {e}"))?;
 
     let path = dir.join("biolang.toml");
-    std::fs::write(&path, toml_str)
-        .map_err(|e| format!("Cannot write {}: {e}", path.display()))?;
+    std::fs::write(&path, toml_str).map_err(|e| format!("Cannot write {}: {e}", path.display()))?;
 
     // Create main.bl
     let main_path = dir.join("main.bl");
     if !main_path.exists() {
-        std::fs::write(&main_path, "# BioLang project\nprintln(\"Hello from BioLang!\")\n")
-            .map_err(|e| format!("Cannot write main.bl: {e}"))?;
+        std::fs::write(
+            &main_path,
+            "# BioLang project\nprintln(\"Hello from BioLang!\")\n",
+        )
+        .map_err(|e| format!("Cannot write main.bl: {e}"))?;
     }
 
     Ok(path)
@@ -96,8 +98,7 @@ pub fn install_path_dep(name: &str, source_path: &Path) -> Result<PathBuf, Strin
             .map_err(|e| format!("Cannot remove existing {}: {e}", target.display()))?;
     }
 
-    copy_dir_recursive(source_path, &target)
-        .map_err(|e| format!("Cannot copy package: {e}"))?;
+    copy_dir_recursive(source_path, &target).map_err(|e| format!("Cannot copy package: {e}"))?;
 
     Ok(target)
 }

@@ -113,7 +113,7 @@ for orth in orthologs {
         <pre><code class="language-biolang"># Fetch protein sequences for each ortholog
 let proteins = orthologs |> map(|o| {
   let seq_data = ensembl_sequence(o.gene_id, "protein")
-  let seq = protein"{seq_data.seq}"
+  let seq = protein(seq_data.seq)
   { species: o.species, symbol: o.symbol, sequence: seq }
 })
 
@@ -146,7 +146,7 @@ print(protein_table)
         <pre><code class="language-biolang"># Fetch CDS (coding DNA) sequences
 let cds_data = orthologs |> map(|o| {
   let seq_data = ensembl_sequence(o.gene_id, "cdna")
-  let seq = dna"{seq_data.seq}"
+  let seq = seq_data.seq
   { species: o.species, symbol: o.symbol, sequence: seq }
 })
 
@@ -270,7 +270,11 @@ let family_data = family_queries |> map(|entry| {
   let results = entry.genes |> enumerate() |> map(|pair| {
     let i = pair[0]
     let symbol = pair[1]
-    let result = try { ensembl_symbol(entry.species, symbol) }
+    let result = try {
+      ensembl_symbol(entry.species, symbol)
+    } catch _ {
+      nil
+    }
     { species: entry.species, gene: family_labels[i],
       present: if result != nil then "Yes" else "No" }
   })
@@ -441,13 +445,13 @@ fn compare_gene_across_species(gene_symbols, gene_label, output_dir) {
   # 2. Fetch protein sequences
   let prots = genes |> map(|g| {
     let seq = ensembl_sequence(g.gene_id, "protein")
-    { species: g.species, symbol: g.symbol, sequence: protein"{seq.seq}" }
+    { species: g.species, symbol: g.symbol, sequence: protein(seq.seq) }
   })
 
   # 3. Fetch CDS and compute GC content
   let cds = genes |> map(|g| {
     let seq = ensembl_sequence(g.gene_id, "cdna")
-    let s = dna"{seq.seq}"
+    let s = seq.seq
     { species: g.species, gc: round(gc_content(s), 3), cds_len: len(s) }
   })
 

@@ -1,0 +1,373 @@
+# singlecell/src/plots.bl — plots that take the sc object directly
+#
+# The plotting builtins want shapes the sc object does not have: umap_plot needs
+# a List<Record> with x/y columns, but umap() returns a Matrix; violin needs a
+# Table whose columns are the groups. Every function here does that conversion,
+# so a clustered object goes straight into a figure:
+#
+#   let res = obj |> sc.normalize() |> sc.variable_genes(2000)
+#                 |> sc.neighbors(15) |> sc.cluster_leiden(15, 1.0)
+#   write_text("umap.svg", sc.plot_umap(res))
+#   write_text("markers.svg", sc.plot_markers(res, 5))
+#
+# Functions returning SVG return it as a Str — write it to a file, or embed it.
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+## The most processed matrix available: HVG > normalised > raw.
+fn _matrix_of(obj) {
+    let k = keys(obj)
+    if contains(k, "hvg_matrix") {
+        return obj.hvg_matrix
+    }
+    if contains(k, "norm_matrix") {
+        return obj.norm_matrix
+    }
+    obj.matrix
+}
+
+## Per-cell group label as Str, so plots colour by cluster when one exists.
+fn _labels(obj) {
+    let k = keys(obj)
+    if contains(k, "clusters") {
+        return obj.clusters |> map(|c| _cluster_label(c))
+    }
+    range(0, obj.n_cells) |> map(|i| "cell")
+}
+
+## table() orders columns lexicographically, so an unpadded "cluster 10" would
+## sort between "cluster 1" and "cluster 2". Zero-padding keeps groups in
+## numeric order in violin and heatmap output.
+fn _cluster_label(c) {
+    "cluster " + pad_left(str(c), 2, "0")
+}
+
+## Rows of a Matrix as a List<List<Float>>. `umap`/`pca` return Matrix values,
+## which cannot be indexed with [i].
+fn _rows(m, n) {
+    range(0, n) |> map(|i| row(m, i))
+}
+
+## Sorted distinct cluster ids.
+fn _cluster_ids(obj) {
+    obj.clusters |> unique |> sort
+}
+
+## Cell indices belonging to a cluster.
+fn _cells_in(obj, c) {
+    range(0, obj.n_cells) |> filter(|i| obj.clusters[i] == c)
+}
+
+## Column index of a gene name, or -1.
+fn _gene_index(obj, gene) {
+    let names = if contains(keys(obj), "hvg_genes") { obj.hvg_genes } else { obj.genes }
+    find_index(names, |g| g == gene)
+}
+
+## A non-finite value. violin() drops non-finite entries per column, which is how
+## ragged per-cluster groups fit into a rectangular Table.
+fn _pad() { log(0.0) }
+
+# ── embeddings ────────────────────────────────────────────────────────────────
+
+## plot_umap(obj, title) → Str (SVG)
+##
+## UMAP of the HVG matrix, coloured by cluster. Equivalent to Seurat's DimPlot.
+fn plot_umap(obj, title = "UMAP") {
+    let emb = umap(_matrix_of(obj), 2)
+    let labs = _labels(obj)
+    let pts = _rows(emb, obj.n_cells) |> map(|r| {x: r[0], y: r[1]})
+    let with_labels = range(0, obj.n_cells)
+        |> map(|i| {... pts[i], cluster: labs[i]})
+    umap_plot(with_labels, {title: title})
+}
+
+## plot_pca(obj, title) → Str (SVG)
+##
+## First two principal components, coloured by cluster.
+fn plot_pca(obj, title = "PCA") {
+    let p = pca(_matrix_of(obj), 2)
+    let labs = _labels(obj)
+    let sc_rows = p.scores
+    let pts = range(0, obj.n_cells) |> map(|i| {
+        let r = sc_rows[i]
+        {x: r[0], y: r[1], cluster: labs[i]}
+    })
+    umap_plot(pts, {title: title})
+}
+
+## plot_feature(obj, gene, title) → Str (SVG)
+##
+## UMAP coloured by one gene's expression on a continuous ramp — Seurat's
+## FeaturePlot. Emits its own SVG because umap_plot colours by a categorical
+## column and cannot express a gradient.
+fn plot_feature(obj, gene, title = nil) {
+    let gi = _gene_index(obj, gene)
+    if gi < 0 {
+        return "gene '" + gene + "' not found"
+    }
+    let m = _matrix_of(obj)
+    let vals = range(0, obj.n_cells) |> map(|i| m[i][gi])
+    let emb = umap(m, 2)
+    let rows = _rows(emb, obj.n_cells)
+    _scatter_svg(
+        rows |> map(|r| r[0]),
+        rows |> map(|r| r[1]),
+        vals,
+        if title == nil { gene } else { title },
+        gene
+    )
+}
+
+## Scatter with a continuous colour ramp (grey -> blue -> red), used by
+## plot_feature. Kept separate so any per-cell numeric vector can be shown this
+## way — pseudotime, doublet score, QC metrics.
+fn _scatter_svg(xs, ys, vals, title, legend) {
+    let w = 560
+    let h = 460
+    let pad = 52
+    let xlo = min(xs)
+    let xhi = max(xs)
+    let ylo = min(ys)
+    let yhi = max(ys)
+    let xspan = if xhi > xlo { xhi - xlo } else { 1.0 }
+    let yspan = if yhi > ylo { yhi - ylo } else { 1.0 }
+    let vlo = min(vals)
+    let vhi = max(vals)
+    let vspan = if vhi > vlo { vhi - vlo } else { 1.0 }
+
+    let parts = ["<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + str(w) +
+                 "\" height=\"" + str(h) + "\" viewBox=\"0 0 " + str(w) + " " + str(h) + "\">",
+                 "<rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/>",
+                 "<text x=\"" + str(pad) + "\" y=\"26\" font-family=\"sans-serif\" " +
+                 "font-size=\"14\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>"]
+
+    for i in range(0, len(xs)) {
+        let px = pad + int(float(w - 2 * pad) * (xs[i] - xlo) / xspan)
+        let py = h - pad - int(float(h - 2 * pad - 20) * (ys[i] - ylo) / yspan)
+        parts = parts + ["<circle cx=\"" + str(px) + "\" cy=\"" + str(py) +
+            "\" r=\"2.6\" fill=\"" + _ramp((vals[i] - vlo) / vspan) +
+            "\" fill-opacity=\"0.85\"/>"]
+    }
+
+    # colour key
+    let key_x = w - pad - 96
+    for s2 in range(0, 24) {
+        parts = parts + ["<rect x=\"" + str(key_x + s2 * 4) + "\" y=\"" + str(h - 30) +
+            "\" width=\"4\" height=\"9\" fill=\"" + _ramp(float(s2) / 23.0) + "\"/>"]
+    }
+    parts = parts + ["<text x=\"" + str(key_x) + "\" y=\"" + str(h - 34) +
+        "\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#475569\">" +
+        legend + " " + str(round(vlo, 2)) + " to " + str(round(vhi, 2)) + "</text>", "</svg>"]
+    join(parts, "\n")
+}
+
+## Continuous colour ramp over 0..1: light grey -> blue -> red.
+fn _ramp(t) {
+    let u = if t < 0.0 { 0.0 } else { if t > 1.0 { 1.0 } else { t } }
+    if u < 0.5 {
+        let k = u / 0.5
+        return "rgb(" + str(int(222.0 - 152.0 * k)) + "," +
+               str(int(226.0 - 116.0 * k)) + "," + str(int(232.0 + 5.0 * k)) + ")"
+    }
+    let k = (u - 0.5) / 0.5
+    "rgb(" + str(int(70.0 + 170.0 * k)) + "," + str(int(110.0 - 80.0 * k)) + "," +
+        str(int(237.0 - 180.0 * k)) + ")"
+}
+
+# ── distributions ─────────────────────────────────────────────────────────────
+
+## plot_violin(obj, gene) → Str (SVG)
+##
+## One gene's expression per cluster. Seurat's VlnPlot.
+fn plot_violin(obj, gene) {
+    let gi = _gene_index(obj, gene)
+    if gi < 0 {
+        return "gene '" + gene + "' not found"
+    }
+    let m = _matrix_of(obj)
+    let ids = _cluster_ids(obj)
+    let groups = ids |> map(|c| _cells_in(obj, c) |> map(|i| m[i][gi]))
+    let width = groups |> map(|g| len(g)) |> max
+
+    # Table rows are rectangular, so short columns are padded with a non-finite
+    # value that violin() discards.
+    let rows = range(0, width) |> map(|r| {
+        let cells = range(0, len(ids)) |> map(|k|
+            if r < len(groups[k]) { groups[k][r] } else { _pad() })
+        _record_of(ids |> map(|c| _cluster_label(c)), cells)
+    })
+    violin(table(rows), {title: gene})
+}
+
+## Build a Record from parallel key/value lists. Record literals cannot have
+## computed keys and there is no set-key builtin, so this round-trips through
+## JSON — the only way to name a field at runtime.
+fn _record_of(names, values) {
+    let parts = range(0, len(names)) |> map(|i|
+        "\"" + replace(str(names[i]), "\"", "'") + "\": " + str(values[i]))
+    json_parse("{" + join(parts, ", ") + "}")
+}
+
+# ── markers ───────────────────────────────────────────────────────────────────
+
+## plot_markers(obj, n_per_cluster) → Str (SVG)
+##
+## Heatmap of mean expression of the top markers of each cluster, genes x
+## clusters. The analogue of Seurat's DoHeatmap.
+fn plot_markers(obj, n_per_cluster = 5) {
+    let ids = _cluster_ids(obj)
+    let m = _matrix_of(obj)
+    let names = if contains(keys(obj), "hvg_genes") { obj.hvg_genes } else { obj.genes }
+
+    # Pick each cluster's most distinctive genes by (in-cluster mean) - (rest mean).
+    let picked = []
+    for c in ids {
+        let inside = _cells_in(obj, c)
+        let outside = range(0, obj.n_cells) |> filter(|i| obj.clusters[i] != c)
+        if len(inside) > 0 and len(outside) > 0 {
+            let scored = range(0, len(names)) |> map(|g| {
+                gene: names[g],
+                diff: mean(inside |> map(|i| m[i][g])) - mean(outside |> map(|i| m[i][g]))
+            })
+            let top = scored
+                |> sort(|a, b| if a.diff > b.diff { -1 } else { 1 })
+                |> take(n_per_cluster)
+                |> map(|x| x.gene)
+            for g in top {
+                if not contains(picked, g) { picked = picked + [g] }
+            }
+        }
+    }
+
+    let rows = picked |> map(|g| {
+        let gi = find_index(names, |x| x == g)
+        let vals = ids |> map(|c| mean(_cells_in(obj, c) |> map(|i| m[i][gi])))
+        {... _record_of(ids |> map(|c| _cluster_label(c)), vals), gene: g}
+    })
+    clustered_heatmap(table(rows), {title: "top markers per cluster"})
+}
+
+## Ordered ASCII bars. bar_chart() takes a Record, and records are unordered
+## hash maps, so it cannot render a sequence — an elbow plot came out as
+## PC4, PC1, PC3, PC5, PC2. These draw the bars directly to keep the order.
+fn _ascii_bars(labels, values, width = 40) {
+    let top = values |> max
+    let scale = if top > 0.0 { top } else { 1.0 }
+    let pad = labels |> map(|l| len(l)) |> max
+    for i in range(0, len(labels)) {
+        let n = int(float(width) * values[i] / scale)
+        println("  " + pad_right(labels[i], pad, " ") + " |" +
+                str_repeat("#", n) + " " + str(round(values[i], 2)))
+    }
+}
+
+## plot_elbow(obj, n_pcs) → prints an ordered ASCII bar chart
+##
+## Variance explained per principal component, in PC order, for choosing how
+## many components to keep. Prints and returns nil.
+fn plot_elbow(obj, n_pcs = 15) {
+    let p = pca(_matrix_of(obj), n_pcs)
+    let r = p.explained_variance_ratio
+    let n = if len(r) < n_pcs { len(r) } else { n_pcs }
+    println("variance explained per PC (%):")
+    _ascii_bars(
+        range(0, n) |> map(|i| "PC" + str(i + 1)),
+        range(0, n) |> map(|i| 100.0 * r[i])
+    )
+}
+
+## plot_proportions(obj, groups) → prints an ordered ASCII bar chart
+##
+## Cells per cluster, or per supplied label when `groups` is given. Sorted by
+## group name so repeated runs are comparable.
+fn plot_proportions(obj, groups = nil) {
+    let labs = if groups == nil { _labels(obj) } else { groups }
+    let ids = labs |> unique |> sort
+    println("cells per group:")
+    _ascii_bars(
+        ids |> map(|g| str(g)),
+        ids |> map(|g| float(labs |> filter(|l| l == g) |> len))
+    )
+}
+
+# ── dot plot ──────────────────────────────────────────────────────────────────
+
+## expr_dotplot(obj, genes) → Str (SVG)
+##
+## Genes x clusters, circle area = fraction of cells expressing, circle colour =
+## mean expression among expressing cells. This is scanpy's dotplot / Seurat's
+## DotPlot; the `dotplot` builtin is a sequence dot-matrix and unrelated.
+##
+## Written as SVG here rather than delegating, because no builtin encodes two
+## variables per cell.
+fn expr_dotplot(obj, genes, title = "expression dot plot") {
+    let m = _matrix_of(obj)
+    let names = if contains(keys(obj), "hvg_genes") { obj.hvg_genes } else { obj.genes }
+    let ids = _cluster_ids(obj)
+
+    let present = genes |> filter(|g| find_index(names, |x| x == g) >= 0)
+    if len(present) == 0 {
+        return "none of the requested genes are in this object"
+    }
+
+    let cell_w = 46
+    let cell_h = 26
+    let left = 110
+    let top = 46
+    let w = left + len(ids) * cell_w + 130
+    let h = top + len(present) * cell_h + 40
+
+    # Per (gene, cluster): fraction expressing and mean among expressing cells.
+    let stats = present |> map(|g| {
+        let gi = find_index(names, |x| x == g)
+        ids |> map(|c| {
+            let cells = _cells_in(obj, c)
+            let vals = cells |> map(|i| m[i][gi])
+            let expressing = vals |> filter(|v| v > 0.0)
+            {frac: if len(vals) > 0 { float(len(expressing)) / float(len(vals)) } else { 0.0 },
+             mean: if len(expressing) > 0 { mean(expressing) } else { 0.0 }}
+        })
+    })
+
+    let all_means = stats |> map(|rowv| rowv |> map(|s| s.mean)) |> flatten
+    let mx = if len(all_means) > 0 { max(all_means) } else { 1.0 }
+    let mmax = if mx > 0.0 { mx } else { 1.0 }
+
+    let parts = ["<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + str(w) +
+                 "\" height=\"" + str(h) + "\" viewBox=\"0 0 " + str(w) + " " + str(h) + "\">",
+                 "<rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/>",
+                 "<text x=\"" + str(left) + "\" y=\"22\" font-family=\"sans-serif\" " +
+                 "font-size=\"14\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>"]
+
+    for k in range(0, len(ids)) {
+        parts = parts + ["<text x=\"" + str(left + k * cell_w + cell_w / 2) + "\" y=\"" +
+            str(top - 8) + "\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#475569\" " +
+            "text-anchor=\"middle\">" + str(ids[k]) + "</text>"]
+    }
+
+    for gi in range(0, len(present)) {
+        let y = top + gi * cell_h + cell_h / 2
+        parts = parts + ["<text x=\"" + str(left - 10) + "\" y=\"" + str(y + 4) +
+            "\" font-family=\"monospace\" font-size=\"11\" fill=\"#0f172a\" " +
+            "text-anchor=\"end\">" + present[gi] + "</text>"]
+        for k in range(0, len(ids)) {
+            let s = stats[gi][k]
+            let radius = 2.0 + 9.0 * s.frac
+            let shade = int(255.0 - 200.0 * (s.mean / mmax))
+            let fill = "rgb(" + str(shade) + "," + str(int(0.35 * float(shade))) + ",150)"
+            parts = parts + ["<circle cx=\"" + str(left + k * cell_w + cell_w / 2) +
+                "\" cy=\"" + str(y) + "\" r=\"" + str(round(radius, 2)) +
+                "\" fill=\"" + fill + "\" stroke=\"#94a3b8\" stroke-width=\"0.5\"/>"]
+        }
+    }
+
+    parts = parts + ["<text x=\"" + str(left + len(ids) * cell_w + 16) + "\" y=\"" +
+        str(top + 6) + "\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#475569\">" +
+        "circle size = fraction expressing</text>",
+        "<text x=\"" + str(left + len(ids) * cell_w + 16) + "\" y=\"" + str(top + 20) +
+        "\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#475569\">" +
+        "colour = mean of expressing</text>", "</svg>"]
+
+    join(parts, "\n")
+}

@@ -1,0 +1,19 @@
+{
+ "stats": {
+  "pages": 26,
+  "ran": 103,
+  "cli": 242,
+  "skipped": 7,
+  "network": 0,
+  "noRunner": 1
+ },
+ "failures": [
+  {
+   "file": "books\\language\\html\\appendix-builtins.html",
+   "idx": 7,
+   "runner": "book",
+   "code": "# Example: compute Ti/Tv ratio for a VCF\nlet vars = read_vcf(\"data/variants.vcf\") |> filter(|v| v.qual > 30)\nlet summary = variant_summary(vars)\nlet snp_count = vars |> count_if(|v| len(v.ref_) == 1 && len(v.alt) == 1)\nprint(summary)\nprint(\"Ti/Tv = \" + str(titv_ratio(vars)) + \", SNPs = \" + str(snp_count))\n",
+   "error": "no field 'ref_' on Variant"
+  }
+ ]
+}

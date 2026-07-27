@@ -76,7 +76,8 @@ The analysis follows a standard workflow:
 
 ## Section 1: Data Loading and Quality Control
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # ============================================
 # Differential Expression Analysis
@@ -156,9 +157,11 @@ for i in 0..12 {
     str(round(lib_sizes[i] / 1e6, 2)) + "M reads")
 }
 
-bar_chart(sample_names, lib_sizes |> map(|x| x / 1e6),
-  {title: "Library Sizes",
-  ylabel: "Millions of Reads"})
+let library_chart = table({
+  "sample": sample_names,
+  "millions_of_reads": lib_sizes |> map(|x| x / 1e6)
+})
+bar_chart(library_chart, {label: "sample", value: "millions_of_reads"})
 
 # Flag samples with library size < 50% or > 200% of median
 let med_lib = median(lib_sizes)
@@ -183,10 +186,7 @@ let log_cpm = cpm |> map_cells(|x, _| log2(x + 1))
 # PCA on all genes
 let qc_pca = pca(transpose(log_cpm))  # transpose: samples as rows
 
-scatter(qc_pca.scores[0], qc_pca.scores[1],
-  {xlabel: "PC1 (" + str(round(qc_pca.variance_explained[0] * 100, 1)) + "%)",
-  ylabel: "PC2 (" + str(round(qc_pca.variance_explained[1] * 100, 1)) + "%)",
-  title: "PCA — Quality Control (All Genes)"})
+scatter(qc_pca.scores[0], qc_pca.scores[1])
 
 # Check: PC1 should separate tumor from normal
 print("\n=== PCA Quality Control ===")
@@ -203,7 +203,7 @@ for i in 0..6 {
   let dist_from_center = sqrt(
     pow(tumor_pc1[i] - mean(tumor_pc1), 2) +
     pow(tumor_pc2[i] - mean(tumor_pc2), 2))
-  if dist_from_center > 3 * sd(tumor_pc1) {
+  if dist_from_center > 3 * stdev(tumor_pc1) {
     print("WARNING: " + sample_names[i] + " is a potential outlier (tumor group)")
   }
 }
@@ -311,8 +311,8 @@ for g in 0..len(keep) {
   let log2fc = mean(tumor_vals) - mean(normal_vals)
   let tt = ttest(tumor_vals, normal_vals)
   # Cohen's d inline
-  let pooled_sd = sqrt(((len(tumor_vals) - 1) * pow(sd(tumor_vals), 2) +
-    (len(normal_vals) - 1) * pow(sd(normal_vals), 2)) /
+  let pooled_sd = sqrt(((len(tumor_vals) - 1) * pow(stdev(tumor_vals), 2) +
+    (len(normal_vals) - 1) * pow(stdev(normal_vals), 2)) /
     (len(tumor_vals) + len(normal_vals) - 2))
   let d = if pooled_sd > 0 { log2fc / pooled_sd } else { 0 }
 
@@ -330,15 +330,16 @@ for g in 0..len(keep) {
 
 # Quick check
 print("Tests completed: " + str(len(de_results)))
-print("Raw p < 0.05: " + str(count(de_results, |r| r.p_value < 0.05)))
-print("Raw p < 0.01: " + str(count(de_results, |r| r.p_value < 0.01)))
+print("Raw p < 0.05: " + str(count_if(de_results, |r| r.p_value < 0.05)))
+print("Raw p < 0.01: " + str(count_if(de_results, |r| r.p_value < 0.01)))
 ```
 
 ## Section 5: Multiple Testing Correction (FDR)
 
 With thousands of tests, raw p-values are unreliable. A 5% false positive rate across 10,000 tests means 500 false positives. FDR correction (Day 12) controls this.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # --- FDR correction (Benjamini-Hochberg) ---
 let raw_pvals = de_results |> map(|r| r.p_value)
 let adj_pvals = p_adjust(raw_pvals, "BH")
@@ -630,7 +631,7 @@ let heatmap_data = norm_expr |> select_rows(top_50_idx)
 # Z-score normalization per gene (for visualization)
 let z_scored = heatmap_data |> map_rows(|row|
   let mu = mean(row)
-  let s = sd(row)
+  let s = stdev(row)
   row |> map(|x| if s > 0 { (x - mu) / s } else { 0 })
 )
 

@@ -97,14 +97,14 @@ fn extract_graph(val: &Value) -> Result<&HashMap<String, Value>> {
 
 fn get_nodes(g: &HashMap<String, Value>) -> HashMap<String, Value> {
     match g.get("nodes") {
-        Some(Value::Map(m) | Value::Record(m)) => m.clone(),
+        Some(Value::Map(m) | Value::Record(m)) => (m).as_ref().clone(),
         _ => HashMap::new(),
     }
 }
 
 fn get_edges(g: &HashMap<String, Value>) -> Vec<Value> {
     match g.get("edges") {
-        Some(Value::List(v)) => v.clone(),
+        Some(Value::List(v)) => (v).as_ref().clone(),
         _ => Vec::new(),
     }
 }
@@ -116,10 +116,10 @@ fn is_directed(g: &HashMap<String, Value>) -> bool {
 fn make_graph(nodes: HashMap<String, Value>, edges: Vec<Value>, directed: bool) -> Value {
     let mut map = HashMap::new();
     map.insert("_graph".into(), Value::Bool(true));
-    map.insert("nodes".into(), Value::Map(nodes));
-    map.insert("edges".into(), Value::List(edges));
+    map.insert("nodes".into(), Value::Map((nodes).into()));
+    map.insert("edges".into(), Value::List((edges).into()));
     map.insert("directed".into(), Value::Bool(directed));
-    Value::Record(map)
+    Value::Record((map).into())
 }
 
 fn edge_endpoints(e: &Value) -> Option<(String, String)> {
@@ -164,7 +164,7 @@ fn builtin_add_node(args: Vec<Value>) -> Result<Value> {
     let attrs = if args.len() > 2 {
         args[2].clone()
     } else {
-        Value::Record(HashMap::new())
+        Value::Record((HashMap::new()).into())
     };
     let mut nodes = get_nodes(g);
     let edges = get_edges(g);
@@ -198,19 +198,23 @@ fn builtin_add_edge(args: Vec<Value>) -> Result<Value> {
     let mut edges = get_edges(g);
     let directed = is_directed(g);
     // Auto-add nodes if missing
-    nodes.entry(from.clone()).or_insert(Value::Record(HashMap::new()));
-    nodes.entry(to.clone()).or_insert(Value::Record(HashMap::new()));
+    nodes
+        .entry(from.clone())
+        .or_insert(Value::Record((HashMap::new()).into()));
+    nodes
+        .entry(to.clone())
+        .or_insert(Value::Record((HashMap::new()).into()));
     let mut edge_map = HashMap::new();
     edge_map.insert("from".into(), Value::Str(from));
     edge_map.insert("to".into(), Value::Str(to));
     if args.len() > 3 {
         if let Value::Record(attrs) | Value::Map(attrs) = &args[3] {
-            for (k, v) in attrs {
+            for (k, v) in attrs.iter() {
                 edge_map.insert(k.clone(), v.clone());
             }
         }
     }
-    edges.push(Value::Record(edge_map));
+    edges.push(Value::Record(edge_map.into()));
     Ok(make_graph(nodes, edges, directed))
 }
 
@@ -310,7 +314,7 @@ fn builtin_neighbors(args: Vec<Value>) -> Result<Value> {
     }
     nbrs.sort();
     nbrs.dedup();
-    Ok(Value::List(nbrs.into_iter().map(Value::Str).collect()))
+    Ok(Value::List(nbrs.into_iter().map(Value::Str).collect::<Vec<_>>().into()))
 }
 
 /// degree(g, node_id) → Int
@@ -382,7 +386,7 @@ fn builtin_shortest_path(args: Vec<Value>) -> Result<Value> {
     while let Some(path) = queue.pop_front() {
         let current = path.last().unwrap();
         if *current == to {
-            return Ok(Value::List(path.into_iter().map(Value::Str).collect()));
+            return Ok(Value::List(path.into_iter().map(Value::Str).collect::<Vec<_>>().into()));
         }
         if let Some(neighbors) = adj.get(current) {
             for nbr in neighbors {
@@ -438,10 +442,10 @@ fn builtin_connected_components(args: Vec<Value>) -> Result<Value> {
                 }
             }
         }
-        components.push(Value::List(component));
+        components.push(Value::List((component).into()));
     }
 
-    Ok(Value::List(components))
+    Ok(Value::List((components).into()))
 }
 
 /// nodes(g) → List[Str]
@@ -450,7 +454,7 @@ fn builtin_nodes(args: Vec<Value>) -> Result<Value> {
     let nodes = get_nodes(g);
     let mut ids: Vec<String> = nodes.keys().cloned().collect();
     ids.sort();
-    Ok(Value::List(ids.into_iter().map(Value::Str).collect()))
+    Ok(Value::List(ids.into_iter().map(Value::Str).collect::<Vec<_>>().into()))
 }
 
 /// edges(g) → Table{from, to, weight}
@@ -583,10 +587,6 @@ fn builtin_node_attr(args: Vec<Value>) -> Result<Value> {
     let nodes = get_nodes(g);
     match nodes.get(id) {
         Some(v) => Ok(v.clone()),
-        None => Err(BioLangError::runtime(
-            ErrorKind::NameError,
-            format!("node_attr(): node '{id}' not found"),
-            None,
-        )),
+        None => Ok(Value::Nil),
     }
 }

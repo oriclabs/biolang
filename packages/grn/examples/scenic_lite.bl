@@ -1,0 +1,26 @@
+import "singlecell" as sc
+import "grn"        as grn
+
+let obj = sc.load("data/10x/")
+  |> sc.filter_cells
+  |> sc.normalize
+  |> sc.variable_genes(2000)
+  |> sc.neighbors
+  |> sc.cluster
+
+# Known TF gene indices in this dataset (resolve by name with obj.genes.index("TP53") etc.)
+let tf_indices = [42, 156, 312, 445, 891, 1203, 1567]
+
+# Step 1: build co-expression network for TFs vs all genes
+let network = grn.coexpression(obj, tf_indices, min_corr = 0.3)
+
+# Step 2: define regulons as top 50 targets per TF
+let regulons = tf_indices
+  |> map(fn(tf) -> {
+      tf_idx:         tf,
+      target_indices: grn.top_targets(network, tf, 50).target_idx
+    })
+
+# Step 3: score TF activity per cell, then rank per cluster
+let obj = grn.score_activity(obj, regulons)
+grn.top_tfs_per_cluster(obj)

@@ -38,9 +38,10 @@ for {name, age} in items {
 }
 names
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Str("Alice".into()), Value::Str("Bob".into()),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Str("Alice".into()), Value::Str("Bob".into()),]).into())
+    );
 }
 
 // 5.5: Slicing syntax
@@ -50,7 +51,10 @@ fn test_list_slicing() {
 let xs = [10, 20, 30, 40, 50]
 xs[1..3]
 "#;
-    assert_eq!(eval(code), Value::List(vec![Value::Int(20), Value::Int(30)]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(20), Value::Int(30)]).into())
+    );
 }
 
 #[test]
@@ -59,9 +63,10 @@ fn test_list_slicing_inclusive() {
 let xs = [10, 20, 30, 40, 50]
 xs[1..=3]
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(20), Value::Int(30), Value::Int(40),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(20), Value::Int(30), Value::Int(40),]).into())
+    );
 }
 
 #[test]
@@ -94,7 +99,7 @@ let b = Vec2 { x: 3, y: 4 }
 let c = a + b
 [c.x, c.y]
 "#;
-    assert_eq!(eval(code), Value::List(vec![Value::Int(4), Value::Int(6)]));
+    assert_eq!(eval(code), Value::List((vec![Value::Int(4), Value::Int(6)]).into()));
 }
 
 #[test]

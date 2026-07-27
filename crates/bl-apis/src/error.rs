@@ -12,16 +12,11 @@ pub enum ApiError {
     /// Network / connection error.
     Network(String),
     /// JSON or text parse error.
-    Parse {
-        context: String,
-        source: String,
-    },
+    Parse { context: String, source: String },
     /// Authentication failure (missing or invalid key).
     Auth(String),
     /// Rate limit exceeded.
-    RateLimit {
-        retry_after: Option<u64>,
-    },
+    RateLimit { retry_after: Option<u64> },
 }
 
 impl fmt::Display for ApiError {

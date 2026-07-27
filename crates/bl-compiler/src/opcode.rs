@@ -58,8 +58,10 @@ pub enum OpCode {
     /// Fast path for native builtins: builtin_id + arg_count.
     CallNative(u16, u8),
     Return,
+    /// Suspend a generator, yielding TOS to the caller.
+    Yield,
     /// Push a closure. u16 indexes a `Constant::Function`.
-    /// Followed in the constant pool by upvalue descriptors.
+    /// Upvalue wiring is encoded in the CompiledFunction's upvalue_descs.
     Closure(u16),
     /// Close the topmost open upvalue on the stack.
     CloseUpvalue,
@@ -70,6 +72,8 @@ pub enum OpCode {
     MakeSet(u16),
     /// Build a Range value. u8: 1 = inclusive, 0 = exclusive.
     MakeRange(u8),
+    /// Build a Regex value from two Str values on the stack: pattern (bottom), flags (top).
+    MakeRegex,
 
     // ── Field / Index access ──
     /// Get field by name constant index.
@@ -115,8 +119,8 @@ pub enum OpCode {
     // ── Special ──
     /// Store an AST fragment constant as a Formula value.
     MakeFormula(u16),
-    /// Import: path constant index + has_alias flag.
-    Import(u16, u8),
+    /// Import: path name index + alias name index (u16::MAX = no alias).
+    Import(u16, u16),
     /// Assert: pop value, error if falsy.
     AssertCheck,
 
@@ -162,12 +166,14 @@ impl OpCode {
             OpCode::Call(_) => "CALL",
             OpCode::CallNative(_, _) => "CALL_NATIVE",
             OpCode::Return => "RETURN",
+            OpCode::Yield => "YIELD",
             OpCode::Closure(_) => "CLOSURE",
             OpCode::CloseUpvalue => "CLOSE_UPVALUE",
             OpCode::MakeList(_) => "MAKE_LIST",
             OpCode::MakeRecord(_) => "MAKE_RECORD",
             OpCode::MakeSet(_) => "MAKE_SET",
             OpCode::MakeRange(_) => "MAKE_RANGE",
+            OpCode::MakeRegex => "MAKE_REGEX",
             OpCode::GetField(_) => "GET_FIELD",
             OpCode::SetField(_) => "SET_FIELD",
             OpCode::GetFieldOpt(_) => "GET_FIELD_OPT",

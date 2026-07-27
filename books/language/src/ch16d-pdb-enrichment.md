@@ -126,7 +126,7 @@ For ranked gene lists (e.g., by fold change or t-statistic):
 # Prepare ranked table with gene and score columns
 let ranked = tsv("de_results.tsv")
   |> select("gene", "log2fc")
-  |> rename({log2fc: "score"})
+  |> rename("log2fc", "score")
   |> sort_by(|r| -r.score)
 
 # Load gene sets

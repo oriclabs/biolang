@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-fade6fca.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -251,7 +251,7 @@ print("Primer Tm = " + str(temp) + "C, reverse complement = " + str(rc))
 </table>
 </div>
 <pre><code class="language-biolang"># Example: enumerate quality-filtered reads
-let good_reads = reads
+let good_reads = read_fastq("data/reads.fastq")
   |&gt; filter(|r| mean_phred(r.quality) &gt; 30)
   |&gt; enumerate()
   |&gt; head(5)
@@ -286,6 +286,10 @@ BioLang’s pipeline style.</p>
 </table>
 </div>
 <pre><code class="language-biolang"># Example: parallel GC content across a genome's chromosomes
+let chromosomes = [
+  {name: "chrA", seq: dna"ATGCGCGTAA"},
+  {name: "chrB", seq: dna"ATATATGCAT"}
+]
 let gc_values = chromosomes
   |&gt; par_map(|chr| {name: chr.name, gc: gc_content(chr.seq)})
   |&gt; sort_by(|r| r.gc)
@@ -305,7 +309,8 @@ sample sheets, variant tables, and expression matrices.</p>
 <tr><td><code>mutate(tbl, name, fn) -&gt; Table</code></td><td>Add or transform a column</td></tr>
 <tr><td><code>summarize(grouped, |key, rows| {...}) -&gt; Table</code></td><td>Aggregate grouped data via closure</td></tr>
 <tr><td><code>group_by(tbl, col) -&gt; GroupedTable</code></td><td>Group rows by a column value (table variant)</td></tr>
-<tr><td><code>join(a, b, on, how?) -&gt; Table</code></td><td>Join two tables on a key column</td></tr>
+<tr><td><code>inner_join(a, b, on) -&gt; Table</code></td><td>Keep rows whose key occurs in both tables</td></tr>
+<tr><td><code>left_join(a, b, on) -&gt; Table</code></td><td>Keep every left row and attach matching right columns</td></tr>
 <tr><td><code>csv(path) -&gt; Table</code></td><td>Read a CSV file into a table</td></tr>
 <tr><td><code>tsv(path) -&gt; Table</code></td><td>Read a TSV file into a table</td></tr>
 <tr><td><code>write_tsv(tbl, path) -&gt; Nil</code></td><td>Write a table to CSV</td></tr>
@@ -333,11 +338,11 @@ streams that integrate with pipes; writers flush on completion.</p>
 <tr><th>Builtin</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>read_fasta(path) -&gt; List[Record]</code></td><td>Parse FASTA; each record has <code>id</code>, <code>desc</code>, <code>seq</code> fields</td></tr>
-<tr><td><code>read_fastq(path) -&gt; List[Record]</code></td><td>Parse FASTQ; each record has <code>id</code>, <code>seq</code>, <code>quality</code>, <code>length</code> fields</td></tr>
-<tr><td><code>read_vcf(path) -&gt; List[Record]</code></td><td>Parse VCF; each record has <code>chrom</code>, <code>pos</code>, <code>ref</code>, <code>alt</code>, <code>qual</code>, <code>info</code> fields</td></tr>
-<tr><td><code>read_bed(path) -&gt; List[Record]</code></td><td>Parse BED; each record has <code>chrom</code>, <code>start</code>, <code>end</code> and optional fields</td></tr>
-<tr><td><code>read_gff(path) -&gt; List[Record]</code></td><td>Parse GFF/GTF; each record has <code>seqid</code>, <code>type</code>, <code>start</code>, <code>end</code>, <code>attributes</code></td></tr>
+<tr><td><code>read_fasta(path) -&gt; Table</code></td><td>Parse FASTA; columns are <code>id</code>, <code>description</code>, <code>seq</code>, and <code>length</code></td></tr>
+<tr><td><code>read_fastq(path) -&gt; Table</code></td><td>Parse FASTQ; columns are <code>id</code>, <code>description</code>, <code>seq</code>, <code>length</code>, and <code>quality</code></td></tr>
+<tr><td><code>read_vcf(path) -&gt; Table</code></td><td>Parse VCF; columns include <code>chrom</code>, <code>pos</code>, <code>ref</code>, <code>alt</code>, <code>qual</code>, and <code>info</code></td></tr>
+<tr><td><code>read_bed(path) -&gt; Table</code></td><td>Parse BED; columns include <code>chrom</code>, <code>start</code>, and <code>end</code></td></tr>
+<tr><td><code>read_gff(path) -&gt; Table</code></td><td>Parse GFF/GTF; columns include <code>seqid</code>, <code>type</code>, <code>start</code>, <code>end</code>, and raw <code>attributes</code> text</td></tr>
 <tr><td><code>write_fasta(records, path) -&gt; Nil</code></td><td>Write records to FASTA format</td></tr>
 <tr><td><code>write_fastq(records, path) -&gt; Nil</code></td><td>Write records to FASTQ format</td></tr>
 <tr><td><code>write_bed(records, path) -&gt; Nil</code></td><td>Write records to BED format</td></tr>
@@ -361,9 +366,9 @@ read_fastq("data/reads.fastq")
 <tbody>
 <tr><td><code>interval(chrom, start, end, strand?) -&gt; Interval</code></td><td>Create a genomic interval</td></tr>
 <tr><td><code>interval_tree(intervals) -&gt; IntervalTree</code></td><td>Build an index for fast overlap queries</td></tr>
-<tr><td><code>query_overlaps(tree, query) -&gt; List[Interval]</code></td><td>All intervals overlapping the query</td></tr>
-<tr><td><code>query_nearest(tree, query, k?) -&gt; List[Interval]</code></td><td>K nearest intervals to the query</td></tr>
-<tr><td><code>coverage(intervals) -&gt; List[Record]</code></td><td>Per-base or per-region coverage depth</td></tr>
+<tr><td><code>query_overlaps(tree, chrom, start, end) -&gt; Table</code></td><td>Rows overlapping a half-open query range</td></tr>
+<tr><td><code>count_overlaps(tree, chrom, start, end) -&gt; Int</code></td><td>Number of rows overlapping a query range</td></tr>
+<tr><td><code>coverage(tree) -&gt; Table</code></td><td>Coverage segments with <code>chrom</code>, <code>start</code>, <code>end</code>, and <code>depth</code></td></tr>
 <tr><td><code>merge_intervals(intervals, dist?) -&gt; List[Interval]</code></td><td>Merge overlapping or nearby intervals</td></tr>
 <tr><td><code>intersect(a, b) -&gt; List[Interval]</code></td><td>Pairwise intersection of two interval sets</td></tr>
 <tr><td><code>subtract(a, b) -&gt; List[Interval]</code></td><td>Regions in <code>a</code> not covered by <code>b</code></td></tr>
@@ -374,7 +379,7 @@ read_fastq("data/reads.fastq")
 let promoters = read_bed("data/regions.bed") |&gt; map(|r| interval(r.chrom, r.start, r.end))
 let peaks     = read_bed("data/exons.bed") |&gt; map(|r| interval(r.chrom, r.start, r.end))
 let tree      = interval_tree(peaks)
-let hits      = promoters |&gt; flat_map(|p| query_overlaps(tree, p))
+let hits      = promoters |&gt; flat_map(|p| query_overlaps(tree, p.chrom, p.start, p.end))
 print("Found " + str(len(hits)) + " promoter-peak overlaps")
 </code></pre>
 <hr>
@@ -403,9 +408,12 @@ print("Found " + str(len(hits)) + " promoter-peak overlaps")
 </table>
 </div>
 <pre><code class="language-biolang"># Example: compute Ti/Tv ratio for a VCF
-let vars = read_vcf("data/variants.vcf") |&gt; filter(|v| v.qual &gt; 30)
+let vars = vcf_filter(vcf_parse(read_text("data/variants.vcf")), 30)
 let summary = variant_summary(vars)
-print("Ti/Tv = " + str(summary.ti_tv_ratio) + ", SNPs = " + str(summary.snp_count))
+let snp_rows = summary |&gt; filter(|row| row.type_ == "SNP")
+let snp_count = if len(snp_rows) &gt; 0 { snp_rows[0].count } else { 0 }
+print(summary)
+print("Ti/Tv = " + str(titv_ratio(vars)) + ", SNPs = " + str(snp_count))
 </code></pre>
 <hr>
 <h2 id="statistics"><a class="header" href="#statistics">Statistics</a></h2>
@@ -646,8 +654,8 @@ serialization.</p>
 <tr><td><code>print(val) -&gt; Nil</code></td><td>Print a value followed by a newline</td></tr>
 <tr><td><code>assert(cond, msg?) -&gt; Nil</code></td><td>Panic with <code>msg</code> if <code>cond</code> is false</td></tr>
 <tr><td><code>sleep(ms) -&gt; Nil</code></td><td>Pause execution for <code>ms</code> milliseconds</td></tr>
-<tr><td><code>now() -&gt; Float</code></td><td>Current timestamp in seconds since epoch</td></tr>
-<tr><td><code>now() - start</code></td><td>Seconds elapsed since <code>start</code> (use <code>now()</code> for both timestamps)</td></tr>
+<tr><td><code>now() -&gt; Str</code></td><td>Current UTC time in ISO 8601 format</td></tr>
+<tr><td><code>timestamp() -&gt; Int</code></td><td>Current Unix timestamp in seconds; subtract two values to measure elapsed time</td></tr>
 <tr><td><code>bp(n) -&gt; Int</code></td><td>Identity; documents that <code>n</code> is in base pairs</td></tr>
 <tr><td><code>kb(n) -&gt; Int</code></td><td>Convert kilobases to base pairs (<code>n * 1000</code>)</td></tr>
 <tr><td><code>mb(n) -&gt; Int</code></td><td>Convert megabases to base pairs (<code>n * 1_000_000</code>)</td></tr>
@@ -660,10 +668,539 @@ serialization.</p>
 </table>
 </div>
 <pre><code class="language-biolang"># Example: time a heavy operation
-let t0 = now()
+let t0 = timestamp()
 let result = read_fasta("data/sequences.fasta")
   |&gt; flat_map(|r| find_orfs(r.seq, 300))
-print("Found " + str(len(result)) + " ORFs in " + str(now() - t0) + "s")
+print("Found " + str(len(result)) + " ORFs in " + str(timestamp() - t0) + "s")
+</code></pre>
+<hr>
+<h2 id="single-cell-analysis"><a class="header" href="#single-cell-analysis">Single-Cell Analysis</a></h2>
+<p>Builtins for single-cell RNA-seq workflows. Higher-level operations are
+available via the <code>singlecell</code>, <code>cellchat</code>, <code>spatial</code>, <code>velocity</code>,
+<code>celltypes</code>, <code>multimodal</code>, and <code>grn</code> packages.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>lr_score(matrix, cell_labels, lr_pairs)</code></td><td>3</td><td>Pairwise ligand-receptor scoring between clusters</td></tr>
+<tr><td><code>lr_aggregate(lr_scores, pathway_map)</code></td><td>2</td><td>Pathway-level aggregation of LR scores</td></tr>
+<tr><td><code>spatial_neighbors(coords, k)</code></td><td>2</td><td>2-D k-NN adjacency from spatial coordinates</td></tr>
+<tr><td><code>spatial_moransi(expr_vec, spatial_adj)</code></td><td>2</td><td>Moran’s I spatial autocorrelation statistic</td></tr>
+<tr><td><code>reference_classify(query, ref_matrix, ref_labels)</code></td><td>3</td><td>Cosine k-NN label transfer from a reference dataset</td></tr>
+<tr><td><code>pseudobulk_aggregate(matrix, cell_labels, sample_labels)</code></td><td>3</td><td>Sum counts per (cluster, sample) for pseudobulk DE</td></tr>
+<tr><td><code>wnn_graph(matrix_a, matrix_b, k)</code></td><td>3</td><td>Weighted nearest-neighbor graph for multimodal integration</td></tr>
+<tr><td><code>velocity_estimate(spliced, unspliced)</code></td><td>2</td><td>RNA velocity (β·u − s) per gene per cell</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "singlecell" as sc
+import "cellchat"   as cc
+
+let obj = sc.load("data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+  |&gt; sc.filter_cells(200, 5000, 20.0)
+  |&gt; sc.normalize
+  |&gt; sc.variable_genes(2000)
+  |&gt; sc.neighbors(15)
+  |&gt; sc.cluster
+
+let scores = cc.score(obj)
+cc.top(scores, 20)
+cc.senders(scores)
+cc.pathways(scores) |&gt; take(10)
+</code></pre>
+<hr>
+<h2 id="variants--population-genetics"><a class="header" href="#variants--population-genetics">Variants &amp; Population Genetics</a></h2>
+<p>Builtins for VCF-level variant analysis and population genetics statistics.
+The <code>variants</code> and <code>popgen</code> packages provide higher-level workflows.</p>
+<h3 id="variant-parsing"><a class="header" href="#variant-parsing">Variant Parsing</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>vcf_parse(text)</code></td><td>1</td><td>Parse VCF text into a table of variant records</td></tr>
+<tr><td><code>vcf_filter(variants, min_qual, pass_only?)</code></td><td>1-3</td><td>Filter a parsed VCF table by minimum QUAL and optional <code>PASS</code> status</td></tr>
+<tr><td><code>titv_ratio(variants)</code></td><td>1</td><td>Transition / transversion ratio</td></tr>
+<tr><td><code>variant_summary(variants)</code></td><td>1</td><td>Aggregate SNP, insertion, deletion, and MNV counts</td></tr>
+<tr><td><code>allele_freq(variants, field?)</code></td><td>1-2</td><td>Extract an INFO allele-frequency field (default <code>AF</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="population-genetics"><a class="header" href="#population-genetics">Population Genetics</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>hwe_test(n_aa, n_ab, n_bb)</code></td><td>3</td><td>Hardy-Weinberg chi-square test</td></tr>
+<tr><td><code>fst_weir_cockerham(pop1, pop2)</code></td><td>2</td><td>Weir-Cockerham Fst from matching <code>[n_ref, n_total]</code> rows</td></tr>
+<tr><td><code>tajima_d(site_differences, n_sequences)</code></td><td>2</td><td>Tajima’s D neutrality test statistic</td></tr>
+<tr><td><code>ld_r2(geno_a, geno_b)</code></td><td>2</td><td>Linkage disequilibrium r² between two variants</td></tr>
+<tr><td><code>allele_freq_spectrum(counts, n_sequences?)</code></td><td>1-2</td><td>Folded site frequency spectrum</td></tr>
+<tr><td><code>nucleotide_diversity(geno_matrix)</code></td><td>1</td><td>Nucleotide diversity (π) across sites</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "variants" as vcf
+import "popgen"   as pg
+
+let pass = vcf.load_filtered("results/calls.vcf", 30.0, true)
+vcf.summary(pass)
+vcf.titv(pass)
+
+pg.hwe(360, 480, 160)
+pg.fst([45, 12, 89], [78, 5, 92], 200, 200)
+pg.tajima(15, 20, 1000)
+</code></pre>
+<hr>
+<h2 id="bulk-rna-seq"><a class="header" href="#bulk-rna-seq">Bulk RNA-seq</a></h2>
+<p>Builtins for loading and normalising bulk RNA-seq quantification output.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>parse_salmon(quant_sf)</code></td><td>1</td><td>Parse Salmon <code>quant.sf</code> text into a gene expression table</td></tr>
+<tr><td><code>parse_featurecounts(counts_txt)</code></td><td>1</td><td>Parse featureCounts output into a counts table</td></tr>
+<tr><td><code>size_factors(count_matrix)</code></td><td>1</td><td>DESeq2-style median-ratio size factors</td></tr>
+<tr><td><code>filter_low_counts(count_matrix, min_count, min_samples)</code></td><td>3</td><td>Remove genes with fewer than <code>min_count</code> in <code>min_samples</code> samples</td></tr>
+<tr><td><code>tpm_matrix(count_matrix, gene_lengths)</code></td><td>2</td><td>Convert raw counts to TPM</td></tr>
+<tr><td><code>sample_correlation(count_matrix)</code></td><td>1</td><td>Pairwise Pearson correlation between samples</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "rnaseq"       as rna
+import "differential" as de
+
+let counts = rna.from_featurecounts("results/counts.txt")
+let counts = rna.filter_genes(counts, 10, 3)
+let norm   = rna.normalize_sf(counts)
+
+let conditions = ["ctrl", "ctrl", "ctrl", "treated", "treated", "treated"]
+let results = de.de_wald(norm, [0, 1, 2], [3, 4, 5])
+results |&gt; filter(|r| r.padj &lt;= 0.05 &amp;&amp; abs(r.log2fc) &gt;= 1.0)
+</code></pre>
+<hr>
+<h2 id="phylogenetics"><a class="header" href="#phylogenetics">Phylogenetics</a></h2>
+<p>Builtins for Newick tree parsing and distance-based phylogenetics.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>nw_parse(newick_str)</code></td><td>1</td><td>Parse a Newick string into a tree record</td></tr>
+<tr><td><code>tree_leaves(tree)</code></td><td>1</td><td>List all leaf names in the tree</td></tr>
+<tr><td><code>patristic_distance(tree, leaf_a, leaf_b)</code></td><td>3</td><td>Sum of branch lengths between two leaves</td></tr>
+<tr><td><code>nw_to_distance_matrix(tree)</code></td><td>1</td><td>All-pairs patristic distance matrix</td></tr>
+<tr><td><code>upgma(leaves, dist_matrix)</code></td><td>2</td><td>UPGMA tree reconstruction from a distance matrix</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "phylo" as ph
+
+let tree = ph.load("data/sarscov2_sequences.nwk")
+ph.n_leaves(tree)
+ph.distance(tree, "Alpha", "Delta")
+
+let dmat    = ph.distance_matrix(tree)
+let rebuilt = ph.build_upgma(ph.leaves(tree), dmat)
+</code></pre>
+<hr>
+<h2 id="chip-seq--atac-seq"><a class="header" href="#chip-seq--atac-seq">ChIP-seq / ATAC-seq</a></h2>
+<p>Builtins for peak-level quality control and consensus peak generation.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>merge_peaks(peaks)</code></td><td>1</td><td>Merge overlapping NarrowPeak records</td></tr>
+<tr><td><code>consensus_peaks(peak_lists, min_samples)</code></td><td>2</td><td>Peaks present in at least <code>min_samples</code> replicates</td></tr>
+<tr><td><code>frip_score(reads_in_peaks, total_reads)</code></td><td>2</td><td>Fraction of Reads In Peaks quality metric</td></tr>
+<tr><td><code>tss_enrichment(peaks, tss_sites)</code></td><td>2</td><td>TSS enrichment score for ATAC QC</td></tr>
+<tr><td><code>peak_annotation(peaks, annotations)</code></td><td>2</td><td>Annotate peaks with nearest genomic features</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "chipseq" as cs
+
+let ctrl    = cs.load_narrowpeak("results/ctrl_peaks.narrowPeak")
+let treated = cs.load_narrowpeak("results/treated_peaks.narrowPeak")
+
+cs.qc_report(ctrl, 320000, 25000000)
+
+let consensus = cs.consensus([cs.merge(ctrl), cs.merge(treated)], 2)
+cs.n_peaks(consensus)
+</code></pre>
+<hr>
+<h2 id="microbiome"><a class="header" href="#microbiome">Microbiome</a></h2>
+<p>Builtins for alpha/beta diversity, rarefaction, and taxonomic composition.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>alpha_diversity(count_vec, method)</code></td><td>2</td><td>Shannon, Simpson, or Chao1 alpha diversity</td></tr>
+<tr><td><code>beta_diversity(matrix_a, matrix_b, method)</code></td><td>3</td><td>Bray-Curtis or Jaccard beta diversity</td></tr>
+<tr><td><code>rarefaction(count_vec, depth)</code></td><td>2</td><td>Subsample counts to <code>depth</code> without replacement</td></tr>
+<tr><td><code>relative_abundance(count_vec)</code></td><td>1</td><td>Fractional abundances (sums to 1.0)</td></tr>
+<tr><td><code>taxonomic_collapse(otu_table, taxonomy, level)</code></td><td>3</td><td>Aggregate OTU counts at a given taxonomic rank</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "microbiome" as mb
+
+let otus = read_csv("data/feature_table.tsv")
+mb.alpha_table(otus, "shannon")
+
+let rarefied = mb.rarefy_matrix(otus, 5000)
+mb.beta(rarefied, "bray_curtis")
+
+let taxonomy = read_csv("data/taxonomy.tsv")
+mb.top_taxa(taxonomy, 10, "genus")
+</code></pre>
+<hr>
+<h2 id="statistics-extended"><a class="header" href="#statistics-extended">Statistics (Extended)</a></h2>
+<p>Higher-level statistical testing beyond the core <code>ttest</code>, <code>chi_square</code>, and
+<code>p_adjust</code> builtins. The <code>statistics</code> package wraps these with convenient
+defaults.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>bh_adjust(p_values)</code></td><td>1</td><td>Benjamini-Hochberg FDR correction, order preserved</td></tr>
+<tr><td><code>bonferroni_adjust(p_values)</code></td><td>1</td><td>Bonferroni correction, clamped to 1.0</td></tr>
+<tr><td><code>fisher_exact(a, b, c, d)</code></td><td>4</td><td>Two-sided Fisher’s exact test; returns <code>{p_value, odds_ratio}</code></td></tr>
+<tr><td><code>chi_square(observed, expected)</code></td><td>2</td><td>Chi-squared goodness-of-fit; returns <code>{statistic, df, p_value}</code></td></tr>
+<tr><td><code>permutation_test(a, b, n)</code></td><td>3</td><td>Permutation test with <code>n</code> shuffles; returns p-value</td></tr>
+<tr><td><code>bootstrap_ci(values, n, conf)</code></td><td>3</td><td>Percentile bootstrap CI; returns <code>{mean, lower, upper, std_err}</code></td></tr>
+<tr><td><code>genomic_inflation(p_values)</code></td><td>1</td><td>Genomic inflation factor λ from GWAS p-values</td></tr>
+<tr><td><code>pearson_correlation(x, y)</code></td><td>2</td><td>Pearson r, zero-variance safe</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "statistics" as stat
+
+let p_values = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 0.9]
+let adj_bh   = stat.bh(p_values)
+stat.significant(adj_bh, 0.05)
+stat.inflation(p_values)
+
+let group_a = [2.1, 2.3, 1.9, 2.5, 2.2]
+let group_b = [3.1, 2.8, 3.4, 2.9, 3.2]
+stat.permtest(group_a, group_b, 10000)
+</code></pre>
+<hr>
+<h2 id="rt-qpcr"><a class="header" href="#rt-qpcr">RT-qPCR</a></h2>
+<p>Builtins for ΔCt/ΔΔCt analysis, standard-curve efficiency, and geNorm
+reference gene selection.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>delta_ct(sample_ct, ref_ct)</code></td><td>2</td><td>ΔCt = sample_ct − reference_ct</td></tr>
+<tr><td><code>delta_delta_ct(sample_dct, control_dct)</code></td><td>2</td><td>Fold change = 2^(−ΔΔCt)</td></tr>
+<tr><td><code>pcr_efficiency(cts, log_dilutions)</code></td><td>2</td><td>Efficiency from standard curve; returns <code>{efficiency, slope}</code></td></tr>
+<tr><td><code>reference_normalize(ct_table, ref_indices)</code></td><td>2</td><td>Per-sample normalization using reference gene mean</td></tr>
+<tr><td><code>genorm_stability(ct_table, ref_indices)</code></td><td>2</td><td>geNorm M-score stability ranking</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "qpcr" as qpcr
+
+let standard_cts  = [15.2, 18.5, 21.8, 25.1, 28.4]
+let log_dilutions = [0.0, -1.0, -2.0, -3.0, -4.0]
+qpcr.efficiency(standard_cts, log_dilutions)
+
+let dct         = qpcr.dct(28.5, 22.0)
+let fold_change = qpcr.ddct(dct, 6.2)
+</code></pre>
+<hr>
+<h2 id="proteomics"><a class="header" href="#proteomics">Proteomics</a></h2>
+<p>Builtins for MaxQuant LFQ data: loading, normalization, imputation, and
+differential abundance.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>load_maxquant(text)</code></td><td>1</td><td>Parse MaxQuant <code>proteinGroups.txt</code> into a matrix</td></tr>
+<tr><td><code>log2_transform(matrix)</code></td><td>1</td><td>Log2-transform all intensity values</td></tr>
+<tr><td><code>quantile_normalize(matrix)</code></td><td>1</td><td>Quantile normalization across samples</td></tr>
+<tr><td><code>impute_minvalue(matrix, percentile)</code></td><td>2</td><td>Impute missing values with a low-percentile constant</td></tr>
+<tr><td><code>protein_ttest(matrix, group_a, group_b)</code></td><td>3</td><td>Per-protein two-sample t-test; returns <code>{log2fc, p_value}</code></td></tr>
+<tr><td><code>volcano_data(test_result, fc, p)</code></td><td>3</td><td>Classify each protein as up/down/unchanged</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "proteomics" as prot
+
+let mat  = prot.full_pipeline("data/proteinGroups.txt")
+let de   = prot.ttest(mat, [0, 1, 2], [3, 4, 5])
+let hits = prot.significant(de, 1.0, 0.05)
+prot.volcano(de, 1.0, 0.05)
+</code></pre>
+<hr>
+<h2 id="dna-methylation"><a class="header" href="#dna-methylation">DNA Methylation</a></h2>
+<p>Builtins for RRBS/EPIC array data: beta/M-value conversion, DMR calling,
+CpG density, and epigenetic clocks.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>beta_to_mvalue(beta_vec)</code></td><td>1</td><td>Convert β values to M-values (logit)</td></tr>
+<tr><td><code>mvalue_to_beta(m_vec)</code></td><td>1</td><td>Convert M-values back to β (inverse logit)</td></tr>
+<tr><td><code>dmr_find(beta_matrix, group_a, group_b, min_delta, min_cpgs)</code></td><td>5</td><td>Find differentially methylated regions</td></tr>
+<tr><td><code>cpg_density(positions, window)</code></td><td>2</td><td>CpG density per window of base pairs</td></tr>
+<tr><td><code>epigenetic_age(beta_vec, coefs)</code></td><td>2</td><td>Predicted age from a linear clock model (e.g. Horvath)</td></tr>
+<tr><td><code>differential_methylation(beta_matrix, group_a, group_b)</code></td><td>3</td><td>Site-level ΔBeta and p-value for each CpG</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "methylation" as meth
+
+# let m_matrix = beta_matrix |&gt; rows |&gt; map(fn(r) -&gt; meth.to_mvalue(r))
+# let dmrs = meth.find_dmrs(beta_matrix, [0,1,2,3,4], [5,6,7,8,9])
+# let diff = meth.diff_cpgs(beta_matrix, [0,1,2], [3,4,5])
+# meth.significant_cpgs(diff, 0.15, 0.05)
+
+let positions = [100, 120, 145, 300, 320, 340, 360]
+meth.density(positions, 200)
+</code></pre>
+<hr>
+<h2 id="protein-structure"><a class="header" href="#protein-structure">Protein Structure</a></h2>
+<p>Builtins for PDB parsing, structural alignment (Kabsch RMSD), contact maps,
+and secondary structure assignment.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>pdb_parse(text)</code></td><td>1</td><td>Parse PDB ATOM records into a table with chain/residue/coordinate fields</td></tr>
+<tr><td><code>rmsd(coords_a, coords_b)</code></td><td>2</td><td>Optimal Kabsch RMSD between two Cα coordinate sets</td></tr>
+<tr><td><code>contact_map(coords, dist)</code></td><td>2</td><td>Boolean contact matrix at <code>dist</code> Å cutoff</td></tr>
+<tr><td><code>secondary_structure(coords)</code></td><td>1</td><td>DSSP-lite assignment: H (helix), E (sheet), C (coil) per residue</td></tr>
+<tr><td><code>backbone_angles(coords)</code></td><td>1</td><td>Phi/psi dihedral angles for Ramachandran analysis</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "structure" as st
+
+let pred    = st.load("data/alphafold_prediction.pdb")
+let exp     = st.load("data/experimental.pdb")
+let pred_ca = st.ca_atoms(pred)
+let exp_ca  = st.ca_atoms(exp)
+
+st.rmsd(pred_ca, exp_ca)
+st.ss_composition(pred_ca)
+st.contacts(pred_ca, 8.0)
+</code></pre>
+<hr>
+<h2 id="biological-networks"><a class="header" href="#biological-networks">Biological Networks</a></h2>
+<p>Builtins for protein-protein interaction network analysis: centrality,
+shortest paths, connected components, and disease module enrichment.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>load_ppi(text)</code></td><td>1</td><td>Parse STRING TSV edge list into a table of <code>{source, target, score}</code></td></tr>
+<tr><td><code>degree_centrality(edges)</code></td><td>1</td><td>Degree (number of neighbours) for every node</td></tr>
+<tr><td><code>betweenness_centrality(edges)</code></td><td>1</td><td>Brandes BFS betweenness for every node</td></tr>
+<tr><td><code>shortest_path(edges, src, tgt)</code></td><td>3</td><td>BFS shortest path between two nodes</td></tr>
+<tr><td><code>connected_components(edges)</code></td><td>1</td><td>Union-Find component labels for every node</td></tr>
+<tr><td><code>network_enrichment(gene_list, edges, bg_size)</code></td><td>3</td><td>Hypergeometric enrichment of a gene set in the network</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "network" as net
+
+let ppi = net.load_string("data/9606.protein.links.v12.0.txt")
+  |&gt; net.filter_score(0.7)
+
+net.hub_genes(ppi, 20)
+let lcc = net.largest_component(ppi)
+
+let brca = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+net.path(lcc, "TP53", "BRCA1")
+net.enrichment(brca, ppi, 20000)
+</code></pre>
+<hr>
+<h2 id="copy-number-variation-cnv"><a class="header" href="#copy-number-variation-cnv">Copy Number Variation (cnv)</a></h2>
+<p>Builtins for CNV analysis from WGS/WES read-depth data.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>log2_ratios(tumor, normal)</code></td><td>2</td><td>log2((tumor+1)/(normal+1)) per bin</td></tr>
+<tr><td><code>cbs_segment(ratios)</code></td><td>1</td><td>Circular binary segmentation → Table of segments</td></tr>
+<tr><td><code>cn_call(segments, ploidy)</code></td><td>2</td><td>Integer CN from log2-ratio segments</td></tr>
+<tr><td><code>allele_specific_cn(baf, ratio)</code></td><td>2</td><td>Major/minor allele CN from B-allele freq + ratio</td></tr>
+<tr><td><code>cnv_summary(segments)</code></td><td>1</td><td>Fraction altered, n_segments, mean ratio</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "cnv" as cnv
+
+# let ratios   = cnv.ratios(tumor_depths, normal_depths)
+# let segments = cnv.segment(ratios)
+# cnv.call(segments, ploidy=2)
+# cnv.summary(segments)
+
+# Allele-specific CN from SNP heterozygotes
+# let baf = read_csv("tumor_snps.tsv") |&gt; col("baf")
+# cnv.allelic(baf, ratios)
+</code></pre>
+<hr>
+<h2 id="hi-c--3d-genomics-hic"><a class="header" href="#hi-c--3d-genomics-hic">Hi-C &amp; 3D Genomics (hic)</a></h2>
+<p>Builtins for chromatin conformation capture data.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ice_normalize(matrix)</code></td><td>1</td><td>Iterative correction (ICE) of contact matrix</td></tr>
+<tr><td><code>insulation_score(matrix, window)</code></td><td>2</td><td>Diamond insulation score per bin</td></tr>
+<tr><td><code>tad_boundaries(scores, min_delta)</code></td><td>2</td><td>Local minima in insulation score → TAD boundaries</td></tr>
+<tr><td><code>distance_decay(matrix)</code></td><td>1</td><td>Mean contact frequency vs genomic distance</td></tr>
+<tr><td><code>expected_contacts(matrix)</code></td><td>1</td><td>Distance-decay expected contact matrix</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "hic" as hic
+
+# let norm   = hic.normalize(contact_matrix)
+# let scores = hic.insulation(norm, 10)
+# let tads   = hic.boundaries(scores, delta=0.15)
+# hic.decay(norm)
+</code></pre>
+<hr>
+<h2 id="atac-seq-atac"><a class="header" href="#atac-seq-atac">ATAC-seq (atac)</a></h2>
+<p>Builtins for ATAC-seq quality control and fragment analysis.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fragment_size_dist(lengths)</code></td><td>1</td><td>Histogram of fragment lengths in 10-bp bins</td></tr>
+<tr><td><code>nfr_enrichment(lengths)</code></td><td>1</td><td>NFR/mono-nucleosome ratio (&gt;1.5 = good quality)</td></tr>
+<tr><td><code>nucleosome_fractions(lengths)</code></td><td>1</td><td>Sub-NFR / NFR / mono / di / tri fractions</td></tr>
+<tr><td><code>tss_enrichment_score(lengths, dists, flank)</code></td><td>3</td><td>TSS signal / background ratio</td></tr>
+<tr><td><code>atac_qc(lengths)</code></td><td>1</td><td>Combined QC record: NFR fraction, median size, etc.</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "atac" as atac
+
+# let frag_lengths = read_csv("fragments.tsv") |&gt; col("tlen") |&gt; map(fn(x) -&gt; abs(x))
+# atac.qc(frag_lengths)
+# atac.nfr(frag_lengths)
+# atac.sizes(frag_lengths)
+# atac.nucleosomes(frag_lengths)
+</code></pre>
+<hr>
+<h2 id="drug-response-drug"><a class="header" href="#drug-response-drug">Drug Response (drug)</a></h2>
+<p>Builtins for dose-response modelling and combination synergy.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fit_ic50(concentrations, viabilities)</code></td><td>2</td><td>4-parameter logistic fit → <code>{ic50, slope, top, bottom, r2}</code></td></tr>
+<tr><td><code>dose_response_curve(concs, ic50, slope, top, bottom)</code></td><td>5</td><td>Evaluate 4PL model at given concentrations</td></tr>
+<tr><td><code>auc_response(concentrations, viabilities)</code></td><td>2</td><td>Area under dose-response curve (trapezoidal, log10-normalized)</td></tr>
+<tr><td><code>bliss_synergy(viab_a, viab_b, viab_combo)</code></td><td>3</td><td>Bliss independence synergy score</td></tr>
+<tr><td><code>loewe_synergy(ic50_a, ic50_b, conc_a, conc_b, obs)</code></td><td>5</td><td>Loewe additivity synergy (1 - CI)</td></tr>
+<tr><td><code>drug_rank(ic50_table, ascending)</code></td><td>2</td><td>Rank drugs by IC50</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "drug" as drug
+
+let concs  = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+let viabs  = [98.0, 95.0, 88.0, 70.0, 45.0, 20.0, 8.0, 3.0]
+
+let params = drug.fit(concs, viabs)
+drug.auc(concs, viabs)
+drug.bliss(75.0, 60.0, 30.0)
+drug.loewe(1.0, 2.0, 0.5, 1.0)
+</code></pre>
+<hr>
+<h2 id="gwas-gwas"><a class="header" href="#gwas-gwas">GWAS (gwas)</a></h2>
+<p>Builtins for genome-wide association study summary statistics.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>parse_sumstats(text)</code></td><td>1</td><td>Auto-detect column names (CHR/BP/SNP/P/BETA/SE/A1/A2/MAF)</td></tr>
+<tr><td><code>manhattan_data(sumstats)</code></td><td>1</td><td>Cumulative positions + -log10(p) for Manhattan plot</td></tr>
+<tr><td><code>qq_data(pvals)</code></td><td>1</td><td>Expected vs observed -log10(p) for QQ plot</td></tr>
+<tr><td><code>clump(sumstats, p_threshold, window_kb)</code></td><td>3</td><td>Greedy distance-based LD clumping</td></tr>
+<tr><td><code>top_loci(sumstats, p_threshold)</code></td><td>2</td><td>Genome-wide significant hits</td></tr>
+<tr><td><code>lambda_gc(pvals)</code></td><td>1</td><td>Genomic inflation factor λ</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "gwas" as gwas
+
+let ss   = gwas.load("data/my_gwas_sumstats.txt")
+gwas.lambda(ss.pval)
+let hits = gwas.hits(ss)
+let loci = gwas.clump(ss, 5e-8, 250)
+gwas.manhattan(ss)
+gwas.qq(ss.pval)
+</code></pre>
+<hr>
+<h2 id="genomic-annotation-annotation"><a class="header" href="#genomic-annotation-annotation">Genomic Annotation (annotation)</a></h2>
+<p>Builtins for GTF/GFF3 parsing and genomic interval annotation.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>parse_gtf(text)</code></td><td>1</td><td>Parse GTF or GFF3 → Table with gene_id, gene_name, chrom, start, end, strand</td></tr>
+<tr><td><code>gene_bodies(gtf)</code></td><td>1</td><td>Collapse transcripts to gene-level min/max intervals</td></tr>
+<tr><td><code>promoters(gtf, upstream, downstream)</code></td><td>3</td><td>Strand-aware TSS ± window intervals</td></tr>
+<tr><td><code>interval_overlap(query, subject)</code></td><td>2</td><td>Chrom-aware interval overlap between two Tables</td></tr>
+<tr><td><code>annotate_peaks(peaks, gtf)</code></td><td>2</td><td>Nearest gene + Promoter/Intragenic/Distal classification</td></tr>
+<tr><td><code>gene_id_map(gtf)</code></td><td>1</td><td>Ensembl ID → gene name mapping Table</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "annotation" as ann
+
+let gtf   = ann.load("data/gencode.v45.annotation.gtf")
+let genes = ann.genes(gtf)
+let proms = ann.promoters(gtf, 2000, 200)
+let idmap = ann.id_map(gtf)
+
+# let peaks = read_csv("peaks.narrowPeak")
+# ann.annotate(peaks, gtf)
+# ann.overlap(peaks, atac_peaks)
 </code></pre>
 
                     </main>
@@ -717,8 +1254,8 @@ print("Found " + str(len(result)) + " ORFs in " + str(now() - t0) + "s")
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

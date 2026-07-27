@@ -18,17 +18,16 @@ let exon = interval("chr1", 11869, 12227, strand: "+")
 
 ### Interval Fields
 
-Every interval has `chrom`, `start`, and `end`. Optional fields include
-`strand`, `name`, and `score`.
+Every interval has `chrom`, `start`, `end`, and `strand`. Attach names, scores,
+or other annotations to table rows before building an interval tree.
 
 ```biolang
-let region = interval("chr7", 55181000, 55182000, strand: "+", name: "EGFR_exon20")
+let region = interval("chr7", 55181000, 55182000, "+")
 
 print(region.chrom)   # chr7
 print(region.start)   # 55181000
 print(region.end)     # 55182000
 print(region.strand)  # +
-print(region.name)    # EGFR_exon20
 
 let width = region.end - region.start
 print("Width: " + str(width) + " bp")
@@ -74,7 +73,6 @@ where k is the number of hits.
 
 ```biolang
 let exons = read_bed("data/exons.bed")
-    |> map(|e| interval(e.chrom, e.start, e.end, name: e.name))
 
 let tree = interval_tree(exons)
 ```
@@ -85,10 +83,10 @@ Find all intervals in the tree that overlap a query region.
 
 ```biolang
 let query = interval("chr17", 43044294, 43044295)  # single position in BRCA1
-let hits = query_overlaps(tree, query)
+let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 
 for hit in hits {
-    print("Overlaps: " + hit.name + " " + str(hit.start) + "-" + str(hit.end))
+    print("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
 }
 ```
 
@@ -96,7 +94,8 @@ for hit in hits {
 
 Find the closest interval to a query, even if there is no overlap.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let snp_pos = interval("chr7", 55181378, 55181379)
 let nearest = query_nearest(tree, snp_pos)
 
@@ -111,15 +110,18 @@ Compute per-base coverage across a set of intervals -- how many intervals
 cover each position.
 
 ```biolang
-let reads_as_intervals = aligned_reads
-    |> map(|r| interval(r.chrom, r.start, r.end))
-
-let tree = interval_tree(reads_as_intervals)
+let aligned_reads = table([
+    {chrom: "chr17", start: 43044000, end: 43044400},
+    {chrom: "chr17", start: 43044200, end: 43044600},
+    {chrom: "chr17", start: 43044800, end: 43045200}
+])
+let tree = interval_tree(aligned_reads)
 let target = interval("chr17", 43044000, 43045000)
 
-let cov = coverage(tree, target)
-print("Mean depth over target: " + str(mean(cov)))
-print("Bases >= 30x: " + str(cov |> filter(|d| d >= 30) |> len()))
+let cov = coverage(tree)
+    |> filter(|row| row.chrom == target.chrom && row.start < target.end && row.end > target.start)
+print("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
+print("Segments >= 2x: " + str(cov |> filter(|row| row.depth >= 2) |> len()))
 ```
 
 ## Variants
@@ -217,7 +219,8 @@ print(info.GENEINFO) # "BRCA1:672"
 Identify which genes have promoter regions that overlap with transcription
 factor binding peaks from a ChIP-seq experiment.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Load gene annotations
 let genes = read_gff("data/annotations.gff")
     |> filter(|f| f.type == "gene" && f.attributes.gene_type == "protein_coding")
@@ -281,7 +284,8 @@ Transition/transversion ratio (Ti/Tv) is a key quality metric for SNP calling.
 Whole-genome sequencing typically yields Ti/Tv around 2.0-2.1; exome around
 2.8-3.0. Deviations suggest systematic errors.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let variants = read_vcf("data/variants.vcf")
 
 # Keep only PASS SNPs
@@ -350,7 +354,8 @@ write_tsv(spectrum, "substitution_spectrum.csv")
 Given a set of variants and a regulatory region BED file (e.g., ENCODE cCREs),
 annotate each variant with the regulatory elements it falls within.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Load regulatory regions from ENCODE
 let regulatory = read_bed("data/regions.bed")
     |> map(|r| interval(r.chrom, r.start, r.end, name: r.name ?? "cCRE"))

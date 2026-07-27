@@ -104,7 +104,7 @@ print("=== KS Test (control vs treated) ===")
 print(f"Statistic: {round(ks.statistic, 4)}")
 print(f"p-value:   {round(ks.pvalue, 4)}")
 
-if ks.pvalue < 0.05 {
+if ks.pvalue &lt; 0.05 {
   print("Distributions differ significantly — consider non-parametric tests")
 } else {
   print("No significant difference in distributions — parametric tests are appropriate")
@@ -158,7 +158,7 @@ print(f"df between:  {anova_result.df_between}")
 print(f"df within:   {anova_result.df_within}")
 
 # If significant, do pairwise t-tests with p-value adjustment
-if anova_result.p_value < 0.05 {
+if anova_result.p_value &lt; 0.05 {
   print("\n=== Pairwise Comparisons ===")
   let pvals = []
   let labels = []
@@ -173,7 +173,7 @@ if anova_result.p_value < 0.05 {
   }
   let adjusted = p_adjust(pvals, "bh")
   for k in 0..len(labels) {
-    let sig = if adjusted[k] < 0.05 { "*" } else { "ns" }
+    let sig = if adjusted[k] &lt; 0.05 { "*" } else { "ns" }
     print(f"  {labels[k]}: p={round(adjusted[k], 4)} {sig}")
   }
 }</code></pre>
@@ -296,7 +296,7 @@ let corrected = results
 
 # Compare methods
 for method in ["bh_fdr", "bonferroni", "holm"] {
-  let n_sig = corrected |> filter(|r| r[method] < 0.05) |> nrow()
+  let n_sig = corrected |> filter(|r| r[method] &lt; 0.05) |> nrow()
   print(f"{method}: {n_sig} significant genes")
 }
 

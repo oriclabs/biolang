@@ -1,0 +1,2 @@
+fn bliss(viab_a, viab_b, viab_combo)               { bliss_synergy(viab_a, viab_b, viab_combo) }
+fn loewe(ic50_a, ic50_b, conc_a, conc_b, obs)      { loewe_synergy(ic50_a, ic50_b, conc_a, conc_b, obs) }

@@ -101,7 +101,7 @@ variants
 
 # Filter significant genes
 let sig = data
-  |> filter(|row| { row["padj"] |> float < 0.05 })
+  |> filter(|row| { row["padj"] |> float &lt; 0.05 })
   |> filter(|row| { (row["log2FoldChange"] |> float) |> abs > 1.0 })
 
 print(f"Significant DE genes: {sig |> len}")
@@ -141,7 +141,7 @@ counts
 let wide = read_csv("data/expression.csv")
 wide
   |> pivot_longer(["sample_a", "sample_b", "sample_c"], "sample", "expression")
-  |> write_read_csv("data/expression.csv")
+  |> write_csv("data/expression.csv")
 
 # Long to wide format
 let long_data = read_csv("data/expression.csv")
@@ -168,14 +168,14 @@ print(f"Genes without counts: {missing |> len}")</code></pre>
         <pre><code class="language-biolang"># Stack tables vertically
 let batch1 = read_csv("data/expression.csv")
 let batch2 = read_csv("data/counts.csv")
-let combined = concat([batch1, batch2])
+let combined = concat(batch1, batch2)
 combined |> write_csv("all_results.csv")
 
 # Add a batch label
-let labeled = concat([
+let labeled = concat(
   batch1 |> mutate("batch", |_| "batch1"),
   batch2 |> mutate("batch", |_| "batch2")
-])
+)
 labeled |> write_csv("labeled_results.csv")</code></pre>
 
         <h2>String Operations on Data</h2>

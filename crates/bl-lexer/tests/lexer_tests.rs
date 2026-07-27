@@ -294,12 +294,18 @@ fn test_bio_literal_newline_is_error() {
 
 #[test]
 fn test_dna_iupac_valid() {
-    assert_eq!(lex(r#"dna"ACGTNRYWSMKBDHV""#), vec![TokenKind::DnaLit("ACGTNRYWSMKBDHV".into())]);
+    assert_eq!(
+        lex(r#"dna"ACGTNRYWSMKBDHV""#),
+        vec![TokenKind::DnaLit("ACGTNRYWSMKBDHV".into())]
+    );
 }
 
 #[test]
 fn test_dna_lowercase_valid() {
-    assert_eq!(lex(r#"dna"acgtn""#), vec![TokenKind::DnaLit("acgtn".into())]);
+    assert_eq!(
+        lex(r#"dna"acgtn""#),
+        vec![TokenKind::DnaLit("acgtn".into())]
+    );
 }
 
 #[test]
@@ -319,7 +325,10 @@ fn test_dna_rejects_number() {
 
 #[test]
 fn test_rna_iupac_valid() {
-    assert_eq!(lex(r#"rna"ACGUNRYWSMKBDHV""#), vec![TokenKind::RnaLit("ACGUNRYWSMKBDHV".into())]);
+    assert_eq!(
+        lex(r#"rna"ACGUNRYWSMKBDHV""#),
+        vec![TokenKind::RnaLit("ACGUNRYWSMKBDHV".into())]
+    );
 }
 
 #[test]
@@ -334,13 +343,19 @@ fn test_rna_rejects_invalid_char() {
 
 #[test]
 fn test_protein_standard_valid() {
-    assert_eq!(lex(r#"protein"ACDEFGHIKLMNPQRSTVWY""#), vec![TokenKind::ProteinLit("ACDEFGHIKLMNPQRSTVWY".into())]);
+    assert_eq!(
+        lex(r#"protein"ACDEFGHIKLMNPQRSTVWY""#),
+        vec![TokenKind::ProteinLit("ACDEFGHIKLMNPQRSTVWY".into())]
+    );
 }
 
 #[test]
 fn test_protein_extended_valid() {
     // B=Asx, Z=Glx, J=Leu/Ile, U=Sec, O=Pyl, X=unknown, *=stop
-    assert_eq!(lex(r#"protein"BZJUOX*""#), vec![TokenKind::ProteinLit("BZJUOX*".into())]);
+    assert_eq!(
+        lex(r#"protein"BZJUOX*""#),
+        vec![TokenKind::ProteinLit("BZJUOX*".into())]
+    );
 }
 
 #[test]
@@ -350,7 +365,10 @@ fn test_protein_rejects_invalid_char() {
 
 #[test]
 fn test_qual_valid() {
-    assert_eq!(lex(r#"qual"!@IIIII~""#), vec![TokenKind::QualLit("!@IIIII~".into())]);
+    assert_eq!(
+        lex(r#"qual"!@IIIII~""#),
+        vec![TokenKind::QualLit("!@IIIII~".into())]
+    );
 }
 
 #[test]
@@ -1500,26 +1518,17 @@ fn test_invalid_character_backtick() {
 
 #[test]
 fn test_identifier_with_underscores() {
-    assert_eq!(
-        lex("my_var"),
-        vec![TokenKind::Ident("my_var".into())]
-    );
+    assert_eq!(lex("my_var"), vec![TokenKind::Ident("my_var".into())]);
 }
 
 #[test]
 fn test_identifier_leading_underscore() {
-    assert_eq!(
-        lex("_private"),
-        vec![TokenKind::Ident("_private".into())]
-    );
+    assert_eq!(lex("_private"), vec![TokenKind::Ident("_private".into())]);
 }
 
 #[test]
 fn test_identifier_with_digits() {
-    assert_eq!(
-        lex("var123"),
-        vec![TokenKind::Ident("var123".into())]
-    );
+    assert_eq!(lex("var123"), vec![TokenKind::Ident("var123".into())]);
 }
 
 #[test]
@@ -1675,9 +1684,7 @@ fn test_try_catch() {
 
 #[test]
 fn test_spans_are_correct() {
-    let tokens = Lexer::new("let x = 10")
-        .tokenize()
-        .unwrap();
+    let tokens = Lexer::new("let x = 10").tokenize().unwrap();
     // "let" spans 0..3
     assert_eq!(tokens[0].span.start, 0);
     assert_eq!(tokens[0].span.end, 3);
@@ -2035,8 +2042,14 @@ fn test_newline_preserved_without_pipe() {
 fn test_pipe_chain_multiline() {
     let tokens = lex("data\n    |> filter(f)\n    |> map(g)");
     // Should have exactly 2 PipeOp tokens and 0 Newline tokens
-    let pipe_count = tokens.iter().filter(|t| matches!(t, TokenKind::PipeOp)).count();
-    let nl_count = tokens.iter().filter(|t| matches!(t, TokenKind::Newline)).count();
+    let pipe_count = tokens
+        .iter()
+        .filter(|t| matches!(t, TokenKind::PipeOp))
+        .count();
+    let nl_count = tokens
+        .iter()
+        .filter(|t| matches!(t, TokenKind::Newline))
+        .count();
     assert_eq!(pipe_count, 2, "expected 2 pipe ops");
     assert_eq!(nl_count, 0, "expected 0 newlines (all before pipes)");
 }

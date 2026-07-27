@@ -1,0 +1,37 @@
+# Score transcription factor activity per cell from regulon gene sets.
+# regulons: list of {tf_idx: int, target_indices: [int, ...]}
+# Returns obj with .tf_activity: table (cell, tf_idx, activity_score)
+fn score_tf_activity(obj, regulons) {
+  let matrix = obj.norm_matrix
+  let scores = regulons
+    |> flat_map(fn(reg) ->
+        range(n_cells(obj))
+        |> map(fn(c) -> {
+            cell:           c,
+            tf_idx:         reg.tf_idx,
+            activity_score: reg.target_indices
+              |> map(fn(g) -> matrix[g][c])
+              |> mean
+          })
+      )
+  obj |> set_field("tf_activity", scores)
+}
+
+# Which TFs are most active in each cluster? Returns top n per cluster.
+fn top_tfs_per_cluster(obj, n = 5) {
+  let clusters = obj.clusters
+  obj.tf_activity
+    |> map(fn(r) -> r |> set_field("cluster", clusters[r.cell]))
+    |> group_by(fn(r) -> r.cluster)
+    |> flat_map(fn(cluster, rows) ->
+        rows
+          |> group_by(fn(r) -> r.tf_idx)
+          |> map(fn(tf, rs) -> {
+              cluster:       cluster,
+              tf_idx:        tf,
+              mean_activity: rs.activity_score |> mean
+            })
+          |> sort_by(fn(r) -> r.mean_activity, descending = true)
+          |> take(n)
+      )
+}

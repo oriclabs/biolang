@@ -1,0 +1,16 @@
+import "phylo" as ph
+
+let tree = ph.load("data/sarscov2_sequences.nwk")
+
+ph.n_leaves(tree)
+ph.leaves(tree)
+
+ph.distance(tree, "Alpha", "Delta")
+
+let dmat = ph.distance_matrix(tree)
+
+ph.faith_pd(tree)
+ph.nearest_taxon_distance(tree)
+
+let leaves = ph.leaves(tree)
+let rebuilt = ph.build_upgma(leaves, dmat)

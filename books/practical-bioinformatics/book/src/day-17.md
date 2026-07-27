@@ -441,12 +441,22 @@ Just as DNA k-mers reveal motifs and repeat patterns (Day 5), protein k-mers can
 ```bio
 # Protein k-mers reveal motifs and domain signatures
 let seq = protein"MEEPQSDPSVEPPLSQETFSDLWKLL"
-let trimers = kmers(seq, 3)
+fn protein_kmers(seq, k) {
+    let text = str(seq)
+    range(0, len(text) - k + 1) |> map(|i| slice(text, i, i + k))
+}
+let trimers = protein_kmers(seq, 3)
 println(f"Protein 3-mers: {len(trimers)}")
 println(f"First 5 trimers: {trimers |> take(5)}")
 
 # Count dipeptide frequencies
-let dipeptides = kmer_count(seq, 2)
+let dipeptide_words = protein_kmers(seq, 2)
+let dipeptides = unique(dipeptide_words)
+    |> map(|word| {
+        kmer: word,
+        count: dipeptide_words |> filter(|item| item == word) |> len()
+    })
+    |> sort_by(|row| -row.count)
 println(f"\nDipeptide counts (top 10):")
 println(dipeptides |> head(10))
 ```
@@ -595,7 +605,8 @@ Impact: MODERATE
 
 This pipeline brings together everything from this chapter: UniProt lookup, feature extraction, GO annotation, and PDB structure search. It produces a comprehensive report for any protein given its UniProt accession.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Complete Protein Analysis Report
 # requires: internet connection
 

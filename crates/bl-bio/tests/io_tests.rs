@@ -29,10 +29,15 @@ fn test_fasta_stream_basic() {
             assert_eq!(map.get("id"), Some(&Value::Str("seq1".into())));
             assert_eq!(
                 map.get("seq"),
-                Some(&Value::DNA(BioSequence { data: "ATGATCGATCG".into() }))
+                Some(&Value::DNA(BioSequence {
+                    data: "ATGATCGATCG".into()
+                }))
             );
             assert_eq!(map.get("length"), Some(&Value::Int(11)));
-            assert_eq!(map.get("description"), Some(&Value::Str("first sequence".into())));
+            assert_eq!(
+                map.get("description"),
+                Some(&Value::Str("first sequence".into()))
+            );
         } else {
             panic!("expected Record, got {r1:?}");
         }
@@ -77,7 +82,10 @@ fn test_fasta_file_not_found() {
     let result = read_fasta("nonexistent.fa");
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("not found") || err.contains("cannot open"), "err: {err}");
+    assert!(
+        err.contains("not found") || err.contains("cannot open"),
+        "err: {err}"
+    );
 }
 
 #[test]
@@ -134,7 +142,9 @@ fn test_fasta_multiline_sequence() {
         assert_eq!(t.rows[0][3], Value::Int(35)); // 11 + 12 + 12
         assert_eq!(
             t.rows[0][2],
-            Value::DNA(BioSequence { data: "ATGATCGATCGGCGCATATGCGCAAACCCGGGTTT".into() })
+            Value::DNA(BioSequence {
+                data: "ATGATCGATCGGCGCATATGCGCAAACCCGGGTTT".into()
+            })
         );
         // Second sequence is short
         assert_eq!(t.rows[1][3], Value::Int(4));
@@ -201,14 +211,14 @@ fn test_fasta_write_roundtrip() {
     let table = read_fasta_table(path.to_str().unwrap()).unwrap();
     let records = if let Value::Table(t) = &table {
         (0..t.num_rows())
-            .map(|i| Value::Record(t.row_to_record(i)))
+            .map(|i| Value::Record((t.row_to_record(i)).into()))
             .collect::<Vec<_>>()
     } else {
         panic!("expected Table");
     };
 
     let out_path = tmp_path("roundtrip.fa");
-    let count = write_fasta(&Value::List(records), out_path.to_str().unwrap()).unwrap();
+    let count = write_fasta(&Value::List((records).into()), out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(3));
 
     // Read back and verify
@@ -237,7 +247,9 @@ fn test_fastq_stream_basic() {
             assert_eq!(map.get("id"), Some(&Value::Str("read1".into())));
             assert_eq!(
                 map.get("seq"),
-                Some(&Value::DNA(BioSequence { data: "ATGATCGATCG".into() }))
+                Some(&Value::DNA(BioSequence {
+                    data: "ATGATCGATCG".into()
+                }))
             );
             assert_eq!(map.get("length"), Some(&Value::Int(11)));
             assert_eq!(map.get("quality"), Some(&Value::Str("IIIIIIIIIII".into())));
@@ -258,7 +270,10 @@ fn test_fastq_table_basic() {
     let result = read_fastq_table(path.to_str().unwrap()).unwrap();
     if let Value::Table(t) = result {
         assert_eq!(t.num_rows(), 3);
-        assert_eq!(t.columns, vec!["id", "description", "seq", "length", "quality"]);
+        assert_eq!(
+            t.columns,
+            vec!["id", "description", "seq", "length", "quality"]
+        );
         assert_eq!(t.rows[0][0], Value::Str("read1".into()));
         assert_eq!(t.rows[0][3], Value::Int(11));
         assert_eq!(t.rows[0][4], Value::Str("IIIIIIIIIII".into()));
@@ -344,14 +359,14 @@ fn test_fastq_write_roundtrip() {
     let table = read_fastq_table(path.to_str().unwrap()).unwrap();
     let records = if let Value::Table(t) = &table {
         (0..t.num_rows())
-            .map(|i| Value::Record(t.row_to_record(i)))
+            .map(|i| Value::Record((t.row_to_record(i)).into()))
             .collect::<Vec<_>>()
     } else {
         panic!("expected Table");
     };
 
     let out_path = tmp_path("roundtrip.fq");
-    let count = write_fastq(&Value::List(records), out_path.to_str().unwrap()).unwrap();
+    let count = write_fastq(&Value::List((records).into()), out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(3));
 
     let table2 = read_fastq_table(out_path.to_str().unwrap()).unwrap();
@@ -480,14 +495,14 @@ fn test_bed_write_roundtrip() {
     let table = read_bed(path.to_str().unwrap()).unwrap();
     let records = if let Value::Table(t) = &table {
         (0..t.num_rows())
-            .map(|i| Value::Record(t.row_to_record(i)))
+            .map(|i| Value::Record((t.row_to_record(i)).into()))
             .collect::<Vec<_>>()
     } else {
         panic!("expected Table");
     };
 
     let out_path = tmp_path("roundtrip.bed");
-    let count = write_bed(&Value::List(records), out_path.to_str().unwrap()).unwrap();
+    let count = write_bed(&Value::List((records).into()), out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(4));
 
     let table2 = read_bed(out_path.to_str().unwrap()).unwrap();
@@ -609,7 +624,10 @@ fn test_gff_attributes_field() {
         // attributes column should contain the raw attributes string
         let attr = &t.rows[0][8];
         if let Value::Str(s) = attr {
-            assert!(s.contains("Name=DDX11L1"), "attributes should contain Name: {s}");
+            assert!(
+                s.contains("Name=DDX11L1"),
+                "attributes should contain Name: {s}"
+            );
         }
     } else {
         panic!("expected Table");
@@ -622,14 +640,14 @@ fn test_gff_write_roundtrip() {
     let table = read_gff(path.to_str().unwrap()).unwrap();
     let records = if let Value::Table(t) = &table {
         (0..t.num_rows())
-            .map(|i| Value::Record(t.row_to_record(i)))
+            .map(|i| Value::Record((t.row_to_record(i)).into()))
             .collect::<Vec<_>>()
     } else {
         panic!("expected Table");
     };
 
     let out_path = tmp_path("roundtrip.gff");
-    let count = write_gff(&Value::List(records), out_path.to_str().unwrap()).unwrap();
+    let count = write_gff(&Value::List((records).into()), out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(3));
 
     let table2 = read_gff(out_path.to_str().unwrap()).unwrap();
@@ -653,7 +671,13 @@ fn test_vcf_table_basic() {
     let result = read_vcf(path.to_str().unwrap()).unwrap();
     if let Value::List(items) = result {
         assert_eq!(items.len(), 3);
-        if let Value::Variant { chrom, pos, ref_allele, .. } = &items[0] {
+        if let Value::Variant {
+            chrom,
+            pos,
+            ref_allele,
+            ..
+        } = &items[0]
+        {
             assert_eq!(chrom, "chr1");
             assert_eq!(*pos, 10177);
             assert_eq!(ref_allele, "A");
@@ -672,7 +696,13 @@ fn test_vcf_stream_basic() {
     if let Value::Stream(s) = result {
         let items = s.collect_all();
         assert_eq!(items.len(), 3);
-        if let Value::Variant { chrom, pos, ref_allele, .. } = &items[0] {
+        if let Value::Variant {
+            chrom,
+            pos,
+            ref_allele,
+            ..
+        } = &items[0]
+        {
             assert_eq!(chrom, "chr1");
             assert_eq!(*pos, 10177);
             assert_eq!(ref_allele, "A");
@@ -765,9 +795,15 @@ fn test_vcf_indel() {
     let result = read_vcf(path.to_str().unwrap()).unwrap();
     if let Value::List(items) = result {
         // Third row is a deletion (22bp REF -> 1bp ALT)
-        if let Value::Variant { chrom, ref_allele, .. } = &items[2] {
+        if let Value::Variant {
+            chrom, ref_allele, ..
+        } = &items[2]
+        {
             assert_eq!(chrom, "chr2");
-            assert!(ref_allele.len() > 1, "indel REF should be multi-base: {ref_allele}");
+            assert!(
+                ref_allele.len() > 1,
+                "indel REF should be multi-base: {ref_allele}"
+            );
         } else {
             panic!("expected Variant");
         }
@@ -780,18 +816,39 @@ fn test_vcf_indel() {
 fn test_vcf_write_roundtrip() {
     let path = test_data_dir().join("test.vcf");
     let variants = read_vcf(path.to_str().unwrap()).unwrap();
-    let items1 = if let Value::List(ref l) = variants { l.clone() } else { panic!("expected List") };
+    let items1 = if let Value::List(ref l) = variants {
+        l.clone()
+    } else {
+        panic!("expected List")
+    };
 
     let out_path = tmp_path("roundtrip.vcf");
     let count = write_vcf(&variants, out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(3));
 
     let variants2 = read_vcf(out_path.to_str().unwrap()).unwrap();
-    let items2 = if let Value::List(ref l) = variants2 { l.clone() } else { panic!("expected List") };
+    let items2 = if let Value::List(ref l) = variants2 {
+        l.clone()
+    } else {
+        panic!("expected List")
+    };
     assert_eq!(items1.len(), items2.len());
     for i in 0..items1.len() {
-        if let (Value::Variant { chrom: c1, pos: p1, ref_allele: r1, .. },
-                Value::Variant { chrom: c2, pos: p2, ref_allele: r2, .. }) = (&items1[i], &items2[i]) {
+        if let (
+            Value::Variant {
+                chrom: c1,
+                pos: p1,
+                ref_allele: r1,
+                ..
+            },
+            Value::Variant {
+                chrom: c2,
+                pos: p2,
+                ref_allele: r2,
+                ..
+            },
+        ) = (&items1[i], &items2[i])
+        {
             assert_eq!(c1, c2, "chrom mismatch at row {i}");
             assert_eq!(p1, p2, "pos mismatch at row {i}");
             assert_eq!(r1, r2, "ref mismatch at row {i}");
@@ -819,7 +876,7 @@ fn test_sam_table_basic() {
         assert_eq!(t.rows[0][1], Value::Int(99));
         assert_eq!(t.rows[0][2], Value::Str("chr1".into()));
         assert_eq!(t.rows[0][3], Value::Int(10000));
-        assert_eq!(t.rows[0][4], Value::Int(60));  // MAPQ
+        assert_eq!(t.rows[0][4], Value::Int(60)); // MAPQ
         assert_eq!(t.rows[0][5], Value::Str("50M".into())); // CIGAR
     } else {
         panic!("expected Table");
@@ -1232,7 +1289,11 @@ fn test_data_dir_env_resolution() {
     let result = read_fasta("test.fa");
     std::env::remove_var("BIOLANG_DATA_DIR");
     // This should succeed if DATA_DIR resolution works
-    assert!(result.is_ok(), "BIOLANG_DATA_DIR resolution failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "BIOLANG_DATA_DIR resolution failed: {:?}",
+        result.err()
+    );
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1272,7 +1333,7 @@ fn test_write_gff_requires_list() {
 #[test]
 fn test_write_fasta_empty_list() {
     let out_path = tmp_path("empty_write.fa");
-    let count = write_fasta(&Value::List(vec![]), out_path.to_str().unwrap()).unwrap();
+    let count = write_fasta(&Value::List((vec![]).into()), out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(0));
     let _ = std::fs::remove_file(&out_path);
 }
@@ -1280,7 +1341,7 @@ fn test_write_fasta_empty_list() {
 #[test]
 fn test_write_fastq_empty_list() {
     let out_path = tmp_path("empty_write.fq");
-    let count = write_fastq(&Value::List(vec![]), out_path.to_str().unwrap()).unwrap();
+    let count = write_fastq(&Value::List((vec![]).into()), out_path.to_str().unwrap()).unwrap();
     assert_eq!(count, Value::Int(0));
     let _ = std::fs::remove_file(&out_path);
 }
@@ -1438,7 +1499,10 @@ fn test_fastq_stream_constant_memory_pattern() {
             if let Value::Record(rec) = item {
                 // Each FASTQ record should have seq and quality
                 assert!(rec.contains_key("seq"), "record should have seq field");
-                assert!(rec.contains_key("quality"), "record should have quality field");
+                assert!(
+                    rec.contains_key("quality"),
+                    "record should have quality field"
+                );
                 count += 1;
             }
         }

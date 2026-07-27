@@ -8,6 +8,7 @@ use crate::env::Environment;
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// Iterator adapter that receives values from a generator thread via mpsc channel.
 struct GeneratorIterator {
@@ -114,10 +115,10 @@ impl Interpreter {
     /// Convert a value to an iterable list of items (F1 helper).
     fn value_to_iter(&self, val: &Value, span: bl_core::span::Span) -> Result<Vec<Value>> {
         match val {
-            Value::List(items) => Ok(items.clone()),
+            Value::List(items) => Ok((items).as_ref().clone()),
             Value::Str(s) => Ok(s.chars().map(|c| Value::Str(c.to_string())).collect()),
             Value::Table(t) => Ok((0..t.num_rows())
-                .map(|i| Value::Record(t.row_to_record(i)))
+                .map(|i| Value::Record((t.row_to_record(i)).into()))
                 .collect()),
             Value::Map(m) | Value::Record(m) => Ok(m
                 .iter()
@@ -125,10 +126,14 @@ impl Interpreter {
                     let mut rec = HashMap::new();
                     rec.insert("key".to_string(), Value::Str(k.clone()));
                     rec.insert("value".to_string(), v.clone());
-                    Value::Record(rec)
+                    Value::Record((rec).into())
                 })
                 .collect()),
-            Value::Range { start, end, inclusive } => {
+            Value::Range {
+                start,
+                end,
+                inclusive,
+            } => {
                 let end_val = if *inclusive { *end + 1 } else { *end };
                 let count = (end_val - *start).max(0) as u64;
                 if count > 10_000_000 {
@@ -179,7 +184,11 @@ impl Interpreter {
         for (i, stmt) in program.stmts.iter().enumerate() {
             if self.verbose {
                 let label = verbose_stmt_label(&stmt.node);
-                eprintln!("\x1b[2m  [{}/{}] {label}\x1b[0m", i + 1, program.stmts.len());
+                eprintln!(
+                    "\x1b[2m  [{}/{}] {label}\x1b[0m",
+                    i + 1,
+                    program.stmts.len()
+                );
             }
             last = self.exec_stmt(stmt)?;
         }
@@ -197,11 +206,21 @@ impl Interpreter {
             Stmt::Const { name, value, .. } => {
                 let val = self.eval_expr(value)?;
                 self.env.define(name.clone(), val);
-                self.env.define(format!("__const_{name}"), Value::Bool(true));
+                self.env
+                    .define(format!("__const_{name}"), Value::Bool(true));
                 Ok(Value::Nil)
             }
             Stmt::Fn {
-                name, params, body, doc, is_generator, decorators, is_async, named_returns, where_clause, ..
+                name,
+                params,
+                body,
+                doc,
+                is_generator,
+                decorators,
+                is_async,
+                named_returns,
+                where_clause,
+                ..
             } => {
                 let closure_env = self.env.current_scope_id();
                 let mut func = Value::Function {
@@ -219,7 +238,11 @@ impl Interpreter {
                         #[cfg(feature = "bytecode")]
                         {
                             match crate::compiled::compile_function_to_closure(
-                                name, params, body, *is_generator, *is_async,
+                                name,
+                                params,
+                                body,
+                                *is_generator,
+                                *is_async,
                             ) {
                                 Ok(compiled) => {
                                     func = compiled;
@@ -242,11 +265,20 @@ impl Interpreter {
                     }
                     if dec_name == "validate" {
                         // Mark this function for parameter type validation at call time
-                        self.env.define(format!("__validate_{name}"), Value::Bool(true));
+                        self.env
+                            .define(format!("__validate_{name}"), Value::Bool(true));
                         continue;
                     }
                     if dec_name == "memoize" || dec_name == "memo" || dec_name == "cache" {
-                        self.env.define(format!("__memoize_{name}"), Value::Record(std::collections::HashMap::new()));
+                        self.env.define(
+                            format!("__memoize_{name}"),
+                            Value::Record((std::collections::HashMap::new()).into()),
+                        );
+                        continue;
+                    }
+                    if dec_name == "vectorize" || dec_name == "vec" {
+                        self.env
+                            .define(format!("__vectorize_{name}"), Value::Bool(true));
                         continue;
                     }
                     if let Ok(decorator) = self.env.get(dec_name, None).cloned() {
@@ -256,10 +288,8 @@ impl Interpreter {
                 }
                 // Mark async functions
                 if *is_async {
-                    self.env.define(
-                        format!("__async_{name}"),
-                        Value::Bool(true),
-                    );
+                    self.env
+                        .define(format!("__async_{name}"), Value::Bool(true));
                 }
                 // Store named return field names for auto-wrapping
                 if !named_returns.is_empty() {
@@ -267,7 +297,8 @@ impl Interpreter {
                         .iter()
                         .map(|(n, _)| Value::Str(n.clone()))
                         .collect();
-                    self.env.define(format!("__named_returns_{name}"), Value::List(names));
+                    self.env
+                        .define(format!("__named_returns_{name}"), Value::List((names).into()));
                 }
                 // If there's a where clause, prepend it as a guard to the function body
                 if let Some(where_expr) = where_clause {
@@ -316,7 +347,13 @@ impl Interpreter {
                 };
                 Err(BioLangError::return_val(val, Some(stmt.span)))
             }
-            Stmt::For { pattern, iter, when_guard, body, else_body } => {
+            Stmt::For {
+                pattern,
+                iter,
+                when_guard,
+                body,
+                else_body,
+            } => {
                 let iterable = self.eval_expr(iter)?;
 
                 // Streams are consumed lazily — one item at a time, no materialization
@@ -445,8 +482,16 @@ impl Interpreter {
                 }
                 Ok(last)
             }
-            Stmt::Break => Err(BioLangError::new(ErrorKind::Break, "break", Some(stmt.span))),
-            Stmt::Continue => Err(BioLangError::new(ErrorKind::Continue, "continue", Some(stmt.span))),
+            Stmt::Break => Err(BioLangError::new(
+                ErrorKind::Break,
+                "break",
+                Some(stmt.span),
+            )),
+            Stmt::Continue => Err(BioLangError::new(
+                ErrorKind::Continue,
+                "continue",
+                Some(stmt.span),
+            )),
             Stmt::DestructLet { pattern, value } => {
                 let val = self.eval_expr(value)?;
                 match pattern {
@@ -465,7 +510,10 @@ impl Interpreter {
                             self.env.define(name.clone(), item);
                         }
                     }
-                    DestructPattern::ListWithRest { elements, rest_name } => {
+                    DestructPattern::ListWithRest {
+                        elements,
+                        rest_name,
+                    } => {
                         let items = match &val {
                             Value::List(items) => items.clone(),
                             other => {
@@ -479,8 +527,9 @@ impl Interpreter {
                             let item = items.get(i).cloned().unwrap_or(Value::Nil);
                             self.env.define(name.clone(), item);
                         }
-                        let rest: Vec<Value> = items.into_iter().skip(elements.len()).collect();
-                        self.env.define(rest_name.clone(), Value::List(rest));
+                        let rest: Vec<Value> =
+                            items.iter().skip(elements.len()).cloned().collect();
+                        self.env.define(rest_name.clone(), Value::List((rest).into()));
                     }
                     DestructPattern::Record(names) => {
                         let map = match &val {
@@ -513,10 +562,11 @@ impl Interpreter {
                             self.env.define(name.clone(), item);
                         }
                         let rest: HashMap<String, Value> = map
-                            .into_iter()
+                            .iter()
                             .filter(|(k, _)| !field_set.contains(k))
+                            .map(|(k, v)| (k.clone(), v.clone()))
                             .collect();
-                        self.env.define(rest_name.clone(), Value::Record(rest));
+                        self.env.define(rest_name.clone(), Value::Record((rest).into()));
                     }
                 }
                 Ok(Value::Nil)
@@ -578,7 +628,7 @@ impl Interpreter {
                         Ok(resolved) => {
                             let exports = self.load_module(&resolved, Some(stmt.span))?;
                             if let Some(alias_name) = alias {
-                                self.env.define(alias_name.clone(), Value::Record(exports));
+                                self.env.define(alias_name.clone(), Value::Record((exports).into()));
                             } else {
                                 for (name, value) in exports {
                                     self.env.define(name, value);
@@ -595,7 +645,7 @@ impl Interpreter {
                                 ));
                             }
                             if let Some(alias_name) = alias {
-                                self.env.define(alias_name.clone(), Value::Record(exports));
+                                self.env.define(alias_name.clone(), Value::Record((exports).into()));
                             } else {
                                 for (name, value) in exports {
                                     self.env.define(name, value);
@@ -684,7 +734,7 @@ impl Interpreter {
                                 m.insert("enum_name".to_string(), Value::Str(enum_name.clone()));
                                 m.insert("variant".to_string(), Value::Str(variant_name.clone()));
                                 m.insert("field_count".to_string(), Value::Int(field_count as i64));
-                                m
+                                (m).into()
                             }),
                         );
                     }
@@ -702,23 +752,27 @@ impl Interpreter {
                         let default_val = self.eval_expr(default_expr)?;
                         meta.insert("default".to_string(), default_val);
                     }
-                    field_meta.push(Value::Record(meta));
+                    field_meta.push(Value::Record((meta).into()));
                 }
                 let mut struct_meta = HashMap::new();
                 struct_meta.insert("__type".to_string(), Value::Str("struct_def".to_string()));
                 struct_meta.insert("name".to_string(), Value::Str(name.clone()));
-                struct_meta.insert("fields".to_string(), Value::List(field_meta));
-                self.env.define(format!("__struct_{name}"), Value::Record(struct_meta));
+                struct_meta.insert("fields".to_string(), Value::List((field_meta).into()));
+                self.env
+                    .define(format!("__struct_{name}"), Value::Record((struct_meta).into()));
 
                 // Register constructor function
                 let _struct_name = name.clone();
                 let struct_fields = fields.clone();
-                let params: Vec<Param> = struct_fields.iter().map(|f| Param {
-                    name: f.name.clone(),
-                    type_ann: f.type_ann.clone(),
-                    default: f.default.clone(),
-                    rest: false,
-                }).collect();
+                let params: Vec<Param> = struct_fields
+                    .iter()
+                    .map(|f| Param {
+                        name: f.name.clone(),
+                        type_ann: f.type_ann.clone(),
+                        default: f.default.clone(),
+                        rest: false,
+                    })
+                    .collect();
                 let closure_env = self.env.current_scope_id();
                 self.env.define(
                     name.clone(),
@@ -732,28 +786,37 @@ impl Interpreter {
                     },
                 );
                 // Mark as struct constructor
-                self.env.define(
-                    format!("__struct_ctor_{name}"),
-                    Value::Bool(true),
-                );
+                self.env
+                    .define(format!("__struct_ctor_{name}"), Value::Bool(true));
                 Ok(Value::Nil)
             }
             Stmt::Trait { name, methods } => {
                 // Store required method names
-                let method_names: Vec<Value> = methods
-                    .iter()
-                    .map(|m| Value::Str(m.name.clone()))
-                    .collect();
+                let method_names: Vec<Value> =
+                    methods.iter().map(|m| Value::Str(m.name.clone())).collect();
                 let mut meta = HashMap::new();
                 meta.insert("__type".to_string(), Value::Str("trait_def".to_string()));
                 meta.insert("name".to_string(), Value::Str(name.clone()));
-                meta.insert("methods".to_string(), Value::List(method_names));
-                self.env.define(format!("__trait_{name}"), Value::Record(meta));
+                meta.insert("methods".to_string(), Value::List((method_names).into()));
+                self.env
+                    .define(format!("__trait_{name}"), Value::Record((meta).into()));
                 Ok(Value::Nil)
             }
-            Stmt::Impl { type_name, trait_name, methods } => {
+            Stmt::Impl {
+                type_name,
+                trait_name,
+                methods,
+            } => {
                 for method_stmt in methods {
-                    if let Stmt::Fn { name: method_name, params, body, doc, is_generator, .. } = &method_stmt.node {
+                    if let Stmt::Fn {
+                        name: method_name,
+                        params,
+                        body,
+                        doc,
+                        is_generator,
+                        ..
+                    } = &method_stmt.node
+                    {
                         let closure_env = self.env.current_scope_id();
                         let func = Value::Function {
                             name: Some(method_name.clone()),
@@ -763,18 +826,18 @@ impl Interpreter {
                             doc: doc.clone(),
                             is_generator: *is_generator,
                         };
-                        self.env.define(
-                            format!("__impl_{type_name}_{method_name}"),
-                            func,
-                        );
+                        self.env
+                            .define(format!("__impl_{type_name}_{method_name}"), func);
                     }
                 }
                 // Validate trait implementation if specified
                 if let Some(ref trait_n) = trait_name {
-                    if let Ok(trait_meta) = self.env.get(&format!("__trait_{trait_n}"), None).cloned() {
+                    if let Ok(trait_meta) =
+                        self.env.get(&format!("__trait_{trait_n}"), None).cloned()
+                    {
                         if let Value::Record(meta) = trait_meta {
                             if let Some(Value::List(required)) = meta.get("methods") {
-                                for req in required {
+                                for req in required.iter() {
                                     if let Value::Str(method_name) = req {
                                         let key = format!("__impl_{type_name}_{method_name}");
                                         if self.env.get(&key, None).is_err() {
@@ -796,7 +859,7 @@ impl Interpreter {
                 let ctx = self.eval_expr(expr)?;
                 let prev = self.env.push_scope();
                 if let Value::Record(ref map) | Value::Map(ref map) = ctx {
-                    for (k, v) in map {
+                    for (k, v) in map.iter() {
                         self.env.define(k.clone(), v.clone());
                     }
                 }
@@ -815,7 +878,10 @@ impl Interpreter {
                     Ok(Value::Nil)
                 }
             }
-            Stmt::Guard { condition, else_body } => {
+            Stmt::Guard {
+                condition,
+                else_body,
+            } => {
                 let cond = self.eval_expr(condition)?;
                 if !cond.is_truthy() {
                     let prev = self.env.push_scope();
@@ -834,7 +900,11 @@ impl Interpreter {
                 let _ = self.eval_expr(expr)?;
                 Ok(Value::Nil)
             }
-            Stmt::ParallelFor { pattern, iter, body } => {
+            Stmt::ParallelFor {
+                pattern,
+                iter,
+                body,
+            } => {
                 // In the tree-walking interpreter, parallel for runs sequentially.
                 // A future bytecode/JIT backend can parallelize this.
                 let iterable = self.eval_expr(iter)?;
@@ -885,14 +955,20 @@ impl Interpreter {
             }
             Stmt::TypeAlias { name, target } => {
                 // Store type alias as a string mapping for documentation/reflection
-                self.env.define(format!("__type_alias_{name}"), Value::Str(target.name.clone()));
+                self.env.define(
+                    format!("__type_alias_{name}"),
+                    Value::Str(target.name.clone()),
+                );
                 Ok(Value::Nil)
             }
             Stmt::FromImport { path, names } => {
                 // `from "module" import name1, name2`
                 // First load the module normally, then selectively import names
                 let import_stmt = Spanned::new(
-                    Stmt::Import { path: path.clone(), alias: None },
+                    Stmt::Import {
+                        path: path.clone(),
+                        alias: None,
+                    },
                     stmt.span,
                 );
                 self.exec_stmt(&import_stmt)?;
@@ -936,11 +1012,13 @@ impl Interpreter {
             ForPattern::ListDestr(names) => {
                 if let Value::List(ref elems) = item {
                     for (i, name) in names.iter().enumerate() {
-                        self.env.define(name.clone(), elems.get(i).cloned().unwrap_or(Value::Nil));
+                        self.env
+                            .define(name.clone(), elems.get(i).cloned().unwrap_or(Value::Nil));
                     }
                 } else if let Value::Tuple(ref elems) = item {
                     for (i, name) in names.iter().enumerate() {
-                        self.env.define(name.clone(), elems.get(i).cloned().unwrap_or(Value::Nil));
+                        self.env
+                            .define(name.clone(), elems.get(i).cloned().unwrap_or(Value::Nil));
                     }
                 } else {
                     self.env.define(names[0].clone(), item);
@@ -949,24 +1027,30 @@ impl Interpreter {
             ForPattern::RecordDestr(names) => {
                 if let Value::Record(ref map) | Value::Map(ref map) = item {
                     for name in names {
-                        self.env.define(name.clone(), map.get(name).cloned().unwrap_or(Value::Nil));
+                        self.env
+                            .define(name.clone(), map.get(name).cloned().unwrap_or(Value::Nil));
                     }
                 } else {
                     self.env.define(names[0].clone(), item);
                 }
             }
-            ForPattern::TupleDestr(names) => {
-                match &item {
-                    Value::Tuple(elems) | Value::List(elems) => {
-                        for (i, name) in names.iter().enumerate() {
-                            self.env.define(name.clone(), elems.get(i).cloned().unwrap_or(Value::Nil));
-                        }
-                    }
-                    _ => {
-                        self.env.define(names[0].clone(), item);
+            ForPattern::TupleDestr(names) => match &item {
+                Value::Tuple(elems) => {
+                    for (i, name) in names.iter().enumerate() {
+                        self.env
+                            .define(name.clone(), elems.get(i).cloned().unwrap_or(Value::Nil));
                     }
                 }
-            }
+                Value::List(elems) => {
+                    for (i, name) in names.iter().enumerate() {
+                        self.env
+                            .define(name.clone(), elems.get(i).cloned().unwrap_or(Value::Nil));
+                    }
+                }
+                _ => {
+                    self.env.define(names[0].clone(), item);
+                }
+            },
         }
     }
 
@@ -1000,13 +1084,19 @@ impl Interpreter {
                 let std_file = bl_dir.join("stdlib").join(format!("{rest}.bl"));
                 if std_file.is_file() {
                     return std_file.canonicalize().map_err(|e| {
-                        BioLangError::import_error(format!("cannot resolve '{import_path}': {e}"), span)
+                        BioLangError::import_error(
+                            format!("cannot resolve '{import_path}': {e}"),
+                            span,
+                        )
                     });
                 }
                 let std_dir = bl_dir.join("stdlib").join(rest).join("main.bl");
                 if std_dir.is_file() {
                     return std_dir.canonicalize().map_err(|e| {
-                        BioLangError::import_error(format!("cannot resolve '{import_path}': {e}"), span)
+                        BioLangError::import_error(
+                            format!("cannot resolve '{import_path}': {e}"),
+                            span,
+                        )
                     });
                 }
             }
@@ -1021,13 +1111,19 @@ impl Interpreter {
                 let pkg_lib = bl_dir.join("packages").join(rest).join("lib.bl");
                 if pkg_lib.is_file() {
                     return pkg_lib.canonicalize().map_err(|e| {
-                        BioLangError::import_error(format!("cannot resolve '{import_path}': {e}"), span)
+                        BioLangError::import_error(
+                            format!("cannot resolve '{import_path}': {e}"),
+                            span,
+                        )
                     });
                 }
                 let pkg_file = bl_dir.join("packages").join(format!("{rest}.bl"));
                 if pkg_file.is_file() {
                     return pkg_file.canonicalize().map_err(|e| {
-                        BioLangError::import_error(format!("cannot resolve '{import_path}': {e}"), span)
+                        BioLangError::import_error(
+                            format!("cannot resolve '{import_path}': {e}"),
+                            span,
+                        )
                     });
                 }
             }
@@ -1114,10 +1210,7 @@ impl Interpreter {
         // Circular import detection
         if self.loading_modules.contains(resolved) {
             return Err(BioLangError::import_error(
-                format!(
-                    "circular import detected: '{}'",
-                    resolved.display()
-                ),
+                format!("circular import detected: '{}'", resolved.display()),
                 span,
             ));
         }
@@ -1126,10 +1219,7 @@ impl Interpreter {
 
         // Read source
         let source = std::fs::read_to_string(resolved).map_err(|e| {
-            BioLangError::import_error(
-                format!("cannot read '{}': {e}", resolved.display()),
-                span,
-            )
+            BioLangError::import_error(format!("cannot read '{}': {e}", resolved.display()), span)
         })?;
 
         // Lex
@@ -1177,7 +1267,8 @@ impl Interpreter {
             .collect();
 
         // Cache
-        self.loaded_modules.insert(resolved.clone(), exports.clone());
+        self.loaded_modules
+            .insert(resolved.clone(), exports.clone());
 
         Ok(exports)
     }
@@ -1218,11 +1309,7 @@ impl Interpreter {
                     UnaryOp::Not => Ok(Value::Bool(!val.is_truthy())),
                 }
             }
-            Expr::Binary {
-                op,
-                left,
-                right,
-            } => {
+            Expr::Binary { op, left, right } => {
                 let lhs = self.eval_expr(left)?;
                 // Short-circuit for && and ||
                 match op {
@@ -1252,7 +1339,11 @@ impl Interpreter {
                 Ok(val)
             }
             Expr::Call { callee, args } => self.eval_call(callee, args, expr.span),
-            Expr::Field { object, field, optional } => {
+            Expr::Field {
+                object,
+                field,
+                optional,
+            } => {
                 let obj = self.eval_expr(object)?;
                 // Optional chaining: nil?.field → nil
                 if *optional && matches!(obj, Value::Nil) {
@@ -1282,7 +1373,7 @@ impl Interpreter {
                     },
                     Value::Table(t) => match field.as_str() {
                         "columns" => Ok(Value::List(
-                            t.columns.iter().map(|c| Value::Str(c.clone())).collect(),
+                            t.columns.iter().map(|c| Value::Str(c.clone())).collect::<Vec<_>>().into(),
                         )),
                         "num_rows" => Ok(Value::Int(t.num_rows() as i64)),
                         "num_cols" => Ok(Value::Int(t.num_cols() as i64)),
@@ -1290,7 +1381,7 @@ impl Interpreter {
                             // Access column by name → returns column as List
                             match t.col_index(col_name) {
                                 Some(ci) => Ok(Value::List(
-                                    t.rows.iter().map(|row| row[ci].clone()).collect(),
+                                    t.rows.iter().map(|row| row[ci].clone()).collect::<Vec<_>>().into(),
                                 )),
                                 None => Err(BioLangError::name_error(
                                     format!("no column '{col_name}' on Table"),
@@ -1336,7 +1427,7 @@ impl Interpreter {
                             if info.len() == 1 {
                                 if let Some(Value::Str(raw)) = info.get("_raw") {
                                     if raw == "." || raw.is_empty() {
-                                        return Ok(Value::Record(HashMap::new()));
+                                        return Ok(Value::Record((HashMap::new()).into()));
                                     }
                                     let mut map = HashMap::new();
                                     for part in raw.split(';') {
@@ -1349,7 +1440,7 @@ impl Interpreter {
                                                     else if let Ok(f) = v.parse::<f64>() { Value::Float(f) }
                                                     else { Value::Str(v.to_string()) }
                                                 }).collect();
-                                                map.insert(key.to_string(), Value::List(items));
+                                                map.insert(key.to_string(), Value::List((items).into()));
                                             } else if val == "." {
                                                 map.insert(key.to_string(), Value::Nil);
                                             } else if let Ok(n) = val.parse::<i64>() {
@@ -1363,10 +1454,10 @@ impl Interpreter {
                                             map.insert(part.to_string(), Value::Bool(true));
                                         }
                                     }
-                                    return Ok(Value::Record(map));
+                                    return Ok(Value::Record((map).into()));
                                 }
                             }
-                            Ok(Value::Record(info.clone()))
+                            Ok(Value::Record((info.clone()).into()))
                         }
                         // Computed variant classification properties
                         "is_snp" => {
@@ -1399,7 +1490,7 @@ impl Interpreter {
                             Ok(Value::Str(name.to_string()))
                         }
                         "alt_alleles" => {
-                            Ok(Value::List(alt_allele.split(',').map(|s| Value::Str(s.to_string())).collect()))
+                            Ok(Value::List(alt_allele.split(',').map(|s| Value::Str(s.to_string())).collect::<Vec<_>>().into()))
                         }
                         "is_multiallelic" => Ok(Value::Bool(alt_allele.contains(','))),
                         "is_het" | "is_hom_ref" | "is_hom_alt" => {
@@ -1441,8 +1532,8 @@ impl Interpreter {
                                 let mut rec = HashMap::new();
                                 rec.insert("name".to_string(), Value::Str(n.clone()));
                                 rec.insert("length".to_string(), Value::Int(*l));
-                                Value::Record(rec)
-                            }).collect();
+                                Value::Record((rec).into())
+                            }).collect::<Vec<_>>().into();
                             Ok(Value::List(chroms))
                         }
                         other => Err(BioLangError::name_error(
@@ -1451,7 +1542,7 @@ impl Interpreter {
                         )),
                     },
                     Value::Quality(ref scores) => match field.as_str() {
-                        "scores" => Ok(Value::List(scores.iter().map(|s| Value::Int(*s as i64)).collect())),
+                        "scores" => Ok(Value::List(scores.iter().map(|s| Value::Int(*s as i64)).collect::<Vec<_>>().into())),
                         "length" => Ok(Value::Int(scores.len() as i64)),
                         "mean" => {
                             if scores.is_empty() {
@@ -1503,14 +1594,14 @@ impl Interpreter {
                     Value::Matrix(ref m) => match field.as_str() {
                         "nrow" => Ok(Value::Int(m.nrow as i64)),
                         "ncol" => Ok(Value::Int(m.ncol as i64)),
-                        "shape" => Ok(Value::List(vec![Value::Int(m.nrow as i64), Value::Int(m.ncol as i64)])),
+                        "shape" => Ok(Value::List((vec![Value::Int(m.nrow as i64), Value::Int(m.ncol as i64)]).into())),
                         "row_names" => Ok(m.row_names.as_ref()
-                            .map(|names| Value::List(names.iter().map(|s| Value::Str(s.clone())).collect()))
+                            .map(|names| Value::List(names.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()))
                             .unwrap_or(Value::Nil)),
                         "col_names" => Ok(m.col_names.as_ref()
-                            .map(|names| Value::List(names.iter().map(|s| Value::Str(s.clone())).collect()))
+                            .map(|names| Value::List(names.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()))
                             .unwrap_or(Value::Nil)),
-                        "data" => Ok(Value::List(m.data.iter().map(|v| Value::Float(*v)).collect())),
+                        "data" => Ok(Value::List(m.data.iter().map(|v| Value::Float(*v)).collect::<Vec<_>>().into())),
                         other => Err(BioLangError::name_error(
                             format!("no field '{other}' on Matrix (available: nrow, ncol, shape, row_names, col_names, data)"),
                             Some(expr.span),
@@ -1555,39 +1646,43 @@ impl Interpreter {
                             *i as usize
                         };
                         if i < t.num_rows() {
-                            Ok(Value::Record(t.row_to_record(i)))
+                            Ok(Value::Record((t.row_to_record(i)).into()))
                         } else {
                             Err(BioLangError::runtime(
                                 ErrorKind::IndexOutOfBounds,
-                                format!("index {i} out of bounds (table has {} rows)", t.num_rows()),
+                                format!(
+                                    "index {i} out of bounds (table has {} rows)",
+                                    t.num_rows()
+                                ),
                                 Some(expr.span),
                             ))
                         }
                     }
-                    (Value::Table(t), Value::Str(col_name)) => {
-                        match t.col_index(col_name) {
-                            Some(ci) => Ok(Value::List(
-                                t.rows.iter().map(|row| row[ci].clone()).collect(),
-                            )),
-                            None => Err(BioLangError::name_error(
-                                format!("no column '{col_name}' in table"),
-                                Some(expr.span),
-                            )),
-                        }
-                    }
+                    (Value::Table(t), Value::Str(col_name)) => match t.col_index(col_name) {
+                        Some(ci) => Ok(Value::List(
+                            t.rows.iter().map(|row| row[ci].clone()).collect::<Vec<_>>().into(),
+                        )),
+                        None => Err(BioLangError::name_error(
+                            format!("no column '{col_name}' in table"),
+                            Some(expr.span),
+                        )),
+                    },
                     (Value::Str(s), Value::Int(i)) => {
                         let i = if *i < 0 {
                             (s.len() as i64 + i) as usize
                         } else {
                             *i as usize
                         };
-                        s.chars().nth(i).map(|c| Value::Str(c.to_string())).ok_or_else(|| {
-                            BioLangError::runtime(
-                                ErrorKind::IndexOutOfBounds,
-                                format!("index {i} out of bounds"),
-                                Some(expr.span),
-                            )
-                        })
+                        s.chars()
+                            .nth(i)
+                            .map(|c| Value::Str(c.to_string()))
+                            .ok_or_else(|| {
+                                BioLangError::runtime(
+                                    ErrorKind::IndexOutOfBounds,
+                                    format!("index {i} out of bounds"),
+                                    Some(expr.span),
+                                )
+                            })
                     }
                     // Tuple indexing
                     (Value::Tuple(items), Value::Int(i)) => {
@@ -1605,45 +1700,114 @@ impl Interpreter {
                         })
                     }
                     // Slicing: list[start..end] or str[start..end]
-                    (Value::List(list), Value::Range { start, end, inclusive }) => {
-                        let end = if *inclusive { *end as usize + 1 } else { *end as usize };
+                    (
+                        Value::List(list),
+                        Value::Range {
+                            start,
+                            end,
+                            inclusive,
+                        },
+                    ) => {
+                        let end = if *inclusive {
+                            *end as usize + 1
+                        } else {
+                            *end as usize
+                        };
                         let start = *start as usize;
-                        Ok(Value::List(list.get(start..end.min(list.len())).unwrap_or(&[]).to_vec()))
+                        Ok(Value::List(
+                            (list.get(start..end.min(list.len())).unwrap_or(&[]).to_vec()).into(),
+                        ))
                     }
-                    (Value::Str(s), Value::Range { start, end, inclusive }) => {
-                        let end = if *inclusive { *end as usize + 1 } else { *end as usize };
+                    (
+                        Value::Str(s),
+                        Value::Range {
+                            start,
+                            end,
+                            inclusive,
+                        },
+                    ) => {
+                        let end = if *inclusive {
+                            *end as usize + 1
+                        } else {
+                            *end as usize
+                        };
                         let start = *start as usize;
                         let chars: Vec<char> = s.chars().collect();
-                        let slice: String = chars.get(start..end.min(chars.len())).unwrap_or(&[]).iter().collect();
+                        let slice: String = chars
+                            .get(start..end.min(chars.len()))
+                            .unwrap_or(&[])
+                            .iter()
+                            .collect();
                         Ok(Value::Str(slice))
                     }
-                    (Value::DNA(seq), Value::Range { start, end, inclusive }) => {
-                        let end = if *inclusive { *end as usize + 1 } else { *end as usize };
+                    (
+                        Value::DNA(seq),
+                        Value::Range {
+                            start,
+                            end,
+                            inclusive,
+                        },
+                    ) => {
+                        let end = if *inclusive {
+                            *end as usize + 1
+                        } else {
+                            *end as usize
+                        };
                         let start = *start as usize;
                         let chars: Vec<char> = seq.data.chars().collect();
-                        let slice: String = chars.get(start..end.min(chars.len())).unwrap_or(&[]).iter().collect();
+                        let slice: String = chars
+                            .get(start..end.min(chars.len()))
+                            .unwrap_or(&[])
+                            .iter()
+                            .collect();
                         Ok(Value::DNA(BioSequence { data: slice }))
                     }
-                    (Value::RNA(seq), Value::Range { start, end, inclusive }) => {
-                        let end = if *inclusive { *end as usize + 1 } else { *end as usize };
+                    (
+                        Value::RNA(seq),
+                        Value::Range {
+                            start,
+                            end,
+                            inclusive,
+                        },
+                    ) => {
+                        let end = if *inclusive {
+                            *end as usize + 1
+                        } else {
+                            *end as usize
+                        };
                         let start = *start as usize;
                         let chars: Vec<char> = seq.data.chars().collect();
-                        let slice: String = chars.get(start..end.min(chars.len())).unwrap_or(&[]).iter().collect();
+                        let slice: String = chars
+                            .get(start..end.min(chars.len()))
+                            .unwrap_or(&[])
+                            .iter()
+                            .collect();
                         Ok(Value::RNA(BioSequence { data: slice }))
                     }
-                    (Value::Protein(seq), Value::Range { start, end, inclusive }) => {
-                        let end = if *inclusive { *end as usize + 1 } else { *end as usize };
+                    (
+                        Value::Protein(seq),
+                        Value::Range {
+                            start,
+                            end,
+                            inclusive,
+                        },
+                    ) => {
+                        let end = if *inclusive {
+                            *end as usize + 1
+                        } else {
+                            *end as usize
+                        };
                         let start = *start as usize;
                         let chars: Vec<char> = seq.data.chars().collect();
-                        let slice: String = chars.get(start..end.min(chars.len())).unwrap_or(&[]).iter().collect();
+                        let slice: String = chars
+                            .get(start..end.min(chars.len()))
+                            .unwrap_or(&[])
+                            .iter()
+                            .collect();
                         Ok(Value::Protein(BioSequence { data: slice }))
                     }
                     _ => Err(BioLangError::type_error(
-                        format!(
-                            "cannot index {} with {}",
-                            obj.type_of(),
-                            idx.type_of()
-                        ),
+                        format!("cannot index {} with {}", obj.type_of(), idx.type_of()),
                         Some(expr.span),
                     )),
                 }
@@ -1653,10 +1817,7 @@ impl Interpreter {
                 Ok(Value::Function {
                     name: None,
                     params: params.clone(),
-                    body: vec![Spanned::new(
-                        Stmt::Return(Some(*body.clone())),
-                        body.span,
-                    )],
+                    body: vec![Spanned::new(Stmt::Return(Some(*body.clone())), body.span)],
                     closure_env: Some(closure_env),
                     doc: None,
                     is_generator: false,
@@ -1700,7 +1861,7 @@ impl Interpreter {
                 for item in items {
                     values.push(self.eval_expr(item)?);
                 }
-                Ok(Value::List(values))
+                Ok(Value::List((values).into()))
             }
             Expr::Record(entries) => {
                 let mut map = std::collections::HashMap::new();
@@ -1713,7 +1874,9 @@ impl Interpreter {
                             let val = self.eval_expr(spread_expr)?;
                             match val {
                                 Value::Record(spread_map) | Value::Map(spread_map) => {
-                                    map.extend(spread_map);
+                                    map.extend(
+                                        spread_map.iter().map(|(k, v)| (k.clone(), v.clone())),
+                                    );
                                 }
                                 other => {
                                     return Err(BioLangError::type_error(
@@ -1725,7 +1888,7 @@ impl Interpreter {
                         }
                     }
                 }
-                Ok(Value::Record(map))
+                Ok(Value::Record((map).into()))
             }
             Expr::Formula(inner) => Ok(Value::Formula(Box::new(inner.as_ref().clone()))),
             Expr::Match {
@@ -1816,7 +1979,11 @@ impl Interpreter {
                 }
                 Ok(Value::Str(result))
             }
-            Expr::Range { start, end, inclusive } => {
+            Expr::Range {
+                start,
+                end,
+                inclusive,
+            } => {
                 let s = self.eval_expr(start)?;
                 let e = self.eval_expr(end)?;
                 match (&s, &e) {
@@ -1826,12 +1993,21 @@ impl Interpreter {
                         inclusive: *inclusive,
                     }),
                     _ => Err(BioLangError::type_error(
-                        format!("range bounds must be Int, got {} and {}", s.type_of(), e.type_of()),
+                        format!(
+                            "range bounds must be Int, got {} and {}",
+                            s.type_of(),
+                            e.type_of()
+                        ),
                         Some(expr.span),
                     )),
                 }
             }
-            Expr::ListComp { expr: body_expr, var, iter, condition } => {
+            Expr::ListComp {
+                expr: body_expr,
+                var,
+                iter,
+                condition,
+            } => {
                 let iterable = self.eval_expr(iter)?;
                 let items = self.value_to_iter(&iterable, iter.span)?;
                 let mut result = Vec::new();
@@ -1848,9 +2024,13 @@ impl Interpreter {
                     }
                     self.env.pop_scope(prev);
                 }
-                Ok(Value::List(result))
+                Ok(Value::List((result).into()))
             }
-            Expr::Ternary { value, condition, else_value } => {
+            Expr::Ternary {
+                value,
+                condition,
+                else_value,
+            } => {
                 let cond = self.eval_expr(condition)?;
                 if cond.is_truthy() {
                     self.eval_expr(value)
@@ -1871,7 +2051,13 @@ impl Interpreter {
                 }
                 Ok(Value::Bool(true))
             }
-            Expr::MapComp { key, value, var, iter, condition } => {
+            Expr::MapComp {
+                key,
+                value,
+                var,
+                iter,
+                condition,
+            } => {
                 let iterable = self.eval_expr(iter)?;
                 let items = self.value_to_iter(&iterable, iter.span)?;
                 let mut result = HashMap::new();
@@ -1894,7 +2080,7 @@ impl Interpreter {
                     }
                     self.env.pop_scope(prev);
                 }
-                Ok(Value::Map(result))
+                Ok(Value::Map((result).into()))
             }
             Expr::SetLiteral(items) => {
                 let mut result = Vec::new();
@@ -1906,9 +2092,10 @@ impl Interpreter {
                 }
                 Ok(Value::Set(result))
             }
-            Expr::Regex { pattern, flags } => {
-                Ok(Value::Regex { pattern: pattern.clone(), flags: flags.clone() })
-            }
+            Expr::Regex { pattern, flags } => Ok(Value::Regex {
+                pattern: pattern.clone(),
+                flags: flags.clone(),
+            }),
             Expr::StructLit { name, fields } => {
                 // Struct literal: evaluate fields and produce a Record
                 // with a __struct field for dispatch
@@ -1917,10 +2104,13 @@ impl Interpreter {
                 for (key, value) in fields {
                     map.insert(key.clone(), self.eval_expr(value)?);
                 }
-                Ok(Value::Record(map))
+                Ok(Value::Record((map).into()))
             }
             Expr::TupleLit(items) => {
-                let vals: Vec<Value> = items.iter().map(|e| self.eval_expr(e)).collect::<Result<_>>()?;
+                let vals: Vec<Value> = items
+                    .iter()
+                    .map(|e| self.eval_expr(e))
+                    .collect::<Result<_>>()?;
                 Ok(Value::Tuple(vals))
             }
             Expr::Await(inner) => {
@@ -1930,7 +2120,12 @@ impl Interpreter {
                         let guard = state.lock().unwrap();
                         match &*guard {
                             bl_core::value::FutureState::Resolved(v) => Ok(v.clone()),
-                            bl_core::value::FutureState::Pending { params, body, closure_env, args } => {
+                            bl_core::value::FutureState::Pending {
+                                params,
+                                body,
+                                closure_env,
+                                args,
+                            } => {
                                 let params = params.clone();
                                 let body = body.clone();
                                 let closure_env = *closure_env;
@@ -1938,7 +2133,12 @@ impl Interpreter {
                                 drop(guard);
                                 // Execute the function synchronously
                                 let result = self.call_function(
-                                    &params, &body, &closure_env, args, Vec::new(), expr.span,
+                                    &params,
+                                    &body,
+                                    &closure_env,
+                                    args,
+                                    Vec::new(),
+                                    expr.span,
                                 )?;
                                 let mut guard = state.lock().unwrap();
                                 *guard = bl_core::value::FutureState::Resolved(result.clone());
@@ -1950,7 +2150,11 @@ impl Interpreter {
                     other => Ok(other),
                 }
             }
-            Expr::In { left, right, negated } => {
+            Expr::In {
+                left,
+                right,
+                negated,
+            } => {
                 let lhs = self.eval_expr(left)?;
                 let rhs = self.eval_expr(right)?;
                 let found = match &rhs {
@@ -1970,9 +2174,17 @@ impl Interpreter {
                             false
                         }
                     }
-                    Value::Range { start, end, inclusive } => {
+                    Value::Range {
+                        start,
+                        end,
+                        inclusive,
+                    } => {
                         if let Value::Int(n) = &lhs {
-                            if *inclusive { *n >= *start && *n <= *end } else { *n >= *start && *n < *end }
+                            if *inclusive {
+                                *n >= *start && *n <= *end
+                            } else {
+                                *n >= *start && *n < *end
+                            }
                         } else {
                             false
                         }
@@ -1997,7 +2209,10 @@ impl Interpreter {
                     is_generator: false,
                 })
             }
-            Expr::TypeCast { expr: inner, target } => {
+            Expr::TypeCast {
+                expr: inner,
+                target,
+            } => {
                 let val = self.eval_expr(inner)?;
                 self.type_cast(val, target, expr.span)
             }
@@ -2009,26 +2224,49 @@ impl Interpreter {
                 self.env.pop_scope(prev);
                 result
             }
-            Expr::Slice { object, start, end, step } => {
+            Expr::Slice {
+                object,
+                start,
+                end,
+                step,
+            } => {
                 let obj = self.eval_expr(object)?;
                 let start_val = match start {
                     Some(s) => {
-                        if let Value::Int(n) = self.eval_expr(s)? { Some(n) }
-                        else { return Err(BioLangError::type_error("slice index must be Int", Some(expr.span))); }
+                        if let Value::Int(n) = self.eval_expr(s)? {
+                            Some(n)
+                        } else {
+                            return Err(BioLangError::type_error(
+                                "slice index must be Int",
+                                Some(expr.span),
+                            ));
+                        }
                     }
                     None => None,
                 };
                 let end_val = match end {
                     Some(e) => {
-                        if let Value::Int(n) = self.eval_expr(e)? { Some(n) }
-                        else { return Err(BioLangError::type_error("slice index must be Int", Some(expr.span))); }
+                        if let Value::Int(n) = self.eval_expr(e)? {
+                            Some(n)
+                        } else {
+                            return Err(BioLangError::type_error(
+                                "slice index must be Int",
+                                Some(expr.span),
+                            ));
+                        }
                     }
                     None => None,
                 };
                 let step_val = match step {
                     Some(s) => {
-                        if let Value::Int(n) = self.eval_expr(s)? { Some(n) }
-                        else { return Err(BioLangError::type_error("slice step must be Int", Some(expr.span))); }
+                        if let Value::Int(n) = self.eval_expr(s)? {
+                            Some(n)
+                        } else {
+                            return Err(BioLangError::type_error(
+                                "slice step must be Int",
+                                Some(expr.span),
+                            ));
+                        }
                     }
                     None => None,
                 };
@@ -2069,7 +2307,12 @@ impl Interpreter {
             Expr::Retry { count, delay, body } => {
                 let max = match self.eval_expr(count)? {
                     Value::Int(n) => n,
-                    _ => return Err(BioLangError::type_error("retry count must be Int", Some(expr.span))),
+                    _ => {
+                        return Err(BioLangError::type_error(
+                            "retry count must be Int",
+                            Some(expr.span),
+                        ))
+                    }
                 };
                 let delay_ms = if let Some(d) = delay {
                     match self.eval_expr(d)? {
@@ -2093,13 +2336,14 @@ impl Interpreter {
                         }
                     }
                 }
-                Err(last_err.unwrap_or_else(|| BioLangError::runtime(
-                    ErrorKind::TypeError,
-                    "retry exhausted all attempts",
-                    Some(expr.span),
-                )))
-            }
-            // RecordSpread is now handled by the unified Expr::Record with RecordEntry::Spread
+                Err(last_err.unwrap_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "retry exhausted all attempts",
+                        Some(expr.span),
+                    )
+                }))
+            } // RecordSpread is now handled by the unified Expr::Record with RecordEntry::Spread
         }
     }
 
@@ -2127,7 +2371,10 @@ impl Interpreter {
                 let s = resolve_slice_index(start.unwrap_or(0), len);
                 let e = resolve_slice_index(end.unwrap_or(len), len);
                 let result: Vec<Value> = if step > 0 {
-                    (s..e).step_by(step as usize).filter_map(|i| items.get(i as usize).cloned()).collect()
+                    (s..e)
+                        .step_by(step as usize)
+                        .filter_map(|i| items.get(i as usize).cloned())
+                        .collect()
                 } else {
                     let mut indices = Vec::new();
                     let mut i = if start.is_none() { len - 1 } else { s };
@@ -2136,9 +2383,12 @@ impl Interpreter {
                         indices.push(i);
                         i += step;
                     }
-                    indices.into_iter().filter_map(|i| items.get(i as usize).cloned()).collect()
+                    indices
+                        .into_iter()
+                        .filter_map(|i| items.get(i as usize).cloned())
+                        .collect()
                 };
-                Ok(Value::List(result))
+                Ok(Value::List((result).into()))
             }
             Value::Str(ref s) => {
                 let chars: Vec<char> = s.chars().collect();
@@ -2146,7 +2396,10 @@ impl Interpreter {
                 let st = resolve_slice_index(start.unwrap_or(0), len);
                 let en = resolve_slice_index(end.unwrap_or(len), len);
                 let result: String = if step > 0 {
-                    (st..en).step_by(step as usize).filter_map(|i| chars.get(i as usize)).collect()
+                    (st..en)
+                        .step_by(step as usize)
+                        .filter_map(|i| chars.get(i as usize))
+                        .collect()
                 } else {
                     let mut indices = Vec::new();
                     let mut i = if start.is_none() { len - 1 } else { st };
@@ -2155,7 +2408,10 @@ impl Interpreter {
                         indices.push(i);
                         i += step;
                     }
-                    indices.into_iter().filter_map(|i| chars.get(i as usize)).collect()
+                    indices
+                        .into_iter()
+                        .filter_map(|i| chars.get(i as usize))
+                        .collect()
                 };
                 Ok(Value::Str(result))
             }
@@ -2165,7 +2421,10 @@ impl Interpreter {
                 let st = resolve_slice_index(start.unwrap_or(0), len);
                 let en = resolve_slice_index(end.unwrap_or(len), len);
                 let result: String = if step > 0 {
-                    (st..en).step_by(step as usize).filter_map(|i| chars.get(i as usize)).collect()
+                    (st..en)
+                        .step_by(step as usize)
+                        .filter_map(|i| chars.get(i as usize))
+                        .collect()
                 } else {
                     let mut indices = Vec::new();
                     let mut i = if start.is_none() { len - 1 } else { st };
@@ -2174,7 +2433,10 @@ impl Interpreter {
                         indices.push(i);
                         i += step;
                     }
-                    indices.into_iter().filter_map(|i| chars.get(i as usize)).collect()
+                    indices
+                        .into_iter()
+                        .filter_map(|i| chars.get(i as usize))
+                        .collect()
                 };
                 Ok(Value::DNA(BioSequence { data: result }))
             }
@@ -2198,7 +2460,8 @@ impl Interpreter {
                 if let Some(arg) = args.get(i) {
                     let actual_type = format!("{}", arg.type_of());
                     if actual_type != type_ann.name
-                        && !(type_ann.name == "Num" && matches!(arg, Value::Int(_) | Value::Float(_)))
+                        && !(type_ann.name == "Num"
+                            && matches!(arg, Value::Int(_) | Value::Float(_)))
                     {
                         return Err(BioLangError::runtime(
                             ErrorKind::TypeError,
@@ -2226,7 +2489,8 @@ impl Interpreter {
                 }),
                 Value::Bool(b) => Ok(Value::Int(if *b { 1 } else { 0 })),
                 _ => Err(BioLangError::type_error(
-                    format!("cannot cast {} to Int", val.type_of()), Some(span),
+                    format!("cannot cast {} to Int", val.type_of()),
+                    Some(span),
                 )),
             },
             "Float" => match &val {
@@ -2236,36 +2500,45 @@ impl Interpreter {
                     BioLangError::type_error(format!("cannot cast '{s}' to Float"), Some(span))
                 }),
                 _ => Err(BioLangError::type_error(
-                    format!("cannot cast {} to Float", val.type_of()), Some(span),
+                    format!("cannot cast {} to Float", val.type_of()),
+                    Some(span),
                 )),
             },
             "Str" => Ok(Value::Str(format!("{val}"))),
             "Bool" => Ok(Value::Bool(val.is_truthy())),
             "DNA" => match &val {
                 Value::DNA(_) => Ok(val),
-                Value::Str(s) => Ok(Value::DNA(BioSequence { data: s.to_uppercase() })),
+                Value::Str(s) => Ok(Value::DNA(BioSequence {
+                    data: s.to_uppercase(),
+                })),
                 Value::RNA(seq) => Ok(Value::DNA(BioSequence {
-                    data: seq.data.replace('U', "T"),
+                    // Uppercase first so both 'U' and 'u' are converted.
+                    data: seq.data.to_ascii_uppercase().replace('U', "T"),
                 })),
                 _ => Err(BioLangError::type_error(
-                    format!("cannot cast {} to DNA", val.type_of()), Some(span),
+                    format!("cannot cast {} to DNA", val.type_of()),
+                    Some(span),
                 )),
             },
             "RNA" => match &val {
                 Value::RNA(_) => Ok(val),
-                Value::Str(s) => Ok(Value::RNA(BioSequence { data: s.to_uppercase() })),
+                Value::Str(s) => Ok(Value::RNA(BioSequence {
+                    data: s.to_uppercase(),
+                })),
                 Value::DNA(seq) => Ok(Value::RNA(BioSequence {
-                    data: seq.data.replace('T', "U"),
+                    // Uppercase first so both 'T' and 't' are converted.
+                    data: seq.data.to_ascii_uppercase().replace('T', "U"),
                 })),
                 _ => Err(BioLangError::type_error(
-                    format!("cannot cast {} to RNA", val.type_of()), Some(span),
+                    format!("cannot cast {} to RNA", val.type_of()),
+                    Some(span),
                 )),
             },
             "List" => match val {
                 Value::List(_) => Ok(val),
-                Value::Set(items) => Ok(Value::List(items)),
-                Value::Tuple(items) => Ok(Value::List(items)),
-                _ => Ok(Value::List(vec![val])),
+                Value::Set(items) => Ok(Value::List((items).into())),
+                Value::Tuple(items) => Ok(Value::List((items).into())),
+                _ => Ok(Value::List((vec![val]).into())),
             },
             _ => {
                 // Identity cast if type name matches, otherwise error
@@ -2274,18 +2547,15 @@ impl Interpreter {
                     Ok(val)
                 } else {
                     Err(BioLangError::type_error(
-                        format!("cannot cast {actual} to {target}"), Some(span),
+                        format!("cannot cast {actual} to {target}"),
+                        Some(span),
                     ))
                 }
             }
         }
     }
 
-    fn eval_pipe(
-        &mut self,
-        left: &Spanned<Expr>,
-        right: &Spanned<Expr>,
-    ) -> Result<Value> {
+    fn eval_pipe(&mut self, left: &Spanned<Expr>, right: &Spanned<Expr>) -> Result<Value> {
         let lhs = self.eval_expr(left)?;
 
         // Pipe desugaring: `a |> f(b)` → `f(a, b)`
@@ -2346,7 +2616,7 @@ impl Interpreter {
                             None => {
                                 if arg.spread {
                                     if let Value::List(items) = val {
-                                        positional.extend(items);
+                                        positional.extend(items.iter().cloned());
                                     } else {
                                         positional.push(val);
                                     }
@@ -2361,9 +2631,12 @@ impl Interpreter {
                             check_arity(name, arity, positional.len(), span)?;
                             call_builtin(name, positional)
                         }
-                        Value::Function { params, body, closure_env, .. } => {
-                            self.call_function(params, body, closure_env, positional, named, span)
-                        }
+                        Value::Function {
+                            params,
+                            body,
+                            closure_env,
+                            ..
+                        } => self.call_function(params, body, closure_env, positional, named, span),
                         _ => unreachable!(),
                     };
                 }
@@ -2372,7 +2645,13 @@ impl Interpreter {
             let type_name = self.runtime_type_name(&obj);
             let impl_key = format!("__impl_{type_name}_{field}");
             if let Ok(func) = self.env.get(&impl_key, None).cloned() {
-                if let Value::Function { params, body, closure_env, .. } = &func {
+                if let Value::Function {
+                    params,
+                    body,
+                    closure_env,
+                    ..
+                } = &func
+                {
                     let mut positional = vec![obj];
                     let mut named = Vec::new();
                     for arg in args {
@@ -2397,7 +2676,7 @@ impl Interpreter {
                             None => {
                                 if arg.spread {
                                     if let Value::List(items) = val {
-                                        positional.extend(items);
+                                        positional.extend(items.iter().cloned());
                                     } else {
                                         positional.push(val);
                                     }
@@ -2411,11 +2690,11 @@ impl Interpreter {
                         Value::NativeFunction { name, arity } => {
                             match name.as_str() {
                                 "map" | "filter" | "reduce" | "sort" | "mutate" | "summarize"
-                                | "flat_map" | "scan"
-                                | "mat_map" | "any" | "all" | "none" | "find" | "find_index" | "try_call" | "take_while" | "ode_solve"
-                                | "par_map" | "par_filter" | "await_all"
-                                | "stream_batch" | "scatter_by" | "bench"
-                                | "where" | "case_when" | "each" | "tap" | "inspect" | "group_apply"
+                                | "flat_map" | "scan" | "mat_map" | "any" | "all" | "none"
+                                | "find" | "find_index" | "try_call" | "take_while"
+                                | "ode_solve" | "par_map" | "par_filter" | "await_all"
+                                | "stream_batch" | "scatter_by" | "bench" | "where"
+                                | "case_when" | "each" | "tap" | "inspect" | "group_apply"
                                 | "partition" | "sort_by" | "count_if" => {
                                     return self.call_hof_with_values(name, positional, span);
                                 }
@@ -2424,9 +2703,12 @@ impl Interpreter {
                             check_arity(name, arity, positional.len(), span)?;
                             call_builtin(name, positional)
                         }
-                        Value::Function { params, body, closure_env, .. } => {
-                            self.call_function(params, body, closure_env, positional, named, span)
-                        }
+                        Value::Function {
+                            params,
+                            body,
+                            closure_env,
+                            ..
+                        } => self.call_function(params, body, closure_env, positional, named, span),
                         _ => unreachable!(),
                     };
                 }
@@ -2449,7 +2731,7 @@ impl Interpreter {
                     if arg.spread {
                         // Spread: ...list expands into positional args
                         if let Value::List(items) = val {
-                            positional.extend(items);
+                            positional.extend(items.iter().cloned());
                         } else {
                             positional.push(val);
                         }
@@ -2465,12 +2747,12 @@ impl Interpreter {
                 // For builtins that take closures (map, filter, reduce, sort, mutate, summarize),
                 // we need special handling
                 match name.as_str() {
-                    "map" | "filter" | "reduce" | "sort" | "mutate" | "summarize"
-                    | "flat_map" | "scan"
-                    | "mat_map" | "any" | "all" | "none" | "find" | "find_index" | "try_call" | "take_while" | "ode_solve"
-                    | "par_map" | "par_filter" | "prop_test" | "await_all"
-                    | "stream_batch" | "scatter_by" | "bench" | "each" | "tap" | "inspect" | "group_apply"
-                    | "partition" | "sort_by" | "count_if" => {
+                    "map" | "filter" | "reduce" | "sort" | "mutate" | "summarize" | "flat_map"
+                    | "scan" | "mat_map" | "any" | "all" | "none" | "find" | "find_index"
+                    | "try_call" | "take_while" | "ode_solve" | "par_map" | "par_filter"
+                    | "prop_test" | "await_all" | "stream_batch" | "scatter_by" | "bench"
+                    | "each" | "tap" | "inspect" | "group_apply" | "partition" | "sort_by"
+                    | "count_if" => {
                         return self.call_hof(name, args, span);
                     }
                     _ => {}
@@ -2496,11 +2778,21 @@ impl Interpreter {
                     std::thread::spawn(move || {
                         let mut interp = Interpreter::with_env(env_snapshot);
                         interp.yield_sender = Some(tx);
-                        let _ = interp.call_function(&params, &body, &closure_env, positional, named, span);
+                        let _ = interp.call_function(
+                            &params,
+                            &body,
+                            &closure_env,
+                            positional,
+                            named,
+                            span,
+                        );
                         // drop sender on return → receiver gets None
                     });
                     let iter = GeneratorIterator { rx };
-                    Ok(Value::Stream(bl_core::value::StreamValue::new("generator", Box::new(iter))))
+                    Ok(Value::Stream(bl_core::value::StreamValue::new(
+                        "generator",
+                        Box::new(iter),
+                    )))
                 } else {
                     self.call_function(params, body, closure_env, positional, named, span)
                 }
@@ -2538,11 +2830,10 @@ impl Interpreter {
             Value::NativeFunction { name, arity } => {
                 // HOF builtins need interpreter access to call closures
                 match name.as_str() {
-                    "map" | "filter" | "reduce" | "sort" | "mutate" | "summarize"
-                    | "flat_map" | "scan"
-                    | "mat_map" | "any" | "all" | "none" | "find" | "find_index" | "try_call" | "take_while" | "ode_solve"
-                    | "par_map" | "par_filter" | "prop_test" | "await_all"
-                    | "stream_batch" | "scatter_by" | "bench"
+                    "map" | "filter" | "reduce" | "sort" | "mutate" | "summarize" | "flat_map"
+                    | "scan" | "mat_map" | "any" | "all" | "none" | "find" | "find_index"
+                    | "try_call" | "take_while" | "ode_solve" | "par_map" | "par_filter"
+                    | "prop_test" | "await_all" | "stream_batch" | "scatter_by" | "bench"
                     | "where" | "case_when" | "each" | "tap" | "inspect" | "group_apply"
                     | "partition" | "sort_by" | "count_if" => {
                         return self.call_hof_with_values(name, args, span);
@@ -2587,7 +2878,9 @@ impl Interpreter {
                             closure_env: *closure_env,
                             args,
                         };
-                        return Ok(Value::Future(std::sync::Arc::new(std::sync::Mutex::new(future_state))));
+                        return Ok(Value::Future(std::sync::Arc::new(std::sync::Mutex::new(
+                            future_state,
+                        ))));
                     }
                 }
                 if *is_generator {
@@ -2599,10 +2892,14 @@ impl Interpreter {
                     std::thread::spawn(move || {
                         let mut interp = Interpreter::with_env(env_snapshot);
                         interp.yield_sender = Some(tx);
-                        let _ = interp.call_function(&params, &body, &closure_env, args, vec![], span);
+                        let _ =
+                            interp.call_function(&params, &body, &closure_env, args, vec![], span);
                     });
                     let iter = GeneratorIterator { rx };
-                    Ok(Value::Stream(bl_core::value::StreamValue::new("generator", Box::new(iter))))
+                    Ok(Value::Stream(bl_core::value::StreamValue::new(
+                        "generator",
+                        Box::new(iter),
+                    )))
                 } else {
                     // @validate decorator: check argument types against annotations
                     if let Some(ref name) = fn_name {
@@ -2618,21 +2915,59 @@ impl Interpreter {
                             if let Some(cached) = cache.get(&args_key) {
                                 return Ok(cached.clone());
                             }
-                            let result = self.call_function(params, body, closure_env, args.clone(), vec![], span)?;
+                            let result = self.call_function(
+                                params,
+                                body,
+                                closure_env,
+                                args.clone(),
+                                vec![],
+                                span,
+                            )?;
                             // Store in cache
                             let mut new_cache = cache;
-                            new_cache.insert(args_key, result.clone());
-                            let _ = self.env.set(&memo_key, Value::Record(new_cache), Some(span));
+                            Arc::make_mut(&mut new_cache).insert(args_key, result.clone());
+                            let _ = self
+                                .env
+                                .set(&memo_key, Value::Record(new_cache), Some(span));
                             return Ok(result);
                         }
                     }
-                    let result = self.call_function(params, body, closure_env, args, vec![], span)?;
+                    // @vectorize: auto-map over List first argument
+                    if let Some(ref name) = fn_name {
+                        let vectorize_key = format!("__vectorize_{name}");
+                        if self.env.get(&vectorize_key, None).is_ok() {
+                            if let Some(first_arg) = args.first() {
+                                if let Value::List(items) = first_arg.clone() {
+                                    let mut results = Vec::with_capacity(items.len());
+                                    for item in items.iter().cloned() {
+                                        let mut item_args = vec![item];
+                                        item_args.extend(args[1..].iter().cloned());
+                                        results.push(self.call_function(
+                                            params,
+                                            body,
+                                            closure_env,
+                                            item_args,
+                                            vec![],
+                                            span,
+                                        )?);
+                                    }
+                                    return Ok(Value::List((results).into()));
+                                }
+                            }
+                        }
+                    }
+                    let result =
+                        self.call_function(params, body, closure_env, args, vec![], span)?;
                     // Named tuple returns: wrap Tuple/List into Record
                     if let Some(ref name) = fn_name {
-                        if let Ok(Value::List(names)) = self.env.get(&format!("__named_returns_{name}"), None).cloned() {
-                            let items = match &result {
+                        if let Ok(Value::List(names)) = self
+                            .env
+                            .get(&format!("__named_returns_{name}"), None)
+                            .cloned()
+                        {
+                            let items: Option<Vec<Value>> = match &result {
                                 Value::Tuple(t) => Some(t.clone()),
-                                Value::List(l) => Some(l.clone()),
+                                Value::List(l) => Some(l.as_ref().clone()),
                                 _ => None,
                             };
                             if let Some(items) = items {
@@ -2645,7 +2980,7 @@ impl Interpreter {
                                         );
                                     }
                                 }
-                                return Ok(Value::Record(record));
+                                return Ok(Value::Record(record.into()));
                             }
                         }
                     }
@@ -2701,17 +3036,17 @@ impl Interpreter {
                     Value::Table(t) => {
                         let mut result = Vec::with_capacity(t.num_rows());
                         for i in 0..t.num_rows() {
-                            let row_rec = Value::Record(t.row_to_record(i));
+                            let row_rec = Value::Record((t.row_to_record(i)).into());
                             result.push(self.call_value(&func, vec![row_rec], span)?);
                         }
-                        Ok(Value::List(result))
+                        Ok(Value::List((result).into()))
                     }
                     Value::List(items) => {
                         let mut result = Vec::with_capacity(items.len());
-                        for item in items {
+                        for item in items.iter().cloned() {
                             result.push(self.call_value(&func, vec![item], span)?);
                         }
-                        Ok(Value::List(result))
+                        Ok(Value::List((result).into()))
                     }
                     Value::Stream(s) => {
                         if s.is_exhausted() {
@@ -2733,19 +3068,27 @@ impl Interpreter {
                             let mut interp = Interpreter::with_env(env_snapshot);
                             while let Some(item) = source.next() {
                                 match interp.call_value(&func, vec![item], span) {
-                                    Ok(val) => { if tx.send(val).is_err() { break; } }
+                                    Ok(val) => {
+                                        if tx.send(val).is_err() {
+                                            break;
+                                        }
+                                    }
                                     Err(_) => break,
                                 }
                             }
                         });
-                        Ok(Value::Stream(bl_core::value::StreamValue::new("map", Box::new(GeneratorIterator { rx }))))
+                        Ok(Value::Stream(bl_core::value::StreamValue::new(
+                            "map",
+                            Box::new(GeneratorIterator { rx }),
+                        )))
                     }
-                    other => {
-                        Err(BioLangError::type_error(
-                            format!("map() requires List, Stream, or Table, got {}", other.type_of()),
-                            Some(span),
-                        ))
-                    }
+                    other => Err(BioLangError::type_error(
+                        format!(
+                            "map() requires List, Stream, or Table, got {}",
+                            other.type_of()
+                        ),
+                        Some(span),
+                    )),
                 }
             }
             "each" => {
@@ -2760,7 +3103,7 @@ impl Interpreter {
                 let collection = args.pop().unwrap();
                 match collection {
                     Value::List(items) => {
-                        for item in items {
+                        for item in items.iter().cloned() {
                             self.call_value(&func, vec![item], span)?;
                         }
                         Ok(Value::Nil)
@@ -2785,17 +3128,18 @@ impl Interpreter {
                     }
                     Value::Table(t) => {
                         for i in 0..t.num_rows() {
-                            let row_rec = Value::Record(t.row_to_record(i));
+                            let row_rec = Value::Record((t.row_to_record(i)).into());
                             self.call_value(&func, vec![row_rec], span)?;
                         }
                         Ok(Value::Nil)
                     }
-                    other => {
-                        Err(BioLangError::type_error(
-                            format!("each() requires List, Stream, or Table, got {}", other.type_of()),
-                            Some(span),
-                        ))
-                    }
+                    other => Err(BioLangError::type_error(
+                        format!(
+                            "each() requires List, Stream, or Table, got {}",
+                            other.type_of()
+                        ),
+                        Some(span),
+                    )),
                 }
             }
             "filter" => {
@@ -2813,7 +3157,7 @@ impl Interpreter {
                         let columns = t.columns.clone();
                         let mut kept_rows = Vec::new();
                         for i in 0..t.num_rows() {
-                            let row_rec = Value::Record(t.row_to_record(i));
+                            let row_rec = Value::Record((t.row_to_record(i)).into());
                             let keep = self.call_value(&func, vec![row_rec], span)?;
                             if keep.is_truthy() {
                                 kept_rows.push(t.rows[i].clone());
@@ -2823,13 +3167,13 @@ impl Interpreter {
                     }
                     Value::List(items) => {
                         let mut result = Vec::new();
-                        for item in items {
+                        for item in items.iter().cloned() {
                             let keep = self.call_value(&func, vec![item.clone()], span)?;
                             if keep.is_truthy() {
                                 result.push(item);
                             }
                         }
-                        Ok(Value::List(result))
+                        Ok(Value::List((result).into()))
                     }
                     Value::Stream(s) => {
                         if s.is_exhausted() {
@@ -2853,21 +3197,27 @@ impl Interpreter {
                                 match interp.call_value(&func, vec![item.clone()], span) {
                                     Ok(keep) => {
                                         if keep.is_truthy() {
-                                            if tx.send(item).is_err() { break; }
+                                            if tx.send(item).is_err() {
+                                                break;
+                                            }
                                         }
                                     }
                                     Err(_) => break,
                                 }
                             }
                         });
-                        Ok(Value::Stream(bl_core::value::StreamValue::new("filter", Box::new(GeneratorIterator { rx }))))
+                        Ok(Value::Stream(bl_core::value::StreamValue::new(
+                            "filter",
+                            Box::new(GeneratorIterator { rx }),
+                        )))
                     }
-                    other => {
-                        Err(BioLangError::type_error(
-                            format!("filter() requires List, Stream, or Table, got {}", other.type_of()),
-                            Some(span),
-                        ))
-                    }
+                    other => Err(BioLangError::type_error(
+                        format!(
+                            "filter() requires List, Stream, or Table, got {}",
+                            other.type_of()
+                        ),
+                        Some(span),
+                    )),
                 }
             }
             "flat_map" => {
@@ -2882,26 +3232,26 @@ impl Interpreter {
                 match &args[0] {
                     Value::List(l) => {
                         let mut result = Vec::new();
-                        for item in l.clone() {
+                        for item in l.iter().cloned() {
                             let mapped = self.call_value(&func, vec![item], span)?;
                             match mapped {
-                                Value::List(inner) => result.extend(inner),
+                                Value::List(inner) => result.extend(inner.iter().cloned()),
                                 other => result.push(other),
                             }
                         }
-                        Ok(Value::List(result))
+                        Ok(Value::List((result).into()))
                     }
                     Value::Table(t) => {
                         let mut result = Vec::new();
                         for i in 0..t.num_rows() {
-                            let row_rec = Value::Record(t.row_to_record(i));
+                            let row_rec = Value::Record((t.row_to_record(i)).into());
                             let mapped = self.call_value(&func, vec![row_rec], span)?;
                             match mapped {
-                                Value::List(inner) => result.extend(inner),
+                                Value::List(inner) => result.extend(inner.iter().cloned()),
                                 other => result.push(other),
                             }
                         }
-                        Ok(Value::List(result))
+                        Ok(Value::List((result).into()))
                     }
                     Value::Stream(s) => {
                         if s.is_exhausted() {
@@ -2922,19 +3272,31 @@ impl Interpreter {
                             while let Some(item) = source.next() {
                                 match interp.call_value(&func, vec![item], span) {
                                     Ok(Value::List(inner)) => {
-                                        for v in inner {
-                                            if tx.send(v).is_err() { return; }
+                                        for v in inner.iter().cloned() {
+                                            if tx.send(v).is_err() {
+                                                return;
+                                            }
                                         }
                                     }
-                                    Ok(val) => { if tx.send(val).is_err() { return; } }
+                                    Ok(val) => {
+                                        if tx.send(val).is_err() {
+                                            return;
+                                        }
+                                    }
                                     Err(_) => return,
                                 }
                             }
                         });
-                        Ok(Value::Stream(bl_core::value::StreamValue::new("flat_map", Box::new(GeneratorIterator { rx }))))
+                        Ok(Value::Stream(bl_core::value::StreamValue::new(
+                            "flat_map",
+                            Box::new(GeneratorIterator { rx }),
+                        )))
                     }
                     other => Err(BioLangError::type_error(
-                        format!("flat_map() requires List, Stream, or Table, got {}", other.type_of()),
+                        format!(
+                            "flat_map() requires List, Stream, or Table, got {}",
+                            other.type_of()
+                        ),
                         Some(span),
                     )),
                 }
@@ -2956,11 +3318,11 @@ impl Interpreter {
                     Value::List(l) => {
                         let mut acc = initial;
                         let mut result = Vec::with_capacity(l.len());
-                        for item in l.clone() {
+                        for item in l.iter().cloned() {
                             acc = self.call_value(&func, vec![acc, item], span)?;
                             result.push(acc.clone());
                         }
-                        Ok(Value::List(result))
+                        Ok(Value::List((result).into()))
                     }
                     Value::Stream(s) => {
                         if s.is_exhausted() {
@@ -2983,13 +3345,18 @@ impl Interpreter {
                                 match interp.call_value(&func, vec![acc.clone(), item], span) {
                                     Ok(val) => {
                                         acc = val.clone();
-                                        if tx.send(val).is_err() { return; }
+                                        if tx.send(val).is_err() {
+                                            return;
+                                        }
                                     }
                                     Err(_) => return,
                                 }
                             }
                         });
-                        Ok(Value::Stream(bl_core::value::StreamValue::new("scan", Box::new(GeneratorIterator { rx }))))
+                        Ok(Value::Stream(bl_core::value::StreamValue::new(
+                            "scan",
+                            Box::new(GeneratorIterator { rx }),
+                        )))
                     }
                     other => Err(BioLangError::type_error(
                         format!("scan() requires List or Stream, got {}", other.type_of()),
@@ -3020,7 +3387,11 @@ impl Interpreter {
                     Value::List(l) => {
                         let items = l.clone();
                         let (mut acc, start) = if args.len() == 3 {
-                            let initial = if args[1].is_callable() { args[2].clone() } else { args[1].clone() };
+                            let initial = if args[1].is_callable() {
+                                args[2].clone()
+                            } else {
+                                args[1].clone()
+                            };
                             (initial, 0)
                         } else {
                             if items.is_empty() {
@@ -3051,16 +3422,22 @@ impl Interpreter {
                             ));
                         }
                         let mut acc = if args.len() == 3 {
-                            let initial = if args[1].is_callable() { args[2].clone() } else { args[1].clone() };
+                            let initial = if args[1].is_callable() {
+                                args[2].clone()
+                            } else {
+                                args[1].clone()
+                            };
                             initial
                         } else {
                             match s.next() {
                                 Some(v) => v,
-                                None => return Err(BioLangError::runtime(
-                                    ErrorKind::TypeError,
-                                    "reduce() on empty stream requires initial value",
-                                    Some(span),
-                                )),
+                                None => {
+                                    return Err(BioLangError::runtime(
+                                        ErrorKind::TypeError,
+                                        "reduce() on empty stream requires initial value",
+                                        Some(span),
+                                    ))
+                                }
                             }
                         };
                         while let Some(item) = s.next() {
@@ -3096,7 +3473,7 @@ impl Interpreter {
                 if args.len() == 2 {
                     let func = args[1].clone();
                     let mut err = None;
-                    items.sort_by(|a, b| {
+                    Arc::make_mut(&mut items).sort_by(|a, b| {
                         if err.is_some() {
                             return std::cmp::Ordering::Equal;
                         }
@@ -3104,9 +3481,12 @@ impl Interpreter {
                             Ok(Value::Int(n)) if n < 0 => std::cmp::Ordering::Less,
                             Ok(Value::Int(n)) if n > 0 => std::cmp::Ordering::Greater,
                             Ok(Value::Int(_)) => std::cmp::Ordering::Equal,
+                            Ok(Value::Float(n)) if n < 0.0 => std::cmp::Ordering::Less,
+                            Ok(Value::Float(n)) if n > 0.0 => std::cmp::Ordering::Greater,
+                            Ok(Value::Float(_)) => std::cmp::Ordering::Equal,
                             Ok(_) => {
                                 err = Some(BioLangError::type_error(
-                                    "sort compare function must return Int",
+                                    "sort compare function must return Int or Float",
                                     Some(span),
                                 ));
                                 std::cmp::Ordering::Equal
@@ -3122,7 +3502,7 @@ impl Interpreter {
                     }
                 } else {
                     let mut err = None;
-                    items.sort_by(|a, b| {
+                    Arc::make_mut(&mut items).sort_by(|a, b| {
                         if err.is_some() {
                             return std::cmp::Ordering::Equal;
                         }
@@ -3179,7 +3559,7 @@ impl Interpreter {
                 // Compute new column values
                 let mut new_col_vals = Vec::new();
                 for i in 0..table.num_rows() {
-                    let row_rec = Value::Record(table.row_to_record(i));
+                    let row_rec = Value::Record((table.row_to_record(i)).into());
                     new_col_vals.push(self.call_value(&func, vec![row_rec], span)?);
                 }
 
@@ -3215,22 +3595,25 @@ impl Interpreter {
                     Value::Map(m) => m.clone(),
                     other => {
                         return Err(BioLangError::type_error(
-                            format!("summarize() requires Map (from group_by), got {}", other.type_of()),
+                            format!(
+                                "summarize() requires Map (from group_by), got {}",
+                                other.type_of()
+                            ),
                             Some(span),
                         ))
                     }
                 };
                 let func = args[1].clone();
 
-                let mut records = Vec::new();
-                for (key, subtable) in &groups {
+                let mut records: Vec<HashMap<String, Value>> = Vec::new();
+                for (key, subtable) in groups.iter() {
                     let result = self.call_value(
                         &func,
                         vec![Value::Str(key.clone()), subtable.clone()],
                         span,
                     )?;
                     match result {
-                        Value::Record(rec) => records.push(rec),
+                        Value::Record(rec) => records.push(rec.as_ref().clone()),
                         other => {
                             return Err(BioLangError::type_error(
                                 format!(
@@ -3327,12 +3710,10 @@ impl Interpreter {
                             )),
                         })
                         .collect::<Result<Vec<_>>>()?,
-                    _ => {
-                        return Err(BioLangError::type_error(
-                            "ode_solve() t_span must be List [t_start, t_end] or [t_start, t_end, dt]",
-                            Some(span),
-                        ))
-                    }
+                    _ => return Err(BioLangError::type_error(
+                        "ode_solve() t_span must be List [t_start, t_end] or [t_start, t_end, dt]",
+                        Some(span),
+                    )),
                 };
                 if t_span.len() < 2 || t_span.len() > 3 {
                     return Err(BioLangError::runtime(
@@ -3343,7 +3724,11 @@ impl Interpreter {
                 }
                 let t_start = t_span[0];
                 let t_end = t_span[1];
-                let dt = if t_span.len() == 3 { t_span[2] } else { (t_end - t_start) / 100.0 };
+                let dt = if t_span.len() == 3 {
+                    t_span[2]
+                } else {
+                    (t_end - t_start) / 100.0
+                };
                 if dt <= 0.0 {
                     return Err(BioLangError::runtime(
                         ErrorKind::TypeError,
@@ -3359,8 +3744,9 @@ impl Interpreter {
                 let mut y_out: Vec<Vec<Value>> = (0..n).map(|i| vec![Value::Float(y[i])]).collect();
 
                 let call_f = |interp: &mut Self, t_val: f64, y_val: &[f64]| -> Result<Vec<f64>> {
-                    let y_list = Value::List(y_val.iter().map(|&v| Value::Float(v)).collect());
-                    let result = interp.call_value(&func, vec![Value::Float(t_val), y_list], span)?;
+                    let y_list = Value::List(y_val.iter().map(|&v| Value::Float(v)).collect::<Vec<_>>().into());
+                    let result =
+                        interp.call_value(&func, vec![Value::Float(t_val), y_list], span)?;
                     match result {
                         Value::List(items) => items
                             .iter()
@@ -3410,16 +3796,25 @@ impl Interpreter {
                 }
 
                 let mut result = std::collections::HashMap::new();
-                result.insert("t".to_string(), Value::List(t_out));
+                result.insert("t".to_string(), Value::List((t_out).into()));
                 if n == 1 {
-                    result.insert("y".to_string(), Value::List(y_out.into_iter().next().unwrap()));
+                    result.insert(
+                        "y".to_string(),
+                        Value::List((y_out.into_iter().next().unwrap()).into()),
+                    );
                 } else {
                     result.insert(
                         "y".to_string(),
-                        Value::List(y_out.into_iter().map(Value::List).collect()),
+                        Value::List(
+                            y_out
+                                .into_iter()
+                                .map(|row| Value::List(row.into()))
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     );
                 }
-                Ok(Value::Record(result))
+                Ok(Value::Record((result).into()))
             }
             "any" => {
                 if args.len() != 2 {
@@ -3439,7 +3834,7 @@ impl Interpreter {
                     }
                 };
                 let func = args[1].clone();
-                for item in items {
+                for item in items.iter().cloned() {
                     let result = self.call_value(&func, vec![item], span)?;
                     if result.is_truthy() {
                         return Ok(Value::Bool(true));
@@ -3465,7 +3860,7 @@ impl Interpreter {
                     }
                 };
                 let func = args[1].clone();
-                for item in items {
+                for item in items.iter().cloned() {
                     let result = self.call_value(&func, vec![item], span)?;
                     if !result.is_truthy() {
                         return Ok(Value::Bool(false));
@@ -3491,7 +3886,7 @@ impl Interpreter {
                     }
                 };
                 let func = args[1].clone();
-                for item in items {
+                for item in items.iter().cloned() {
                     let result = self.call_value(&func, vec![item], span)?;
                     if result.is_truthy() {
                         return Ok(Value::Bool(false));
@@ -3518,14 +3913,14 @@ impl Interpreter {
                 };
                 let func = args[1].clone();
                 let mut result = Vec::new();
-                for item in items {
+                for item in items.iter().cloned() {
                     let test = self.call_value(&func, vec![item.clone()], span)?;
                     if !test.is_truthy() {
                         break;
                     }
                     result.push(item);
                 }
-                Ok(Value::List(result))
+                Ok(Value::List((result).into()))
             }
             "find" => {
                 if args.len() != 2 {
@@ -3545,7 +3940,7 @@ impl Interpreter {
                     }
                 };
                 let func = args[1].clone();
-                for item in items {
+                for item in items.iter().cloned() {
                     let result = self.call_value(&func, vec![item.clone()], span)?;
                     if result.is_truthy() {
                         return Ok(item);
@@ -3571,8 +3966,8 @@ impl Interpreter {
                     }
                 };
                 let func = args[1].clone();
-                for (i, item) in items.into_iter().enumerate() {
-                    let result = self.call_value(&func, vec![item], span)?;
+                for (i, item) in items.iter().enumerate() {
+                    let result = self.call_value(&func, vec![item.clone()], span)?;
                     if result.is_truthy() {
                         return Ok(Value::Int(i as i64));
                     }
@@ -3594,14 +3989,14 @@ impl Interpreter {
                         rec.insert("ok".to_string(), Value::Bool(true));
                         rec.insert("value".to_string(), val);
                         rec.insert("error".to_string(), Value::Nil);
-                        Ok(Value::Record(rec))
+                        Ok(Value::Record((rec).into()))
                     }
                     Err(e) => {
                         let mut rec = std::collections::HashMap::new();
                         rec.insert("ok".to_string(), Value::Bool(false));
                         rec.insert("value".to_string(), Value::Nil);
                         rec.insert("error".to_string(), Value::Str(format!("{e}")));
-                        Ok(Value::Record(rec))
+                        Ok(Value::Record((rec).into()))
                     }
                 }
             }
@@ -3623,11 +4018,20 @@ impl Interpreter {
                     }
                 };
                 let func = args[1].clone();
+                #[cfg(target_arch = "wasm32")]
+                {
+                    let mut results = Vec::with_capacity(items.len());
+                    for item in items.iter().cloned() {
+                        results.push(self.call_value(&func, vec![item], span)?);
+                    }
+                    return Ok(Value::List(results.into()));
+                }
                 let num_threads = std::thread::available_parallelism()
                     .map(|n| n.get())
                     .unwrap_or(4);
                 let chunk_size = (items.len() / num_threads).max(1);
-                let chunks: Vec<Vec<Value>> = items.chunks(chunk_size).map(|c| c.to_vec()).collect();
+                let chunks: Vec<Vec<Value>> =
+                    items.chunks(chunk_size).map(|c| c.to_vec()).collect();
                 let env_snapshot = self.env.clone();
 
                 let chunk_results: Vec<std::result::Result<Vec<Value>, BioLangError>> =
@@ -3654,7 +4058,7 @@ impl Interpreter {
                 for chunk_result in chunk_results {
                     results.extend(chunk_result?);
                 }
-                Ok(Value::List(results))
+                Ok(Value::List((results).into()))
             }
             "par_filter" => {
                 if args.len() != 2 {
@@ -3674,11 +4078,22 @@ impl Interpreter {
                     }
                 };
                 let func = args[1].clone();
+                #[cfg(target_arch = "wasm32")]
+                {
+                    let mut kept = Vec::new();
+                    for item in items.iter().cloned() {
+                        if self.call_value(&func, vec![item.clone()], span)?.is_truthy() {
+                            kept.push(item);
+                        }
+                    }
+                    return Ok(Value::List(kept.into()));
+                }
                 let num_threads = std::thread::available_parallelism()
                     .map(|n| n.get())
                     .unwrap_or(4);
                 let chunk_size = (items.len() / num_threads).max(1);
-                let chunks: Vec<Vec<Value>> = items.chunks(chunk_size).map(|c| c.to_vec()).collect();
+                let chunks: Vec<Vec<Value>> =
+                    items.chunks(chunk_size).map(|c| c.to_vec()).collect();
                 let env_snapshot = self.env.clone();
 
                 let chunk_results: Vec<std::result::Result<Vec<Value>, BioLangError>> =
@@ -3692,7 +4107,8 @@ impl Interpreter {
                                     let mut interp = Interpreter::with_env(env);
                                     let mut kept = Vec::new();
                                     for item in chunk {
-                                        let keep = interp.call_value(&func, vec![item.clone()], span)?;
+                                        let keep =
+                                            interp.call_value(&func, vec![item.clone()], span)?;
                                         if keep.is_truthy() {
                                             kept.push(item);
                                         }
@@ -3708,7 +4124,7 @@ impl Interpreter {
                 for chunk_result in chunk_results {
                     results.extend(chunk_result?);
                 }
-                Ok(Value::List(results))
+                Ok(Value::List((results).into()))
             }
             // await_all: resolve a list of futures concurrently using threads
             "await_all" => {
@@ -3733,33 +4149,46 @@ impl Interpreter {
                 let thread_results: Vec<std::result::Result<Value, BioLangError>> =
                     std::thread::scope(|s| {
                         let handles: Vec<_> = futures
-                            .into_iter()
+                            .iter()
+                            .cloned()
                             .map(|val| {
                                 let env = env_snapshot.clone();
-                                s.spawn(move || {
-                                    match val {
-                                        Value::Future(state) => {
-                                            let guard = state.lock().unwrap();
-                                            match &*guard {
-                                                bl_core::value::FutureState::Resolved(v) => Ok(v.clone()),
-                                                bl_core::value::FutureState::Pending { params, body, closure_env, args } => {
-                                                    let params = params.clone();
-                                                    let body = body.clone();
-                                                    let closure_env = *closure_env;
-                                                    let args = args.clone();
-                                                    drop(guard);
-                                                    let mut interp = Interpreter::with_env(env);
-                                                    let result = interp.call_function(
-                                                        &params, &body, &closure_env, args, Vec::new(), span,
-                                                    )?;
-                                                    let mut guard = state.lock().unwrap();
-                                                    *guard = bl_core::value::FutureState::Resolved(result.clone());
-                                                    Ok(result)
-                                                }
+                                s.spawn(move || match val {
+                                    Value::Future(state) => {
+                                        let guard = state.lock().unwrap();
+                                        match &*guard {
+                                            bl_core::value::FutureState::Resolved(v) => {
+                                                Ok(v.clone())
+                                            }
+                                            bl_core::value::FutureState::Pending {
+                                                params,
+                                                body,
+                                                closure_env,
+                                                args,
+                                            } => {
+                                                let params = params.clone();
+                                                let body = body.clone();
+                                                let closure_env = *closure_env;
+                                                let args = args.clone();
+                                                drop(guard);
+                                                let mut interp = Interpreter::with_env(env);
+                                                let result = interp.call_function(
+                                                    &params,
+                                                    &body,
+                                                    &closure_env,
+                                                    args,
+                                                    Vec::new(),
+                                                    span,
+                                                )?;
+                                                let mut guard = state.lock().unwrap();
+                                                *guard = bl_core::value::FutureState::Resolved(
+                                                    result.clone(),
+                                                );
+                                                Ok(result)
                                             }
                                         }
-                                        other => Ok(other),
                                     }
+                                    other => Ok(other),
                                 })
                             })
                             .collect();
@@ -3770,7 +4199,7 @@ impl Interpreter {
                 for r in thread_results {
                     results.push(r?);
                 }
-                Ok(Value::List(results))
+                Ok(Value::List((results).into()))
             }
             // GAP 3: stream_batch — process stream in batches with a function
             "stream_batch" => {
@@ -3783,10 +4212,15 @@ impl Interpreter {
                 }
                 let stream = match &args[0] {
                     Value::Stream(s) => s.clone(),
-                    Value::List(items) => bl_core::value::StreamValue::from_list("list", items.clone()),
+                    Value::List(items) => {
+                        bl_core::value::StreamValue::from_list("list", (items).as_ref().clone())
+                    }
                     other => {
                         return Err(BioLangError::type_error(
-                            format!("stream_batch() requires Stream or List, got {}", other.type_of()),
+                            format!(
+                                "stream_batch() requires Stream or List, got {}",
+                                other.type_of()
+                            ),
                             Some(span),
                         ))
                     }
@@ -3813,11 +4247,11 @@ impl Interpreter {
                     if batch.is_empty() {
                         break;
                     }
-                    let batch_val = Value::List(batch);
+                    let batch_val = Value::List((batch).into());
                     let result = self.call_value(&func, vec![batch_val], span)?;
                     results.push(result);
                 }
-                Ok(Value::List(results))
+                Ok(Value::List((results).into()))
             }
             // GAP 4: scatter_by — group items by key function
             "scatter_by" => {
@@ -3838,17 +4272,18 @@ impl Interpreter {
                     }
                 };
                 let key_fn = args[1].clone();
-                let mut groups: std::collections::HashMap<String, Vec<Value>> = std::collections::HashMap::new();
-                for item in items {
+                let mut groups: std::collections::HashMap<String, Vec<Value>> =
+                    std::collections::HashMap::new();
+                for item in items.iter().cloned() {
                     let key = self.call_value(&key_fn, vec![item.clone()], span)?;
                     let key_str = format!("{key}");
                     groups.entry(key_str).or_default().push(item);
                 }
                 let map: std::collections::HashMap<String, Value> = groups
                     .into_iter()
-                    .map(|(k, v)| (k, Value::List(v)))
+                    .map(|(k, v)| (k, Value::List((v).into())))
                     .collect();
-                Ok(Value::Map(map))
+                Ok(Value::Map((map).into()))
             }
             // GAP 4: bench — benchmark a function
             "bench" => {
@@ -3861,7 +4296,7 @@ impl Interpreter {
                 }
                 let func = args[0].clone();
                 let call_args = match &args[1] {
-                    Value::List(l) => l.clone(),
+                    Value::List(l) => l.as_ref().clone(),
                     _ => vec![args[1].clone()],
                 };
                 let iterations = match &args[2] {
@@ -3891,7 +4326,7 @@ impl Interpreter {
                 rec.insert("min_ns".to_string(), Value::Int(min_ns));
                 rec.insert("max_ns".to_string(), Value::Int(max_ns));
                 rec.insert("iterations".to_string(), Value::Int(iterations as i64));
-                Ok(Value::Record(rec))
+                Ok(Value::Record((rec).into()))
             }
             "tap" | "inspect" => {
                 if args.len() != 2 {
@@ -3920,44 +4355,54 @@ impl Interpreter {
                         // Group a list of records by a key
                         let key_col = match &args[1] {
                             Value::Str(s) => s.clone(),
-                            _ => return Err(BioLangError::type_error(
-                                "group_apply() key must be a string", Some(span),
-                            )),
+                            _ => {
+                                return Err(BioLangError::type_error(
+                                    "group_apply() key must be a string",
+                                    Some(span),
+                                ))
+                            }
                         };
                         let func = args[2].clone();
                         let mut groups: HashMap<String, Vec<Value>> = HashMap::new();
-                        for item in items {
+                        for item in items.iter().cloned() {
                             let key = match item {
-                                Value::Record(ref m) | Value::Map(ref m) => {
-                                    match m.get(&key_col) {
-                                        Some(v) => format!("{v}"),
-                                        None => "nil".to_string(),
-                                    }
-                                }
+                                Value::Record(ref m) | Value::Map(ref m) => match m.get(&key_col) {
+                                    Some(v) => format!("{v}"),
+                                    None => "nil".to_string(),
+                                },
                                 _ => format!("{item}"),
                             };
                             groups.entry(key).or_default().push(item.clone());
                         }
                         let mut results = Vec::new();
                         for (key, group) in &groups {
-                            let result = self.call_value(&func, vec![
-                                Value::Str(key.clone()),
-                                Value::List(group.clone()),
-                            ], span)?;
+                            let result = self.call_value(
+                                &func,
+                                vec![Value::Str(key.clone()), Value::List((group.clone()).into())],
+                                span,
+                            )?;
                             results.push(result);
                         }
-                        return Ok(Value::List(results));
+                        return Ok(Value::List((results).into()));
                     }
-                    _ => return Err(BioLangError::type_error(
-                        format!("group_apply() requires Table or List, got {}", args[0].type_of()),
-                        Some(span),
-                    )),
+                    _ => {
+                        return Err(BioLangError::type_error(
+                            format!(
+                                "group_apply() requires Table or List, got {}",
+                                args[0].type_of()
+                            ),
+                            Some(span),
+                        ))
+                    }
                 };
                 let key_col = match &args[1] {
                     Value::Str(s) => s.clone(),
-                    _ => return Err(BioLangError::type_error(
-                        "group_apply() key must be a string", Some(span),
-                    )),
+                    _ => {
+                        return Err(BioLangError::type_error(
+                            "group_apply() key must be a string",
+                            Some(span),
+                        ))
+                    }
                 };
                 let func = args[2].clone();
                 let col_idx = table.col_index(&key_col).ok_or_else(|| {
@@ -3975,14 +4420,18 @@ impl Interpreter {
                 }
                 let mut results = Vec::new();
                 for (key, group_rows) in &groups {
-                    let group_list: Vec<Value> = group_rows.iter().map(|r| Value::Record(r.clone())).collect();
-                    let result = self.call_value(&func, vec![
-                        Value::Str(key.clone()),
-                        Value::List(group_list),
-                    ], span)?;
+                    let group_list: Vec<Value> = group_rows
+                        .iter()
+                        .map(|r| Value::Record((r.clone()).into()))
+                        .collect();
+                    let result = self.call_value(
+                        &func,
+                        vec![Value::Str(key.clone()), Value::List((group_list).into())],
+                        span,
+                    )?;
                     results.push(result);
                 }
-                return Ok(Value::List(results));
+                return Ok(Value::List((results).into()));
             }
             "prop_test" => {
                 if args.len() != 3 {
@@ -4011,13 +4460,13 @@ impl Interpreter {
                         rec.insert("passed".to_string(), Value::Bool(false));
                         rec.insert("iteration".to_string(), Value::Int(i));
                         rec.insert("failing_input".to_string(), input);
-                        return Ok(Value::Record(rec));
+                        return Ok(Value::Record((rec).into()));
                     }
                 }
                 let mut rec = HashMap::new();
                 rec.insert("passed".to_string(), Value::Bool(true));
                 rec.insert("iterations".to_string(), Value::Int(iterations));
-                Ok(Value::Record(rec))
+                Ok(Value::Record((rec).into()))
             }
             "partition" => {
                 if args.len() != 2 {
@@ -4039,7 +4488,7 @@ impl Interpreter {
                 let func = args[1].clone();
                 let mut matching = Vec::new();
                 let mut rest = Vec::new();
-                for item in items {
+                for item in items.iter().cloned() {
                     let result = self.call_value(&func, vec![item.clone()], span)?;
                     if result.is_truthy() {
                         matching.push(item);
@@ -4047,7 +4496,7 @@ impl Interpreter {
                         rest.push(item);
                     }
                 }
-                Ok(Value::List(vec![Value::List(matching), Value::List(rest)]))
+                Ok(Value::List((vec![Value::List((matching).into()), Value::List((rest).into())]).into()))
             }
             "sort_by" => {
                 if args.len() != 2 {
@@ -4060,8 +4509,12 @@ impl Interpreter {
                 // If first arg is a Stream, collect it into a List with a warning
                 if let Value::Stream(ref stream) = args[0] {
                     eprintln!("\x1b[33mWarning:\x1b[0m sort_by() must collect the entire stream into memory to sort.");
-                    eprintln!("  Tip: kmer_count() already returns results sorted by count (descending).");
-                    eprintln!("  Use head(n) to get the top N entries without sorting: |> head(20)");
+                    eprintln!(
+                        "  Tip: kmer_count() already returns results sorted by count (descending)."
+                    );
+                    eprintln!(
+                        "  Use head(n) to get the top N entries without sorting: |> head(20)"
+                    );
                     let mut items = Vec::new();
                     loop {
                         match stream.next() {
@@ -4077,7 +4530,7 @@ impl Interpreter {
                     if items.len() >= 100_000 {
                         eprintln!("\r\x1b[2K  Collected {} items — sorting...", items.len());
                     }
-                    args[0] = Value::List(items);
+                    args[0] = Value::List((items).into());
                 }
                 let func = args[1].clone();
                 // Detect if it's a 2-arg comparator or 1-arg key function
@@ -4090,22 +4543,29 @@ impl Interpreter {
                     // 2-arg comparator mode: sort_by(coll, |a, b| a.x - b.x)
                     let coll_to_items = |coll: &Value| -> Result<(Vec<Value>, bool, Vec<String>)> {
                         match coll {
-                            Value::List(l) => Ok((l.clone(), false, vec![])),
+                            Value::List(l) => Ok(((l).as_ref().clone(), false, vec![])),
                             Value::Table(tbl) => {
                                 let cols = tbl.columns.clone();
-                                let items: Vec<Value> = tbl.rows.iter().map(|row| {
-                                    let mut rec = std::collections::HashMap::new();
-                                    for (j, col) in cols.iter().enumerate() {
-                                        if j < row.len() {
-                                            rec.insert(col.clone(), row[j].clone());
+                                let items: Vec<Value> = tbl
+                                    .rows
+                                    .iter()
+                                    .map(|row| {
+                                        let mut rec = std::collections::HashMap::new();
+                                        for (j, col) in cols.iter().enumerate() {
+                                            if j < row.len() {
+                                                rec.insert(col.clone(), row[j].clone());
+                                            }
                                         }
-                                    }
-                                    Value::Record(rec)
-                                }).collect();
+                                        Value::Record((rec).into())
+                                    })
+                                    .collect();
                                 Ok((items, true, cols))
                             }
                             other => Err(BioLangError::type_error(
-                                format!("sort_by() requires List or Table, got {}", other.type_of()),
+                                format!(
+                                    "sort_by() requires List or Table, got {}",
+                                    other.type_of()
+                                ),
                                 Some(span),
                             )),
                         }
@@ -4120,38 +4580,55 @@ impl Interpreter {
                             Ok(Value::Int(n)) if n < 0 => std::cmp::Ordering::Less,
                             Ok(Value::Int(n)) if n > 0 => std::cmp::Ordering::Greater,
                             Ok(Value::Int(_)) => std::cmp::Ordering::Equal,
+                            Ok(Value::Float(n)) if n < 0.0 => std::cmp::Ordering::Less,
+                            Ok(Value::Float(n)) if n > 0.0 => std::cmp::Ordering::Greater,
+                            Ok(Value::Float(_)) => std::cmp::Ordering::Equal,
                             Ok(_) => {
                                 err = Some(BioLangError::type_error(
-                                    "sort_by compare function must return Int",
+                                    "sort_by compare function must return Int or Float",
                                     Some(span),
                                 ));
                                 std::cmp::Ordering::Equal
                             }
-                            Err(e) => { err = Some(e); std::cmp::Ordering::Equal }
+                            Err(e) => {
+                                err = Some(e);
+                                std::cmp::Ordering::Equal
+                            }
                         }
                     });
-                    if let Some(e) = err { return Err(e); }
+                    if let Some(e) = err {
+                        return Err(e);
+                    }
                     if is_table {
                         // Convert records back to table rows
                         let mut rows = Vec::with_capacity(items.len());
                         for item in &items {
                             if let Value::Record(rec) = item {
-                                let row: Vec<Value> = cols.iter().map(|c| rec.get(c).cloned().unwrap_or(Value::Nil)).collect();
+                                let row: Vec<Value> = cols
+                                    .iter()
+                                    .map(|c| rec.get(c).cloned().unwrap_or(Value::Nil))
+                                    .collect();
                                 rows.push(row);
                             }
                         }
                         Ok(Value::Table(bl_core::value::Table::new(cols, rows)))
                     } else {
-                        Ok(Value::List(items))
+                        Ok(Value::List((items).into()))
                     }
                 } else {
                     // 1-arg key function mode: sort_by(coll, |r| r.score)
                     let cmp_keys = |ka: &Value, kb: &Value| -> std::cmp::Ordering {
                         match (ka, kb) {
                             (Value::Int(a), Value::Int(b)) => a.cmp(b),
-                            (Value::Float(a), Value::Float(b)) => a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
-                            (Value::Int(a), Value::Float(b)) => (*a as f64).partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
-                            (Value::Float(a), Value::Int(b)) => a.partial_cmp(&(*b as f64)).unwrap_or(std::cmp::Ordering::Equal),
+                            (Value::Float(a), Value::Float(b)) => {
+                                a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+                            }
+                            (Value::Int(a), Value::Float(b)) => (*a as f64)
+                                .partial_cmp(b)
+                                .unwrap_or(std::cmp::Ordering::Equal),
+                            (Value::Float(a), Value::Int(b)) => a
+                                .partial_cmp(&(*b as f64))
+                                .unwrap_or(std::cmp::Ordering::Equal),
                             (Value::Str(a), Value::Str(b)) => a.cmp(b),
                             _ => std::cmp::Ordering::Equal,
                         }
@@ -4160,12 +4637,12 @@ impl Interpreter {
                         Value::List(l) => {
                             let items = l.clone();
                             let mut keyed: Vec<(Value, Value)> = Vec::with_capacity(items.len());
-                            for item in items {
+                            for item in items.iter().cloned() {
                                 let key = self.call_value(&func, vec![item.clone()], span)?;
                                 keyed.push((key, item));
                             }
                             keyed.sort_by(|(ka, _), (kb, _)| cmp_keys(ka, kb));
-                            Ok(Value::List(keyed.into_iter().map(|(_, v)| v).collect()))
+                            Ok(Value::List(keyed.into_iter().map(|(_, v)| v).collect::<Vec<_>>().into()))
                         }
                         Value::Table(tbl) => {
                             let cols = &tbl.columns;
@@ -4177,19 +4654,21 @@ impl Interpreter {
                                         rec.insert(col.clone(), row[j].clone());
                                     }
                                 }
-                                let key = self.call_value(&func, vec![Value::Record(rec)], span)?;
+                                let key = self.call_value(&func, vec![Value::Record((rec).into())], span)?;
                                 keyed.push((key, i));
                             }
                             keyed.sort_by(|(ka, _), (kb, _)| cmp_keys(ka, kb));
-                            let sorted_rows: Vec<Vec<Value>> = keyed.iter().map(|(_, i)| tbl.rows[*i].clone()).collect();
-                            Ok(Value::Table(bl_core::value::Table::new(cols.clone(), sorted_rows)))
+                            let sorted_rows: Vec<Vec<Value>> =
+                                keyed.iter().map(|(_, i)| tbl.rows[*i].clone()).collect();
+                            Ok(Value::Table(bl_core::value::Table::new(
+                                cols.clone(),
+                                sorted_rows,
+                            )))
                         }
-                        other => {
-                            Err(BioLangError::type_error(
-                                format!("sort_by() requires List or Table, got {}", other.type_of()),
-                                Some(span),
-                            ))
-                        }
+                        other => Err(BioLangError::type_error(
+                            format!("sort_by() requires List or Table, got {}", other.type_of()),
+                            Some(span),
+                        )),
                     }
                 }
             }
@@ -4217,12 +4696,15 @@ impl Interpreter {
                     Value::List(l) => l.clone(),
                     other => {
                         return Err(BioLangError::type_error(
-                            format!("count_if() requires List or Stream, got {}", other.type_of()),
+                            format!(
+                                "count_if() requires List or Stream, got {}",
+                                other.type_of()
+                            ),
                             Some(span),
                         ))
                     }
                 };
-                for item in items {
+                for item in items.iter().cloned() {
                     let result = self.call_value(&func, vec![item], span)?;
                     if result.is_truthy() {
                         count += 1;
@@ -4275,7 +4757,7 @@ impl Interpreter {
             if param.rest {
                 // Rest param: collect all remaining positional args into a List
                 let rest_vals: Vec<Value> = positional[pos_idx..].to_vec();
-                self.env.define(param.name.clone(), Value::List(rest_vals));
+                self.env.define(param.name.clone(), Value::List((rest_vals).into()));
                 pos_idx = positional.len();
             } else {
                 let val = if let Some((_, v)) = named.iter().find(|(n, _)| n == &param.name) {
@@ -4328,12 +4810,7 @@ impl Interpreter {
     }
 
     /// Handle higher-order function builtins (map, filter, reduce, sort).
-    fn call_hof(
-        &mut self,
-        name: &str,
-        args: &[Arg],
-        span: bl_core::span::Span,
-    ) -> Result<Value> {
+    fn call_hof(&mut self, name: &str, args: &[Arg], span: bl_core::span::Span) -> Result<Value> {
         match name {
             "map" => {
                 if args.len() != 2 {
@@ -4348,17 +4825,17 @@ impl Interpreter {
                 if let Value::Table(t) = &list {
                     let mut result = Vec::new();
                     for i in 0..t.num_rows() {
-                        let row_rec = Value::Record(t.row_to_record(i));
+                        let row_rec = Value::Record((t.row_to_record(i)).into());
                         result.push(self.call_value(&func, vec![row_rec], span)?);
                     }
-                    return Ok(Value::List(result));
+                    return Ok(Value::List((result).into()));
                 }
                 let is_stream = matches!(&list, Value::Stream(_));
                 let mut result = Vec::new();
                 match list {
                     Value::List(l) => {
-                        for item in l {
-                            result.push(self.call_value(&func, vec![item], span)?);
+                        for item in l.iter() {
+                            result.push(self.call_value(&func, vec![item.clone()], span)?);
                         }
                     }
                     Value::Stream(s) => {
@@ -4368,15 +4845,20 @@ impl Interpreter {
                     }
                     other => {
                         return Err(BioLangError::type_error(
-                            format!("map() first argument must be List, Stream, or Table, got {}", other.type_of()),
+                            format!(
+                                "map() first argument must be List, Stream, or Table, got {}",
+                                other.type_of()
+                            ),
                             Some(span),
                         ))
                     }
                 }
                 if is_stream {
-                    Ok(Value::Stream(bl_core::value::StreamValue::from_list("map", result)))
+                    Ok(Value::Stream(bl_core::value::StreamValue::from_list(
+                        "map", result,
+                    )))
                 } else {
-                    Ok(Value::List(result))
+                    Ok(Value::List((result).into()))
                 }
             }
             "filter" => {
@@ -4393,7 +4875,7 @@ impl Interpreter {
                     let columns = t.columns.clone();
                     let mut kept_rows = Vec::new();
                     for i in 0..t.num_rows() {
-                        let row_rec = Value::Record(t.row_to_record(i));
+                        let row_rec = Value::Record((t.row_to_record(i)).into());
                         let keep = self.call_value(&func, vec![row_rec], span)?;
                         if keep.is_truthy() {
                             kept_rows.push(t.rows[i].clone());
@@ -4405,10 +4887,10 @@ impl Interpreter {
                 let mut result = Vec::new();
                 match list {
                     Value::List(l) => {
-                        for item in l {
+                        for item in l.iter() {
                             let keep = self.call_value(&func, vec![item.clone()], span)?;
                             if keep.is_truthy() {
-                                result.push(item);
+                                result.push(item.clone());
                             }
                         }
                     }
@@ -4431,9 +4913,11 @@ impl Interpreter {
                     }
                 }
                 if is_stream {
-                    Ok(Value::Stream(bl_core::value::StreamValue::from_list("filter", result)))
+                    Ok(Value::Stream(bl_core::value::StreamValue::from_list(
+                        "filter", result,
+                    )))
                 } else {
-                    Ok(Value::List(result))
+                    Ok(Value::List((result).into()))
                 }
             }
             "reduce" => {
@@ -4471,11 +4955,13 @@ impl Interpreter {
                         } else {
                             match s.next() {
                                 Some(v) => v,
-                                None => return Err(BioLangError::runtime(
-                                    ErrorKind::TypeError,
-                                    "reduce() on empty stream requires initial value",
-                                    Some(span),
-                                )),
+                                None => {
+                                    return Err(BioLangError::runtime(
+                                        ErrorKind::TypeError,
+                                        "reduce() on empty stream requires initial value",
+                                        Some(span),
+                                    ))
+                                }
                             }
                         };
                         while let Some(item) = s.next() {
@@ -4483,15 +4969,13 @@ impl Interpreter {
                         }
                         Ok(acc)
                     }
-                    other => {
-                        Err(BioLangError::type_error(
-                            format!(
-                                "reduce() first argument must be List or Stream, got {}",
-                                other.type_of()
-                            ),
-                            Some(span),
-                        ))
-                    }
+                    other => Err(BioLangError::type_error(
+                        format!(
+                            "reduce() first argument must be List or Stream, got {}",
+                            other.type_of()
+                        ),
+                        Some(span),
+                    )),
                 }
             }
             "sort" => {
@@ -4519,7 +5003,7 @@ impl Interpreter {
                 if args.len() == 2 {
                     let func = self.eval_expr(&args[1].value)?;
                     let mut err = None;
-                    items.sort_by(|a, b| {
+                    Arc::make_mut(&mut items).sort_by(|a, b| {
                         if err.is_some() {
                             return std::cmp::Ordering::Equal;
                         }
@@ -4533,9 +5017,18 @@ impl Interpreter {
                                     std::cmp::Ordering::Equal
                                 }
                             }
+                            Ok(Value::Float(n)) => {
+                                if n < 0.0 {
+                                    std::cmp::Ordering::Less
+                                } else if n > 0.0 {
+                                    std::cmp::Ordering::Greater
+                                } else {
+                                    std::cmp::Ordering::Equal
+                                }
+                            }
                             Ok(_) => {
                                 err = Some(BioLangError::type_error(
-                                    "sort compare function must return Int",
+                                    "sort compare function must return Int or Float",
                                     Some(span),
                                 ));
                                 std::cmp::Ordering::Equal
@@ -4552,7 +5045,7 @@ impl Interpreter {
                 } else {
                     // Default sort
                     let mut err = None;
-                    items.sort_by(|a, b| {
+                    Arc::make_mut(&mut items).sort_by(|a, b| {
                         if err.is_some() {
                             return std::cmp::Ordering::Equal;
                         }
@@ -4577,19 +5070,15 @@ impl Interpreter {
                 }
                 Ok(Value::List(items))
             }
-            "mutate" | "summarize" | "par_map" | "par_filter" | "prop_test" | "await_all"
-            | "flat_map" | "scan"
-            | "stream_batch" | "scatter_by" | "bench"
-            | "none" | "take_while" | "each" | "tap" | "inspect" | "group_apply"
-            | "partition" | "sort_by" | "count_if" => {
-                // Evaluate args and delegate to call_hof_with_values
+            // Everything else routed here by the HOF gate is handled by the
+            // value-based dispatcher: evaluate the args and delegate.
+            _ => {
                 let mut vals = Vec::new();
                 for arg in args {
                     vals.push(self.eval_expr(&arg.value)?);
                 }
                 self.call_hof_with_values(name, vals, span)
             }
-            _ => unreachable!(),
         }
     }
 
@@ -4609,9 +5098,9 @@ impl Interpreter {
                 (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a + *b as f64)),
                 (Value::Str(a), Value::Str(b)) => Ok(Value::Str(format!("{a}{b}"))),
                 (Value::List(a), Value::List(b)) => {
-                    let mut result = a.clone();
+                    let mut result: Vec<Value> = a.as_ref().clone();
                     result.extend(b.iter().cloned());
-                    Ok(Value::List(result))
+                    Ok(Value::List(result.into()))
                 }
                 _ => {
                     let mut err = BioLangError::type_error(
@@ -4658,7 +5147,11 @@ impl Interpreter {
                 (Value::Int(a), Value::Float(b)) => Ok(Value::Float((*a as f64).powf(*b))),
                 (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a.powf(*b as f64))),
                 _ => Err(BioLangError::type_error(
-                    format!("cannot exponentiate {} and {}", lhs.type_of(), rhs.type_of()),
+                    format!(
+                        "cannot exponentiate {} and {}",
+                        lhs.type_of(),
+                        rhs.type_of()
+                    ),
                     Some(span),
                 )),
             },
@@ -4729,16 +5222,28 @@ impl Interpreter {
             },
             BinaryOp::Concat => match (lhs, rhs) {
                 (Value::List(a), Value::List(b)) => {
-                    let mut result = a.clone();
+                    let mut result: Vec<Value> = a.as_ref().clone();
                     result.extend(b.iter().cloned());
-                    Ok(Value::List(result))
+                    Ok(Value::List(result.into()))
                 }
                 (Value::Str(a), Value::Str(b)) => Ok(Value::Str(format!("{a}{b}"))),
-                (Value::DNA(a), Value::DNA(b)) => Ok(Value::DNA(bl_core::value::BioSequence { data: format!("{}{}", a.data, b.data) })),
-                (Value::RNA(a), Value::RNA(b)) => Ok(Value::RNA(bl_core::value::BioSequence { data: format!("{}{}", a.data, b.data) })),
-                (Value::Protein(a), Value::Protein(b)) => Ok(Value::Protein(bl_core::value::BioSequence { data: format!("{}{}", a.data, b.data) })),
+                (Value::DNA(a), Value::DNA(b)) => Ok(Value::DNA(bl_core::value::BioSequence {
+                    data: format!("{}{}", a.data, b.data),
+                })),
+                (Value::RNA(a), Value::RNA(b)) => Ok(Value::RNA(bl_core::value::BioSequence {
+                    data: format!("{}{}", a.data, b.data),
+                })),
+                (Value::Protein(a), Value::Protein(b)) => {
+                    Ok(Value::Protein(bl_core::value::BioSequence {
+                        data: format!("{}{}", a.data, b.data),
+                    }))
+                }
                 _ => Err(BioLangError::type_error(
-                    format!("cannot concatenate {} and {} (++ requires matching types)", lhs.type_of(), rhs.type_of()),
+                    format!(
+                        "cannot concatenate {} and {} (++ requires matching types)",
+                        lhs.type_of(),
+                        rhs.type_of()
+                    ),
                     Some(span),
                 )),
             },
@@ -4769,8 +5274,21 @@ impl Interpreter {
             let type_name = self.runtime_type_name(lhs);
             let impl_key = format!("__impl_{type_name}_{op_name}");
             if let Ok(func) = self.env.get(&impl_key, None).cloned() {
-                if let Value::Function { params, body, closure_env, .. } = &func {
-                    return self.call_function(params, body, closure_env, vec![lhs.clone(), rhs.clone()], vec![], span);
+                if let Value::Function {
+                    params,
+                    body,
+                    closure_env,
+                    ..
+                } = &func
+                {
+                    return self.call_function(
+                        params,
+                        body,
+                        closure_env,
+                        vec![lhs.clone(), rhs.clone()],
+                        vec![],
+                        span,
+                    );
                 }
             }
         }
@@ -4818,7 +5336,7 @@ impl Interpreter {
             };
             record.insert(param.name.clone(), val);
         }
-        Ok(Value::Record(record))
+        Ok(Value::Record((record).into()))
     }
 
     fn pattern_matches(&mut self, pattern: &Pattern, value: &Value) -> Result<bool> {
@@ -4830,7 +5348,12 @@ impl Interpreter {
                 Ok(lit_val == *value)
             }
             Pattern::EnumVariant { variant, bindings } => {
-                if let Value::EnumValue { variant: vname, fields, .. } = value {
+                if let Value::EnumValue {
+                    variant: vname,
+                    fields,
+                    ..
+                } = value
+                {
                     Ok(vname == variant && fields.len() == bindings.len())
                 } else {
                     Ok(false)
@@ -4904,9 +5427,7 @@ fn compare_op(
     };
     let ordering = match (lhs, rhs) {
         (Value::Int(a), Value::Int(b)) => a.cmp(b),
-        (Value::Float(a), Value::Float(b)) => a
-            .partial_cmp(b)
-            .unwrap_or(std::cmp::Ordering::Equal),
+        (Value::Float(a), Value::Float(b)) => a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
         (Value::Int(a), Value::Float(b)) => (*a as f64)
             .partial_cmp(b)
             .unwrap_or(std::cmp::Ordering::Equal),
@@ -4916,11 +5437,7 @@ fn compare_op(
         (Value::Str(a), Value::Str(b)) => a.cmp(b),
         _ => {
             return Err(BioLangError::type_error(
-                format!(
-                    "cannot compare {} and {}",
-                    lhs.type_of(),
-                    rhs.type_of()
-                ),
+                format!("cannot compare {} and {}", lhs.type_of(), rhs.type_of()),
                 Some(span),
             ))
         }
@@ -4928,12 +5445,7 @@ fn compare_op(
     Ok(Value::Bool(pred(ordering)))
 }
 
-fn check_arity(
-    name: &str,
-    arity: &Arity,
-    count: usize,
-    span: bl_core::span::Span,
-) -> Result<()> {
+fn check_arity(name: &str, arity: &Arity, count: usize, span: bl_core::span::Span) -> Result<()> {
     let ok = match arity {
         Arity::Exact(n) => count == *n,
         Arity::AtLeast(n) => count >= *n,
@@ -5004,4 +5516,3 @@ fn verbose_expr_label(expr: &Expr) -> String {
         _ => "expr".into(),
     }
 }
-

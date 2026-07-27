@@ -28,6 +28,7 @@
 - [BioContainers](./ch13-biocontainers.md)
 - [Galaxy ToolShed & Workflow Parsing](./ch13b-galaxy.md)
 - [Statistics & Linear Algebra](./ch14-statistics-linalg.md)
+- [Omics Packages](./ch15b-omics-packages.md)
 - [Bio APIs](./ch15-bio-apis.md)
 - [Streams & Scale](./ch16-streams-scale.md)
 - [SQLite & Notifications](./ch16b-sqlite-notifications.md)
@@ -38,6 +39,7 @@
 
 - [Literate Notebooks](./ch17-notebooks.md)
 - [Plugins & Extending](./ch18-plugins.md)
+- [Packages, Migration & CLI Tooling](./ch18b-tooling.md)
 
 # Performance
 

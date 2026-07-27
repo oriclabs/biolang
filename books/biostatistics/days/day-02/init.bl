@@ -45,23 +45,23 @@ for i in range(0, 500) {
         let ni = i % 20
         let mq = round(q_base_excellent[bi] + noise_vals[ni], 1)
         let mn = q_min_excellent[bi]
-        q_lines = append(q_lines, f"{rid},{mq},{mn},150")
+        q_lines = push(q_lines, f"{rid},{mq},{mn},150")
     } else if i < 425 {
         let bi = (i - 300) % 15
         let ni = i % 20
         let mq = round(q_base_good[bi] + noise_vals[ni], 1)
         let mn = q_min_good[bi]
-        q_lines = append(q_lines, f"{rid},{mq},{mn},150")
+        q_lines = push(q_lines, f"{rid},{mq},{mn},150")
     } else {
         let bi = (i - 425) % 10
         let ni = i % 20
         let mq = round(q_base_poor[bi] + noise_vals[ni], 1)
         let mn = q_min_poor[bi]
         let read_len = if mn < 10 { 100 } else { 150 }
-        q_lines = append(q_lines, f"{rid},{mq},{mn},{read_len}")
+        q_lines = push(q_lines, f"{rid},{mq},{mn},{read_len}")
     }
 }
-write_lines(q_lines, "data/quality_scores.csv")
+write_lines("data/quality_scores.csv", q_lines)
 
 # --- File 2: expression.csv ---
 # GTEx V8 median TPM for 30 genes across 6 tissues
@@ -120,9 +120,9 @@ for i in range(0, 30) {
     let lung = round(g[4] * (2.0 - n), 1)
     let kidney = round(g[5] * n, 1)
     let blood = round(g[6] * (2.0 - n), 1)
-    e_lines = append(e_lines, f"{g[0]},{brain},{heart},{liver},{lung},{kidney},{blood}")
+    e_lines = push(e_lines, f"{g[0]},{brain},{heart},{liver},{lung},{kidney},{blood}")
 }
-write_lines(e_lines, "data/expression.csv")
+write_lines("data/expression.csv", e_lines)
 
 println("Generated 2 files in data/")
 println("  data/quality_scores.csv  — 500 Illumina HiSeq read quality profiles")

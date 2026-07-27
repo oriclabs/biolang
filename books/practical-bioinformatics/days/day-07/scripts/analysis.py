@@ -172,7 +172,7 @@ print()
 print("--- 5. BAM: Alignments ---")
 
 alignments = []
-with open("data/alignments.bam") as f:
+with open("data/alignments.sam") as f:
     for line in f:
         if line.startswith("@"):
             continue

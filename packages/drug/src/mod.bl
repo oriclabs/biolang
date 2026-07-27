@@ -1,0 +1,19 @@
+# drug — Drug response analysis for BioLang
+#
+# Quick start:
+#   import "drug" as drug
+#
+#   let params = drug.fit(concentrations, viabilities)
+#   params.ic50
+#   drug.auc(concentrations, viabilities)
+#   drug.bliss(viab_a=80.0, viab_b=70.0, viab_combo=40.0)
+
+import "drug/src/response" as resp
+import "drug/src/synergy"  as syn
+
+fn fit(concs, viabs)                                  { resp.fit(concs, viabs) }
+fn curve(concs, ic50, slope, top=100.0, bottom=0.0)   { resp.curve(concs, ic50, slope, top, bottom) }
+fn auc(concs, viabs)                                  { resp.auc(concs, viabs) }
+fn bliss(viab_a, viab_b, viab_combo)                  { syn.bliss(viab_a, viab_b, viab_combo) }
+fn loewe(ic50_a, ic50_b, conc_a, conc_b, obs=50.0)   { syn.loewe(ic50_a, ic50_b, conc_a, conc_b, obs) }
+fn rank(ic50_table)                                   { drug_rank(ic50_table, true) }

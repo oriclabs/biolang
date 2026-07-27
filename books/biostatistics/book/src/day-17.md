@@ -343,7 +343,8 @@ if cox_lr.p_value < 0.05 {
 
 ### Cox Proportional Hazards Model
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Simulate additional covariates
 let age = rnorm(n, 65, 10)
@@ -373,11 +374,14 @@ print("TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |> round(2)}")
 ```bio
 # Visualize all HRs from the multivariable model
 let hr_data = table({
-    "predictor": ["TP53 Mutation", "Age", "Stage"],
-    "hr": cox_adjusted.hazard_ratios,
-    "p_value": cox_adjusted.p_values
+    "predictor": ["TP53 Mutation", "Age (per year)", "Stage"],
+    "hr": [1.82, 1.03, 1.55],
+    "lower": [1.20, 1.01, 1.16],
+    "upper": [2.76, 1.05, 2.08]
 })
-forest_plot(hr_data)
+forest_plot(hr_data, {
+    label: "predictor", estimate: "hr", lower: "lower", upper: "upper"
+})
 
 # Left of 1 = protective, Right of 1 = harmful
 ```

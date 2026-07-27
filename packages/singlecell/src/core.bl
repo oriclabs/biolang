@@ -1,0 +1,94 @@
+# singlecell/src/core.bl — Object creation and basic accessors
+#
+# The sc object is a plain BioLang Record that grows as pipeline steps
+# add results. Starting shape (from load/from_matrix):
+#
+#   { matrix, genes, barcodes, n_cells, n_genes }
+#
+# Pipeline steps add optional fields:
+#   norm_matrix, hvg, hvg_matrix, hvg_genes, knn, clusters,
+#   pseudotime, doublet_scores, cell_cycle_info
+
+## load(path) → Record
+##
+## Read a 10x Genomics MEX directory (barcodes.tsv, features.tsv, matrix.mtx,
+## with optional .gz variants) and return a single-cell object.
+fn load(path) {
+    read_10x(path)
+}
+
+## from_matrix(matrix, genes, barcodes) → Record
+##
+## Construct a single-cell object from an existing dense matrix
+## (cells × genes, List<List<Float>>).
+fn from_matrix(matrix, genes, barcodes) {
+    {
+        matrix:   matrix,
+        genes:    genes,
+        barcodes: barcodes,
+        n_cells:  len(matrix),
+        n_genes:  len(genes)
+    }
+}
+
+## n_cells(obj) → Int
+fn n_cells(obj) { obj.n_cells }
+
+## n_genes(obj) → Int
+fn n_genes(obj) { obj.n_genes }
+
+## get_matrix(obj) → List<List<Float>>
+## Returns the raw count matrix (cells × genes).
+fn get_matrix(obj) { obj.matrix }
+
+## get_norm_matrix(obj) → List<List<Float>>
+## Returns the normalized matrix (after normalize or sctransform).
+fn get_norm_matrix(obj) { obj.norm_matrix }
+
+## get_genes(obj) → List<Str>
+fn get_genes(obj) { obj.genes }
+
+## get_barcodes(obj) → List<Str>
+fn get_barcodes(obj) { obj.barcodes }
+
+## get_hvg_genes(obj) → List<Str>
+## Returns highly variable gene names (after variable_genes step).
+fn get_hvg_genes(obj) { obj.hvg_genes }
+
+## get_clusters(obj) → List<Int>
+## Returns cluster assignment per cell (after cluster step).
+fn get_clusters(obj) { obj.clusters }
+
+## get_pseudotime(obj) → List<Float>
+## Returns pseudotime per cell (after pseudotime step). -1.0 = unreachable.
+fn get_pseudotime(obj) { obj.pseudotime }
+
+## get_doublet_scores(obj) → List<Float>
+## Returns doublet scores per cell (after doublets step).
+fn get_doublet_scores(obj) { obj.doublet_scores }
+
+## summary(obj) → Record
+## Returns a summary record with basic statistics about the object.
+fn summary(obj) {
+    let n_c = obj.n_cells
+    let n_g = obj.n_genes
+
+    let lib_sizes = obj.matrix |> map(|row| sum(row))
+    let mean_lib  = mean(lib_sizes)
+
+    let n_detected = obj.matrix |> map(|row|
+        row |> filter(|v| v > 0.0) |> len()
+    )
+    let mean_genes = mean(n_detected)
+
+    {
+        n_cells:        n_c,
+        n_genes:        n_g,
+        mean_lib_size:  mean_lib,
+        mean_genes_per_cell: mean_genes,
+        has_norm:       "norm_matrix" in keys(obj),
+        has_hvg:        "hvg" in keys(obj),
+        has_clusters:   "clusters" in keys(obj),
+        has_pseudotime: "pseudotime" in keys(obj)
+    }
+}

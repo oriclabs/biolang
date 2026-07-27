@@ -88,16 +88,10 @@ impl StringDbClient {
     }
 
     /// Get interaction network for a set of proteins.
-    pub fn network(
-        &self,
-        identifiers: &[&str],
-        species: u32,
-    ) -> Result<Vec<Interaction>> {
+    pub fn network(&self, identifiers: &[&str], species: u32) -> Result<Vec<Interaction>> {
         let base = base_url();
         let ids = identifiers.join("%0d");
-        let url = format!(
-            "{base}/json/network?identifiers={ids}&species={species}"
-        );
+        let url = format!("{base}/json/network?identifiers={ids}&species={species}");
         let json = self.base.get_json(&url)?;
         parse_interactions(&json)
     }
@@ -118,16 +112,10 @@ impl StringDbClient {
     }
 
     /// Functional enrichment analysis.
-    pub fn enrichment(
-        &self,
-        identifiers: &[&str],
-        species: u32,
-    ) -> Result<Vec<Enrichment>> {
+    pub fn enrichment(&self, identifiers: &[&str], species: u32) -> Result<Vec<Enrichment>> {
         let base = base_url();
         let ids = identifiers.join("%0d");
-        let url = format!(
-            "{base}/json/enrichment?identifiers={ids}&species={species}"
-        );
+        let url = format!("{base}/json/enrichment?identifiers={ids}&species={species}");
         let json = self.base.get_json(&url)?;
         let arr = json.as_array().ok_or_else(|| ApiError::Parse {
             context: "STRING enrichment".into(),
@@ -136,42 +124,21 @@ impl StringDbClient {
         let mut results = Vec::new();
         for item in arr {
             results.push(Enrichment {
-                category: item["category"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                term: item["term"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                description: item["description"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                gene_count: item["number_of_genes"]
-                    .as_u64()
-                    .unwrap_or(0) as u32,
-                p_value: item["p_value"]
-                    .as_f64()
-                    .unwrap_or(1.0),
-                fdr: item["fdr"]
-                    .as_f64()
-                    .unwrap_or(1.0),
+                category: item["category"].as_str().unwrap_or_default().to_string(),
+                term: item["term"].as_str().unwrap_or_default().to_string(),
+                description: item["description"].as_str().unwrap_or_default().to_string(),
+                gene_count: item["number_of_genes"].as_u64().unwrap_or(0) as u32,
+                p_value: item["p_value"].as_f64().unwrap_or(1.0),
+                fdr: item["fdr"].as_f64().unwrap_or(1.0),
             });
         }
         Ok(results)
     }
 
     /// Resolve protein identifier to STRING ID.
-    pub fn resolve(
-        &self,
-        identifier: &str,
-        species: u32,
-    ) -> Result<Vec<StringProtein>> {
+    pub fn resolve(&self, identifier: &str, species: u32) -> Result<Vec<StringProtein>> {
         let base = base_url();
-        let url = format!(
-            "{base}/json/resolve?identifier={identifier}&species={species}"
-        );
+        let url = format!("{base}/json/resolve?identifier={identifier}&species={species}");
         let json = self.base.get_json(&url)?;
         let arr = json.as_array().ok_or_else(|| ApiError::Parse {
             context: "STRING resolve".into(),
@@ -184,14 +151,8 @@ impl StringDbClient {
                     .as_str()
                     .unwrap_or_default()
                     .to_string(),
-                string_id: item["stringId"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                annotation: item["annotation"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
+                string_id: item["stringId"].as_str().unwrap_or_default().to_string(),
+                annotation: item["annotation"].as_str().unwrap_or_default().to_string(),
             });
         }
         Ok(results)
@@ -277,10 +238,8 @@ mod tests {
 
     #[test]
     fn test_interaction_missing_scores() {
-        let json: serde_json::Value = serde_json::from_str(
-            r#"[{"preferredName_A": "A", "preferredName_B": "B"}]"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"[{"preferredName_A": "A", "preferredName_B": "B"}]"#).unwrap();
         let interactions = parse_interactions(&json).unwrap();
         assert_eq!(interactions[0].score, 0.0);
     }

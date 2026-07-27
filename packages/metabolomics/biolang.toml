@@ -1,0 +1,8 @@
+[package]
+name = "metabolomics"
+version = "0.1.0"
+description = "LC-MS metabolomics: m/z matching, isotope correction, feature grouping, pathway enrichment"
+authors = ["BioLang"]
+
+[dependencies]
+statistics = { path = "../statistics" }

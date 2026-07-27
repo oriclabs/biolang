@@ -38,13 +38,13 @@
         </p>
         <pre><code class="language-biolang"># Encode a k-mer to its integer representation
 # kmer_encode(sequence, k)
-let code = kmer_encode(dna"ATCG", 4)     # => 27
+let code = kmer_encode(dna"ATCG", 4)     # => Kmer (encodes as 27)
 code = kmer_encode(dna"AAAA", 4)     # => 0
 code = kmer_encode(dna"TTTT", 4)     # => 255
 
 # Decode back to a string
-let seq = kmer_decode(27)                # => "ATCG"
-seq = kmer_decode(0)                 # => "AAAA"</code></pre>
+let seq = kmer_decode(kmer_encode(dna"ATCG", 4))   # => "ATCG"
+seq = kmer_decode(kmer_encode(dna"AAAA", 4))    # => "AAAA"</code></pre>
 
         <h2>kmer_count</h2>
         <p>
@@ -99,7 +99,7 @@ read_fastq("data/reads.fastq")
         <pre><code class="language-biolang">let seq = dna"ATCGATCGATCGATCGATCG"
 
 # Compute k-mer frequency spectrum
-let spectrum = kmer_spectrum(seq, 4)
+let spectrum = kmer_spectrum(kmer_count(seq, 4))
 # => Table with frequency and count columns
 
 spectrum |> print()</code></pre>
@@ -114,9 +114,9 @@ spectrum |> print()</code></pre>
 
 # Extract minimizers: minimizers(seq, k, window)
 let mins = minimizers(seq, 7, 11)
-# Returns a list of { kmer, position } records
+# Returns a list of { kmer, pos } records
 
-mins |> map(|m| print(m.position, m.kmer))
+mins |> map(|m| print(m.pos, m.kmer))
 
 # Minimizer density (minimizers per base)
 let density = float(len(mins)) / float(seq_len(seq))
@@ -149,6 +149,52 @@ read_fastq("data/reads.fastq")
   |> kmer_count(21)
   |> head(20)
   |> bar_chart("Top 21-mers")</code></pre>
+
+        <h2>kmer_index</h2>
+        <p>
+          Build an index from every k-mer in a sequence to the sorted list of all positions where
+          it starts. Returns <code>Map&lt;Str, List&lt;Int&gt;&gt;</code>. This is particularly
+          useful for repeat detection, seed-and-extend alignment, and any workflow that needs to
+          know <em>where</em> a k-mer occurs rather than just <em>how often</em>.
+        </p>
+        <p>
+          <strong>Signature:</strong> <code>kmer_index(seq, k) &rarr; Map&lt;Str, List&lt;Int&gt;&gt;</code>
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGATCG"
+let idx = kmer_index(seq, 3)
+
+# idx is {ATC: [0, 3, 6], TCG: [1, 4, 7], CGA: [2, 5], GAT: [3], ...}
+# Look up positions of a specific k-mer
+println(idx["ATC"])    # => [0, 3, 6]
+println(idx["TCG"])    # => [1, 4, 7]
+
+# Count occurrences
+println(len(idx["ATC"]))  # => 3
+
+# Find k-mers appearing more than once (repeat elements)
+let repeats = keys(idx) |> filter(|kmer| len(idx[kmer]) > 1)
+println(len(repeats), "k-mers appear more than once")
+
+# Build a k-mer index for a FASTA file and detect shared k-mers
+let genome_record = fasta("genome.fa") |> first()
+let genome = genome_record.seq
+let k = 21
+let genome_idx = kmer_index(genome, k)
+println("Unique 21-mers:", len(genome_idx))
+
+# Find positions of a specific 21-mer
+let target = "ATCGATCGATCGATCGATCGA"
+let positions = genome_idx[target] ?? []
+println("Target k-mer at positions:", positions)</code></pre>
+
+        <div class="rounded-xl border border-slate-700/50 bg-slate-900/50 p-5 my-6">
+          <p class="text-slate-400 text-sm mb-0">
+            <strong class="text-slate-300">See also:</strong>
+            <a href="advanced.html" class="text-violet-400 hover:text-violet-300">Advanced Sequence Analysis</a>
+            for <code>find_pattern</code>, <code>gc_skew</code>, sliding window operations, and
+            other low-level sequence primitives that complement k-mer indexing.
+          </p>
+        </div>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="intervals.html" class="text-violet-400 hover:text-violet-300">&larr; Intervals</a>

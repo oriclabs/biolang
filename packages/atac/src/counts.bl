@@ -1,0 +1,41 @@
+# atac/src/counts.bl — fragments to cell x feature count matrices
+#
+# Both functions return an object with the same fields read_10x() produces
+# (matrix, genes, barcodes, n_cells, n_genes), so the singlecell package's
+# workflow applies to chromatin data without any conversion step.
+
+## gene_activity(fragments, genes, upstream, downstream, barcodes) -> Record
+##
+## Count fragments over each gene body, extended upstream of the TSS. This is
+## the ATAC analogue of a gene expression matrix: chromatin accessibility over
+## a gene is used as a proxy for its activity.
+##
+## fragments — path to a 10x fragments.tsv[.gz], or a Table with columns
+##             chrom/start/end/barcode (+ optional count)
+## genes     — Table with chrom/start/end/gene_name (e.g. from gene_bodies())
+##             plus strand, so the extension is applied on the correct side
+## upstream  — bases to extend past the TSS (default 2000, matching Signac)
+## downstream— bases to extend past the 3' end (default 0)
+## barcodes  — optional List<Str> whitelist; also fixes the output cell order,
+##             which is what you want when pairing with an RNA object
+fn activity(fragments, genes, upstream = 2000, downstream = 0, barcodes = nil) {
+    gene_activity(fragments, genes, upstream, downstream, barcodes)
+}
+
+## peaks(fragments, peaks, barcodes) -> Record
+##
+## Count fragments per peak. Peaks need chrom/start/end; a name/peak/peak_id
+## column is used for labels if present, otherwise labels are "chrom:start-end".
+##
+## Note this matrix is dense, so a genome-wide peak set will be refused — subset
+## the peaks first, or use activity() when you want to feed the sc pipeline.
+fn peaks(fragments, peak_table, barcodes = nil) {
+    peak_matrix(fragments, peak_table, barcodes)
+}
+
+## from_gtf(gtf_text) -> Table
+##
+## Convenience: GTF/GFF3 text to the gene-body table activity() expects.
+fn from_gtf(gtf_text) {
+    gene_bodies(parse_gtf(gtf_text))
+}

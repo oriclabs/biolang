@@ -1,0 +1,6 @@
+gene	length	pathway
+CDKN1A	2101	DNA_damage
+BAX	1921	Apoptosis
+CCNB1	1953	Cell_cycle
+GAPDH	1128	Housekeeping
+ZERO1	1000	Unannotated

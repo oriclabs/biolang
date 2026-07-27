@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-fade6fca.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,15 +191,14 @@ the <code>interval()</code> constructor.</p>
 let exon = interval("chr1", 11869, 12227, strand: "+")
 </code></pre>
 <h3 id="interval-fields"><a class="header" href="#interval-fields">Interval Fields</a></h3>
-<p>Every interval has <code>chrom</code>, <code>start</code>, and <code>end</code>. Optional fields include
-<code>strand</code>, <code>name</code>, and <code>score</code>.</p>
-<pre><code class="language-biolang">let region = interval("chr7", 55181000, 55182000, strand: "+", name: "EGFR_exon20")
+<p>Every interval has <code>chrom</code>, <code>start</code>, <code>end</code>, and <code>strand</code>. Attach names, scores,
+or other annotations to table rows before building an interval tree.</p>
+<pre><code class="language-biolang">let region = interval("chr7", 55181000, 55182000, "+")
 
 print(region.chrom)   # chr7
 print(region.start)   # 55181000
 print(region.end)     # 55182000
 print(region.strand)  # +
-print(region.name)    # EGFR_exon20
 
 let width = region.end - region.start
 print("Width: " + str(width) + " bp")
@@ -236,22 +235,22 @@ let common = intersect(a, b)
 build an interval tree. Construction is O(n log n); each query is O(log n + k)
 where k is the number of hits.</p>
 <pre><code class="language-biolang">let exons = read_bed("data/exons.bed")
-    |&gt; map(|e| interval(e.chrom, e.start, e.end, name: e.name))
 
 let tree = interval_tree(exons)
 </code></pre>
 <h3 id="query_overlaps"><a class="header" href="#query_overlaps">query_overlaps</a></h3>
 <p>Find all intervals in the tree that overlap a query region.</p>
 <pre><code class="language-biolang">let query = interval("chr17", 43044294, 43044295)  # single position in BRCA1
-let hits = query_overlaps(tree, query)
+let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 
 for hit in hits {
-    print("Overlaps: " + hit.name + " " + str(hit.start) + "-" + str(hit.end))
+    print("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
 }
 </code></pre>
 <h3 id="query_nearest"><a class="header" href="#query_nearest">query_nearest</a></h3>
 <p>Find the closest interval to a query, even if there is no overlap.</p>
-<pre><code class="language-biolang">let snp_pos = interval("chr7", 55181378, 55181379)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let snp_pos = interval("chr7", 55181378, 55181379)
 let nearest = query_nearest(tree, snp_pos)
 
 let d = if snp_pos.end &lt;= nearest.start then nearest.start - snp_pos.end else snp_pos.start - nearest.end
@@ -261,15 +260,18 @@ print("Nearest feature: " + nearest.name
 <h3 id="coverage"><a class="header" href="#coverage">coverage</a></h3>
 <p>Compute per-base coverage across a set of intervals – how many intervals
 cover each position.</p>
-<pre><code class="language-biolang">let reads_as_intervals = aligned_reads
-    |&gt; map(|r| interval(r.chrom, r.start, r.end))
-
-let tree = interval_tree(reads_as_intervals)
+<pre><code class="language-biolang">let aligned_reads = table([
+    {chrom: "chr17", start: 43044000, end: 43044400},
+    {chrom: "chr17", start: 43044200, end: 43044600},
+    {chrom: "chr17", start: 43044800, end: 43045200}
+])
+let tree = interval_tree(aligned_reads)
 let target = interval("chr17", 43044000, 43045000)
 
-let cov = coverage(tree, target)
-print("Mean depth over target: " + str(mean(cov)))
-print("Bases &gt;= 30x: " + str(cov |&gt; filter(|d| d &gt;= 30) |&gt; len()))
+let cov = coverage(tree)
+    |&gt; filter(|row| row.chrom == target.chrom &amp;&amp; row.start &lt; target.end &amp;&amp; row.end &gt; target.start)
+print("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
+print("Segments &gt;= 2x: " + str(cov |&gt; filter(|row| row.depth &gt;= 2) |&gt; len()))
 </code></pre>
 <h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
 <p>A variant represents a difference from the reference genome. Create one with
@@ -345,7 +347,8 @@ print(info.GENEINFO) # "BRCA1:672"
 <h2 id="example-find-genes-overlapping-with-chip-seq-peaks"><a class="header" href="#example-find-genes-overlapping-with-chip-seq-peaks">Example: Find Genes Overlapping with ChIP-seq Peaks</a></h2>
 <p>Identify which genes have promoter regions that overlap with transcription
 factor binding peaks from a ChIP-seq experiment.</p>
-<pre><code class="language-biolang"># Load gene annotations
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Load gene annotations
 let genes = read_gff("data/annotations.gff")
     |&gt; filter(|f| f.type == "gene" &amp;&amp; f.attributes.gene_type == "protein_coding")
 
@@ -405,7 +408,8 @@ write_tsv(genes_with_peaks, "genes_with_h3k27ac_peaks.csv")
 <p>Transition/transversion ratio (Ti/Tv) is a key quality metric for SNP calling.
 Whole-genome sequencing typically yields Ti/Tv around 2.0-2.1; exome around
 2.8-3.0. Deviations suggest systematic errors.</p>
-<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let variants = read_vcf("data/variants.vcf")
 
 # Keep only PASS SNPs
 let pass_snps = variants
@@ -470,7 +474,8 @@ write_tsv(spectrum, "substitution_spectrum.csv")
 <h2 id="example-annotate-variants-with-overlapping-regulatory-regions"><a class="header" href="#example-annotate-variants-with-overlapping-regulatory-regions">Example: Annotate Variants with Overlapping Regulatory Regions</a></h2>
 <p>Given a set of variants and a regulatory region BED file (e.g., ENCODE cCREs),
 annotate each variant with the regulatory elements it falls within.</p>
-<pre><code class="language-biolang"># Load regulatory regions from ENCODE
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Load regulatory regions from ENCODE
 let regulatory = read_bed("data/regions.bed")
     |&gt; map(|r| interval(r.chrom, r.start, r.end, name: r.name ?? "cCRE"))
 
@@ -628,8 +633,8 @@ and regulatory overlap queries concisely and efficiently.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

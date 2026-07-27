@@ -1,6 +1,6 @@
 use crate::ast::{Param, Stmt};
-use crate::sparse_matrix::SparseMatrix;
 use crate::span::Spanned;
+use crate::sparse_matrix::SparseMatrix;
 use crate::types::Type;
 pub use bio_core::{BioSequence, GenomicInterval, Kmer, Strand};
 use std::any::Any;
@@ -17,9 +17,15 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Str(String),
-    List(Vec<Value>),
-    Map(HashMap<String, Value>),
-    Record(HashMap<String, Value>),
+    /// Lists are `Arc`-backed so `Value::clone()` is O(1) (a refcount bump)
+    /// instead of an O(n) deep copy. Mutation sites use `Arc::make_mut` /
+    /// rebuild-then-wrap (copy-on-write), matching the language's existing
+    /// "operations return a new value" semantics.
+    List(Arc<Vec<Value>>),
+    /// Maps are `Arc`-backed for the same reason as `List` (see above).
+    Map(Arc<HashMap<String, Value>>),
+    /// Records are `Arc`-backed for the same reason as `List` (see above).
+    Record(Arc<HashMap<String, Value>>),
 
     /// User-defined function / closure
     Function {
@@ -173,7 +179,11 @@ pub struct Table {
 
 impl Table {
     pub fn new(columns: Vec<String>, rows: Vec<Vec<Value>>) -> Self {
-        Self { columns, rows, max_col_width: None }
+        Self {
+            columns,
+            rows,
+            max_col_width: None,
+        }
     }
 
     pub fn empty() -> Self {
@@ -234,7 +244,11 @@ impl Table {
             })
             .collect();
 
-        Self { columns, rows, max_col_width: None }
+        Self {
+            columns,
+            rows,
+            max_col_width: None,
+        }
     }
 }
 
@@ -268,10 +282,12 @@ impl StreamValue {
 
     /// Pull the next value from the stream. Returns None when exhausted.
     pub fn next(&self) -> Option<Value> {
-        self.started.store(true, std::sync::atomic::Ordering::Relaxed);
+        self.started
+            .store(true, std::sync::atomic::Ordering::Relaxed);
         let result = self.inner.lock().unwrap().next();
         if result.is_none() {
-            self.exhausted.store(true, std::sync::atomic::Ordering::Relaxed);
+            self.exhausted
+                .store(true, std::sync::atomic::Ordering::Relaxed);
         }
         result
     }
@@ -373,8 +389,16 @@ impl Value {
             Value::Record(r) => !r.is_empty(),
             Value::Table(t) => !t.rows.is_empty(),
             Value::Matrix(m) => m.nrow > 0 && m.ncol > 0,
-            Value::Range { start, end, inclusive } => {
-                if *inclusive { end >= start } else { end > start }
+            Value::Range {
+                start,
+                end,
+                inclusive,
+            } => {
+                if *inclusive {
+                    end >= start
+                } else {
+                    end > start
+                }
             }
             Value::Set(items) => !items.is_empty(),
             Value::Tuple(items) => !items.is_empty(),
@@ -557,7 +581,8 @@ impl fmt::Display for Value {
                             let w = widths.get(i).copied().unwrap_or(0);
                             let slen = s.chars().count();
                             if slen > w {
-                                let truncated: String = s.chars().take(w.saturating_sub(1)).collect();
+                                let truncated: String =
+                                    s.chars().take(w.saturating_sub(1)).collect();
                                 format!("{}~", truncated)
                             } else if slen < w {
                                 format!("{}{}", s, " ".repeat(w - slen))
@@ -575,14 +600,22 @@ impl fmt::Display for Value {
             }
             Value::Interval(iv) => write!(f, "{iv}"),
             Value::Matrix(m) => write!(f, "{m}"),
-            Value::Range { start, end, inclusive } => {
+            Value::Range {
+                start,
+                end,
+                inclusive,
+            } => {
                 if *inclusive {
                     write!(f, "{start}..={end}")
                 } else {
                     write!(f, "{start}..{end}")
                 }
             }
-            Value::EnumValue { enum_name, variant, fields } => {
+            Value::EnumValue {
+                enum_name,
+                variant,
+                fields,
+            } => {
                 if fields.is_empty() {
                     write!(f, "{enum_name}::{variant}")
                 } else {
@@ -623,11 +656,32 @@ impl fmt::Display for Value {
                 write!(f, ")")
             }
             Value::CompiledClosure(_) => write!(f, "<compiled fn>"),
-            Value::Gene { symbol, chrom, start, end, strand, biotype, .. } => {
-                write!(f, "Gene({symbol} {chrom}:{start}-{end}:{strand} [{biotype}])")
+            Value::Gene {
+                symbol,
+                chrom,
+                start,
+                end,
+                strand,
+                biotype,
+                ..
+            } => {
+                write!(
+                    f,
+                    "Gene({symbol} {chrom}:{start}-{end}:{strand} [{biotype}])"
+                )
             }
-            Value::Variant { chrom, pos, ref_allele, alt_allele, quality, .. } => {
-                write!(f, "Variant({chrom}:{pos} {ref_allele}>{alt_allele} Q={quality:.0})")
+            Value::Variant {
+                chrom,
+                pos,
+                ref_allele,
+                alt_allele,
+                quality,
+                ..
+            } => {
+                write!(
+                    f,
+                    "Variant({chrom}:{pos} {ref_allele}>{alt_allele} Q={quality:.0})"
+                )
             }
             Value::Genome { name, assembly, .. } => write!(f, "Genome({name} {assembly})"),
             Value::Quality(scores) => {
@@ -635,7 +689,11 @@ impl fmt::Display for Value {
                 write!(f, "Quality({ascii})")
             }
             Value::AlignedRead(r) => {
-                write!(f, "AlignedRead({} {}:{} {})", r.qname, r.rname, r.pos, r.cigar)
+                write!(
+                    f,
+                    "AlignedRead({} {}:{} {})",
+                    r.qname, r.rname, r.pos, r.cigar
+                )
             }
         }
     }
@@ -659,12 +717,28 @@ impl PartialEq for Value {
             (Value::Interval(a), Value::Interval(b)) => a == b,
             (Value::Matrix(a), Value::Matrix(b)) => a == b,
             (
-                Value::Range { start: s1, end: e1, inclusive: i1 },
-                Value::Range { start: s2, end: e2, inclusive: i2 },
+                Value::Range {
+                    start: s1,
+                    end: e1,
+                    inclusive: i1,
+                },
+                Value::Range {
+                    start: s2,
+                    end: e2,
+                    inclusive: i2,
+                },
             ) => s1 == s2 && e1 == e2 && i1 == i2,
             (
-                Value::EnumValue { enum_name: a, variant: av, fields: af },
-                Value::EnumValue { enum_name: b, variant: bv, fields: bf },
+                Value::EnumValue {
+                    enum_name: a,
+                    variant: av,
+                    fields: af,
+                },
+                Value::EnumValue {
+                    enum_name: b,
+                    variant: bv,
+                    fields: bf,
+                },
             ) => a == b && av == bv && af == bf,
             (
                 Value::PluginFunction {
@@ -681,23 +755,57 @@ impl PartialEq for Value {
             (Value::Set(a), Value::Set(b)) => a == b,
             (Value::Tuple(a), Value::Tuple(b)) => a == b,
             (
-                Value::Regex { pattern: a, flags: af },
-                Value::Regex { pattern: b, flags: bf },
+                Value::Regex {
+                    pattern: a,
+                    flags: af,
+                },
+                Value::Regex {
+                    pattern: b,
+                    flags: bf,
+                },
             ) => a == b && af == bf,
             (Value::Kmer(a), Value::Kmer(b)) => a == b,
             (Value::SparseMatrix(a), Value::SparseMatrix(b)) => a == b,
             (Value::CompiledClosure(a), Value::CompiledClosure(b)) => Arc::ptr_eq(a, b),
             (
-                Value::Gene { symbol: a, gene_id: ai, .. },
-                Value::Gene { symbol: b, gene_id: bi, .. },
+                Value::Gene {
+                    symbol: a,
+                    gene_id: ai,
+                    ..
+                },
+                Value::Gene {
+                    symbol: b,
+                    gene_id: bi,
+                    ..
+                },
             ) => a == b && ai == bi,
             (
-                Value::Variant { chrom: ac, pos: ap, ref_allele: ar, alt_allele: aa, .. },
-                Value::Variant { chrom: bc, pos: bp, ref_allele: br, alt_allele: ba, .. },
+                Value::Variant {
+                    chrom: ac,
+                    pos: ap,
+                    ref_allele: ar,
+                    alt_allele: aa,
+                    ..
+                },
+                Value::Variant {
+                    chrom: bc,
+                    pos: bp,
+                    ref_allele: br,
+                    alt_allele: ba,
+                    ..
+                },
             ) => ac == bc && ap == bp && ar == br && aa == ba,
             (
-                Value::Genome { name: an, assembly: aa, .. },
-                Value::Genome { name: bn, assembly: ba, .. },
+                Value::Genome {
+                    name: an,
+                    assembly: aa,
+                    ..
+                },
+                Value::Genome {
+                    name: bn,
+                    assembly: ba,
+                    ..
+                },
             ) => an == bn && aa == ba,
             (Value::Quality(a), Value::Quality(b)) => a == b,
             (Value::AlignedRead(a), Value::AlignedRead(b)) => a == b,

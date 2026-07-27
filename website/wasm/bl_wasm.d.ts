@@ -7,6 +7,11 @@
 export function evaluate(source: string): string;
 
 /**
+ * Convert Python, R, Jupyter, or R Markdown and return a structured validation result.
+ */
+export function import_source(source: string, format: string, filename: string): string;
+
+/**
  * Initialize the WASM module (set panic hook for better error messages).
  */
 export function init(): void;
@@ -31,16 +36,23 @@ export function reset(): void;
  */
 export function tokenize(source: string): string;
 
+/**
+ * Validate a BioLang script or BioLang notebook without executing it.
+ */
+export function validate_import(source: string, notebook: boolean): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly evaluate: (a: number, b: number) => [number, number];
+    readonly import_source: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
     readonly init: () => void;
     readonly list_builtins: () => [number, number];
     readonly list_variables: () => [number, number];
     readonly reset: () => void;
     readonly tokenize: (a: number, b: number) => [number, number];
+    readonly validate_import: (a: number, b: number, c: number) => [number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;

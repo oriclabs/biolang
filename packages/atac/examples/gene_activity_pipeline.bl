@@ -1,0 +1,68 @@
+# Gene activity from scATAC fragments, then the standard single-cell workflow.
+#
+# Demonstrates the point of atac.activity(): its output has the same shape
+# read_10x() returns, so sc.normalize / variable_genes / neighbors /
+# cluster_leiden / marker_table all apply to chromatin data unchanged.
+#
+# Inputs are synthetic, with three populations that differ in which genes they
+# are accessible at, so the recovered clustering can be scored exactly.
+# Generate them first, from this directory:
+#
+#   python make_synthetic_atac.py
+#
+# then run this script from the packages/ directory:
+#
+#   bl run atac/examples/gene_activity_pipeline.bl
+#
+# Note the paths below assume the generated files sit in the working directory.
+
+import "atac/src/mod" as atac
+import "singlecell/src/mod" as sc
+
+let genes = atac.from_gtf(read_text("genes.gtf"))
+println("genes in annotation: " + str(nrow(genes)))
+
+let obj = atac.activity("fragments.tsv.gz", genes, 2000, 0)
+println("cells=" + str(obj.n_cells) + " features=" + str(obj.n_genes))
+println("fragments=" + str(obj.n_fragments) +
+        " in-features=" + str(obj.n_fragments_in_features))
+
+# The whole point: the RNA workflow runs on this object unchanged.
+let res = obj
+    |> sc.normalize(10000.0)
+    |> sc.variable_genes(120)
+    |> sc.neighbors(15)
+    |> sc.cluster_leiden(15, 1.0)
+
+let labels = res.clusters
+println("clusters found: " + str(labels |> unique |> len))
+
+let truth = read_lines("truth.csv") |> filter(|s| len(s) > 0)
+            |> map(|line| split(line, ","))
+let bc_truth = truth |> map(|r| r[0])
+let pop = truth |> map(|r| int(r[1]))
+let want = obj.barcodes |> map(|b| pop[find_index(bc_truth, |x| x == b)])
+
+println("ARI vs known populations = " + str(round(ari(labels, want), 4)))
+
+# Marker recovery: GENE000-039 mark pop 0, 040-079 pop 1, 080-119 pop 2.
+# Take the cluster holding most of pop 0 and check its top markers land in
+# the right block.
+let ids = labels |> unique |> sort
+let sizes = ids |> map(|c| range(0, obj.n_cells)
+    |> filter(|i| labels[i] == c and want[i] == 0) |> len)
+let best = 0
+for k in range(1, len(sizes)) { if sizes[k] > sizes[best] { best = k } }
+let target = ids[best]
+
+let bin = labels |> map(|l| if l == target { 1 } else { 0 })
+let tmp = {... res, clusters: bin}
+let top = sc.marker_table(tmp, 0, 1)
+    |> filter(|m| m.padj < 0.05 and m.log2fc >= 1.0)
+    |> sort(|a, b| if a.log2fc > b.log2fc { -1 } else { 1 })
+    |> take(20)
+    |> map(|m| m.gene)
+
+let correct = top |> filter(|g| int(substr(g, 4, 7)) < 40) |> len
+println("pop-0 cluster top-20 markers in GENE000-039: " +
+        str(correct) + "/" + str(len(top)))

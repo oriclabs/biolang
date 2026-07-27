@@ -1,0 +1,47 @@
+# Plotting a single-cell analysis.
+#
+# The plotting builtins want shapes the sc object does not have — umap_plot needs
+# a List<Record> with x/y fields while umap() returns a Matrix, and violin needs a
+# Table whose columns are the groups. sc.plot_* does that conversion, so a
+# clustered object goes straight into a figure.
+#
+# Generate the demo 10x directory first, from packages/:
+#
+#   python singlecell/examples/make_demo_10x.py
+#
+# then:  bl run singlecell/examples/plots.bl
+
+import "singlecell/src/mod" as sc
+
+let raw = read_10x("nsclc_like")
+
+# min_genes is 20 rather than 200 only because this demo matrix has 168 genes.
+let res = sc.standard(raw, 0.5, 2000, 15, 20, nil, nil, nil, nil, true)
+println("cells=" + str(res.n_cells) + "  clusters=" + str(res.n_clusters))
+println("")
+
+# ── embeddings ────────────────────────────────────────────────────────────────
+# plot_umap is Seurat's DimPlot; plot_feature is FeaturePlot (binned, because
+# umap_plot colours by a categorical column rather than a gradient).
+let marker = res.hvg_genes[0]
+write_text("umap.svg", sc.plot_umap(res))
+write_text("pca.svg", sc.plot_pca(res))
+write_text("feature.svg", sc.plot_feature(res, marker))
+
+# ── distributions and markers ─────────────────────────────────────────────────
+write_text("violin.svg", sc.plot_violin(res, marker))
+write_text("markers.svg", sc.plot_markers(res, 3))
+
+# ── the dot plot ──────────────────────────────────────────────────────────────
+# Circle size = fraction of cells expressing, colour = mean among expressing.
+# Note the `dotplot` builtin is a sequence dot-matrix and unrelated to this.
+write_text("dotplot.svg", sc.expr_dotplot(res, res.hvg_genes |> take(8)))
+
+println("wrote umap.svg pca.svg feature.svg violin.svg markers.svg dotplot.svg")
+println("")
+
+# ── ASCII summaries ───────────────────────────────────────────────────────────
+# These print rather than returning SVG.
+sc.plot_elbow(res, 8)
+println("")
+sc.plot_proportions(res)

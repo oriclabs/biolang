@@ -68,7 +68,7 @@ print(compound_text)</code></pre>
 let network = string_network(["TP53"], 9606)
 # Returns list of: {protein_a, protein_b, score}
 
-network |> each(|i| print(i.protein_a + " <-> " + i.protein_b + " score: " + str(i.score)))
+network |> each(|i| print(i.protein_a + " &lt;-> " + i.protein_b + " score: " + str(i.score)))
 
 # Get network for multiple proteins
 let proteins = ["BRCA1", "BRCA2", "RAD51", "ATM", "ATR"]
@@ -82,7 +82,7 @@ print(high_conf |> len(), "high-confidence interactions")
 let enrichment = string_enrichment(proteins, 9606)
 enrichment
   |> filter(|e| e.category == "Process")
-  |> sort(.fdr)
+  |> sort_by(|term| term.fdr)
   |> take(10)
   |> map(|e| print(e.term, e.description, "FDR:", e.fdr))</code></pre>
 
@@ -130,7 +130,7 @@ pathways |> map(|p| print(p.id, p.name))
 let genes = ["BRCA1", "BRCA2", "RAD51"]
 genes |> map(|g| {
   let paths = reactome_pathways(g)
-  print("{g}: {paths |> len()} pathways")
+  print(f"{g}: {paths |> len()} pathways")
 })</code></pre>
 
         <h2>Gene Ontology (GO)</h2>
@@ -181,14 +181,14 @@ mutations |> map(|m| {
 
 # Sort by mutation frequency
 mutations
-  |> sort(.count)
+  |> sort_by(|mutation| mutation.count)
   |> reverse()
   |> take(20)
   |> map(|m| print(m.aa_mutation, "count:", m.count))
 
 # Check another gene
 let egfr = cosmic_gene("EGFR")
-print("EGFR: {egfr |> len()} mutations found")</code></pre>
+print(f"EGFR: {egfr |> len()} mutations found")</code></pre>
 
         <h2>BioMart (Ensembl BioMart)</h2>
         <p>
@@ -240,19 +240,19 @@ orthologs |> to_table() |> print()</code></pre>
           </table>
           <pre><code class="language-biolang"># Navigate the GO hierarchy
 let children = go_children("GO:0008150")
-print("Child terms: {children |> len()}")
+print(f"Child terms: {children |> len()}")
 children |> map(|c| print(c.id, c.name))
 
 # Look up a specific term and its children
 let term = go_term("GO:0005634")     # nucleus
 let kids = go_children("GO:0005634")
-print("{term.name} has {kids |> len()} children")
+print(f"{term.name} has {kids |> len()} children")
 
 # Get annotations and cross-reference with term details
 let annotations = go_annotations("BRCA1")
 annotations |> map(|a| {
   let detail = go_term(a.go_id)
-  print(a.go_id, detail.name, "({detail.namespace})")
+  print(a.go_id, detail.name, f"({detail.namespace})")
 })</code></pre>
         </section>
       </article>

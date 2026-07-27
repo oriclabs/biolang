@@ -1,0 +1,174 @@
+# oric/src/find.bl — Origin of replication prediction
+#
+# Predicts bacterial oriC using:
+#   1. Cumulative GC skew minimum (major signal)
+#   2. DnaA box density within ±500 bp of the skew minimum
+#   3. AT-content of the candidate region
+#
+# Usage:
+#   import "oric" as oric
+#   let result = oric.predict_oric(genome_seq)
+#   println(result.candidate_pos, result.confidence)
+
+# Default DnaA box consensus (Escherichia coli / most Gammaproteobacteria)
+const DNAA_BOX_CONSENSUS = "TTATCCACA"
+
+# IUPAC degenerate DnaA box that covers known variants across species
+const DNAA_BOX_IUPAC = "TTATNCANA"
+
+## find_dnaa_boxes(seq, pattern?, max_mismatches?) → List<{pos, strand, matched, mismatches}>
+##
+## Locate DnaA boxes on both strands using IUPAC-aware matching.
+## Default pattern: "TTATCCACA" (canonical E. coli consensus)
+## Default max_mismatches: 1 (catches common single-substitution variants)
+fn find_dnaa_boxes(seq, pattern = DNAA_BOX_CONSENSUS, max_mismatches = 1) {
+    find_pattern(seq, pattern, max_mismatches)
+}
+
+## gc_skew_profile(seq, window_size?) → List<{pos, end, g, c, skew, cumulative_skew}>
+##
+## Compute per-window GC skew and cumulative GC skew.
+## The minimum of cumulative GC skew marks the likely replication terminus;
+## the maximum marks the likely origin.
+fn gc_skew_profile(seq, window_size = 1000) {
+    gc_skew(seq, window_size)
+}
+
+## find_skew_minimum(profile) → {pos, cumulative_skew}
+##
+## Return the window with the most negative cumulative GC skew (terminus).
+fn find_skew_minimum(profile) {
+    profile |> min_by(|w| w.cumulative_skew)
+}
+
+## find_skew_maximum(profile) → {pos, cumulative_skew}
+##
+## Return the window with the most positive cumulative GC skew (origin).
+fn find_skew_maximum(profile) {
+    profile |> max_by(|w| w.cumulative_skew)
+}
+
+## at_content(seq) → Float
+##
+## Fraction of A+T bases in the sequence.
+fn at_content(seq) {
+    let counts = base_counts(seq)
+    let at = counts.A + counts.T
+    let total = counts.total
+    if total == 0 then 0.0 else at / total
+}
+
+## predict_oric(seq, window_size?, search_radius?, dnaa_pattern?, max_mismatches?) → Record
+##
+## Full oriC prediction pipeline:
+##  1. Compute cumulative GC skew
+##  2. Find the maximum (oriC side) and minimum (ter side)
+##  3. Search for DnaA boxes within search_radius bp of the skew maximum
+##  4. Score confidence from DnaA box count + AT content
+##
+## Returns:
+##   candidate_pos   — position of the predicted oriC (bp)
+##   skew_max        — GC skew maximum record {pos, cumulative_skew}
+##   skew_min        — GC skew minimum record {pos, cumulative_skew}
+##   dnaa_boxes      — List of DnaA box hits near candidate
+##   at_fraction     — AT fraction in the ±search_radius region
+##   confidence      — 0–5 score: 5 = high, 0 = no signal
+##   note            — human-readable summary
+fn predict_oric(seq, window_size = 1000, search_radius = 500, dnaa_pattern = DNAA_BOX_CONSENSUS, max_mismatches = 1) {
+    let profile = gc_skew_profile(seq, window_size)
+    if len(profile) == 0 {
+        return {
+            candidate_pos: 0,
+            skew_max: nil,
+            skew_min: nil,
+            dnaa_boxes: [],
+            at_fraction: 0.0,
+            confidence: 0,
+            note: "Sequence too short for GC skew analysis"
+        }
+    }
+
+    let skew_max = find_skew_maximum(profile)
+    let skew_min = find_skew_minimum(profile)
+    let candidate = skew_max.pos
+
+    # Find DnaA boxes within search_radius of the candidate position
+    let all_boxes = find_dnaa_boxes(seq, dnaa_pattern, max_mismatches)
+    let nearby_boxes = all_boxes |> filter(|b| abs(b.pos - candidate) <= search_radius)
+
+    # Compute AT content of the candidate region
+    let region_start = max(0, candidate - search_radius)
+    let region_end = min(seq_len(seq), candidate + search_radius)
+    let region = subseq(seq, region_start, region_end)
+    let at_frac = at_content(region)
+
+    # Score confidence (0–5)
+    let box_count = len(nearby_boxes)
+    let conf = 0
+    if box_count >= 3 { conf = conf + 2 }
+    else if box_count >= 1 { conf = conf + 1 }
+    if at_frac >= 0.60 { conf = conf + 1 }
+    if skew_max.cumulative_skew > 0 and skew_min.cumulative_skew < 0 { conf = conf + 1 }
+    let skew_amplitude = abs(skew_max.cumulative_skew - skew_min.cumulative_skew)
+    if skew_amplitude > 2.0 { conf = conf + 1 }
+
+    let note = if conf >= 4 then "Strong oriC signal"
+               else if conf >= 2 then "Moderate oriC signal — verify with experimental data"
+               else "Weak signal — may not be a canonical oriC"
+
+    {
+        candidate_pos: candidate,
+        candidate_end: region_end,
+        skew_max: skew_max,
+        skew_min: skew_min,
+        dnaa_boxes: nearby_boxes,
+        dnaa_box_count: box_count,
+        at_fraction: at_frac,
+        search_radius: search_radius,
+        confidence: conf,
+        note: note
+    }
+}
+
+## scan_oric_table(seq, window_size?, step?) → Table
+##
+## Return the full GC skew profile as a table for plotting or CSV export.
+fn scan_oric_table(seq, window_size = 1000, step = 500) {
+    gc_skew(seq, window_size)
+        |> map(|w| {
+            chrom: "genome",
+            pos: w.pos,
+            end: w.end,
+            gc_skew: w.skew,
+            cumulative_gc_skew: w.cumulative_skew,
+            g_count: w.g,
+            c_count: w.c
+        })
+}
+
+## plot_skew(seq, window_size?) — Print ASCII cumulative GC skew chart
+fn plot_skew(seq, window_size = 1000) {
+    let profile = gc_skew_profile(seq, window_size)
+    let values = profile |> map(|w| w.cumulative_skew)
+    let min_val = values |> min()
+    let max_val = values |> max()
+    let range = max_val - min_val
+    let width = 60
+
+    println("Cumulative GC Skew (+ = oriC side, − = ter side)")
+    println(str("-") * (width + 12))
+    for w in profile {
+        let norm = if range > 0.0 then (w.cumulative_skew - min_val) / range else 0.5
+        let bar_pos = int(norm * (width - 1))
+        let mid = width / 2
+        let line = str(" ") * width
+        # Place marker
+        let line = str_replace(line, bar_pos, "*")
+        println(str(w.pos) |> pad_left(8) + " |" + line + "| " + format_float(w.cumulative_skew, 3))
+    }
+    println(str("-") * (width + 12))
+    let peak = find_skew_maximum(profile)
+    let trough = find_skew_minimum(profile)
+    println("Predicted oriC region: ~" + str(peak.pos) + " bp")
+    println("Predicted ter region:  ~" + str(trough.pos) + " bp")
+}

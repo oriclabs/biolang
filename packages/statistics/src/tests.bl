@@ -1,0 +1,7 @@
+# Hypothesis tests
+
+fn fisher(a, b, c, d)     { fisher_exact(a, b, c, d) }
+fn chi2(observed, expected){ chi_square(observed, expected) }
+fn permtest(a, b, n=1000)  { permutation_test(a, b, n) }
+fn bootstrap(values, n=1000, conf=0.95) { bootstrap_ci(values, n, conf) }
+fn pearson(x, y)           { pearson_correlation(x, y) }

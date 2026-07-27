@@ -1,0 +1,18 @@
+# Load a Visium tissue_positions CSV and attach to a singlecell object.
+# CSV must have columns: barcode, in_tissue, array_row, array_col, pxl_row_in_fullres, pxl_col_in_fullres
+fn load_coords(obj, coords_csv) {
+  let pos = read_csv(coords_csv)
+  let in_tissue = pos |> filter(fn(r) -> r.in_tissue == 1)
+  obj |> set_field("coords", in_tissue)
+}
+
+fn get_coords(obj)    { obj.coords }
+fn spot_x(obj)        { obj.coords.pxl_col_in_fullres }
+fn spot_y(obj)        { obj.coords.pxl_row_in_fullres }
+
+# Build spatial neighbor graph (k defaults to 6 for Visium hexagonal grid)
+fn neighbors(obj, k = 6) {
+  let coords_table = {x: spot_x(obj), y: spot_y(obj)}
+  let adj = spatial_neighbors(coords_table, k)
+  obj |> set_field("spatial_adj", adj)
+}

@@ -98,9 +98,7 @@ pub fn align(seq1: &str, seq2: &str, params: &AlignParams) -> AlignResult {
             mat_y[i][j] = (mat_m[i][j - 1] + params.gap_open + params.gap_extend)
                 .max(mat_y[i][j - 1] + params.gap_extend);
 
-            mat_m[i][j] = (mat_m[i - 1][j - 1] + s)
-                .max(mat_x[i][j])
-                .max(mat_y[i][j]);
+            mat_m[i][j] = (mat_m[i - 1][j - 1] + s).max(mat_x[i][j]).max(mat_y[i][j]);
 
             if is_local {
                 mat_m[i][j] = mat_m[i][j].max(0);
@@ -227,11 +225,7 @@ fn cigar_op(a: u8, b: u8) -> char {
 pub fn edit_distance(seq1: &str, seq2: &str) -> usize {
     let a = seq1.as_bytes();
     let b = seq2.as_bytes();
-    let (short, long) = if a.len() <= b.len() {
-        (a, b)
-    } else {
-        (b, a)
-    };
+    let (short, long) = if a.len() <= b.len() { (a, b) } else { (b, a) };
 
     let mut prev: Vec<usize> = (0..=short.len()).collect();
     let mut curr = vec![0; short.len() + 1];
@@ -274,7 +268,9 @@ pub const AA_ORDER: &[u8; 20] = b"ACDEFGHIKLMNPQRSTVWY";
 
 /// Map amino acid to index in scoring matrix.
 pub fn aa_index(c: char) -> Option<usize> {
-    AA_ORDER.iter().position(|&a| a == c.to_ascii_uppercase() as u8)
+    AA_ORDER
+        .iter()
+        .position(|&a| a == c.to_ascii_uppercase() as u8)
 }
 
 /// BLOSUM62 scoring matrix (20x20, AA_ORDER).

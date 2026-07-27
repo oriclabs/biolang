@@ -55,9 +55,7 @@ pub fn neighbor_joining(distances: &[Vec<f64>], names: Option<&[String]>) -> Vec
 
         for ai in 0..m {
             for aj in (ai + 1)..m {
-                let q = (m as f64 - 2.0) * d[active[ai]][active[aj]]
-                    - row_sums[ai]
-                    - row_sums[aj];
+                let q = (m as f64 - 2.0) * d[active[ai]][active[aj]] - row_sums[ai] - row_sums[aj];
                 if q < min_q {
                     min_q = q;
                     min_pair = (ai, aj);

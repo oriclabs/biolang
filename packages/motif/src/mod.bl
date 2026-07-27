@@ -1,0 +1,23 @@
+# motif — Transcription factor motif analysis for BioLang
+#
+# Quick start:
+#   import "motif" as motif
+#
+#   # IUPAC pattern scanning
+#   motif.iupac(sequence, "TGASTCA")   # AP-1 motif
+#
+#   # PWM construction and scanning
+#   let pwm = motif.pwm(aligned_peaks)
+#   motif.scan(sequence, pwm, threshold=0.85)
+#
+#   # Enrichment in ChIP-seq peaks vs background
+#   motif.enrich(peak_seqs, background_seqs, "CACGTG")
+
+import "motif/src/scan" as sc
+
+fn iupac(seq, pattern)              { sc.iupac(seq, pattern) }
+fn pwm(aligned_seqs)                { sc.pwm(aligned_seqs) }
+fn scan(seq, pwm_table, t=0.8)      { sc.scan(seq, pwm_table, t) }
+fn consensus(pwm_table)             { sc.consensus(pwm_table) }
+fn gc(seq, window=100)              { sc.gc(seq, window) }
+fn enrich(fg, bg, pattern)          { motif_enrichment(fg, bg, pattern) }

@@ -26,102 +26,49 @@
       <article class="prose prose-invert max-w-none">
         <h1>First Script</h1>
         <p>
-          In this guide you will build a complete BioLang script that reads a FASTQ file, computes
-          quality statistics, filters reads, and writes a summary report. This covers variables,
-          functions, pipes, file I/O, and error handling.
+          Build a BioLang script that reads FASTQ records, computes quality statistics,
+          filters reads, and writes a tab-separated report.
         </p>
 
-        <h2>The Script Structure</h2>
+        <h2>Inputs</h2>
         <p>
-          BioLang scripts are plain text files with the <code>.bl</code> extension. A script is a
-          sequence of expressions evaluated top-to-bottom. There is no <code>main</code> function
-          required.
+          BioLang scripts are <code>.bl</code> files evaluated from top to bottom. The current
+          <code>bl run</code> command accepts a script path, so configure input values in the
+          script or read them from environment variables with <code>env()</code>.
         </p>
-        <pre><code class="language-biolang"># qc_report.bl — FASTQ quality report generator
-# Usage: bl run qc_report.bl -- --input reads.fastq</code></pre>
-        <p>
-          BioLang's standard library functions are available globally — there are no module
-          imports needed. File I/O, FASTQ parsing, and statistical functions are all built-in.
-        </p>
+        <pre><code class="language-biolang"># qc_report.bl
+let input_path = env("FASTQ_INPUT") ?? "sample_R1.fastq"
+let min_quality = 25.0
+let output_path = "qc_report.tsv"
 
-        <h2>Reading Command-Line Arguments</h2>
-        <p>
-          Scripts can accept arguments using the built-in <code>args</code> module. Arguments after
-          <code>--</code> on the command line are passed to the script.
-        </p>
-        <pre><code class="language-biolang"># Parse command-line arguments
-let input_path = args.get("--input") ?? error("Missing --input argument")
-let min_quality = float(args.get("--min-quality") ?? "20.0")
-let output_path = args.get("--output") ?? "qc_report.txt"
+println(f"Processing: {input_path}")
+println(f"Quality threshold: {min_quality}")</code></pre>
 
-print("Processing: {input_path}")
-print("Quality threshold: {min_quality}")</code></pre>
-        <p>
-          The <code>??</code> operator provides a default value when the left side is <code>nil</code>.
-          String interpolation uses curly braces inside double-quoted strings.
-        </p>
-
-        <h2>Reading a FASTQ File</h2>
-        <p>
-          The built-in <code>read_fastq</code> function reads FASTQ records from a file.
-        </p>
-        <pre><code class="language-biolang"># Open and read the FASTQ file
-let records = read_fastq(input_path)
-
-# Count total records
+        <h2>Read FASTQ Records</h2>
+        <pre><code class="language-biolang">let records = read_fastq(input_path)
 let total = len(records)
-print("Total reads: {total}")</code></pre>
-        <p>
-          For large files, you can process records lazily using pipes. BioLang's pipe chains are
-          evaluated lazily by default when reading from streams, meaning the file is read only as
-          needed.
-        </p>
+println(f"Total reads: {total}")</code></pre>
 
-        <h2>Computing Quality Statistics</h2>
-        <p>
-          Each FASTQ record has a <code>quality</code> field containing Phred scores. BioLang
-          makes it straightforward to compute statistics across all reads.
-        </p>
-        <pre><code class="language-biolang"># Compute per-read average quality scores
-let qualities = read_fastq(input_path)
-  |> map(|record| {
-    "name": record.id,
-    "length": record.length,
-    "mean_quality": mean_phred(record.quality),
-    "gc_content": gc_content(record.seq)
-  })
+        <h2>Compute Per-Read Metrics</h2>
+        <pre><code class="language-biolang">let qualities = records |> map(|record| {
+  {
+    name: record.id,
+    length: record.length,
+    mean_quality: mean_phred(record.quality),
+    gc_content: gc_content(record.seq)
+  }
+})
 
-# Overall statistics
-let mean_qual = qualities |> map(|r| r["mean_quality"]) |> mean()
-let mean_len = qualities |> map(|r| r["length"]) |> mean()
-let mean_gc = qualities |> map(|r| r["gc_content"]) |> mean()
+let mean_qual = qualities |> map(|r| r.mean_quality) |> mean()
+let mean_len = qualities |> map(|r| r.length) |> mean()
+let mean_gc = qualities |> map(|r| r.gc_content) |> mean()
 
-print("Mean quality: {mean_qual:.2}")
-print("Mean length:  {mean_len:.0}")
-print("Mean GC:      {mean_gc:.3}")</code></pre>
+println(f"Mean quality: {round(mean_qual, 2)}")
+println(f"Mean length: {round(mean_len, 1)}")
+println(f"Mean GC: {round(mean_gc, 3)}")</code></pre>
 
-        <h2>Filtering Reads</h2>
-        <p>
-          Use <code>filter</code> to select reads meeting quality criteria. The pipe chain reads
-          naturally from top to bottom:
-        </p>
-        <pre><code class="language-biolang"># Filter reads by quality and length
-let passing_reads = qualities
-  |> filter(|r| r["mean_quality"] >= min_quality)
-  |> filter(|r| r["length"] >= 50)
-
-let pass_count = len(passing_reads)
-let pass_rate = pass_count / total * 100.0
-
-print("Passing reads: {pass_count} ({pass_rate:.1}%)")</code></pre>
-
-        <h2>Defining Helper Functions</h2>
-        <p>
-          Functions are defined with <code>fn</code>. They can be placed anywhere in the file, but
-          by convention go after imports and before the main logic.
-        </p>
-        <pre><code class="language-biolang"># Classify a read's quality
-fn quality_tier(mean_q: Float) -> String {
+        <h2>Filter and Classify</h2>
+        <pre><code class="language-biolang">fn quality_tier(mean_q) {
   if mean_q >= 35.0 {
     "excellent"
   } else if mean_q >= 25.0 {
@@ -133,91 +80,74 @@ fn quality_tier(mean_q: Float) -> String {
   }
 }
 
-# Count reads by quality tier
-let tier_counts = passing_reads
-  |> map(|r| quality_tier(r["mean_quality"]))
-  |> group_by("_value")
-  |> summarize(|key, rows| { key: key, count: len(rows) })
+let passing = qualities
+  |> filter(|r| r.mean_quality >= min_quality)
+  |> filter(|r| r.length >= 50)
 
-print("Quality tiers:")
-for tier, count in tier_counts {
-  print("  {tier}: {count}")
+let pass_rate = float(len(passing)) / float(total) * 100.0
+println(f"Passing reads: {len(passing)} ({round(pass_rate, 1)}%)")
+
+let tier_counts = passing
+  |> map(|r| quality_tier(r.mean_quality))
+  |> frequencies()
+
+for tier in keys(tier_counts) {
+  println(f"  {tier}: {tier_counts[tier]}")
 }</code></pre>
 
-        <h2>Writing Output</h2>
-        <p>
-          BioLang can write to text files, TSV, CSV, and JSON. Here we generate a tab-delimited
-          summary report:
-        </p>
-        <pre><code class="language-biolang"># Build the report lines
-let header = "read_name\tlength\tmean_quality\tgc_content\ttier"
-let lines = passing_reads
-  |> map(|r| {
-    let tier = quality_tier(r["mean_quality"])
-    "{r['name']}\t{r['length']}\t{r['mean_quality']:.2}\t{r['gc_content']:.4}\t{tier}"
-  })
+        <h2>Write the Report</h2>
+        <pre><code class="language-biolang">let header = "read_name\tlength\tmean_quality\tgc_content\ttier"
+let lines = passing |> map(|r| {
+  let tier = quality_tier(r.mean_quality)
+  f"{r.name}\t{r.length}\t{round(r.mean_quality, 2)}\t{round(r.gc_content, 4)}\t{tier}"
+})
 
-# Write to file
-write_text(output_path, join([header] + lines, "\n"))
-print("Report written to {output_path}")</code></pre>
+write_text(output_path, join(concat([header], lines), "\n"))
+println(f"Report written to {output_path}")</code></pre>
 
-        <h2>The Complete Script</h2>
-        <p>
-          Here is the full script assembled together. Save it as <code>qc_report.bl</code> and
-          run it against any FASTQ file:
-        </p>
-        <pre><code class="language-biolang"># qc_report.bl — FASTQ quality report generator
+        <h2>Complete Script</h2>
+        <pre><code class="language-biolang"># qc_report.bl
+let input_path = env("FASTQ_INPUT") ?? "sample_R1.fastq"
+let min_quality = 25.0
+let output_path = "qc_report.tsv"
 
-# Arguments
-let input_path = args.get("--input") ?? error("Missing --input")
-let min_quality = float(args.get("--min-quality") ?? "20.0")
-let output_path = args.get("--output") ?? "qc_report.txt"
-
-# Helper
-fn quality_tier(mean_q: Float) -> String {
+fn quality_tier(mean_q) {
   if mean_q >= 35.0 { "excellent" }
   else if mean_q >= 25.0 { "good" }
   else if mean_q >= 20.0 { "acceptable" }
   else { "poor" }
 }
 
-# Read and compute stats
 let records = read_fastq(input_path)
-let total = len(records)
+let qualities = records |> map(|record| {
+  {
+    name: record.id,
+    length: record.length,
+    mean_quality: mean_phred(record.quality),
+    gc_content: gc_content(record.seq)
+  }
+})
 
-let qualities = read_fastq(input_path)
-  |> map(|record| {
-    {
-      "name": record.id,
-      "length": record.length,
-      "mean_quality": mean_phred(record.quality),
-      "gc_content": gc_content(record.seq)
-    }
-  })
-
-# Filter
 let passing = qualities
-  |> filter(|r| r["mean_quality"] >= min_quality)
-  |> filter(|r| r["length"] >= 50)
+  |> filter(|r| r.mean_quality >= min_quality)
+  |> filter(|r| r.length >= 50)
 
-# Report
 let header = "read_name\tlength\tmean_quality\tgc_content\ttier"
 let lines = passing |> map(|r| {
-  let tier = quality_tier(r["mean_quality"])
-  "{r['name']}\t{r['length']}\t{r['mean_quality']:.2}\t{r['gc_content']:.4}\t{tier}"
+  let tier = quality_tier(r.mean_quality)
+  f"{r.name}\t{r.length}\t{round(r.mean_quality, 2)}\t{round(r.gc_content, 4)}\t{tier}"
 })
-write_text(output_path, join([header] + lines, "\n"))
-print("Done. {len(passing)}/{total} reads passed. Report: {output_path}")</code></pre>
 
-        <h2>Running It</h2>
-        <pre><code class="language-bash">bl run qc_report.bl -- --input sample_R1.fastq --min-quality 25 --output report.tsv</code></pre>
+write_text(output_path, join(concat([header], lines), "\n"))
+println(f"Done. {len(passing)}/{len(records)} reads passed. Report: {output_path}")</code></pre>
 
-        <h2>Next Steps</h2>
-        <p>
-          You've built a realistic data processing script. Continue to
-          <a href="editor-setup.html" class="text-violet-400 hover:text-violet-300">Editor Setup</a>
-          to configure syntax highlighting and language server support in your editor.
-        </p>
+        <h2>Run It</h2>
+        <pre><code class="language-bash"># PowerShell
+$env:FASTQ_INPUT = "sample_R1.fastq"
+bl run qc_report.bl
+
+# Bash
+FASTQ_INPUT=sample_R1.fastq bl run qc_report.bl</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="quickstart.html" class="text-violet-400 hover:text-violet-300 flex items-center gap-1">

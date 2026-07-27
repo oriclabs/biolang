@@ -27,12 +27,12 @@ let brca2_ovarian = [0.0, 0.1, 0.4, 1.0, 3.0, 8.0, 13.0, 17.0]
 let ages = [20, 25, 30, 40, 50, 60, 70, 80]
 
 for i in range(0, 8) {
-    pen_lines = append(pen_lines, f"BRCA1,{ages[i]},{brca1_breast[i]},{brca1_ovarian[i]}")
+    pen_lines = push(pen_lines, f"BRCA1,{ages[i]},{brca1_breast[i]},{brca1_ovarian[i]}")
 }
 for i in range(0, 8) {
-    pen_lines = append(pen_lines, f"BRCA2,{ages[i]},{brca2_breast[i]},{brca2_ovarian[i]}")
+    pen_lines = push(pen_lines, f"BRCA2,{ages[i]},{brca2_breast[i]},{brca2_ovarian[i]}")
 }
-write_lines(pen_lines, "data/brca_penetrance.csv")
+write_lines("data/brca_penetrance.csv", pen_lines)
 
 # --- File 2: diagnostic_test.csv ---
 # Simulated genetic test for BRCA pathogenic variants
@@ -42,8 +42,6 @@ write_lines(pen_lines, "data/brca_penetrance.csv")
 # 10,000 individuals with deterministic assignment based on position
 
 let diag_header = ["individual_id,true_status,test_result"]
-let diag_lines = diag_header
-
 # With prevalence 1/400 = 0.0025, expect ~25 carriers in 10,000
 # Sensitivity 99% -> ~25 TP, 0 FN
 # Specificity 99.8% -> ~20 FP out of 9975
@@ -59,28 +57,11 @@ let fn_ids = [13]
 let fp_ids = [100,500,1000,1500,2000,2500,3000,3500,4000,4500,
               5000,5500,6000,6500,7000,7500,8000,8500,9000,9500]
 
-for i in range(0, 10000) {
+let diag_rows = range(0, 10000) |> map(|i| {
     let pid = i + 1
-    let is_carrier = false
-    for c in carrier_ids {
-        if pid == c {
-            is_carrier = true
-        }
-    }
-
-    let is_fn = false
-    for f in fn_ids {
-        if pid == f {
-            is_fn = true
-        }
-    }
-
-    let is_fp = false
-    for f in fp_ids {
-        if pid == f {
-            is_fp = true
-        }
-    }
+    let is_carrier = contains(carrier_ids, pid)
+    let is_fn = contains(fn_ids, pid)
+    let is_fp = contains(fp_ids, pid)
 
     let status = if is_carrier { "carrier" } else { "non_carrier" }
     let result = if is_carrier {
@@ -89,9 +70,10 @@ for i in range(0, 10000) {
         if is_fp { "positive" } else { "negative" }
     }
 
-    diag_lines = append(diag_lines, f"{pid},{status},{result}")
-}
-write_lines(diag_lines, "data/diagnostic_test.csv")
+    f"{pid},{status},{result}"
+})
+let diag_lines = diag_header + diag_rows
+write_lines("data/diagnostic_test.csv", diag_lines)
 
 # --- File 3: hardy_weinberg.csv ---
 # 5 SNPs from 1000 Genomes with known EUR allele frequencies
@@ -103,17 +85,17 @@ let hw_lines = hw_header
 
 # Real SNPs with EUR frequencies — expected vs observed (slight deviations)
 # rs1805007: MC1R red hair variant, EUR freq(T)=0.09
-hw_lines = append(hw_lines, "rs1805007,C,T,0.91,828,164,8,830,160,10")
+hw_lines = push(hw_lines, "rs1805007,C,T,0.91,828,164,8,830,160,10")
 # rs4988235: LCT lactase persistence, EUR freq(A)=0.74
-hw_lines = append(hw_lines, "rs4988235,G,A,0.74,548,384,68,540,400,60")
+hw_lines = push(hw_lines, "rs4988235,G,A,0.74,548,384,68,540,400,60")
 # rs12913832: HERC2/OCA2 eye color, EUR freq(A)=0.72
-hw_lines = append(hw_lines, "rs12913832,A,G,0.72,518,403,79,525,390,85")
+hw_lines = push(hw_lines, "rs12913832,A,G,0.72,518,403,79,525,390,85")
 # rs1801133: MTHFR C677T, EUR freq(C)=0.64
-hw_lines = append(hw_lines, "rs1801133,C,T,0.64,410,461,129,405,470,125")
+hw_lines = push(hw_lines, "rs1801133,C,T,0.64,410,461,129,405,470,125")
 # rs7412: APOE epsilon-2, EUR freq(C)=0.92
-hw_lines = append(hw_lines, "rs7412,C,T,0.92,846,148,6,850,142,8")
+hw_lines = push(hw_lines, "rs7412,C,T,0.92,846,148,6,850,142,8")
 
-write_lines(hw_lines, "data/hardy_weinberg.csv")
+write_lines("data/hardy_weinberg.csv", hw_lines)
 
 println("Generated 3 files in data/")
 println("  data/brca_penetrance.csv — BRCA1/2 cumulative risk (Kuchenbaecker 2017)")

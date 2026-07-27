@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -381,8 +381,11 @@ boxplot(bp_table, {title: "Tumor Response by Treatment Arm"})
 <h2 id="violin-plot"><a class="header" href="#violin-plot">Violin Plot</a></h2>
 <p><strong>When</strong>: Like a box plot but shows the full distribution shape. Best for revealing multimodality that box plots miss.</p>
 <p><strong>How to read</strong>: The width of the “violin” at any value shows the density of observations there. A violin with two bulges indicates a bimodal distribution.</p>
-<pre><code class="language-bio">violin([control, low_dose, high_dose],
-  {labels: ["Control", "Low Dose", "High Dose"],
+<pre><code class="language-bio">let violin_data = table({
+  "Control": control, "Low Dose": low_dose, "High Dose": high_dose
+})
+violin(violin_data,
+  {
   title: "Response Distribution — Full Shape",
   ylabel: "Response Score"})
 </code></pre>
@@ -394,10 +397,7 @@ boxplot(bp_table, {title: "Tumor Response by Treatment Arm"})
 let gene_expr = rnorm(100, 50, 15)
 let drug_response = gene_expr |&gt; map(|x| -0.8 * x + 90 + rnorm(1, 0, 8)[0])
 
-scatter(gene_expr, drug_response,
-  {xlabel: "Gene Expression (TPM)",
-  ylabel: "Drug Response (%)",
-  title: "Gene Expression vs Drug Response"})
+scatter(gene_expr, drug_response)
 </code></pre>
 <p><strong>Publication tip</strong>: Add a trend line with confidence band for linear relationships. Use transparency (alpha) when points overlap. Report the correlation coefficient and p-value in the figure legend or panel.</p>
 <h2 id="line-plot"><a class="header" href="#line-plot">Line Plot</a></h2>
@@ -425,9 +425,13 @@ plot(tbl, {type: "line", x: "day", y: "volume", color: "group",
 <pre><code class="language-bio">let categories = ["Complete Response", "Partial Response", "Stable Disease", "Progressive"]
 let counts = [18, 35, 28, 19]
 
-bar_chart(categories, counts,
-  {title: "RECIST Response Categories",
-  ylabel: "Number of Patients"})
+let response_counts = {
+  Complete_Response: 18,
+  Partial_Response: 35,
+  Stable_Disease: 28,
+  Progressive: 19
+}
+bar_chart(response_counts, {title: "RECIST Response Categories"})
 </code></pre>
 <blockquote>
 <p><strong>Common pitfall:</strong> Bar charts with error bars (dynamite plots) are the most criticized visualization in biostatistics. They show only the mean and one measure of spread, hiding the actual data distribution. A sample with a bimodal distribution and a sample with a normal distribution can produce identical bar charts. Always prefer box plots, violin plots, or strip charts for continuous data.</p>
@@ -436,6 +440,12 @@ bar_chart(categories, counts,
 <p><strong>When</strong>: Visualize a matrix of values (gene expression across samples, correlation matrices, p-value matrices).</p>
 <p><strong>How to read</strong>: Color intensity represents the value at each cell. Rows and columns are often clustered to group similar patterns.</p>
 <pre><code class="language-bio"># Expression heatmap of top 50 DE genes
+let top_50_expression = matrix([
+  [2.1, 2.4, 8.2, 8.5],
+  [7.8, 8.1, 3.0, 2.7],
+  [4.2, 4.0, 6.5, 6.8],
+  [9.0, 8.7, 2.2, 2.5]
+])
 heatmap(top_50_expression,
   {cluster_rows: true,
   cluster_cols: true,
@@ -446,7 +456,12 @@ heatmap(top_50_expression,
 <h2 id="volcano-plot"><a class="header" href="#volcano-plot">Volcano Plot</a></h2>
 <p><strong>When</strong>: Differential expression analysis — simultaneously display fold change (effect size) and statistical significance.</p>
 <p><strong>How to read</strong>: x-axis is log2 fold change, y-axis is -log10(p-value). Points in the upper corners are genes with large, significant changes. Upper-left: significantly downregulated. Upper-right: significantly upregulated. Bottom center: not significant.</p>
-<pre><code class="language-bio">volcano(de_results,
+<pre><code class="language-bio">let de_results = table([
+  {gene: "TP53", log2fc: 2.3, pvalue: 0.0001},
+  {gene: "BRCA1", log2fc: -1.7, pvalue: 0.002},
+  {gene: "GAPDH", log2fc: 0.1, pvalue: 0.72}
+])
+volcano(de_results,
   {fc_threshold: 1.0,       # log2 FC cutoff
   p_threshold: 0.05,        # adjusted p-value cutoff
   title: "Tumor vs Normal — Differential Expression",
@@ -457,16 +472,22 @@ heatmap(top_50_expression,
 <h2 id="manhattan-plot"><a class="header" href="#manhattan-plot">Manhattan Plot</a></h2>
 <p><strong>When</strong>: Genome-wide association results — display p-values for hundreds of thousands of SNPs across chromosomes.</p>
 <p><strong>How to read</strong>: x-axis is genomic position (chromosomes colored alternately), y-axis is -log10(p-value). Peaks above the genome-wide significance line (p &lt; 5 x 10^-8) are associated loci.</p>
-<pre><code class="language-bio">manhattan(gwas_results,
-  {significance_line: 5e-8,
-  suggestive_line: 1e-5,
+<pre><code class="language-bio">let gwas_results = table([
+  {chrom: "1", pos: 11856378, pvalue: 2e-9},
+  {chrom: "7", pos: 55259515, pvalue: 4e-6},
+  {chrom: "12", pos: 25245350, pvalue: 0.03},
+  {chrom: "17", pos: 43093449, pvalue: 8e-10}
+])
+manhattan(gwas_results,
+  {threshold: 5e-8,
   title: "GWAS — Type 2 Diabetes"})
 </code></pre>
 <p><strong>Publication tip</strong>: Use alternating colors for chromosomes. Draw both the genome-wide significance line (5 x 10^-8) and the suggestive line (1 x 10^-5). Label top hits with the nearest gene name.</p>
 <h2 id="q-q-plot"><a class="header" href="#q-q-plot">Q-Q Plot</a></h2>
 <p><strong>When</strong>: Check whether observed p-values follow the expected uniform distribution under the null. Essential for GWAS quality control.</p>
 <p><strong>How to read</strong>: Points should follow the diagonal if there is no systematic inflation. Deviation at the upper end indicates true signal. Deviation along the entire line indicates systematic inflation (population structure, technical artifacts).</p>
-<pre><code class="language-bio">qq_plot(p_values,
+<pre><code class="language-bio">let p_values = [0.000001, 0.0002, 0.003, 0.02, 0.08, 0.15, 0.31, 0.54, 0.77, 0.93]
+qq_plot(p_values,
   {title: "Q-Q Plot — Observed vs Expected p-values",
   ci: true})
 </code></pre>
@@ -497,12 +518,9 @@ let method_b = [5.0, 6.3, 4.5, 7.0, 5.8, 6.5, 4.4, 5.7, 7.4, 6.1]
 let means = zip(method_a, method_b) |&gt; map(|p| (p[0] + p[1]) / 2)
 let diffs = zip(method_a, method_b) |&gt; map(|p| p[0] - p[1])
 let mean_diff = mean(diffs)
-let sd_diff = sd(diffs)
+let sd_diff = stdev(diffs)
 
-scatter(means, diffs,
-  {title: "Bland-Altman — qPCR vs RNA-seq Expression",
-  xlabel: "Mean of Two Methods",
-  ylabel: "Difference (qPCR - RNA-seq)"})
+scatter(means, diffs)
 print("Mean difference: " + str(round(mean_diff, 3)))
 print("Limits of agreement: [" +
   str(round(mean_diff - 1.96 * sd_diff, 3)) + ", " +
@@ -512,30 +530,34 @@ print("Limits of agreement: [" +
 <p><strong>When</strong>: Assess publication bias in meta-analysis. Small studies with extreme results may indicate selective publishing.</p>
 <p><strong>How to read</strong>: x-axis is effect size, y-axis is study precision (1/SE or sample size). Large, precise studies cluster near the true effect (top). Small, imprecise studies scatter widely (bottom). Asymmetry suggests publication bias — if small negative studies are missing, the funnel is lopsided.</p>
 <pre><code class="language-bio"># Funnel plot: scatter of effect size vs precision
-scatter(effect_sizes, standard_errors,
-  {title: "Funnel Plot — Publication Bias Assessment",
-  xlabel: "Effect Size (log OR)",
-  ylabel: "Standard Error"})
+let effect_sizes = [0.22, 0.35, 0.18, 0.41, 0.29]
+let standard_errors = [0.08, 0.12, 0.06, 0.15, 0.09]
+scatter(effect_sizes, standard_errors)
 </code></pre>
 <h2 id="kaplan-meier-plot"><a class="header" href="#kaplan-meier-plot">Kaplan-Meier Plot</a></h2>
 <p><strong>When</strong>: Survival analysis — display probability of survival over time, comparing treatment arms.</p>
 <p><strong>How to read</strong>: The curve starts at 1.0 (all alive) and drops with each event. Censored observations (patients lost to follow-up) are marked with tick marks. The median survival is where the curve crosses 0.5.</p>
 <pre><code class="language-bio"># Build a Kaplan-Meier survival table and plot
-let km_tbl = zip(time, event, group) |&gt; map(|r| {
-  time: r[0], event: r[1], group: r[2]
+let time = [6, 8, 12, 15, 20, 24, 30, 36, 42, 48]
+let event = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
+let group = ["Drug", "Control", "Drug", "Control", "Drug",
+             "Control", "Drug", "Control", "Drug", "Control"]
+let km_tbl = range(0, len(time)) |&gt; map(|i| {
+  time: time[i], event: event[i], group: group[i]
 }) |&gt; to_table()
 
-plot(km_tbl, {type: "line", x: "time", y: "survival",
-  color: "group",
-  title: "Overall Survival — Drug X vs Standard of Care",
-  xlabel: "Months",
-  ylabel: "Survival Probability"})
+kaplan_meier(km_tbl, {title: "Overall Survival - Drug X vs Standard of Care"})
 </code></pre>
 <p><strong>Publication tip</strong>: Include a risk table below the plot showing the number at risk at regular intervals. Report the log-rank p-value and hazard ratio with CI.</p>
 <h2 id="roc-curve"><a class="header" href="#roc-curve">ROC Curve</a></h2>
 <p><strong>When</strong>: Evaluate a binary classifier — plot sensitivity (true positive rate) against 1-specificity (false positive rate) at all thresholds.</p>
 <p><strong>How to read</strong>: The curve bows toward the upper-left corner for good classifiers. The AUC (area under the curve) summarizes performance: 0.5 = random guessing, 1.0 = perfect classification. AUC &gt; 0.8 is generally considered good.</p>
-<pre><code class="language-bio">roc_curve(roc_tbl,
+<pre><code class="language-bio">let roc_tbl = table([
+  {score: 0.95, label: 1}, {score: 0.82, label: 1},
+  {score: 0.71, label: 0}, {score: 0.60, label: 1},
+  {score: 0.42, label: 0}, {score: 0.18, label: 0}
+])
+roc_curve(roc_tbl,
   {title: "ROC — Gene Expression Classifier for Response",
   auc_label: true})
 </code></pre>
@@ -785,7 +807,7 @@ let skewed = rnorm(100, 0, 1) |&gt; map(|x| abs(x) * 10)
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

@@ -98,7 +98,7 @@ fn resolve_input_lines(input: &Value, func: &str) -> Result<Vec<String>> {
     match input {
         Value::List(items) => {
             let mut lines = Vec::with_capacity(items.len());
-            for item in items {
+            for item in items.iter() {
                 lines.push(format!("{item}"));
             }
             Ok(lines)
@@ -194,10 +194,10 @@ fn builtin_grep(args: Vec<Value>) -> Result<Value> {
             .enumerate()
             .filter(|(_, line)| re.is_match(line) != invert)
             .map(|(i, line)| {
-                Value::List(vec![Value::Int((i + 1) as i64), Value::Str(line.clone())])
+                Value::List((vec![Value::Int((i + 1) as i64), Value::Str(line.clone())]).into())
             })
             .collect();
-        return Ok(Value::List(matches));
+        return Ok(Value::List((matches).into()));
     }
 
     let matches: Vec<Value> = input_lines
@@ -205,7 +205,7 @@ fn builtin_grep(args: Vec<Value>) -> Result<Value> {
         .filter(|line| re.is_match(line) != invert)
         .map(Value::Str)
         .collect();
-    Ok(Value::List(matches))
+    Ok(Value::List((matches).into()))
 }
 
 // ── grep_count ───────────────────────────────────────────────────
@@ -223,7 +223,7 @@ fn builtin_grep_count(args: Vec<Value>) -> Result<Value> {
 fn builtin_lines(args: Vec<Value>) -> Result<Value> {
     let text = require_str(&args[0], "lines")?;
     let result: Vec<Value> = split_lines(text).into_iter().map(Value::Str).collect();
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 // ── cut ──────────────────────────────────────────────────────────
@@ -237,7 +237,7 @@ fn builtin_cut(args: Vec<Value>) -> Result<Value> {
         Value::Int(n) => vec![*n as usize],
         Value::List(items) => {
             let mut fs = Vec::with_capacity(items.len());
-            for item in items {
+            for item in items.iter() {
                 match item {
                     Value::Int(n) => fs.push(*n as usize),
                     other => {
@@ -286,12 +286,12 @@ fn builtin_cut(args: Vec<Value>) -> Result<Value> {
                         }
                     })
                     .collect();
-                Value::List(extracted)
+                Value::List((extracted).into())
             }
         })
         .collect();
 
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 // ── paste ────────────────────────────────────────────────────────
@@ -328,7 +328,7 @@ fn builtin_paste(args: Vec<Value>) -> Result<Value> {
         let b = list_b.get(i).map(|v| format!("{v}")).unwrap_or_default();
         result.push(Value::Str(format!("{a}{sep}{b}")));
     }
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 // ── uniq_count ───────────────────────────────────────────────────
@@ -348,7 +348,7 @@ fn builtin_uniq_count(args: Vec<Value>) -> Result<Value> {
     let mut counts: HashMap<String, (Value, i64)> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
 
-    for item in items {
+    for item in items.iter() {
         let key = format!("{item}");
         if let Some(entry) = counts.get_mut(&key) {
             entry.1 += 1;
@@ -374,11 +374,11 @@ fn builtin_uniq_count(args: Vec<Value>) -> Result<Value> {
             let mut rec = HashMap::new();
             rec.insert("value".to_string(), val);
             rec.insert("count".to_string(), Value::Int(count));
-            Value::Record(rec)
+            Value::Record((rec).into())
         })
         .collect();
 
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 // ── wc ───────────────────────────────────────────────────────────
@@ -400,7 +400,7 @@ fn builtin_wc(args: Vec<Value>) -> Result<Value> {
     rec.insert("words".to_string(), Value::Int(word_count));
     rec.insert("chars".to_string(), Value::Int(char_count));
     rec.insert("bytes".to_string(), Value::Int(byte_count));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 /// Resolve input to full text content (for wc).
@@ -507,7 +507,7 @@ fn builtin_shell(args: Vec<Value>) -> Result<Value> {
         "exit_code".to_string(),
         Value::Int(output.status.code().unwrap_or(-1) as i64),
     );
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 #[cfg(feature = "native")]
@@ -549,7 +549,7 @@ fn builtin_stream_lines(args: Vec<Value>) -> Result<Value> {
 fn builtin_stream_concat(args: Vec<Value>) -> Result<Value> {
     let iter_a = match args[0].clone() {
         Value::Stream(s) => s.collect_all().into_iter(),
-        Value::List(l) => l.into_iter(),
+        Value::List(l) => l.as_ref().clone().into_iter(),
         other => {
             return Err(BioLangError::type_error(
                 format!(
@@ -562,7 +562,7 @@ fn builtin_stream_concat(args: Vec<Value>) -> Result<Value> {
     };
     let iter_b = match args[1].clone() {
         Value::Stream(s) => s.collect_all().into_iter(),
-        Value::List(l) => l.into_iter(),
+        Value::List(l) => l.as_ref().clone().into_iter(),
         other => {
             return Err(BioLangError::type_error(
                 format!(
@@ -579,4 +579,3 @@ fn builtin_stream_concat(args: Vec<Value>) -> Result<Value> {
         Box::new(combined),
     )))
 }
-

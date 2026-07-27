@@ -58,15 +58,15 @@ for i in range(0, 200) {
 
     # Stage: driven by proliferation + noise, integer 1-4
     let stage_raw = 1.0 + prolif_score * 3.0 + n1 * 0.5
-    let stage = if stage_raw < 1.5 { 1 }
+    let tumor_stage = if stage_raw < 1.5 { 1 }
                 else if stage_raw < 2.5 { 2 }
                 else if stage_raw < 3.5 { 3 }
                 else { 4 }
 
-    lines = append(lines, f"TCGA_{i + 1:04},{stage},{esr1},{pgr},{erbb2},{mki67},{tp53},{egfr},{brca1},{foxa1},{gata3},{ccnd1}")
+    lines = push(lines, f"TCGA_{i + 1:04},{tumor_stage},{esr1},{pgr},{erbb2},{mki67},{tp53},{egfr},{brca1},{foxa1},{gata3},{ccnd1}")
 }
 
-write_lines(lines, "data/biomarker_panel.csv")
+write_lines("data/biomarker_panel.csv", lines)
 println("Wrote data/biomarker_panel.csv: 200 patients x 10 biomarkers + stage")
 println("  Correlated: ESR1-PGR (r~0.7), ESR1-FOXA1 (r~0.6), MKI67-stage")
 println("  Collinear: ESR1-PGR-FOXA1-GATA3 (ER+ luminal cluster)")

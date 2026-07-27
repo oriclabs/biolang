@@ -25,27 +25,31 @@ pub struct Parser {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
     None,
-    Pipe,           // |>
-    NullCoalesce,   // ??
-    Or,             // ||
-    And,            // &&
-    BitXor,         // ^
-    BitAnd,         // &
-    Equality,       // == != in
-    Comparison,     // < > <= >=
-    Shift,          // << >>
-    TypeCast,       // as
-    Range,          // .. ..=
-    Addition,       // + -
-    Multiply,       // * / %
-    Power,          // **
-    Unary,          // - ! not
-    Call,           // () . []
+    Pipe,         // |>
+    NullCoalesce, // ??
+    Or,           // ||
+    And,          // &&
+    BitXor,       // ^
+    BitAnd,       // &
+    Equality,     // == != in
+    Comparison,   // < > <= >=
+    Shift,        // << >>
+    TypeCast,     // as
+    Range,        // .. ..=
+    Addition,     // + -
+    Multiply,     // * / %
+    Power,        // **
+    Unary,        // - ! not
+    Call,         // () . []
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, pos: 0, errors: Vec::new() }
+        Self {
+            tokens,
+            pos: 0,
+            errors: Vec::new(),
+        }
     }
 
     pub fn parse(mut self) -> Result<ParseResult> {
@@ -179,8 +183,7 @@ impl Parser {
 
     /// Check if current position is `ident =` (assignment, not `==`).
     fn is_assignment(&self) -> bool {
-        self.pos + 1 < self.tokens.len()
-            && matches!(self.tokens[self.pos + 1].kind, TokenKind::Eq)
+        self.pos + 1 < self.tokens.len() && matches!(self.tokens[self.pos + 1].kind, TokenKind::Eq)
     }
 
     fn parse_assign(&mut self) -> Result<Spanned<Stmt>> {
@@ -307,7 +310,10 @@ impl Parser {
             }
             self.expect(TokenKind::RBracket)?;
             if let Some(rest) = rest_name {
-                DestructPattern::ListWithRest { elements: names, rest_name: rest }
+                DestructPattern::ListWithRest {
+                    elements: names,
+                    rest_name: rest,
+                }
             } else {
                 DestructPattern::List(names)
             }
@@ -331,7 +337,10 @@ impl Parser {
             }
             self.expect(TokenKind::RBrace)?;
             if let Some(rest) = rest_name {
-                DestructPattern::RecordWithRest { fields: names, rest_name: rest }
+                DestructPattern::RecordWithRest {
+                    fields: names,
+                    rest_name: rest,
+                }
             } else {
                 DestructPattern::Record(names)
             }
@@ -359,7 +368,14 @@ impl Parser {
         let value = self.parse_expr()?;
         let span = start.merge(value.span);
 
-        Ok(Spanned::new(Stmt::Let { name, type_ann, value }, span))
+        Ok(Spanned::new(
+            Stmt::Let {
+                name,
+                type_ann,
+                value,
+            },
+            span,
+        ))
     }
 
     fn parse_const(&mut self) -> Result<Spanned<Stmt>> {
@@ -378,7 +394,14 @@ impl Parser {
         let value = self.parse_expr()?;
         let span = start.merge(value.span);
 
-        Ok(Spanned::new(Stmt::Const { name, type_ann, value }, span))
+        Ok(Spanned::new(
+            Stmt::Const {
+                name,
+                type_ann,
+                value,
+            },
+            span,
+        ))
     }
 
     fn parse_with(&mut self) -> Result<Spanned<Stmt>> {
@@ -389,10 +412,7 @@ impl Parser {
         let body = self.parse_block_body()?;
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
-        Ok(Spanned::new(
-            Stmt::With { expr, body },
-            start.merge(end),
-        ))
+        Ok(Spanned::new(Stmt::With { expr, body }, start.merge(end)))
     }
 
     fn parse_doc_fn(&mut self) -> Result<Spanned<Stmt>> {
@@ -432,7 +452,12 @@ impl Parser {
         self.parse_fn_with_doc(None, Vec::new(), true)
     }
 
-    fn parse_fn_with_doc(&mut self, doc: Option<String>, decorators: Vec<String>, is_async: bool) -> Result<Spanned<Stmt>> {
+    fn parse_fn_with_doc(
+        &mut self,
+        doc: Option<String>,
+        decorators: Vec<String>,
+        is_async: bool,
+    ) -> Result<Spanned<Stmt>> {
         let start = self.current_span();
         self.expect(TokenKind::Fn)?;
 
@@ -527,7 +552,11 @@ impl Parser {
             } else {
                 None
             };
-            fields.push(StructField { name: field_name, type_ann, default });
+            fields.push(StructField {
+                name: field_name,
+                type_ann,
+                default,
+            });
             self.skip_newlines();
             if self.check(&TokenKind::Comma) {
                 self.advance();
@@ -539,7 +568,10 @@ impl Parser {
 
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
-        Ok(Spanned::new(Stmt::Struct { name, fields }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::Struct { name, fields },
+            start.merge(end),
+        ))
     }
 
     fn parse_trait(&mut self) -> Result<Spanned<Stmt>> {
@@ -556,13 +588,19 @@ impl Parser {
             self.expect(TokenKind::LParen)?;
             let params = self.parse_params()?;
             self.expect(TokenKind::RParen)?;
-            methods.push(TraitMethod { name: method_name, params });
+            methods.push(TraitMethod {
+                name: method_name,
+                params,
+            });
             self.skip_newlines();
         }
 
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
-        Ok(Spanned::new(Stmt::Trait { name, methods }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::Trait { name, methods },
+            start.merge(end),
+        ))
     }
 
     fn parse_impl(&mut self) -> Result<Spanned<Stmt>> {
@@ -596,7 +634,11 @@ impl Parser {
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
         Ok(Spanned::new(
-            Stmt::Impl { type_name, trait_name, methods },
+            Stmt::Impl {
+                type_name,
+                trait_name,
+                methods,
+            },
             start.merge(end),
         ))
     }
@@ -635,7 +677,10 @@ impl Parser {
             } else {
                 Vec::new()
             };
-            variants.push(EnumVariant { name: variant_name, fields });
+            variants.push(EnumVariant {
+                name: variant_name,
+                fields,
+            });
             self.skip_newlines();
             if self.check(&TokenKind::Comma) {
                 self.advance();
@@ -647,7 +692,10 @@ impl Parser {
 
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
-        Ok(Spanned::new(Stmt::Enum { name, variants }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::Enum { name, variants },
+            start.merge(end),
+        ))
     }
 
     fn parse_return(&mut self) -> Result<Spanned<Stmt>> {
@@ -740,7 +788,16 @@ impl Parser {
             None
         };
 
-        Ok(Spanned::new(Stmt::For { pattern, iter, when_guard, body, else_body }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::For {
+                pattern,
+                iter,
+                when_guard,
+                body,
+                else_body,
+            },
+            start.merge(end),
+        ))
     }
 
     fn parse_assert(&mut self) -> Result<Spanned<Stmt>> {
@@ -802,7 +859,10 @@ impl Parser {
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
 
-        Ok(Spanned::new(Stmt::Pipeline { name, params, body }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::Pipeline { name, params, body },
+            start.merge(end),
+        ))
     }
 
     fn parse_import(&mut self) -> Result<Spanned<Stmt>> {
@@ -876,7 +936,10 @@ impl Parser {
         }
 
         let end = self.prev_span();
-        Ok(Spanned::new(Stmt::FromImport { path, names }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::FromImport { path, names },
+            start.merge(end),
+        ))
     }
 
     /// `unless condition { body }`
@@ -888,7 +951,10 @@ impl Parser {
         let body = self.parse_block_body()?;
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
-        Ok(Spanned::new(Stmt::Unless { condition, body }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::Unless { condition, body },
+            start.merge(end),
+        ))
     }
 
     /// `guard condition else { fallback }` or `guard condition else return expr`
@@ -908,7 +974,13 @@ impl Parser {
             vec![stmt]
         };
         let end = self.prev_span();
-        Ok(Spanned::new(Stmt::Guard { condition, else_body }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::Guard {
+                condition,
+                else_body,
+            },
+            start.merge(end),
+        ))
     }
 
     /// `defer expr`
@@ -931,7 +1003,9 @@ impl Parser {
             let mut names = Vec::new();
             loop {
                 names.push(self.expect_ident()?);
-                if !self.check(&TokenKind::Comma) { break; }
+                if !self.check(&TokenKind::Comma) {
+                    break;
+                }
                 self.advance();
             }
             self.expect(TokenKind::RBracket)?;
@@ -941,7 +1015,9 @@ impl Parser {
             let mut names = Vec::new();
             loop {
                 names.push(self.expect_ident()?);
-                if !self.check(&TokenKind::Comma) { break; }
+                if !self.check(&TokenKind::Comma) {
+                    break;
+                }
                 self.advance();
             }
             self.expect(TokenKind::RBrace)?;
@@ -951,7 +1027,9 @@ impl Parser {
             let mut names = Vec::new();
             loop {
                 names.push(self.expect_ident()?);
-                if !self.check(&TokenKind::Comma) { break; }
+                if !self.check(&TokenKind::Comma) {
+                    break;
+                }
                 self.advance();
             }
             self.expect(TokenKind::RParen)?;
@@ -967,7 +1045,14 @@ impl Parser {
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
 
-        Ok(Spanned::new(Stmt::ParallelFor { pattern, iter, body }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::ParallelFor {
+                pattern,
+                iter,
+                body,
+            },
+            start.merge(end),
+        ))
     }
 
     /// `stage "name" -> expr` inside a pipeline block
@@ -985,11 +1070,13 @@ impl Parser {
                 self.advance();
                 n
             }
-            _ => return Err(BioLangError::new(
-                ErrorKind::ExpectedExpression,
-                "expected stage name (string or identifier)",
-                Some(self.current_span()),
-            )),
+            _ => {
+                return Err(BioLangError::new(
+                    ErrorKind::ExpectedExpression,
+                    "expected stage name (string or identifier)",
+                    Some(self.current_span()),
+                ))
+            }
         };
         self.expect(TokenKind::Arrow)?;
         let expr = self.parse_expr()?;
@@ -1005,7 +1092,10 @@ impl Parser {
         self.expect(TokenKind::Eq)?;
         let target = self.parse_type_annotation()?;
         let end = self.current_span();
-        Ok(Spanned::new(Stmt::TypeAlias { name, target }, start.merge(end)))
+        Ok(Spanned::new(
+            Stmt::TypeAlias { name, target },
+            start.merge(end),
+        ))
     }
 
     /// `given { cond => expr, ... otherwise => expr }`
@@ -1045,7 +1135,10 @@ impl Parser {
         self.skip_newlines();
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
-        Ok(Spanned::new(Expr::Given { arms, otherwise }, start.merge(end)))
+        Ok(Spanned::new(
+            Expr::Given { arms, otherwise },
+            start.merge(end),
+        ))
     }
 
     /// `retry(count, delay: ms) { body }`
@@ -1073,7 +1166,11 @@ impl Parser {
         let end = self.current_span();
         self.expect(TokenKind::RBrace)?;
         Ok(Spanned::new(
-            Expr::Retry { count: Box::new(count), delay, body },
+            Expr::Retry {
+                count: Box::new(count),
+                delay,
+                body,
+            },
             start.merge(end),
         ))
     }
@@ -1248,7 +1345,13 @@ impl Parser {
                 let span = self.current_span();
                 if let TokenKind::RegexLit(pat, flags) = self.current_kind().clone() {
                     self.advance();
-                    Ok(Spanned::new(Expr::Regex { pattern: pat, flags }, span))
+                    Ok(Spanned::new(
+                        Expr::Regex {
+                            pattern: pat,
+                            flags,
+                        },
+                        span,
+                    ))
                 } else {
                     unreachable!()
                 }
@@ -1832,16 +1935,10 @@ impl Parser {
 
                 // Parse the sub-expression
                 let tokens = bl_lexer::Lexer::new(&expr_text).tokenize().map_err(|e| {
-                    BioLangError::parser(
-                        format!("in f-string interpolation: {}", e.message),
-                        span,
-                    )
+                    BioLangError::parser(format!("in f-string interpolation: {}", e.message), span)
                 })?;
                 let expr = Parser::new(tokens).parse_single_expr().map_err(|e| {
-                    BioLangError::parser(
-                        format!("in f-string interpolation: {}", e.message),
-                        span,
-                    )
+                    BioLangError::parser(format!("in f-string interpolation: {}", e.message), span)
                 })?;
                 parts.push(StringPart::Expr(expr));
             } else {
@@ -1885,7 +1982,11 @@ impl Parser {
             };
             self.expect(TokenKind::FatArrow)?;
             let body = self.parse_expr()?;
-            arms.push(MatchArm { pattern, guard, body });
+            arms.push(MatchArm {
+                pattern,
+                guard,
+                body,
+            });
             self.skip_newlines();
             if self.check(&TokenKind::Comma) {
                 self.advance();
@@ -1919,7 +2020,10 @@ impl Parser {
             alternatives.push(self.parse_pattern()?);
         }
         let end_span = alternatives.last().unwrap().span;
-        Ok(Spanned::new(Pattern::Or(alternatives), start_span.merge(end_span)))
+        Ok(Spanned::new(
+            Pattern::Or(alternatives),
+            start_span.merge(end_span),
+        ))
     }
 
     fn parse_pattern(&mut self) -> Result<Spanned<Pattern>> {
@@ -1936,9 +2040,27 @@ impl Parser {
                 if self.check(&TokenKind::LParen) {
                     // Known type names → TypePattern
                     const TYPE_NAMES: &[&str] = &[
-                        "Int", "Float", "Str", "Bool", "Nil", "List", "Map", "Record",
-                        "DNA", "RNA", "Protein", "Table", "Stream", "Set", "Matrix",
-                        "Interval", "Range", "Regex", "Kmer", "Function", "Future",
+                        "Int",
+                        "Float",
+                        "Str",
+                        "Bool",
+                        "Nil",
+                        "List",
+                        "Map",
+                        "Record",
+                        "DNA",
+                        "RNA",
+                        "Protein",
+                        "Table",
+                        "Stream",
+                        "Set",
+                        "Matrix",
+                        "Interval",
+                        "Range",
+                        "Regex",
+                        "Kmer",
+                        "Function",
+                        "Future",
                         "SparseMatrix",
                     ];
                     if TYPE_NAMES.contains(&name.as_str()) {
@@ -1947,12 +2069,19 @@ impl Parser {
                             None
                         } else {
                             let b = self.expect_ident()?;
-                            if b == "_" { None } else { Some(b) }
+                            if b == "_" {
+                                None
+                            } else {
+                                Some(b)
+                            }
                         };
                         let end = self.current_span();
                         self.expect(TokenKind::RParen)?;
                         Ok(Spanned::new(
-                            Pattern::TypePattern { type_name: name, binding },
+                            Pattern::TypePattern {
+                                type_name: name,
+                                binding,
+                            },
                             span.merge(end),
                         ))
                     } else {
@@ -1970,7 +2099,10 @@ impl Parser {
                         let end = self.current_span();
                         self.expect(TokenKind::RParen)?;
                         Ok(Spanned::new(
-                            Pattern::EnumVariant { variant: name, bindings },
+                            Pattern::EnumVariant {
+                                variant: name,
+                                bindings,
+                            },
                             span.merge(end),
                         ))
                     }
@@ -1978,8 +2110,12 @@ impl Parser {
                     Ok(Spanned::new(Pattern::Ident(name), span))
                 }
             }
-            TokenKind::Int(_) | TokenKind::Float(_) | TokenKind::Str(_) | TokenKind::True
-            | TokenKind::False | TokenKind::Nil => {
+            TokenKind::Int(_)
+            | TokenKind::Float(_)
+            | TokenKind::Str(_)
+            | TokenKind::True
+            | TokenKind::False
+            | TokenKind::Nil => {
                 let lit = self.parse_prefix()?;
                 let span = lit.span;
                 Ok(Spanned::new(Pattern::Literal(lit), span))
@@ -2055,15 +2191,17 @@ impl Parser {
                 }
                 let right = self.parse_precedence(prec)?;
                 // Trailing lambda: `|> each |p| expr` → `|> each(|p| expr)`
-                let right = if matches!(right.node, Expr::Ident(_))
-                    && self.check(&TokenKind::Bar)
-                {
+                let right = if matches!(right.node, Expr::Ident(_)) && self.check(&TokenKind::Bar) {
                     let lambda = self.parse_lambda()?;
                     let call_span = right.span.merge(lambda.span);
                     Spanned::new(
                         Expr::Call {
                             callee: Box::new(right),
-                            args: vec![Arg { name: None, value: lambda, spread: false }],
+                            args: vec![Arg {
+                                name: None,
+                                value: lambda,
+                                spread: false,
+                            }],
                         },
                         call_span,
                     )
@@ -2084,15 +2222,17 @@ impl Parser {
                 self.skip_newlines();
                 let right = self.parse_precedence(prec)?;
                 // Trailing lambda: `|>> each |p| expr` → `|>> each(|p| expr)`
-                let right = if matches!(right.node, Expr::Ident(_))
-                    && self.check(&TokenKind::Bar)
-                {
+                let right = if matches!(right.node, Expr::Ident(_)) && self.check(&TokenKind::Bar) {
                     let lambda = self.parse_lambda()?;
                     let call_span = right.span.merge(lambda.span);
                     Spanned::new(
                         Expr::Call {
                             callee: Box::new(right),
-                            args: vec![Arg { name: None, value: lambda, spread: false }],
+                            args: vec![Arg {
+                                name: None,
+                                value: lambda,
+                                spread: false,
+                            }],
                         },
                         call_span,
                     )
@@ -2238,7 +2378,11 @@ impl Parser {
         // lookahead: LBrace Ident Colon
         if self.pos + 2 < self.tokens.len() {
             matches!(
-                (&self.tokens[self.pos].kind, &self.tokens[self.pos + 1].kind, &self.tokens[self.pos + 2].kind),
+                (
+                    &self.tokens[self.pos].kind,
+                    &self.tokens[self.pos + 1].kind,
+                    &self.tokens[self.pos + 2].kind
+                ),
                 (TokenKind::LBrace, TokenKind::Ident(_), TokenKind::Colon)
             )
         } else {
@@ -2285,7 +2429,11 @@ impl Parser {
         if self.check(&TokenKind::DotDotDot) {
             self.advance();
             let value = self.parse_expr()?;
-            return Ok(Arg { name: None, value, spread: true });
+            return Ok(Arg {
+                name: None,
+                value,
+                spread: true,
+            });
         }
 
         // Check if this is a named argument: ident : expr
@@ -2306,7 +2454,11 @@ impl Parser {
         }
 
         let value = self.parse_expr()?;
-        Ok(Arg { name: None, value, spread: false })
+        Ok(Arg {
+            name: None,
+            value,
+            spread: false,
+        })
     }
 
     fn parse_field_access(&mut self, object: Spanned<Expr>) -> Result<Spanned<Expr>> {
@@ -2379,7 +2531,12 @@ impl Parser {
             let end_span = self.current_span();
             self.expect(TokenKind::RBracket)?;
             return Ok(Spanned::new(
-                Expr::Slice { object: Box::new(object), start, end: end_expr, step },
+                Expr::Slice {
+                    object: Box::new(object),
+                    start,
+                    end: end_expr,
+                    step,
+                },
                 object_span.merge(end_span),
             ));
         }
@@ -2469,17 +2626,19 @@ impl Parser {
             TokenKind::And => Precedence::And,
             TokenKind::Caret => Precedence::BitXor,
             TokenKind::Amp => Precedence::BitAnd,
-            TokenKind::EqEq | TokenKind::Neq | TokenKind::In | TokenKind::Not => Precedence::Equality,
-            TokenKind::Lt | TokenKind::Gt | TokenKind::Le | TokenKind::Ge => {
-                Precedence::Comparison
+            TokenKind::EqEq | TokenKind::Neq | TokenKind::In | TokenKind::Not => {
+                Precedence::Equality
             }
+            TokenKind::Lt | TokenKind::Gt | TokenKind::Le | TokenKind::Ge => Precedence::Comparison,
             TokenKind::Shl | TokenKind::Shr => Precedence::Shift,
             TokenKind::As => Precedence::TypeCast,
             TokenKind::DotDot | TokenKind::DotDotEq => Precedence::Range,
             TokenKind::Plus | TokenKind::Minus | TokenKind::PlusPlus => Precedence::Addition,
             TokenKind::Star | TokenKind::Slash | TokenKind::Percent => Precedence::Multiply,
             TokenKind::StarStar => Precedence::Power,
-            TokenKind::LParen | TokenKind::Dot | TokenKind::LBracket | TokenKind::QuestionDot => Precedence::Call,
+            TokenKind::LParen | TokenKind::Dot | TokenKind::LBracket | TokenKind::QuestionDot => {
+                Precedence::Call
+            }
             _ => Precedence::None,
         }
     }
@@ -2564,13 +2723,27 @@ impl Parser {
     // ── Chained comparisons ─────────────────────────────────────────
 
     fn is_comparison_op(&self, kind: &TokenKind) -> bool {
-        matches!(kind, TokenKind::Lt | TokenKind::Gt | TokenKind::Le | TokenKind::Ge
-            | TokenKind::EqEq | TokenKind::Neq)
+        matches!(
+            kind,
+            TokenKind::Lt
+                | TokenKind::Gt
+                | TokenKind::Le
+                | TokenKind::Ge
+                | TokenKind::EqEq
+                | TokenKind::Neq
+        )
     }
 
     fn is_comparison_binary_op(&self, op: &BinaryOp) -> bool {
-        matches!(op, BinaryOp::Lt | BinaryOp::Gt | BinaryOp::Le | BinaryOp::Ge
-            | BinaryOp::Eq | BinaryOp::Neq)
+        matches!(
+            op,
+            BinaryOp::Lt
+                | BinaryOp::Gt
+                | BinaryOp::Le
+                | BinaryOp::Ge
+                | BinaryOp::Eq
+                | BinaryOp::Neq
+        )
     }
 
     fn parse_chained_cmp(
@@ -2587,7 +2760,11 @@ impl Parser {
             ops.push(op);
             operands.push(next);
         }
-        let span = operands.first().unwrap().span.merge(operands.last().unwrap().span);
+        let span = operands
+            .first()
+            .unwrap()
+            .span
+            .merge(operands.last().unwrap().span);
         Ok(Spanned::new(Expr::ChainedCmp { operands, ops }, span))
     }
 
@@ -2663,11 +2840,7 @@ impl Parser {
         } else {
             Err(BioLangError::new(
                 ErrorKind::ExpectedToken,
-                format!(
-                    "expected '{}', found '{}'",
-                    expected,
-                    self.current_kind()
-                ),
+                format!("expected '{}', found '{}'", expected, self.current_kind()),
                 Some(self.current_span()),
             ))
         }
@@ -2753,7 +2926,8 @@ impl Parser {
         while i < self.tokens.len() && matches!(self.tokens[i].kind, TokenKind::Newline) {
             i += 1;
         }
-        i < self.tokens.len() && std::mem::discriminant(&self.tokens[i].kind) == std::mem::discriminant(kind)
+        i < self.tokens.len()
+            && std::mem::discriminant(&self.tokens[i].kind) == std::mem::discriminant(kind)
     }
 
     /// Span of the previously consumed token.
@@ -2784,11 +2958,18 @@ impl Parser {
                 } else {
                     None
                 };
-                params.push(Param { name, type_ann, default: None, rest });
+                params.push(Param {
+                    name,
+                    type_ann,
+                    default: None,
+                    rest,
+                });
                 if self.check(&TokenKind::Comma) {
                     self.advance();
                 }
-                if rest { break; }
+                if rest {
+                    break;
+                }
             }
             self.expect(TokenKind::Bar)?;
             params
@@ -2806,6 +2987,9 @@ impl Parser {
         let end = self.current_span();
         self.expect(TokenKind::End)?;
 
-        Ok(Spanned::new(Expr::DoBlock { params, body }, start.merge(end)))
+        Ok(Spanned::new(
+            Expr::DoBlock { params, body },
+            start.merge(end),
+        ))
     }
 }

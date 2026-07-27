@@ -1,0 +1,12 @@
+import "structure" as st
+
+let pred = st.load("data/alphafold_prediction.pdb")
+let exp  = st.load("data/experimental.pdb")
+
+let pred_ca = st.ca_atoms(pred)
+let exp_ca  = st.ca_atoms(exp)
+
+st.rmsd(pred_ca, exp_ca)
+st.ss_composition(pred_ca)
+st.contacts(pred_ca, dist=8.0)
+st.ramachandran(st.backbone(pred))

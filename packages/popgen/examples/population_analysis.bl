@@ -1,0 +1,20 @@
+import "popgen" as pg
+
+# Hardy-Weinberg equilibrium test
+pg.hwe(n_aa=360, n_ab=480, n_bb=160)
+
+# Fst between two populations
+let ac_eur = [45, 12, 89, 3, 67]
+let ac_afr = [78, 5,  92, 8, 34]
+pg.fst(ac_eur, ac_afr, n1=200, n2=200)
+
+# Tajima's D neutrality test
+pg.tajima(n_seg=15, n_seq=20, len=1000)
+
+# Nucleotide diversity
+# pg.pi(geno_matrix)
+
+# LD between two variants
+let geno_a = [0, 1, 1, 2, 0, 1, 2, 0]
+let geno_b = [0, 1, 1, 2, 0, 1, 1, 0]
+pg.ld(geno_a, geno_b)

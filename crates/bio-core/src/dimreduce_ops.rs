@@ -80,7 +80,9 @@ pub fn tsne(
     let mut embeddings = vec![vec![0.0f64; n_components]; n];
     for row in &mut embeddings {
         for val in row.iter_mut() {
-            rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            rng_state = rng_state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             *val = ((rng_state >> 33) as f64 / u32::MAX as f64 - 0.5) * 0.01;
         }
     }
@@ -237,7 +239,9 @@ pub fn umap(
     let mut embeddings = vec![vec![0.0f64; n_components]; n];
     for row in &mut embeddings {
         for val in row.iter_mut() {
-            rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            rng_state = rng_state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             *val = ((rng_state >> 33) as f64 / u32::MAX as f64 - 0.5) * 10.0;
         }
     }

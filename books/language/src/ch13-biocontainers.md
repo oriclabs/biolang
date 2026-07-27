@@ -94,7 +94,8 @@ our_tools |> each(|tool| {
 `biocontainers_info` returns a detailed record for a single tool, including its
 full version history with per-version container images.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let info = biocontainers_info("samtools")
 # info => {
 #   name: "samtools",
@@ -228,7 +229,8 @@ control alongside the pipeline definition.
 When starting a new analysis type, you need to survey what tools are available.
 Here we explore the methylation analysis landscape.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # What methylation tools exist in BioContainers?
 let methyl_tools = biocontainers_search("methylation", 50)
 
@@ -277,7 +279,8 @@ bismark.versions |> take(5) |> each(|v| {
 For an existing pipeline, verify that every tool has a valid BioContainers
 image and flag any that are outdated.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Current pipeline tools and their pinned versions
 let pinned = [
   {tool: "bwa-mem2",  version: "2.2.1--hd03093a_2"},

@@ -22,9 +22,7 @@ impl BioLangBackend {
 
     async fn publish_diagnostics(&self, uri: Url, source: &str) {
         let diags = diagnostics::diagnose(source);
-        self.client
-            .publish_diagnostics(uri, diags, None)
-            .await;
+        self.client.publish_diagnostics(uri, diags, None).await;
     }
 
     fn completions_for(&self, uri: &Url) -> Vec<CompletionItem> {
@@ -141,10 +139,7 @@ impl LanguageServer for BioLangBackend {
             .remove(&params.text_document.uri);
     }
 
-    async fn completion(
-        &self,
-        params: CompletionParams,
-    ) -> Result<Option<CompletionResponse>> {
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let items = self.completions_for(&params.text_document_position.text_document.uri);
         Ok(Some(CompletionResponse::Array(items)))
     }

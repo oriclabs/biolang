@@ -15,14 +15,14 @@ let small_lines = ["mouse_id,group,tumor_volume_mm3"]
 # Control mice — vehicle-treated MCF7 xenografts
 let ctrl_vols = [923.4, 712.8, 845.1, 1087.2, 658.3, 789.6]
 for i in range(0, 6) {
-    small_lines = append(small_lines, f"CTRL_{i + 1},control,{ctrl_vols[i]}")
+    small_lines = push(small_lines, f"CTRL_{i + 1},control,{ctrl_vols[i]}")
 }
 # Treatment mice — drug X (CDK4/6 inhibitor pattern like palbociclib)
 let trt_vols = [412.5, 567.3, 489.1, 378.2, 621.8, 445.9]
 for i in range(0, 6) {
-    small_lines = append(small_lines, f"TRT_{i + 1},treatment,{trt_vols[i]}")
+    small_lines = push(small_lines, f"TRT_{i + 1},treatment,{trt_vols[i]}")
 }
-write_lines(small_lines, "data/small_sample.csv")
+write_lines("data/small_sample.csv", small_lines)
 
 # ── File 2: Drug response IC50 data with outliers ──
 # IC50 values (micromolar) for lapatinib across 20 breast cancer cell lines
@@ -56,9 +56,9 @@ let erbb2 = [
     "normal", "normal", "normal", "normal", "normal"
 ]
 for i in range(0, 20) {
-    ic50_lines = append(ic50_lines, f"{cell_lines[i]},{ic50_vals[i]},{subtypes[i]},{erbb2[i]}")
+    ic50_lines = push(ic50_lines, f"{cell_lines[i]},{ic50_vals[i]},{subtypes[i]},{erbb2[i]}")
 }
-write_lines(ic50_lines, "data/drug_response_outlier.csv")
+write_lines("data/drug_response_outlier.csv", ic50_lines)
 
 println("Created data/small_sample.csv")
 println("  12 mice (6 control, 6 treatment), tumor volumes in mm3")

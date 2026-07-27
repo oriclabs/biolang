@@ -1,0 +1,20 @@
+# Preprocessing pipeline for LFQ proteomics.
+
+fn load(maxquant_path) {
+  read_text(maxquant_path) |> load_maxquant
+}
+
+fn preprocess(matrix) {
+  matrix |> log2_transform |> quantile_normalize
+}
+
+fn impute(matrix, percentile=0.01) {
+  impute_minvalue(matrix, percentile)
+}
+
+fn full_pipeline(maxquant_path) {
+  load(maxquant_path)
+    |> log2_transform
+    |> quantile_normalize
+    |> impute_minvalue(0.01)
+}

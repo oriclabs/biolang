@@ -39,15 +39,15 @@ let tumor_brca1 = [3.8, 3.5, 4.0, 3.2, 3.9, 3.6, 3.4, 4.1, 3.7, 3.3, 3.5, 3.8]
 
 for i in range(0, 12) {
     let sid = f"TCGA_N{i + 1:02}"
-    expr_lines = append(expr_lines,
+    expr_lines = push(expr_lines,
         f"{sid},normal,{normal_esr1[i]},{normal_erbb2[i]},{normal_tp53[i]},{normal_mki67[i]},{normal_brca1[i]}")
 }
 for i in range(0, 12) {
     let sid = f"TCGA_T{i + 1:02}"
-    expr_lines = append(expr_lines,
+    expr_lines = push(expr_lines,
         f"{sid},tumor,{tumor_esr1[i]},{tumor_erbb2[i]},{tumor_tp53[i]},{tumor_mki67[i]},{tumor_brca1[i]}")
 }
-write_lines(expr_lines, "data/breast_cancer_expression.csv")
+write_lines("data/breast_cancer_expression.csv", expr_lines)
 
 # --- File 2: treatment_paired.csv ---
 # Paired ESR1 expression before/after 3 months tamoxifen treatment
@@ -67,9 +67,9 @@ let before_vals = [7.8, 8.2, 7.5, 8.5, 7.2, 7.9, 8.1, 7.4, 8.3, 7.6, 8.0, 7.3, 8
 let after_vals = [4.5, 5.2, 4.8, 4.2, 4.9, 4.6, 5.5, 4.1, 5.0, 4.4, 5.3, 4.7, 4.3, 5.1, 4.8]
 
 for i in range(0, 15) {
-    paired_lines = append(paired_lines, f"PT_{i + 1:03},{before_vals[i]},{after_vals[i]}")
+    paired_lines = push(paired_lines, f"PT_{i + 1:03},{before_vals[i]},{after_vals[i]}")
 }
-write_lines(paired_lines, "data/treatment_paired.csv")
+write_lines("data/treatment_paired.csv", paired_lines)
 
 println("Generated 2 files in data/")
 println("  data/breast_cancer_expression.csv — 24 samples, 5 genes (TCGA BRCA)")

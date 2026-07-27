@@ -104,12 +104,13 @@ pub fn compile_function_to_closure(
 
 /// Execute a CompiledClosure value with given arguments.
 /// Used by the interpreter's `call_value` dispatch.
-pub fn call_compiled_closure(closure_any: &Arc<dyn std::any::Any + Send + Sync>, args: Vec<Value>) -> Result<Value> {
-    let closure = closure_any
-        .downcast_ref::<ObjClosure>()
-        .ok_or_else(|| {
-            bl_core::error::BioLangError::type_error("invalid compiled closure", None)
-        })?;
+pub fn call_compiled_closure(
+    closure_any: &Arc<dyn std::any::Any + Send + Sync>,
+    args: Vec<Value>,
+) -> Result<Value> {
+    let closure = closure_any.downcast_ref::<ObjClosure>().ok_or_else(|| {
+        bl_core::error::BioLangError::type_error("invalid compiled closure", None)
+    })?;
 
     let callback = RuntimeBuiltinCallback;
     let registry = BuiltinRegistry::new(Box::new(callback));

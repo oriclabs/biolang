@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-fade6fca.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,7 +186,8 @@ found and not-found cases gracefully.</p>
 <h2 id="ifelse-expressions"><a class="header" href="#ifelse-expressions">if/else Expressions</a></h2>
 <p><code>if/else</code> in BioLang is an expression – it returns a value. This lets you
 embed conditional logic directly in assignments and pipes.</p>
-<pre><code class="language-biolang">let label = if gc_content(seq) &gt; 0.6 {
+<pre><code class="language-biolang">let seq = dna"ATGCGCATGC"
+let label = if gc_content(seq) &gt; 0.6 {
     "GC-rich"
 } else if gc_content(seq) &lt; 0.4 {
     "AT-rich"
@@ -195,7 +196,9 @@ embed conditional logic directly in assignments and pipes.</p>
 }
 </code></pre>
 <p>Because it is an expression, you can use it inline:</p>
-<pre><code class="language-biolang">let allele_freq = if total_depth &gt; 0 { alt_count / total_depth } else { 0.0 }
+<pre><code class="language-biolang">let total_depth = 80
+let alt_count = 24
+let allele_freq = if total_depth &gt; 0 { alt_count / total_depth } else { 0.0 }
 </code></pre>
 <h2 id="match-expressions"><a class="header" href="#match-expressions">match Expressions</a></h2>
 <p><code>match</code> compares a value against a series of patterns. Like <code>if</code>, it is an
@@ -210,7 +213,8 @@ let amino_acid = match codon {
 }
 </code></pre>
 <p>Patterns can destructure records:</p>
-<pre><code class="language-biolang">fn describe_alignment(aln) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn describe_alignment(aln) {
     match aln {
         {mapped: true, mapq: q} if q &gt;= 30 =&gt; "high-confidence"
         {mapped: true, mapq: q} if q &gt;= 10 =&gt; "low-confidence"
@@ -326,7 +330,9 @@ the first true condition wins. <code>otherwise</code> is the fallback.</p>
 }
 </code></pre>
 <p><code>given</code> is an expression, so you can assign its result:</p>
-<pre><code class="language-biolang">let risk = given {
+<pre><code class="language-biolang">let allele_freq = 0.32
+let coverage = 45
+let risk = given {
     allele_freq &gt;= 0.5 &amp;&amp; coverage &gt;= 30 =&gt; "high_confidence_somatic"
     allele_freq &gt;= 0.2                   =&gt; "moderate_evidence"
     allele_freq &gt;= 0.05                  =&gt; "low_frequency"
@@ -381,7 +387,8 @@ negative checks.</p>
 </code></pre>
 <h2 id="example-classify-variants-by-type"><a class="header" href="#example-classify-variants-by-type">Example: Classify Variants by Type</a></h2>
 <p>Read a VCF and produce a summary table of variant types using <code>match</code>.</p>
-<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let variants = read_vcf("data/variants.vcf")
 
 let classified = variants |&gt; map(|v| {
     let vtype = match true {
@@ -471,7 +478,8 @@ for sample in samples {
 <h2 id="example-input-validation-with-guard"><a class="header" href="#example-input-validation-with-guard">Example: Input Validation with guard</a></h2>
 <p>A variant-calling wrapper that validates every precondition before running
 the expensive computation.</p>
-<pre><code class="language-biolang">fn call_variants(bam_path, ref_path, bed_path, min_depth: 10) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn call_variants(bam_path, ref_path, bed_path, min_depth: 10) {
     guard file_exists(bam_path) else {
         return {error: "BAM file not found: " + bam_path}
     }
@@ -580,8 +588,8 @@ type-driven dispatch, and <code>for/else</code> when a search must report failur
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

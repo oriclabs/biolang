@@ -1,0 +1,21 @@
+# qpcr — RT-qPCR analysis for BioLang
+#
+# Quick start:
+#   import "qpcr" as qpcr
+#
+#   # Single comparison
+#   let dct  = qpcr.dct(sample_ct=28.5, ref_ct=22.0)
+#   let fold = qpcr.ddct(sample_dct=dct, control_dct=6.0)
+#
+#   # Plate-level normalization
+#   let norm = qpcr.normalize(ct_table, ref_indices=[0, 1])
+#   qpcr.stability(ct_table, ref_indices=[0, 1])
+
+import "qpcr/src/normalize" as norm
+
+fn dct(sample_ct, ref_ct)                    { delta_ct(sample_ct, ref_ct) }
+fn ddct(sample_dct, control_dct)             { delta_delta_ct(sample_dct, control_dct) }
+fn efficiency(cts, log_dilutions)            { pcr_efficiency(cts, log_dilutions) }
+fn normalize(ct_table, ref_indices)          { norm.normalize(ct_table, ref_indices) }
+fn stability(ct_table, ref_indices)          { norm.stability(ct_table, ref_indices) }
+fn best_reference(ct_table, ref_indices)     { norm.best_reference(ct_table, ref_indices) }

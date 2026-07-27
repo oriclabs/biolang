@@ -29,11 +29,11 @@ print(f"Edges: {edge_count(g)}")
 
 let tp53_partners = neighbors(g, "TP53")
 print(f"\nTP53 interacts with: {tp53_partners}")
-print(f"TP53 degree: {degree(g, 'TP53')}")
-print(f"BCL2 degree: {degree(g, 'BCL2')}")
+print(format("TP53 degree: {}", degree(g, "TP53")))
+print(format("BCL2 degree: {}", degree(g, "BCL2")))
 
-print(f"\nTP53-BAX edge exists: {has_edge(g, 'TP53', 'BAX')}")
-print(f"BCL2-MDM2 edge exists: {has_edge(g, 'BCL2', 'MDM2')}")
+print(format("\nTP53-BAX edge exists: {}", has_edge(g, "TP53", "BAX")))
+print(format("BCL2-MDM2 edge exists: {}", has_edge(g, "BCL2", "MDM2")))
 
 # ── 4. Shortest Path ─────────────────────────────────────────
 

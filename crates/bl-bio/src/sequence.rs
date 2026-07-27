@@ -58,6 +58,7 @@ pub fn bio_builtin_list() -> Vec<(&'static str, Arity)> {
         ("write_fasta", Arity::Exact(2)),
         ("write_fastq", Arity::Exact(2)),
         ("write_bed", Arity::Exact(2)),
+        ("write_bedgraph", Arity::Exact(2)),
         ("write_vcf", Arity::Exact(2)),
         ("write_gff", Arity::Exact(2)),
         // FASTQ read trimming builtins
@@ -143,7 +144,10 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 data: bio_core::seq_ops::reverse_complement_rna(&seq.data),
             })),
             other => Err(BioLangError::type_error(
-                format!("reverse_complement() requires DNA or RNA, got {}", other.type_of()),
+                format!(
+                    "reverse_complement() requires DNA or RNA, got {}",
+                    other.type_of()
+                ),
                 None,
             )),
         },
@@ -177,16 +181,25 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             if start > data.len() || end > data.len() || start > end {
                 return Err(BioLangError::runtime(
                     ErrorKind::IndexOutOfBounds,
-                    format!("subseq({start}, {end}) out of bounds for sequence of length {}", data.len()),
+                    format!(
+                        "subseq({start}, {end}) out of bounds for sequence of length {}",
+                        data.len()
+                    ),
                     None,
                 ));
             }
 
             let sub = &data[start..end];
             match seq_val {
-                Value::DNA(_) => Ok(Value::DNA(BioSequence { data: sub.to_string() })),
-                Value::RNA(_) => Ok(Value::RNA(BioSequence { data: sub.to_string() })),
-                Value::Protein(_) => Ok(Value::Protein(BioSequence { data: sub.to_string() })),
+                Value::DNA(_) => Ok(Value::DNA(BioSequence {
+                    data: sub.to_string(),
+                })),
+                Value::RNA(_) => Ok(Value::RNA(BioSequence {
+                    data: sub.to_string(),
+                })),
+                Value::Protein(_) => Ok(Value::Protein(BioSequence {
+                    data: sub.to_string(),
+                })),
                 _ => unreachable!(),
             }
         }
@@ -194,13 +207,23 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let seq = get_seq_data(&args[0], "find_motif")?;
             let motif = require_str(&args[1], "find_motif")?;
             let positions = bio_core::seq_ops::find_motif(&seq, &motif);
-            Ok(Value::List(positions.into_iter().map(|p| Value::Int(p as i64)).collect()))
+            Ok(Value::List(
+                positions
+                    .into_iter()
+                    .map(|p| Value::Int(p as i64))
+                    .collect::<Vec<_>>().into(),
+            ))
         }
         "kmers" => {
             let seq = get_seq_data(&args[0], "kmers")?;
             let k = require_int(&args[1], "kmers")? as usize;
             let result = bio_core::seq_ops::kmers(&seq, k);
-            Ok(Value::List(result.into_iter().map(|s| Value::Str(s.to_string())).collect()))
+            Ok(Value::List(
+                result
+                    .into_iter()
+                    .map(|s| Value::Str(s.to_string()))
+                    .collect::<Vec<_>>().into(),
+            ))
         }
         "find_orfs" => {
             let seq = get_seq_data(&args[0], "find_orfs")?;
@@ -217,18 +240,19 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     let mut fields = std::collections::HashMap::new();
                     fields.insert("start".to_string(), Value::Int(orf.start as i64));
                     fields.insert("end".to_string(), Value::Int(orf.end as i64));
-                    fields.insert("length".to_string(), Value::Int((orf.end - orf.start) as i64));
+                    fields.insert(
+                        "length".to_string(),
+                        Value::Int((orf.end - orf.start) as i64),
+                    );
                     fields.insert("frame".to_string(), Value::Int(orf.frame as i64));
                     fields.insert(
                         "protein".to_string(),
-                        Value::Protein(BioSequence {
-                            data: orf.protein,
-                        }),
+                        Value::Protein(BioSequence { data: orf.protein }),
                     );
-                    Value::Record(fields)
+                    Value::Record((fields).into())
                 })
                 .collect();
-            Ok(Value::List(values))
+            Ok(Value::List((values).into()))
         }
         "seq_len" => {
             let seq = get_seq_data(&args[0], "seq_len")?;
@@ -392,6 +416,10 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let path = require_str(&args[1], "write_bed")?;
             crate::io::write_bed(&args[0], &path)
         }
+        "write_bedgraph" => {
+            let path = require_str(&args[1], "write_bedgraph")?;
+            crate::io::write_bedgraph(&args[0], &path)
+        }
         "write_vcf" => {
             let path = require_str(&args[1], "write_vcf")?;
             crate::io::write_vcf(&args[0], &path)
@@ -523,7 +551,11 @@ fn suggest_bio_builtin(name: &str) -> Option<String> {
 /// Open a FASTQ file (plain or gzipped) and return a boxed BufRead.
 fn open_fastq_reader(path: &str) -> Result<Box<dyn std::io::BufRead>> {
     let file = std::fs::File::open(path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("cannot open '{path}': {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("cannot open '{path}': {e}"),
+            None,
+        )
     })?;
     if path.ends_with(".gz") {
         let decoder = flate2::read::GzDecoder::new(file);
@@ -534,11 +566,19 @@ fn open_fastq_reader(path: &str) -> Result<Box<dyn std::io::BufRead>> {
 }
 
 /// Create a FASTQ writer to a file.
-fn create_fastq_writer(path: &str) -> Result<noodles_fastq::io::Writer<std::io::BufWriter<std::fs::File>>> {
+fn create_fastq_writer(
+    path: &str,
+) -> Result<noodles_fastq::io::Writer<std::io::BufWriter<std::fs::File>>> {
     let file = std::fs::File::create(path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("cannot create '{path}': {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("cannot create '{path}': {e}"),
+            None,
+        )
     })?;
-    Ok(noodles_fastq::io::Writer::new(std::io::BufWriter::new(file)))
+    Ok(noodles_fastq::io::Writer::new(std::io::BufWriter::new(
+        file,
+    )))
 }
 
 /// Write a trimmed FASTQ record given name, sequence slice, and quality slice.
@@ -551,9 +591,9 @@ fn write_trimmed_record(
     use noodles_fastq as fq;
     let definition = fq::record::Definition::new(name, b"");
     let record = fq::Record::new(definition, seq, qual);
-    writer.write_record(&record).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("write error: {e}"), None)
-    })
+    writer
+        .write_record(&record)
+        .map_err(|e| BioLangError::runtime(ErrorKind::IOError, format!("write error: {e}"), None))
 }
 
 // ── Sliding window quality trimmer ──────────────────────────────────
@@ -687,13 +727,8 @@ fn builtin_trim_reads(path: &str, output: &str, opts: &HashMap<String, Value>) -
         total_len_before += len_before as i64;
 
         // Sliding window trim
-        let (trim_start, trim_end) = trim_sliding_window(
-            qual,
-            window_size,
-            quality_threshold,
-            cut_front,
-            cut_tail,
-        );
+        let (trim_start, trim_end) =
+            trim_sliding_window(qual, window_size, quality_threshold, cut_front, cut_tail);
 
         let trimmed_seq = &seq[trim_start..trim_end];
         let trimmed_qual = &qual[trim_start..trim_end];
@@ -738,7 +773,7 @@ fn builtin_trim_reads(path: &str, output: &str, opts: &HashMap<String, Value>) -
     result.insert("mean_length_before".to_string(), Value::Float(mean_before));
     result.insert("mean_length_after".to_string(), Value::Float(mean_after));
     result.insert("output".to_string(), Value::Str(output.to_string()));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 // ── Adapter trimming ────────────────────────────────────────────────
@@ -766,11 +801,7 @@ fn find_adapter_overlap(read: &[u8], adapter: &[u8], min_overlap: usize) -> Opti
 
 /// trim_adapters(fastq_path, output_path, adapters)
 /// Adapter removal from reads.
-fn builtin_trim_adapters(
-    path: &str,
-    output: &str,
-    adapters: &[String],
-) -> Result<Value> {
+fn builtin_trim_adapters(path: &str, output: &str, adapters: &[String]) -> Result<Value> {
     let min_overlap: usize = 8;
     let min_len: usize = 36;
 
@@ -852,7 +883,7 @@ fn builtin_trim_adapters(
     result.insert("written_reads".to_string(), Value::Int(written_reads));
     result.insert("adapter_rate".to_string(), Value::Float(adapter_rate));
     result.insert("output".to_string(), Value::Str(output.to_string()));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 // ── Adapter detection ───────────────────────────────────────────────
@@ -940,7 +971,7 @@ fn builtin_detect_adapters(path: &str) -> Result<Value> {
             rec.insert("name".to_string(), Value::Str(adapter_name.to_string()));
             rec.insert("count".to_string(), Value::Int(count as i64));
             rec.insert("rate".to_string(), Value::Float(rate));
-            results.push(Value::Record(rec));
+            results.push(Value::Record((rec).into()));
         }
     }
 
@@ -963,7 +994,7 @@ fn builtin_detect_adapters(path: &str) -> Result<Value> {
         cb.cmp(&ca)
     });
 
-    Ok(Value::List(results))
+    Ok(Value::List((results).into()))
 }
 
 // ── Simple quality trimming ─────────────────────────────────────────
@@ -1024,7 +1055,7 @@ fn builtin_trim_quality(path: &str, output: &str, threshold: f64) -> Result<Valu
     result.insert("passed_reads".to_string(), Value::Int(passed_reads));
     result.insert("bases_trimmed".to_string(), Value::Int(bases_trimmed));
     result.insert("output".to_string(), Value::Str(output.to_string()));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 // ── Read filtering ──────────────────────────────────────────────────
@@ -1136,7 +1167,7 @@ fn builtin_filter_reads(path: &str, output: &str, opts: &HashMap<String, Value>)
     result.insert("low_quality".to_string(), Value::Int(low_quality));
     result.insert("low_complexity".to_string(), Value::Int(low_complexity));
     result.insert("too_many_n".to_string(), Value::Int(too_many_n));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 // ── Comprehensive read statistics ───────────────────────────────────
@@ -1262,7 +1293,7 @@ fn builtin_read_stats(path: &str) -> Result<Value> {
         let mut result = HashMap::new();
         result.insert("total_reads".to_string(), Value::Int(0));
         result.insert("total_bases".to_string(), Value::Int(0));
-        return Ok(Value::Record(result));
+        return Ok(Value::Record((result).into()));
     }
 
     // Length distribution
@@ -1340,7 +1371,7 @@ fn builtin_read_stats(path: &str) -> Result<Value> {
         rec.insert("name".to_string(), Value::Str(adapter_name.to_string()));
         rec.insert("count".to_string(), Value::Int(adapter_hit_counts[i]));
         rec.insert("rate".to_string(), Value::Float(rate));
-        adapter_results.push(Value::Record(rec));
+        adapter_results.push(Value::Record((rec).into()));
     }
 
     // Duplication rate
@@ -1363,22 +1394,22 @@ fn builtin_read_stats(path: &str) -> Result<Value> {
     len_dist.insert("mean".to_string(), Value::Float(mean_len));
     len_dist.insert("median".to_string(), Value::Int(median_len));
     len_dist.insert("n50".to_string(), Value::Int(n50));
-    result.insert("length".to_string(), Value::Record(len_dist));
+    result.insert("length".to_string(), Value::Record((len_dist).into()));
 
     // Quality distribution sub-record
     let mut qual_dist = HashMap::new();
     qual_dist.insert("mean".to_string(), Value::Float(mean_quality));
     qual_dist.insert("q20_pct".to_string(), Value::Float(q20_pct));
     qual_dist.insert("q30_pct".to_string(), Value::Float(q30_pct));
-    qual_dist.insert("per_position".to_string(), Value::List(per_pos_quality));
-    result.insert("quality".to_string(), Value::Record(qual_dist));
+    qual_dist.insert("per_position".to_string(), Value::List((per_pos_quality).into()));
+    result.insert("quality".to_string(), Value::Record((qual_dist).into()));
 
     result.insert("gc_content".to_string(), Value::Float(gc_fraction));
-    result.insert("n_content".to_string(), Value::List(per_pos_n));
-    result.insert("adapters".to_string(), Value::List(adapter_results));
+    result.insert("n_content".to_string(), Value::List((per_pos_n).into()));
+    result.insert("adapters".to_string(), Value::List((adapter_results).into()));
     result.insert("duplication_rate".to_string(), Value::Float(dup_rate));
 
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 // ── Bio accessor implementations ───────────────────────────────────
@@ -1397,7 +1428,10 @@ fn builtin_to_interval(val: &Value) -> Result<Value> {
             let strand_ci = t.col_index("strand");
 
             let chrom_ci = chrom_ci.ok_or_else(|| {
-                BioLangError::type_error("to_interval() table needs 'chrom' or 'seqid' column", None)
+                BioLangError::type_error(
+                    "to_interval() table needs 'chrom' or 'seqid' column",
+                    None,
+                )
             })?;
             let start_ci = start_ci.ok_or_else(|| {
                 BioLangError::type_error("to_interval() table needs 'start' column", None)
@@ -1424,13 +1458,21 @@ fn builtin_to_interval(val: &Value) -> Result<Value> {
                         _ => None,
                     })
                     .unwrap_or(Strand::Unknown);
-                intervals.push(Value::Interval(GenomicInterval { chrom, start, end, strand }));
+                intervals.push(Value::Interval(GenomicInterval {
+                    chrom,
+                    start,
+                    end,
+                    strand,
+                }));
             }
-            Ok(Value::List(intervals))
+            Ok(Value::List((intervals).into()))
         }
         Value::Interval(_) => Ok(val.clone()),
         other => Err(BioLangError::type_error(
-            format!("to_interval() requires Record or Table, got {}", other.type_of()),
+            format!(
+                "to_interval() requires Record or Table, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -1452,9 +1494,9 @@ fn record_to_interval(fields: &HashMap<String, Value>) -> Result<GenomicInterval
             ))
         }
     };
-    let start = fields
-        .get("start")
-        .ok_or_else(|| BioLangError::type_error("to_interval() record needs 'start' field", None))?;
+    let start = fields.get("start").ok_or_else(|| {
+        BioLangError::type_error("to_interval() record needs 'start' field", None)
+    })?;
     let end = fields
         .get("end")
         .ok_or_else(|| BioLangError::type_error("to_interval() record needs 'end' field", None))?;
@@ -1467,7 +1509,12 @@ fn record_to_interval(fields: &HashMap<String, Value>) -> Result<GenomicInterval
             _ => None,
         })
         .unwrap_or(Strand::Unknown);
-    Ok(GenomicInterval { chrom, start, end, strand })
+    Ok(GenomicInterval {
+        chrom,
+        start,
+        end,
+        strand,
+    })
 }
 
 /// Parse VCF INFO field: "DP=100;AF=0.5;DB" -> Record {DP: 100, AF: 0.5, DB: true}
@@ -1478,24 +1525,40 @@ fn builtin_parse_info(val: &Value, key: Option<&str>) -> Result<Value> {
         Value::Str(s) => s.clone(),
         Value::Record(fields) => match fields.get("info") {
             Some(Value::Str(s)) => s.clone(),
-            Some(Value::Nil) | None => return Ok(if key.is_some() { Value::Nil } else { Value::Record(HashMap::new()) }),
+            Some(Value::Nil) | None => {
+                return Ok(if key.is_some() {
+                    Value::Nil
+                } else {
+                    Value::Record((HashMap::new()).into())
+                })
+            }
             Some(other) => {
                 return Err(BioLangError::type_error(
-                    format!("parse_info() info field must be Str, got {}", other.type_of()),
+                    format!(
+                        "parse_info() info field must be Str, got {}",
+                        other.type_of()
+                    ),
                     None,
                 ))
             }
         },
         other => {
             return Err(BioLangError::type_error(
-                format!("parse_info() requires Str or Record, got {}", other.type_of()),
+                format!(
+                    "parse_info() requires Str or Record, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
 
     if info_str == "." || info_str.is_empty() {
-        return Ok(if key.is_some() { Value::Nil } else { Value::Record(HashMap::new()) });
+        return Ok(if key.is_some() {
+            Value::Nil
+        } else {
+            Value::Record((HashMap::new()).into())
+        });
     }
 
     let parsed = parse_vcf_info_str(&info_str);
@@ -1503,7 +1566,7 @@ fn builtin_parse_info(val: &Value, key: Option<&str>) -> Result<Value> {
     if let Some(k) = key {
         Ok(parsed.get(k).cloned().unwrap_or(Value::Nil))
     } else {
-        Ok(Value::Record(parsed))
+        Ok(Value::Record((parsed).into()))
     }
 }
 
@@ -1536,7 +1599,7 @@ fn parse_info_value(v: &str) -> Value {
     // Multi-value (comma-separated)
     if v.contains(',') {
         let items: Vec<Value> = v.split(',').map(|s| parse_info_value(s.trim())).collect();
-        return Value::List(items);
+        return Value::List((items).into());
     }
     Value::Str(v.to_string())
 }
@@ -1549,24 +1612,40 @@ fn builtin_parse_attr(val: &Value, key: Option<&str>) -> Result<Value> {
         Value::Str(s) => s.clone(),
         Value::Record(fields) => match fields.get("attributes") {
             Some(Value::Str(s)) => s.clone(),
-            Some(Value::Nil) | None => return Ok(if key.is_some() { Value::Nil } else { Value::Record(HashMap::new()) }),
+            Some(Value::Nil) | None => {
+                return Ok(if key.is_some() {
+                    Value::Nil
+                } else {
+                    Value::Record((HashMap::new()).into())
+                })
+            }
             Some(other) => {
                 return Err(BioLangError::type_error(
-                    format!("parse_attr() attributes field must be Str, got {}", other.type_of()),
+                    format!(
+                        "parse_attr() attributes field must be Str, got {}",
+                        other.type_of()
+                    ),
                     None,
                 ))
             }
         },
         other => {
             return Err(BioLangError::type_error(
-                format!("parse_attr() requires Str or Record, got {}", other.type_of()),
+                format!(
+                    "parse_attr() requires Str or Record, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
 
     if attr_str == "." || attr_str.is_empty() {
-        return Ok(if key.is_some() { Value::Nil } else { Value::Record(HashMap::new()) });
+        return Ok(if key.is_some() {
+            Value::Nil
+        } else {
+            Value::Record((HashMap::new()).into())
+        });
     }
 
     let parsed = parse_gff_attr_str(&attr_str);
@@ -1574,7 +1653,7 @@ fn builtin_parse_attr(val: &Value, key: Option<&str>) -> Result<Value> {
     if let Some(k) = key {
         Ok(parsed.get(k).cloned().unwrap_or(Value::Nil))
     } else {
-        Ok(Value::Record(parsed))
+        Ok(Value::Record((parsed).into()))
     }
 }
 
@@ -1605,9 +1684,11 @@ fn parse_gff_attr_str(attr: &str) -> HashMap<String, Value> {
             if let Some((k, v)) = field.split_once('=') {
                 let v = v.trim();
                 if v.contains(',') {
-                    let items: Vec<Value> =
-                        v.split(',').map(|s| Value::Str(s.trim().to_string())).collect();
-                    result.insert(k.to_string(), Value::List(items));
+                    let items: Vec<Value> = v
+                        .split(',')
+                        .map(|s| Value::Str(s.trim().to_string()))
+                        .collect();
+                    result.insert(k.to_string(), Value::List((items).into()));
                 } else {
                     result.insert(k.to_string(), Value::Str(v.to_string()));
                 }
@@ -1624,17 +1705,23 @@ fn builtin_parse_qual(val: &Value) -> Result<Value> {
         Value::Str(s) => s.clone(),
         Value::Record(fields) => match fields.get("quality") {
             Some(Value::Str(s)) => s.clone(),
-            Some(Value::Nil) | None => return Ok(Value::List(Vec::new())),
+            Some(Value::Nil) | None => return Ok(Value::List((Vec::new()).into())),
             Some(other) => {
                 return Err(BioLangError::type_error(
-                    format!("parse_qual() quality field must be Str, got {}", other.type_of()),
+                    format!(
+                        "parse_qual() quality field must be Str, got {}",
+                        other.type_of()
+                    ),
                     None,
                 ))
             }
         },
         other => {
             return Err(BioLangError::type_error(
-                format!("parse_qual() requires Str or Record, got {}", other.type_of()),
+                format!(
+                    "parse_qual() requires Str or Record, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -1644,7 +1731,7 @@ fn builtin_parse_qual(val: &Value) -> Result<Value> {
         .bytes()
         .map(|b| Value::Int((b as i64) - 33))
         .collect();
-    Ok(Value::List(scores))
+    Ok(Value::List((scores).into()))
 }
 
 /// Base composition of a DNA/RNA sequence -> Record {A: n, T: n, G: n, C: n, N: n, GC: 0.xx}
@@ -1672,7 +1759,7 @@ fn builtin_base_counts(val: &Value) -> Result<Value> {
         Value::Float(if total > 0.0 { gc / total } else { 0.0 }),
     );
     result.insert("total".to_string(), Value::Int(data.len() as i64));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 fn val_to_i64(val: &Value, func: &str, field: &str) -> Result<i64> {
@@ -1708,10 +1795,7 @@ fn wants_no_stream(args: &[Value]) -> bool {
 fn wants_stream(args: &[Value]) -> bool {
     if args.len() > 1 {
         if let Value::Record(opts) = &args[1] {
-            return opts
-                .get("stream")
-                .map(|v| v.is_truthy())
-                .unwrap_or(false);
+            return opts.get("stream").map(|v| v.is_truthy()).unwrap_or(false);
         }
     }
     false
@@ -1763,7 +1847,7 @@ fn require_float_or_int(val: &Value, func: &str) -> Result<f64> {
 
 fn require_record(val: &Value, func: &str) -> Result<HashMap<String, Value>> {
     match val {
-        Value::Record(r) => Ok(r.clone()),
+        Value::Record(r) => Ok((**r).clone()),
         other => Err(BioLangError::type_error(
             format!("{func}() requires Record, got {}", other.type_of()),
             None,
@@ -1773,7 +1857,7 @@ fn require_record(val: &Value, func: &str) -> Result<HashMap<String, Value>> {
 
 fn require_list(val: &Value, func: &str) -> Result<Vec<Value>> {
     match val {
-        Value::List(l) => Ok(l.clone()),
+        Value::List(l) => Ok((**l).clone()),
         other => Err(BioLangError::type_error(
             format!("{func}() requires List, got {}", other.type_of()),
             None,
@@ -1905,7 +1989,10 @@ fn require_vcf_table<'a>(val: &'a Value, func: &str) -> Result<&'a bl_core::valu
 
 fn vcf_ref_alt_cols(t: &bl_core::value::Table) -> (usize, usize) {
     let ref_ci = t.col_index("ref").or_else(|| t.col_index("REF")).unwrap();
-    let alt_ci = t.col_index("alt").or_else(|| t.col_index("ALT")).unwrap_or(ref_ci + 1);
+    let alt_ci = t
+        .col_index("alt")
+        .or_else(|| t.col_index("ALT"))
+        .unwrap_or(ref_ci + 1);
     (ref_ci, alt_ci)
 }
 
@@ -1942,7 +2029,8 @@ fn builtin_normalize_variant(args: Vec<Value>) -> Result<Value> {
 
         // Trim common prefix (keep at least 1 base)
         let mut prefix_trim = 0;
-        while prefix_trim + 1 < r_end && prefix_trim + 1 < a_end
+        while prefix_trim + 1 < r_end
+            && prefix_trim + 1 < a_end
             && ref_bytes[prefix_trim] == alt_bytes[prefix_trim]
         {
             prefix_trim += 1;
@@ -1965,7 +2053,10 @@ fn builtin_normalize_variant(args: Vec<Value>) -> Result<Value> {
         new_rows.push(row);
     }
 
-    Ok(Value::Table(bl_core::value::Table::new(t.columns.clone(), new_rows)))
+    Ok(Value::Table(bl_core::value::Table::new(
+        t.columns.clone(),
+        new_rows,
+    )))
 }
 
 /// tstv_ratio(table) -> Float
@@ -2050,16 +2141,27 @@ fn builtin_variant_stats(args: Vec<Value>) -> Result<Value> {
         .iter()
         .map(|row| {
             let r = val_as_str(&row[ref_ci]).to_string();
-            let a: Vec<String> = val_as_str(&row[alt_ci]).split(',').map(|s| s.trim().to_string()).collect();
+            let a: Vec<String> = val_as_str(&row[alt_ci])
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect();
             (r, a)
         })
         .collect();
 
     let variant_refs: Vec<(&str, Vec<&str>)> = variant_data
         .iter()
-        .map(|(r, a)| (r.as_str(), a.iter().map(|s| s.as_str()).collect::<Vec<&str>>()))
+        .map(|(r, a)| {
+            (
+                r.as_str(),
+                a.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
+            )
+        })
         .collect();
-    let pairs: Vec<(&str, &[&str])> = variant_refs.iter().map(|(r, a)| (*r, a.as_slice())).collect();
+    let pairs: Vec<(&str, &[&str])> = variant_refs
+        .iter()
+        .map(|(r, a)| (*r, a.as_slice()))
+        .collect();
     let summary = bio_core::vcf_ops::summarize_variants(&pairs);
 
     let mut result = HashMap::new();
@@ -2068,11 +2170,20 @@ fn builtin_variant_stats(args: Vec<Value>) -> Result<Value> {
     result.insert("indel".to_string(), Value::Int(summary.indel as i64));
     result.insert("mnp".to_string(), Value::Int(summary.mnp as i64));
     result.insert("other".to_string(), Value::Int(summary.other as i64));
-    result.insert("transitions".to_string(), Value::Int(summary.transitions as i64));
-    result.insert("transversions".to_string(), Value::Int(summary.transversions as i64));
+    result.insert(
+        "transitions".to_string(),
+        Value::Int(summary.transitions as i64),
+    );
+    result.insert(
+        "transversions".to_string(),
+        Value::Int(summary.transversions as i64),
+    );
     result.insert("ts_tv_ratio".to_string(), Value::Float(summary.ts_tv_ratio));
-    result.insert("multiallelic".to_string(), Value::Int(summary.multiallelic as i64));
-    Ok(Value::Record(result))
+    result.insert(
+        "multiallelic".to_string(),
+        Value::Int(summary.multiallelic as i64),
+    );
+    Ok(Value::Record((result).into()))
 }
 
 /// decompose_mnp(table) -> Table
@@ -2110,7 +2221,10 @@ fn builtin_decompose_mnp(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    Ok(Value::Table(bl_core::value::Table::new(t.columns.clone(), new_rows)))
+    Ok(Value::Table(bl_core::value::Table::new(
+        t.columns.clone(),
+        new_rows,
+    )))
 }
 
 /// filter_pass(table) -> Table
@@ -2132,7 +2246,10 @@ fn builtin_filter_pass(args: Vec<Value>) -> Result<Value> {
         None => t.rows.clone(), // No FILTER column — keep all
     };
 
-    Ok(Value::Table(bl_core::value::Table::new(t.columns.clone(), new_rows)))
+    Ok(Value::Table(bl_core::value::Table::new(
+        t.columns.clone(),
+        new_rows,
+    )))
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -2295,12 +2412,16 @@ fn builtin_codon_usage(args: Vec<Value>) -> Result<Value> {
         rec.insert("count".to_string(), Value::Int(*count));
         rec.insert(
             "frequency".to_string(),
-            Value::Float(if total > 0.0 { *count as f64 / total } else { 0.0 }),
+            Value::Float(if total > 0.0 {
+                *count as f64 / total
+            } else {
+                0.0
+            }),
         );
-        result.insert(codon.clone(), Value::Record(rec));
+        result.insert(codon.clone(), Value::Record((rec).into()));
     }
 
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 /// tm(dna) -> Float
@@ -2364,7 +2485,10 @@ fn builtin_restriction_sites(args: Vec<Value>) -> Result<Value> {
     let enzyme_names: Vec<String> = match &args[1] {
         Value::Str(s) => {
             if s == "*" || s == "all" {
-                RESTRICTION_ENZYMES.iter().map(|(n, _)| n.to_string()).collect()
+                RESTRICTION_ENZYMES
+                    .iter()
+                    .map(|(n, _)| n.to_string())
+                    .collect()
             } else {
                 s.split(',').map(|e| e.trim().to_string()).collect()
             }
@@ -2378,7 +2502,10 @@ fn builtin_restriction_sites(args: Vec<Value>) -> Result<Value> {
             .collect(),
         other => {
             return Err(BioLangError::type_error(
-                format!("restriction_sites() enzyme arg must be Str or List, got {}", other.type_of()),
+                format!(
+                    "restriction_sites() enzyme arg must be Str or List, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -2404,13 +2531,18 @@ fn builtin_restriction_sites(args: Vec<Value>) -> Result<Value> {
             rec.insert("cuts".to_string(), Value::Int(positions.len() as i64));
             rec.insert(
                 "positions".to_string(),
-                Value::List(positions.into_iter().map(|p| Value::Int(p as i64)).collect()),
+                Value::List(
+                    positions
+                        .into_iter()
+                        .map(|p| Value::Int(p as i64))
+                        .collect::<Vec<_>>().into(),
+                ),
             );
-            results.push(Value::Record(rec));
+            results.push(Value::Record((rec).into()));
         }
     }
 
-    Ok(Value::List(results))
+    Ok(Value::List((results).into()))
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -2425,19 +2557,29 @@ fn open_bam_reader(
     noodles_bam::io::Reader<noodles_bgzf::io::Reader<std::io::BufReader<std::fs::File>>>,
 )> {
     let file = std::fs::File::open(path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("cannot open '{path}': {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("cannot open '{path}': {e}"),
+            None,
+        )
     })?;
     let buf = std::io::BufReader::new(file);
     let mut reader = noodles_bam::io::Reader::new(buf);
     let header = reader.read_header().map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("cannot read BAM header: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("cannot read BAM header: {e}"),
+            None,
+        )
     })?;
     Ok((header, reader))
 }
 
 /// Read next BAM record; returns false on EOF.
 fn read_next_bam(
-    reader: &mut noodles_bam::io::Reader<noodles_bgzf::io::Reader<std::io::BufReader<std::fs::File>>>,
+    reader: &mut noodles_bam::io::Reader<
+        noodles_bgzf::io::Reader<std::io::BufReader<std::fs::File>>,
+    >,
     header: &noodles_sam::Header,
     record: &mut noodles_sam::alignment::RecordBuf,
 ) -> Result<bool> {
@@ -2454,16 +2596,19 @@ fn read_next_bam(
 
 /// Compute alignment span from a RecordBuf's CIGAR.
 fn cigar_alignment_span(record: &noodles_sam::alignment::RecordBuf) -> usize {
-    use noodles_sam::alignment::record::Cigar;
     use noodles_sam::alignment::record::cigar::op::Kind;
     use noodles_sam::alignment::record::cigar::Op;
+    use noodles_sam::alignment::record::Cigar;
     record
         .cigar()
         .iter()
         .filter_map(|r: std::result::Result<Op, _>| r.ok())
         .map(|op: Op| match op.kind() {
-            Kind::Match | Kind::Deletion | Kind::Skip
-            | Kind::SequenceMatch | Kind::SequenceMismatch => op.len(),
+            Kind::Match
+            | Kind::Deletion
+            | Kind::Skip
+            | Kind::SequenceMatch
+            | Kind::SequenceMismatch => op.len(),
             _ => 0,
         })
         .sum()
@@ -2509,7 +2654,7 @@ fn builtin_depth(args: Vec<Value>) -> Result<Value> {
     result.insert("total_aligned_bases".to_string(), Value::Int(total_bases));
     result.insert("genome_size".to_string(), Value::Int(genome_size));
     result.insert("mean_depth".to_string(), Value::Float(mean_depth));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 /// insert_size(bam_path) -> Record
@@ -2544,7 +2689,7 @@ fn builtin_insert_size(args: Vec<Value>) -> Result<Value> {
         result.insert("mean".to_string(), Value::Float(0.0));
         result.insert("median".to_string(), Value::Int(0));
         result.insert("std_dev".to_string(), Value::Float(0.0));
-        return Ok(Value::Record(result));
+        return Ok(Value::Record((result).into()));
     }
 
     sizes.sort_unstable();
@@ -2552,7 +2697,11 @@ fn builtin_insert_size(args: Vec<Value>) -> Result<Value> {
     let sum: i64 = sizes.iter().sum();
     let mean = sum as f64 / count as f64;
     let median = sizes[count / 2];
-    let variance: f64 = sizes.iter().map(|&s| (s as f64 - mean).powi(2)).sum::<f64>() / count as f64;
+    let variance: f64 = sizes
+        .iter()
+        .map(|&s| (s as f64 - mean).powi(2))
+        .sum::<f64>()
+        / count as f64;
     let std_dev = variance.sqrt();
 
     let p25 = sizes[count / 4];
@@ -2567,7 +2716,7 @@ fn builtin_insert_size(args: Vec<Value>) -> Result<Value> {
     result.insert("p75".to_string(), Value::Int(p75));
     result.insert("min".to_string(), Value::Int(sizes[0]));
     result.insert("max".to_string(), Value::Int(sizes[count - 1]));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 /// mapping_rate(bam_path) -> Record
@@ -2629,7 +2778,7 @@ fn builtin_mapping_rate(args: Vec<Value>) -> Result<Value> {
     result.insert("secondary".to_string(), Value::Int(secondary));
     result.insert("supplementary".to_string(), Value::Int(supplementary));
     result.insert("mapping_rate".to_string(), Value::Float(mapping_rate));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 /// coverage_hist(bam_path) or coverage_hist(bam_path, bin_size) -> Table
@@ -2762,7 +2911,11 @@ fn builtin_on_target(args: Vec<Value>) -> Result<Value> {
 
     // Load BED regions
     let bed_content = std::fs::read_to_string(&bed_path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("cannot read '{bed_path}': {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("cannot read '{bed_path}': {e}"),
+            None,
+        )
     })?;
     let mut regions: HashMap<String, Vec<(i64, i64)>> = HashMap::new();
     for line in bed_content.lines() {
@@ -2857,5 +3010,5 @@ fn builtin_on_target(args: Vec<Value>) -> Result<Value> {
     result.insert("on_target".to_string(), Value::Int(on_target));
     result.insert("off_target".to_string(), Value::Int(off_target));
     result.insert("on_target_rate".to_string(), Value::Float(on_target_rate));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }

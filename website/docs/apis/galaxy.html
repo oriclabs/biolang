@@ -153,7 +153,7 @@ print("Last updated:", info.last_updated)</code></pre>
         <h3>Find Alignment Tools</h3>
         <pre><code class="language-biolang"># Search for alignment tools and sort by download count
 galaxy_search("alignment", 50)
-  |> sort(.downloads)
+  |> sort_by(|tool| tool.downloads)
   |> reverse()
   |> map(|t| { name: t.name, owner: t.owner, downloads: t.downloads })
   |> take(10)
@@ -167,7 +167,7 @@ categories |> map(|c| c.name) |> print()
 # Pick a category and search within it
 galaxy_search("Assembly")
   |> map(|t| { name: t.name, owner: t.owner, downloads: t.downloads })
-  |> sort(.downloads)
+  |> sort_by(|tool| tool.downloads)
   |> reverse()
   |> print()</code></pre>
 

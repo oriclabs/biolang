@@ -1,0 +1,116 @@
+# singlecell — Single-cell RNA-seq analysis for BioLang
+#
+# Provides a Seurat-compatible workflow for 10x Genomics and other scRNA-seq data.
+#
+# Typical pipeline:
+#   import "singlecell" as sc
+#
+#   let obj = sc.load("path/to/10x/")              # read MEX directory
+#   let obj = sc.filter_cells(obj)                 # remove low-quality cells
+#   let obj = sc.normalize(obj)                    # library-size normalize + log1p
+#   let obj = sc.variable_genes(obj, 2000)         # select HVGs
+#   let obj = sc.neighbors(obj, 15)                # k-NN graph on HVG matrix
+#   let obj = sc.cluster(obj)                      # k-means clustering
+#   let obj = sc.pseudotime(obj, start_cell = 0)   # diffusion pseudotime
+#
+# Object model: each function returns an enriched Record with new fields added.
+# See core.bl, preprocess.bl, markers.bl, integration.bl, trajectory.bl.
+
+import "singlecell/src/core"        as _core
+import "singlecell/src/preprocess"  as _pre
+import "singlecell/src/markers"     as _mark
+import "singlecell/src/integration" as _int
+import "singlecell/src/trajectory"  as _traj
+import "singlecell/src/standard"    as _std
+import "singlecell/src/plots"       as _plots
+
+# ─── One-call workflow ─────────────────────────────────────────────────────────
+#
+# standard() runs the usual pipeline and prints the explicit version it ran,
+# marking every parameter [default] or [set]. Start here, then paste the printed
+# pipeline back and edit whichever step you need.
+
+fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
+            min_genes = nil, max_genes = nil, max_pct_mito = nil,
+            min_cells = nil, target = nil, quiet = false) {
+    _std.standard(obj, resolution, n_hvg, k, min_genes, max_genes,
+                  max_pct_mito, min_cells, target, quiet)
+}
+fn sweep(obj, resolutions = [0.1, 0.3, 0.5, 0.7, 1.0], n_hvg = nil, k = nil) {
+    _std.sweep(obj, resolutions, n_hvg, k)
+}
+
+# ─── Core / object creation ────────────────────────────────────────────────────
+
+fn load(path)                            { _core.load(path) }
+fn from_matrix(matrix, genes, barcodes) { _core.from_matrix(matrix, genes, barcodes) }
+fn n_cells(obj)                          { _core.n_cells(obj) }
+fn n_genes(obj)                          { _core.n_genes(obj) }
+fn get_matrix(obj)                       { _core.get_matrix(obj) }
+fn get_norm_matrix(obj)                  { _core.get_norm_matrix(obj) }
+fn get_genes(obj)                        { _core.get_genes(obj) }
+fn get_barcodes(obj)                     { _core.get_barcodes(obj) }
+fn get_hvg_genes(obj)                    { _core.get_hvg_genes(obj) }
+fn get_clusters(obj)                     { _core.get_clusters(obj) }
+fn get_pseudotime(obj)                   { _core.get_pseudotime(obj) }
+fn get_doublet_scores(obj)               { _core.get_doublet_scores(obj) }
+fn summary(obj)                          { _core.summary(obj) }
+
+# ─── QC and preprocessing ──────────────────────────────────────────────────────
+
+fn qc(obj)                               { _pre.qc(obj) }
+fn filter_cells(obj, min_genes = 200, max_genes = 5000, max_pct_mito = 25.0) {
+    _pre.filter_cells(obj, min_genes, max_genes, max_pct_mito)
+}
+fn filter_genes(obj, min_cells = 3)      { _pre.filter_genes(obj, min_cells) }
+fn normalize(obj, target = 10000.0)      { _pre.normalize(obj, target) }
+fn sctransform(obj)                      { _pre.sctransform(obj) }
+fn variable_genes(obj, n = 2000)         { _pre.variable_genes(obj, n) }
+fn scale(obj)                            { _pre.scale(obj) }
+fn neighbors(obj, k = 15)               { _pre.neighbors(obj, k) }
+fn cluster(obj, k = 0)                   { _pre.cluster(obj, k) }
+fn cluster_leiden(obj, k = 15, resolution = 1.0) { _pre.cluster_leiden(obj, k, resolution) }
+
+# ─── Cell annotation and scoring ──────────────────────────────────────────────
+
+fn cell_cycle(obj, s_genes, g2m_genes)   { _mark.cell_cycle(obj, s_genes, g2m_genes) }
+fn gene_module_score(obj, gene_indices)  { _mark.gene_module_score(obj, gene_indices) }
+fn doublets(obj, n_sim = 500)            { _mark.doublets(obj, n_sim) }
+fn flag_doublets(obj, threshold = 0.5)  { _mark.flag_doublets(obj, threshold) }
+fn marker_table(obj, cluster_a, cluster_b) {
+    _mark.marker_table(obj, cluster_a, cluster_b)
+}
+
+# ─── Integration ──────────────────────────────────────────────────────────────
+
+fn integrate(obj, batch_ids)                    { _int.integrate(obj, batch_ids) }
+fn integrate_from_column(obj, batch_col)        { _int.integrate_from_column(obj, batch_col) }
+fn merge(obj_a, obj_b, batch_a = 0, batch_b = 1) {
+    _int.merge(obj_a, obj_b, batch_a, batch_b)
+}
+
+# ─── Trajectory / pseudotime ──────────────────────────────────────────────────
+
+fn pseudotime(obj, start_cell)                  { _traj.pseudotime(obj, start_cell) }
+fn order_by_pseudotime(obj)                     { _traj.order_by_pseudotime(obj) }
+fn pseudotime_bins(pt, n_bins = 10)             { _traj.pseudotime_bins(pt, n_bins) }
+fn smooth_along_pseudotime(obj, gene_idx, n_bins = 20) {
+    _traj.smooth_along_pseudotime(obj, gene_idx, n_bins)
+}
+
+# ─── Plots ─────────────────────────────────────────────────────────────────────
+#
+# These take the sc object directly and do the Matrix -> List<Record> conversion
+# the plotting builtins require. SVG-returning functions give back a Str; the two
+# ASCII ones print and return nil.
+
+fn plot_umap(obj, title = "UMAP")            { _plots.plot_umap(obj, title) }
+fn plot_pca(obj, title = "PCA")              { _plots.plot_pca(obj, title) }
+fn plot_feature(obj, gene, title = nil)       { _plots.plot_feature(obj, gene, title) }
+fn plot_violin(obj, gene)                    { _plots.plot_violin(obj, gene) }
+fn plot_markers(obj, n_per_cluster = 5)      { _plots.plot_markers(obj, n_per_cluster) }
+fn plot_elbow(obj, n_pcs = 15)               { _plots.plot_elbow(obj, n_pcs) }
+fn plot_proportions(obj, groups = nil)       { _plots.plot_proportions(obj, groups) }
+fn expr_dotplot(obj, genes, title = "expression dot plot") {
+    _plots.expr_dotplot(obj, genes, title)
+}

@@ -1,7 +1,7 @@
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Arity, Value};
 
-use chrono::{DateTime, Datelike, Duration, NaiveDateTime, Utc, Weekday};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, Utc, Weekday};
 
 pub fn datetime_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
@@ -22,7 +22,8 @@ pub fn datetime_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_datetime_builtin(name: &str) -> bool {
     matches!(
         name,
-        "now" | "timestamp"
+        "now"
+            | "timestamp"
             | "timestamp_ms"
             | "date_format"
             | "date_parse"
@@ -58,13 +59,19 @@ pub fn call_datetime_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "date_parse" => {
             let s = require_str(&args[0], "date_parse")?;
             let fmt = require_str(&args[1], "date_parse")?;
-            let ndt = NaiveDateTime::parse_from_str(s, fmt).map_err(|e| {
-                BioLangError::runtime(
-                    ErrorKind::TypeError,
-                    format!("date_parse() failed: {e}"),
-                    None,
-                )
-            })?;
+            let ndt = match NaiveDateTime::parse_from_str(s, fmt) {
+                Ok(value) => value,
+                Err(datetime_error) => NaiveDate::parse_from_str(s, fmt)
+                    .ok()
+                    .and_then(|date| date.and_hms_opt(0, 0, 0))
+                    .ok_or_else(|| {
+                        BioLangError::runtime(
+                            ErrorKind::TypeError,
+                            format!("date_parse() failed: {datetime_error}"),
+                            None,
+                        )
+                    })?,
+            };
             let dt: DateTime<Utc> = DateTime::from_naive_utc_and_offset(ndt, Utc);
             Ok(Value::Str(dt.to_rfc3339()))
         }
@@ -103,15 +110,13 @@ pub fn call_datetime_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 "hours" => diff.num_hours(),
                 "minutes" => diff.num_minutes(),
                 "seconds" => diff.num_seconds(),
-                other => {
-                    return Err(BioLangError::runtime(
-                        ErrorKind::TypeError,
-                        format!(
-                            "date_diff() unknown unit '{other}', expected days/hours/minutes/seconds"
-                        ),
-                        None,
-                    ))
-                }
+                other => return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!(
+                        "date_diff() unknown unit '{other}', expected days/hours/minutes/seconds"
+                    ),
+                    None,
+                )),
             };
             Ok(Value::Int(result))
         }

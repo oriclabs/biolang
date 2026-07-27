@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-fade6fca.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -290,10 +290,10 @@ let input_file = args.input
 let min_qual = into(args.min_quality ?? "20", "Int")
 
 let reads = read_fastq(input_file)
-  |&gt; filter(|r| mean(r.quality) &gt;= min_qual)
+  |&gt; filter(|r| mean_phred(r.quality) &gt;= min_qual)
 
 print(f"Passing reads: {len(reads)}")
-print(f"Mean quality: {reads |&gt; map(|r| mean(r.quality)) |&gt; mean()}")
+print(f"Mean quality: {reads |&gt; map(|r| mean_phred(r.quality)) |&gt; mean()}")
 </code></pre>
 <h2 id="your-first-script-fasta-gc-content-analyzer"><a class="header" href="#your-first-script-fasta-gc-content-analyzer">Your First Script: FASTA GC Content Analyzer</a></h2>
 <p>BioLang includes sample data in <code>examples/sample-data/</code> — see the
@@ -303,7 +303,7 @@ below uses <code>examples/sample-data/contigs.fa</code>.</p>
 <pre><code class="language-biolang"># gc_scan.bl
 # Read a FASTA file, compute per-sequence GC content, report statistics.
 
-let sequences = read_fasta("data/sequences.fasta")
+let sequences = read_fasta("examples/sample-data/contigs.fa")
 
 # Compute GC content for each sequence
 let gc_table = sequences
@@ -315,7 +315,7 @@ let gc_table = sequences
   |&gt; table()
 
 # Summary statistics
-let gc_vals = gc_table |&gt; select("gc")
+let gc_vals = col(gc_table, "gc")
 let mean_gc = mean(gc_vals)
 let std_gc = stdev(gc_vals)
 let min_gc = min(gc_vals)
@@ -330,7 +330,7 @@ print(f"Standard deviation: {std_gc:.4f}")
 # |&gt; into binds the pipe result to a variable (like let, but reads left-to-right)
 gc_table
   |&gt; filter(|row| abs(row.gc - mean_gc) &gt; 2.0 * std_gc)
-  |&gt; sort("gc", descending: true)
+  |&gt; sort_by(|row| -row.gc)
   |&gt; into outliers
 
 print(f"\nOutlier contigs ({len(outliers)}):")
@@ -351,44 +351,35 @@ Outlier contigs (12):
 </code></pre>
 <h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
 <p>Initialize a BioLang project:</p>
-<pre><code class="language-bash">bl init my-rnaseq-pipeline
+<pre><code class="language-bash">mkdir my-rnaseq-pipeline
 cd my-rnaseq-pipeline
+bl init --name my-rnaseq-pipeline
 </code></pre>
 <p>This creates the following structure:</p>
 <pre><code>my-rnaseq-pipeline/
-  .biolang/
-    config.yaml       # project configuration
-    plugins/           # local plugin overrides
+  biolang.toml       # package metadata and dependencies
+  main.bl            # entry point
+</code></pre>
+<p>Create project-specific directories and modules when the analysis needs them:</p>
+<pre><code class="language-text">my-rnaseq-pipeline/
+  biolang.toml
+  main.bl
   src/
-    main.bl            # entry point
-  data/                # input data directory
-  results/             # output directory
+    paths.bl
+    qc.bl
+  data/
+  results/
 </code></pre>
-<h3 id="biolangconfigyaml"><a class="header" href="#biolangconfigyaml"><code>.biolang/config.yaml</code></a></h3>
-<pre><code class="language-yaml">name: my-rnaseq-pipeline
-version: 0.3.0
-entry: src/main.bl
+<p>The manifest records package metadata and optional path or Git dependencies:</p>
+<pre><code class="language-toml">[package]
+name = "my-rnaseq-pipeline"
+version = "0.1.0"
 
-paths:
-  data: ./data
-  results: ./results
-  reference: /shared/references/GRCh38
-
-defaults:
-  min_quality: 30
-  threads: 8
+[dependencies]
+shared-qc = { path = "../shared-qc" }
+variants = { git = "https://github.com/example/variants.git", branch = "main" }
 </code></pre>
-<p>Access project config values in your scripts:</p>
-<pre><code class="language-biolang"># src/main.bl
-# Access project paths via import
-import "src/paths.bl" as paths
-
-let min_qual = 30
-
-read_fastq(f"{paths.data}/sample_R1.fastq.gz")
-  |&gt; filter(|r| mean(r.quality) &gt;= min_qual)
-  |&gt; write_fastq(f"{paths.results}/filtered_R1.fastq.gz")
-</code></pre>
+<p>Run <code>bl install</code> in the project directory to install the declared dependencies.</p>
 <h3 id="multi-file-projects"><a class="header" href="#multi-file-projects">Multi-file projects</a></h3>
 <p>Use <code>import</code> to split your pipeline across files:</p>
 <pre><code class="language-biolang"># src/main.bl
@@ -420,9 +411,10 @@ directories:</p>
 <p>Resolution order for <code>import "module.bl"</code>:</p>
 <ol>
 <li>Relative to the importing file</li>
-<li>Project <code>.biolang/plugins/</code> directory</li>
+<li>The current working directory</li>
 <li>Each directory in <code>BIOLANG_PATH</code></li>
-<li>System-wide library path (<code>~/.biolang/lib/</code>)</li>
+<li><code>~/.biolang/stdlib/</code></li>
+<li><code>~/.biolang/packages/</code></li>
 </ol>
 <p>This is useful for sharing utility modules across projects:</p>
 <pre><code class="language-biolang"># This resolves via BIOLANG_PATH if not found locally
@@ -488,8 +480,8 @@ for bioinformatics work.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

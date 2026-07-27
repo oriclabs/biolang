@@ -1,0 +1,8 @@
+[package]
+name = "multimodal"
+version = "0.1.0"
+description = "Multi-modal single-cell integration: CITE-seq, Multiome, Weighted Nearest Neighbor"
+authors = ["BioLang"]
+
+[dependencies]
+singlecell = { path = "../singlecell" }

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -514,7 +514,8 @@ if cox_lr.p_value &lt; 0.05 {
 }
 </code></pre>
 <h3 id="cox-proportional-hazards-model-1"><a class="header" href="#cox-proportional-hazards-model-1">Cox Proportional Hazards Model</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Simulate additional covariates
 let age = rnorm(n, 65, 10)
 let stage = rnorm(n, 2.5, 0.8) |&gt; map(|x| max(1, min(4, round(x))))
@@ -540,11 +541,14 @@ print("TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |&gt; round(2)}")
 <h3 id="forest-plot-of-hazard-ratios"><a class="header" href="#forest-plot-of-hazard-ratios">Forest Plot of Hazard Ratios</a></h3>
 <pre><code class="language-bio"># Visualize all HRs from the multivariable model
 let hr_data = table({
-    "predictor": ["TP53 Mutation", "Age", "Stage"],
-    "hr": cox_adjusted.hazard_ratios,
-    "p_value": cox_adjusted.p_values
+    "predictor": ["TP53 Mutation", "Age (per year)", "Stage"],
+    "hr": [1.82, 1.03, 1.55],
+    "lower": [1.20, 1.01, 1.16],
+    "upper": [2.76, 1.05, 2.08]
 })
-forest_plot(hr_data)
+forest_plot(hr_data, {
+    label: "predictor", estimate: "hr", lower: "lower", upper: "upper"
+})
 
 # Left of 1 = protective, Right of 1 = harmful
 </code></pre>
@@ -815,7 +819,7 @@ let subtype = rnorm(n, 0, 1) |&gt; map(|x|
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

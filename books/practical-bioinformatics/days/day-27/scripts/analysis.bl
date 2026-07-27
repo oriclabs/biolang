@@ -73,5 +73,5 @@ passing_classified |> each(|c| {
     report_lines = report_lines + [f"  {c.id}: {c.class} (GC={c.gc})"]
 })
 
-write_lines(report_lines, "data/output/report.txt")
+write_lines("data/output/report.txt", report_lines)
 write_csv(gc_table, "data/output/gc_classification.csv")

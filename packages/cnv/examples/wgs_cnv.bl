@@ -1,0 +1,21 @@
+import "cnv" as cnv
+
+# tumor_depths and normal_depths: per-bin read depths from mosdepth
+# let tumor_depths  = read_csv("tumor.regions.bed.gz") |> col("mean")
+# let normal_depths = read_csv("normal.regions.bed.gz") |> col("mean")
+
+# Compute log2 copy ratios
+# let ratios = cnv.ratios(tumor_depths, normal_depths)
+
+# Segment with CBS
+# let segments = cnv.segment(ratios)
+
+# Integer CN calls (assuming diploid tumor purity)
+# cnv.call(segments, ploidy=2)
+
+# Allele-specific CNV from SNP BAF
+# let baf = read_csv("tumor_snps.tsv") |> col("baf")
+# cnv.allelic(baf, ratios)
+
+# Summary stats
+# cnv.summary(segments)

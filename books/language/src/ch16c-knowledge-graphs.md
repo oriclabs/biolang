@@ -153,7 +153,7 @@ let g = network |> reduce(g, |g, edge|
 # Find hub genes (highest degree)
 let gene_degrees = nodes(g) |> map(|n| {gene: n, deg: degree(g, n)})
 gene_degrees
-  |> sort_by(|r| r.deg, desc: true)
+  |> sort_by(|r| -r.deg)
   |> take(10)
   |> each(|r| print(r.gene + ": " + str(r.deg) + " interactions"))
 

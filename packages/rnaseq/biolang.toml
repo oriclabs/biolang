@@ -1,0 +1,8 @@
+[package]
+name = "rnaseq"
+version = "0.1.0"
+description = "Bulk RNA-seq: Salmon/featureCounts loading, normalization, QC, feeding into differential analysis"
+authors = ["BioLang"]
+
+[dependencies]
+differential = { path = "../differential" }

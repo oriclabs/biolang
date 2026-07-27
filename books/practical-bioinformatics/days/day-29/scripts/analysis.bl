@@ -3,11 +3,11 @@ let samples = read_tsv("data/samples.tsv")
 let gene_info = read_tsv("data/gene_info.tsv")
 
 let sample_ids = samples |> map(|s| s.sample_id)
-let ctrl_ids = samples |> filter(|s| s.condition == "control") |> map(|s| s.sample_id)
-let treat_ids = samples |> filter(|s| s.condition == "treated") |> map(|s| s.sample_id)
+let ctrl_indices = range(0, len(samples)) |> filter(|i| samples[i].condition == "control")
+let treat_indices = range(0, len(samples)) |> filter(|i| samples[i].condition == "treated")
 
 let min_total = 10
-let filtered = counts |> where(|row| {
+let filtered = counts |> filter(|row| {
     let total = sample_ids |> map(|sid| int(row[sid])) |> sum()
     total >= min_total
 })
@@ -17,17 +17,18 @@ let lib_sizes = sample_ids |> map(|sid| {
 })
 
 let cpm = filtered |> map(|row| {
-    let result = { gene: row.gene }
-    range(0, len(sample_ids)) |> each(|i| {
-        let sid = sample_ids[i]
-        result[sid] = round(float(int(row[sid])) / float(lib_sizes[i]) * 1000000.0, 2)
-    })
-    result
+    {
+        gene: row.gene,
+        values: range(0, len(sample_ids)) |> map(|i| {
+            let sid = sample_ids[i]
+            round(float(int(row[sid])) / float(lib_sizes[i]) * 1000000.0, 2)
+        })
+    }
 })
 
 let de_results = cpm |> map(|row| {
-    let ctrl_vals = ctrl_ids |> map(|sid| row[sid])
-    let treat_vals = treat_ids |> map(|sid| row[sid])
+    let ctrl_vals = ctrl_indices |> map(|i| row.values[i])
+    let treat_vals = treat_indices |> map(|i| row.values[i])
     let ctrl_mean = mean(ctrl_vals)
     let treat_mean = mean(treat_vals)
     let pseudocount = 0.01
@@ -50,20 +51,7 @@ let sorted_de = de_results |> sort_by(|a, b| {
 })
 
 let m = len(sorted_de)
-let padj_raw = range(0, m) |> map(|i| {
-    let adj = sorted_de[i].pvalue * float(m) / float(i + 1)
-    if adj > 1.0 { 1.0 } else { adj }
-})
-
-let padj = range(0, m) |> map(|_| 1.0)
-let running_min = 1.0
-range(0, m) |> each(|j| {
-    let i = m - 1 - j
-    if padj_raw[i] < running_min {
-        running_min = padj_raw[i]
-    }
-    padj[i] = running_min
-})
+let padj = p_adjust(sorted_de |> map(|row| row.pvalue), "BH")
 
 let corrected = range(0, m) |> map(|i| {
     let row = sorted_de[i]
@@ -88,18 +76,11 @@ let significant = corrected |> filter(|row| {
 let up_genes = significant |> filter(|row| row.direction == "up")
 let down_genes = significant |> filter(|row| row.direction == "down")
 
-let volcano_data = corrected |> map(|row| {
-    let neg_log10_p = if row.padj > 0.0 { -1.0 * log10(row.padj) } else { 10.0 }
-    { log2fc: row.log2fc, neg_log10_padj: round(neg_log10_p, 4) }
+let volcano_svg = volcano(corrected |> to_table(), {
+    fc: "log2fc",
+    p: "padj",
+    title: "Drug Treatment: Volcano Plot"
 })
-
-let volcano_svg = volcano(
-    volcano_data |> map(|r| r.log2fc),
-    volcano_data |> map(|r| r.neg_log10_padj),
-    "Drug Treatment: Volcano Plot",
-    "log2 Fold Change",
-    "-log10(adjusted p-value)"
-)
 write_lines([volcano_svg], "data/output/volcano.svg")
 
 let top_n = 20
@@ -117,14 +98,13 @@ let heatmap_data = cpm |> filter(|row| {
     top_gene_names |> filter(|g| g == row.gene) |> len() > 0
 })
 let heatmap_matrix = heatmap_data |> map(|row| {
-    sample_ids |> map(|sid| row[sid])
+    row.values
 })
-let hm_svg = heatmap(
-    heatmap_matrix,
-    "Top DE Genes: Expression Heatmap",
-    heatmap_data |> map(|row| row.gene),
-    sample_ids
-)
+let hm_svg = heatmap(heatmap_matrix, {
+    title: "Top DE Genes: Expression Heatmap",
+    row_labels: heatmap_data |> map(|row| row.gene),
+    col_labels: sample_ids
+})
 write_lines([hm_svg], "data/output/heatmap.svg")
 
 let de_table = significant |> to_table()
@@ -150,4 +130,4 @@ let summary_lines = [
     "  data/output/heatmap.svg        - Top gene heatmap",
     "  data/output/summary.txt        - This summary"
 ]
-write_lines(summary_lines, "data/output/summary.txt")
+write_lines("data/output/summary.txt", summary_lines)

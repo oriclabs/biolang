@@ -78,11 +78,11 @@ println(subset)</code></pre>
 ])
 
 # Filter for significant genes
-let significant = data |> filter(|r| r.pvalue < 0.01)
+let significant = data |> filter(|r| r.pvalue &lt; 0.01)
 println(significant)
 
 # Multiple conditions
-let up_and_sig = data |> filter(|r| r.log2fc > 1.0 && r.pvalue < 0.01)
+let up_and_sig = data |> filter(|r| r.log2fc > 1.0 && r.pvalue &lt; 0.01)
 println(up_and_sig)</code></pre>
 
         <h2>Mutate</h2>
@@ -98,7 +98,7 @@ println(up_and_sig)</code></pre>
 
 # Add a new column
 let enriched = data
-  |> mutate("significant", |r| r.pvalue < 0.01)
+  |> mutate("significant", |r| r.pvalue &lt; 0.01)
   |> mutate("direction", |r| if r.log2fc > 0 { "up" } else { "down" })
 println(enriched)</code></pre>
 
@@ -223,7 +223,7 @@ println(multi_omics)</code></pre>
         </p>
         <pre><code class="language-biolang">let data = read_csv("data/expression.csv")
 data
-  |> filter(|r| r.pvalue < 0.01)
+  |> filter(|r| r.pvalue &lt; 0.01)
   |> sort_by(|a, b| b.log2fc - a.log2fc)
   |> each(|r| println(f"{r.gene}: FC={r.log2fc}, p={r.pvalue}"))</code></pre>
 

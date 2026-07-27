@@ -1,16 +1,17 @@
 use bl_core::value::{Table, Value};
 use bl_lexer::Lexer;
 use bl_parser::Parser;
-use bl_runtime::builtins::flush_trailing_newline;
+use bl_runtime::builtins::{all_builtin_names, flush_trailing_newline};
 use bl_runtime::Interpreter;
 use rustyline::completion::{Completer, Pair};
 use rustyline::error::ReadlineError;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
-use rustyline::validate::Validator;
 use rustyline::history::{History, SearchDirection};
+use rustyline::validate::Validator;
 use rustyline::{Config, Context, Editor, Helper};
-use sha2::{Sha256, Digest};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -33,8 +34,27 @@ const UNDERLINE: &str = "\x1b[4m";
 const RESET: &str = "\x1b[0m";
 
 const REPL_COMMANDS: &[&str] = &[
-    ":builtins", ":clear", ":cls", ":env", ":exit", ":fns", ":h", ":help", ":history", ":load",
-    ":plot", ":plugins", ":profile", ":q", ":quit", ":reset", ":save", ":time", ":type",
+    ":builtins",
+    ":clear",
+    ":cls",
+    ":env",
+    ":exit",
+    ":fns",
+    ":h",
+    ":help",
+    ":history",
+    ":load",
+    ":plot",
+    ":plugins",
+    ":profile",
+    ":q",
+    ":quit",
+    ":reset",
+    ":restore",
+    ":save",
+    ":workspace",
+    ":time",
+    ":type",
 ];
 
 /// (command, description) — used for auto-hints when typing `:` commands
@@ -51,6 +71,8 @@ const REPL_COMMAND_HINTS: &[(&str, &str)] = &[
     (":time", "Evaluate with timing <expr>"),
     (":load", "Load a .bl script <file>"),
     (":save", "Save session to file <file>"),
+    (":workspace", "Save variable values to a file [file]"),
+    (":restore", "Restore variable values from a file [file]"),
     (":reset", "Clear all user-defined state"),
     (":plugins", "List installed plugins"),
     (":profile", "Profile expression <expr>"),
@@ -69,6 +91,8 @@ const KEYWORDS: &[&str] = &[
 
 struct BioHelper {
     words: Vec<String>,
+    /// User-defined names, so hints can say where a suggestion came from.
+    user_vars: Vec<String>,
     /// Display-only suffix appended by highlight_hint (not inserted on accept).
     hint_desc: RefCell<String>,
 }
@@ -76,8 +100,8 @@ struct BioHelper {
 impl BioHelper {
     fn new() -> Self {
         let mut words: Vec<String> = KEYWORDS.iter().map(|s| s.to_string()).collect();
-        // Add all builtin function names for tab completion
-        for (name, _, _) in BUILTIN_CATALOG {
+        // Runtime registration is authoritative; the curated catalog only adds metadata.
+        for name in all_builtin_names() {
             if !words.contains(&name.to_string()) {
                 words.push(name.to_string());
             }
@@ -85,6 +109,7 @@ impl BioHelper {
         words.sort();
         Self {
             words,
+            user_vars: Vec::new(),
             hint_desc: RefCell::new(String::new()),
         }
     }
@@ -93,17 +118,51 @@ impl BioHelper {
     fn refresh_from(&mut self, interp: &Interpreter) {
         let mut words: Vec<String> = KEYWORDS.iter().map(|s| s.to_string()).collect();
         // Include all builtin names
-        for (name, _, _) in BUILTIN_CATALOG {
+        for name in all_builtin_names() {
             words.push(name.to_string());
         }
-        for (name, _) in interp.env().list_global_vars() {
+        let mut user: Vec<String> = Vec::new();
+        for (name, value) in interp.env().list_global_vars() {
+            if name != "_" && !matches!(value, Value::NativeFunction { .. }) {
+                user.push(name.to_string());
+            }
             if !words.contains(&name.to_string()) {
                 words.push(name.to_string());
             }
         }
         words.sort();
         words.dedup();
+        user.sort();
         self.words = words;
+        self.user_vars = user;
+    }
+
+    /// Longest common prefix of every word starting with `prefix`, plus how
+    /// many matched. Used to show ghost text for an ambiguous prefix.
+    fn common_completion(&self, prefix: &str) -> Option<(String, usize)> {
+        let matches: Vec<&String> =
+            self.words.iter().filter(|w| w.starts_with(prefix)).collect();
+        let (first, rest) = matches.split_first()?;
+        let mut common = (*first).clone();
+        for w in rest {
+            let keep = common
+                .char_indices()
+                .zip(w.char_indices())
+                .take_while(|((_, a), (_, b))| a == b)
+                .count();
+            common.truncate(
+                common.char_indices().nth(keep).map(|(i, _)| i).unwrap_or(common.len()),
+            );
+            if common.len() <= prefix.len() {
+                break; // nothing further is shared; the count is still exact
+            }
+        }
+        let completion = if common.len() <= prefix.len() {
+            String::new()
+        } else {
+            common[prefix.len()..].to_string()
+        };
+        Some((completion, matches.len()))
     }
 }
 
@@ -190,9 +249,29 @@ impl Hinter for BioHelper {
             *self.hint_desc.borrow_mut() = String::new();
             return None;
         }
-        // Look up signature hint
-        *self.hint_desc.borrow_mut() = String::new();
-        fn_signature(word).map(|sig| sig[word.len()..].to_string())
+
+        // A known function completes to its full signature.
+        if let Some(sig) = fn_signature(word) {
+            *self.hint_desc.borrow_mut() = String::new();
+            return Some(sig[word.len()..].to_string());
+        }
+
+        // Otherwise fall back to the completion word list, so user-defined
+        // variables and builtins without a catalogued signature still get
+        // ghost text.
+        let (completion, n) = self.common_completion(word)?;
+        let full = format!("{word}{completion}");
+        *self.hint_desc.borrow_mut() = if n > 1 {
+            format!("  ({n} matches — Tab to list)")
+        } else if self.user_vars.iter().any(|v| *v == full) {
+            "  (your variable)".to_string()
+        } else {
+            String::new()
+        };
+        if completion.is_empty() && n <= 1 {
+            return None;
+        }
+        Some(completion)
     }
 }
 
@@ -214,7 +293,12 @@ impl Highlighter for BioHelper {
         }
     }
 
-    fn highlight_char(&self, _line: &str, _pos: usize, _kind: rustyline::highlight::CmdKind) -> bool {
+    fn highlight_char(
+        &self,
+        _line: &str,
+        _pos: usize,
+        _kind: rustyline::highlight::CmdKind,
+    ) -> bool {
         // Force redraw so ANSI codes from hints don't leak into history recall
         true
     }
@@ -230,6 +314,311 @@ pub struct Repl {
     api_cache: ApiCache,
 }
 
+const CONSOLE_PROTOCOL: &str = "biolang.console/v1";
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ConsoleRequest {
+    id: u64,
+    command: String,
+    source: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConsoleVariable {
+    name: String,
+    type_name: String,
+    preview: String,
+    size_bytes: usize,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConsoleEnvironment {
+    variables: Vec<ConsoleVariable>,
+    total_bytes: usize,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConsoleValue {
+    kind: &'static str,
+    type_name: String,
+    text: String,
+    columns: Vec<String>,
+    rows: Vec<Vec<String>>,
+    sequence: Option<String>,
+    truncated: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConsoleResponse {
+    protocol: &'static str,
+    id: u64,
+    status: &'static str,
+    output: String,
+    value: Option<ConsoleValue>,
+    error: Option<String>,
+    duration_ms: u128,
+    environment: ConsoleEnvironment,
+}
+
+/// Run a newline-delimited JSON session for editor integrations.
+///
+/// This protocol intentionally lives beside the interactive REPL so all clients
+/// share the same parser, interpreter, last-result binding, and environment rules.
+pub fn run_console_protocol() -> Result<(), Box<dyn std::error::Error>> {
+    use std::io::{self, BufRead, Write};
+
+    let mut interpreter = Interpreter::new();
+    let current_file = std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join(".biolang-console.bl");
+    interpreter.set_current_file(Some(current_file));
+
+    let stdin = io::stdin();
+    let mut stdout = io::BufWriter::new(io::stdout().lock());
+    for line in stdin.lock().lines() {
+        let line = line?;
+        if line.trim().is_empty() {
+            continue;
+        }
+        let request = match serde_json::from_str::<ConsoleRequest>(&line) {
+            Ok(request) => request,
+            Err(error) => {
+                let response = ConsoleResponse {
+                    protocol: CONSOLE_PROTOCOL,
+                    id: 0,
+                    status: "error",
+                    output: String::new(),
+                    value: None,
+                    error: Some(format!("Invalid console request: {error}")),
+                    duration_ms: 0,
+                    environment: console_environment(&interpreter),
+                };
+                serde_json::to_writer(&mut stdout, &response)?;
+                writeln!(stdout)?;
+                stdout.flush()?;
+                continue;
+            }
+        };
+
+        let response = match request.command.as_str() {
+            "evaluate" => evaluate_console_request(
+                request.id,
+                request.source.as_deref().unwrap_or_default(),
+                &mut interpreter,
+            ),
+            "reset" => {
+                interpreter.reset();
+                ConsoleResponse {
+                    protocol: CONSOLE_PROTOCOL,
+                    id: request.id,
+                    status: "ok",
+                    output: String::new(),
+                    value: None,
+                    error: None,
+                    duration_ms: 0,
+                    environment: console_environment(&interpreter),
+                }
+            }
+            "inspect" | "ping" => ConsoleResponse {
+                protocol: CONSOLE_PROTOCOL,
+                id: request.id,
+                status: "ok",
+                output: String::new(),
+                value: None,
+                error: None,
+                duration_ms: 0,
+                environment: console_environment(&interpreter),
+            },
+            command => ConsoleResponse {
+                protocol: CONSOLE_PROTOCOL,
+                id: request.id,
+                status: "error",
+                output: String::new(),
+                value: None,
+                error: Some(format!("Unknown console command '{command}'")),
+                duration_ms: 0,
+                environment: console_environment(&interpreter),
+            },
+        };
+        serde_json::to_writer(&mut stdout, &response)?;
+        writeln!(stdout)?;
+        stdout.flush()?;
+    }
+    Ok(())
+}
+
+fn evaluate_console_request(
+    id: u64,
+    source: &str,
+    interpreter: &mut Interpreter,
+) -> ConsoleResponse {
+    let started = Instant::now();
+    let buffer = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+    bl_runtime::builtins::set_output_buffer(Some(buffer.clone()));
+
+    let result = Lexer::new(source)
+        .tokenize()
+        .map_err(|error| error.format_with_source(source))
+        .and_then(|tokens| {
+            Parser::new(tokens)
+                .parse()
+                .map_err(|error| error.format_with_source(source))
+        })
+        .and_then(|parsed| {
+            if parsed.has_errors() {
+                Err(parsed
+                    .errors
+                    .iter()
+                    .map(|error| error.format_with_source(source))
+                    .collect::<Vec<_>>()
+                    .join("\n"))
+            } else {
+                interpreter
+                    .run(&parsed.program)
+                    .map_err(|error| error.format_with_source(source))
+            }
+        });
+
+    bl_runtime::builtins::flush_trailing_newline();
+    bl_runtime::builtins::set_output_buffer(None);
+    let output = buffer.lock().map(|value| value.clone()).unwrap_or_default();
+    let duration_ms = started.elapsed().as_millis();
+
+    match result {
+        Ok(value) => {
+            let console_value = if matches!(value, Value::Nil) {
+                None
+            } else {
+                interpreter
+                    .env_mut()
+                    .define("_".to_string(), value.clone());
+                Some(console_value(&value))
+            };
+            ConsoleResponse {
+                protocol: CONSOLE_PROTOCOL,
+                id,
+                status: "ok",
+                output,
+                value: console_value,
+                error: None,
+                duration_ms,
+                environment: console_environment(interpreter),
+            }
+        }
+        Err(error) => ConsoleResponse {
+            protocol: CONSOLE_PROTOCOL,
+            id,
+            status: "error",
+            output,
+            value: None,
+            error: Some(error),
+            duration_ms,
+            environment: console_environment(interpreter),
+        },
+    }
+}
+
+fn console_environment(interpreter: &Interpreter) -> ConsoleEnvironment {
+    let mut variables = interpreter
+        .env()
+        .list_global_vars()
+        .into_iter()
+        .filter(|(name, value)| {
+            *name != "_"
+                && !name.starts_with("__const_")
+                && !matches!(value, Value::NativeFunction { .. })
+        })
+        .map(|(name, value)| ConsoleVariable {
+            name: name.to_string(),
+            type_name: value.type_of().to_string(),
+            preview: value_preview(value),
+            size_bytes: estimate_value_bytes(value),
+        })
+        .collect::<Vec<_>>();
+    variables.sort_by(|left, right| left.name.cmp(&right.name));
+    ConsoleEnvironment {
+        total_bytes: variables.iter().map(|variable| variable.size_bytes).sum(),
+        variables,
+    }
+}
+
+fn console_value(value: &Value) -> ConsoleValue {
+    const MAX_ROWS: usize = 200;
+    const MAX_SEQUENCE: usize = 100_000;
+    match value {
+        Value::Table(table) => ConsoleValue {
+            kind: "table",
+            type_name: value.type_of().to_string(),
+            text: value.to_string(),
+            columns: table.columns.clone(),
+            rows: table
+                .rows
+                .iter()
+                .take(MAX_ROWS)
+                .map(|row| row.iter().map(ToString::to_string).collect())
+                .collect(),
+            sequence: None,
+            truncated: table.rows.len() > MAX_ROWS,
+        },
+        Value::DNA(sequence) | Value::RNA(sequence) | Value::Protein(sequence) => ConsoleValue {
+            kind: "sequence",
+            type_name: value.type_of().to_string(),
+            text: value_preview(value),
+            columns: Vec::new(),
+            rows: Vec::new(),
+            sequence: Some(sequence.data.chars().take(MAX_SEQUENCE).collect()),
+            truncated: sequence.data.chars().count() > MAX_SEQUENCE,
+        },
+        _ => ConsoleValue {
+            kind: "text",
+            type_name: value.type_of().to_string(),
+            text: value.to_string(),
+            columns: Vec::new(),
+            rows: Vec::new(),
+            sequence: None,
+            truncated: false,
+        },
+    }
+}
+
+fn estimate_value_bytes(value: &Value) -> usize {
+    let base = std::mem::size_of::<Value>();
+    match value {
+        Value::Str(value) => base + value.len(),
+        Value::List(values) => base + values.iter().map(estimate_value_bytes).sum::<usize>(),
+        Value::Map(values) | Value::Record(values) => {
+            base + values
+                .iter()
+                .map(|(key, value)| key.len() + estimate_value_bytes(value))
+                .sum::<usize>()
+        }
+        Value::Table(table) => {
+            base
+                + table.columns.iter().map(String::len).sum::<usize>()
+                + table
+                    .rows
+                    .iter()
+                    .flatten()
+                    .map(estimate_value_bytes)
+                    .sum::<usize>()
+        }
+        Value::DNA(sequence) | Value::RNA(sequence) | Value::Protein(sequence) => {
+            base + sequence.data.len()
+        }
+        Value::Matrix(matrix) => base + matrix.data.len() * std::mem::size_of::<f64>(),
+        Value::Set(values) | Value::Tuple(values) => {
+            base + values.iter().map(estimate_value_bytes).sum::<usize>()
+        }
+        Value::Quality(values) => base + values.len(),
+        _ => base,
+    }
+}
+
 impl Repl {
     pub fn new() -> Self {
         Self {
@@ -239,7 +628,14 @@ impl Repl {
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let config = Config::builder().bracketed_paste(true).build();
+        // CompletionType::List makes Tab print the candidates as a selectable
+        // menu instead of silently cycling through them one at a time, so an
+        // ambiguous prefix shows what the options actually are.
+        let config = Config::builder()
+            .bracketed_paste(true)
+            .completion_type(rustyline::CompletionType::List)
+            .completion_prompt_limit(60)
+            .build();
         let mut rl = Editor::with_config(config)?;
         // Bind Esc to clear the current input line
         use rustyline::{Cmd, EventHandler, KeyCode, KeyEvent, Modifiers};
@@ -323,6 +719,15 @@ impl Repl {
                                     helper.refresh_from(&self.interpreter);
                                 }
                             }
+                            ":workspace" => {
+                                self.cmd_workspace_save(arg);
+                            }
+                            ":restore" => {
+                                self.cmd_workspace_load(arg);
+                                if let Some(helper) = rl.helper_mut() {
+                                    helper.refresh_from(&self.interpreter);
+                                }
+                            }
                             ":load" => {
                                 if arg.is_empty() {
                                     eprintln!("{RED}Usage: :load <file.bl>{RESET}");
@@ -395,7 +800,10 @@ impl Repl {
                     let piped_from_last = trimmed.starts_with("|>") || trimmed.starts_with('~');
                     let mut input = if piped_from_last {
                         // Use `_` if defined, else fall back to the last `let` binding
-                        let has_underscore = self.interpreter.env().get("_", None)
+                        let has_underscore = self
+                            .interpreter
+                            .env()
+                            .get("_", None)
                             .map(|v| !matches!(v, Value::Nil))
                             .unwrap_or(false);
                         let pipe_source = if has_underscore {
@@ -576,7 +984,13 @@ impl Repl {
         println!("  {CYAN}:type{RESET}  <expr>        Show the type of an expression");
         println!("  {CYAN}:builtins{RESET} [category]  List built-in functions (:fns alias)");
         println!("  {CYAN}:load{RESET}  <file>        Load and execute a .bl script");
-        println!("  {CYAN}:save{RESET}  <file>        Export last result (.csv/.tsv/.fasta/.json/.bl)");
+        println!(
+            "  {CYAN}:workspace{RESET} [file]     Save variable VALUES (default ~/.biolang/workspace.json.gz)"
+        );
+        println!("  {CYAN}:restore{RESET} [file]      Restore variable values saved by :workspace");
+        println!(
+            "  {CYAN}:save{RESET}  <file>        Export last result (.csv/.tsv/.fasta/.json/.bl)"
+        );
         println!("  {CYAN}:time{RESET}  <expr>        Evaluate and show elapsed time");
         println!("  {CYAN}:plot{RESET}  [bins]        ASCII histogram of last result");
         println!("  {CYAN}:reset{RESET}               Clear all user-defined state");
@@ -587,7 +1001,9 @@ impl Repl {
         println!("  {CYAN}?{RESET}name                Show function signature (e.g. ?mean)");
         println!();
         println!("{BOLD}Auto-detection:{RESET}");
-        println!("  Paste raw DNA ({CYAN}ATCGATCG{RESET})  → auto-wraps as {CYAN}dna\"...\"{RESET}");
+        println!(
+            "  Paste raw DNA ({CYAN}ATCGATCG{RESET})  → auto-wraps as {CYAN}dna\"...\"{RESET}"
+        );
         println!("  Paste FASTA ({CYAN}>header{RESET})     → parses into record");
         println!("  Type {CYAN}P53_HUMAN{RESET}            → calls {CYAN}uniprot_entry(){RESET}");
         println!("  Type {CYAN}6LU7{RESET}                 → calls {CYAN}pdb_entry(){RESET}");
@@ -603,7 +1019,7 @@ impl Repl {
         println!("{BOLD}Quick start:{RESET}");
         println!("  [1, 2, 3] |> mean()          {DIM}# → 2.0{RESET}");
         println!("  |> to_string()               {DIM}# pipe from last result{RESET}");
-        println!("  dna\"ATCG\" |> rev_comp()      {DIM}# → CGAT{RESET}");
+        println!("  dna\"ATCG\" |> reverse_complement()  {DIM}# → CGAT{RESET}");
         println!("  :builtins stats              {DIM}# list stats functions{RESET}");
     }
 
@@ -619,7 +1035,10 @@ impl Repl {
                 }
                 let content = session_inputs.join("\n");
                 match std::fs::write(path, content) {
-                    Ok(()) => println!("{DIM}Saved {} inputs to '{path}'.{RESET}", session_inputs.len()),
+                    Ok(()) => println!(
+                        "{DIM}Saved {} inputs to '{path}'.{RESET}",
+                        session_inputs.len()
+                    ),
                     Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
                 }
             }
@@ -644,7 +1063,10 @@ impl Repl {
                             eprintln!("{DIM}No result to save.{RESET}");
                         } else {
                             let json = value_to_json(val);
-                            match std::fs::write(path, serde_json::to_string_pretty(&json).unwrap_or_default()) {
+                            match std::fs::write(
+                                path,
+                                serde_json::to_string_pretty(&json).unwrap_or_default(),
+                            ) {
                                 Ok(()) => println!("{DIM}Saved to '{path}'.{RESET}"),
                                 Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
                             }
@@ -661,10 +1083,104 @@ impl Repl {
                 }
                 let content = session_inputs.join("\n");
                 match std::fs::write(path, content) {
-                    Ok(()) => println!("{DIM}Saved {} inputs to '{path}'.{RESET}", session_inputs.len()),
+                    Ok(()) => println!(
+                        "{DIM}Saved {} inputs to '{path}'.{RESET}",
+                        session_inputs.len()
+                    ),
                     Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
                 }
             }
+        }
+    }
+
+    fn human_bytes(n: u64) -> String {
+        const UNITS: [&str; 4] = ["B", "KB", "MB", "GB"];
+        let mut v = n as f64;
+        let mut u = 0;
+        while v >= 1024.0 && u < UNITS.len() - 1 {
+            v /= 1024.0;
+            u += 1;
+        }
+        if u == 0 {
+            format!("{n} B")
+        } else {
+            format!("{v:.1} {}", UNITS[u])
+        }
+    }
+
+    /// Default workspace location — the values counterpart to the history file.
+    fn default_workspace_path() -> String {
+        match dirs_history_path() {
+            Some(h) => h.replace("/history", "/workspace.json.gz"),
+            None => "workspace.json.gz".to_string(),
+        }
+    }
+
+    /// `:workspace [file]` — save variable VALUES (not the commands that made
+    /// them; that is what `:save` does).
+    fn cmd_workspace_save(&mut self, arg: &str) {
+        let path = if arg.is_empty() { Self::default_workspace_path() } else { arg.to_string() };
+        let vars: Vec<(&str, &Value)> = self
+            .interpreter
+            .env()
+            .list_global_vars()
+            .into_iter()
+            .filter(|(k, v)| *k != "_" && !matches!(v, Value::NativeFunction { .. }))
+            .collect();
+
+        if vars.is_empty() {
+            eprintln!("{DIM}No user-defined variables to save.{RESET}");
+            return;
+        }
+
+        match bl_runtime::workspace::save(&path, vars) {
+            Ok(report) => {
+                println!(
+                    "{GREEN}Saved {} variable(s){RESET} to {CYAN}{path}{RESET} ({})",
+                    report.saved.len(),
+                    Self::human_bytes(report.bytes)
+                );
+                if !report.skipped.is_empty() {
+                    let names: Vec<String> = report
+                        .skipped
+                        .iter()
+                        .map(|(n, t)| format!("{n} ({t})"))
+                        .collect();
+                    println!(
+                        "{DIM}Not saved — functions and handles cannot be serialized: {}{RESET}",
+                        names.join(", ")
+                    );
+                    println!("{DIM}Re-run their definitions, or :load the script that defines them.{RESET}");
+                }
+            }
+            Err(e) => eprintln!("{RED}{e}{RESET}"),
+        }
+    }
+
+    /// `:restore [file]` — bring saved values back into the session.
+    fn cmd_workspace_load(&mut self, arg: &str) {
+        let path = if arg.is_empty() { Self::default_workspace_path() } else { arg.to_string() };
+        match bl_runtime::workspace::load(&path) {
+            Ok(vars) => {
+                let n = vars.len();
+                let mut replaced = Vec::new();
+                for (name, value) in vars {
+                    if self.interpreter.env().get(&name, None).is_ok() {
+                        replaced.push(name.clone());
+                    }
+                    self.interpreter.env_mut().define(name, value);
+                }
+                println!(
+                    "{GREEN}Restored {n} variable(s){RESET} from {CYAN}{path}{RESET}"
+                );
+                if !replaced.is_empty() {
+                    println!(
+                        "{DIM}Overwrote existing: {}{RESET}",
+                        replaced.join(", ")
+                    );
+                }
+            }
+            Err(e) => eprintln!("{RED}{e}{RESET}"),
         }
     }
 
@@ -936,13 +1452,185 @@ impl Default for Repl {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuiltinArityMetadata {
+    pub kind: &'static str,
+    pub minimum: usize,
+    pub maximum: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuiltinMetadata {
+    pub name: String,
+    pub signature: String,
+    pub category: String,
+    pub summary: String,
+    pub parameters: Vec<String>,
+    pub return_type: Option<String>,
+    pub example: Option<String>,
+    pub arity: BuiltinArityMetadata,
+    pub metadata_quality: &'static str,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BioLangMetadata {
+    pub schema_version: u32,
+    pub language: &'static str,
+    pub language_version: &'static str,
+    pub builtins: Vec<BuiltinMetadata>,
+}
+
+fn metadata_arity(arity: &bl_core::value::Arity) -> BuiltinArityMetadata {
+    match arity {
+        bl_core::value::Arity::Exact(count) => BuiltinArityMetadata {
+            kind: "exact",
+            minimum: *count,
+            maximum: Some(*count),
+        },
+        bl_core::value::Arity::AtLeast(minimum) => BuiltinArityMetadata {
+            kind: "atLeast",
+            minimum: *minimum,
+            maximum: None,
+        },
+        bl_core::value::Arity::Range(minimum, maximum) => BuiltinArityMetadata {
+            kind: "range",
+            minimum: *minimum,
+            maximum: Some(*maximum),
+        },
+    }
+}
+
+fn fallback_signature(name: &str, arity: &BuiltinArityMetadata) -> String {
+    let parameters = match (arity.minimum, arity.maximum) {
+        (0, Some(0)) => String::new(),
+        (minimum, Some(maximum)) if minimum == maximum => (1..=minimum)
+            .map(|index| format!("arg{index}"))
+            .collect::<Vec<_>>()
+            .join(", "),
+        (minimum, Some(maximum)) => {
+            let mut values = (1..=minimum)
+                .map(|index| format!("arg{index}"))
+                .collect::<Vec<_>>();
+            values.extend((minimum + 1..=maximum).map(|index| format!("arg{index}?")));
+            values.join(", ")
+        }
+        (minimum, None) => {
+            let mut values = (1..=minimum)
+                .map(|index| format!("arg{index}"))
+                .collect::<Vec<_>>();
+            values.push("...".into());
+            values.join(", ")
+        }
+    };
+    format!("{name}({parameters})")
+}
+
+fn signature_parts(signature: &str) -> (Vec<String>, Option<String>) {
+    let call = signature.split('→').next().unwrap_or(signature).trim();
+    let parameters = call
+        .split_once('(')
+        .and_then(|(_, rest)| rest.rsplit_once(')').map(|(parameters, _)| parameters))
+        .filter(|parameters| !parameters.trim().is_empty())
+        .map(|parameters| {
+            parameters
+                .split(',')
+                .map(|parameter| parameter.trim().to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    let return_type = signature
+        .split_once('→')
+        .map(|(_, value)| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    (parameters, return_type)
+}
+
+/// Versioned metadata used by the CLI, LSP, Desktop, and documentation tooling.
+pub fn biolang_metadata() -> BioLangMetadata {
+    let arities = bl_runtime::builtins::all_builtin_arities()
+        .into_iter()
+        .collect::<HashMap<_, _>>();
+    let catalog = BUILTIN_CATALOG
+        .iter()
+        .map(|(name, signature, category)| (*name, (*signature, *category)))
+        .collect::<HashMap<_, _>>();
+    let examples = BUILTIN_EXAMPLES
+        .iter()
+        .map(|(name, example, return_type)| (*name, (*example, *return_type)))
+        .collect::<HashMap<_, _>>();
+
+    let mut builtins = all_builtin_names()
+        .into_iter()
+        .map(|name| {
+            let runtime_arity = arities
+                .get(name)
+                .cloned()
+                .unwrap_or(bl_core::value::Arity::AtLeast(0));
+            let arity = metadata_arity(&runtime_arity);
+            let catalog_entry = catalog.get(name);
+            let signature = catalog_entry
+                .map(|(signature, _)| (*signature).to_string())
+                .unwrap_or_else(|| fallback_signature(name, &arity));
+            let (parameters, signature_return) = signature_parts(&signature);
+            let example = examples.get(name);
+            let category = catalog_entry
+                .map(|(_, category)| (*category).to_string())
+                .unwrap_or_else(|| "runtime".into());
+            let return_type = example
+                .map(|(_, return_type)| (*return_type).to_string())
+                .or(signature_return);
+            BuiltinMetadata {
+                name: name.to_string(),
+                signature,
+                summary: catalog_entry
+                    .map(|_| format!("BioLang {category} builtin."))
+                    .unwrap_or_else(|| {
+                        format!(
+                            "Registered BioLang builtin accepting {} argument(s).",
+                            arity.minimum
+                        )
+                    }),
+                category,
+                parameters,
+                return_type,
+                example: example.map(|(example, _)| (*example).to_string()),
+                arity,
+                metadata_quality: if catalog_entry.is_some() {
+                    "curated"
+                } else {
+                    "runtime"
+                },
+            }
+        })
+        .collect::<Vec<_>>();
+    builtins.sort_by(|left, right| left.name.cmp(&right.name));
+
+    BioLangMetadata {
+        schema_version: 1,
+        language: "BioLang",
+        language_version: VERSION,
+        builtins,
+    }
+}
+
 fn print_banner() {
-    let builtin_count = BUILTIN_CATALOG.len();
-    let ncbi_status = if std::env::var("NCBI_API_KEY").is_ok() { "+" } else { "-" };
+    let builtin_count = all_builtin_names().len();
+    let ncbi_status = if std::env::var("NCBI_API_KEY").is_ok() {
+        "+"
+    } else {
+        "-"
+    };
     let llm_status = if std::env::var("ANTHROPIC_API_KEY").is_ok()
         || std::env::var("OPENAI_API_KEY").is_ok()
         || std::env::var("OLLAMA_MODEL").is_ok()
-    { "+" } else { "-" };
+    {
+        "+"
+    } else {
+        "-"
+    };
     let cache_info = cache_dir_path()
         .filter(|p| p.exists())
         .and_then(|p| dir_size(&p).ok())
@@ -1020,7 +1708,10 @@ fn cmd_history(arg: &str, history: &dyn History) {
                     let before = &entry[..pos];
                     let matched = &entry[pos..pos + arg.len()];
                     let after = &entry[pos + arg.len()..];
-                    println!("{DIM}{:>4}{RESET}  {before}{BOLD}{YELLOW}{matched}{RESET}{after}", i + 1);
+                    println!(
+                        "{DIM}{:>4}{RESET}  {before}{BOLD}{YELLOW}{matched}{RESET}{after}",
+                        i + 1
+                    );
                     count += 1;
                 }
             }
@@ -1035,55 +1726,191 @@ fn cmd_history(arg: &str, history: &dyn History) {
 
 /// Curated examples for common builtins
 const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
-    ("gc_content", "dna\"ATCGCG\" |> gc_content()  # → 0.667", "Float"),
-    ("rev_comp", "dna\"ATCG\" |> rev_comp()  # → DNA(CGAT)", "DNA"),
-    ("transcribe", "dna\"ATCG\" |> transcribe()  # → RNA(AUCG)", "RNA"),
-    ("translate", "dna\"ATGCCC\" |> translate()  # → Protein(MP)", "Protein"),
+    (
+        "gc_content",
+        "dna\"ATCGCG\" |> gc_content()  # → 0.667",
+        "Float",
+    ),
+    (
+        "reverse_complement",
+        "dna\"ATCG\" |> reverse_complement()  # → DNA(CGAT)",
+        "DNA",
+    ),
+    (
+        "transcribe",
+        "dna\"ATCG\" |> transcribe()  # → RNA(AUCG)",
+        "RNA",
+    ),
+    (
+        "translate",
+        "dna\"ATGCCC\" |> translate()  # → Protein(MP)",
+        "Protein",
+    ),
     ("mean", "[1, 2, 3, 4] |> mean()  # → 2.5", "Float"),
     ("median", "[1, 2, 3, 4, 5] |> median()  # → 3.0", "Float"),
-    ("stdev", "[2, 4, 4, 4, 5, 5, 7, 9] |> stdev()  # → 2.0", "Float"),
+    (
+        "stdev",
+        "[2, 4, 4, 4, 5, 5, 7, 9] |> stdev()  # → 2.0",
+        "Float",
+    ),
     ("sum", "[1, 2, 3] |> sum()  # → 6", "Float"),
-    ("summary", "[1,2,3,4,5] |> summary()  # → {min, q1, median, mean, q3, max}", "Record"),
+    (
+        "summary",
+        "[1,2,3,4,5] |> summary()  # → {min, q1, median, mean, q3, max}",
+        "Record",
+    ),
     ("map", "[1,2,3] |> map(|x| x * 2)  # → [2, 4, 6]", "List"),
-    ("filter", "[1,2,3,4] |> filter(|x| x > 2)  # → [3, 4]", "List"),
+    (
+        "filter",
+        "[1,2,3,4] |> filter(|x| x > 2)  # → [3, 4]",
+        "List",
+    ),
     ("reduce", "[1,2,3] |> reduce(|a,b| a + b)  # → 6", "Value"),
     ("sort", "[3,1,2] |> sort()  # → [1, 2, 3]", "List"),
     ("unique", "[1,1,2,2,3] |> unique()  # → [1, 2, 3]", "List"),
     ("len", "[1,2,3] |> len()  # → 3", "Int"),
-    ("join", "[\"a\",\"b\",\"c\"] |> join(\",\")  # → \"a,b,c\"", "Str"),
-    ("split", "\"a,b,c\" |> split(\",\")  # → [\"a\", \"b\", \"c\"]", "List"),
-    ("read_fasta", "read_fasta(\"seqs.fa\")  # → [{id, desc, seq}, ...]", "List[Record]"),
-    ("read_fastq", "read_fastq(\"reads.fq\")  # → [{id, seq, qual}, ...]", "List[Record]"),
-    ("read_vcf", "read_vcf(\"variants.vcf\")  # → Table", "Table"),
+    (
+        "join",
+        "[\"a\",\"b\",\"c\"] |> join(\",\")  # → \"a,b,c\"",
+        "Str",
+    ),
+    (
+        "split",
+        "\"a,b,c\" |> split(\",\")  # → [\"a\", \"b\", \"c\"]",
+        "List",
+    ),
+    (
+        "read_fasta",
+        "read_fasta(\"seqs.fa\")  # → Table[id, description, seq, length]",
+        "Table",
+    ),
+    (
+        "read_fastq",
+        "read_fastq(\"reads.fq\")  # → Table[id, description, seq, length, quality]",
+        "Table",
+    ),
+    (
+        "read_vcf",
+        "read_vcf(\"variants.vcf\")  # → List[Variant]",
+        "List[Variant]",
+    ),
     ("read_bed", "read_bed(\"regions.bed\")  # → Table", "Table"),
-    ("table", "table([{a: 1, b: 2}, {a: 3, b: 4}])  # → Table", "Table"),
-    ("hist", "[1,2,2,3,3,3] |> hist()  # → ASCII histogram", "Str"),
-    ("scatter", "scatter([1,2,3], [4,5,6])  # → ASCII scatter plot", "Str"),
-    ("ncbi_gene", "ncbi_gene(\"BRCA1\")  # → gene info record", "Record"),
-    ("ncbi_search", "ncbi_search(\"gene\", \"TP53\")  # → search results", "Record"),
-    ("ensembl_gene", "ensembl_gene(\"ENSG00000141510\")  # → gene info", "Record"),
-    ("uniprot_entry", "uniprot_entry(\"P04637\")  # → protein entry", "Record"),
-    ("uniprot_search", "uniprot_search(\"kinase AND organism_id:9606\")  # → results", "Record"),
-    ("pdb_entry", "pdb_entry(\"6LU7\")  # → structure info", "Record"),
-    ("kegg_get", "kegg_get(\"hsa:7157\")  # → KEGG entry text", "Str"),
-    ("go_term", "go_term(\"GO:0006915\")  # → GO term info", "Record"),
-    ("align", "align(dna\"ATCG\", dna\"ATGG\")  # → alignment record", "Record"),
-    ("kmer_count", "dna\"ATCGATCG\" |> kmer_count(3)  # → k-mer frequency table", "Table"),
-    ("lm", "lm([1,2,3], [2,4,6])  # → {slope: 2.0, r2: 1.0, ...}", "Record"),
+    (
+        "table",
+        "table([{a: 1, b: 2}, {a: 3, b: 4}])  # → Table",
+        "Table",
+    ),
+    (
+        "hist",
+        "[1,2,2,3,3,3] |> hist()  # → ASCII histogram",
+        "Str",
+    ),
+    (
+        "scatter",
+        "scatter([1,2,3], [4,5,6])  # → ASCII scatter plot",
+        "Str",
+    ),
+    (
+        "ncbi_gene",
+        "ncbi_gene(\"BRCA1\")  # → gene info record",
+        "Record",
+    ),
+    (
+        "ncbi_search",
+        "ncbi_search(\"gene\", \"TP53\")  # → search results",
+        "Record",
+    ),
+    (
+        "ensembl_gene",
+        "ensembl_gene(\"ENSG00000141510\")  # → gene info",
+        "Record",
+    ),
+    (
+        "uniprot_entry",
+        "uniprot_entry(\"P04637\")  # → protein entry",
+        "Record",
+    ),
+    (
+        "uniprot_search",
+        "uniprot_search(\"kinase AND organism_id:9606\")  # → results",
+        "Record",
+    ),
+    (
+        "pdb_entry",
+        "pdb_entry(\"6LU7\")  # → structure info",
+        "Record",
+    ),
+    (
+        "kegg_get",
+        "kegg_get(\"hsa:7157\")  # → KEGG entry text",
+        "Str",
+    ),
+    (
+        "go_term",
+        "go_term(\"GO:0006915\")  # → GO term info",
+        "Record",
+    ),
+    (
+        "align",
+        "align(dna\"ATCG\", dna\"ATGG\")  # → alignment record",
+        "Record",
+    ),
+    (
+        "kmer_count",
+        "dna\"ATCGATCG\" |> kmer_count(3)  # → k-mer frequency table",
+        "Table",
+    ),
+    (
+        "lm",
+        "lm([1,2,3], [2,4,6])  # → {slope: 2.0, r2: 1.0, ...}",
+        "Record",
+    ),
     ("ttest", "ttest([1,2,3], [4,5,6])  # → {t, p, df}", "Record"),
     ("cor", "cor([1,2,3], [1,2,3])  # → 1.0", "Float"),
-    ("p_adjust", "p_adjust([0.01, 0.04, 0.5], \"bh\")  # → adjusted p-values", "List"),
+    (
+        "p_adjust",
+        "p_adjust([0.01, 0.04, 0.5], \"bh\")  # → adjusted p-values",
+        "List",
+    ),
     ("matrix", "matrix([[1,2],[3,4]])  # → 2x2 Matrix", "Matrix"),
-    ("dot", "dot(matrix([[1,0],[0,1]]), matrix([[5],[6]]))  # → matmul", "Matrix"),
-    ("pca", "pca(matrix([[1,2],[3,4],[5,6]]), 2)  # → PCA result", "Record"),
-    ("glob", "glob(\"*.fasta\")  # → list of matching files", "List[Str]"),
-    ("shell", "shell(\"echo hello\")  # → {stdout, stderr, exit_code}", "Record"),
+    (
+        "dot",
+        "dot(matrix([[1,0],[0,1]]), matrix([[5],[6]]))  # → matmul",
+        "Matrix",
+    ),
+    (
+        "pca",
+        "pca(matrix([[1,2],[3,4],[5,6]]), 2)  # → PCA result",
+        "Record",
+    ),
+    (
+        "glob",
+        "glob(\"*.fasta\")  # → list of matching files",
+        "List[Str]",
+    ),
+    (
+        "shell",
+        "shell(\"echo hello\")  # → {stdout, stderr, exit_code}",
+        "Record",
+    ),
     ("md5", "md5(\"hello\")  # → hex digest", "Str"),
     ("now", "now()  # → \"2024-01-15T10:30:00Z\"", "Str"),
-    ("chat", "chat(\"explain GC content\")  # → LLM response", "Str"),
+    (
+        "chat",
+        "chat(\"explain GC content\")  # → LLM response",
+        "Str",
+    ),
     ("doctor", "doctor()  # → environment check table", "Table"),
-    ("enrich", "enrich(genes, gene_sets, background)  # → enrichment table", "Table"),
-    ("diff_expr", "diff_expr(counts, [\"A\",\"A\",\"B\",\"B\"])  # → DE results", "Table"),
+    (
+        "enrich",
+        "enrich(genes, gene_sets, background)  # → enrichment table",
+        "Table",
+    ),
+    (
+        "diff_expr",
+        "diff_expr(counts, [\"A\",\"A\",\"B\",\"B\"])  # → DE results",
+        "Table",
+    ),
 ];
 
 fn cmd_fn_help_extended(name: &str) {
@@ -1091,7 +1918,11 @@ fn cmd_fn_help_extended(name: &str) {
     // Find in catalog
     let entry = BUILTIN_CATALOG.iter().find(|(n, _, _)| *n == name);
     if entry.is_none() {
-        println!("{DIM}Unknown function: {name}. Try :builtins to browse.{RESET}");
+        if all_builtin_names().contains(&name) {
+            println!("{CYAN}{name}(...){RESET}  {DIM}[runtime builtin; detailed metadata unavailable]{RESET}");
+        } else {
+            println!("{DIM}Unknown function: {name}. Try :builtins to browse.{RESET}");
+        }
         return;
     }
     let (_, sig, cat) = entry.unwrap();
@@ -1286,12 +2117,18 @@ fn detect_and_rewrite(input: String, _cache: &ApiCache) -> String {
 fn is_api_shorthand(input: &str) -> bool {
     let trimmed = input.trim();
     let api_prefixes = [
-        "ncbi_gene(", "ncbi_search(", "ncbi_sequence(",
-        "ensembl_gene(", "ensembl_vep(",
-        "uniprot_search(", "uniprot_entry(",
+        "ncbi_gene(",
+        "ncbi_search(",
+        "ncbi_sequence(",
+        "ensembl_gene(",
+        "ensembl_vep(",
+        "uniprot_search(",
+        "uniprot_entry(",
         "pdb_entry(",
-        "kegg_get(", "kegg_find(",
-        "go_term(", "go_annotations(",
+        "kegg_get(",
+        "kegg_find(",
+        "go_term(",
+        "go_annotations(",
         "string_network(",
         "reactome_pathways(",
         "cosmic_gene(",
@@ -1336,7 +2173,9 @@ impl ApiCache {
     }
 
     fn store(&self, key: &str, value: &Value) {
-        let Some(ref dir) = self.cache_dir else { return };
+        let Some(ref dir) = self.cache_dir else {
+            return;
+        };
         let json = value_to_json(value);
         let data_path = dir.join(format!("{key}.json"));
         let meta_path = dir.join(format!("{key}.meta"));
@@ -1354,7 +2193,11 @@ impl ApiCache {
         let meta_path = dir.join(format!("{key}.meta"));
         let data_path = dir.join(format!("{key}.json"));
 
-        let ts: u64 = std::fs::read_to_string(&meta_path).ok()?.trim().parse().ok()?;
+        let ts: u64 = std::fs::read_to_string(&meta_path)
+            .ok()?
+            .trim()
+            .parse()
+            .ok()?;
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .map(|d| d.as_secs())
@@ -1374,7 +2217,11 @@ impl ApiCache {
         let meta_path = dir.join(format!("{key}.meta"));
         let data_path = dir.join(format!("{key}.json"));
 
-        let ts: u64 = std::fs::read_to_string(&meta_path).ok()?.trim().parse().ok()?;
+        let ts: u64 = std::fs::read_to_string(&meta_path)
+            .ok()?
+            .trim()
+            .parse()
+            .ok()?;
         let data = std::fs::read_to_string(&data_path).ok()?;
         let json: serde_json::Value = serde_json::from_str(&data).ok()?;
 
@@ -1403,9 +2250,7 @@ fn value_to_json(val: &Value) -> serde_json::Value {
         Value::Int(n) => serde_json::json!(*n),
         Value::Float(f) => serde_json::json!(*f),
         Value::Str(s) => serde_json::Value::String(s.clone()),
-        Value::List(items) => {
-            serde_json::Value::Array(items.iter().map(value_to_json).collect())
-        }
+        Value::List(items) => serde_json::Value::Array(items.iter().map(value_to_json).collect()),
         Value::Record(fields) => {
             let map: serde_json::Map<String, serde_json::Value> = fields
                 .iter()
@@ -1459,14 +2304,14 @@ fn json_to_value(json: &serde_json::Value) -> Value {
         }
         serde_json::Value::String(s) => Value::Str(s.clone()),
         serde_json::Value::Array(arr) => {
-            Value::List(arr.iter().map(json_to_value).collect())
+            Value::List(arr.iter().map(json_to_value).collect::<Vec<_>>().into())
         }
         serde_json::Value::Object(map) => {
             let fields: HashMap<String, Value> = map
                 .iter()
                 .map(|(k, v)| (k.clone(), json_to_value(v)))
                 .collect();
-            Value::Record(fields)
+            Value::Record(fields.into())
         }
     }
 }
@@ -1501,14 +2346,20 @@ fn value_preview(val: &Value) -> String {
         } => format!("<plugin:{plugin_name}.{operation}>"),
         Value::CompiledClosure(_) => "<compiled closure>".into(),
         Value::Matrix(m) => format!("Matrix({}x{})", m.nrow, m.ncol),
-        Value::Range { start, end, inclusive } => {
+        Value::Range {
+            start,
+            end,
+            inclusive,
+        } => {
             if *inclusive {
                 format!("{start}..={end}")
             } else {
                 format!("{start}..{end}")
             }
         }
-        Value::EnumValue { enum_name, variant, .. } => format!("{enum_name}::{variant}"),
+        Value::EnumValue {
+            enum_name, variant, ..
+        } => format!("{enum_name}::{variant}"),
         Value::Set(items) => format!("#{{{} items}}", items.len()),
         Value::Regex { pattern, flags } => format!("/{pattern}/{flags}"),
         Value::Future(_) => "<future>".into(),
@@ -1516,7 +2367,11 @@ fn value_preview(val: &Value) -> String {
         Value::SparseMatrix(sm) => format!("Sparse({}x{}, {} nnz)", sm.nrow, sm.ncol, sm.nnz()),
         Value::Tuple(items) => {
             let parts: Vec<String> = items.iter().map(|v| value_preview(v)).collect();
-            format!("({}{})", parts.join(", "), if items.len() == 1 { "," } else { "" })
+            format!(
+                "({}{})",
+                parts.join(", "),
+                if items.len() == 1 { "," } else { "" }
+            )
         }
         Value::Gene { symbol, .. } => format!("Gene({symbol})"),
         Value::Variant { chrom, pos, .. } => format!("Variant({chrom}:{pos})"),
@@ -1544,7 +2399,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("debug", "debug(value)", "core"),
     ("env", "env(name) → Str|Nil", "core"),
     ("sleep", "sleep(ms)", "core"),
-    ("doctor", "doctor() → Table (check env, containers, LLM, APIs)", "core"),
+    (
+        "doctor",
+        "doctor() → Table (check env, containers, LLM, APIs)",
+        "core",
+    ),
     ("error", "error(message) → raises error", "core"),
     ("try_call", "try_call(fn) → {ok, value, error}", "core"),
     // List
@@ -1572,7 +2431,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("any", "any(list, fn) → Bool", "hof"),
     ("all", "all(list, fn) → Bool", "hof"),
     ("find", "find(list, fn) → Value|Nil", "hof"),
-    ("find_index", "find_index(list, fn) → Int (-1 if not found)", "hof"),
+    (
+        "find_index",
+        "find_index(list, fn) → Int (-1 if not found)",
+        "hof",
+    ),
     ("mutate", "mutate(table, col, fn) → Table", "hof"),
     ("summarize", "summarize(grouped, fn) → Table", "hof"),
     // String
@@ -1584,9 +2447,13 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("starts_with", "starts_with(str, prefix) → Bool", "string"),
     ("ends_with", "ends_with(str, suffix) → Bool", "string"),
     ("str_replace", "str_replace(str, from, to) → Str", "string"),
-    ("substr", "substr(str, start, len) → Str", "string"),
+    ("substr", "substr(str, start, len?) → Str", "string"),
     ("char_at", "char_at(str, index) → Str|Nil", "string"),
-    ("index_of", "index_of(str, sub) → Int (-1 if not found)", "string"),
+    (
+        "index_of",
+        "index_of(str, sub) → Int (-1 if not found)",
+        "string",
+    ),
     ("str_repeat", "str_repeat(str, n) → Str", "string"),
     ("pad_left", "pad_left(str, width, char) → Str", "string"),
     ("pad_right", "pad_right(str, width, char) → Str", "string"),
@@ -1629,13 +2496,29 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("quantile", "quantile(list, q) → Float", "stats"),
     ("cor", "cor(list1, list2) → Float", "stats"),
     ("cumsum", "cumsum(list) → List", "stats"),
-    ("summary", "summary(list) → Record{min,q1,median,mean,q3,max}", "stats"),
+    (
+        "summary",
+        "summary(list) → Record{min,q1,median,mean,q3,max}",
+        "stats",
+    ),
     ("ttest", "ttest(list1, list2) → Record{t,p,df}", "stats"),
     ("ttest_one", "ttest_one(list, mu) → Record{t,p,df}", "stats"),
-    ("ttest_paired", "ttest_paired(list1, list2) → Record{t,p}", "stats"),
+    (
+        "ttest_paired",
+        "ttest_paired(list1, list2) → Record{t,p}",
+        "stats",
+    ),
     ("anova", "anova(groups) → Record{f,p,df}", "stats"),
-    ("chi_square", "chi_square(obs, exp) → Record{chi2,p,df}", "stats"),
-    ("fisher_exact", "fisher_exact(a,b,c,d) → Record{p,odds}", "stats"),
+    (
+        "chi_square",
+        "chi_square(obs, exp) → Record{chi2,p,df}",
+        "stats",
+    ),
+    (
+        "fisher_exact",
+        "fisher_exact(a,b,c,d) → Record{p,odds}",
+        "stats",
+    ),
     ("wilcoxon", "wilcoxon(list1, list2) → Record{u,p}", "stats"),
     ("p_adjust", "p_adjust(pvals, method) → List", "stats"),
     ("normalize", "normalize(list, method) → List", "stats"),
@@ -1675,13 +2558,37 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("glob", "glob(pattern) → List[Str]", "fs"),
     ("temp_file", "temp_file() → Str (path)", "fs"),
     ("temp_dir", "temp_dir() → Str (path)", "fs"),
-    ("http_get", "http_get(url, headers?) → {status, body, headers}", "fs"),
-    ("http_post", "http_post(url, body, headers?) → {status, body, headers}", "fs"),
+    (
+        "http_get",
+        "http_get(url, headers?) → {status, body, headers}",
+        "fs",
+    ),
+    (
+        "http_post",
+        "http_post(url, body, headers?) → {status, body, headers}",
+        "fs",
+    ),
     ("download", "download(url, path?) → {path, size, url}", "fs"),
-    ("upload", "upload(path, url, headers?) → {status, size}", "fs"),
-    ("ref_genome", "ref_genome(name|\"list\", path?) → {path, name, description}", "fs"),
-    ("bio_fetch", "bio_fetch(name, path?) → {path, name, description, cached}", "fs"),
-    ("bio_sources", "bio_sources(category?) → Table of available data shortcuts", "fs"),
+    (
+        "upload",
+        "upload(path, url, headers?) → {status, size}",
+        "fs",
+    ),
+    (
+        "ref_genome",
+        "ref_genome(name|\"list\", path?) → {path, name, description}",
+        "fs",
+    ),
+    (
+        "bio_fetch",
+        "bio_fetch(name, path?) → {path, name, description, cached}",
+        "fs",
+    ),
+    (
+        "bio_sources",
+        "bio_sources(category?) → Table of available data shortcuts",
+        "fs",
+    ),
     // Plot
     ("plot", "plot(table, opts?) → Str (SVG)", "plot"),
     ("heatmap", "heatmap(table, opts?) → Str (SVG)", "plot"),
@@ -1689,9 +2596,28 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("volcano", "volcano(table, opts?) → Str (SVG)", "plot"),
     ("ma_plot", "ma_plot(table, opts?) → Str (SVG)", "plot"),
     ("save_svg", "save_svg(svg, path)", "plot"),
-    ("genome_track", "genome_track(table, opts?) → Str (SVG)", "plot"),
+    (
+        "genome_track",
+        "genome_track(table, opts?) → Str (SVG)",
+        "plot",
+    ),
     ("hist", "hist(list, bins?) → Str (ASCII)", "plot"),
     ("scatter", "scatter(list1, list2) → Str (ASCII)", "plot"),
+    // Signatures verified against each implementation's argument handling.
+    // Without these the metadata falls back to `name(arg1, arg2?)`, which made
+    // the whole plot family undocumentable and invisible to the arity checker.
+    ("umap_plot", "umap_plot(points, opts?) → Str (SVG)", "plot"),
+    ("pca_plot", "pca_plot(points, opts?) → Str (SVG)", "plot"),
+    ("violin", "violin(data, opts?) → Str (SVG)", "plot"),
+    ("clustered_heatmap", "clustered_heatmap(data, opts?) → Str (SVG)", "plot"),
+    ("density", "density(data, opts?) → Str (SVG)", "plot"),
+    ("boxplot", "boxplot(data, opts?) → Str (ASCII)", "plot"),
+    ("sparkline", "sparkline(data) → Str (ASCII)", "plot"),
+    ("heatmap_ascii", "heatmap_ascii(table, opts?) → Str (ASCII)", "plot"),
+    ("quality_plot", "quality_plot(quality, opts?) → Str (ASCII)", "plot"),
+    ("bar_chart", "bar_chart(labels_to_values) → Nil (prints ASCII)", "plot"),
+    // Sequence dot-matrix, NOT the expression dot plot of scanpy/Seurat.
+    ("dotplot", "dotplot(seq1, seq2, opts?) → Str (sequence dot-matrix)", "plot"),
     // Matrix
     ("matrix", "matrix(nested_lists) → Matrix", "matrix"),
     ("zeros", "zeros(nrow, ncol) → Matrix", "matrix"),
@@ -1699,7 +2625,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("dim", "dim(matrix) → [nrow, ncol]", "matrix"),
     ("transpose", "transpose(matrix) → Matrix", "matrix"),
     ("dot", "dot(a, b) → Matrix (matmul)", "matrix"),
-    ("pca", "pca(matrix, n) → Record{scores,loadings,...}", "matrix"),
+    (
+        "pca",
+        "pca(data, [n]) → Record{explained_variance,...}",
+        "data",
+    ),
     ("cor_matrix", "cor_matrix(matrix) → Matrix", "matrix"),
     // Enrichment
     ("read_gmt", "read_gmt(path) → Map{set→genes}", "enrich"),
@@ -1707,35 +2637,93 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("gsea", "gsea(ranked, sets) → Table", "enrich"),
     // Bio
     ("dna", "dna\"ATCG\" → DNA sequence", "bio"),
-    ("rev_comp", "rev_comp(seq) → DNA/RNA", "bio"),
+    (
+        "reverse_complement",
+        "reverse_complement(seq) → DNA/RNA",
+        "bio",
+    ),
     ("transcribe", "transcribe(dna) → RNA", "bio"),
     ("translate", "translate(rna|dna) → Protein", "bio"),
     ("gc_content", "gc_content(seq) → Float", "bio"),
-    ("read_fasta", "read_fasta(path) → List[Record]", "bio"),
-    ("fasta_stats", "fasta_stats(path) → Record{count,total_bp,mean_length,n50,...}", "bio"),
-    ("read_fastq", "read_fastq(path) → List[Record]", "bio"),
+    ("read_fasta", "read_fasta(path) → Table", "bio"),
+    (
+        "fasta_stats",
+        "fasta_stats(path) → Record{count,total_bp,mean_length,n50,...}",
+        "bio",
+    ),
+    ("read_fastq", "read_fastq(path) → Table", "bio"),
     ("read_bed", "read_bed(path) → Table", "bio"),
     ("read_gff", "read_gff(path) → Table", "bio"),
-    ("read_vcf", "read_vcf(path) → Table", "bio"),
-    ("write_fasta", "write_fasta(records, path) → Int (count)", "bio"),
-    ("write_fastq", "write_fastq(records, path) → Int (count)", "bio"),
-    ("write_bed", "write_bed(records|table, path) → Int (count)", "bio"),
+    ("read_vcf", "read_vcf(path) → List[Variant]", "bio"),
+    (
+        "write_fasta",
+        "write_fasta(records, path) → Int (count)",
+        "bio",
+    ),
+    (
+        "write_fastq",
+        "write_fastq(records, path) → Int (count)",
+        "bio",
+    ),
+    (
+        "write_bed",
+        "write_bed(records|table, path) → Int (count)",
+        "bio",
+    ),
     ("write_vcf", "write_vcf(records, path) → Int (count)", "bio"),
     ("write_gff", "write_gff(records, path) → Int (count)", "bio"),
-    ("validate", "validate(path) → {valid, format, errors, lines_checked}", "bio"),
-    ("vcf_filter", "vcf_filter(path, expr) → Table (e.g. \"QUAL > 30 && DP > 10\")", "bio"),
-    ("align", "align(seq1, seq2, opts?) → Record", "bio"),
+    (
+        "validate",
+        "validate(path) → {valid, format, errors, lines_checked}",
+        "bio",
+    ),
+    (
+        "vcf_filter",
+        "vcf_filter(path, expr) → Table (e.g. \"QUAL > 30 && DP > 10\")",
+        "bio",
+    ),
+    (
+        "align",
+        "align(seq1, seq2, mode?, match?, mismatch?, gap?) → Record",
+        "bio",
+    ),
     ("edit_distance", "edit_distance(s1, s2) → Int", "bio"),
     ("hamming_distance", "hamming_distance(s1, s2) → Int", "bio"),
-    ("msa", "msa(sequences, opts?) → Record{sequences, names, n_seqs, length}", "bio"),
-    ("distance_matrix", "distance_matrix(alignment, opts?) → Matrix (pairwise distances)", "bio"),
-    ("conservation_scores", "conservation_scores(alignment) → List[Float] (per-column 0-1)", "bio"),
-    ("interval", "interval(chrom, start, end, strand?) → Interval", "bio"),
+    (
+        "msa",
+        "msa(sequences, opts?) → Record{sequences, names, n_seqs, length}",
+        "bio",
+    ),
+    (
+        "distance_matrix",
+        "distance_matrix(alignment, opts?) → Matrix (pairwise distances)",
+        "bio",
+    ),
+    (
+        "conservation_scores",
+        "conservation_scores(alignment) → List[Float] (per-column 0-1)",
+        "bio",
+    ),
+    (
+        "interval",
+        "interval(chrom, start, end, strand?) → Interval",
+        "bio",
+    ),
     // API
-    ("ncbi_search", "ncbi_search(db, query) → Record", "api"),
+    (
+        "ncbi_search",
+        "ncbi_search(db, query, max?) → List[Record]",
+        "api",
+    ),
     ("ncbi_gene", "ncbi_gene(query) → Record", "api"),
     ("ensembl_gene", "ensembl_gene(id) → Record", "api"),
-    ("uniprot_search", "uniprot_search(query) → Record", "api"),
+    ("uniprot_entry", "uniprot_entry(accession) → Record", "api"),
+    (
+        "uniprot_search",
+        "uniprot_search(query, max?) → List[Record]",
+        "api",
+    ),
+    ("pdb_entry", "pdb_entry(id) → Record", "api"),
     ("kegg_get", "kegg_get(id) → Str", "api"),
     ("go_term", "go_term(id) → Record", "api"),
     // Hash
@@ -1746,16 +2734,48 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("hmac_sha256", "hmac_sha256(data, key) → Str (hex)", "hash"),
     ("base64_encode", "base64_encode(str) → Str", "hash"),
     ("base64_decode", "base64_decode(str) → Str", "hash"),
-    ("sketch", "sketch(seq, k?, n?) → List (MinHash sketch)", "hash"),
-    ("sketch_dist", "sketch_dist(a, b) → Float (Jaccard distance 0–1)", "hash"),
+    (
+        "sketch",
+        "sketch(seq, k?, n?) → List (MinHash sketch)",
+        "hash",
+    ),
+    (
+        "sketch_dist",
+        "sketch_dist(a, b) → Float (Jaccard distance 0–1)",
+        "hash",
+    ),
     // DateTime
     ("now", "now() → Str (ISO 8601 UTC)", "datetime"),
-    ("timestamp", "timestamp() → Int (Unix epoch seconds)", "datetime"),
-    ("timestamp_ms", "timestamp_ms() → Int (Unix epoch ms)", "datetime"),
-    ("date_format", "date_format(date_str, fmt) → Str", "datetime"),
-    ("date_parse", "date_parse(str, fmt) → Str (ISO 8601)", "datetime"),
-    ("date_add", "date_add(date_str, amount, unit) → Str", "datetime"),
-    ("date_diff", "date_diff(date1, date2, unit) → Int", "datetime"),
+    (
+        "timestamp",
+        "timestamp() → Int (Unix epoch seconds)",
+        "datetime",
+    ),
+    (
+        "timestamp_ms",
+        "timestamp_ms() → Int (Unix epoch ms)",
+        "datetime",
+    ),
+    (
+        "date_format",
+        "date_format(date_str, fmt) → Str",
+        "datetime",
+    ),
+    (
+        "date_parse",
+        "date_parse(str, fmt) → Str (ISO 8601)",
+        "datetime",
+    ),
+    (
+        "date_add",
+        "date_add(date_str, amount, unit) → Str",
+        "datetime",
+    ),
+    (
+        "date_diff",
+        "date_diff(date1, date2, unit) → Int",
+        "datetime",
+    ),
     ("year", "year(date_str) → Int", "datetime"),
     ("month", "month(date_str) → Int", "datetime"),
     ("day", "day(date_str) → Int", "datetime"),
@@ -1766,13 +2786,29 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("lines", "lines(text) → List[Str]", "text"),
     ("cut", "cut(text, delimiter, fields) → List", "text"),
     ("paste", "paste(list1, list2, sep?) → List[Str]", "text"),
-    ("uniq_count", "uniq_count(list) → List[{value, count}]", "text"),
+    (
+        "uniq_count",
+        "uniq_count(list) → List[{value, count}]",
+        "text",
+    ),
     ("wc", "wc(input) → {lines, words, chars, bytes}", "text"),
     ("tee", "tee(value, path) → value (writes to file)", "text"),
-    ("shell", "shell(cmd, stdin?) → {stdout, stderr, exit_code}", "text"),
+    (
+        "shell",
+        "shell(cmd, stdin?) → {stdout, stderr, exit_code}",
+        "text",
+    ),
     ("count_lines", "count_lines(path) → Int", "text"),
-    ("stream_lines", "stream_lines(path) → Stream (lazy file reader)", "text"),
-    ("stream_concat", "stream_concat(a, b) → Stream (lazy concat)", "text"),
+    (
+        "stream_lines",
+        "stream_lines(path) → Stream (lazy file reader)",
+        "text",
+    ),
+    (
+        "stream_concat",
+        "stream_concat(a, b) → Stream (lazy concat)",
+        "text",
+    ),
     // Type predicates
     ("is_nil", "is_nil(value) → Bool", "type"),
     ("is_int", "is_int(value) → Bool", "type"),
@@ -1797,20 +2833,68 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("is_regex", "is_regex(value) → Bool", "type"),
     ("is_future", "is_future(value) → Bool", "type"),
     // Container
-    ("container_available", "container_available() → {runtime, version, image_dir}", "container"),
-    ("container_run", "container_run(image, cmd, opts?) → {stdout, stderr, exit_code}", "container"),
-    ("container_pull", "container_pull(image) → {image, storage, hint}", "container"),
-    ("tool", "tool(name, cmd, opts?) → {stdout, stderr, exit_code}", "container"),
-    ("tool_search", "tool_search(query, opts?) → List[{name, pulls, license, ...}]", "container"),
-    ("tool_popular", "tool_popular(limit?) → List (sorted by downloads)", "container"),
-    ("tool_info", "tool_info(name) → {name, pulls, license, versions: [...]}", "container"),
-    ("tool_pull", "tool_pull(name, version?) → {image, storage, hint}", "container"),
+    (
+        "container_available",
+        "container_available() → {runtime, version, image_dir}",
+        "container",
+    ),
+    (
+        "container_run",
+        "container_run(image, cmd, opts?) → {stdout, stderr, exit_code}",
+        "container",
+    ),
+    (
+        "container_pull",
+        "container_pull(image) → {image, storage, hint}",
+        "container",
+    ),
+    (
+        "tool",
+        "tool(name, cmd, opts?) → {stdout, stderr, exit_code}",
+        "container",
+    ),
+    (
+        "tool_search",
+        "tool_search(query, opts?) → List[{name, pulls, license, ...}]",
+        "container",
+    ),
+    (
+        "tool_popular",
+        "tool_popular(limit?) → List (sorted by downloads)",
+        "container",
+    ),
+    (
+        "tool_info",
+        "tool_info(name) → {name, pulls, license, versions: [...]}",
+        "container",
+    ),
+    (
+        "tool_pull",
+        "tool_pull(name, version?) → {image, storage, hint}",
+        "container",
+    ),
     ("tool_list", "tool_list() → List[Str]", "container"),
-    ("tool_available", "tool_available() → {runtime, version, image_dir}", "container"),
+    (
+        "tool_available",
+        "tool_available() → {runtime, version, image_dir}",
+        "container",
+    ),
     // LLM
-    ("chat", "chat(message, context?) → Str (LLM response)", "llm"),
-    ("chat_code", "chat_code(description, context?) → Str (BioLang code)", "llm"),
-    ("llm_models", "llm_models() → {provider, model, env_vars}", "llm"),
+    (
+        "chat",
+        "chat(message, context?) → Str (LLM response)",
+        "llm",
+    ),
+    (
+        "chat_code",
+        "chat_code(description, context?) → Str (BioLang code)",
+        "llm",
+    ),
+    (
+        "llm_models",
+        "llm_models() → {provider, model, env_vars}",
+        "llm",
+    ),
     // Units
     ("bp", "bp(n) → Record{value, unit} (base pairs)", "bio"),
     ("kb", "kb(n) → Record{value, unit} (kilobases)", "bio"),
@@ -1818,112 +2902,372 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("gb", "gb(n) → Record{value, unit} (gigabases)", "bio"),
     // Generators
     ("help", "help(fn) → Nil (print function docs)", "core"),
-    ("gen_int", "gen_int(lo, hi) → Int (seeded PRNG)", "core"),
-    ("gen_float", "gen_float(lo, hi) → Float (seeded PRNG)", "core"),
-    ("gen_str", "gen_str(len) → Str (random alphanumeric)", "core"),
+    ("gen_int", "gen_int(max | min, max?, seed?) → Int", "core"),
+    ("gen_float", "gen_float() → Float in [0, 1)", "core"),
+    ("gen_str", "gen_str(len?) → Str (random lowercase)", "core"),
     // Parallel + property testing
     ("par_map", "par_map(list, fn) → List (parallel map)", "hof"),
-    ("par_filter", "par_filter(list, fn) → List (parallel filter)", "hof"),
-    ("prop_test", "prop_test(property_fn, generator_fn, iters?) → Record", "hof"),
+    (
+        "par_filter",
+        "par_filter(list, fn) → List (parallel filter)",
+        "hof",
+    ),
+    (
+        "prop_test",
+        "prop_test(property_fn, generator_fn, iters) → Record",
+        "hof",
+    ),
     // Transfer protocols
-    ("ftp_download", "ftp_download(url, path?) → {path, size}", "transfer"),
+    (
+        "ftp_download",
+        "ftp_download(url, path?) → {path, size}",
+        "transfer",
+    ),
     ("ftp_list", "ftp_list(url) → List[{name, path}]", "transfer"),
     ("ftp_upload", "ftp_upload(path, url) → {size}", "transfer"),
-    ("sftp_download", "sftp_download(url, path?) → {path, size}", "transfer"),
+    (
+        "sftp_download",
+        "sftp_download(url, path?) → {path, size}",
+        "transfer",
+    ),
     ("sftp_upload", "sftp_upload(path, url) → {size}", "transfer"),
     ("scp", "scp(source, dest) → {source, dest}", "transfer"),
-    ("s3_download", "s3_download(s3_url, path?) → {path, size}", "transfer"),
+    (
+        "s3_download",
+        "s3_download(s3_url, path?) → {path, size}",
+        "transfer",
+    ),
     ("s3_upload", "s3_upload(path, s3_url) → {size}", "transfer"),
-    ("s3_list", "s3_list(s3_url, recursive?) → List[{name, size}]", "transfer"),
-    ("gcs_download", "gcs_download(gs_url, path?) → {path, size}", "transfer"),
-    ("gcs_upload", "gcs_upload(path, gs_url) → {size}", "transfer"),
-    ("rsync", "rsync(source, dest, opts?) → {source, dest}", "transfer"),
-    ("aspera_download", "aspera_download(url, path?) → {path}", "transfer"),
-    ("sra_prefetch", "sra_prefetch(accession, path?) → {path, accession}", "transfer"),
-    ("sra_fastq", "sra_fastq(accession, path?) → {files, accession}", "transfer"),
+    (
+        "s3_list",
+        "s3_list(s3_url, recursive?) → List[{name, size}]",
+        "transfer",
+    ),
+    (
+        "gcs_download",
+        "gcs_download(gs_url, path?) → {path, size}",
+        "transfer",
+    ),
+    (
+        "gcs_upload",
+        "gcs_upload(path, gs_url) → {size}",
+        "transfer",
+    ),
+    (
+        "rsync",
+        "rsync(source, dest, opts?) → {source, dest}",
+        "transfer",
+    ),
+    (
+        "aspera_download",
+        "aspera_download(url, path?) → {path}",
+        "transfer",
+    ),
+    (
+        "sra_prefetch",
+        "sra_prefetch(accession, path?) → {path, accession}",
+        "transfer",
+    ),
+    (
+        "sra_fastq",
+        "sra_fastq(accession, path?) → {files, accession}",
+        "transfer",
+    ),
     // Set operations
     ("set", "set(list) → Set (deduped)", "list"),
     ("union", "union(set1, set2) → Set", "list"),
     ("intersection", "intersection(set1, set2) → Set", "list"),
     ("difference", "difference(set1, set2) → Set", "list"),
-    ("symmetric_difference", "symmetric_difference(set1, set2) → Set", "list"),
+    (
+        "symmetric_difference",
+        "symmetric_difference(set1, set2) → Set",
+        "list",
+    ),
     ("is_subset", "is_subset(a, b) → Bool", "list"),
     ("is_superset", "is_superset(a, b) → Bool", "list"),
     // Async
-    ("await_all", "await_all(futures) → List (resolve all)", "hof"),
+    (
+        "await_all",
+        "await_all(futures) → List (resolve all)",
+        "hof",
+    ),
     // Decorators
     ("memoize", "memoize(fn) → fn (cached results)", "hof"),
     ("time_it", "time_it(fn) → fn (prints elapsed time)", "hof"),
     ("once", "once(fn) → fn (execute only first call)", "hof"),
     // Genomic range queries
-    ("interval_tree", "interval_tree(table) → Record (sorted intervals per chrom)", "bio"),
-    ("query_overlaps", "query_overlaps(tree, chrom, start, end) → Table", "bio"),
-    ("query_nearest", "query_nearest(tree, chrom, pos, k?) → Table", "bio"),
-    ("coverage", "coverage(tree) → Table{chrom, start, end, depth}", "bio"),
+    (
+        "interval_tree",
+        "interval_tree(table) → Record (sorted intervals per chrom)",
+        "bio",
+    ),
+    (
+        "query_overlaps",
+        "query_overlaps(tree, chrom, start, end) → Table",
+        "bio",
+    ),
+    (
+        "query_nearest",
+        "query_nearest(tree, chrom, pos, k?) → Table",
+        "bio",
+    ),
+    (
+        "coverage",
+        "coverage(tree) → Table{chrom, start, end, depth}",
+        "bio",
+    ),
     // Sequence pattern matching
-    ("motif_find", "motif_find(seq, iupac_pattern) → List[{start, end, match}]", "bio"),
-    ("motif_count", "motif_count(seq, iupac_pattern) → Int", "bio"),
+    (
+        "motif_find",
+        "motif_find(seq, iupac_pattern) → List[{start, end, match}]",
+        "bio",
+    ),
+    (
+        "motif_count",
+        "motif_count(seq, iupac_pattern) → Int",
+        "bio",
+    ),
     ("consensus", "consensus(sequences) → Str", "bio"),
-    ("pwm", "pwm(sequences) → List[{A, C, G, T}] (position weight matrix)", "bio"),
-    ("pwm_scan", "pwm_scan(seq, pwm, threshold?) → List[{pos, score}]", "bio"),
+    (
+        "pwm",
+        "pwm(sequences) → List[{A, C, G, T}] (position weight matrix)",
+        "bio",
+    ),
+    (
+        "pwm_scan",
+        "pwm_scan(seq, pwm, threshold?) → List[{pos, score}]",
+        "bio",
+    ),
     // Pipeline
-    ("pipeline_steps", "pipeline_steps(pipeline) → Table{step, name, plugin, params, depends_on}", "bio"),
+    (
+        "pipeline_steps",
+        "pipeline_steps(pipeline) → Table{step, name, plugin, params, depends_on}",
+        "bio",
+    ),
     // GAP 1: Coordinate systems
-    ("coord_bed", "coord_bed(val) → Record with __coord_system: 'bed'", "coord"),
-    ("coord_vcf", "coord_vcf(val) → Record with __coord_system: 'vcf'", "coord"),
-    ("coord_gff", "coord_gff(val) → Record with __coord_system: 'gff'", "coord"),
-    ("coord_sam", "coord_sam(val) → Record with __coord_system: 'sam'", "coord"),
-    ("coord_convert", "coord_convert(val, to_system) → Record (converted coordinates)", "coord"),
-    ("coord_system", "coord_system(val) → Str (current coord system)", "coord"),
-    ("coord_check", "coord_check(a, b) → Bool (are coord systems compatible?)", "coord"),
+    (
+        "coord_bed",
+        "coord_bed(val) → Record with __coord_system: 'bed'",
+        "coord",
+    ),
+    (
+        "coord_vcf",
+        "coord_vcf(val) → Record with __coord_system: 'vcf'",
+        "coord",
+    ),
+    (
+        "coord_gff",
+        "coord_gff(val) → Record with __coord_system: 'gff'",
+        "coord",
+    ),
+    (
+        "coord_sam",
+        "coord_sam(val) → Record with __coord_system: 'sam'",
+        "coord",
+    ),
+    (
+        "coord_convert",
+        "coord_convert(val, to_system) → Record (converted coordinates)",
+        "coord",
+    ),
+    (
+        "coord_system",
+        "coord_system(val) → Str (current coord system)",
+        "coord",
+    ),
+    (
+        "coord_check",
+        "coord_check(a, b) → Bool (are coord systems compatible?)",
+        "coord",
+    ),
     // GAP 2: K-mers
-    ("kmer_encode", "kmer_encode(seq, k) → Kmer or List[Kmer]", "kmer"),
+    (
+        "kmer_encode",
+        "kmer_encode(seq, k) → Kmer or List[Kmer]",
+        "kmer",
+    ),
     ("kmer_decode", "kmer_decode(kmer) → Str", "kmer"),
-    ("kmer_rc", "kmer_rc(kmer) → Kmer (reverse complement)", "kmer"),
-    ("kmer_canonical", "kmer_canonical(kmer) → Kmer (canonical form)", "kmer"),
-    ("kmer_count", "kmer_count(seq, k) → Table{kmer, count}", "kmer"),
-    ("kmer_distinct", "kmer_distinct(seq, k) → Int (distinct k-mer count)", "kmer"),
-    ("kmer_spectrum", "kmer_spectrum(counts) → Table{frequency, count}", "kmer"),
-    ("minimizers", "minimizers(seq, k, w) → List[{kmer, pos}]", "kmer"),
+    (
+        "kmer_rc",
+        "kmer_rc(kmer) → Kmer (reverse complement)",
+        "kmer",
+    ),
+    (
+        "kmer_canonical",
+        "kmer_canonical(kmer) → Kmer (canonical form)",
+        "kmer",
+    ),
+    (
+        "kmer_count",
+        "kmer_count(seq, k, top_n?) → Table|Stream{kmer, count}",
+        "kmer",
+    ),
+    (
+        "kmer_distinct",
+        "kmer_distinct(seq, k) → Int (distinct k-mer count)",
+        "kmer",
+    ),
+    (
+        "kmer_spectrum",
+        "kmer_spectrum(counts) → Table{frequency, count}",
+        "kmer",
+    ),
+    (
+        "minimizers",
+        "minimizers(seq, k, w) → List[{kmer, pos}]",
+        "kmer",
+    ),
     // GAP 3: Streaming
-    ("stream_chunks", "stream_chunks(stream, n) → Stream of List (chunks of n)", "stream"),
-    ("stream_take", "stream_take(stream, n) → List (first n items)", "stream"),
-    ("stream_skip", "stream_skip(stream, n) → Stream (skip first n)", "stream"),
-    ("stream_batch", "stream_batch(stream, n, fn) → List (process in batches)", "stream"),
-    ("memory_usage", "memory_usage() → Record{heap_bytes, ...}", "stream"),
+    (
+        "stream_chunks",
+        "stream_chunks(stream, n) → Stream of List (chunks of n)",
+        "stream",
+    ),
+    (
+        "stream_take",
+        "stream_take(stream, n) → List (first n items)",
+        "stream",
+    ),
+    (
+        "stream_skip",
+        "stream_skip(stream, n) → Stream (skip first n)",
+        "stream",
+    ),
+    (
+        "stream_batch",
+        "stream_batch(stream, n, fn) → List (process in batches)",
+        "stream",
+    ),
+    (
+        "memory_usage",
+        "memory_usage() → Record{heap_bytes, ...}",
+        "stream",
+    ),
     // GAP 4: Parallel
-    ("scatter_by", "scatter_by(list, key_fn) → Map{key → List}", "hof"),
-    ("bench", "bench(fn, args, n) → Record{mean_ns, min_ns, max_ns, iterations}", "hof"),
+    (
+        "scatter_by",
+        "scatter_by(list, key_fn) → Map{key → List}",
+        "hof",
+    ),
+    (
+        "bench",
+        "bench(fn, args, n) → Record{mean_ns, min_ns, max_ns, iterations}",
+        "hof",
+    ),
     // GAP 5: Sparse matrix
-    ("sparse_matrix", "sparse_matrix(data) → SparseMatrix from triplets or nested lists", "sparse"),
+    (
+        "sparse_matrix",
+        "sparse_matrix(data | nrow, ncol, entries) → SparseMatrix",
+        "sparse",
+    ),
     ("to_dense", "to_dense(sparse) → Matrix", "sparse"),
     ("to_sparse", "to_sparse(matrix) → SparseMatrix", "sparse"),
     ("sparse_get", "sparse_get(m, i, j) → Float", "sparse"),
     ("nnz", "nnz(m) → Int (non-zero count)", "sparse"),
-    ("sparse_row_sums", "sparse_row_sums(m) → List[Float]", "sparse"),
-    ("sparse_col_sums", "sparse_col_sums(m) → List[Float]", "sparse"),
-    ("normalize_sparse", "normalize_sparse(m, method) → SparseMatrix ('log1p_cpm'|'scale')", "sparse"),
+    (
+        "sparse_row_sums",
+        "sparse_row_sums(m) → List[Float]",
+        "sparse",
+    ),
+    (
+        "sparse_col_sums",
+        "sparse_col_sums(m) → List[Float]",
+        "sparse",
+    ),
+    (
+        "normalize_sparse",
+        "normalize_sparse(m, method) → SparseMatrix ('log1p_cpm'|'scale')",
+        "sparse",
+    ),
     // GAP 6: Typed table columns
-    ("table_col_types", "table_col_types(table) → Record{col → type_str}", "table"),
-    ("table_set_col_type", "table_set_col_type(table, col, type) → Record{table, schema}", "table"),
-    ("table_validate", "table_validate(schema_record) → Record{valid, errors}", "table"),
-    ("table_schema", "table_schema(table) → Record{columns, types, nrow, ncol}", "table"),
-    ("table_cast", "table_cast(table, col, type) → Table (coerce column)", "table"),
+    (
+        "table_col_types",
+        "table_col_types(table) → Record{col → type_str}",
+        "table",
+    ),
+    (
+        "table_set_col_type",
+        "table_set_col_type(table, col, type) → Record{table, schema}",
+        "table",
+    ),
+    (
+        "table_validate",
+        "table_validate(schema_record) → Record{valid, errors}",
+        "table",
+    ),
+    (
+        "table_schema",
+        "table_schema(table) → Record{columns, types, nrow, ncol}",
+        "table",
+    ),
+    (
+        "table_cast",
+        "table_cast(table, col, type) → Table (coerce column)",
+        "table",
+    ),
     // GAP 7: Pipe fusion
-    ("pipe_fuse", "pipe_fuse(list, ops...) → List (explicit fused pipeline)", "hof"),
+    (
+        "pipe_fuse",
+        "pipe_fuse(list, ops...) → List (explicit fused pipeline)",
+        "hof",
+    ),
     // GAP 8: Provenance
-    ("with_provenance", "with_provenance(value, meta) → Record{__value, __provenance}", "provenance"),
-    ("provenance", "provenance(wrapped) → Record or Nil (extract provenance)", "provenance"),
-    ("provenance_chain", "provenance_chain(wrapped) → List (walk parent chain)", "provenance"),
-    ("checkpoint", "checkpoint(name, value) → value (save to disk)", "provenance"),
-    ("resume_checkpoint", "resume_checkpoint(name) → value or Nil", "provenance"),
+    (
+        "with_provenance",
+        "with_provenance(value, meta) → Record{__value, __provenance}",
+        "provenance",
+    ),
+    (
+        "provenance",
+        "provenance(wrapped) → Record or Nil (extract provenance)",
+        "provenance",
+    ),
+    (
+        "provenance_chain",
+        "provenance_chain(wrapped) → List (walk parent chain)",
+        "provenance",
+    ),
+    (
+        "checkpoint",
+        "checkpoint(name, value) → value (save to disk)",
+        "provenance",
+    ),
+    (
+        "resume_checkpoint",
+        "resume_checkpoint(name) → value or Nil",
+        "provenance",
+    ),
     // GAP 10: Bio operations
-    ("de_bruijn_graph", "de_bruijn_graph(sequences, k) → Record{nodes, edges}", "bio"),
-    ("neighbor_joining", "neighbor_joining(distance_matrix) → List[{name, distance, children}]", "bio"),
-    ("umap", "umap(matrix, n_components, opts?) → Matrix (embeddings)", "bio"),
-    ("tsne", "tsne(matrix, n_components, opts?) → Matrix (embeddings)", "bio"),
-    ("leiden", "leiden(adjacency, resolution?) → List[Int] (cluster assignments)", "bio"),
-    ("diff_expr", "diff_expr(counts, groups) → Table{gene, log2fc, pvalue, padj, mean_a, mean_b}", "bio"),
+    (
+        "de_bruijn_graph",
+        "de_bruijn_graph(sequences, k) → Record{nodes, edges}",
+        "bio",
+    ),
+    (
+        "neighbor_joining",
+        "neighbor_joining(distance_matrix) → List[{name, distance, children}]",
+        "bio",
+    ),
+    (
+        "umap",
+        "umap(matrix, n_components, opts?) → Matrix (embeddings)",
+        "bio",
+    ),
+    (
+        "tsne",
+        "tsne(matrix, n_components, opts?) → Matrix (embeddings)",
+        "bio",
+    ),
+    (
+        "leiden",
+        "leiden(adjacency, resolution?) → List[Int] (cluster assignments)",
+        "bio",
+    ),
+    (
+        "diff_expr",
+        "diff_expr(counts, groups) → Table{gene, log2fc, pvalue, padj, mean_a, mean_b}",
+        "bio",
+    ),
     // Type predicates for new types
     ("is_kmer", "is_kmer(value) → Bool", "type"),
     ("is_sparse", "is_sparse(value) → Bool", "type"),
@@ -1967,7 +3311,12 @@ fn cmd_builtins(filter: &str) {
             let count = BUILTIN_CATALOG.iter().filter(|(_, _, c)| c == key).count();
             println!("  {CYAN}{key:<12}{RESET} {label} ({count} functions)");
         }
+        let runtime_count = all_builtin_names().len();
+        let documented_count = BUILTIN_CATALOG.len();
         println!();
+        println!(
+            "{DIM}{documented_count} functions have detailed REPL metadata; {runtime_count} runtime built-ins are available.{RESET}"
+        );
         println!("{DIM}Use :builtins <category> to list functions, e.g. :builtins stats{RESET}");
         println!("{DIM}Use ?name to show signature, e.g. ?mean{RESET}");
         return;
@@ -1977,7 +3326,15 @@ fn cmd_builtins(filter: &str) {
         .iter()
         .filter(|(name, _, cat)| cat.contains(filter.as_str()) || name.contains(filter.as_str()))
         .collect();
-    if matches.is_empty() {
+    let mut runtime_matches: Vec<_> = all_builtin_names()
+        .into_iter()
+        .filter(|name| name.contains(filter.as_str()))
+        .filter(|name| !BUILTIN_CATALOG.iter().any(|(n, _, _)| n == name))
+        .collect();
+    runtime_matches.sort_unstable();
+    runtime_matches.dedup();
+
+    if matches.is_empty() && runtime_matches.is_empty() {
         println!("{DIM}No functions matching '{filter}'. Try :builtins for categories.{RESET}");
         return;
     }
@@ -1999,6 +3356,13 @@ fn cmd_builtins(filter: &str) {
         }
         println!();
     }
+    if !runtime_matches.is_empty() {
+        println!("{BOLD}Runtime built-ins without detailed REPL metadata:{RESET}");
+        for name in runtime_matches {
+            println!("  {CYAN}{name}(...){RESET}");
+        }
+        println!();
+    }
 }
 
 fn cmd_fn_help(name: &str) {
@@ -2014,7 +3378,11 @@ fn cmd_fn_help(name: &str) {
             return;
         }
     }
-    println!("{DIM}Unknown function: {name}. Try :builtins to browse.{RESET}");
+    if all_builtin_names().contains(&name) {
+        println!("{CYAN}{name}(...){RESET}  {DIM}[runtime builtin; detailed metadata unavailable]{RESET}");
+    } else {
+        println!("{DIM}Unknown function: {name}. Try :builtins to browse.{RESET}");
+    }
 }
 
 fn fn_signature(name: &str) -> Option<&'static str> {
@@ -2064,7 +3432,10 @@ fn extract_let_var(input: &str) -> Option<String> {
     // Check for `let varname = ...`
     if trimmed.starts_with("let ") {
         let rest = trimmed[4..].trim_start();
-        let name: String = rest.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+        let name: String = rest
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
         if !name.is_empty() {
             return Some(name);
         }
@@ -2072,7 +3443,10 @@ fn extract_let_var(input: &str) -> Option<String> {
     // Check for `... |> into varname`
     if let Some(pos) = trimmed.rfind("|> into ") {
         let rest = trimmed[pos + 8..].trim();
-        let name: String = rest.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+        let name: String = rest
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
         if !name.is_empty() {
             return Some(name);
         }
@@ -2222,14 +3596,18 @@ fn colorize_value(value: &Value) -> String {
                 format!("[{}]", parts.join(", "))
             } else {
                 let parts: Vec<String> = items[..10].iter().map(|v| colorize_value(v)).collect();
-                format!("[{}, {DIM}... {} more{RESET}]", parts.join(", "), items.len() - 10)
+                format!(
+                    "[{}, {DIM}... {} more{RESET}]",
+                    parts.join(", "),
+                    items.len() - 10
+                )
             }
         }
         Value::Record(fields) => {
             if fields.len() > 3 {
                 // Pretty-print with indentation
                 let mut out = String::from("{\n");
-                for (k, v) in fields {
+                for (k, v) in fields.iter() {
                     out.push_str(&format!("  {BOLD}{k}{RESET}: {},\n", colorize_value(v)));
                 }
                 out.push('}');
@@ -2252,7 +3630,10 @@ fn colorize_value(value: &Value) -> String {
         Value::Matrix(m) => format!("{BLUE}{m}{RESET}"),
         Value::Stream(s) => format!("{DIM}<stream {}>{RESET}", s.label),
         Value::Function { name, .. } => {
-            format!("{DIM}<fn {}>{RESET}", name.as_deref().unwrap_or("anonymous"))
+            format!(
+                "{DIM}<fn {}>{RESET}",
+                name.as_deref().unwrap_or("anonymous")
+            )
         }
         Value::NativeFunction { name, .. } => format!("{DIM}<builtin {name}>{RESET}"),
         Value::Formula(_) => format!("{DIM}<formula>{RESET}"),
@@ -2263,25 +3644,40 @@ fn colorize_value(value: &Value) -> String {
         } => format!("{DIM}<plugin:{plugin_name}.{operation}>{RESET}"),
         Value::CompiledClosure(_) => format!("{DIM}<compiled closure>{RESET}"),
         Value::Table(t) => format!("{DIM}Table: {} x {}{RESET}", t.num_rows(), t.num_cols()),
-        Value::Range { start, end, inclusive } => {
+        Value::Range {
+            start,
+            end,
+            inclusive,
+        } => {
             if *inclusive {
                 format!("{CYAN}{start}..={end}{RESET}")
             } else {
                 format!("{CYAN}{start}..{end}{RESET}")
             }
         }
-        Value::EnumValue { enum_name, variant, fields } => {
+        Value::EnumValue {
+            enum_name,
+            variant,
+            fields,
+        } => {
             if fields.is_empty() {
                 format!("{MAGENTA}{enum_name}::{variant}{RESET}")
             } else {
                 let args: Vec<String> = fields.iter().map(|v| colorize_value(v)).collect();
-                format!("{MAGENTA}{enum_name}::{variant}{RESET}({})", args.join(", "))
+                format!(
+                    "{MAGENTA}{enum_name}::{variant}{RESET}({})",
+                    args.join(", ")
+                )
             }
         }
         Value::Set(items) => {
             let parts: Vec<String> = items.iter().take(10).map(|v| colorize_value(v)).collect();
             if items.len() > 10 {
-                format!("#{{{}, {DIM}... {} more{RESET}}}", parts.join(", "), items.len() - 10)
+                format!(
+                    "#{{{}, {DIM}... {} more{RESET}}}",
+                    parts.join(", "),
+                    items.len() - 10
+                )
             } else {
                 format!("#{{{}}}", parts.join(", "))
             }
@@ -2292,13 +3688,20 @@ fn colorize_value(value: &Value) -> String {
         Value::SparseMatrix(sm) => format!("{CYAN}{sm}{RESET}"),
         Value::Tuple(items) => {
             let parts: Vec<String> = items.iter().map(|v| colorize_value(v)).collect();
-            format!("({}{})", parts.join(", "), if items.len() == 1 { "," } else { "" })
+            format!(
+                "({}{})",
+                parts.join(", "),
+                if items.len() == 1 { "," } else { "" }
+            )
         }
         Value::Gene { symbol, .. } => format!("{MAGENTA}Gene({symbol}){RESET}"),
         Value::Variant { chrom, pos, .. } => format!("{MAGENTA}Variant({chrom}:{pos}){RESET}"),
         Value::Genome { name, .. } => format!("{MAGENTA}Genome({name}){RESET}"),
         Value::Quality(scores) => format!("{BLUE}Quality({}bp){RESET}", scores.len()),
-        Value::AlignedRead(r) => format!("{MAGENTA}AlignedRead({} {}:{}){RESET}", r.qname, r.rname, r.pos),
+        Value::AlignedRead(r) => format!(
+            "{MAGENTA}AlignedRead({} {}:{}){RESET}",
+            r.qname, r.rname, r.pos
+        ),
     }
 }
 
@@ -2350,7 +3753,10 @@ fn print_table(t: &Table) {
     let max_content = available_width.saturating_sub(border_overhead);
     let total_natural: usize = natural_widths.iter().sum();
     let widths: Vec<usize> = if total_natural <= max_content {
-        natural_widths.iter().map(|w| (*w).min(MAX_COL_WIDTH)).collect()
+        natural_widths
+            .iter()
+            .map(|w| (*w).min(MAX_COL_WIDTH))
+            .collect()
     } else {
         // Proportionally shrink columns to fit, min 3 chars each
         natural_widths
@@ -2400,11 +3806,7 @@ fn print_table(t: &Table) {
     let bot_line = format!("└{}┘", line_parts.join("┴"));
 
     // Print header info
-    println!(
-        "{DIM}Table: {} rows × {} cols{RESET}",
-        t.rows.len(),
-        ncols
-    );
+    println!("{DIM}Table: {} rows × {} cols{RESET}", t.rows.len(), ncols);
 
     // Top border
     println!("{DIM}{top_line}{RESET}");
@@ -2485,7 +3887,7 @@ fn colorize_bases(seq: &str, is_rna: bool) -> String {
     const T_COLOR: &str = "\x1b[31m"; // red
     const G_COLOR: &str = "\x1b[33m"; // yellow
     const C_COLOR: &str = "\x1b[34m"; // blue
-    // Truncate long sequences for display
+                                      // Truncate long sequences for display
     let max_display = 80;
     let truncated = seq.len() > max_display;
     let display_seq = if truncated { &seq[..max_display] } else { seq };
@@ -2493,12 +3895,36 @@ fn colorize_bases(seq: &str, is_rna: bool) -> String {
     let mut out = String::with_capacity(display_seq.len() * 10);
     for ch in display_seq.chars() {
         match ch.to_ascii_uppercase() {
-            'A' => { out.push_str(A_COLOR); out.push(ch); out.push_str(RESET); }
-            'T' if !is_rna => { out.push_str(T_COLOR); out.push(ch); out.push_str(RESET); }
-            'U' if is_rna => { out.push_str(T_COLOR); out.push(ch); out.push_str(RESET); }
-            'G' => { out.push_str(G_COLOR); out.push(ch); out.push_str(RESET); }
-            'C' => { out.push_str(C_COLOR); out.push(ch); out.push_str(RESET); }
-            _ => { out.push_str(DIM); out.push(ch); out.push_str(RESET); }
+            'A' => {
+                out.push_str(A_COLOR);
+                out.push(ch);
+                out.push_str(RESET);
+            }
+            'T' if !is_rna => {
+                out.push_str(T_COLOR);
+                out.push(ch);
+                out.push_str(RESET);
+            }
+            'U' if is_rna => {
+                out.push_str(T_COLOR);
+                out.push(ch);
+                out.push_str(RESET);
+            }
+            'G' => {
+                out.push_str(G_COLOR);
+                out.push(ch);
+                out.push_str(RESET);
+            }
+            'C' => {
+                out.push_str(C_COLOR);
+                out.push(ch);
+                out.push_str(RESET);
+            }
+            _ => {
+                out.push_str(DIM);
+                out.push(ch);
+                out.push_str(RESET);
+            }
         }
     }
     if truncated {
@@ -2512,10 +3938,10 @@ fn colorize_bases(seq: &str, is_rna: bool) -> String {
 /// Negative charge (DE) = blue, Polar (STNQYC) = green, Special (GP) = magenta
 fn colorize_protein(seq: &str) -> String {
     const HYDROPHOBIC: &str = "\x1b[33m"; // yellow
-    const POS_CHARGE: &str = "\x1b[31m";  // red
-    const NEG_CHARGE: &str = "\x1b[34m";  // blue
-    const POLAR: &str = "\x1b[32m";       // green
-    const SPECIAL: &str = "\x1b[35m";     // magenta
+    const POS_CHARGE: &str = "\x1b[31m"; // red
+    const NEG_CHARGE: &str = "\x1b[34m"; // blue
+    const POLAR: &str = "\x1b[32m"; // green
+    const SPECIAL: &str = "\x1b[35m"; // magenta
 
     let max_display = 80;
     let truncated = seq.len() > max_display;
@@ -2548,5 +3974,176 @@ fn dirs_history_path() -> Option<String> {
         Some(format!("{dir}/history"))
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn console_requests_retain_state_and_report_user_environment() {
+        let mut interpreter = Interpreter::new();
+        let binding = evaluate_console_request(1, "let x = 42", &mut interpreter);
+        assert_eq!(binding.status, "ok");
+        assert!(binding.value.is_none());
+        assert_eq!(binding.environment.variables.len(), 1);
+        assert_eq!(binding.environment.variables[0].name, "x");
+        assert_eq!(binding.environment.variables[0].preview, "42");
+
+        let expression = evaluate_console_request(2, "x * 2", &mut interpreter);
+        assert_eq!(expression.status, "ok");
+        let value = expression.value.expect("expression value");
+        assert_eq!(value.type_name, "Int");
+        assert_eq!(value.text, "84");
+    }
+
+    #[test]
+    fn console_requests_capture_output_and_structured_errors() {
+        let mut interpreter = Interpreter::new();
+        let output = evaluate_console_request(1, "println(\"ready\")", &mut interpreter);
+        assert_eq!(output.status, "ok");
+        assert_eq!(output.output, "ready\n");
+
+        let failure = evaluate_console_request(2, "unknown_name + 1", &mut interpreter);
+        assert_eq!(failure.status, "error");
+        assert!(failure
+            .error
+            .as_deref()
+            .is_some_and(|error| error.contains("unknown_name")));
+    }
+
+    #[test]
+    fn common_completion_finds_the_unambiguous_prefix() {
+        let mut h = BioHelper::new();
+        h.words = ["cluster", "cluster_leiden", "clusters", "normalize"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        h.words.sort();
+
+        // one match -> completes fully
+        let (c, n) = h.common_completion("norm").expect("should match");
+        assert_eq!((c.as_str(), n), ("alize", 1));
+
+        // several matches sharing a longer prefix -> completes to the shared part
+        let (c, n) = h.common_completion("clu").expect("should match");
+        assert_eq!(c, "ster");
+        assert_eq!(n, 3);
+
+        // ambiguous with nothing further in common -> empty completion, count kept
+        let (c, n) = h.common_completion("cluster").expect("should match");
+        assert_eq!(c, "");
+        assert_eq!(n, 3);
+
+        assert!(h.common_completion("zzz").is_none());
+    }
+
+    #[test]
+    fn repl_command_list_and_hints_stay_in_sync() {
+        // Every hinted command must be completable, or Tab and ghost text disagree.
+        for (cmd, _) in REPL_COMMAND_HINTS {
+            assert!(
+                REPL_COMMANDS.contains(cmd),
+                "{cmd} is hinted but missing from REPL_COMMANDS"
+            );
+        }
+        for cmd in [":workspace", ":restore"] {
+            assert!(REPL_COMMANDS.contains(&cmd), "{cmd} not registered");
+            assert!(
+                REPL_COMMAND_HINTS.iter().any(|(c, _)| *c == cmd),
+                "{cmd} has no hint"
+            );
+        }
+    }
+
+    #[test]
+    fn catalog_and_examples_only_reference_registered_builtins() {
+        let runtime: HashSet<_> = all_builtin_names().into_iter().collect();
+
+        let missing_catalog: Vec<_> = BUILTIN_CATALOG
+            .iter()
+            .map(|(name, _, _)| *name)
+            .filter(|name| !runtime.contains(name))
+            .collect();
+        assert!(
+            missing_catalog.is_empty(),
+            "REPL catalog references unregistered builtins: {missing_catalog:?}"
+        );
+
+        let missing_examples: Vec<_> = BUILTIN_EXAMPLES
+            .iter()
+            .map(|(name, _, _)| *name)
+            .filter(|name| !runtime.contains(name))
+            .collect();
+        assert!(
+            missing_examples.is_empty(),
+            "REPL examples reference unregistered builtins: {missing_examples:?}"
+        );
+
+        let uncatalogued_examples: Vec<_> = BUILTIN_EXAMPLES
+            .iter()
+            .map(|(name, _, _)| *name)
+            .filter(|name| {
+                !BUILTIN_CATALOG
+                    .iter()
+                    .any(|(catalog_name, _, _)| catalog_name == name)
+            })
+            .collect();
+        assert!(
+            uncatalogued_examples.is_empty(),
+            "REPL examples missing from the catalog: {uncatalogued_examples:?}"
+        );
+    }
+
+    #[test]
+    fn completion_includes_every_registered_builtin() {
+        let helper = BioHelper::new();
+        for name in all_builtin_names() {
+            assert!(
+                helper.words.iter().any(|word| word == name),
+                "registered builtin '{name}' is missing from REPL completion"
+            );
+        }
+    }
+
+    #[test]
+    fn reverse_complement_metadata_uses_runtime_name() {
+        assert_eq!(
+            fn_signature("reverse_complement"),
+            Some("reverse_complement(seq) → DNA/RNA")
+        );
+        assert_eq!(fn_signature("rev_comp"), None);
+        assert!(BUILTIN_EXAMPLES
+            .iter()
+            .any(|(name, example, _)| *name == "reverse_complement"
+                && example.contains("reverse_complement()")));
+    }
+
+    #[test]
+    fn structured_metadata_covers_every_registered_builtin() {
+        let document = biolang_metadata();
+        let runtime = all_builtin_names();
+        assert_eq!(document.schema_version, 1);
+        assert_eq!(document.builtins.len(), runtime.len());
+        assert!(document
+            .builtins
+            .windows(2)
+            .all(|pair| pair[0].name < pair[1].name));
+        for name in runtime {
+            assert!(
+                document.builtins.iter().any(|builtin| builtin.name == name),
+                "metadata is missing registered builtin '{name}'"
+            );
+        }
+        let add_chr = document
+            .builtins
+            .iter()
+            .find(|builtin| builtin.name == "add_chr")
+            .expect("add_chr metadata");
+        assert_eq!(add_chr.arity.minimum, 1);
+        assert_eq!(add_chr.arity.maximum, Some(1));
+        assert_eq!(add_chr.signature, "add_chr(arg1)");
     }
 }

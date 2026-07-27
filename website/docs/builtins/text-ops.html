@@ -30,7 +30,7 @@
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">grep</span></h3>
           <p class="text-slate-400 mt-2">Search text for lines matching a pattern (string or regex). Returns a list of matching lines. An optional <code>flags</code> argument supports <code>"i"</code> for case-insensitive matching.</p>
-          <pre><code class="language-biolang">grep(pattern, text, flags?) -> list&lt;string&gt;</code></pre>
+          <pre><code class="language-text">grep(pattern, text, flags?) -> list&lt;string&gt;</code></pre>
           <pre><code class="language-biolang"># Find all FASTA headers
 let fasta = read_text("sequences.fasta")
 let headers = grep("^>", fasta)
@@ -44,7 +44,7 @@ let coords = grep("chr[0-9]+:\\d+-\\d+", annotation)</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">grep_count</span></h3>
           <p class="text-slate-400 mt-2">Count the number of lines matching a pattern. More efficient than <code>len(grep(...))</code> for large inputs since it avoids building the result list.</p>
-          <pre><code class="language-biolang">grep_count(pattern, text) -> int</code></pre>
+          <pre><code class="language-text">grep_count(pattern, text) -> int</code></pre>
           <pre><code class="language-biolang"># Count sequences in a FASTA file
 let n_seqs = grep_count("^>", read_text("reference.fa"))
 println("Reference contains", n_seqs, "contigs")
@@ -60,27 +60,27 @@ println("Variants:", n_variants)</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">lines</span></h3>
           <p class="text-slate-400 mt-2">Split text into a list of lines. Handles <code>\n</code>, <code>\r\n</code>, and <code>\r</code> line endings.</p>
-          <pre><code class="language-biolang">lines(text) -> list&lt;string&gt;</code></pre>
+          <pre><code class="language-text">lines(text) -> list&lt;string&gt;</code></pre>
           <pre><code class="language-biolang">let text = "chr1\t100\t200\nchr2\t300\t400\nchr3\t500\t600"
 let rows = lines(text)
 println("Rows:", len(rows))   # 3</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">cut</span></h3>
           <p class="text-slate-400 mt-2">Extract fields from text by delimiter, similar to Unix <code>cut</code>. The <code>fields</code> argument is a string like <code>"1"</code> or <code>"1,3"</code> (1-based).</p>
-          <pre><code class="language-biolang">cut(text, delimiter, fields) -> string</code></pre>
+          <pre><code class="language-text">cut(text, delimiter, fields) -> string</code></pre>
           <pre><code class="language-biolang"># Extract chrom and end columns from a BED line
 let bed_line = "chr1\t1000\t2000\tpeak_1\t500"
-let result = cut(bed_line, "\t", "1,3")
+let result = cut(bed_line, "\t", [0, 2]) |> first() |> join("\t")
 println(result)   # "chr1\t2000"
 
 # Extract sample names from a header
 let header = "chrom,start,end,sample_A,sample_B"
-let samples = cut(header, ",", "4,5")
+let samples = cut(header, ",", [3, 4]) |> first() |> join(",")
 println(samples)  # "sample_A,sample_B"</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">paste</span></h3>
           <p class="text-slate-400 mt-2">Join two lists column-by-column, like Unix <code>paste</code>. Default delimiter is tab.</p>
-          <pre><code class="language-biolang">paste(list1, list2, delimiter?) -> string</code></pre>
+          <pre><code class="language-text">paste(list1, list2, delimiter?) -> string</code></pre>
           <pre><code class="language-biolang">let genes = ["BRCA1", "TP53", "EGFR"]
 let pvalues = ["0.001", "0.023", "0.045"]
 let combined = paste(genes, pvalues, "\t")
@@ -89,7 +89,7 @@ write_text("gene_pvalues.tsv", combined)</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">uniq_count</span></h3>
           <p class="text-slate-400 mt-2">Count occurrences of each unique value in a list. Returns a record mapping each value to its count.</p>
-          <pre><code class="language-biolang">uniq_count(list) -> record</code></pre>
+          <pre><code class="language-text">uniq_count(list) -> record</code></pre>
           <pre><code class="language-biolang"># Count reads per chromosome
 let chroms = ["chr1", "chr1", "chr2", "chr1", "chrX", "chr2"]
 let counts = uniq_count(chroms)
@@ -102,7 +102,7 @@ println(composition)  # {A: 4, T: 2, C: 2, G: 2}</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">wc</span></h3>
           <p class="text-slate-400 mt-2">Count lines, words, and characters in text, similar to Unix <code>wc</code>.</p>
-          <pre><code class="language-biolang">wc(text) -> record {lines, words, chars}</code></pre>
+          <pre><code class="language-text">wc(text) -> record {lines, words, chars}</code></pre>
           <pre><code class="language-biolang">let stats = wc(read_text("README.md"))
 println("Lines:", stats.lines)
 println("Words:", stats.words)
@@ -118,7 +118,7 @@ println("Data rows:", counts.lines - 1)</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">tee</span></h3>
           <p class="text-slate-400 mt-2">Write text to a file and return it unchanged, like Unix <code>tee</code>. Useful for saving intermediate results in a pipeline without breaking the data flow.</p>
-          <pre><code class="language-biolang">tee(text, path) -> string</code></pre>
+          <pre><code class="language-text">tee(text, path) -> string</code></pre>
           <pre><code class="language-biolang"># Save intermediate result while continuing the pipeline
 let vcf_text = read_text("variants.vcf")
 let filtered = grep("PASS", vcf_text)
@@ -130,7 +130,7 @@ println("Processed", len(processed), "passing variants")</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">count_lines</span></h3>
           <p class="text-slate-400 mt-2">Count lines in a file without loading the entire file into memory. Efficient for large files like whole-genome FASTQs.</p>
-          <pre><code class="language-biolang">count_lines(path) -> int</code></pre>
+          <pre><code class="language-text">count_lines(path) -> int</code></pre>
           <pre><code class="language-biolang"># Estimate read count in a FASTQ (4 lines per record)
 let n_lines = count_lines("sample_R1.fastq")
 let n_reads = n_lines / 4
@@ -138,7 +138,7 @@ println("Approximately", n_reads, "reads")</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">stream_lines</span></h3>
           <p class="text-slate-400 mt-2">Lazily stream lines from a file. Returns a stream that yields one line at a time, enabling processing of files that do not fit in memory.</p>
-          <pre><code class="language-biolang">stream_lines(path) -> stream</code></pre>
+          <pre><code class="language-text">stream_lines(path) -> stream</code></pre>
           <pre><code class="language-biolang"># Process a multi-gigabyte FASTQ without loading it all
 let headers = stream_lines("large_sample.fastq")
   |> filter(|l| starts_with(l, "@"))
@@ -155,7 +155,7 @@ stream_lines("peaks.bed")
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">stream_concat</span></h3>
           <p class="text-slate-400 mt-2">Concatenate two streams into one. The second stream begins yielding after the first is exhausted.</p>
-          <pre><code class="language-biolang">stream_concat(stream1, stream2) -> stream</code></pre>
+          <pre><code class="language-text">stream_concat(stream1, stream2) -> stream</code></pre>
           <pre><code class="language-biolang"># Combine paired-end FASTQ headers for a joint summary
 let r1 = stream_lines("sample_R1.fastq") |> filter(|l| starts_with(l, "@"))
 let r2 = stream_lines("sample_R2.fastq") |> filter(|l| starts_with(l, "@"))
@@ -168,7 +168,7 @@ println("Total reads (R1+R2):", len(all_headers))</code></pre>
 
           <h3 class="text-xl font-semibold text-white mt-8"><span class="text-violet-400 font-mono">shell</span></h3>
           <p class="text-slate-400 mt-2">Execute a shell command and capture its output. Returns a record with <code>stdout</code>, <code>stderr</code>, and <code>exit_code</code>. An optional <code>opts</code> record can set <code>cwd</code>, <code>env</code>, or <code>timeout</code>.</p>
-          <pre><code class="language-biolang">shell(command, opts?) -> record {stdout, stderr, exit_code}</code></pre>
+          <pre><code class="language-text">shell(command, opts?) -> record {stdout, stderr, exit_code}</code></pre>
           <pre><code class="language-biolang"># Run samtools flagstat
 let result = shell("samtools flagstat aligned.bam")
 if result.exit_code == 0 {
@@ -179,7 +179,7 @@ if result.exit_code == 0 {
 
 # Run an external tool with a working directory
 let r = shell("fastqc *.fastq.gz", {cwd: "raw_data/"})
-assert(r.exit_code == 0, "FastQC failed")
+assert r.exit_code == 0, "FastQC failed"
 
 # Capture tool version
 let ver = shell("bwa-mem2 version")

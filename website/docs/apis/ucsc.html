@@ -52,9 +52,9 @@ tracks |> map(|t| print(t.name, t.short_label))</code></pre>
         <h2>ucsc_sequence</h2>
         <p>
           Retrieve a DNA sequence for a specific genomic region. Takes four positional
-          arguments: genome, chromosome, start, and end:
+          arguments: genome, chromosome, start, and stop:
         </p>
-        <pre><code class="language-biolang"># ucsc_sequence(genome, chrom, start, end)
+        <pre><code class="language-biolang"># ucsc_sequence(genome, chrom, start, stop)
 let seq = ucsc_sequence("hg38", "chr17", 43044295, 43170245)
 print(seq |> len())
 print(seq |> gc_content())
@@ -69,10 +69,10 @@ print(brca1_exon |> gc_content())</code></pre>
 let genome = "hg38"
 let chrom = "chr17"
 let start = 43044295
-let end = 43170245
+let stop = 43170245
 
 # 1. Get the sequence
-let seq = ucsc_sequence(genome, chrom, start, end)
+let seq = ucsc_sequence(genome, chrom, start, stop)
 print("Region length:", seq |> len(), "bp")
 print("GC content:", seq |> gc_content())
 

@@ -1,0 +1,16 @@
+import "statistics" as stat
+
+# Differential abundance analysis.
+
+fn ttest(matrix, group_a, group_b) {
+  protein_ttest(matrix, group_a, group_b)
+}
+
+fn volcano(test_result, fc=1.0, p=0.05) {
+  volcano_data(test_result, fc, p)
+}
+
+fn significant(test_result, fc=1.0, padj=0.05) {
+  let result = test_result |> set_field("adj_p", stat.bh(test_result.p_value))
+  result |> filter(fn(r) -> abs(r.log2fc) >= fc & r.adj_p <= padj)
+}

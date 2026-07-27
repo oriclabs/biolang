@@ -1,0 +1,32 @@
+# Phylogenetic diversity metrics.
+
+# Faith's PD: sum of all branch lengths in the tree (approximation)
+fn faith_pd(tree) {
+  tree
+    |> filter(fn(r) -> r.parent >= 0)
+    |> map(fn(r) -> r.branch_length)
+    |> sum
+}
+
+# Mean pairwise distance between a set of taxa
+fn mean_pairwise_distance(tree, taxa) {
+  let pairs = taxa
+    |> flat_map(fn(a) -> taxa |> map(fn(b) -> [a, b]))
+    |> filter(fn(p) -> p[0] < p[1])
+  pairs
+    |> map(fn(p) -> patristic_distance(tree, p[0], p[1]))
+    |> mean
+}
+
+# Nearest taxon distance for each leaf
+fn nearest_taxon_distance(tree) {
+  let leaves = tree_leaves(tree)
+  leaves
+    |> map(fn(a) -> {
+        taxon: a,
+        ntd: leaves
+          |> filter(fn(b) -> b != a)
+          |> map(fn(b) -> patristic_distance(tree, a, b))
+          |> min
+      })
+}

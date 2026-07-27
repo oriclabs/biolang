@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-e720ecec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -238,9 +238,10 @@
 <h3 id="fetching-sequences"><a class="header" href="#fetching-sequences">Fetching Sequences</a></h3>
 <!-- requires: internet, API access -->
 <p>Once you have an accession or ID, you can fetch the actual sequence:</p>
-<pre><code class="language-bio">let seq = ncbi_sequence("nuccore", "NM_007294.4")
+<pre><code class="language-bio">let seq = ncbi_sequence("NM_007294.4")
 </code></pre>
-<p>This retrieves the nucleotide sequence for the BRCA1 mRNA transcript. The <code>ncbi_sequence()</code> function takes a database name and an accession number.</p>
+<p>This retrieves the nucleotide sequence for the BRCA1 mRNA transcript.
+<code>ncbi_sequence()</code> takes one nucleotide accession and returns the sequence.</p>
 <h3 id="ncbi-datasets"><a class="header" href="#ncbi-datasets">NCBI Datasets</a></h3>
 <!-- requires: internet, API access -->
 <p>For richer, more structured gene data, NCBI Datasets provides a modern API:</p>
@@ -317,7 +318,7 @@ let annotations = go_annotations("TP53")
 <h2 id="section-5-protein-networks--string"><a class="header" href="#section-5-protein-networks--string">Section 5: Protein Networks — STRING</a></h2>
 <!-- requires: internet, API access -->
 <p>STRING (Search Tool for the Retrieval of Interacting Genes/Proteins) maps known and predicted protein-protein interactions:</p>
-<pre><code class="language-bio">let network = string_network(["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"])
+<pre><code class="language-bio">let network = string_network(["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"], 9606)
 </code></pre>
 <p>Note that <code>string_network()</code> takes a <strong>list</strong> of identifiers, not a single string. This is because protein interactions are inherently about relationships between multiple proteins. The result includes interaction scores (from 0 to 1) based on experimental evidence, text mining, co-expression, and genomic context.</p>
 <p>STRING is particularly useful for understanding whether your differentially expressed genes form a connected network or are scattered across unrelated pathways.</p>
@@ -405,7 +406,8 @@ let annotations = genes |&gt; map(|g| annotate_with_delay(g))
 <h3 id="retry-logic"><a class="header" href="#retry-logic">Retry Logic</a></h3>
 <!-- requires: internet, API access -->
 <p>Some failures are transient — a server timeout, a momentary network glitch. For these, retrying often works:</p>
-<pre><code class="language-bio">let retry = |f, max_attempts| {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let retry = |f, max_attempts| {
     let attempt = 1
     let result = nil
     let success = false
@@ -430,7 +432,8 @@ let annotations = genes |&gt; map(|g| annotate_with_delay(g))
 </code></pre>
 <p>This function takes a zero-argument closure and retries it up to <code>max_attempts</code> times, with exponential backoff (1 second after the first failure, 2 seconds after the second, etc.).</p>
 <p>Use it in your annotation pipeline:</p>
-<pre><code class="language-bio">let safe_ncbi = |symbol| retry(|| ncbi_gene(symbol), 3)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let safe_ncbi = |symbol| retry(|| ncbi_gene(symbol), 3)
 </code></pre>
 <h3 id="collecting-errors"><a class="header" href="#collecting-errors">Collecting Errors</a></h3>
 <p>Rather than silently swallowing errors, track them so you can report which genes failed and why:</p>
@@ -488,7 +491,8 @@ let annotations = genes |&gt; map(|g| annotate_with_delay(g))
 }
 </code></pre>
 <p>Use it to wrap any API call:</p>
-<pre><code class="language-bio">let tp53_ncbi = cached_query("tp53_ncbi", || ncbi_gene("TP53"))
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let tp53_ncbi = cached_query("tp53_ncbi", || ncbi_gene("TP53"))
 </code></pre>
 <p>The first call hits the API and saves the result to disk. Subsequent calls read from disk, completing instantly. This pattern is especially valuable during pipeline development, when you re-run the script dozens of times while tweaking downstream analysis steps.</p>
 <hr>
@@ -581,7 +585,7 @@ let effects = variants |&gt; map(|v| annotate_variant(v))
 <p>Given your differentially expressed genes, find which ones interact:</p>
 <pre><code class="language-bio">let de_genes = ["TP53", "MDM2", "CDKN1A", "BRCA1", "EGFR"]
 let network = try {
-    string_network(de_genes)
+string_network(de_genes, 9606)
 } catch err {
     nil
 }
@@ -674,9 +678,9 @@ let network = try {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

@@ -1,0 +1,17 @@
+fn fst(ac1, ac2, n1, n2) { fst_weir_cockerham(ac1, ac2, n1, n2) }
+fn ld(geno_a, geno_b)    { ld_r2(geno_a, geno_b) }
+
+fn ld_matrix(geno_matrix) {
+  let n_vars = n_rows(geno_matrix)
+  range(n_vars)
+    |> flat_map(fn(i) ->
+        range(n_vars)
+        |> map(fn(j) -> {
+            var_i: i,
+            var_j: j,
+            r2:    ld_r2(geno_matrix |> row(i), geno_matrix |> row(j))
+          })
+      )
+}
+
+fn hwe(n_aa, n_ab, n_bb) { hwe_test(n_aa, n_ab, n_bb) }

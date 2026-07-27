@@ -22,9 +22,9 @@ let config_data = [
     "outlier_removal,IQR_3x"
 ]
 for c in config_data {
-    config_lines = append(config_lines, c)
+    config_lines = push(config_lines, c)
 }
-write_lines(config_lines, "data/config.csv")
+write_lines("data/config.csv", config_lines)
 
 # ── File 2: Small RNA-seq count matrix (50 genes x 6 samples) ──
 # 3 control + 3 treated, matched pairs for reproducibility exercise
@@ -90,7 +90,7 @@ for g in range(0, 50) {
         let noise_frac = ((noise_seed * 2654435761) % 10000) / 10000.0 - 0.5
         let count = round(base * (1.0 + noise_frac * 0.3), 0)
         if count < 0.0 then count = 0.0
-        vals = append(vals, f"{count}")
+        vals = push(vals, f"{count}")
     }
 
     # 3 treated replicates with fold change + noise
@@ -99,13 +99,13 @@ for g in range(0, 50) {
         let noise_frac = ((noise_seed * 2654435761) % 10000) / 10000.0 - 0.5
         let count = round(base * fc * (1.0 + noise_frac * 0.3), 0)
         if count < 0.0 then count = 0.0
-        vals = append(vals, f"{count}")
+        vals = push(vals, f"{count}")
     }
 
-    lines = append(lines, f"{gene_names[g]},{join(vals, \",\")}")
+    lines = push(lines, f"{gene_names[g]},{join(vals, \",\")}")
 }
 
-write_lines(lines, "data/raw_counts.csv")
+write_lines("data/raw_counts.csv", lines)
 
 println("Created data/config.csv")
 println("  10 analysis parameters (alpha, FDR, thresholds, seed, method)")

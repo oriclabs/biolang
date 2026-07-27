@@ -1,0 +1,8 @@
+[package]
+name = "celltypes"
+version = "0.1.0"
+description = "Automated cell type annotation via reference atlas label transfer"
+authors = ["BioLang"]
+
+[dependencies]
+singlecell = { path = "../singlecell" }

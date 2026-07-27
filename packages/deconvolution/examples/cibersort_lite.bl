@@ -1,0 +1,22 @@
+import "deconvolution" as deconv
+
+# bulk_matrix: genes x samples (e.g. from rnaseq.tpm_matrix)
+# reference_matrix: genes x cell_types (e.g. LM22 signature matrix)
+
+# NNLS deconvolution
+# let fractions = deconv.run(bulk_matrix, lm22_reference)
+
+# Extract tumor purity (for TCGA-style data)
+# deconv.purity(fractions, tumor_col="Tumor")
+
+# Correlation between cell type abundances across samples
+# deconv.correlation(fractions)
+
+# Marker-based scoring (no reference needed)
+let immune_markers = {
+  CD8_T:  ["CD8A", "CD8B", "GZMB", "PRF1"],
+  NK:     ["NCAM1", "KLRF1", "NKG7"],
+  B_cell: ["CD19", "MS4A1", "CD79A"],
+  Macro:  ["CD68", "CD163", "MRC1"]
+}
+# deconv.markers(bulk_matrix, immune_markers)

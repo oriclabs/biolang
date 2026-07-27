@@ -104,7 +104,8 @@ let CONFIG = {
 
 Table 1 is the first table in every clinical trial publication. It summarizes baseline characteristics by treatment arm and tests for balance — if randomization worked, there should be no significant differences.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # --- Simulate patient demographics ---
 let arm = repeat("Drug X", 150) + repeat("Chemo", 150)
@@ -152,13 +153,13 @@ let age_drug = age |> select(0..150)
 let age_chemo = age |> select(150..300)
 let age_test = ttest(age_drug, age_chemo)
 print("Age, mean (SD)           " +
-  str(round(mean(age_drug), 1)) + " (" + str(round(sd(age_drug), 1)) + ")       " +
-  str(round(mean(age_chemo), 1)) + " (" + str(round(sd(age_chemo), 1)) + ")        " +
+  str(round(mean(age_drug), 1)) + " (" + str(round(stdev(age_drug), 1)) + ")       " +
+  str(round(mean(age_chemo), 1)) + " (" + str(round(stdev(age_chemo), 1)) + ")        " +
   str(round(age_test.p_value, 3)))
 
 # Sex
-let sex_drug = count(sex |> select(0..150), |s| s == "Male")
-let sex_chemo = count(sex |> select(150..300), |s| s == "Male")
+let sex_drug = count_if(sex |> select(0..150), |s| s == "Male")
+let sex_chemo = count_if(sex |> select(150..300), |s| s == "Male")
 let sex_observed = [sex_drug, 150 - sex_drug, sex_chemo, 150 - sex_chemo]
 let sex_expected = [150 * (sex_drug + sex_chemo) / 300, 150 * (300 - sex_drug - sex_chemo) / 300,
                     150 * (sex_drug + sex_chemo) / 300, 150 * (300 - sex_drug - sex_chemo) / 300]
@@ -172,8 +173,8 @@ print("Male, n (%)              " +
 let ecog_drug = ecog |> select(0..150)
 let ecog_chemo = ecog |> select(150..300)
 for e in [0, 1, 2] {
-  let n_d = count(ecog_drug, |x| x == e)
-  let n_c = count(ecog_chemo, |x| x == e)
+  let n_d = count_if(ecog_drug, |x| x == e)
+  let n_c = count_if(ecog_chemo, |x| x == e)
   print("ECOG " + str(e) + ", n (%)            " +
     str(n_d) + " (" + str(round(n_d / 150 * 100, 1)) + "%)         " +
     str(n_c) + " (" + str(round(n_c / 150 * 100, 1)) + "%)")
@@ -276,15 +277,15 @@ let response_chemo = rnorm(150, 0, 1) |> map(|z| {
 let response = response_drug + response_chemo
 
 # Overall Response Rate (ORR = CR + PR)
-let orr_drug = count(response_drug, |r| r == "CR" || r == "PR")
-let orr_chemo = count(response_chemo, |r| r == "CR" || r == "PR")
+let orr_drug = count_if(response_drug, |r| r == "CR" || r == "PR")
+let orr_chemo = count_if(response_chemo, |r| r == "CR" || r == "PR")
 
 print("\n=== Secondary Endpoint: Tumor Response (RECIST 1.1) ===")
 print("\nResponse Category      Drug X         Chemo")
 print("-" * 50)
 for cat in ["CR", "PR", "SD", "PD"] {
-  let n_d = count(response_drug, |r| r == cat)
-  let n_c = count(response_chemo, |r| r == cat)
+  let n_d = count_if(response_drug, |r| r == cat)
+  let n_c = count_if(response_chemo, |r| r == cat)
   print(cat + "                      " +
     str(n_d) + " (" + str(round(n_d / 150 * 100, 1)) + "%)       " +
     str(n_c) + " (" + str(round(n_c / 150 * 100, 1)) + "%)")
@@ -310,12 +311,11 @@ print("  Odds ratio: " + str(round(or_val, 2)) +
 
 # Bar chart of response rates
 let categories = ["CR", "PR", "SD", "PD"]
-let drug_pcts = categories |> map(|c| count(response_drug, |r| r == c) / 150 * 100)
-let chemo_pcts = categories |> map(|c| count(response_chemo, |r| r == c) / 150 * 100)
+let drug_pcts = categories |> map(|c| count_if(response_drug, |r| r == c) / 150 * 100)
+let chemo_pcts = categories |> map(|c| count_if(response_chemo, |r| r == c) / 150 * 100)
 
-bar_chart(categories, drug_pcts,
-  {title: "Best Overall Response (RECIST 1.1)",
-  ylabel: "Patients (%)"})
+let response_chart = table({"category": categories, "drug_percent": drug_pcts})
+bar_chart(response_chart, {label: "category", value: "drug_percent"})
 ```
 
 ## Section 4: Secondary Endpoint — Overall Survival
@@ -614,7 +614,7 @@ let tbl = range(0, 300) |> map(|i| {
   ecog: ecog[i], pdl1: pdl1[i]
 }) |> to_table()
 
-let model = lm(tbl.pfs, [tbl.arm_drug, tbl.age, tbl.ecog, tbl.pdl1])
+let model = lm(~pfs ~ arm_drug + age + ecog + pdl1, tbl)
 
 print("\n=== Multivariate Model (PFS) ===")
 print("Treatment effect (adjusted): coef = " +

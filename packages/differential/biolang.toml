@@ -1,0 +1,18 @@
+[package]
+name = "differential"
+version = "0.1.0"
+description = "Differential expression analysis for RNA-seq and single-cell data"
+authors = ["BioLang Contributors"]
+license = "MIT"
+keywords = ["rnaseq", "differential", "deseq", "wilcoxon"]
+categories = ["bioinformatics", "genomics", "statistics"]
+homepage = "https://biolang.dev/docs/bio/differential"
+repository = "https://github.com/biolang/packages/differential"
+readme = "README.md"
+
+[dependencies]
+# No external dependencies — uses BioLang core builtins only:
+#   tpm, rpkm, mean, variance, wilcoxon, p_adjust, fisher_exact
+
+[lib]
+entry = "src/mod.bl"

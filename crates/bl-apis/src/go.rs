@@ -79,17 +79,14 @@ impl GoClient {
     pub fn term(&self, go_id: &str) -> Result<GoTermInfo> {
         let base = base_url();
         let url = format!("{base}/ontology/go/terms/{go_id}");
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
-        let results = json["results"]
-            .as_array()
-            .ok_or_else(|| ApiError::Parse {
-                context: "GO term".into(),
-                source: "missing results".into(),
-            })?;
+        let results = json["results"].as_array().ok_or_else(|| ApiError::Parse {
+            context: "GO term".into(),
+            source: "missing results".into(),
+        })?;
 
         let item = results.first().ok_or_else(|| ApiError::Parse {
             context: "GO term".into(),
@@ -102,47 +99,26 @@ impl GoClient {
     /// Get GO annotations for a gene product.
     pub fn annotations(&self, gene: &str, limit: usize) -> Result<Vec<Annotation>> {
         let base = base_url();
-        let url = format!(
-            "{base}/annotation/search?geneProductId={gene}&limit={limit}"
-        );
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let url = format!("{base}/annotation/search?geneProductId={gene}&limit={limit}");
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let results = json["results"]
             .as_array()
             .map(|arr| {
                 arr.iter()
                     .map(|item| Annotation {
-                        go_id: item["goId"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
-                        go_name: item["goName"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
-                        aspect: item["goAspect"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
-                        evidence: item["goEvidence"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
-                        qualifier: item["qualifier"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
+                        go_id: item["goId"].as_str().unwrap_or_default().to_string(),
+                        go_name: item["goName"].as_str().unwrap_or_default().to_string(),
+                        aspect: item["goAspect"].as_str().unwrap_or_default().to_string(),
+                        evidence: item["goEvidence"].as_str().unwrap_or_default().to_string(),
+                        qualifier: item["qualifier"].as_str().unwrap_or_default().to_string(),
                         gene_product_id: item["geneProductId"]
                             .as_str()
                             .unwrap_or_default()
                             .to_string(),
-                        symbol: item["symbol"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
+                        symbol: item["symbol"].as_str().unwrap_or_default().to_string(),
                     })
                     .collect()
             })
@@ -153,13 +129,10 @@ impl GoClient {
     /// Search GO terms by text query.
     pub fn search(&self, query: &str) -> Result<Vec<GoTermInfo>> {
         let base = base_url();
-        let url = format!(
-            "{base}/ontology/go/search?query={query}&limit=25"
-        );
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let url = format!("{base}/ontology/go/search?query={query}&limit=25");
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let results = json["results"]
             .as_array()
@@ -171,13 +144,10 @@ impl GoClient {
     /// Get child terms of a GO term.
     pub fn children(&self, go_id: &str) -> Result<Vec<GoTermInfo>> {
         let base = base_url();
-        let url = format!(
-            "{base}/ontology/go/terms/{go_id}/children"
-        );
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let url = format!("{base}/ontology/go/terms/{go_id}/children");
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let results = json["results"]
             .as_array()
@@ -200,13 +170,10 @@ impl GoClient {
         // QuickGO doesn't have a direct parents endpoint,
         // but we can use the ancestors endpoint and filter to direct parents
         let base = base_url();
-        let url = format!(
-            "{base}/ontology/go/terms/{go_id}/ancestors?relations=is_a,part_of"
-        );
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let url = format!("{base}/ontology/go/terms/{go_id}/ancestors?relations=is_a,part_of");
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let results = json["results"]
             .as_array()
@@ -218,13 +185,10 @@ impl GoClient {
     /// Get all ancestor terms of a GO term (transitive).
     pub fn ancestors(&self, go_id: &str) -> Result<Vec<GoTermInfo>> {
         let base = base_url();
-        let url = format!(
-            "{base}/ontology/go/terms/{go_id}/ancestors"
-        );
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let url = format!("{base}/ontology/go/terms/{go_id}/ancestors");
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let results = json["results"]
             .as_array()
@@ -236,13 +200,10 @@ impl GoClient {
     /// Get all descendant terms of a GO term (transitive).
     pub fn descendants(&self, go_id: &str) -> Result<Vec<GoTermInfo>> {
         let base = base_url();
-        let url = format!(
-            "{base}/ontology/go/terms/{go_id}/descendants"
-        );
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let url = format!("{base}/ontology/go/terms/{go_id}/descendants");
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let results = json["results"]
             .as_array()
@@ -252,20 +213,13 @@ impl GoClient {
     }
 
     /// Map GO terms to a slim set.
-    pub fn slim(
-        &self,
-        go_ids: &[&str],
-        slim_set: &str,
-    ) -> Result<Vec<SlimResult>> {
+    pub fn slim(&self, go_ids: &[&str], slim_set: &str) -> Result<Vec<SlimResult>> {
         let base = base_url();
         let ids = go_ids.join(",");
-        let url = format!(
-            "{base}/ontology/go/slim/{ids}?slimsToIds={slim_set}"
-        );
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let url = format!("{base}/ontology/go/slim/{ids}?slimsToIds={slim_set}");
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let results = json["results"]
             .as_array()
@@ -281,10 +235,7 @@ impl GoClient {
                             })
                             .unwrap_or_default();
                         SlimResult {
-                            go_id: item["slimsToIds"]
-                                .as_str()
-                                .unwrap_or_default()
-                                .to_string(),
+                            go_id: item["slimsToIds"].as_str().unwrap_or_default().to_string(),
                             mapped_to: mapped,
                         }
                     })
@@ -303,18 +254,9 @@ impl Default for GoClient {
 
 fn parse_term(item: &serde_json::Value) -> GoTermInfo {
     GoTermInfo {
-        id: item["id"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
-        name: item["name"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
-        aspect: item["aspect"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
+        id: item["id"].as_str().unwrap_or_default().to_string(),
+        name: item["name"].as_str().unwrap_or_default().to_string(),
+        aspect: item["aspect"].as_str().unwrap_or_default().to_string(),
         definition: item["definition"]["text"]
             .as_str()
             .unwrap_or_default()
@@ -349,10 +291,9 @@ mod tests {
 
     #[test]
     fn test_parse_term_obsolete() {
-        let json: serde_json::Value = serde_json::from_str(
-            r#"{"id": "GO:0000001", "name": "old term", "isObsolete": true}"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"id": "GO:0000001", "name": "old term", "isObsolete": true}"#)
+                .unwrap();
         let term = parse_term(&json);
         assert!(term.is_obsolete);
     }

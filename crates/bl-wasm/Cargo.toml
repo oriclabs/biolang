@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bl-core = { workspace = true }
+bl-import = { workspace = true }
 bl-lexer = { workspace = true }
 bl-parser = { workspace = true }
 bl-runtime = { path = "../bl-runtime", default-features = false }

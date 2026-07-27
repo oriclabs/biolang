@@ -225,10 +225,12 @@ print(report)</code></pre>
         <h3>Debug a pipeline</h3>
         <pre><code class="language-biolang"># requires: LLM API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL)
 # Capture an error and ask the LLM for help
-let result = try_call(|| {
+let result = try {
   let reads = read_fastq("missing_file.fq.gz")
   reads |> filter(|r| mean_phred(r.quality) > 30)
-})
+} catch _ {
+  nil
+}
 
 if result == nil {
   let help = chat("I got an error reading a FASTQ file in BioLang. How do I debug missing file issues?")

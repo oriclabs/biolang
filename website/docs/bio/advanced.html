@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advanced Analytics — BioLang</title>
+  <title>Advanced Sequence Analysis — BioLang</title>
   <link rel="icon" href="../../assets/favicon.svg">
   <link rel="stylesheet" href="../../assets/styles.css">
   <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -19,181 +19,512 @@
       <nav class="mb-6 text-sm text-slate-500">
         <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
         <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
-        <span class="text-slate-300">Advanced Analytics</span>
+        <span class="text-slate-300">Advanced Sequence Analysis</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>Advanced Analytics</h1>
+        <h1>Advanced Sequence Analysis</h1>
         <p>
-          BioLang includes computational biology functions for expression normalization,
-          dimensionality reduction (UMAP, t-SNE), graph clustering (Leiden), sequence
-          sketching, phylogenetics, and gene set enrichment. These functions operate on
-          matrices and tables and integrate with BioLang's pipe-first design.
+          BioLang's advanced sequence analysis functions operate directly on DNA sequences and
+          support IUPAC ambiguity codes throughout. They cover pattern searching with mismatch
+          tolerance, restriction digest simulation, sliding window extraction, GC skew profiling,
+          Shannon entropy scanning, and single-sequence IUPAC matching. All functions follow
+          BioLang's pipe-first design and return structured lists that compose cleanly with
+          <code>filter</code>, <code>map</code>, and <code>to_table</code>.
         </p>
 
-        <h2>Expression Normalization</h2>
+        <h2>IUPAC Ambiguity Codes</h2>
         <p>
-          Normalize count data using standard methods before downstream analysis:
+          Several functions accept IUPAC-coded patterns in place of exact nucleotide sequences.
+          The full code table is:
         </p>
-        <pre><code class="language-biolang"># Load count data and gene lengths
-let counts = read_csv("counts_matrix.csv")
-let lengths = read_csv("gene_lengths.csv") |> col("length")
-let total = sum(col(counts, "sample1"))
+        <table>
+          <thead>
+            <tr><th>Code</th><th>Bases</th><th>Mnemonic</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>A</code></td><td>A</td><td>Adenine</td></tr>
+            <tr><td><code>C</code></td><td>C</td><td>Cytosine</td></tr>
+            <tr><td><code>G</code></td><td>G</td><td>Guanine</td></tr>
+            <tr><td><code>T</code></td><td>T</td><td>Thymine</td></tr>
+            <tr><td><code>N</code></td><td>A, C, G, T</td><td>aNy base</td></tr>
+            <tr><td><code>R</code></td><td>A, G</td><td>puRine</td></tr>
+            <tr><td><code>Y</code></td><td>C, T</td><td>pYrimidine</td></tr>
+            <tr><td><code>S</code></td><td>G, C</td><td>Strong (3 H-bonds)</td></tr>
+            <tr><td><code>W</code></td><td>A, T</td><td>Weak (2 H-bonds)</td></tr>
+            <tr><td><code>K</code></td><td>G, T</td><td>Keto</td></tr>
+            <tr><td><code>M</code></td><td>A, C</td><td>aMino</td></tr>
+            <tr><td><code>B</code></td><td>C, G, T</td><td>not-A (B comes after A)</td></tr>
+            <tr><td><code>D</code></td><td>A, G, T</td><td>not-C (D comes after C)</td></tr>
+            <tr><td><code>H</code></td><td>A, C, T</td><td>not-G (H comes after G)</td></tr>
+            <tr><td><code>V</code></td><td>A, C, G</td><td>not-T (V comes after T)</td></tr>
+          </tbody>
+        </table>
 
-# Normalize with TPM, FPKM, or CPM
-let tpm_values = tpm(counts, lengths)
-let fpkm_values = fpkm(counts, lengths, total)
-let cpm_values = cpm(counts)</code></pre>
+        <hr>
 
-        <h2>UMAP</h2>
+        <h2>find_pattern</h2>
         <p>
-          UMAP (Uniform Manifold Approximation and Projection) is a non-linear dimensionality
-          reduction technique that preserves both local and global structure:
+          Search for an IUPAC pattern on both strands of a DNA sequence, with optional mismatch
+          tolerance. Each hit reports the position, strand, the actual matched subsequence, and
+          the number of mismatches relative to the pattern.
         </p>
-        <pre><code class="language-biolang"># umap(matrix)
-# Returns 2D coordinates for each row
+        <pre><code class="language-biolang"># find_pattern(seq, pattern, max_mismatches=0)
+# Returns List&lt;{pos, strand, matched, mismatches}&gt;
+#
+# pos     — 0-based start position on the forward strand
+# strand  — "+" (forward) or "-" (reverse complement)
+# matched — the actual nucleotides at that position
+# mismatches — number of positions that differ from the pattern</code></pre>
 
-let data = matrix([
-  [1.0, 2.0, 3.0],
-  [4.0, 5.0, 6.0],
-  [7.0, 8.0, 9.0],
-  [2.0, 3.0, 4.0],
-])
+        <h3>Exact IUPAC search</h3>
+        <pre><code class="language-biolang"># Search for the DnaA box consensus (TTATCCACA) exactly
+# The DnaA replication initiator protein recognises this motif near oriC
+let chrom = read_fasta("ecoli_K12.fasta") |> first()
 
-# Reduce to 2 dimensions
-let coords = umap(data)
-print(coords)</code></pre>
+let boxes = find_pattern(chrom.seq, "TTATCCACA")
+print(len(boxes), "exact DnaA boxes found")
+boxes |> map(|h| print(h.strand, h.pos, h.matched))</code></pre>
 
-        <h2>t-SNE</h2>
-        <p>
-          t-SNE (t-distributed Stochastic Neighbor Embedding) is another non-linear
-          dimensionality reduction method that excels at preserving local cluster structure:
-        </p>
-        <pre><code class="language-biolang"># tsne(matrix)
-# Returns 2D coordinates for each row
+        <h3>Search with mismatches</h3>
+        <pre><code class="language-biolang"># Allow up to 1 mismatch — typical for biological DnaA box surveys
+let boxes = find_pattern(chrom.seq, "TTATCCACA", 1)
 
-let data = matrix([
-  [1.0, 2.0, 3.0],
-  [4.0, 5.0, 6.0],
-  [7.0, 8.0, 9.0],
-  [2.0, 3.0, 4.0],
-])
+# Filter to hits on the forward strand only
+let fwd_boxes = boxes |> filter(|h| h.strand == "+")
+print(len(fwd_boxes), "forward-strand DnaA boxes (0–1 mm)")
 
-let coords = tsne(data)
-print(coords)</code></pre>
-
-        <h2>Leiden Clustering</h2>
-        <p>
-          The Leiden algorithm is an improved version of Louvain community detection, widely
-          used in single-cell analysis for identifying cell types:
-        </p>
-        <pre><code class="language-biolang"># leiden(graph)
-# Returns cluster assignment for each node
-
-let adj = matrix([
-  [0, 1, 1, 0, 0],
-  [1, 0, 1, 0, 0],
-  [1, 1, 0, 0, 0],
-  [0, 0, 0, 0, 1],
-  [0, 0, 0, 1, 0],
-])
-
-# Cluster the adjacency graph
-let clusters = leiden(adj)
-print("Cluster assignments:", clusters)</code></pre>
-
-        <h2>Sketching &amp; Distance</h2>
-        <p>
-          MinHash sketching enables fast approximate distance computation between
-          sequences without full alignment:
-        </p>
-        <pre><code class="language-biolang"># Build MinHash sketches for fast comparison
-let seq1 = dna"ATCGATCGATCGATCGATCG"
-let seq2 = dna"ATCGATCAATCGATCGATCG"
-
-let s1 = sketch(seq1, 21)
-let s2 = sketch(seq2, 21)
-
-# Compute sketch distance (Jaccard-based)
-let dist = sketch_dist(s1, s2)
-print("Sketch distance:", dist)
-
-# Compare many sequences pairwise
-let seqs = read_fasta("data/sequences.fasta") |> collect()
-seqs |> map(|a| seqs |> map(|b| sketch_dist(sketch(a.seq, 21), sketch(b.seq, 21))))
+# Inspect mismatching hits
+boxes
+  |> filter(|h| h.mismatches == 1)
+  |> map(|h| {
+    pos:      h.pos,
+    strand:   h.strand,
+    matched:  h.matched,
+    mm:       h.mismatches
+  })
+  |> to_table()
   |> print()</code></pre>
 
-        <h2>Enrichment Analysis</h2>
+        <h3>IUPAC degenerate pattern</h3>
+        <pre><code class="language-biolang"># Sigma-70 -10 element consensus: TATAAT (W=A|T, so TATAWT is more sensitive)
+let promoter_region = dna"GCTTTATAATAGCAAACTTTTCAATCGCTTTATAATAGCGCTTTATAATAGCAAAC"
+
+let hits = find_pattern(promoter_region, "TATAWT")
+hits |> map(|h| print("pos:", h.pos, "strand:", h.strand, "seq:", h.matched))
+
+# N wildcard: find all 8-mers starting with GG and ending with CC
+let seq = read_fasta("data/genome.fasta") |> first()
+find_pattern(seq.seq, "GGNNNNNCC")
+  |> to_table()
+  |> print()</code></pre>
+
+        <hr>
+
+        <h2>restriction_sites</h2>
         <p>
-          BioLang provides enrichment analysis via GMT gene set files. Use
-          <code>read_gmt()</code> to load gene sets, then <code>enrich()</code> for
-          over-representation analysis or <code>gsea()</code> for gene set enrichment:
+          Locate restriction enzyme recognition sequences and their cut positions within a DNA
+          sequence. Pass a common enzyme name, <code>"all"</code> to scan for all built-in
+          enzymes at once, or a custom IUPAC pattern string.
         </p>
-        <pre><code class="language-biolang"># Load gene sets from a GMT file (e.g., MSigDB)
-let gene_sets = read_gmt("c2.cp.kegg.v2023.2.symbols.gmt")
+        <pre><code class="language-biolang"># restriction_sites(seq, enzyme_or_pattern)
+# Returns List&lt;{pos, end, strand, enzyme, site}&gt;
+#
+# pos    — 0-based start of the recognition sequence
+# end    — 0-based end (exclusive) of the recognition sequence
+# strand — "+" or "-"
+# enzyme — enzyme name (or "custom" for bare IUPAC patterns)
+# site   — the matched recognition sequence in the molecule</code></pre>
 
-# Over-representation analysis
-# enrich(gene_list, gene_sets)
-let sig_genes = ["BRCA1", "TP53", "EGFR", "MYC", "KRAS"]
-
-let enrich_results = enrich(sig_genes, gene_sets)
-
-# Results: gene_set, pvalue, overlap, size
-print(enrich_results)
-
-# GSEA — uses a ranked list and gene sets
-# gsea(ranked_list, gene_sets)
-let ranked = [["BRCA1", 3.2], ["TP53", 2.8], ["EGFR", -1.5], ["MYC", -2.1]]
-let gsea_results = gsea(ranked, gene_sets)
-print(gsea_results)</code></pre>
-
-        <h2>Neighbor-Joining Trees</h2>
+        <h3>Built-in enzyme names</h3>
         <p>
-          Build phylogenetic trees from distance matrices:
+          The following common enzymes are recognised by name:
+          <code>EcoRI</code>, <code>BamHI</code>, <code>HindIII</code>, <code>NotI</code>,
+          <code>XhoI</code>, <code>XbaI</code>, <code>SalI</code>, <code>ClaI</code>,
+          <code>SphI</code>, <code>KpnI</code>, <code>SmaI</code>, <code>PstI</code>,
+          <code>SacI</code>, <code>AvaI</code>, <code>NcoI</code>, <code>NheI</code>,
+          <code>MluI</code>, <code>SpeI</code>, <code>ApaI</code>, <code>EcoRV</code>.
         </p>
-        <pre><code class="language-biolang"># neighbor_joining(distance_matrix)
-# distance_matrix: Matrix (symmetric)
 
-let dist = matrix([
-  [0.0, 0.3, 0.5, 0.7],
-  [0.3, 0.0, 0.4, 0.6],
-  [0.5, 0.4, 0.0, 0.8],
-  [0.7, 0.6, 0.8, 0.0],
-])
+        <h3>In silico single digest</h3>
+        <pre><code class="language-biolang"># Find all EcoRI sites in a cloning vector
+# EcoRI recognises GAATTC and cuts between G and AATTC
+let vector = read_fasta("pUC19.fasta") |> first()
 
-let tree = neighbor_joining(dist)
-print(tree)</code></pre>
+let ecori_sites = restriction_sites(vector.seq, "EcoRI")
+print(len(ecori_sites), "EcoRI sites in pUC19")
+ecori_sites |> map(|s| print("pos:", s.pos, "site:", s.site))
 
-        <h2>Full Pipeline Example</h2>
-        <pre><code class="language-biolang"># Complete analysis pipeline: sequences -> k-mers -> clustering -> enrichment
+# Predict fragment sizes after digestion
+let positions = ecori_sites |> map(|s| s.pos) |> collect()
+let vec_len   = len(vector.seq)
 
-# 1. Load sequences and compute k-mer profiles
-let seqs = read_fasta("data/sequences.fasta") |> collect()
-# kmer_count returns a Table per sequence — top 50 k-mers each
-let profiles = seqs
-  |> map(|r| kmer_count(r.seq, 21, 50))
-  |> collect()
+# Append the circular wrap-around position then compute gaps
+let cuts = [positions, [positions[0] + vec_len]] |> flatten()
+zip(cuts, cuts |> drop(1))
+  |> map(|pair| pair[1] - pair[0])
+  |> map(|frag_size| print("Fragment:", frag_size, "bp"))
+</code></pre>
 
-# 2. Build distance matrix via sketching
-let sketches = seqs |> map(|r| sketch(r.seq, 21)) |> collect()
-let dist = matrix(sketches |> map(|a| sketches |> map(|b| sketch_dist(a, b))))
+        <h3>Double digest and multi-enzyme survey</h3>
+        <pre><code class="language-biolang"># Simulate an EcoRI + BamHI double digest of a PCR product
+let insert = dna"GAATTCNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNGGATCC"
 
-# 3. Dimensionality reduction
-let coords = umap(dist)
-print("UMAP coordinates:", coords)
+let ecori = restriction_sites(insert, "EcoRI")
+let bamhi  = restriction_sites(insert, "BamHI")
 
-# 4. Clustering
-let clusters = leiden(dist)
-print("Cluster assignments:", clusters)
+print("EcoRI sites:", len(ecori))
+print("BamHI sites:", len(bamhi))
 
-# 5. Build phylogenetic tree
-let tree = neighbor_joining(dist)
-print(tree)
+# Survey all built-in enzymes to find unique cutters
+let all_sites = restriction_sites(vector.seq, "all")
 
-# 6. Enrichment analysis
-let gene_sets = read_gmt("pathways.gmt")
-let genes = ["BRCA1", "TP53", "EGFR", "MYC"]
-let enriched = enrich(genes, gene_sets)
-print(enriched)</code></pre>
+let enzymes = all_sites |> map(|s| s.enzyme) |> unique()
+enzymes
+  |> map(|enzyme| {
+    enzyme: enzyme,
+    sites: all_sites |> filter(|s| s.enzyme == enzyme)
+  })
+  |> filter(|group| len(group.sites) == 1)
+  |> map(|group| {
+    enzyme: group.enzyme,
+    pos:    group.sites[0].pos,
+    site:   group.sites[0].site
+  })
+  |> to_table()
+  |> print()</code></pre>
+
+        <h3>Custom IUPAC recognition pattern</h3>
+        <pre><code class="language-biolang"># Find all sites matching a degenerate recognition sequence
+# e.g. a hypothetical enzyme that cuts GRCGYC (R=AG, Y=CT)
+let custom_sites = restriction_sites(vector.seq, "GRCGYC")
+custom_sites |> map(|s| print(s.pos, s.site))</code></pre>
+
+        <hr>
+
+        <h2>windows</h2>
+        <p>
+          Extract overlapping or non-overlapping subsequences from a sequence using a sliding
+          window. The default step of 1 produces fully overlapping windows; set step equal to
+          size for non-overlapping tiles.
+        </p>
+        <pre><code class="language-biolang"># windows(seq, size, step=1)
+# Returns List&lt;{pos, end, seq, length}&gt;
+#
+# pos    — 0-based start of the window
+# end    — 0-based end (exclusive)
+# seq    — the subsequence in that window
+# length — window length (equals size for interior windows)</code></pre>
+
+        <h3>AT-content scan with a sliding window</h3>
+        <pre><code class="language-biolang"># Scan a sequence for AT-rich regions using 200 bp windows, 50 bp step
+let chrom = read_fasta("ecoli_K12.fasta") |> first()
+
+chrom.seq
+  |> windows(200, 50)
+  |> map(|w| {
+    let bases = base_counts(w.seq)
+    {
+      pos:    w.pos,
+      end:    w.end,
+      at_pct: (bases.A + bases.T) / w.length * 100.0
+    }
+  })
+  |> filter(|w| w.at_pct > 70.0)
+  |> to_table()
+  |> print()</code></pre>
+
+        <h3>Non-overlapping tiles (genome binning)</h3>
+        <pre><code class="language-biolang"># Tile a chromosome into 1 kb non-overlapping bins
+let bins = chrom.seq |> windows(1000, 1000)
+print(len(bins), "1 kb bins")
+
+# Compute GC content per bin
+bins
+  |> map(|w| {
+    bin:    w.pos / 1000,
+    pos:    w.pos,
+    gc_pct: gc_content(w.seq) * 100.0
+  })
+  |> to_table()
+  |> write_csv("gc_per_bin.csv")</code></pre>
+
+        <h3>K-mer frequency in each window</h3>
+        <pre><code class="language-biolang"># Count a specific k-mer in every 500 bp window
+let seq = read_fasta("data/genome.fasta") |> first()
+
+seq.seq
+  |> windows(500, 100)
+  |> map(|w| {
+    pos:       w.pos,
+    cg_count:  motif_count(w.seq, "CG")
+  })
+  |> to_table()
+  |> print()</code></pre>
+
+        <hr>
+
+        <h2>gc_skew</h2>
+        <p>
+          Compute per-window GC skew and its cumulative sum along a sequence. GC skew is defined
+          as <code>(G - C) / (G + C)</code> for each window. The cumulative sum changes sign at
+          the origin of replication (oriC) and terminus (ter) of bacterial chromosomes, making
+          this a reliable method for replication origin prediction.
+        </p>
+        <pre><code class="language-biolang"># gc_skew(seq, window_size=1000)
+# Returns List&lt;{pos, end, g, c, skew, cumulative_skew}&gt;
+#
+# pos              — window start (0-based)
+# end              — window end (exclusive)
+# g                — G count in this window
+# c                — C count in this window
+# skew             — (G - C) / (G + C) for this window
+# cumulative_skew  — running sum of skew values up to and including this window</code></pre>
+
+        <h3>OriC prediction in a bacterial chromosome</h3>
+        <pre><code class="language-biolang"># Predict the origin of replication in E. coli K-12
+# The minimum of cumulative GC skew marks oriC;
+# the maximum marks the terminus of replication.
+let chrom = read_fasta("ecoli_K12.fasta") |> first()
+
+let skew = gc_skew(chrom.seq, 10000)
+
+# Find the window with the minimum cumulative skew (oriC)
+let oric_window = skew |> sort_by(|w| w.cumulative_skew) |> first()
+print("Predicted oriC region:", oric_window.pos, "-", oric_window.end)
+
+# Find the window with the maximum cumulative skew (ter)
+let ter_window = skew |> sort_by(|w| w.cumulative_skew) |> last()
+print("Predicted ter region: ", ter_window.pos, "-", ter_window.end)</code></pre>
+
+        <h3>Export skew profile for visualisation</h3>
+        <pre><code class="language-biolang"># Write the full GC skew profile to CSV for plotting
+gc_skew(chrom.seq, 5000)
+  |> map(|w| {
+    pos:             w.pos,
+    end:             w.end,
+    skew:            w.skew,
+    cumulative_skew: w.cumulative_skew
+  })
+  |> to_table()
+  |> write_csv("ecoli_gc_skew.csv")
+
+print("Wrote GC skew profile")</code></pre>
+
+        <h3>Compare multiple chromosomes</h3>
+        <pre><code class="language-biolang"># Predict oriC for every sequence in a multi-FASTA file
+read_fasta("bacteria_genomes.fasta")
+  |> map(|rec| {
+    genome: rec.id,
+    oric:   (gc_skew(rec.seq, 10000) |> sort_by(|w| w.cumulative_skew) |> first()).pos,
+    ter:    (gc_skew(rec.seq, 10000) |> sort_by(|w| w.cumulative_skew) |> last()).pos
+  })
+  |> to_table()
+  |> print()</code></pre>
+
+        <hr>
+
+        <h2>entropy</h2>
+        <p>
+          Compute Shannon entropy in bits across a sliding window of a sequence. The entropy at
+          each window is calculated as:
+        </p>
+        <pre><code class="language-biolang"># H = -sum(p_i * log2(p_i))   for i in {A, C, G, T}
+# where p_i is the frequency of base i in the window.
+#
+# Maximum entropy is 2.0 bits (all four bases equally frequent).
+# Low entropy regions contain biased base composition — repeats, low-complexity, or homopolymers.</code></pre>
+        <pre><code class="language-biolang"># entropy(seq, window=100, step=1)
+# Returns List&lt;{pos, end, entropy}&gt;
+#
+# pos     — 0-based window start
+# end     — 0-based window end (exclusive)
+# entropy — Shannon entropy in bits (0.0 – 2.0)</code></pre>
+
+        <h3>Find low-complexity and repeat regions</h3>
+        <pre><code class="language-biolang"># Identify candidate repeat/low-complexity regions for masking
+# Threshold of 1.5 bits catches most simple repeats and homopolymers
+let seq = read_fasta("data/genome.fasta") |> first()
+
+let low_complexity = seq.seq
+  |> entropy(100, 10)
+  |> filter(|w| w.entropy &lt; 1.5)
+
+print(len(low_complexity), "low-complexity windows (&lt; 1.5 bits)")
+
+low_complexity
+  |> map(|w| { pos: w.pos, end: w.end, entropy: w.entropy })
+  |> to_table()
+  |> write_csv("low_complexity_regions.csv")</code></pre>
+
+        <h3>Soft-mask a sequence based on entropy</h3>
+        <pre><code class="language-biolang"># Collect all low-entropy window coordinates, then report coverage
+let windows_to_mask = seq.seq
+  |> entropy(100, 1)
+  |> filter(|w| w.entropy &lt; 1.2)
+
+let masked_bases = windows_to_mask |> map(|w| w.end - w.pos) |> sum()
+let total_bases  = len(seq.seq)
+print("Low-complexity coverage:", masked_bases / total_bases * 100.0, "%")</code></pre>
+
+        <h3>Compare entropy profiles across sequences</h3>
+        <pre><code class="language-biolang"># Average entropy per sequence — useful for quality filtering of assemblies
+read_fasta("assembly.fasta")
+  |> map(|rec| {
+    contig:      rec.id,
+    length:      len(rec.seq),
+    mean_entropy: entropy(rec.seq, 100, 100)
+                    |> map(|w| w.entropy)
+                    |> mean()
+  })
+  |> filter(|r| r.mean_entropy &lt; 1.6)    # flag suspicious contigs
+  |> to_table()
+  |> print()</code></pre>
+
+        <hr>
+
+        <h2>iupac_match</h2>
+        <p>
+          Test whether a fixed-length sequence matches an IUPAC pattern of the same length.
+          Both the sequence and pattern must have equal length. Returns <code>true</code> if
+          every position in the sequence is consistent with the corresponding IUPAC code in
+          the pattern.
+        </p>
+        <pre><code class="language-biolang"># iupac_match(seq, pattern)
+# Returns Bool
+#
+# seq     — a DNA sequence (no ambiguity codes)
+# pattern — an IUPAC pattern of the same length
+#
+# Sequence and pattern MUST be the same length.</code></pre>
+
+        <h3>Basic matching</h3>
+        <pre><code class="language-biolang"># Check individual sequences against an IUPAC pattern
+print(iupac_match(dna"GAATTC", "GAATTC"))   # true  — exact
+print(iupac_match(dna"AAATTC", "RAATTC"))   # true  — R matches A or G
+print(iupac_match(dna"CAATTC", "RAATTC"))   # false — C is not a purine
+print(iupac_match(dna"ATCGAT", "NNNNNN"))   # true  — N matches any base
+print(iupac_match(dna"ATCG",   "ATCGAT"))   # false — lengths differ</code></pre>
+
+        <h3>Filter a list of sequences against a degenerate motif</h3>
+        <pre><code class="language-biolang"># Keep only sequences that match the CpG island core motif SSSSCGSSSS
+# S = C or G — so this picks GC-rich regions containing a CpG
+let candidates = read_fasta("promoter_candidates.fasta") |> collect()
+
+candidates
+  |> filter(|r| iupac_match(r.seq, "SSSSCGSSSS"))
+  |> map(|r| r.id)
+  |> print()</code></pre>
+
+        <h3>Validate restriction site sequences</h3>
+        <pre><code class="language-biolang"># Verify that a library of short oligos all conform to a degenerate design
+# Oligos should match the pattern NNRRNNYYNN (degenerate probe design)
+let oligos = [
+  dna"AAGGAATTAT",
+  dna"TTGGCCTTAG",
+  dna"CCAACCTTAT",
+  dna"GGAAGATTAT",
+]
+
+let pattern = "NNRRNNYYNN"
+
+oligos
+  |> map(|oligo| {
+    seq:   str(oligo),
+    valid: iupac_match(oligo, pattern)
+  })
+  |> to_table()
+  |> print()</code></pre>
+
+        <hr>
+
+        <h2>Full Pipeline Example: Restriction Cloning Site Survey</h2>
+        <p>
+          Combine several advanced functions to characterise a cloning vector, find suitable
+          restriction sites, check insert compatibility, and flag repeat regions to avoid.
+        </p>
+        <pre><code class="language-biolang"># ── 1. Load vector and target insert ────────────────────────────────────────
+let vector = read_fasta("pUC19.fasta") |> first()
+let insert  = read_fasta("target_gene.fasta") |> first()
+
+# ── 2. Find unique cutters in the Multiple Cloning Site (MCS) ───────────────
+let mcs_start = 396
+let mcs_end   = 452
+let mcs       = vector.seq |> windows(mcs_end - mcs_start, mcs_end - mcs_start)
+                            |> filter(|w| w.pos == mcs_start)
+                            |> first()
+
+let all_in_vector = restriction_sites(vector.seq, "all")
+let unique_cutters = all_in_vector
+  |> map(|s| s.enzyme)
+  |> unique()
+  |> map(|enzyme| {
+    enzyme: enzyme,
+    sites: all_in_vector |> filter(|s| s.enzyme == enzyme)
+  })
+  |> filter(|group| len(group.sites) == 1)
+
+print("Unique cutters in pUC19:")
+unique_cutters |> map(|group| print(" ", group.enzyme, "at pos", group.sites[0].pos))
+
+# ── 3. Check that selected enzymes do NOT cut the insert ────────────────────
+let chosen = ["EcoRI", "HindIII"]
+
+chosen |> map(|enzyme| {
+  insert_sites: restriction_sites(insert.seq, enzyme),
+  enzyme:       enzyme
+})
+|> map(|r| print(r.enzyme, "cuts insert", len(r.insert_sites), "time(s)"))
+
+# ── 4. Scan the insert for low-complexity regions before cloning ─────────────
+let lc_regions = entropy(insert.seq, 80, 10)
+  |> filter(|w| w.entropy &lt; 1.4)
+
+print(len(lc_regions), "low-complexity windows in insert")
+lc_regions |> map(|w| print("  pos:", w.pos, "entropy:", w.entropy))
+
+# ── 5. Confirm restriction-site sequences match expected IUPAC patterns ──────
+print("Verifying EcoRI site pattern GAATTC:")
+restriction_sites(vector.seq, "EcoRI")
+  |> map(|s| print(" ", s.site, "valid:", iupac_match(s.site, "GAATTC")))</code></pre>
+
+        <h2>Full Pipeline Example: Bacterial oriC Prediction + DnaA Box Survey</h2>
+        <pre><code class="language-biolang"># ── 1. Load genome ───────────────────────────────────────────────────────────
+let genome = read_fasta("mycoplasma_genitalium.fasta") |> first()
+
+# ── 2. Predict oriC by GC skew minimum ──────────────────────────────────────
+let skew       = gc_skew(genome.seq, 5000)
+let oric_pred  = skew |> sort_by(|w| w.cumulative_skew) |> first()
+print("Predicted oriC:", oric_pred.pos, "–", oric_pred.end)
+
+# ── 3. Extract a 50 kb window around the predicted oriC ─────────────────────
+let flank    = 25000
+let oric_pos = oric_pred.pos
+let oric_seq = genome.seq |> windows(50000, 1)
+  |> filter(|w| w.pos == (oric_pos - flank))
+  |> first()
+
+# ── 4. Find DnaA boxes (with 1 mismatch) near the predicted oriC ─────────────
+let dnaa_boxes = find_pattern(oric_seq.seq, "TTATCCACA", 1)
+print(len(dnaa_boxes), "DnaA boxes near predicted oriC")
+dnaa_boxes
+  |> map(|h| {
+    genome_pos: oric_pos - flank + h.pos,
+    strand:     h.strand,
+    matched:    h.matched,
+    mismatches: h.mismatches
+  })
+  |> to_table()
+  |> print()
+
+# ── 5. Shannon entropy scan of the oriC window ───────────────────────────────
+entropy(oric_seq.seq, 100, 50)
+  |> filter(|w| w.entropy &lt; 1.5)
+  |> map(|w| {
+    genome_pos: oric_pos - flank + w.pos,
+    entropy:    w.entropy
+  })
+  |> to_table()
+  |> write_csv("oric_low_complexity.csv")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="motifs.html" class="text-violet-400 hover:text-violet-300">&larr; Motifs</a>

@@ -18,7 +18,7 @@ let fa_table = fasta("tests/data/test.fa", "table")
 println("FASTA record count: ", fa_table |> count())
 
 # Filter sequences longer than 50 bp
-let long_seqs = fa_table |> filter(|r| r.length > 50)
+let long_seqs = fa_table |> filter(|r| r.seq.length > 50)
 println("Sequences > 50 bp: ", long_seqs |> count())
 
 # Get GC content for each sequence
@@ -41,7 +41,7 @@ println("FASTQ record count: ", fq_table |> count())
 
 # Compute mean quality per read
 let qual_report = fq_table |> map(|r| {
-    { id: r.id, length: r.length, mean_qual: r.qual |> mean() }
+    { id: r.id, length: r.seq.length, mean_qual: r.qual |> mean() }
 })
 qual_report |> each(|r| {
     println("  ", r.id, " len=", r.length, " mean_Q=", r.mean_qual)
@@ -51,11 +51,11 @@ qual_report |> each(|r| {
 # Keep reads with mean quality >= 30 and length >= 50
 let hq_reads = fq_table
     |> filter(|r| r.qual |> mean() >= 30)
-    |> filter(|r| r.length >= 50)
+    |> filter(|r| r.seq.length >= 50)
 println("High-quality reads (Q>=30, len>=50): ", hq_reads |> count())
 
 # ── Length Distribution ───────────────────────────────────────
-let lengths = fq_table |> map(|r| r.length)
+let lengths = fq_table |> map(|r| r.seq.length)
 println("Read lengths: ", lengths)
 println("Min length:   ", lengths |> min())
 println("Max length:   ", lengths |> max())

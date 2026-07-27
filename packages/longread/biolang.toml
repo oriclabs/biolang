@@ -1,0 +1,5 @@
+[package]
+name = "longread"
+version = "0.1.0"
+description = "Long-read sequencing QC: Nanopore/PacBio FASTQ stats, N50, length histograms, quality filtering"
+authors = ["BioLang"]

@@ -9,7 +9,10 @@ use crate::config;
 use crate::error::{ApiError, Result};
 
 fn base_url() -> String {
-    config::resolve_url("biocontainers", "https://api.biocontainers.pro/ga4gh/trs/v2")
+    config::resolve_url(
+        "biocontainers",
+        "https://api.biocontainers.pro/ga4gh/trs/v2",
+    )
 }
 
 /// BioContainers GA4GH TRS v2 API client.

@@ -61,9 +61,7 @@ impl BioMartClient {
     /// List available datasets.
     pub fn list_datasets(&self) -> Result<Vec<Dataset>> {
         let base = base_url();
-        let url = format!(
-            "{base}?type=datasets&mart=ENSEMBL_MART_ENSEMBL"
-        );
+        let url = format!("{base}?type=datasets&mart=ENSEMBL_MART_ENSEMBL");
         let text = self.base.get_text(&url)?;
         let mut datasets = Vec::new();
         for line in text.lines() {
@@ -81,9 +79,7 @@ impl BioMartClient {
     /// List attributes for a dataset.
     pub fn list_attributes(&self, dataset: &str) -> Result<Vec<Attribute>> {
         let base = base_url();
-        let url = format!(
-            "{base}?type=attributes&dataset={dataset}"
-        );
+        let url = format!("{base}?type=attributes&dataset={dataset}");
         let text = self.base.get_text(&url)?;
         let mut attrs = Vec::new();
         for line in text.lines() {
@@ -101,9 +97,7 @@ impl BioMartClient {
     /// List filters for a dataset.
     pub fn list_filters(&self, dataset: &str) -> Result<Vec<Filter>> {
         let base = base_url();
-        let url = format!(
-            "{base}?type=filters&dataset={dataset}"
-        );
+        let url = format!("{base}?type=filters&dataset={dataset}");
         let text = self.base.get_text(&url)?;
         let mut filters = Vec::new();
         for line in text.lines() {
@@ -136,8 +130,7 @@ impl BioMartClient {
             if line.is_empty() || line.starts_with("[") {
                 continue;
             }
-            let cols: Vec<String> =
-                line.split('\t').map(|s| s.to_string()).collect();
+            let cols: Vec<String> = line.split('\t').map(|s| s.to_string()).collect();
             rows.push(cols);
         }
         Ok(rows)
@@ -161,12 +154,7 @@ impl BioMartClient {
     }
 
     /// Convenience: query genes by genomic region (human dataset).
-    pub fn genes_by_region(
-        &self,
-        chrom: &str,
-        start: u64,
-        end: u64,
-    ) -> Result<Vec<Vec<String>>> {
+    pub fn genes_by_region(&self, chrom: &str, start: u64, end: u64) -> Result<Vec<Vec<String>>> {
         self.query(
             "hsapiens_gene_ensembl",
             &[
@@ -193,11 +181,7 @@ impl Default for BioMartClient {
 }
 
 /// Build BioMart XML query.
-fn build_query_xml(
-    dataset: &str,
-    attributes: &[&str],
-    filters: &[(&str, &str)],
-) -> String {
+fn build_query_xml(dataset: &str, attributes: &[&str], filters: &[(&str, &str)]) -> String {
     let mut xml = String::from(
         r#"<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query virtualSchemaName="default" formatter="TSV" header="0" uniqueRows="0" count="" datasetConfigVersion="0.6">"#,
     );
@@ -205,9 +189,7 @@ fn build_query_xml(
         r#"<Dataset name="{dataset}" interface="default">"#
     ));
     for (name, value) in filters {
-        xml.push_str(&format!(
-            r#"<Filter name="{name}" value="{value}"/>"#
-        ));
+        xml.push_str(&format!(r#"<Filter name="{name}" value="{value}"/>"#));
     }
     for attr in attributes {
         xml.push_str(&format!(r#"<Attribute name="{attr}"/>"#));

@@ -38,8 +38,7 @@ fn test_parse_gff3_attributes_empty() {
 
 #[test]
 fn test_parse_gtf_attributes() {
-    let attrs =
-        parse_gtf_attributes("gene_id \"ENSG00000012048\"; gene_name \"BRCA1\";");
+    let attrs = parse_gtf_attributes("gene_id \"ENSG00000012048\"; gene_name \"BRCA1\";");
     assert_eq!(attrs.get("gene_id").unwrap(), "ENSG00000012048");
     assert_eq!(attrs.get("gene_name").unwrap(), "BRCA1");
 }
@@ -62,7 +61,8 @@ fn test_parse_gff_line_gff3() {
 
 #[test]
 fn test_parse_gff_line_gtf() {
-    let line = "chr1\tensembl\texon\t1000\t1500\t.\t+\t.\tgene_id \"ENSG001\"; transcript_id \"ENST001\"";
+    let line =
+        "chr1\tensembl\texon\t1000\t1500\t.\t+\t.\tgene_id \"ENSG001\"; transcript_id \"ENST001\"";
     let rec = parse_gff_line(line, GffFormat::Gtf).unwrap();
     assert_eq!(rec.feature_type, "exon");
     assert_eq!(rec.start, 1000);

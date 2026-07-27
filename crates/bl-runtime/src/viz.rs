@@ -62,7 +62,7 @@ pub(crate) fn nums_from_value(val: &Value, func: &str) -> Result<Vec<f64>> {
     match val {
         Value::List(items) => {
             let mut v = Vec::with_capacity(items.len());
-            for item in items {
+            for item in items.iter() {
                 match item {
                     Value::Int(n) => v.push(*n as f64),
                     Value::Float(f) => v.push(*f),
@@ -187,21 +187,33 @@ fn builtin_bar_chart(args: Vec<Value>) -> Result<Value> {
         }
         Value::List(items) => {
             // List of Records with label/value-like fields (e.g., from head() on a kmer stream)
-            items.iter().filter_map(|item| {
-                if let Value::Record(rec) = item {
-                    // Try common label/value field patterns
-                    let label = rec.get("kmer").or_else(|| rec.get("name")).or_else(|| rec.get("label"))
-                        .or_else(|| rec.get("key")).or_else(|| rec.get("id"));
-                    let value = rec.get("count").or_else(|| rec.get("value")).or_else(|| rec.get("score"))
-                        .or_else(|| rec.get("n"));
-                    match (label, value) {
-                        (Some(l), Some(v)) => Some((format!("{l}"), v.as_float().unwrap_or(0.0))),
-                        _ => None,
+            items
+                .iter()
+                .filter_map(|item| {
+                    if let Value::Record(rec) = item {
+                        // Try common label/value field patterns
+                        let label = rec
+                            .get("kmer")
+                            .or_else(|| rec.get("name"))
+                            .or_else(|| rec.get("label"))
+                            .or_else(|| rec.get("key"))
+                            .or_else(|| rec.get("id"));
+                        let value = rec
+                            .get("count")
+                            .or_else(|| rec.get("value"))
+                            .or_else(|| rec.get("score"))
+                            .or_else(|| rec.get("n"));
+                        match (label, value) {
+                            (Some(l), Some(v)) => {
+                                Some((format!("{l}"), v.as_float().unwrap_or(0.0)))
+                            }
+                            _ => None,
+                        }
+                    } else {
+                        None
                     }
-                } else {
-                    None
-                }
-            }).collect()
+                })
+                .collect()
         }
         Value::Stream(s) => {
             // Consume up to `limit` items from the stream
@@ -209,9 +221,16 @@ fn builtin_bar_chart(args: Vec<Value>) -> Result<Value> {
             for _ in 0..limit {
                 match s.next() {
                     Some(Value::Record(rec)) => {
-                        let label = rec.get("kmer").or_else(|| rec.get("name")).or_else(|| rec.get("label"))
-                            .or_else(|| rec.get("key")).or_else(|| rec.get("id"));
-                        let value = rec.get("count").or_else(|| rec.get("value")).or_else(|| rec.get("score"))
+                        let label = rec
+                            .get("kmer")
+                            .or_else(|| rec.get("name"))
+                            .or_else(|| rec.get("label"))
+                            .or_else(|| rec.get("key"))
+                            .or_else(|| rec.get("id"));
+                        let value = rec
+                            .get("count")
+                            .or_else(|| rec.get("value"))
+                            .or_else(|| rec.get("score"))
                             .or_else(|| rec.get("n"));
                         if let (Some(l), Some(v)) = (label, value) {
                             entries.push((format!("{l}"), v.as_float().unwrap_or(0.0)));
@@ -416,17 +435,22 @@ fn builtin_heatmap_ascii(args: Vec<Value>) -> Result<Value> {
             for (i, row_val) in rows.iter().enumerate() {
                 match row_val {
                     Value::List(cols) => {
-                        let row: Vec<f64> = cols.iter().map(|v| match v {
-                            Value::Int(n) => *n as f64,
-                            Value::Float(f) => *f,
-                            _ => f64::NAN,
-                        }).collect();
+                        let row: Vec<f64> = cols
+                            .iter()
+                            .map(|v| match v {
+                                Value::Int(n) => *n as f64,
+                                Value::Float(f) => *f,
+                                _ => f64::NAN,
+                            })
+                            .collect();
                         data.push(row);
                     }
-                    _ => return Err(BioLangError::type_error(
-                        &format!("heatmap_ascii() row {i} is not a list"),
-                        None,
-                    )),
+                    _ => {
+                        return Err(BioLangError::type_error(
+                            &format!("heatmap_ascii() row {i} is not a list"),
+                            None,
+                        ))
+                    }
                 }
             }
             let nrows = data.len();
@@ -460,11 +484,7 @@ fn builtin_heatmap_ascii(args: Vec<Value>) -> Result<Value> {
 
     let mut out = String::new();
     // Column header
-    out.push_str(&format!(
-        "  {:>w$}  ",
-        "",
-        w = max_row_label
-    ));
+    out.push_str(&format!("  {:>w$}  ", "", w = max_row_label));
     for col in &col_names {
         // Show first 2 chars of each column
         let label: String = col.chars().take(2).collect();
@@ -501,7 +521,7 @@ fn builtin_coverage(args: Vec<Value>) -> Result<Value> {
         Value::List(items) if !items.is_empty() && matches!(&items[0], Value::List(_)) => {
             // List<List<Int>> — interval pairs [start, end]
             let mut intervals: Vec<(i64, i64)> = Vec::new();
-            for item in items {
+            for item in items.iter() {
                 if let Value::List(pair) = item {
                     if pair.len() >= 2 {
                         let s = pair[0].as_float().unwrap_or(0.0) as i64;
@@ -513,12 +533,24 @@ fn builtin_coverage(args: Vec<Value>) -> Result<Value> {
 
             // Determine region from args or data
             let chrom_label = if args.len() > 1 {
-                if let Value::Str(s) = &args[1] { s.clone() } else { "region".to_string() }
-            } else { "region".to_string() };
-            let region_start = if args.len() > 2 { args[2].as_float().unwrap_or(0.0) as i64 }
-                else { intervals.iter().map(|i| i.0).min().unwrap_or(0) };
-            let region_end = if args.len() > 3 { args[3].as_float().unwrap_or(0.0) as i64 }
-                else { intervals.iter().map(|i| i.1).max().unwrap_or(1) };
+                if let Value::Str(s) = &args[1] {
+                    s.clone()
+                } else {
+                    "region".to_string()
+                }
+            } else {
+                "region".to_string()
+            };
+            let region_start = if args.len() > 2 {
+                args[2].as_float().unwrap_or(0.0) as i64
+            } else {
+                intervals.iter().map(|i| i.0).min().unwrap_or(0)
+            };
+            let region_end = if args.len() > 3 {
+                args[3].as_float().unwrap_or(0.0) as i64
+            } else {
+                intervals.iter().map(|i| i.1).max().unwrap_or(1)
+            };
 
             let span = (region_end - region_start).max(1) as usize;
             let mut depth = vec![0i64; span];
@@ -546,11 +578,18 @@ fn builtin_coverage(args: Vec<Value>) -> Result<Value> {
 
             let line = spark_str(&binned);
             let max_depth = depth.iter().max().unwrap_or(&0);
-            let mean_depth = if span > 0 { depth.iter().sum::<i64>() as f64 / span as f64 } else { 0.0 };
+            let mean_depth = if span > 0 {
+                depth.iter().sum::<i64>() as f64 / span as f64
+            } else {
+                0.0
+            };
             let mut out = String::new();
             out.push_str(&format!("  {chrom_label}:{region_start}-{region_end}\n"));
             out.push_str(&format!("  {line}\n"));
-            out.push_str(&format!("  max_depth={max_depth}  mean_depth={mean_depth:.1}  intervals={}\n", intervals.len()));
+            out.push_str(&format!(
+                "  max_depth={max_depth}  mean_depth={mean_depth:.1}  intervals={}\n",
+                intervals.len()
+            ));
             write_output(&out);
         }
         Value::List(_) => {
@@ -565,7 +604,9 @@ fn builtin_coverage(args: Vec<Value>) -> Result<Value> {
             let chrom_idx = table.col_index("chrom").or_else(|| table.col_index("chr"));
             let start_idx = table.col_index("start");
             let end_idx = table.col_index("end");
-            let val_idx = table.col_index("value").or_else(|| table.col_index("score"));
+            let val_idx = table
+                .col_index("value")
+                .or_else(|| table.col_index("score"));
 
             if chrom_idx.is_none() || start_idx.is_none() || end_idx.is_none() || val_idx.is_none()
             {
@@ -672,10 +713,10 @@ fn builtin_dotplot(args: Vec<Value>) -> Result<Value> {
         if let Value::Record(map) = &args[2] {
             map.clone()
         } else {
-            HashMap::new()
+            (HashMap::new()).into()
         }
     } else {
-        HashMap::new()
+        (HashMap::new()).into()
     };
 
     let window = get_opt_usize(&opts, "window", 5);
@@ -688,9 +729,7 @@ fn builtin_dotplot(args: Vec<Value>) -> Result<Value> {
     if s1.len() < window || s2.len() < window {
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
-            format!(
-                "dotplot() sequences must be >= window size ({window})"
-            ),
+            format!("dotplot() sequences must be >= window size ({window})"),
             None,
         ));
     }
@@ -722,7 +761,11 @@ fn builtin_dotplot(args: Vec<Value>) -> Result<Value> {
 
     let mut out = String::new();
     out.push_str("  Dotplot\n");
-    out.push_str(&format!("  seq1: {} bp  seq2: {} bp  window={window}\n", s1.len(), s2.len()));
+    out.push_str(&format!(
+        "  seq1: {} bp  seq2: {} bp  window={window}\n",
+        s1.len(),
+        s2.len()
+    ));
     for row in &grid {
         out.push_str("  ");
         for &cell in row {
@@ -787,8 +830,14 @@ fn dotplot_svg(
         canvas.add_circle(x_scale.map(x as f64), y_scale.map(y as f64), r, "#4e79a7");
     }
 
-    let d_x = Scale { domain: (0.0, n1), range: (0.0, n1) };
-    let d_y = Scale { domain: (0.0, n2), range: (0.0, n2) };
+    let d_x = Scale {
+        domain: (0.0, n1),
+        range: (0.0, n1),
+    };
+    let d_y = Scale {
+        domain: (0.0, n2),
+        range: (0.0, n2),
+    };
     canvas.draw_x_axis(&d_x, "Sequence 1");
     canvas.draw_y_axis(&d_y, "Sequence 2");
     canvas.draw_title("Dot Plot");
@@ -822,7 +871,11 @@ fn builtin_alignment_view(args: Vec<Value>) -> Result<Value> {
 
     // Parse reads from table
     let pos_idx = table.col_index("pos").ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::TypeError, "alignment_view() needs 'pos' column", None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "alignment_view() needs 'pos' column",
+            None,
+        )
     })?;
     let cigar_idx = table.col_index("cigar").ok_or_else(|| {
         BioLangError::runtime(
@@ -887,8 +940,7 @@ fn builtin_alignment_view(args: Vec<Value>) -> Result<Value> {
     let mut depth = vec![0u32; display_width];
     for read in &reads {
         let b0 = ((read.pos - view_start) as f64 / span * display_width as f64) as usize;
-        let b1 =
-            ((read.end - view_start) as f64 / span * display_width as f64).ceil() as usize;
+        let b1 = ((read.end - view_start) as f64 / span * display_width as f64).ceil() as usize;
         for b in b0..b1.min(display_width) {
             depth[b] += 1;
         }
@@ -987,10 +1039,8 @@ fn pack_lanes(
     let mut lane_ends: Vec<usize> = Vec::new(); // rightmost occupied column per lane
 
     for (ri, read) in reads.iter().enumerate() {
-        let b0 =
-            ((read.pos - view_start) as f64 / span * display_width as f64).round() as usize;
-        let b1 =
-            ((read.end - view_start) as f64 / span * display_width as f64).round() as usize;
+        let b0 = ((read.pos - view_start) as f64 / span * display_width as f64).round() as usize;
+        let b1 = ((read.end - view_start) as f64 / span * display_width as f64).round() as usize;
         let b1 = b1.min(display_width);
 
         // Find first lane where this read fits
@@ -1015,7 +1065,13 @@ fn pack_lanes(
 fn alignment_view_msa(seqs: &[Value]) -> Result<Value> {
     let strings: Vec<&str> = seqs
         .iter()
-        .filter_map(|v| if let Value::Str(s) = v { Some(s.as_str()) } else { None })
+        .filter_map(|v| {
+            if let Value::Str(s) = v {
+                Some(s.as_str())
+            } else {
+                None
+            }
+        })
         .collect();
 
     if strings.is_empty() {
@@ -1031,7 +1087,11 @@ fn alignment_view_msa(seqs: &[Value]) -> Result<Value> {
 
     // Build consensus line showing mismatches and gaps
     for (i, seq) in strings.iter().enumerate() {
-        out.push_str(&format!("  {:>width$}  ", format!("seq{}", i + 1), width = label_w));
+        out.push_str(&format!(
+            "  {:>width$}  ",
+            format!("seq{}", i + 1),
+            width = label_w
+        ));
         for (j, ch) in seq.chars().enumerate() {
             if i == 0 {
                 // Reference row: show as-is
@@ -1039,9 +1099,9 @@ fn alignment_view_msa(seqs: &[Value]) -> Result<Value> {
             } else {
                 let ref_ch = reference.chars().nth(j);
                 match ref_ch {
-                    Some(r) if r == ch => out.push('.'),  // match → dot
-                    _ if ch == '-' => out.push('-'),       // gap
-                    _ => out.push(ch),                     // mismatch → show base
+                    Some(r) if r == ch => out.push('.'), // match → dot
+                    _ if ch == '-' => out.push('-'),     // gap
+                    _ => out.push(ch),                   // mismatch → show base
                 }
             }
         }
@@ -1063,7 +1123,11 @@ fn alignment_view_msa(seqs: &[Value]) -> Result<Value> {
             out.push(' ');
         } else {
             let all_same = bases.iter().all(|&b| b == bases[0]);
-            if all_same { out.push('*'); } else { out.push(' '); }
+            if all_same {
+                out.push('*');
+            } else {
+                out.push(' ');
+            }
         }
     }
     out.push('\n');
@@ -1148,8 +1212,11 @@ fn builtin_quality_plot(args: Vec<Value>) -> Result<Value> {
     // Convert PHRED+33 quality string to list of quality scores
     let resolved_arg = match &args[0] {
         Value::Str(s) => {
-            let quals: Vec<Value> = s.bytes().map(|b| Value::Int((b.saturating_sub(33)) as i64)).collect();
-            Value::List(quals)
+            let quals: Vec<Value> = s
+                .bytes()
+                .map(|b| Value::Int((b.saturating_sub(33)) as i64))
+                .collect();
+            Value::List((quals).into())
         }
         other => other.clone(),
     };
@@ -1160,10 +1227,8 @@ fn builtin_quality_plot(args: Vec<Value>) -> Result<Value> {
             match &items[0] {
                 Value::Int(_) | Value::Float(_) => {
                     // Single read quality
-                    let quals: Vec<f64> = items
-                        .iter()
-                        .map(|v| v.as_float().unwrap_or(0.0))
-                        .collect();
+                    let quals: Vec<f64> =
+                        items.iter().map(|v| v.as_float().unwrap_or(0.0)).collect();
 
                     if format == "svg" {
                         let w = get_opt_f64(&opts, "width", 800.0);
@@ -1172,8 +1237,10 @@ fn builtin_quality_plot(args: Vec<Value>) -> Result<Value> {
                     }
 
                     // ASCII: per-base sparkline with quality zones
-                    let normalized: Vec<f64> =
-                        quals.iter().map(|&q| (q / 42.0).clamp(0.0, 1.0) * 42.0).collect();
+                    let normalized: Vec<f64> = quals
+                        .iter()
+                        .map(|&q| (q / 42.0).clamp(0.0, 1.0) * 42.0)
+                        .collect();
                     let line = spark_str(&normalized);
                     let mut out = String::new();
                     out.push_str("  Quality per base position\n");
@@ -1194,12 +1261,7 @@ fn builtin_quality_plot(args: Vec<Value>) -> Result<Value> {
                         .iter()
                         .filter_map(|v| {
                             if let Value::List(inner) = v {
-                                Some(
-                                    inner
-                                        .iter()
-                                        .map(|q| q.as_float().unwrap_or(0.0))
-                                        .collect(),
-                                )
+                                Some(inner.iter().map(|q| q.as_float().unwrap_or(0.0)).collect())
                             } else {
                                 None
                             }
@@ -1214,7 +1276,8 @@ fn builtin_quality_plot(args: Vec<Value>) -> Result<Value> {
                             .iter()
                             .filter_map(|r| r.get(pos).copied())
                             .collect();
-                        col_vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                        col_vals
+                            .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                         let med = if col_vals.is_empty() {
                             0.0
                         } else {
@@ -1286,18 +1349,24 @@ fn quality_svg_single(quals: &[f64], width: f64, height: f64) -> Result<Value> {
     let bottom_y = y_scale.map(0.0);
 
     canvas.add_rect(
-        canvas.margin.left, green_y,
-        canvas.plot_width(), yellow_y - green_y,
+        canvas.margin.left,
+        green_y,
+        canvas.plot_width(),
+        yellow_y - green_y,
         "#e8f5e9",
     );
     canvas.add_rect(
-        canvas.margin.left, yellow_y,
-        canvas.plot_width(), red_y - yellow_y,
+        canvas.margin.left,
+        yellow_y,
+        canvas.plot_width(),
+        red_y - yellow_y,
         "#fff8e1",
     );
     canvas.add_rect(
-        canvas.margin.left, red_y,
-        canvas.plot_width(), bottom_y - red_y,
+        canvas.margin.left,
+        red_y,
+        canvas.plot_width(),
+        bottom_y - red_y,
         "#ffebee",
     );
 
@@ -1317,8 +1386,14 @@ fn quality_svg_single(quals: &[f64], width: f64, height: f64) -> Result<Value> {
         canvas.add_rect(x, y, bar_w * 0.8, h, color);
     }
 
-    let d_x = Scale { domain: (0.0, n), range: (0.0, n) };
-    let d_y = Scale { domain: (0.0, 42.0), range: (0.0, 42.0) };
+    let d_x = Scale {
+        domain: (0.0, n),
+        range: (0.0, n),
+    };
+    let d_y = Scale {
+        domain: (0.0, 42.0),
+        range: (0.0, 42.0),
+    };
     canvas.draw_x_axis(&d_x, "Position");
     canvas.draw_y_axis(&d_y, "Phred Quality");
     canvas.draw_title("Quality Scores");
@@ -1351,18 +1426,24 @@ fn quality_svg_multi(
     let bottom_y = y_scale.map(0.0);
 
     canvas.add_rect(
-        canvas.margin.left, green_y,
-        canvas.plot_width(), yellow_y - green_y,
+        canvas.margin.left,
+        green_y,
+        canvas.plot_width(),
+        yellow_y - green_y,
         "#e8f5e9",
     );
     canvas.add_rect(
-        canvas.margin.left, yellow_y,
-        canvas.plot_width(), red_y - yellow_y,
+        canvas.margin.left,
+        yellow_y,
+        canvas.plot_width(),
+        red_y - yellow_y,
         "#fff8e1",
     );
     canvas.add_rect(
-        canvas.margin.left, red_y,
-        canvas.plot_width(), bottom_y - red_y,
+        canvas.margin.left,
+        red_y,
+        canvas.plot_width(),
+        bottom_y - red_y,
         "#ffebee",
     );
 
@@ -1382,8 +1463,14 @@ fn quality_svg_multi(
         canvas.add_rect(x, y, bar_w * 0.8, h, color);
     }
 
-    let d_x = Scale { domain: (0.0, n), range: (0.0, n) };
-    let d_y = Scale { domain: (0.0, 42.0), range: (0.0, 42.0) };
+    let d_x = Scale {
+        domain: (0.0, n),
+        range: (0.0, n),
+    };
+    let d_y = Scale {
+        domain: (0.0, 42.0),
+        range: (0.0, 42.0),
+    };
     canvas.draw_x_axis(&d_x, "Position");
     canvas.draw_y_axis(&d_y, "Phred Quality (Median)");
     canvas.draw_title("Per-Position Quality");
@@ -1400,4 +1487,3 @@ fn format_num(v: f64) -> String {
         format!("{v:.2}")
     }
 }
-

@@ -130,18 +130,12 @@ The plugin should clean up resources and exit.
 ### From a Directory
 
 ```bash
-bl add ./my-plugins/blast-wrapper
+bl add blast-wrapper --path ./my-plugins/blast-wrapper
 ```
 
-This copies (or symlinks) the plugin into `~/.biolang/plugins/blast-wrapper/`.
-
-### From a Git Repository
-
-```bash
-bl add https://github.com/lab/biolang-deseq2.git
-```
-
-BioLang clones the repository into the plugins directory.
+This copies the local plugin into `~/.biolang/plugins/blast-wrapper/`. The
+current `bl add` command accepts a local path; clone a Git repository first,
+then pass its directory with `--path`.
 
 ### Removing Plugins
 
@@ -167,7 +161,8 @@ Both show the plugin name, version, kind, and available functions.
 
 Once installed, import a plugin by name and call its functions.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 import "blast-wrapper"
 
 # Build a custom database
@@ -322,8 +317,9 @@ if __name__ == "__main__":
 
 Install and use:
 
-```biolang
-bl add ./blast-wrapper
+```text
+# Conceptual or diagnostic example; not directly executable.
+bl add blast-wrapper --path ./blast-wrapper
 
 # In a BioLang script:
 import "blast-wrapper"
@@ -495,10 +491,11 @@ close(con)
 
 ### Using the DESeq2 Plugin
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # requires: internet connection (for ncbi_gene calls below)
 # requires: NCBI_API_KEY (optional, increases rate limit)
-bl add ./deseq2-plugin
+bl add deseq2 --path ./deseq2-plugin
 
 # In a BioLang script:
 import "deseq2"

@@ -77,9 +77,10 @@ print(f"Method: {entry.method}, Resolution: {entry.resolution}")
 # ── 7. Multi-Database Gene Report ────────────────────────────
 
 fn gene_report(symbol) {
-  print(f"\n{'=' * 50}")
+  let divider = str_repeat("=", 50)
+  print(f"\n{divider}")
   print(f"Report for {symbol}")
-  print(f"{'=' * 50}")
+  print(divider)
 
   let ncbi = ncbi_gene(symbol)
   print(f"NCBI Gene ID: {ncbi.id}")

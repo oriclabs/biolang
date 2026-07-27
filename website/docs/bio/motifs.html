@@ -191,6 +191,87 @@ print("PWM built from", len(seqs), "sequences")
 let target_seq = read_fasta("data/sequences.fasta") |> first()
 let hits = pwm_scan(target_seq.seq, matrix, 0.8)
 print(len(hits), "PWM hits found")</code></pre>
+
+        <h2>find_pattern</h2>
+        <p>
+          <code>find_pattern</code> is the enhanced IUPAC-aware pattern search that scans
+          <strong>both strands</strong> and supports <strong>mismatch tolerance</strong>.
+          It supersedes <code>find_motif</code> for most use cases, returning rich records
+          rather than bare integer positions.
+        </p>
+        <p>Return type: <code>List&lt;{pos, strand, matched, mismatches}&gt;</code></p>
+        <ul>
+          <li><code>pos</code> — 0-based start position on the forward strand</li>
+          <li><code>strand</code> — <code>"+"</code> or <code>"-"</code></li>
+          <li><code>matched</code> — the actual substring that matched (reverse-complemented for <code>"-"</code> hits)</li>
+          <li><code>mismatches</code> — number of mismatches relative to the pattern (0 for exact matches)</li>
+        </ul>
+
+        <h3>Simple exact search</h3>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGTTCGATCG"
+
+# Exact match on both strands, max_mismatches defaults to 0
+let hits = find_pattern(seq, "ATCG")
+
+hits |> map(|h| print(h.pos, h.strand, h.matched))
+# 0  +  ATCG
+# 4  -  ATCG   (reverse-complement hit)
+# 8  +  ATCG
+# ...</code></pre>
+
+        <h3>Mismatch-tolerant search</h3>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGTTCGATCG"
+
+# Allow up to 1 mismatch
+let hits = find_pattern(seq, "ATCG", 1)
+
+hits |> map(|h| {
+  pos:        h.pos,
+  strand:     h.strand,
+  matched:    h.matched,
+  mismatches: h.mismatches
+}) |> to_table() |> print()</code></pre>
+
+        <h3>Biological example: transcription factor binding sites with a degenerate consensus</h3>
+        <pre><code class="language-biolang"># NF-κB canonical site: GGGRNNTCC
+# R = A|G, N = any base
+let promoter = dna"TTAGGGAAATCCAAAGGGCGGTCCTTAG"
+
+# Exact IUPAC match
+let nfkb_hits = find_pattern(promoter, "GGGRNNTCC")
+print(len(nfkb_hits), "canonical NF-κB sites found")
+
+# Relaxed search — tolerate a single mismatch
+let nfkb_fuzzy = find_pattern(promoter, "GGGRNNTCC", 1)
+print(len(nfkb_fuzzy), "sites found with ≤1 mismatch")
+
+nfkb_fuzzy |> map(|h| {
+  position:   h.pos,
+  strand:     h.strand,
+  sequence:   h.matched,
+  mismatches: h.mismatches
+}) |> to_table() |> print()</code></pre>
+
+        <h3>Difference from find_motif</h3>
+        <p>
+          <code>find_motif</code> returns a flat list of integer start positions and searches
+          the forward strand only. <code>find_pattern</code> returns structured records that
+          include strand, the actual matched substring, and a mismatch count, and it searches
+          both strands automatically. Use <code>find_motif</code> when you only need
+          forward-strand positions; use <code>find_pattern</code> when you need dual-strand
+          coverage, IUPAC-tolerant fuzzy matching, or richer result metadata.
+        </p>
+        <pre><code class="language-biolang">let seq = dna"ATCGATCGTTCGATCG"
+
+# find_motif: forward strand only, returns List&lt;Int&gt;
+let positions = find_motif(seq, "ATCG")
+# [0, 4, 12]  — integer positions
+
+# find_pattern: both strands, returns List&lt;{pos, strand, matched, mismatches}&gt;
+let records = find_pattern(seq, "ATCG")
+# [{pos:0, strand:"+", matched:"ATCG", mismatches:0},
+#  {pos:4, strand:"-", matched:"ATCG", mismatches:0},
+#  ...]</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="alignment.html" class="text-violet-400 hover:text-violet-300">&larr; Alignment</a>

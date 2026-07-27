@@ -49,7 +49,11 @@ fn test_t_test() {
 
 #[test]
 fn test_anova() {
-    let groups = vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0], vec![7.0, 8.0, 9.0]];
+    let groups = vec![
+        vec![1.0, 2.0, 3.0],
+        vec![4.0, 5.0, 6.0],
+        vec![7.0, 8.0, 9.0],
+    ];
     let result = anova(&groups).unwrap();
     assert!((result.f_statistic - 27.0).abs() < 1.0);
     assert!(result.p_value < 0.01);
@@ -100,7 +104,11 @@ fn test_wilcoxon() {
 
 #[test]
 fn test_kruskal_wallis() {
-    let groups = vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0], vec![7.0, 8.0, 9.0]];
+    let groups = vec![
+        vec![1.0, 2.0, 3.0],
+        vec![4.0, 5.0, 6.0],
+        vec![7.0, 8.0, 9.0],
+    ];
     let result = kruskal_wallis_test(&groups).unwrap();
     assert!(result.h_statistic > 5.0);
     assert!(result.p_value < 0.05);
@@ -109,8 +117,16 @@ fn test_kruskal_wallis() {
 #[test]
 fn test_pca() {
     let matrix = vec![
-        vec![1.0, 1.1], vec![2.0, 2.1], vec![3.0, 2.9], vec![4.0, 4.1], vec![5.0, 5.0],
-        vec![6.0, 5.9], vec![7.0, 7.1], vec![8.0, 8.0], vec![9.0, 9.1], vec![10.0, 10.0],
+        vec![1.0, 1.1],
+        vec![2.0, 2.1],
+        vec![3.0, 2.9],
+        vec![4.0, 4.1],
+        vec![5.0, 5.0],
+        vec![6.0, 5.9],
+        vec![7.0, 7.1],
+        vec![8.0, 8.0],
+        vec![9.0, 9.1],
+        vec![10.0, 10.0],
     ];
     let result = principal_component_analysis(&matrix, 2).unwrap();
     assert!(result.explained_variance_ratio[0] > 0.90);

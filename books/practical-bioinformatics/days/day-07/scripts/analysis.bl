@@ -126,7 +126,7 @@ print(f"Exons (streaming): {exon_stream}")
 print("")
 print("--- 5. BAM: Alignments ---")
 
-let alignments = read_bam("data/alignments.bam")
+let alignments = read_sam("data/alignments.sam")
 print(f"Total alignments: {len(alignments)}")
 
 let mapped = alignments |> filter(|r| r.is_mapped)
@@ -139,7 +139,7 @@ print(f"Mean MAPQ: {round(mean(mapqs), 1)}")
 print(f"High quality (MAPQ >= 30): {len(mapqs |> filter(|q| q >= 30))}")
 
 # Streaming mapped count
-let mapped_stream = bam("data/alignments.bam")
+let mapped_stream = sam("data/alignments.sam")
     |> filter(|r| r.is_mapped)
     |> count()
 print(f"Mapped reads (streaming): {mapped_stream}")

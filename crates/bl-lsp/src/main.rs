@@ -1,5 +1,5 @@
-mod backend;
 mod analysis;
+mod backend;
 mod diagnostics;
 
 use backend::BioLangBackend;

@@ -51,6 +51,6 @@ let seq = dna"ATCGATCGATCGTAGCTAGCTAGCTAGCTGATCGATCG"
 print("\nSequence: " + str(seq))
 print("Length: " + str(len(seq)))
 print("GC content: " + str(gc(seq)))
-print("Reverse complement: " + str(rev_comp(seq)))
+print("Reverse complement: " + str(reverse_complement(seq)))
 
 print("\n--- Quickstart complete! ---")

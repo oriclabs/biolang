@@ -24,9 +24,12 @@ pub(crate) fn shared_agent() -> &'static ureq::Agent {
 /// Checks ALL_PROXY, all_proxy, HTTPS_PROXY, https_proxy, HTTP_PROXY, http_proxy in order.
 fn proxy_from_env() -> Option<ureq::Proxy> {
     for var in &[
-        "ALL_PROXY", "all_proxy",
-        "HTTPS_PROXY", "https_proxy",
-        "HTTP_PROXY", "http_proxy",
+        "ALL_PROXY",
+        "all_proxy",
+        "HTTPS_PROXY",
+        "https_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
     ] {
         if let Ok(val) = std::env::var(var) {
             if !val.is_empty() {
@@ -56,7 +59,13 @@ pub fn http_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_http_builtin(name: &str) -> bool {
     matches!(
         name,
-        "http_get" | "http_post" | "download" | "upload" | "ref_genome" | "bio_fetch" | "bio_sources"
+        "http_get"
+            | "http_post"
+            | "download"
+            | "upload"
+            | "ref_genome"
+            | "bio_fetch"
+            | "bio_sources"
     )
 }
 
@@ -107,7 +116,7 @@ fn apply_headers(
 
 fn extract_headers(val: &Value, func: &str) -> Result<HashMap<String, Value>> {
     match val {
-        Value::Record(m) | Value::Map(m) => Ok(m.clone()),
+        Value::Record(m) | Value::Map(m) => Ok((m).as_ref().clone()),
         other => Err(BioLangError::type_error(
             format!("{func}() headers must be Record, got {}", other.type_of()),
             None,
@@ -124,14 +133,18 @@ fn response_to_value(resp: ureq::Response) -> Result<Value> {
         }
     }
     let body = resp.into_string().map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("failed to read response body: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("failed to read response body: {e}"),
+            None,
+        )
     })?;
 
     let mut rec = HashMap::new();
     rec.insert("status".to_string(), Value::Int(status as i64));
     rec.insert("body".to_string(), Value::Str(body));
-    rec.insert("headers".to_string(), Value::Record(resp_headers));
-    Ok(Value::Record(rec))
+    rec.insert("headers".to_string(), Value::Record((resp_headers).into()));
+    Ok(Value::Record((rec).into()))
 }
 
 fn builtin_http_get(args: Vec<Value>) -> Result<Value> {
@@ -203,9 +216,7 @@ fn download_with_progress(url: &str, path: &str, func: &str) -> Result<Value> {
     })?;
 
     // Get content-length for progress
-    let total: Option<u64> = resp
-        .header("content-length")
-        .and_then(|s| s.parse().ok());
+    let total: Option<u64> = resp.header("content-length").and_then(|s| s.parse().ok());
 
     let mut file = std::fs::File::create(path).map_err(|e| {
         BioLangError::runtime(
@@ -222,13 +233,21 @@ fn download_with_progress(url: &str, path: &str, func: &str) -> Result<Value> {
 
     loop {
         let n = std::io::Read::read(&mut reader, &mut buf).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("{func}() read error: {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("{func}() read error: {e}"),
+                None,
+            )
         })?;
         if n == 0 {
             break;
         }
         file.write_all(&buf[..n]).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("{func}() write error: {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("{func}() write error: {e}"),
+                None,
+            )
         })?;
         downloaded += n as u64;
 
@@ -257,7 +276,7 @@ fn download_with_progress(url: &str, path: &str, func: &str) -> Result<Value> {
     rec.insert("path".to_string(), Value::Str(path.to_string()));
     rec.insert("size".to_string(), Value::Int(downloaded as i64));
     rec.insert("url".to_string(), Value::Str(url.to_string()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 fn format_bytes(bytes: u64) -> String {
@@ -305,7 +324,7 @@ fn builtin_upload(args: Vec<Value>) -> Result<Value> {
     rec.insert("status".to_string(), Value::Int(status as i64));
     rec.insert("size".to_string(), Value::Int(size as i64));
     rec.insert("body".to_string(), Value::Str(body));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── Reference Genome Downloads ──────────────────────────────────
@@ -350,7 +369,7 @@ fn builtin_ref_genome(args: Vec<Value>) -> Result<Value> {
                 let mut rec = HashMap::new();
                 rec.insert("name".to_string(), Value::Str(name.to_string()));
                 rec.insert("description".to_string(), Value::Str(desc.to_string()));
-                Value::Record(rec)
+                Value::Record((rec).into())
             })
             .collect();
         // Deduplicate by name
@@ -366,7 +385,7 @@ fn builtin_ref_genome(args: Vec<Value>) -> Result<Value> {
                 true
             })
             .collect();
-        return Ok(Value::List(items));
+        return Ok(Value::List((items).into()));
     }
 
     // Find the genome
@@ -403,13 +422,16 @@ fn builtin_ref_genome(args: Vec<Value>) -> Result<Value> {
         let meta = std::fs::metadata(&dest).ok();
         let size = meta.map(|m| m.len()).unwrap_or(0);
         if size > 0 {
-            eprintln!("  ref_genome: {name_lower} already exists at {dest} ({})", format_bytes(size));
+            eprintln!(
+                "  ref_genome: {name_lower} already exists at {dest} ({})",
+                format_bytes(size)
+            );
             let mut rec = HashMap::new();
             rec.insert("path".to_string(), Value::Str(dest));
             rec.insert("name".to_string(), Value::Str(name_lower));
             rec.insert("description".to_string(), Value::Str(desc.to_string()));
             rec.insert("cached".to_string(), Value::Bool(true));
-            return Ok(Value::Record(rec));
+            return Ok(Value::Record((rec).into()));
         }
     }
 
@@ -418,9 +440,10 @@ fn builtin_ref_genome(args: Vec<Value>) -> Result<Value> {
 
     // Enrich with genome info
     if let Value::Record(mut rec) = result {
-        rec.insert("name".to_string(), Value::Str(name_lower));
-        rec.insert("description".to_string(), Value::Str(desc.to_string()));
-        rec.insert("cached".to_string(), Value::Bool(false));
+        let rec_mut = std::sync::Arc::make_mut(&mut rec);
+        rec_mut.insert("name".to_string(), Value::Str(name_lower));
+        rec_mut.insert("description".to_string(), Value::Str(desc.to_string()));
+        rec_mut.insert("cached".to_string(), Value::Bool(false));
         Ok(Value::Record(rec))
     } else {
         Ok(result)
@@ -546,9 +569,7 @@ fn builtin_bio_fetch(args: Vec<Value>) -> Result<Value> {
             // Suggest close matches
             let mut suggestions: Vec<&str> = BIO_SOURCES
                 .iter()
-                .filter(|(n, _, _, _, _)| {
-                    n.contains(&name_lower) || name_lower.contains(*n)
-                })
+                .filter(|(n, _, _, _, _)| n.contains(&name_lower) || name_lower.contains(*n))
                 .map(|(n, _, _, _, _)| *n)
                 .collect();
             suggestions.truncate(5);
@@ -591,7 +612,7 @@ fn builtin_bio_fetch(args: Vec<Value>) -> Result<Value> {
             rec.insert("category".to_string(), Value::Str(category.to_string()));
             rec.insert("description".to_string(), Value::Str(desc.to_string()));
             rec.insert("cached".to_string(), Value::Bool(true));
-            return Ok(Value::Record(rec));
+            return Ok(Value::Record((rec).into()));
         }
     }
 
@@ -599,10 +620,11 @@ fn builtin_bio_fetch(args: Vec<Value>) -> Result<Value> {
     let result = download_with_progress(url, &dest, "bio_fetch")?;
 
     if let Value::Record(mut rec) = result {
-        rec.insert("name".to_string(), Value::Str(name_lower));
-        rec.insert("category".to_string(), Value::Str(category.to_string()));
-        rec.insert("description".to_string(), Value::Str(desc.to_string()));
-        rec.insert("cached".to_string(), Value::Bool(false));
+        let rec_mut = std::sync::Arc::make_mut(&mut rec);
+        rec_mut.insert("name".to_string(), Value::Str(name_lower));
+        rec_mut.insert("category".to_string(), Value::Str(category.to_string()));
+        rec_mut.insert("description".to_string(), Value::Str(desc.to_string()));
+        rec_mut.insert("cached".to_string(), Value::Bool(false));
         Ok(Value::Record(rec))
     } else {
         Ok(result)
@@ -689,8 +711,11 @@ mod tests {
     #[test]
     fn test_extract_headers() {
         let mut map = HashMap::new();
-        map.insert("Content-Type".to_string(), Value::Str("application/json".into()));
-        let headers = extract_headers(&Value::Record(map), "test").unwrap();
+        map.insert(
+            "Content-Type".to_string(),
+            Value::Str("application/json".into()),
+        );
+        let headers = extract_headers(&Value::Record((map).into()), "test").unwrap();
         assert_eq!(
             headers.get("Content-Type"),
             Some(&Value::Str("application/json".into()))

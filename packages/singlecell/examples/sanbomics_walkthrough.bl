@@ -1,0 +1,176 @@
+# sanbomics_walkthrough.bl
+#
+# A BioLang recreation of the Sanbomics "Complete single-cell RNAseq analysis
+# walkthrough" (https://www.youtube.com/watch?v=uvyG9yLuNSE), which does the
+# standard Scanpy pipeline. Each step is annotated with its Scanpy equivalent.
+#
+# It runs on a self-contained synthetic PBMC-like dataset (T cells, B cells,
+# monocytes) so there is nothing to download — swap the "Load" step for
+# `read_anndata("your_data.zarr")` to use real data.
+#
+# Run:  BIOLANG_PATH=<repo>/packages  bl run sanbomics_walkthrough.bl
+
+import "singlecell/src/mod" as sc
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 0. Synthetic data: 90 cells (30 T / 30 B / 30 Monocyte) × 24 genes.
+#    Marker genes for a cell's type are highly expressed; MT- genes let the
+#    QC step compute a mitochondrial fraction.
+# ─────────────────────────────────────────────────────────────────────────────
+
+let gene_names = [
+  "CD3D","CD3E","CD3G","TRAC","CD8A","IL7R","CCL5",          # 0-6  T cell
+  "MS4A1","CD79A","CD79B","CD19","HLA-DRA","IGHM","BANK1",    # 7-13 B cell
+  "LYZ","CD14","FCN1","S100A8","S100A9","CST3","VCAN",        # 14-20 Monocyte
+  "MT-ND1","MT-CO1","MT-ATP6"                                 # 21-23 mitochondrial
+]
+
+fn gene_program(j) {
+  if j < 7 then 0 else if j < 14 then 1 else if j < 21 then 2 else 3
+}
+fn cell_type(i) {
+  if i < 30 then 0 else if i < 60 then 1 else 2
+}
+
+# Deterministic pseudo-counts (reproducible): high for on-type markers, low
+# otherwise, moderate for mitochondrial genes.
+fn synth_count(i, j) {
+  let p = gene_program(j)
+  let t = cell_type(i)
+  let hi = 8 + ((i * 7 + j * 13) % 5)
+  let lo = (i * 3 + j * 5) % 3
+  let mt = 1 + ((i + j) % 3)
+  let c = if p == 3 then mt else if p == t then hi else lo
+  c + 0.0
+}
+
+let n_cells = 90
+let matrix   = range(0, n_cells) |> map(|i| range(0, 24) |> map(|j| synth_count(i, j)))
+let barcodes = range(0, n_cells) |> map(|i| "Cell_" + str(i))
+let truth    = range(0, n_cells) |> map(|i| cell_type(i))   # ground-truth labels
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. Load  —  Scanpy: sc.read_h5ad(...) / sc.read_10x_mtx(...)
+#    Here we round-trip through native AnnData .zarr (pure-Rust, no HDF5) to
+#    mirror loading a real dataset.
+# ─────────────────────────────────────────────────────────────────────────────
+
+let raw = sc.from_matrix(matrix, gene_names, barcodes)
+write_anndata("pbmc_synth.zarr", raw)               # sc.write / adata.write_zarr
+let adata = read_anndata("pbmc_synth.zarr")          # sc.read
+println("Loaded: " + str(adata.n_cells) + " cells × " + str(adata.n_genes) + " genes")
+
+# Record which backend served the load (native vs container) + why.
+let _ = plan_backend("read_anndata_zarr")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. QC & filtering  —  Scanpy: sc.pp.calculate_qc_metrics + filtering
+#    (min genes/cells, mitochondrial %). Thresholds are small here because the
+#    toy set has 24 genes; real data uses e.g. min_genes=200, max_pct_mito=20.
+# ─────────────────────────────────────────────────────────────────────────────
+
+let qcd = sc.qc(adata)
+let filtered = sc.filter_cells(qcd, 3, 1000, 30.0)   # sc.pp.filter_cells
+                |> sc.filter_genes(3)                 # sc.pp.filter_genes
+println("After QC: " + str(filtered.n_cells) + " cells")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. Doublet scoring  —  Scanpy: sc.pp.scrublet
+# ─────────────────────────────────────────────────────────────────────────────
+
+let scored = sc.doublets(filtered, 200) |> sc.flag_doublets(0.8)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. Normalize + log1p  —  Scanpy: sc.pp.normalize_total + sc.pp.log1p
+# ─────────────────────────────────────────────────────────────────────────────
+
+let normed = sc.normalize(scored, 10000.0)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. Highly variable genes  —  Scanpy: sc.pp.highly_variable_genes
+# ─────────────────────────────────────────────────────────────────────────────
+
+let hvg = sc.variable_genes(normed, 15)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. Neighbors + clustering  —  Scanpy: sc.pp.neighbors + sc.tl.leiden
+#    BioLang now has a real Leiden (local moving + refinement + aggregation,
+#    connected communities). The cluster count is discovered from the data —
+#    not fixed — just like Scanpy. Exact labels still differ from leidenalg
+#    (RNG/graph construction), so validate by agreement (ARI), not identity.
+# ─────────────────────────────────────────────────────────────────────────────
+
+let graphed = sc.neighbors(hvg, 15)
+let clustered = sc.cluster_leiden(graphed, 15, 1.0)
+let n_clusters = (clustered.clusters |> unique |> len)
+println("Clusters found (Leiden): " + str(n_clusters))
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. Marker genes  —  Scanpy: sc.tl.rank_genes_groups(method="wilcoxon")
+#    marker_table is a real Wilcoxon rank-sum + BH-FDR (pairwise). Scanpy's
+#    default is one-vs-rest; here we compare cluster 0 vs cluster 1.
+# ─────────────────────────────────────────────────────────────────────────────
+
+let _ = plan_backend("differential_expression")
+let markers = sc.marker_table(clustered, 0, 1)
+let top = markers |> filter(|m| m.significant)
+println("Significant markers (cluster 0 vs 1): " + str(len(top)))
+for m in (top |> take(5)) {
+  println("  " + m.gene + "  log2fc=" + str(m.log2fc) + "  padj=" + str(m.padj))
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. Rule-based annotation  —  Scanpy: manual marker-based labeling
+#    Score each cluster by the mean expression of each cell-type program and
+#    assign the winning label.
+# ─────────────────────────────────────────────────────────────────────────────
+
+fn program_score(mat, cell_idx, lo, hi) {
+  let vals = cell_idx |> map(|i| range(lo, hi) |> map(|j| mat[i][j]) |> sum())
+  mean(vals)
+}
+
+fn annotate(obj, cl) {
+  let mat = obj.norm_matrix
+  let members = range(0, obj.n_cells) |> filter(|i| obj.clusters[i] == cl)
+  let t_score = program_score(mat, members, 0, 7)
+  let b_score = program_score(mat, members, 7, 14)
+  let m_score = program_score(mat, members, 14, 21)
+  if t_score >= b_score and t_score >= m_score then "T cell"
+  else if b_score >= m_score then "B cell"
+  else "Monocyte"
+}
+
+println("Cluster annotations:")
+for cl in [0, 1, 2] {
+  println("  cluster " + str(cl) + " → " + annotate(clustered, cl))
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 9. Validate against ground truth  —  agreement metric (ARI)
+#    Clustering can't match a reference element-wise, so measure agreement.
+# ─────────────────────────────────────────────────────────────────────────────
+
+let agreement = ari(truth, clustered.clusters)
+println("Cluster vs ground-truth ARI: " + str(agreement))
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. Provenance — every backend decision was logged to .biolang/provenance.json
+# ─────────────────────────────────────────────────────────────────────────────
+
+println("Provenance entries: " + str(len(provenance_log())))
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Reproduce the tutorial EXACTLY (needs a running container runtime)
+# ─────────────────────────────────────────────────────────────────────────────
+# The steps above run natively. To reproduce the video's *exact* numbers, run
+# the canonical tools in a container via the `scref` package — SOLO/scVI
+# doublets, the scVI latent, and leidenalg clustering are not natively
+# reproducible (trained models + RNG). Uncomment with docker/podman running:
+#
+#   import "scref/src/mod" as ref
+#   let dd  = ref.solo_doublets(scored)                 # SOLO (scVI) doublets
+#   let lat = ref.scvi_latent(normed, 10)               # scVI latent space
+#   let ref_clusters = ref.leidenalg_cluster(hvg, 1.0)  # exact leidenalg
+#   println("native-vs-reference cluster ARI: " +
+#           str(ari(clustered.clusters, ref_clusters.clusters)))

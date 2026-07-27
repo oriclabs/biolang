@@ -6,9 +6,11 @@ use std::collections::HashMap;
 
 #[test]
 fn test_json_parse_object() {
-    let result =
-        call_json_builtin("json_parse", vec![Value::Str(r#"{"a": 1, "b": "hi"}"#.into())])
-            .unwrap();
+    let result = call_json_builtin(
+        "json_parse",
+        vec![Value::Str(r#"{"a": 1, "b": "hi"}"#.into())],
+    )
+    .unwrap();
     if let Value::Record(map) = result {
         assert_eq!(map.get("a"), Some(&Value::Int(1)));
         assert_eq!(map.get("b"), Some(&Value::Str("hi".into())));
@@ -19,11 +21,10 @@ fn test_json_parse_object() {
 
 #[test]
 fn test_json_parse_array() {
-    let result =
-        call_json_builtin("json_parse", vec![Value::Str("[1, 2, 3]".into())]).unwrap();
+    let result = call_json_builtin("json_parse", vec![Value::Str("[1, 2, 3]".into())]).unwrap();
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into())
     );
 }
 
@@ -66,10 +67,10 @@ fn test_json_parse_nested_array() {
     let result = call_json_builtin("json_parse", vec![Value::Str(input.into())]).unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::List(vec![Value::Int(1), Value::Int(2)]),
-            Value::List(vec![Value::Int(3), Value::Int(4)]),
-        ])
+        Value::List((vec![
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+            Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
+        ]).into())
     );
 }
 
@@ -80,12 +81,12 @@ fn test_json_parse_mixed_nested() {
     if let Value::Record(map) = &result {
         assert_eq!(
             map.get("data"),
-            Some(&Value::List(vec![
+            Some(&Value::List((vec![
                 Value::Int(1),
                 Value::Str("two".into()),
                 Value::Nil,
                 Value::Bool(true),
-            ]))
+            ]).into()))
         );
         if let Some(Value::Record(meta)) = map.get("meta") {
             assert_eq!(meta.get("count"), Some(&Value::Int(4)));
@@ -110,7 +111,7 @@ fn test_json_parse_empty_object() {
 #[test]
 fn test_json_parse_empty_array() {
     let result = call_json_builtin("json_parse", vec![Value::Str("[]".into())]).unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
@@ -154,23 +155,17 @@ fn test_json_parse_invalid() {
 
 #[test]
 fn test_json_parse_trailing_comma() {
-    assert!(
-        call_json_builtin("json_parse", vec![Value::Str(r#"{"a": 1,}"#.into())]).is_err()
-    );
+    assert!(call_json_builtin("json_parse", vec![Value::Str(r#"{"a": 1,}"#.into())]).is_err());
 }
 
 #[test]
 fn test_json_parse_unquoted_key() {
-    assert!(
-        call_json_builtin("json_parse", vec![Value::Str(r#"{a: 1}"#.into())]).is_err()
-    );
+    assert!(call_json_builtin("json_parse", vec![Value::Str(r#"{a: 1}"#.into())]).is_err());
 }
 
 #[test]
 fn test_json_parse_single_quotes() {
-    assert!(
-        call_json_builtin("json_parse", vec![Value::Str("{'a': 1}".into())]).is_err()
-    );
+    assert!(call_json_builtin("json_parse", vec![Value::Str("{'a': 1}".into())]).is_err());
 }
 
 #[test]
@@ -189,7 +184,7 @@ fn test_json_parse_empty_string() {
 fn test_json_stringify_record() {
     let mut map = HashMap::new();
     map.insert("x".to_string(), Value::Int(42));
-    let result = call_json_builtin("json_stringify", vec![Value::Record(map)]).unwrap();
+    let result = call_json_builtin("json_stringify", vec![Value::Record((map).into())]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("\"x\""));
         assert!(s.contains("42"));
@@ -240,13 +235,13 @@ fn test_json_stringify_float() {
 
 #[test]
 fn test_json_stringify_list_mixed_types() {
-    let list = Value::List(vec![
+    let list = Value::List((vec![
         Value::Int(1),
         Value::Str("two".into()),
         Value::Bool(false),
         Value::Nil,
         Value::Float(3.5),
-    ]);
+    ]).into());
     let result = call_json_builtin("json_stringify", vec![list]).unwrap();
     if let Value::Str(s) = &result {
         // Parse it back to verify structure
@@ -269,12 +264,12 @@ fn test_json_stringify_deeply_nested_record() {
     inner.insert("z".to_string(), Value::Int(99));
 
     let mut middle = HashMap::new();
-    middle.insert("b".to_string(), Value::Record(inner));
+    middle.insert("b".to_string(), Value::Record((inner).into()));
 
     let mut outer = HashMap::new();
-    outer.insert("a".to_string(), Value::Record(middle));
+    outer.insert("a".to_string(), Value::Record((middle).into()));
 
-    let result = call_json_builtin("json_stringify", vec![Value::Record(outer)]).unwrap();
+    let result = call_json_builtin("json_stringify", vec![Value::Record((outer).into())]).unwrap();
     if let Value::Str(s) = &result {
         let parsed: serde_json::Value = serde_json::from_str(s).unwrap();
         assert_eq!(parsed["a"]["b"]["z"], serde_json::json!(99));
@@ -285,7 +280,7 @@ fn test_json_stringify_deeply_nested_record() {
 
 #[test]
 fn test_json_stringify_empty_list() {
-    let result = call_json_builtin("json_stringify", vec![Value::List(vec![])]).unwrap();
+    let result = call_json_builtin("json_stringify", vec![Value::List((vec![]).into())]).unwrap();
     if let Value::Str(s) = &result {
         assert_eq!(s.trim(), "[]");
     } else {
@@ -295,8 +290,7 @@ fn test_json_stringify_empty_list() {
 
 #[test]
 fn test_json_stringify_empty_record() {
-    let result =
-        call_json_builtin("json_stringify", vec![Value::Record(HashMap::new())]).unwrap();
+    let result = call_json_builtin("json_stringify", vec![Value::Record((HashMap::new()).into())]).unwrap();
     if let Value::Str(s) = &result {
         assert_eq!(s.trim(), "{}");
     } else {
@@ -308,11 +302,11 @@ fn test_json_stringify_empty_record() {
 
 #[test]
 fn test_json_roundtrip_list() {
-    let original = Value::List(vec![
+    let original = Value::List((vec![
         Value::Int(1),
         Value::Str("two".into()),
         Value::Bool(true),
-    ]);
+    ]).into());
     let json_str = call_json_builtin("json_stringify", vec![original.clone()]).unwrap();
     let parsed = call_json_builtin("json_parse", vec![json_str]).unwrap();
     assert_eq!(original, parsed);
@@ -325,8 +319,7 @@ fn test_json_roundtrip_record() {
     map.insert("value".to_string(), Value::Int(42));
     map.insert("flag".to_string(), Value::Bool(false));
 
-    let json_str =
-        call_json_builtin("json_stringify", vec![Value::Record(map)]).unwrap();
+    let json_str = call_json_builtin("json_stringify", vec![Value::Record((map).into())]).unwrap();
     let parsed = call_json_builtin("json_parse", vec![json_str]).unwrap();
     // Compare field-by-field since Record PartialEq doesn't compare HashMap contents
     if let Value::Record(rec) = &parsed {
@@ -342,21 +335,23 @@ fn test_json_roundtrip_record() {
 #[test]
 fn test_json_roundtrip_nested() {
     let mut inner = HashMap::new();
-    inner.insert("items".to_string(), Value::List(vec![Value::Int(1), Value::Int(2)]));
+    inner.insert(
+        "items".to_string(),
+        Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+    );
 
     let mut outer = HashMap::new();
-    outer.insert("data".to_string(), Value::Record(inner));
+    outer.insert("data".to_string(), Value::Record((inner).into()));
     outer.insert("count".to_string(), Value::Int(2));
 
-    let json_str =
-        call_json_builtin("json_stringify", vec![Value::Record(outer)]).unwrap();
+    let json_str = call_json_builtin("json_stringify", vec![Value::Record((outer).into())]).unwrap();
     let parsed = call_json_builtin("json_parse", vec![json_str]).unwrap();
     if let Value::Record(rec) = &parsed {
         assert_eq!(rec.get("count"), Some(&Value::Int(2)));
         if let Some(Value::Record(data)) = rec.get("data") {
             assert_eq!(
                 data.get("items"),
-                Some(&Value::List(vec![Value::Int(1), Value::Int(2)]))
+                Some(&Value::List((vec![Value::Int(1), Value::Int(2)]).into()))
             );
         } else {
             panic!("expected nested Record for 'data'");
@@ -380,12 +375,12 @@ fn test_json_double_roundtrip() {
     if let Value::Record(rec) = &final_val {
         assert_eq!(
             rec.get("key"),
-            Some(&Value::List(vec![
+            Some(&Value::List((vec![
                 Value::Int(1),
                 Value::Str("two".into()),
                 Value::Nil,
                 Value::Bool(true),
-            ]))
+            ]).into()))
         );
     } else {
         panic!("expected Record");
@@ -432,7 +427,7 @@ fn test_value_to_json_string() {
 
 #[test]
 fn test_value_to_json_list() {
-    let val = Value::List(vec![Value::Int(1), Value::Int(2)]);
+    let val = Value::List((vec![Value::Int(1), Value::Int(2)]).into());
     assert_eq!(value_to_json(&val), serde_json::json!([1, 2]));
 }
 

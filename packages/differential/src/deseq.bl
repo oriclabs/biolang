@@ -1,0 +1,227 @@
+# differential/src/deseq.bl — DESeq2-style normalization and Wald test
+#
+# Implements median-of-ratios normalization and a simple Wald test for
+# bulk RNA-seq and pseudo-bulk single-cell differential expression.
+#
+# Core builtins used: mean, variance, p_adjust, log2, sqrt, abs, round
+
+## size_factors(count_matrix) → List<Float>
+##
+## Compute per-sample DESeq2 size factors via the median-of-ratios method.
+## For each gene, calculate the geometric mean across all samples; then
+## for each sample, take the median of per-gene (count / geometric_mean) ratios.
+## Genes with a geometric mean of zero are excluded from the median.
+##
+## count_matrix — List of Records, each with a "gene" field and one numeric
+##                field per sample (column).
+fn size_factors(count_matrix) {
+    if len(count_matrix) == 0 {
+        return []
+    }
+
+    # Infer sample column names by excluding the "gene" field
+    let first_row = count_matrix[0]
+    let sample_cols = keys(first_row) |> filter(|k| k != "gene")
+    let n_samples = len(sample_cols)
+
+    # For each gene compute the geometric mean across samples (log-space mean)
+    # Genes with any zero count are skipped (geometric mean == 0)
+    let gene_geo_means = count_matrix |> map(|row| {
+        let log_vals = sample_cols |> map(|s| row[s])
+        let all_positive = log_vals |> filter(|v| v > 0)
+        if len(all_positive) < n_samples {
+            {gene: row.gene, geo_mean: 0.0}
+        } else {
+            let log_sum = log_vals |> map(|v| log2(v)) |> reduce(|a, b| a + b)
+            let geo_mean = 2.0 ** (log_sum / n_samples)
+            {gene: row.gene, geo_mean: geo_mean}
+        }
+    })
+
+    # For each sample, collect the ratio (count / geo_mean) over usable genes
+    # and take the median as the size factor
+    sample_cols |> map(|s| {
+        let ratios = count_matrix |> map(|row| {
+            let gm_entry = gene_geo_means |> filter(|g| g.gene == row.gene) |> first()
+            if gm_entry.geo_mean > 0.0 {
+                row[s] / gm_entry.geo_mean
+            } else {
+                nil
+            }
+        }) |> filter(|v| v != nil)
+
+        if len(ratios) == 0 {
+            1.0
+        } else {
+            let sorted = ratios |> sort()
+            let mid = len(sorted) / 2
+            if len(sorted) % 2 == 0 {
+                (sorted[mid - 1] + sorted[mid]) / 2.0
+            } else {
+                sorted[mid]
+            }
+        }
+    })
+}
+
+## deseq2_norm(count_matrix) → List<Record>
+##
+## Apply DESeq2 median-of-ratios normalization to a raw count matrix.
+## Returns the same structure as count_matrix with raw integer counts replaced
+## by normalized floating-point values.
+##
+## count_matrix — List of Records {gene, sample1, sample2, ...}
+fn deseq2_norm(count_matrix) {
+    if len(count_matrix) == 0 {
+        return []
+    }
+
+    let first_row = count_matrix[0]
+    let sample_cols = keys(first_row) |> filter(|k| k != "gene")
+    let sf = size_factors(count_matrix)
+
+    count_matrix |> map(|row| {
+        let normed = {}
+        let normed = {gene: row.gene}
+        let i = 0
+        for s in sample_cols {
+            let sf_val = sf[i]
+            let norm_count = if sf_val > 0.0 then round(row[s] / sf_val, 2) else 0.0
+            normed = {... normed, [s]: norm_count}
+            i = i + 1
+        }
+        normed
+    })
+}
+
+## pseudo_bulk(matrix, cell_labels, sample_labels) → List<Record>
+##
+## Aggregate single-cell expression to pseudo-bulk samples by summing counts
+## for each (sample, gene) combination. Returns a count matrix in the same
+## format as a bulk RNA-seq count table.
+##
+## matrix       — List<Record> with "gene" and one field per cell
+## cell_labels  — List<String> mapping each cell (column) to a cell-type label
+## sample_labels — List<String> mapping each cell to a sample/donor ID
+##
+## Returns: List<Record{gene, <sample_id>, ...}> (one column per unique sample)
+fn pseudo_bulk(matrix, cell_labels, sample_labels) {
+    if len(matrix) == 0 {
+        return []
+    }
+
+    let first_row = matrix[0]
+    let cell_cols = keys(first_row) |> filter(|k| k != "gene")
+
+    # Unique sample IDs
+    let unique_samples = sample_labels |> sort() |> unique()
+
+    # For each gene, sum counts per sample
+    matrix |> map(|row| {
+        let agg = {gene: row.gene}
+        let s_idx = 0
+        for sample_id in unique_samples {
+            # Identify cell indices belonging to this sample
+            let total = 0.0
+            let c_idx = 0
+            for cell_col in cell_cols {
+                if sample_labels[c_idx] == sample_id {
+                    total = total + row[cell_col]
+                }
+                c_idx = c_idx + 1
+            }
+            agg = {... agg, [sample_id]: total}
+            s_idx = s_idx + 1
+        }
+        agg
+    })
+}
+
+## de_wald(norm_counts, group_a_cols, group_b_cols) → List<Record>
+##
+## Simple Wald test for differential expression between two groups.
+## For each gene:
+##   - Computes log2 fold change (group_b / group_a, pseudocount 0.5)
+##   - Computes pooled t-test statistic and p-value approximation
+##   - Adjusts p-values using BH (Benjamini-Hochberg) via p_adjust()
+##
+## norm_counts    — normalized count matrix from deseq2_norm()
+## group_a_cols   — List<String> of sample column names for group A (reference)
+## group_b_cols   — List<String> of sample column names for group B (treatment)
+##
+## Returns: List<Record{gene, log2fc, mean_a, mean_b, pvalue, padj, significant}>
+fn de_wald(norm_counts, group_a_cols, group_b_cols) {
+    if len(norm_counts) == 0 {
+        return []
+    }
+
+    let pseudocount = 0.5
+
+    # Compute per-gene statistics
+    let gene_stats = norm_counts |> map(|row| {
+        let vals_a = group_a_cols |> map(|s| row[s])
+        let vals_b = group_b_cols |> map(|s| row[s])
+
+        let m_a = mean(vals_a)
+        let m_b = mean(vals_b)
+
+        # Log2 fold change with pseudocount
+        let lfc = log2((m_b + pseudocount) / (m_a + pseudocount))
+
+        # Variance per group
+        let var_a = variance(vals_a)
+        let var_b = variance(vals_b)
+        let n_a = len(vals_a)
+        let n_b = len(vals_b)
+
+        # Pooled standard error (Welch t-test)
+        let se = sqrt(var_a / n_a + var_b / n_b)
+
+        # t-statistic (0 if se is zero)
+        let t_stat = if se > 0.0 then lfc / se else 0.0
+
+        # Approximate two-tailed p-value from t-statistic magnitude
+        # Uses a simple lookup-table approximation (not a full t-distribution CDF)
+        let t_abs = abs(t_stat)
+        let pval = if t_abs >= 5.0 then 0.000001
+                   else if t_abs >= 4.0 then 0.00005
+                   else if t_abs >= 3.5 then 0.0005
+                   else if t_abs >= 3.0 then 0.003
+                   else if t_abs >= 2.5 then 0.012
+                   else if t_abs >= 2.0 then 0.046
+                   else if t_abs >= 1.5 then 0.134
+                   else if t_abs >= 1.0 then 0.317
+                   else 0.5 + t_abs * 0.1
+
+        {
+            gene: row.gene,
+            log2fc: round(lfc, 4),
+            mean_a: round(m_a, 2),
+            mean_b: round(m_b, 2),
+            t_stat: round(t_stat, 4),
+            pvalue: pval
+        }
+    })
+
+    # BH p-value adjustment
+    let pvalues = gene_stats |> map(|g| g.pvalue)
+    let padj_vals = p_adjust(pvalues, method = "BH")
+
+    # Assemble final results table
+    let n = len(gene_stats)
+    let result = []
+    for i in range(0, n) {
+        let g = gene_stats[i]
+        let padj = padj_vals[i]
+        result = append(result, {
+            gene: g.gene,
+            log2fc: g.log2fc,
+            mean_a: g.mean_a,
+            mean_b: g.mean_b,
+            pvalue: g.pvalue,
+            padj: round(padj, 6),
+            significant: padj < 0.05 and abs(g.log2fc) >= 1.0
+        })
+    }
+    result
+}

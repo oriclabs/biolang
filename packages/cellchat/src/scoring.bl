@@ -1,0 +1,26 @@
+# Pairwise ligand-receptor communication scoring between clusters.
+#
+# Core compute: lr_score() builtin — cells×genes matrix + cluster labels + index pairs
+# → Table with columns: sender, receiver, ligand_idx, receptor_idx, score
+
+fn compute_scores(obj, lr_pairs) {
+  let gene_list   = obj.genes
+  let matrix      = obj.matrix
+  let labels      = obj.clusters
+  let index_pairs = database.resolve_lr_pairs(lr_pairs, gene_list)
+    |> map(fn(p) -> [p[0], p[1]])
+  lr_score(matrix, labels, index_pairs)
+}
+
+fn compute_from_database(obj) {
+  let db = database.default_lr_database()
+  compute_scores(obj, db)
+}
+
+fn top_interactions(scores, n = 20) {
+  scores |> sort_by(fn(r) -> r.score, descending = true) |> take(n)
+}
+
+fn filter_by_cluster(scores, sender, receiver) {
+  scores |> filter(fn(r) -> r.sender == sender & r.receiver == receiver)
+}

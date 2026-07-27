@@ -148,7 +148,7 @@ let data = [
 
 # Break into named stages instead of one giant chain
 let high_scores = data |> filter(|r| r.score >= 80)
-let sorted = high_scores |> sort_by("score") |> reverse()
+let sorted = high_scores |> sort_by(|r| r.score) |> reverse()
 let names = sorted |> map(|r| r.name)
 
 println(f"Top scorers: {names}")</code></pre>

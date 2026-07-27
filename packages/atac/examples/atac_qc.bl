@@ -1,0 +1,19 @@
+import "atac" as atac
+
+# Fragment lengths from a filtered BAM (e.g. samtools view piped)
+# let frag_lengths = read_csv("fragments.tsv") |> col("tlen") |> map(fn(x) -> abs(x))
+
+# Full QC report
+# atac.qc(frag_lengths)
+
+# Fragment size histogram
+# atac.sizes(frag_lengths)
+
+# NFR enrichment score (> 1.5 = good quality)
+# atac.nfr(frag_lengths)
+
+# Nucleosome fraction breakdown
+# atac.nucleosomes(frag_lengths)
+
+# TSS enrichment (needs TSS distances per fragment)
+# atac.tss(frag_lengths, tss_distances, flank=2000)

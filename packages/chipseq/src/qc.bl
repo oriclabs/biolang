@@ -1,0 +1,26 @@
+# ChIP-seq / ATAC-seq QC metrics.
+
+fn frip(reads_in_peaks, total_reads) {
+  frip_score([], total_reads, reads_in_peaks)
+}
+
+fn tss_score(signal_values, flank=1000) {
+  tss_enrichment(signal_values, flank)
+}
+
+fn peak_size_distribution(peaks) {
+  peaks |> map(fn(r) -> r.end - r.start)
+}
+
+fn mean_peak_size(peaks) {
+  peak_size_distribution(peaks) |> mean
+}
+
+fn qc_report(peaks, reads_in_peaks, total_reads) {
+  {
+    n_peaks:        len(peaks),
+    mean_peak_size: mean_peak_size(peaks),
+    frip:           frip(reads_in_peaks, total_reads),
+    total_reads:    total_reads
+  }
+}

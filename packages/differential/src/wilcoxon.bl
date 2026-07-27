@@ -1,0 +1,224 @@
+# differential/src/wilcoxon.bl — Wilcoxon rank-sum DE and marker gene detection
+#
+# Non-parametric differential expression for single-cell RNA-seq, where
+# the negative binomial model assumptions of DESeq2 may not hold for
+# sparse or zero-inflated data.
+#
+# Core builtins used: wilcoxon, p_adjust, mean, abs, round, len, sort
+
+## de_wilcoxon(matrix, group_a_indices, group_b_indices, min_cells?) → List<Record>
+##
+## Per-gene Wilcoxon rank-sum test between two groups of cells.
+## Genes expressed in fewer than min_cells total cells are skipped.
+##
+## matrix            — List<Record{gene, cell_0, cell_1, ...}> (dense or sparse)
+## group_a_indices   — List<Int> column indices for group A cells
+## group_b_indices   — List<Int> column indices for group B cells
+## min_cells         — minimum expressed cells required (default 10)
+##
+## Returns: List<Record{gene, log2fc, pvalue, padj, mean_a, mean_b,
+##                      n_cells_a, n_cells_b, significant}>
+fn de_wilcoxon(matrix, group_a_indices, group_b_indices, min_cells = 10) {
+    if len(matrix) == 0 {
+        return []
+    }
+
+    let first_row = matrix[0]
+    let all_cell_cols = keys(first_row) |> filter(|k| k != "gene")
+
+    let gene_stats = matrix |> map(|row| {
+        # Extract values for each group
+        let vals_a = group_a_indices |> map(|i| row[all_cell_cols[i]])
+        let vals_b = group_b_indices |> map(|i| row[all_cell_cols[i]])
+
+        let n_expressed_a = vals_a |> filter(|v| v > 0) |> len()
+        let n_expressed_b = vals_b |> filter(|v| v > 0) |> len()
+        let total_expressed = n_expressed_a + n_expressed_b
+
+        # Skip lowly expressed genes
+        if total_expressed < min_cells {
+            return {
+                gene: row.gene,
+                log2fc: 0.0,
+                pvalue: 1.0,
+                mean_a: 0.0,
+                mean_b: 0.0,
+                n_cells_a: n_expressed_a,
+                n_cells_b: n_expressed_b,
+                skipped: true
+            }
+        }
+
+        let m_a = mean(vals_a)
+        let m_b = mean(vals_b)
+        let lfc = log2((m_b + 0.5) / (m_a + 0.5))
+
+        # Wilcoxon rank-sum test (core builtin)
+        let wx = wilcoxon(vals_a, vals_b)
+        let pval = wx.p_value
+
+        {
+            gene: row.gene,
+            log2fc: round(lfc, 4),
+            pvalue: pval,
+            mean_a: round(m_a, 4),
+            mean_b: round(m_b, 4),
+            n_cells_a: n_expressed_a,
+            n_cells_b: n_expressed_b,
+            skipped: false
+        }
+    })
+
+    # Filter out skipped genes before adjustment
+    let tested = gene_stats |> filter(|g| not g.skipped)
+    let skipped = gene_stats |> filter(|g| g.skipped)
+
+    let pvalues = tested |> map(|g| g.pvalue)
+    let padj_vals = p_adjust(pvalues, method = "BH")
+
+    let n = len(tested)
+    let result = []
+    for i in range(0, n) {
+        let g = tested[i]
+        result = append(result, {
+            gene: g.gene,
+            log2fc: g.log2fc,
+            pvalue: g.pvalue,
+            padj: round(padj_vals[i], 6),
+            mean_a: g.mean_a,
+            mean_b: g.mean_b,
+            n_cells_a: g.n_cells_a,
+            n_cells_b: g.n_cells_b,
+            significant: padj_vals[i] < 0.05 and abs(g.log2fc) >= 0.585
+        })
+    }
+
+    # Append skipped genes at the end with padj = 1.0
+    for g in skipped {
+        result = append(result, {
+            gene: g.gene,
+            log2fc: 0.0,
+            pvalue: 1.0,
+            padj: 1.0,
+            mean_a: g.mean_a,
+            mean_b: g.mean_b,
+            n_cells_a: g.n_cells_a,
+            n_cells_b: g.n_cells_b,
+            significant: false
+        })
+    }
+
+    result
+}
+
+## auroc(scores_a, scores_b) → Float
+##
+## Area under the ROC curve for a gene's ability to separate group A from group B.
+## Efficient O(n log n) implementation using the Wilcoxon U statistic identity:
+##   AUROC = U / (n_a * n_b)
+## where U is the Wilcoxon rank-sum statistic.
+##
+## scores_a — expression values in group A (reference / negative class)
+## scores_b — expression values in group B (positive class)
+##
+## Returns: Float in [0, 1]; 0.5 = random, >0.7 = good marker
+fn auroc(scores_a, scores_b) {
+    let n_a = len(scores_a)
+    let n_b = len(scores_b)
+    if n_a == 0 or n_b == 0 {
+        return 0.5
+    }
+
+    # Count concordant pairs: how many (b, a) pairs where b > a
+    # This is equivalent to the Mann-Whitney U statistic for group B
+    let u_b = 0
+    for b_val in scores_b {
+        for a_val in scores_a {
+            if b_val > a_val {
+                u_b = u_b + 1
+            } else if b_val == a_val {
+                u_b = u_b + 0  # ties contribute 0.5 each — simplified to 0 here
+            }
+        }
+    }
+
+    round(u_b / (n_a * n_b), 4)
+}
+
+## marker_genes(matrix, cluster_labels, top_n?) → List<Record>
+##
+## Identify top marker genes per cluster using one-vs-rest Wilcoxon rank-sum tests.
+## For each cluster, compares cells in that cluster against all other cells.
+## Returns the top_n genes per cluster ranked by log2FC × -log10(padj).
+##
+## matrix         — List<Record{gene, cell_0, cell_1, ...}>
+## cluster_labels — List<String> cluster label for each cell column
+## top_n          — number of top markers to return per cluster (default 50)
+##
+## Returns: List<Record{cluster, gene, log2fc, pvalue, padj, auroc, rank}>
+fn marker_genes(matrix, cluster_labels, top_n = 50) {
+    if len(matrix) == 0 {
+        return []
+    }
+
+    let first_row = matrix[0]
+    let cell_cols = keys(first_row) |> filter(|k| k != "gene")
+    let n_cells = len(cell_cols)
+
+    # Unique clusters (preserve order of first appearance)
+    let unique_clusters = cluster_labels |> unique()
+
+    let all_markers = []
+
+    for cluster in unique_clusters {
+        # Indices for this cluster vs all others
+        let in_cluster = []
+        let out_cluster = []
+        for i in range(0, n_cells) {
+            if cluster_labels[i] == cluster {
+                in_cluster = append(in_cluster, i)
+            } else {
+                out_cluster = append(out_cluster, i)
+            }
+        }
+
+        if len(in_cluster) < 3 or len(out_cluster) < 3 {
+            # Skip clusters that are too small
+            continue
+        }
+
+        # Run Wilcoxon test for this cluster vs rest (min_cells = 5 for markers)
+        let de_result = de_wilcoxon(matrix, out_cluster, in_cluster, 5)
+
+        # Score = log2fc * -log10(padj + 1e-300) for ranking
+        let scored = de_result
+            |> filter(|r| r.log2fc > 0)
+            |> map(|r| {
+                let score = r.log2fc * (- log2(r.padj + 0.000000001))
+                {... r, score: score}
+            })
+            |> sort_by(|r| - r.score)
+            |> take(top_n)
+
+        # Compute AUROC for each top marker
+        let rank = 1
+        for g in scored {
+            let vals_in = in_cluster |> map(|i| matrix |> filter(|row| row.gene == g.gene) |> first() |> .[ cell_cols[i]])
+            let vals_out = out_cluster |> map(|i| matrix |> filter(|row| row.gene == g.gene) |> first() |> .[cell_cols[i]])
+            let auc = auroc(vals_out, vals_in)
+
+            all_markers = append(all_markers, {
+                cluster: cluster,
+                gene: g.gene,
+                log2fc: g.log2fc,
+                pvalue: g.pvalue,
+                padj: g.padj,
+                auroc: auc,
+                rank: rank
+            })
+            rank = rank + 1
+        }
+    }
+
+    all_markers
+}

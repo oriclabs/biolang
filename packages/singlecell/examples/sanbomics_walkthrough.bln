@@ -1,0 +1,155 @@
+---
+title: Single-Cell RNA-seq Walkthrough in BioLang
+authors: BioLang
+date: 2026-07-25
+abstract: A BioLang recreation of the Sanbomics "Complete single-cell RNAseq analysis walkthrough" — QC, doublet scoring, normalization, HVG selection, clustering, Wilcoxon marker genes, and rule-based annotation — on a self-contained synthetic PBMC-like dataset. Each step is mapped to its Scanpy equivalent.
+---
+
+# Single-Cell RNA-seq Walkthrough
+
+This notebook recreates the standard [Scanpy pipeline from the Sanbomics walkthrough](https://www.youtube.com/watch?v=uvyG9yLuNSE) in BioLang. It runs on a synthetic 3-population dataset (T cells, B cells, monocytes), so there is nothing to download — swap the **Load** step for `read_anndata("your_data.zarr")` to use real data.
+
+Run it with:
+
+```biolang
+# @skip
+# BIOLANG_PATH=<repo>/packages  bl notebook sanbomics_walkthrough.bln
+```
+
+## Setup
+
+We import the `singlecell` package and build a deterministic synthetic count matrix: 90 cells (30 T / 30 B / 30 monocyte) across 24 genes, where each cell's on-type marker genes are highly expressed. `MT-` genes give the QC step a mitochondrial fraction to work with.
+
+```biolang
+import "singlecell/src/mod" as sc
+
+let gene_names = [
+  "CD3D","CD3E","CD3G","TRAC","CD8A","IL7R","CCL5",          # T cell
+  "MS4A1","CD79A","CD79B","CD19","HLA-DRA","IGHM","BANK1",    # B cell
+  "LYZ","CD14","FCN1","S100A8","S100A9","CST3","VCAN",        # Monocyte
+  "MT-ND1","MT-CO1","MT-ATP6"                                 # mitochondrial
+]
+
+fn gene_program(j) { if j < 7 then 0 else if j < 14 then 1 else if j < 21 then 2 else 3 }
+fn cell_type(i)    { if i < 30 then 0 else if i < 60 then 1 else 2 }
+
+fn synth_count(i, j) {
+  let p = gene_program(j)
+  let t = cell_type(i)
+  let hi = 8 + ((i * 7 + j * 13) % 5)
+  let lo = (i * 3 + j * 5) % 3
+  let mt = 1 + ((i + j) % 3)
+  let c = if p == 3 then mt else if p == t then hi else lo
+  c + 0.0
+}
+
+let n_cells  = 90
+let matrix   = range(0, n_cells) |> map(|i| range(0, 24) |> map(|j| synth_count(i, j)))
+let barcodes = range(0, n_cells) |> map(|i| "Cell_" + str(i))
+let truth    = range(0, n_cells) |> map(|i| cell_type(i))
+println("built " + str(n_cells) + " cells × 24 genes")
+```
+
+## 1. Load — `sc.read_h5ad(...)`
+
+We round-trip through native AnnData `.zarr` (pure-Rust, no HDF5) to mirror loading a real dataset, and record which backend served the load.
+
+```biolang
+let raw = sc.from_matrix(matrix, gene_names, barcodes)
+write_anndata("pbmc_synth.zarr", raw)
+let adata = read_anndata("pbmc_synth.zarr")
+let _ = plan_backend("read_anndata_zarr")
+println("Loaded: " + str(adata.n_cells) + " cells × " + str(adata.n_genes) + " genes")
+```
+
+## 2. QC & filtering — `sc.pp.filter_cells` / `filter_genes`
+
+Filter on detected genes and mitochondrial fraction. Thresholds are small here because the toy set has 24 genes; real data uses e.g. `min_genes=200`, `max_pct_mito=20`.
+
+```biolang
+let filtered = sc.qc(adata)
+                |> sc.filter_cells(3, 1000, 30.0)
+                |> sc.filter_genes(3)
+println("After QC: " + str(filtered.n_cells) + " cells")
+```
+
+## 3. Doublet scoring — `sc.pp.scrublet`
+
+```biolang
+let scored = sc.doublets(filtered, 200) |> sc.flag_doublets(0.8)
+println("scored doublets")
+```
+
+## 4. Normalize + log1p — `sc.pp.normalize_total` + `sc.pp.log1p`
+
+```biolang
+let normed = sc.normalize(scored, 10000.0)
+println("normalized")
+```
+
+## 5. Highly variable genes — `sc.pp.highly_variable_genes`
+
+```biolang
+let hvg = sc.variable_genes(normed, 15)
+println("selected HVGs")
+```
+
+## 6. Neighbors + clustering — `sc.pp.neighbors` + `sc.tl.leiden`
+
+BioLang runs a **real Leiden algorithm** (local moving → refinement → aggregation) on a symmetric kNN graph — the cluster count is discovered from the data, and every community is guaranteed internally connected. Exact labels still differ from `leidenalg` (RNG + graph construction), so we validate by *agreement* (ARI in step 9), not identity.
+
+```biolang
+let clustered = sc.neighbors(hvg, 15) |> sc.cluster_leiden(15, 1.0)
+println("clusters found: " + str(clustered.clusters |> unique |> len))
+```
+
+## 7. Marker genes — `sc.tl.rank_genes_groups(method="wilcoxon")`
+
+`marker_table` is a real Wilcoxon rank-sum test with Benjamini-Hochberg FDR (pairwise; Scanpy's default is one-vs-rest). We compare cluster 0 against cluster 1.
+
+```biolang
+let _ = plan_backend("differential_expression")
+let markers = sc.marker_table(clustered, 0, 1)
+let top = markers |> filter(|m| m.significant)
+println("significant markers (0 vs 1): " + str(len(top)))
+for m in (top |> take(5)) {
+  println("  " + m.gene + "  log2fc=" + str(m.log2fc) + "  padj=" + str(m.padj))
+}
+```
+
+## 8. Rule-based annotation
+
+Score each cluster by the mean expression of each cell-type marker program and assign the winning label — the same manual strategy the video uses.
+
+```biolang
+fn program_score(mat, members, lo, hi) {
+  mean(members |> map(|i| range(lo, hi) |> map(|j| mat[i][j]) |> sum()))
+}
+fn annotate(obj, cl) {
+  let mat = obj.norm_matrix
+  let members = range(0, obj.n_cells) |> filter(|i| obj.clusters[i] == cl)
+  let t = program_score(mat, members, 0, 7)
+  let b = program_score(mat, members, 7, 14)
+  let mo = program_score(mat, members, 14, 21)
+  if t >= b and t >= mo then "T cell" else if b >= mo then "B cell" else "Monocyte"
+}
+for cl in [0, 1, 2] {
+  println("cluster " + str(cl) + " → " + annotate(clustered, cl))
+}
+```
+
+## 9. Validate against ground truth (ARI)
+
+Clustering can't match a reference element-wise, so we measure **agreement** with the adjusted Rand index — 1.0 is perfect.
+
+```biolang
+println("ARI vs ground truth: " + str(ari(truth, clustered.clusters)))
+```
+
+## 10. Provenance
+
+Every backend decision was logged to `.biolang/provenance.json` — the reproducible record of what ran natively vs. in a container.
+
+```biolang
+println("provenance entries: " + str(len(provenance_log())))
+```

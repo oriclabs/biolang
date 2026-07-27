@@ -222,7 +222,8 @@ statements. Use them freely to organize code into logical sections.
 | `#` | Line comment | Everything from `#` to end of line is ignored |
 | `##` | Doc comment | Attached to the following declaration; extractable by documentation tools |
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # This is a regular comment
 
 ## Compute GC content for a DNA sequence.

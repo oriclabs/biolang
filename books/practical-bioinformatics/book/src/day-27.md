@@ -271,7 +271,8 @@ Testing is what separates a personal script from a reliable tool. BioLang's `ass
 
 Create `tests/test_seq.bl`:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 import "lib/seq_utils.bl" as seq
 
 # --- validate_dna ---
@@ -310,7 +311,8 @@ assert(results |> filter(|r| r.class == "low") |> len() == 1, "one low GC")
 
 Create `tests/test_qc.bl`:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 import "lib/qc.bl" as qc
 
 let test_seqs = [

@@ -174,8 +174,15 @@ pub fn format_gff_line(rec: &GffRecord, fmt: GffFormat) -> String {
     };
     format!(
         "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        rec.seqid, rec.source, rec.feature_type, rec.start, rec.end, score_str, rec.strand,
-        phase_str, attrs
+        rec.seqid,
+        rec.source,
+        rec.feature_type,
+        rec.start,
+        rec.end,
+        score_str,
+        rec.strand,
+        phase_str,
+        attrs
     )
 }
 

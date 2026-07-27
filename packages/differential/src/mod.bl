@@ -1,0 +1,41 @@
+# differential — Differential expression analysis for RNA-seq and single-cell data
+#
+# Re-exports the public API from src/deseq.bl and src/wilcoxon.bl
+#
+# Example:
+#   import "differential" as de
+#   let norm = de.deseq2_norm(count_matrix)
+#   let results = de.de_wald(norm, control_cols, treatment_cols)
+#   let sig = results |> filter(|r| r.significant)
+
+import "differential/src/deseq"    as _deseq
+import "differential/src/wilcoxon" as _wx
+
+# --- From deseq.bl ---
+
+fn size_factors(count_matrix)                            { _deseq.size_factors(count_matrix) }
+fn deseq2_norm(count_matrix)                             { _deseq.deseq2_norm(count_matrix) }
+fn pseudo_bulk(matrix, cell_labels, sample_labels)       { _deseq.pseudo_bulk(matrix, cell_labels, sample_labels) }
+fn de_wald(norm_counts, group_a_cols, group_b_cols)      { _deseq.de_wald(norm_counts, group_a_cols, group_b_cols) }
+
+# --- From wilcoxon.bl ---
+
+fn de_wilcoxon(matrix, group_a_indices, group_b_indices, min_cells = 10) {
+    _wx.de_wilcoxon(matrix, group_a_indices, group_b_indices, min_cells)
+}
+fn auroc(scores_a, scores_b)                             { _wx.auroc(scores_a, scores_b) }
+fn marker_genes(matrix, cluster_labels, top_n = 50)      { _wx.marker_genes(matrix, cluster_labels, top_n) }
+
+# --- Pseudobulk DE convenience wrapper ---
+
+# pseudobulk_de(obj, sample_col) → pseudo-bulk count matrix ready for de_wald / deseq2_norm
+#
+# Aggregates a clustered singlecell object into sample-level pseudo-bulk counts.
+# Each resulting column is "<cluster>__<sample>" and rows are genes.
+# Pass the result to de_wald() or deseq2_norm() for downstream differential expression.
+#
+# obj        — singlecell object with .matrix, .clusters, and .obs fields
+# sample_col — name of the column in obj.obs that identifies biological samples/donors
+fn pseudobulk_de(obj, sample_col) {
+    pseudobulk_aggregate(obj.matrix, obj.clusters, obj.obs[sample_col])
+}

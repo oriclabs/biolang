@@ -38,10 +38,10 @@ for g in range(0, 4) {
     let vols = all_vols[g]
     for i in range(0, 10) {
         let mid = f"M{g + 1}{i + 1:02}"
-        dose_lines = append(dose_lines, f"{mid},{group},{vols[i]}")
+        dose_lines = push(dose_lines, f"{mid},{group},{vols[i]}")
     }
 }
-write_lines(dose_lines, "data/dose_response.csv")
+write_lines("data/dose_response.csv", dose_lines)
 
 # --- File 2: tissue_expression.csv ---
 # GAPDH expression (TPM) across 4 tissues from GTEx V8
@@ -81,10 +81,10 @@ for t in range(0, 4) {
     let vals = all_tissue_vals[t]
     for i in range(0, 20) {
         let sid = f"{tissue}_{i + 1:02}"
-        tissue_lines = append(tissue_lines, f"{sid},{tissue},{vals[i]}")
+        tissue_lines = push(tissue_lines, f"{sid},{tissue},{vals[i]}")
     }
 }
-write_lines(tissue_lines, "data/tissue_expression.csv")
+write_lines("data/tissue_expression.csv", tissue_lines)
 
 println("Generated 2 files in data/")
 println("  data/dose_response.csv      — 40 mice, 4 dose groups (xenograft study)")

@@ -164,11 +164,11 @@ println(f"Updated: {updated}")</code></pre>
 
         <h3>Table</h3>
         <p>Column-oriented tabular data with named columns:</p>
-        <pre><code class="language-biolang">let t = table(
-  gene = ["BRCA1", "TP53", "EGFR"],
-  score = [0.95, 0.87, 0.72],
-  chrom = ["chr17", "chr17", "chr7"]
-)
+        <pre><code class="language-biolang">let t = table([
+  {gene: "BRCA1", score: 0.95, chrom: "chr17"},
+  {gene: "TP53", score: 0.87, chrom: "chr17"},
+  {gene: "EGFR", score: 0.72, chrom: "chr7"}
+])
 
 println(f"Type: {typeof(t)}")
 println(f"Rows: {len(t)}, Cols: {ncols(t)}")
@@ -222,10 +222,12 @@ println(f"int(3.7) = {as_int}")</code></pre>
         <p>
           Convert strings to biological sequence types with validation:
         </p>
-        <pre><code class="language-biolang"># String to bio types
-let seq = dna("ATCGATCG")
-let rna_seq = rna("AUCGAUCG")
-let prot = protein("MKT")
+        <pre><code class="language-biolang"># DNA literals are validated at parse time
+let seq = dna"ATCGATCG"
+
+# RNA and protein also support runtime conversion
+let rna_seq = rna"AUCGAUCG"
+let prot = protein"MKT"
 
 println(f"DNA: {seq} ({typeof(seq)})")
 println(f"RNA: {rna_seq} ({typeof(rna_seq)})")

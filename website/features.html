@@ -51,7 +51,8 @@
         <span class="stat-pill"><span class="text-amber-400 font-bold">15</span> file formats</span>
         <span class="stat-pill"><span class="text-rose-400 font-bold">42</span> plot types</span>
         <span class="stat-pill"><span class="text-sky-400 font-bold">6</span> transfer protocols</span>
-        <span class="stat-pill"><span class="text-emerald-400 font-bold">3</span> LLM providers</span>
+        <span class="stat-pill"><span class="text-emerald-400 font-bold">36</span> packages</span>
+        <span class="stat-pill"><span class="text-purple-400 font-bold">3</span> LLM providers</span>
         <span class="stat-pill"><span class="text-orange-400 font-bold">Rust</span> native</span>
       </div>
     </div>
@@ -585,6 +586,212 @@ chat("What pathways involve BRCA1 and TP53?")</code></pre>
         </div>
       </div>
 
+    </div>
+  </section>
+
+  <!-- Packages -->
+  <section class="py-12 bg-slate-900/20">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+        <span class="w-1 h-5 bg-violet-400 rounded-full"></span> 36 Domain Packages
+      </h2>
+      <p class="text-sm text-slate-400 mb-6">Pure-Rust implementations — no Python/R runtime needed. Import any package in one line.</p>
+
+      <!-- Single-Cell -->
+      <h3 class="text-xs font-semibold text-violet-400 uppercase tracking-wider mb-3">Single-Cell &amp; Spatial</h3>
+      <div class="feature-grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-6">
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-violet-300">singlecell</span>
+          <p class="text-xs text-slate-500 mt-1">Seurat/Scanpy workflow</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-violet-300">cellchat</span>
+          <p class="text-xs text-slate-500 mt-1">Ligand-receptor scoring</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-violet-300">spatial</span>
+          <p class="text-xs text-slate-500 mt-1">Spatial transcriptomics</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-violet-300">velocity</span>
+          <p class="text-xs text-slate-500 mt-1">RNA velocity</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-violet-300">celltypes</span>
+          <p class="text-xs text-slate-500 mt-1">Reference classification</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-violet-300">multimodal</span>
+          <p class="text-xs text-slate-500 mt-1">WNN / CITE-seq</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-violet-300">grn</span>
+          <p class="text-xs text-slate-500 mt-1">Gene regulatory networks</p>
+        </div>
+      </div>
+
+      <!-- Genomics -->
+      <h3 class="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-3">Genomics &amp; Sequencing</h3>
+      <div class="feature-grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 mb-6">
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-cyan-300">variants</span>
+          <p class="text-xs text-slate-500 mt-1">VCF parsing, Ti/Tv</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-cyan-300">rnaseq</span>
+          <p class="text-xs text-slate-500 mt-1">Salmon, TPM, size factors</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-cyan-300">chipseq</span>
+          <p class="text-xs text-slate-500 mt-1">Peaks, FRiP, TSS enrich</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-cyan-300">atac</span>
+          <p class="text-xs text-slate-500 mt-1">NFR enrichment, fragments</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-cyan-300">longread</span>
+          <p class="text-xs text-slate-500 mt-1">Nanopore/PacBio QC, N50</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-cyan-300">cnv</span>
+          <p class="text-xs text-slate-500 mt-1">CBS segmentation, CN calls</p>
+        </div>
+      </div>
+
+      <!-- Epigenomics & 3D -->
+      <h3 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">Epigenomics &amp; 3D Genomics</h3>
+      <div class="feature-grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 mb-6">
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-emerald-300">methylation</span>
+          <p class="text-xs text-slate-500 mt-1">DMRs, epigenetic clocks</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-emerald-300">hic</span>
+          <p class="text-xs text-slate-500 mt-1">ICE norm, TAD boundaries</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-emerald-300">motif</span>
+          <p class="text-xs text-slate-500 mt-1">IUPAC scan, PWM, enrichment</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-emerald-300">annotation</span>
+          <p class="text-xs text-slate-500 mt-1">GTF parsing, peak annotation</p>
+        </div>
+      </div>
+
+      <!-- Omics -->
+      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">Multi-Omics</h3>
+      <div class="feature-grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 mb-6">
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-amber-300">proteomics</span>
+          <p class="text-xs text-slate-500 mt-1">MaxQuant, LFQ, volcano</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-amber-300">metabolomics</span>
+          <p class="text-xs text-slate-500 mt-1">m/z match, isotope correct</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-amber-300">qpcr</span>
+          <p class="text-xs text-slate-500 mt-1">ΔΔCt, efficiency, geNorm</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-amber-300">deconvolution</span>
+          <p class="text-xs text-slate-500 mt-1">NNLS, marker scoring</p>
+        </div>
+      </div>
+
+      <!-- Analysis -->
+      <h3 class="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-3">Statistical Analysis</h3>
+      <div class="feature-grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 mb-6">
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-rose-300">statistics</span>
+          <p class="text-xs text-slate-500 mt-1">BH/Bonferroni, Fisher, bootstrap</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-rose-300">differential</span>
+          <p class="text-xs text-slate-500 mt-1">DE analysis, fold change</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-rose-300">survival</span>
+          <p class="text-xs text-slate-500 mt-1">Kaplan-Meier, Cox</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-rose-300">gwas</span>
+          <p class="text-xs text-slate-500 mt-1">Sumstats, Manhattan, clump</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-rose-300">clustering</span>
+          <p class="text-xs text-slate-500 mt-1">k-means, hierarchical, UMAP</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-rose-300">pathway</span>
+          <p class="text-xs text-slate-500 mt-1">ORA, GSEA, GMT</p>
+        </div>
+      </div>
+
+      <!-- Structural / Network / Ecology -->
+      <h3 class="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-3">Structure, Networks &amp; Ecology</h3>
+      <div class="feature-grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-6">
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-sky-300">structure</span>
+          <p class="text-xs text-slate-500 mt-1">PDB, RMSD, Kabsch</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-sky-300">network</span>
+          <p class="text-xs text-slate-500 mt-1">PPI, centrality, paths</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-sky-300">phylo</span>
+          <p class="text-xs text-slate-500 mt-1">Newick, UPGMA, distances</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-sky-300">popgen</span>
+          <p class="text-xs text-slate-500 mt-1">Fst, Tajima's D, LD r²</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-sky-300">microbiome</span>
+          <p class="text-xs text-slate-500 mt-1">Alpha/beta diversity</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-sky-300">oric</span>
+          <p class="text-xs text-slate-500 mt-1">Origin of replication</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-sky-300">drug</span>
+          <p class="text-xs text-slate-500 mt-1">IC50, Bliss/Loewe synergy</p>
+        </div>
+      </div>
+
+      <!-- Functional -->
+      <h3 class="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-3">Functional Genomics</h3>
+      <div class="feature-grid grid-cols-2 md:grid-cols-4 lg:grid-cols-3 mb-8">
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-orange-300">crispr</span>
+          <p class="text-xs text-slate-500 mt-1">MAGeCK scoring, guide QC</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-orange-300">immune</span>
+          <p class="text-xs text-slate-500 mt-1">VDJ, clonotype diversity</p>
+        </div>
+        <div class="feature-cell text-center">
+          <span class="text-xs font-mono font-bold text-orange-300">grn</span>
+          <p class="text-xs text-slate-500 mt-1">TF-gene co-expression</p>
+        </div>
+      </div>
+
+      <!-- Example -->
+      <div class="bg-slate-900/80 border border-violet-500/20 rounded-xl p-5 font-mono text-sm max-w-2xl">
+        <div class="text-xs text-slate-500 mb-3">example — single-cell + differential + GWAS</div>
+<pre class="!p-0 !m-0 !bg-transparent"><code class="language-biolang !p-0 !bg-transparent">import "singlecell" as sc
+import "differential" as de
+import "gwas" as gwas
+
+let adata = sc.load("pbmc.h5ad") |> sc.normalize |> sc.pca |> sc.umap
+let markers = de.findmarkers(adata.counts, adata.clusters)
+let hits = gwas.load("eqtl_sumstats.txt") |> gwas.hits(p=5e-8)
+markers |> filter(fn(r) -> r.gene in hits.snp)</code></pre>
+      </div>
     </div>
   </section>
 

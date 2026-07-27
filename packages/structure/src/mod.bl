@@ -1,0 +1,24 @@
+# structure — Protein structure analysis for BioLang
+#
+# Quick start:
+#   import "structure" as st
+#
+#   let pdb = st.load("protein.pdb")
+#   let ca  = st.ca_atoms(pdb)
+#   st.rmsd(ca, ca_ref)
+#   st.contacts(ca, dist=8.0)
+#   st.ss(ca)
+
+import "structure/src/pdb"      as pdb
+import "structure/src/analysis" as ana
+
+fn load(path)                    { pdb.load(path) }
+fn ca_atoms(pdb_table)           { pdb.ca_atoms(pdb_table) }
+fn backbone(pdb_table)           { pdb.backbone(pdb_table) }
+fn chain(pdb_table, id)          { pdb.chain(pdb_table, id) }
+fn residues(pdb_table)           { pdb.residues(pdb_table) }
+fn rmsd(pdb_a, pdb_b)            { ana.rmsd(pdb_a, pdb_b) }
+fn contacts(pdb_table, dist=8.0) { ana.contacts(pdb_table, dist) }
+fn ss(pdb_table)                 { ana.ss(pdb_table) }
+fn ss_composition(pdb_table)     { ana.ss_composition(pdb_table) }
+fn ramachandran(pdb_table)       { ana.ramachandran(pdb_table) }

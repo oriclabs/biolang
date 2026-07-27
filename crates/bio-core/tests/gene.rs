@@ -1,4 +1,4 @@
-use bio_core::gene::{QualityOps, Genome};
+use bio_core::gene::{Genome, QualityOps};
 
 #[test]
 fn test_quality_from_ascii() {

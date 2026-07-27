@@ -1,0 +1,5 @@
+fn iupac(seq, pattern)          { iupac_scan(seq, pattern) }
+fn pwm(aligned_seqs)            { pwm_from_seqs(aligned_seqs) }
+fn scan(seq, pwm, threshold=0.8){ pwm_scan(seq, pwm, threshold) }
+fn consensus(pwm)               { motif_consensus(pwm) }
+fn gc(seq, window=100)          { gc_bias(seq, window) }

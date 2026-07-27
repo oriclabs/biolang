@@ -1,0 +1,22 @@
+# Taxonomic profiling and collapse.
+
+fn collapse(table, level="genus") {
+  taxonomic_collapse(table, level)
+}
+
+fn rel_abundance(counts) {
+  relative_abundance(counts)
+}
+
+fn top_taxa(table, n=10, level="genus") {
+  let collapsed = collapse(table, level)
+  collapsed
+    |> map(fn(r) -> r |> set_field("total", r |> values |> filter(fn(v) -> type_of(v) == "number") |> sum))
+    |> sort_by(fn(r) -> r.total, descending=true)
+    |> take(n)
+}
+
+fn filter_taxa(table, min_prevalence=0.1, min_abundance=0.001) {
+  # TODO: requires column-wise prevalence computation — placeholder
+  table
+}

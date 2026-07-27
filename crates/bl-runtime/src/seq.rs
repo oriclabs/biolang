@@ -53,6 +53,24 @@ pub fn seq_builtin_list() -> Vec<(&'static str, Arity)> {
         ("scan_bio", Arity::Exact(1)),
         ("read_pdf", Arity::Exact(1)),
         ("cite", Arity::Range(1, 2)),
+        ("find_pattern", Arity::Range(2, 3)),
+        ("kmer_index", Arity::Exact(2)),
+        ("windows", Arity::Range(2, 3)),
+        ("gc_skew", Arity::Range(1, 2)),
+        ("restriction_sites", Arity::Exact(2)),
+        ("align", Arity::Range(2, 6)),
+        ("consensus", Arity::Exact(1)),
+        ("entropy", Arity::Range(1, 3)),
+        ("iupac_match", Arity::Exact(2)),
+        // Section 5: Advanced genomic/sequence primitives
+        ("six_frame_translate", Arity::Exact(1)),
+        ("cpg_islands", Arity::Range(1, 4)),
+        ("splice_sites", Arity::Exact(1)),
+        ("genomic_bins", Arity::Exact(2)),
+        ("tile_genome", Arity::Range(2, 3)),
+        ("extend_interval", Arity::Exact(3)),
+        ("flank", Arity::Range(2, 3)),
+        ("center_interval", Arity::Exact(1)),
     ]
 }
 
@@ -95,6 +113,24 @@ pub fn is_seq_builtin(name: &str) -> bool {
             | "scan_bio"
             | "read_pdf"
             | "cite"
+            | "find_pattern"
+            | "kmer_index"
+            | "windows"
+            | "gc_skew"
+            | "restriction_sites"
+            | "align"
+            | "consensus"
+            | "entropy"
+            | "iupac_match"
+            // Section 5: Advanced genomic/sequence primitives
+            | "six_frame_translate"
+            | "cpg_islands"
+            | "splice_sites"
+            | "genomic_bins"
+            | "tile_genome"
+            | "extend_interval"
+            | "flank"
+            | "center_interval"
     )
 }
 
@@ -160,10 +196,7 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 data: bl_core::bio_core::seq_ops::complement_rna(&seq.data),
             })),
             other => Err(BioLangError::type_error(
-                format!(
-                    "complement() requires DNA or RNA, got {}",
-                    other.type_of()
-                ),
+                format!("complement() requires DNA or RNA, got {}", other.type_of()),
                 None,
             )),
         },
@@ -218,7 +251,7 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 positions
                     .into_iter()
                     .map(|p| Value::Int(p as i64))
-                    .collect(),
+                    .collect::<Vec<_>>().into(),
             ))
         }
         "kmers" => {
@@ -229,7 +262,7 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 result
                     .into_iter()
                     .map(|s| Value::Str(s.to_string()))
-                    .collect(),
+                    .collect::<Vec<_>>().into(),
             ))
         }
         "find_orfs" => {
@@ -254,14 +287,12 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     fields.insert("frame".to_string(), Value::Int(orf.frame as i64));
                     fields.insert(
                         "protein".to_string(),
-                        Value::Protein(BioSequence {
-                            data: orf.protein,
-                        }),
+                        Value::Protein(BioSequence { data: orf.protein }),
                     );
-                    Value::Record(fields)
+                    Value::Record((fields).into())
                 })
                 .collect();
-            Ok(Value::List(values))
+            Ok(Value::List((values).into()))
         }
         "seq_len" => {
             let seq = get_seq_data(&args[0], "seq_len")?;
@@ -283,7 +314,7 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             for (codon, count) in usage {
                 result.insert(codon, Value::Int(count));
             }
-            Ok(Value::Record(result))
+            Ok(Value::Record((result).into()))
         }
         "tm" => {
             let seq = get_seq_data(&args[0], "tm")?;
@@ -302,8 +333,7 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 2.0 * at + 4.0 * gc
             } else {
                 // Basic salt-adjusted: Tm = 81.5 + 16.6*log10(0.05) + 41*(GC/N) - 600/N
-                81.5 + 16.6 * 0.05_f64.log10() + 41.0 * (gc / len as f64)
-                    - 600.0 / len as f64
+                81.5 + 16.6 * 0.05_f64.log10() + 41.0 * (gc / len as f64) - 600.0 / len as f64
             };
             Ok(Value::Float(tm))
         }
@@ -401,9 +431,15 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 for cluster in &mut clusters {
                     let rep = cluster.0;
                     // Compute ANI (Jaccard) between i and representative
-                    let intersection = kmer_sets[i].iter().filter(|k| kmer_sets[rep].contains(k.as_str())).count() as f64;
+                    let intersection = kmer_sets[i]
+                        .iter()
+                        .filter(|k| kmer_sets[rep].contains(k.as_str()))
+                        .count() as f64;
                     let union_size = kmer_sets[i].len() + kmer_sets[rep].len()
-                        - kmer_sets[i].iter().filter(|k| kmer_sets[rep].contains(k.as_str())).count();
+                        - kmer_sets[i]
+                            .iter()
+                            .filter(|k| kmer_sets[rep].contains(k.as_str()))
+                            .count();
                     let jaccard = if union_size > 0 {
                         intersection / union_size as f64
                     } else {
@@ -427,13 +463,13 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     fields.insert("representative".to_string(), Value::Int(rep as i64));
                     fields.insert(
                         "members".to_string(),
-                        Value::List(members.iter().map(|&m| Value::Int(m as i64)).collect()),
+                        Value::List(members.iter().map(|&m| Value::Int(m as i64)).collect::<Vec<_>>().into()),
                     );
                     fields.insert("size".to_string(), Value::Int(members.len() as i64));
-                    Value::Record(fields)
+                    Value::Record((fields).into())
                 })
                 .collect();
-            Ok(Value::List(result))
+            Ok(Value::List((result).into()))
         }
         "enrichment_score" => {
             let values = match &args[0] {
@@ -479,7 +515,7 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             // Compute mean of gene set values that exist in the record
             let mut set_sum = 0.0;
             let mut set_count = 0usize;
-            for gene in &gene_set {
+            for gene in gene_set.iter() {
                 let gene_name = match gene {
                     Value::Str(s) => s.clone(),
                     other => other.to_string(),
@@ -561,7 +597,7 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let mut running_sum = 0.0_f64;
             let mut max_dev = 0.0_f64;
 
-            for gene_val in &ranked_list {
+            for gene_val in ranked_list.iter() {
                 let gene_name = match gene_val {
                     Value::Str(s) => s.clone(),
                     other => other.to_string(),
@@ -592,6 +628,24 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "scan_bio" => builtin_scan_bio(&args),
         "read_pdf" => builtin_read_pdf(&args),
         "cite" => builtin_cite(&args),
+        "find_pattern" => builtin_find_pattern(args),
+        "kmer_index" => builtin_kmer_index(args),
+        "windows" => builtin_windows(args),
+        "gc_skew" => builtin_gc_skew(args),
+        "restriction_sites" => builtin_restriction_sites(args),
+        "align" => builtin_align(args),
+        "consensus" => builtin_consensus(args),
+        "entropy" => builtin_entropy(args),
+        "iupac_match" => builtin_iupac_match(args),
+        // Section 5: Advanced genomic/sequence primitives
+        "six_frame_translate" => builtin_six_frame_translate(args),
+        "cpg_islands" => builtin_cpg_islands(args),
+        "splice_sites" => builtin_splice_sites(args),
+        "genomic_bins" => builtin_genomic_bins(args),
+        "tile_genome" => builtin_tile_genome(args),
+        "extend_interval" => builtin_extend_interval(args),
+        "flank" => builtin_flank(args),
+        "center_interval" => builtin_center_interval(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown seq builtin: {name}"),
@@ -608,7 +662,10 @@ fn builtin_resolve(args: &[Value]) -> Result<Value> {
         Value::Int(n) => n.to_string(),
         other => {
             return Err(BioLangError::type_error(
-                format!("resolve() requires Str or Int identifier, got {}", other.type_of()),
+                format!(
+                    "resolve() requires Str or Int identifier, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -676,10 +733,34 @@ fn is_uniprot_accession(id: &str) -> bool {
     if bytes.len() < 6 || bytes.len() > 10 {
         return false;
     }
-    matches!(bytes[0], b'P' | b'Q' | b'O' | b'A' | b'B' | b'C' | b'D' | b'E' | b'F'
-             | b'G' | b'H' | b'I' | b'J' | b'K' | b'L' | b'M' | b'N' | b'R' | b'S'
-             | b'T' | b'U' | b'V' | b'W' | b'X' | b'Y' | b'Z')
-        && bytes.get(1).map_or(false, |b| b.is_ascii_digit())
+    matches!(
+        bytes[0],
+        b'P' | b'Q'
+            | b'O'
+            | b'A'
+            | b'B'
+            | b'C'
+            | b'D'
+            | b'E'
+            | b'F'
+            | b'G'
+            | b'H'
+            | b'I'
+            | b'J'
+            | b'K'
+            | b'L'
+            | b'M'
+            | b'N'
+            | b'R'
+            | b'S'
+            | b'T'
+            | b'U'
+            | b'V'
+            | b'W'
+            | b'X'
+            | b'Y'
+            | b'Z'
+    ) && bytes.get(1).map_or(false, |b| b.is_ascii_digit())
         && bytes[2..].iter().all(|b| b.is_ascii_alphanumeric())
 }
 
@@ -704,10 +785,18 @@ fn url_encode(s: &str) -> String {
 fn fetch_json(url: &str) -> Result<serde_json::Value> {
     if let Some(result) = crate::csv::try_fetch_url(url) {
         let text = result.map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("resolve(): fetch error: {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("resolve(): fetch error: {e}"),
+                None,
+            )
         })?;
         serde_json::from_str(&text).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("resolve(): JSON parse error: {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("resolve(): JSON parse error: {e}"),
+                None,
+            )
         })
     } else {
         Err(BioLangError::runtime(
@@ -745,8 +834,11 @@ fn resolve_ncbi(identifier: &str, id_type: &str) -> Result<Value> {
                 let mut fields = HashMap::new();
                 fields.insert("input".to_string(), Value::Str(identifier.to_string()));
                 fields.insert("type".to_string(), Value::Str(id_type.to_string()));
-                fields.insert("error".to_string(), Value::Str("no results found".to_string()));
-                return Ok(Value::Record(fields));
+                fields.insert(
+                    "error".to_string(),
+                    Value::Str("no results found".to_string()),
+                );
+                return Ok(Value::Record((fields).into()));
             }
         }
     };
@@ -773,16 +865,21 @@ fn resolve_ncbi(identifier: &str, id_type: &str) -> Result<Value> {
     // Extract aliases (otheraliases field is comma-separated)
     let aliases = match gene_data.get("otheraliases").and_then(|v| v.as_str()) {
         Some(s) if !s.is_empty() => Value::List(
-            s.split(',').map(|a| Value::Str(a.trim().to_string())).collect(),
+            s.split(',')
+                .map(|a| Value::Str(a.trim().to_string()))
+                .collect::<Vec<_>>().into(),
         ),
-        _ => Value::List(vec![]),
+        _ => Value::List((vec![]).into()),
     };
     fields.insert("aliases".to_string(), aliases);
 
     // Try to extract other designations
-    fields.insert("description".to_string(), json_str(&gene_data, "otherdesignations"));
+    fields.insert(
+        "description".to_string(),
+        json_str(&gene_data, "otherdesignations"),
+    );
 
-    Ok(Value::Record(fields))
+    Ok(Value::Record((fields).into()))
 }
 
 fn resolve_ensembl(identifier: &str, id_type: &str) -> Result<Value> {
@@ -810,13 +907,16 @@ fn resolve_ensembl(identifier: &str, id_type: &str) -> Result<Value> {
         fields.insert("start".to_string(), Value::Int(start));
         fields.insert("end".to_string(), Value::Int(end));
     }
-    fields.insert("strand".to_string(), match json.get("strand").and_then(|v| v.as_i64()) {
-        Some(1) => Value::Str("+".to_string()),
-        Some(-1) => Value::Str("-".to_string()),
-        _ => Value::Nil,
-    });
+    fields.insert(
+        "strand".to_string(),
+        match json.get("strand").and_then(|v| v.as_i64()) {
+            Some(1) => Value::Str("+".to_string()),
+            Some(-1) => Value::Str("-".to_string()),
+            _ => Value::Nil,
+        },
+    );
 
-    Ok(Value::Record(fields))
+    Ok(Value::Record((fields).into()))
 }
 
 fn resolve_uniprot(identifier: &str, id_type: &str) -> Result<Value> {
@@ -829,7 +929,10 @@ fn resolve_uniprot(identifier: &str, id_type: &str) -> Result<Value> {
     let mut fields = HashMap::new();
     fields.insert("input".to_string(), Value::Str(identifier.to_string()));
     fields.insert("type".to_string(), Value::Str(id_type.to_string()));
-    fields.insert("uniprot_id".to_string(), json_str(&json, "primaryAccession"));
+    fields.insert(
+        "uniprot_id".to_string(),
+        json_str(&json, "primaryAccession"),
+    );
 
     // Protein name
     let protein_name = json
@@ -856,7 +959,10 @@ fn resolve_uniprot(identifier: &str, id_type: &str) -> Result<Value> {
     fields.insert("organism".to_string(), organism);
 
     // Cross-references: extract Ensembl and NCBI gene IDs
-    if let Some(xrefs) = json.get("uniProtKBCrossReferences").and_then(|v| v.as_array()) {
+    if let Some(xrefs) = json
+        .get("uniProtKBCrossReferences")
+        .and_then(|v| v.as_array())
+    {
         for xref in xrefs {
             let db = xref.get("database").and_then(|v| v.as_str()).unwrap_or("");
             let id = xref.get("id").and_then(|v| v.as_str()).unwrap_or("");
@@ -868,7 +974,10 @@ fn resolve_uniprot(identifier: &str, id_type: &str) -> Result<Value> {
                             for prop in props {
                                 if prop.get("key").and_then(|v| v.as_str()) == Some("GeneId") {
                                     if let Some(gid) = prop.get("value").and_then(|v| v.as_str()) {
-                                        fields.insert("ensembl_id".to_string(), Value::Str(gid.to_string()));
+                                        fields.insert(
+                                            "ensembl_id".to_string(),
+                                            Value::Str(gid.to_string()),
+                                        );
                                     }
                                 }
                             }
@@ -890,9 +999,11 @@ fn resolve_uniprot(identifier: &str, id_type: &str) -> Result<Value> {
 
     // Fill missing xrefs with Nil
     fields.entry("ensembl_id".to_string()).or_insert(Value::Nil);
-    fields.entry("ncbi_gene_id".to_string()).or_insert(Value::Nil);
+    fields
+        .entry("ncbi_gene_id".to_string())
+        .or_insert(Value::Nil);
 
-    Ok(Value::Record(fields))
+    Ok(Value::Record((fields).into()))
 }
 
 // ── blast() — local k-mer overlap BLAST-like search ─────────────────
@@ -903,27 +1014,32 @@ fn builtin_blast(args: &[Value]) -> Result<Value> {
         Some(Value::List(list)) => list.clone(),
         Some(other) => {
             return Err(BioLangError::type_error(
-                format!("blast() target must be a List of Records, got {}", other.type_of()),
+                format!(
+                    "blast() target must be a List of Records, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
-        None => return Err(BioLangError::runtime(
-            ErrorKind::TypeError,
-            "blast() requires a target sequence list as second argument".to_string(),
-            None,
-        )),
+        None => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "blast() requires a target sequence list as second argument".to_string(),
+                None,
+            ))
+        }
     };
 
     let k = 11.min(query.len());
     if k == 0 {
-        return Ok(Value::List(vec![]));
+        return Ok(Value::List((vec![]).into()));
     }
     let query_kmers: HashSet<&str> = (0..=query.len().saturating_sub(k))
         .map(|i| &query[i..i + k])
         .collect();
 
     let mut hits: Vec<(String, f64, f64, usize)> = Vec::new();
-    for target_val in &targets {
+    for target_val in targets.iter() {
         let (id, seq) = match target_val {
             Value::Record(fields) => {
                 let id = match fields.get("id") {
@@ -946,10 +1062,11 @@ fn builtin_blast(args: &[Value]) -> Result<Value> {
         if seq.len() < k {
             continue;
         }
-        let target_kmers: HashSet<&str> = (0..=seq.len() - k)
-            .map(|i| &seq[i..i + k])
-            .collect();
-        let shared = query_kmers.iter().filter(|km| target_kmers.contains(*km)).count();
+        let target_kmers: HashSet<&str> = (0..=seq.len() - k).map(|i| &seq[i..i + k]).collect();
+        let shared = query_kmers
+            .iter()
+            .filter(|km| target_kmers.contains(*km))
+            .count();
         let total = query_kmers.len().max(1);
         let score = shared as f64 / total as f64;
         let identity = score * 100.0;
@@ -970,10 +1087,10 @@ fn builtin_blast(args: &[Value]) -> Result<Value> {
             fields.insert("score".to_string(), Value::Float(score));
             fields.insert("identity".to_string(), Value::Float(identity));
             fields.insert("alignment_length".to_string(), Value::Int(alen as i64));
-            Value::Record(fields)
+            Value::Record((fields).into())
         })
         .collect();
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 // ── diff_table() — compare two tables/lists of records ──────────────
@@ -995,17 +1112,11 @@ fn builtin_diff_table(args: &[Value]) -> Result<Value> {
         // Key-based matching
         let map_a: HashMap<String, &HashMap<String, Value>> = rows_a
             .iter()
-            .filter_map(|r| {
-                r.get(key)
-                    .map(|v| (format!("{v}"), r))
-            })
+            .filter_map(|r| r.get(key).map(|v| (format!("{v}"), r)))
             .collect();
         let map_b: HashMap<String, &HashMap<String, Value>> = rows_b
             .iter()
-            .filter_map(|r| {
-                r.get(key)
-                    .map(|v| (format!("{v}"), r))
-            })
+            .filter_map(|r| r.get(key).map(|v| (format!("{v}"), r)))
             .collect();
 
         for (k, row_a) in &map_a {
@@ -1017,12 +1128,12 @@ fn builtin_diff_table(args: &[Value]) -> Result<Value> {
                     changed.extend(diffs);
                 }
             } else {
-                removed.push(Value::Record((*row_a).clone()));
+                removed.push(Value::Record(((*row_a).clone()).into()));
             }
         }
         for (k, row_b) in &map_b {
             if !map_a.contains_key(k) {
-                added.push(Value::Record((*row_b).clone()));
+                added.push(Value::Record(((*row_b).clone()).into()));
             }
         }
     } else {
@@ -1039,32 +1150,34 @@ fn builtin_diff_table(args: &[Value]) -> Result<Value> {
                         changed.extend(diffs);
                     }
                 }
-                (Some(a), None) => removed.push(Value::Record(a.clone())),
-                (None, Some(b)) => added.push(Value::Record(b.clone())),
+                (Some(a), None) => removed.push(Value::Record((a.clone()).into())),
+                (None, Some(b)) => added.push(Value::Record((b.clone()).into())),
                 (None, None) => {}
             }
         }
     }
 
     let mut result = HashMap::new();
-    result.insert("added".to_string(), Value::List(added));
-    result.insert("removed".to_string(), Value::List(removed));
-    result.insert("changed".to_string(), Value::List(changed));
+    result.insert("added".to_string(), Value::List((added).into()));
+    result.insert("removed".to_string(), Value::List((removed).into()));
+    result.insert("changed".to_string(), Value::List((changed).into()));
     result.insert("unchanged".to_string(), Value::Int(unchanged_count));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 fn extract_rows(val: &Value, func: &str) -> Result<Vec<HashMap<String, Value>>> {
     match val {
         Value::List(list) => {
             let mut rows = Vec::new();
-            for item in list {
+            for item in list.iter() {
                 match item {
-                    Value::Record(fields) => rows.push(fields.clone()),
-                    _ => return Err(BioLangError::type_error(
-                        format!("{func}() list items must be Records"),
-                        None,
-                    )),
+                    Value::Record(fields) => rows.push(fields.as_ref().clone()),
+                    _ => {
+                        return Err(BioLangError::type_error(
+                            format!("{func}() list items must be Records"),
+                            None,
+                        ))
+                    }
                 }
             }
             Ok(rows)
@@ -1083,7 +1196,10 @@ fn extract_rows(val: &Value, func: &str) -> Result<Vec<HashMap<String, Value>>> 
             Ok(rows)
         }
         other => Err(BioLangError::type_error(
-            format!("{func}() requires Table or List of Records, got {}", other.type_of()),
+            format!(
+                "{func}() requires Table or List of Records, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -1101,15 +1217,9 @@ fn diff_records(key: &str, a: &HashMap<String, Value>, b: &HashMap<String, Value
             let mut entry = HashMap::new();
             entry.insert("key".to_string(), Value::Str(key.to_string()));
             entry.insert("field".to_string(), Value::Str(field.clone()));
-            entry.insert(
-                "old_value".to_string(),
-                va.cloned().unwrap_or(Value::Nil),
-            );
-            entry.insert(
-                "new_value".to_string(),
-                vb.cloned().unwrap_or(Value::Nil),
-            );
-            diffs.push(Value::Record(entry));
+            entry.insert("old_value".to_string(), va.cloned().unwrap_or(Value::Nil));
+            entry.insert("new_value".to_string(), vb.cloned().unwrap_or(Value::Nil));
+            diffs.push(Value::Record((entry).into()));
         }
     }
     diffs
@@ -1122,7 +1232,10 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
         Value::List(list) => list,
         other => {
             return Err(BioLangError::type_error(
-                format!("qc_report() requires a List of FASTQ records, got {}", other.type_of()),
+                format!(
+                    "qc_report() requires a List of FASTQ records, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -1132,7 +1245,7 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
         let mut r = HashMap::new();
         r.insert("total_reads".to_string(), Value::Int(0));
         r.insert("total_bases".to_string(), Value::Int(0));
-        return Ok(Value::Record(r));
+        return Ok(Value::Record((r).into()));
     }
 
     let mut total_bases: i64 = 0;
@@ -1142,7 +1255,7 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
     let mut n_count: i64 = 0;
     let mut seen_seqs: HashMap<String, usize> = HashMap::new();
 
-    for read in reads {
+    for read in reads.iter() {
         let fields = match read {
             Value::Record(f) => f,
             _ => continue,
@@ -1162,15 +1275,24 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
         total_bases += len as i64;
 
         // GC content
-        let gc = seq_str.chars().filter(|c| matches!(c.to_ascii_uppercase(), 'G' | 'C')).count();
+        let gc = seq_str
+            .chars()
+            .filter(|c| matches!(c.to_ascii_uppercase(), 'G' | 'C'))
+            .count();
         gc_fracs.push(if len > 0 { gc as f64 / len as f64 } else { 0.0 });
 
         // N count
-        n_count += seq_str.chars().filter(|c| c.to_ascii_uppercase() == 'N').count() as i64;
+        n_count += seq_str
+            .chars()
+            .filter(|c| c.to_ascii_uppercase() == 'N')
+            .count() as i64;
 
         // Quality scores (Phred+33)
         if !qual_str.is_empty() {
-            let mean_q: f64 = qual_str.bytes().map(|b| (b.saturating_sub(33)) as f64).sum::<f64>()
+            let mean_q: f64 = qual_str
+                .bytes()
+                .map(|b| (b.saturating_sub(33)) as f64)
+                .sum::<f64>()
                 / qual_str.len().max(1) as f64;
             qual_sums.push(mean_q);
         }
@@ -1206,8 +1328,16 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
 
     let q20_count = qual_sums.iter().filter(|&&q| q >= 20.0).count() as f64;
     let q30_count = qual_sums.iter().filter(|&&q| q >= 30.0).count() as f64;
-    let q20_pct = if qual_sums.is_empty() { 0.0 } else { q20_count / qual_sums.len() as f64 * 100.0 };
-    let q30_pct = if qual_sums.is_empty() { 0.0 } else { q30_count / qual_sums.len() as f64 * 100.0 };
+    let q20_pct = if qual_sums.is_empty() {
+        0.0
+    } else {
+        q20_count / qual_sums.len() as f64 * 100.0
+    };
+    let q30_pct = if qual_sums.is_empty() {
+        0.0
+    } else {
+        q30_count / qual_sums.len() as f64 * 100.0
+    };
 
     let gc_mean = if gc_fracs.is_empty() {
         0.0
@@ -1221,7 +1351,11 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
         0.0
     };
 
-    let dup_reads = seen_seqs.values().filter(|&&c| c > 1).map(|&c| c - 1).sum::<usize>();
+    let dup_reads = seen_seqs
+        .values()
+        .filter(|&&c| c > 1)
+        .map(|&c| c - 1)
+        .sum::<usize>();
     let duplicate_pct = if total_reads > 0 {
         dup_reads as f64 / total_reads as f64 * 100.0
     } else {
@@ -1241,7 +1375,7 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
     result.insert("gc_mean".to_string(), Value::Float(gc_mean));
     result.insert("n_pct".to_string(), Value::Float(n_pct));
     result.insert("duplicate_pct".to_string(), Value::Float(duplicate_pct));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 // ── primer_design() — PCR primer design ─────────────────────────────
@@ -1275,9 +1409,14 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
                     _ => def,
                 }
             };
-            (get_i("min_length", 18), get_i("max_length", 25),
-             get_f("min_tm", 55.0), get_f("max_tm", 65.0),
-             get_f("min_gc", 0.4), get_f("max_gc", 0.6))
+            (
+                get_i("min_length", 18),
+                get_i("max_length", 25),
+                get_f("min_tm", 55.0),
+                get_f("max_tm", 65.0),
+                get_f("min_gc", 0.4),
+                get_f("max_gc", 0.6),
+            )
         }
         _ => (18, 25, 55.0, 65.0, 0.4, 0.6),
     };
@@ -1296,7 +1435,10 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
     let has_poly_run = |s: &str| -> bool {
         let bytes = s.as_bytes();
         for i in 0..bytes.len().saturating_sub(3) {
-            if bytes[i] == bytes[i + 1] && bytes[i + 1] == bytes[i + 2] && bytes[i + 2] == bytes[i + 3] {
+            if bytes[i] == bytes[i + 1]
+                && bytes[i + 1] == bytes[i + 2]
+                && bytes[i + 2] == bytes[i + 3]
+            {
                 return true;
             }
         }
@@ -1305,11 +1447,20 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
 
     let has_3prime_self_comp = |s: &str| -> bool {
         // Check if last 4 bases have self-complementarity
-        if s.len() < 4 { return false; }
+        if s.len() < 4 {
+            return false;
+        }
         let tail: Vec<char> = s.chars().rev().take(4).collect();
-        let rc: Vec<char> = tail.iter().map(|c| match c {
-            'A' => 'T', 'T' => 'A', 'G' => 'C', 'C' => 'G', _ => 'N',
-        }).collect();
+        let rc: Vec<char> = tail
+            .iter()
+            .map(|c| match c {
+                'A' => 'T',
+                'T' => 'A',
+                'G' => 'C',
+                'C' => 'G',
+                _ => 'N',
+            })
+            .collect();
         tail == rc
     };
 
@@ -1317,19 +1468,38 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
         let tm = calc_tm(s);
         let gc = calc_gc(s);
         let mut score = 100.0;
-        if tm < min_tm { score -= (min_tm - tm) * 5.0; }
-        if tm > max_tm { score -= (tm - max_tm) * 5.0; }
-        if gc < min_gc { score -= (min_gc - gc) * 50.0; }
-        if gc > max_gc { score -= (gc - max_gc) * 50.0; }
-        if has_poly_run(s) { score -= 20.0; }
-        if has_3prime_self_comp(s) { score -= 15.0; }
+        if tm < min_tm {
+            score -= (min_tm - tm) * 5.0;
+        }
+        if tm > max_tm {
+            score -= (tm - max_tm) * 5.0;
+        }
+        if gc < min_gc {
+            score -= (min_gc - gc) * 50.0;
+        }
+        if gc > max_gc {
+            score -= (gc - max_gc) * 50.0;
+        }
+        if has_poly_run(s) {
+            score -= 20.0;
+        }
+        if has_3prime_self_comp(s) {
+            score -= 15.0;
+        }
         score
     };
 
     let rev_comp = |s: &str| -> String {
-        s.chars().rev().map(|c| match c {
-            'A' => 'T', 'T' => 'A', 'G' => 'C', 'C' => 'G', ch => ch,
-        }).collect()
+        s.chars()
+            .rev()
+            .map(|c| match c {
+                'A' => 'T',
+                'T' => 'A',
+                'G' => 'C',
+                'C' => 'G',
+                ch => ch,
+            })
+            .collect()
     };
 
     // Collect forward primer candidates (upstream of target)
@@ -1338,7 +1508,9 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
     for start in scan_start..target_start.saturating_sub(min_len) {
         for plen in min_len..=max_len {
             let end = start + plen;
-            if end > target_start || end > seq.len() { break; }
+            if end > target_start || end > seq.len() {
+                break;
+            }
             let primer = &seq[start..end];
             let s = score_primer(primer);
             if s > 0.0 {
@@ -1355,7 +1527,9 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
     for start in target_end..scan_end.saturating_sub(min_len) {
         for plen in min_len..=max_len {
             let end = start + plen;
-            if end > seq.len() { break; }
+            if end > seq.len() {
+                break;
+            }
             let region = &seq[start..end];
             let primer = rev_comp(region);
             let s = score_primer(&primer);
@@ -1390,7 +1564,7 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
             fields.insert("rev_tm".to_string(), Value::Float(rev_tm));
             fields.insert("fwd_gc".to_string(), Value::Float(calc_gc(fwd)));
             fields.insert("rev_gc".to_string(), Value::Float(calc_gc(rev)));
-            pairs.push(Value::Record(fields));
+            pairs.push(Value::Record((fields).into()));
         }
     }
 
@@ -1398,18 +1572,26 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
     pairs.sort_by(|a, b| {
         let score = |v: &Value| -> f64 {
             if let Value::Record(f) = v {
-                let ft = match f.get("fwd_tm") { Some(Value::Float(f)) => *f, _ => 0.0 };
-                let rt = match f.get("rev_tm") { Some(Value::Float(f)) => *f, _ => 0.0 };
+                let ft = match f.get("fwd_tm") {
+                    Some(Value::Float(f)) => *f,
+                    _ => 0.0,
+                };
+                let rt = match f.get("rev_tm") {
+                    Some(Value::Float(f)) => *f,
+                    _ => 0.0,
+                };
                 let mid_tm = (min_tm + max_tm) / 2.0;
                 -((ft - mid_tm).abs() + (rt - mid_tm).abs() + (ft - rt).abs())
             } else {
                 f64::NEG_INFINITY
             }
         };
-        score(b).partial_cmp(&score(a)).unwrap_or(std::cmp::Ordering::Equal)
+        score(b)
+            .partial_cmp(&score(a))
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
     pairs.truncate(3);
-    Ok(Value::List(pairs))
+    Ok(Value::List((pairs).into()))
 }
 
 // ── liftover() — coordinate mapping between genome builds ───────────
@@ -1417,10 +1599,12 @@ fn builtin_primer_design(args: &[Value]) -> Result<Value> {
 fn builtin_liftover(args: &[Value]) -> Result<Value> {
     let chrom = match &args[0] {
         Value::Str(s) => s.clone(),
-        other => return Err(BioLangError::type_error(
-            format!("liftover() chrom requires Str, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("liftover() chrom requires Str, got {}", other.type_of()),
+                None,
+            ))
+        }
     };
     let start = require_int(&args[1], "liftover")?;
     let end = require_int(&args[2], "liftover")?;
@@ -1453,23 +1637,35 @@ fn builtin_liftover(args: &[Value]) -> Result<Value> {
             fields.insert("input_chrom".to_string(), Value::Str(chrom));
             fields.insert("input_start".to_string(), Value::Int(start));
             fields.insert("input_end".to_string(), Value::Int(end));
-            fields.insert("mapped_chrom".to_string(), json_str(mapped, "seq_region_name"));
-            fields.insert("mapped_start".to_string(), match mapped.get("start").and_then(|v| v.as_i64()) {
-                Some(n) => Value::Int(n),
-                None => Value::Nil,
-            });
-            fields.insert("mapped_end".to_string(), match mapped.get("end").and_then(|v| v.as_i64()) {
-                Some(n) => Value::Int(n),
-                None => Value::Nil,
-            });
-            fields.insert("strand".to_string(), match mapped.get("strand").and_then(|v| v.as_i64()) {
-                Some(1) => Value::Str("+".to_string()),
-                Some(-1) => Value::Str("-".to_string()),
-                _ => Value::Nil,
-            });
+            fields.insert(
+                "mapped_chrom".to_string(),
+                json_str(mapped, "seq_region_name"),
+            );
+            fields.insert(
+                "mapped_start".to_string(),
+                match mapped.get("start").and_then(|v| v.as_i64()) {
+                    Some(n) => Value::Int(n),
+                    None => Value::Nil,
+                },
+            );
+            fields.insert(
+                "mapped_end".to_string(),
+                match mapped.get("end").and_then(|v| v.as_i64()) {
+                    Some(n) => Value::Int(n),
+                    None => Value::Nil,
+                },
+            );
+            fields.insert(
+                "strand".to_string(),
+                match mapped.get("strand").and_then(|v| v.as_i64()) {
+                    Some(1) => Value::Str("+".to_string()),
+                    Some(-1) => Value::Str("-".to_string()),
+                    _ => Value::Nil,
+                },
+            );
             fields.insert("from_build".to_string(), Value::Str(from_build));
             fields.insert("to_build".to_string(), Value::Str(to_build));
-            return Ok(Value::Record(fields));
+            return Ok(Value::Record((fields).into()));
         }
     }
 
@@ -1480,8 +1676,11 @@ fn builtin_liftover(args: &[Value]) -> Result<Value> {
     fields.insert("input_end".to_string(), Value::Int(end));
     fields.insert("from_build".to_string(), Value::Str(from_build));
     fields.insert("to_build".to_string(), Value::Str(to_build));
-    fields.insert("error".to_string(), Value::Str("no mapping found".to_string()));
-    Ok(Value::Record(fields))
+    fields.insert(
+        "error".to_string(),
+        Value::Str("no mapping found".to_string()),
+    );
+    Ok(Value::Record((fields).into()))
 }
 
 // ── clinvar_lookup() — query ClinVar via NCBI E-utilities ───────────
@@ -1503,14 +1702,17 @@ fn builtin_clinvar_lookup(args: &[Value]) -> Result<Value> {
         None => {
             let mut fields = HashMap::new();
             fields.insert("id".to_string(), Value::Str(query));
-            fields.insert("error".to_string(), Value::Str("no ClinVar results found".to_string()));
+            fields.insert(
+                "error".to_string(),
+                Value::Str("no ClinVar results found".to_string()),
+            );
             fields.insert("title".to_string(), Value::Nil);
             fields.insert("clinical_significance".to_string(), Value::Nil);
             fields.insert("review_status".to_string(), Value::Nil);
             fields.insert("gene".to_string(), Value::Nil);
             fields.insert("conditions".to_string(), Value::Nil);
             fields.insert("variation_type".to_string(), Value::Nil);
-            return Ok(Value::Record(fields));
+            return Ok(Value::Record((fields).into()));
         }
     };
 
@@ -1545,20 +1747,17 @@ fn builtin_clinvar_lookup(args: &[Value]) -> Result<Value> {
     fields.insert("review_status".to_string(), review);
 
     // Gene(s)
-    let genes = data
-        .get("genes")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|g| g.get("symbol").and_then(|v| v.as_str()))
-                .map(|s| Value::Str(s.to_string()))
-                .collect::<Vec<_>>()
-        });
+    let genes = data.get("genes").and_then(|v| v.as_array()).map(|arr| {
+        arr.iter()
+            .filter_map(|g| g.get("symbol").and_then(|v| v.as_str()))
+            .map(|s| Value::Str(s.to_string()))
+            .collect::<Vec<_>>()
+    });
     fields.insert(
         "gene".to_string(),
         match genes {
             Some(ref g) if g.len() == 1 => g[0].clone(),
-            Some(g) if !g.is_empty() => Value::List(g),
+            Some(g) if !g.is_empty() => Value::List((g).into()),
             _ => json_str(&data, "gene_sort"),
         },
     );
@@ -1570,19 +1769,25 @@ fn builtin_clinvar_lookup(args: &[Value]) -> Result<Value> {
         .map(|arr| {
             arr.iter()
                 .filter_map(|t| {
-                    t.get("trait_name").and_then(|v| v.as_str()).map(|s| Value::Str(s.to_string()))
+                    t.get("trait_name")
+                        .and_then(|v| v.as_str())
+                        .map(|s| Value::Str(s.to_string()))
                 })
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
     fields.insert(
         "conditions".to_string(),
-        if conditions.is_empty() { Value::Nil } else { Value::List(conditions) },
+        if conditions.is_empty() {
+            Value::Nil
+        } else {
+            Value::List((conditions).into())
+        },
     );
 
     fields.insert("variation_type".to_string(), json_str(&data, "obj_type"));
 
-    Ok(Value::Record(fields))
+    Ok(Value::Record((fields).into()))
 }
 
 // ── gnomad_freq() — query allele frequencies via myvariant.info ─────
@@ -1661,7 +1866,7 @@ fn builtin_gnomad_freq(args: &[Value]) -> Result<Value> {
         }
     }
 
-    Ok(Value::Record(fields))
+    Ok(Value::Record((fields).into()))
 }
 
 // ── go_enrichment() — offline GO enrichment with built-in term db ───
@@ -1673,14 +1878,20 @@ fn builtin_go_enrichment(args: &[Value]) -> Result<Value> {
             .map(|v| match v {
                 Value::Str(s) => Ok(s.to_uppercase()),
                 other => Err(BioLangError::type_error(
-                    format!("go_enrichment() gene list must contain strings, got {}", other.type_of()),
+                    format!(
+                        "go_enrichment() gene list must contain strings, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             })
             .collect::<Result<Vec<_>>>()?,
         other => {
             return Err(BioLangError::type_error(
-                format!("go_enrichment() requires a List of gene symbols, got {}", other.type_of()),
+                format!(
+                    "go_enrichment() requires a List of gene symbols, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -1731,16 +1942,13 @@ fn builtin_go_enrichment(args: &[Value]) -> Result<Value> {
         fields.insert("term_id".to_string(), Value::Str(go_id.to_string()));
         fields.insert("term".to_string(), Value::Str(term_name.to_string()));
         fields.insert("pvalue".to_string(), Value::Float(pvalue));
-        fields.insert(
-            "overlap".to_string(),
-            Value::Str(format!("{}/{}", k, n)),
-        );
+        fields.insert("overlap".to_string(), Value::Str(format!("{}/{}", k, n)));
         fields.insert(
             "genes".to_string(),
-            Value::List(overlap.iter().map(|g| Value::Str(g.clone())).collect()),
+            Value::List(overlap.iter().map(|g| Value::Str(g.clone())).collect::<Vec<_>>().into()),
         );
 
-        results.push((pvalue, Value::Record(fields)));
+        results.push((pvalue, Value::Record((fields).into())));
     }
 
     // Sort by p-value ascending
@@ -1759,7 +1967,8 @@ fn builtin_go_enrichment(args: &[Value]) -> Result<Value> {
                     _ => 1.0,
                 };
                 let adj_p = (raw_p * n_tests as f64 / (i + 1) as f64).min(1.0);
-                fields.insert("adjusted_pvalue".to_string(), Value::Float(adj_p));
+                std::sync::Arc::make_mut(&mut fields)
+                    .insert("adjusted_pvalue".to_string(), Value::Float(adj_p));
                 Value::Record(fields)
             } else {
                 val
@@ -1767,7 +1976,7 @@ fn builtin_go_enrichment(args: &[Value]) -> Result<Value> {
         })
         .collect();
 
-    Ok(Value::List(final_results))
+    Ok(Value::List((final_results).into()))
 }
 
 /// Poisson survival function: P(X >= k) where X ~ Poisson(lambda)
@@ -1787,105 +1996,642 @@ fn poisson_sf(k: usize, lambda: f64) -> f64 {
 
 fn go_biological_process_terms() -> Vec<(&'static str, &'static str, &'static [&'static str])> {
     vec![
-        ("GO:0006915", "apoptotic process", &["TP53","BCL2","BAX","CASP3","CASP9","BID","BCL2L1","XIAP","CYCS","APAF1"]),
-        ("GO:0006281", "DNA repair", &["BRCA1","BRCA2","ATM","ATR","RAD51","XRCC1","PARP1","MLH1","MSH2","CHEK2"]),
-        ("GO:0008283", "cell proliferation", &["MYC","CCND1","CDK4","CDK6","RB1","E2F1","CDKN2A","PCNA","MCM2","MCM7"]),
-        ("GO:0007049", "cell cycle", &["CDK1","CDK2","CCNA2","CCNB1","CCNE1","CDC25A","CDC25C","PLK1","AURKA","AURKB"]),
-        ("GO:0006468", "protein phosphorylation", &["AKT1","MAPK1","MAPK3","SRC","EGFR","ERBB2","JAK2","ABL1","BRAF","RAF1"]),
-        ("GO:0007165", "signal transduction", &["KRAS","HRAS","NRAS","PIK3CA","PTEN","AKT1","MTOR","MAPK1","STAT3","JAK2"]),
-        ("GO:0006955", "immune response", &["TNF","IL6","IL1B","IFNG","IL10","CD4","CD8A","FOXP3","TLR4","NFKB1"]),
-        ("GO:0006954", "inflammatory response", &["TNF","IL6","IL1B","IL8","CCL2","COX2","PTGS2","NLRP3","CXCL8","NFKB1"]),
-        ("GO:0006260", "DNA replication", &["PCNA","MCM2","MCM3","MCM4","MCM5","MCM6","MCM7","POLA1","POLE","RFC1"]),
-        ("GO:0006412", "translation", &["EIF4E","EIF4G1","EIF2S1","MTOR","RPS6","EEF2","RPS6KB1","EIF3A","EIF5A","RPL5"]),
-        ("GO:0006351", "transcription, DNA-templated", &["TP53","MYC","JUN","FOS","SP1","CTCF","YY1","TFIIB","POLR2A","MED1"]),
-        ("GO:0016032", "viral process", &["ACE2","TMPRSS2","IFNAR1","IFNB1","MX1","OAS1","ISG15","BST2","TRIM25","IRF3"]),
-        ("GO:0007596", "blood coagulation", &["F2","F5","F7","F8","F9","F10","F11","FGA","FGB","VWF"]),
-        ("GO:0042981", "regulation of apoptotic process", &["BCL2","MCL1","BCL2L1","BAX","BAK1","BIM","PUMA","NOXA","SURVIVIN","FLIP"]),
-        ("GO:0001525", "angiogenesis", &["VEGFA","VEGFR2","FGF2","ANGPT1","ANGPT2","HIF1A","DLL4","NOTCH1","NRP1","ENG"]),
-        ("GO:0008284", "positive regulation of cell proliferation", &["EGF","EGFR","PDGFB","FGF2","IGF1","ERBB2","MET","KIT","FGFR1","FGFR2"]),
-        ("GO:0043065", "positive regulation of apoptotic process", &["TP53","BAX","BID","BAK1","CASP8","FAS","FASLG","TRAIL","DR5","APAF1"]),
-        ("GO:0006935", "chemotaxis", &["CXCL12","CXCR4","CCL2","CCR2","CCL5","CCR5","CXCL8","CXCR2","CCL19","CCR7"]),
-        ("GO:0030154", "cell differentiation", &["NOTCH1","WNT3A","BMP4","SHH","SOX2","PAX6","GATA1","PU1","RUNX1","MYOD1"]),
-        ("GO:0001666", "response to hypoxia", &["HIF1A","EPAS1","VHL","PHD2","EPO","VEGFA","GLUT1","LDHA","PDK1","CA9"]),
-        ("GO:0006629", "lipid metabolic process", &["FASN","ACACA","HMGCR","SREBF1","PPARG","PPARA","ACOX1","CPT1A","LIPE","DGAT1"]),
-        ("GO:0006811", "ion transport", &["SCN5A","KCNQ1","KCNH2","CACNA1C","CFTR","SLC12A1","ATP1A1","CLCN1","TRPV1","KCNJ11"]),
-        ("GO:0006814", "sodium ion transport", &["SCN1A","SCN2A","SCN5A","SCN9A","SLC9A1","SLC5A1","SLC5A2","ENaC","ATP1A1","SCN8A"]),
-        ("GO:0007399", "nervous system development", &["BDNF","NGF","NTRK2","NTRK1","GDNF","NRXN1","NLGN1","DISC1","DSCAM","ROBO1"]),
-        ("GO:0006695", "cholesterol biosynthetic process", &["HMGCR","HMGCS1","SQLE","FDFT1","DHCR7","DHCR24","CYP51A1","SREBF2","ACAT2","MVK"]),
-        ("GO:0055114", "oxidation-reduction process", &["SOD1","SOD2","CAT","GPX1","GSR","NQO1","TXNRD1","CYP1A1","CYP3A4","ALDH2"]),
-        ("GO:0007155", "cell adhesion", &["CDH1","CDH2","ITGB1","ITGA5","ICAM1","VCAM1","SELE","SELL","CD44","EPCAM"]),
-        ("GO:0016055", "Wnt signaling pathway", &["WNT1","WNT3A","CTNNB1","APC","GSK3B","AXIN1","LEF1","TCF7","FZD1","LRP6"]),
-        ("GO:0007219", "Notch signaling pathway", &["NOTCH1","NOTCH2","NOTCH3","JAG1","JAG2","DLL1","DLL4","HES1","HEY1","RBPJ"]),
-        ("GO:0048015", "phosphatidylinositol-mediated signaling", &["PIK3CA","PIK3R1","PTEN","AKT1","AKT2","PDK1","MTOR","INPP5D","PIK3CB","PIK3CD"]),
-        ("GO:0006950", "response to stress", &["HSP90AA1","HSPA1A","HSP90B1","DNAJB1","HSPA5","HSPB1","ATF4","DDIT3","XBP1","ATF6"]),
-        ("GO:0006805", "xenobiotic metabolic process", &["CYP1A1","CYP1A2","CYP2D6","CYP3A4","CYP2C9","CYP2C19","UGT1A1","GSTM1","GSTP1","NAT2"]),
-        ("GO:0000723", "telomere maintenance", &["TERT","TERC","POT1","TRF1","TRF2","TIN2","TPP1","RAP1","RTEL1","DKC1"]),
-        ("GO:0006302", "double-strand break repair", &["BRCA1","BRCA2","RAD51","RAD50","MRE11","NBS1","XRCC4","LIG4","53BP1","RIF1"]),
-        ("GO:0045944", "positive regulation of transcription by RNA pol II", &["MYC","JUN","FOS","RELA","SP1","CREB1","SRF","ETS1","STAT1","STAT3"]),
-        ("GO:0000278", "mitotic cell cycle", &["CDK1","CCNB1","PLK1","AURKA","BUB1","MAD2L1","CDC20","APC","CENPE","KIF11"]),
-        ("GO:0001837", "epithelial to mesenchymal transition", &["SNAI1","SNAI2","TWIST1","ZEB1","ZEB2","CDH1","CDH2","VIM","TGFB1","FOXC2"]),
-        ("GO:0006270", "DNA replication initiation", &["ORC1","ORC2","ORC3","ORC4","ORC5","ORC6","CDC6","CDT1","MCM2","MCM4"]),
-        ("GO:0045087", "innate immune response", &["TLR2","TLR3","TLR4","TLR7","TLR9","MYD88","STING","CGAS","RIG1","MAVS"]),
-        ("GO:0006979", "response to oxidative stress", &["NFE2L2","KEAP1","SOD1","SOD2","CAT","GPX1","HMOX1","NQO1","TXNRD1","PRDX1"]),
-        ("GO:0006914", "autophagy", &["BECN1","ATG5","ATG7","ATG12","LC3B","ULK1","SQSTM1","MTOR","AMPK","VPS34"]),
-        ("GO:0007169", "transmembrane receptor protein tyrosine kinase signaling", &["EGFR","ERBB2","ERBB3","PDGFRA","FGFR1","MET","RET","ALK","ROS1","KIT"]),
-        ("GO:0006936", "muscle contraction", &["MYH7","MYH6","TNNT2","TNNI3","TPM1","ACTC1","MYL2","MYL3","RYR2","SCN5A"]),
-        ("GO:0045893", "positive regulation of DNA transcription", &["TP53","RB1","SMAD2","SMAD3","SMAD4","TGFBR1","TGFBR2","BMP2","BMP4","RUNX2"]),
-        ("GO:0006511", "ubiquitin-dependent protein catabolic process", &["UBE2I","UBA1","UBE2D1","UBR5","MDM2","FBXW7","BTRC","CUL1","SKP2","VHL"]),
-        ("GO:0008380", "RNA splicing", &["SF3B1","U2AF1","SRSF2","ZRSR2","PRPF8","PRPF31","SNRNP200","HNRNPA1","RBFOX2","PTBP1"]),
-        ("GO:0007186", "G protein-coupled receptor signaling", &["GNAS","GNAI1","GNB1","ADCY5","ADRB1","ADRB2","DRD2","HTR2A","OPRM1","GRM5"]),
-        ("GO:0032496", "response to lipopolysaccharide", &["TLR4","MD2","CD14","MYD88","IRAK1","TRAF6","NFKB1","TNF","IL6","IL1B"]),
-        ("GO:0043066", "negative regulation of apoptotic process", &["BCL2","BCL2L1","MCL1","XIAP","BIRC5","AKT1","FLIP","SURVIVIN","IAP","HSP70"]),
+        (
+            "GO:0006915",
+            "apoptotic process",
+            &[
+                "TP53", "BCL2", "BAX", "CASP3", "CASP9", "BID", "BCL2L1", "XIAP", "CYCS", "APAF1",
+            ],
+        ),
+        (
+            "GO:0006281",
+            "DNA repair",
+            &[
+                "BRCA1", "BRCA2", "ATM", "ATR", "RAD51", "XRCC1", "PARP1", "MLH1", "MSH2", "CHEK2",
+            ],
+        ),
+        (
+            "GO:0008283",
+            "cell proliferation",
+            &[
+                "MYC", "CCND1", "CDK4", "CDK6", "RB1", "E2F1", "CDKN2A", "PCNA", "MCM2", "MCM7",
+            ],
+        ),
+        (
+            "GO:0007049",
+            "cell cycle",
+            &[
+                "CDK1", "CDK2", "CCNA2", "CCNB1", "CCNE1", "CDC25A", "CDC25C", "PLK1", "AURKA",
+                "AURKB",
+            ],
+        ),
+        (
+            "GO:0006468",
+            "protein phosphorylation",
+            &[
+                "AKT1", "MAPK1", "MAPK3", "SRC", "EGFR", "ERBB2", "JAK2", "ABL1", "BRAF", "RAF1",
+            ],
+        ),
+        (
+            "GO:0007165",
+            "signal transduction",
+            &[
+                "KRAS", "HRAS", "NRAS", "PIK3CA", "PTEN", "AKT1", "MTOR", "MAPK1", "STAT3", "JAK2",
+            ],
+        ),
+        (
+            "GO:0006955",
+            "immune response",
+            &[
+                "TNF", "IL6", "IL1B", "IFNG", "IL10", "CD4", "CD8A", "FOXP3", "TLR4", "NFKB1",
+            ],
+        ),
+        (
+            "GO:0006954",
+            "inflammatory response",
+            &[
+                "TNF", "IL6", "IL1B", "IL8", "CCL2", "COX2", "PTGS2", "NLRP3", "CXCL8", "NFKB1",
+            ],
+        ),
+        (
+            "GO:0006260",
+            "DNA replication",
+            &[
+                "PCNA", "MCM2", "MCM3", "MCM4", "MCM5", "MCM6", "MCM7", "POLA1", "POLE", "RFC1",
+            ],
+        ),
+        (
+            "GO:0006412",
+            "translation",
+            &[
+                "EIF4E", "EIF4G1", "EIF2S1", "MTOR", "RPS6", "EEF2", "RPS6KB1", "EIF3A", "EIF5A",
+                "RPL5",
+            ],
+        ),
+        (
+            "GO:0006351",
+            "transcription, DNA-templated",
+            &[
+                "TP53", "MYC", "JUN", "FOS", "SP1", "CTCF", "YY1", "TFIIB", "POLR2A", "MED1",
+            ],
+        ),
+        (
+            "GO:0016032",
+            "viral process",
+            &[
+                "ACE2", "TMPRSS2", "IFNAR1", "IFNB1", "MX1", "OAS1", "ISG15", "BST2", "TRIM25",
+                "IRF3",
+            ],
+        ),
+        (
+            "GO:0007596",
+            "blood coagulation",
+            &[
+                "F2", "F5", "F7", "F8", "F9", "F10", "F11", "FGA", "FGB", "VWF",
+            ],
+        ),
+        (
+            "GO:0042981",
+            "regulation of apoptotic process",
+            &[
+                "BCL2", "MCL1", "BCL2L1", "BAX", "BAK1", "BIM", "PUMA", "NOXA", "SURVIVIN", "FLIP",
+            ],
+        ),
+        (
+            "GO:0001525",
+            "angiogenesis",
+            &[
+                "VEGFA", "VEGFR2", "FGF2", "ANGPT1", "ANGPT2", "HIF1A", "DLL4", "NOTCH1", "NRP1",
+                "ENG",
+            ],
+        ),
+        (
+            "GO:0008284",
+            "positive regulation of cell proliferation",
+            &[
+                "EGF", "EGFR", "PDGFB", "FGF2", "IGF1", "ERBB2", "MET", "KIT", "FGFR1", "FGFR2",
+            ],
+        ),
+        (
+            "GO:0043065",
+            "positive regulation of apoptotic process",
+            &[
+                "TP53", "BAX", "BID", "BAK1", "CASP8", "FAS", "FASLG", "TRAIL", "DR5", "APAF1",
+            ],
+        ),
+        (
+            "GO:0006935",
+            "chemotaxis",
+            &[
+                "CXCL12", "CXCR4", "CCL2", "CCR2", "CCL5", "CCR5", "CXCL8", "CXCR2", "CCL19",
+                "CCR7",
+            ],
+        ),
+        (
+            "GO:0030154",
+            "cell differentiation",
+            &[
+                "NOTCH1", "WNT3A", "BMP4", "SHH", "SOX2", "PAX6", "GATA1", "PU1", "RUNX1", "MYOD1",
+            ],
+        ),
+        (
+            "GO:0001666",
+            "response to hypoxia",
+            &[
+                "HIF1A", "EPAS1", "VHL", "PHD2", "EPO", "VEGFA", "GLUT1", "LDHA", "PDK1", "CA9",
+            ],
+        ),
+        (
+            "GO:0006629",
+            "lipid metabolic process",
+            &[
+                "FASN", "ACACA", "HMGCR", "SREBF1", "PPARG", "PPARA", "ACOX1", "CPT1A", "LIPE",
+                "DGAT1",
+            ],
+        ),
+        (
+            "GO:0006811",
+            "ion transport",
+            &[
+                "SCN5A", "KCNQ1", "KCNH2", "CACNA1C", "CFTR", "SLC12A1", "ATP1A1", "CLCN1",
+                "TRPV1", "KCNJ11",
+            ],
+        ),
+        (
+            "GO:0006814",
+            "sodium ion transport",
+            &[
+                "SCN1A", "SCN2A", "SCN5A", "SCN9A", "SLC9A1", "SLC5A1", "SLC5A2", "ENaC", "ATP1A1",
+                "SCN8A",
+            ],
+        ),
+        (
+            "GO:0007399",
+            "nervous system development",
+            &[
+                "BDNF", "NGF", "NTRK2", "NTRK1", "GDNF", "NRXN1", "NLGN1", "DISC1", "DSCAM",
+                "ROBO1",
+            ],
+        ),
+        (
+            "GO:0006695",
+            "cholesterol biosynthetic process",
+            &[
+                "HMGCR", "HMGCS1", "SQLE", "FDFT1", "DHCR7", "DHCR24", "CYP51A1", "SREBF2",
+                "ACAT2", "MVK",
+            ],
+        ),
+        (
+            "GO:0055114",
+            "oxidation-reduction process",
+            &[
+                "SOD1", "SOD2", "CAT", "GPX1", "GSR", "NQO1", "TXNRD1", "CYP1A1", "CYP3A4", "ALDH2",
+            ],
+        ),
+        (
+            "GO:0007155",
+            "cell adhesion",
+            &[
+                "CDH1", "CDH2", "ITGB1", "ITGA5", "ICAM1", "VCAM1", "SELE", "SELL", "CD44", "EPCAM",
+            ],
+        ),
+        (
+            "GO:0016055",
+            "Wnt signaling pathway",
+            &[
+                "WNT1", "WNT3A", "CTNNB1", "APC", "GSK3B", "AXIN1", "LEF1", "TCF7", "FZD1", "LRP6",
+            ],
+        ),
+        (
+            "GO:0007219",
+            "Notch signaling pathway",
+            &[
+                "NOTCH1", "NOTCH2", "NOTCH3", "JAG1", "JAG2", "DLL1", "DLL4", "HES1", "HEY1",
+                "RBPJ",
+            ],
+        ),
+        (
+            "GO:0048015",
+            "phosphatidylinositol-mediated signaling",
+            &[
+                "PIK3CA", "PIK3R1", "PTEN", "AKT1", "AKT2", "PDK1", "MTOR", "INPP5D", "PIK3CB",
+                "PIK3CD",
+            ],
+        ),
+        (
+            "GO:0006950",
+            "response to stress",
+            &[
+                "HSP90AA1", "HSPA1A", "HSP90B1", "DNAJB1", "HSPA5", "HSPB1", "ATF4", "DDIT3",
+                "XBP1", "ATF6",
+            ],
+        ),
+        (
+            "GO:0006805",
+            "xenobiotic metabolic process",
+            &[
+                "CYP1A1", "CYP1A2", "CYP2D6", "CYP3A4", "CYP2C9", "CYP2C19", "UGT1A1", "GSTM1",
+                "GSTP1", "NAT2",
+            ],
+        ),
+        (
+            "GO:0000723",
+            "telomere maintenance",
+            &[
+                "TERT", "TERC", "POT1", "TRF1", "TRF2", "TIN2", "TPP1", "RAP1", "RTEL1", "DKC1",
+            ],
+        ),
+        (
+            "GO:0006302",
+            "double-strand break repair",
+            &[
+                "BRCA1", "BRCA2", "RAD51", "RAD50", "MRE11", "NBS1", "XRCC4", "LIG4", "53BP1",
+                "RIF1",
+            ],
+        ),
+        (
+            "GO:0045944",
+            "positive regulation of transcription by RNA pol II",
+            &[
+                "MYC", "JUN", "FOS", "RELA", "SP1", "CREB1", "SRF", "ETS1", "STAT1", "STAT3",
+            ],
+        ),
+        (
+            "GO:0000278",
+            "mitotic cell cycle",
+            &[
+                "CDK1", "CCNB1", "PLK1", "AURKA", "BUB1", "MAD2L1", "CDC20", "APC", "CENPE",
+                "KIF11",
+            ],
+        ),
+        (
+            "GO:0001837",
+            "epithelial to mesenchymal transition",
+            &[
+                "SNAI1", "SNAI2", "TWIST1", "ZEB1", "ZEB2", "CDH1", "CDH2", "VIM", "TGFB1", "FOXC2",
+            ],
+        ),
+        (
+            "GO:0006270",
+            "DNA replication initiation",
+            &[
+                "ORC1", "ORC2", "ORC3", "ORC4", "ORC5", "ORC6", "CDC6", "CDT1", "MCM2", "MCM4",
+            ],
+        ),
+        (
+            "GO:0045087",
+            "innate immune response",
+            &[
+                "TLR2", "TLR3", "TLR4", "TLR7", "TLR9", "MYD88", "STING", "CGAS", "RIG1", "MAVS",
+            ],
+        ),
+        (
+            "GO:0006979",
+            "response to oxidative stress",
+            &[
+                "NFE2L2", "KEAP1", "SOD1", "SOD2", "CAT", "GPX1", "HMOX1", "NQO1", "TXNRD1",
+                "PRDX1",
+            ],
+        ),
+        (
+            "GO:0006914",
+            "autophagy",
+            &[
+                "BECN1", "ATG5", "ATG7", "ATG12", "LC3B", "ULK1", "SQSTM1", "MTOR", "AMPK", "VPS34",
+            ],
+        ),
+        (
+            "GO:0007169",
+            "transmembrane receptor protein tyrosine kinase signaling",
+            &[
+                "EGFR", "ERBB2", "ERBB3", "PDGFRA", "FGFR1", "MET", "RET", "ALK", "ROS1", "KIT",
+            ],
+        ),
+        (
+            "GO:0006936",
+            "muscle contraction",
+            &[
+                "MYH7", "MYH6", "TNNT2", "TNNI3", "TPM1", "ACTC1", "MYL2", "MYL3", "RYR2", "SCN5A",
+            ],
+        ),
+        (
+            "GO:0045893",
+            "positive regulation of DNA transcription",
+            &[
+                "TP53", "RB1", "SMAD2", "SMAD3", "SMAD4", "TGFBR1", "TGFBR2", "BMP2", "BMP4",
+                "RUNX2",
+            ],
+        ),
+        (
+            "GO:0006511",
+            "ubiquitin-dependent protein catabolic process",
+            &[
+                "UBE2I", "UBA1", "UBE2D1", "UBR5", "MDM2", "FBXW7", "BTRC", "CUL1", "SKP2", "VHL",
+            ],
+        ),
+        (
+            "GO:0008380",
+            "RNA splicing",
+            &[
+                "SF3B1", "U2AF1", "SRSF2", "ZRSR2", "PRPF8", "PRPF31", "SNRNP200", "HNRNPA1",
+                "RBFOX2", "PTBP1",
+            ],
+        ),
+        (
+            "GO:0007186",
+            "G protein-coupled receptor signaling",
+            &[
+                "GNAS", "GNAI1", "GNB1", "ADCY5", "ADRB1", "ADRB2", "DRD2", "HTR2A", "OPRM1",
+                "GRM5",
+            ],
+        ),
+        (
+            "GO:0032496",
+            "response to lipopolysaccharide",
+            &[
+                "TLR4", "MD2", "CD14", "MYD88", "IRAK1", "TRAF6", "NFKB1", "TNF", "IL6", "IL1B",
+            ],
+        ),
+        (
+            "GO:0043066",
+            "negative regulation of apoptotic process",
+            &[
+                "BCL2", "BCL2L1", "MCL1", "XIAP", "BIRC5", "AKT1", "FLIP", "SURVIVIN", "IAP",
+                "HSP70",
+            ],
+        ),
     ]
 }
 
 fn go_molecular_function_terms() -> Vec<(&'static str, &'static str, &'static [&'static str])> {
     vec![
-        ("GO:0003677", "DNA binding", &["TP53","MYC","JUN","FOS","SP1","CTCF","BRCA1","ATM","E2F1","YY1"]),
-        ("GO:0003723", "RNA binding", &["FMR1","HNRNPA1","HNRNPC","ELAVL1","TARDBP","FUS","DICER1","AGO2","DDX3X","PABPC1"]),
-        ("GO:0004672", "protein kinase activity", &["AKT1","CDK2","CDK4","MAPK1","MAPK3","EGFR","SRC","ABL1","BRAF","JAK2"]),
-        ("GO:0004842", "ubiquitin-protein transferase activity", &["MDM2","FBXW7","RNF8","UBE3A","BRCA1","VHL","TRIM25","NEDD4","ITCH","SMURF1"]),
-        ("GO:0016301", "kinase activity", &["PIK3CA","PIK3CB","PIK3CD","AKT1","AKT2","MTOR","RPS6KB1","PDK1","SGK1","DYRK1A"]),
-        ("GO:0003700", "DNA-binding transcription factor activity", &["TP53","MYC","JUN","FOS","STAT3","RELA","SP1","ETS1","GATA1","PAX6"]),
-        ("GO:0005524", "ATP binding", &["ABCB1","ABCG2","HSP90AA1","HSPA1A","CFTR","ACTB","MYH7","KIF11","SMC1A","SMC3"]),
-        ("GO:0004674", "protein serine/threonine kinase activity", &["BRAF","RAF1","MAP2K1","CDK1","CDK2","CHEK1","CHEK2","PLK1","AURKA","NEK2"]),
-        ("GO:0046872", "metal ion binding", &["SOD1","CA2","ACE","ACE2","MMP2","MMP9","ADAM17","HDAC1","HDAC2","HDAC3"]),
-        ("GO:0003682", "chromatin binding", &["BRD4","BRD2","SMARCA4","SMARCB1","ARID1A","EZH2","KMT2A","KDM5A","BAZ2A","CHD4"]),
+        (
+            "GO:0003677",
+            "DNA binding",
+            &[
+                "TP53", "MYC", "JUN", "FOS", "SP1", "CTCF", "BRCA1", "ATM", "E2F1", "YY1",
+            ],
+        ),
+        (
+            "GO:0003723",
+            "RNA binding",
+            &[
+                "FMR1", "HNRNPA1", "HNRNPC", "ELAVL1", "TARDBP", "FUS", "DICER1", "AGO2", "DDX3X",
+                "PABPC1",
+            ],
+        ),
+        (
+            "GO:0004672",
+            "protein kinase activity",
+            &[
+                "AKT1", "CDK2", "CDK4", "MAPK1", "MAPK3", "EGFR", "SRC", "ABL1", "BRAF", "JAK2",
+            ],
+        ),
+        (
+            "GO:0004842",
+            "ubiquitin-protein transferase activity",
+            &[
+                "MDM2", "FBXW7", "RNF8", "UBE3A", "BRCA1", "VHL", "TRIM25", "NEDD4", "ITCH",
+                "SMURF1",
+            ],
+        ),
+        (
+            "GO:0016301",
+            "kinase activity",
+            &[
+                "PIK3CA", "PIK3CB", "PIK3CD", "AKT1", "AKT2", "MTOR", "RPS6KB1", "PDK1", "SGK1",
+                "DYRK1A",
+            ],
+        ),
+        (
+            "GO:0003700",
+            "DNA-binding transcription factor activity",
+            &[
+                "TP53", "MYC", "JUN", "FOS", "STAT3", "RELA", "SP1", "ETS1", "GATA1", "PAX6",
+            ],
+        ),
+        (
+            "GO:0005524",
+            "ATP binding",
+            &[
+                "ABCB1", "ABCG2", "HSP90AA1", "HSPA1A", "CFTR", "ACTB", "MYH7", "KIF11", "SMC1A",
+                "SMC3",
+            ],
+        ),
+        (
+            "GO:0004674",
+            "protein serine/threonine kinase activity",
+            &[
+                "BRAF", "RAF1", "MAP2K1", "CDK1", "CDK2", "CHEK1", "CHEK2", "PLK1", "AURKA", "NEK2",
+            ],
+        ),
+        (
+            "GO:0046872",
+            "metal ion binding",
+            &[
+                "SOD1", "CA2", "ACE", "ACE2", "MMP2", "MMP9", "ADAM17", "HDAC1", "HDAC2", "HDAC3",
+            ],
+        ),
+        (
+            "GO:0003682",
+            "chromatin binding",
+            &[
+                "BRD4", "BRD2", "SMARCA4", "SMARCB1", "ARID1A", "EZH2", "KMT2A", "KDM5A", "BAZ2A",
+                "CHD4",
+            ],
+        ),
     ]
 }
 
 fn go_cellular_component_terms() -> Vec<(&'static str, &'static str, &'static [&'static str])> {
     vec![
-        ("GO:0005634", "nucleus", &["TP53","RB1","MYC","BRCA1","BRCA2","ATM","ATR","CTCF","PCNA","RAD51"]),
-        ("GO:0005737", "cytoplasm", &["AKT1","MAPK1","MAPK3","SRC","KRAS","HRAS","PTEN","HSP90AA1","ACTB","TUBB"]),
-        ("GO:0005886", "plasma membrane", &["EGFR","ERBB2","CDH1","ITGB1","CD44","EPCAM","CFTR","SCN5A","KCNQ1","ACE2"]),
-        ("GO:0005739", "mitochondrion", &["BCL2","BAX","CYCS","SOD2","COX4I1","VDAC1","MFN1","MFN2","DRP1","PINK1"]),
-        ("GO:0005783", "endoplasmic reticulum", &["HSPA5","CANX","CALR","SEC61A1","ATF6","IRE1","XBP1","PDIA3","UGGT1","ERO1A"]),
-        ("GO:0005794", "Golgi apparatus", &["GOLPH3","GM130","GOLGA2","RAB1A","SEC23A","COPI","COPII","MAN1A1","B4GALT1","ST6GAL1"]),
-        ("GO:0005829", "cytosol", &["GAPDH","LDHA","PKM","ENO1","TPI1","ALDOA","PFK1","HK2","GPI","PGAM1"]),
-        ("GO:0000775", "chromosome, centromeric region", &["CENPA","CENPB","CENPC","CENPF","CENPE","INCENP","AURKB","BUB1","MAD2L1","NDC80"]),
-        ("GO:0005694", "chromosome", &["SMC1A","SMC3","RAD21","STAG1","CTCF","H3F3A","H2AFX","TOP2A","TERT","TERC"]),
-        ("GO:0005576", "extracellular region", &["TNF","IL6","IL1B","VEGFA","EGF","FGF2","TGFB1","BMP2","WNT3A","SHH"]),
+        (
+            "GO:0005634",
+            "nucleus",
+            &[
+                "TP53", "RB1", "MYC", "BRCA1", "BRCA2", "ATM", "ATR", "CTCF", "PCNA", "RAD51",
+            ],
+        ),
+        (
+            "GO:0005737",
+            "cytoplasm",
+            &[
+                "AKT1", "MAPK1", "MAPK3", "SRC", "KRAS", "HRAS", "PTEN", "HSP90AA1", "ACTB", "TUBB",
+            ],
+        ),
+        (
+            "GO:0005886",
+            "plasma membrane",
+            &[
+                "EGFR", "ERBB2", "CDH1", "ITGB1", "CD44", "EPCAM", "CFTR", "SCN5A", "KCNQ1", "ACE2",
+            ],
+        ),
+        (
+            "GO:0005739",
+            "mitochondrion",
+            &[
+                "BCL2", "BAX", "CYCS", "SOD2", "COX4I1", "VDAC1", "MFN1", "MFN2", "DRP1", "PINK1",
+            ],
+        ),
+        (
+            "GO:0005783",
+            "endoplasmic reticulum",
+            &[
+                "HSPA5", "CANX", "CALR", "SEC61A1", "ATF6", "IRE1", "XBP1", "PDIA3", "UGGT1",
+                "ERO1A",
+            ],
+        ),
+        (
+            "GO:0005794",
+            "Golgi apparatus",
+            &[
+                "GOLPH3", "GM130", "GOLGA2", "RAB1A", "SEC23A", "COPI", "COPII", "MAN1A1",
+                "B4GALT1", "ST6GAL1",
+            ],
+        ),
+        (
+            "GO:0005829",
+            "cytosol",
+            &[
+                "GAPDH", "LDHA", "PKM", "ENO1", "TPI1", "ALDOA", "PFK1", "HK2", "GPI", "PGAM1",
+            ],
+        ),
+        (
+            "GO:0000775",
+            "chromosome, centromeric region",
+            &[
+                "CENPA", "CENPB", "CENPC", "CENPF", "CENPE", "INCENP", "AURKB", "BUB1", "MAD2L1",
+                "NDC80",
+            ],
+        ),
+        (
+            "GO:0005694",
+            "chromosome",
+            &[
+                "SMC1A", "SMC3", "RAD21", "STAG1", "CTCF", "H3F3A", "H2AFX", "TOP2A", "TERT",
+                "TERC",
+            ],
+        ),
+        (
+            "GO:0005576",
+            "extracellular region",
+            &[
+                "TNF", "IL6", "IL1B", "VEGFA", "EGF", "FGF2", "TGFB1", "BMP2", "WNT3A", "SHH",
+            ],
+        ),
     ]
 }
 
 fn kegg_pathway_terms() -> Vec<(&'static str, &'static str, &'static [&'static str])> {
     vec![
-        ("hsa05200", "Pathways in cancer", &["TP53","KRAS","PIK3CA","AKT1","EGFR","BRAF","MYC","PTEN","RB1","CDKN2A"]),
-        ("hsa04110", "Cell cycle", &["CDK1","CDK2","CDK4","CDK6","CCND1","CCNE1","RB1","TP53","CDKN1A","E2F1"]),
-        ("hsa04151", "PI3K-Akt signaling", &["PIK3CA","PIK3R1","AKT1","AKT2","PTEN","MTOR","PDK1","GSK3B","BAD","FOXO3"]),
-        ("hsa04010", "MAPK signaling", &["KRAS","HRAS","NRAS","BRAF","RAF1","MAP2K1","MAPK1","MAPK3","JUN","FOS"]),
-        ("hsa04064", "NF-kappa B signaling", &["NFKB1","RELA","IKBKB","IKBKG","TRAF2","TRAF6","TNF","IL1B","TLR4","MYD88"]),
-        ("hsa04310", "Wnt signaling", &["WNT1","WNT3A","CTNNB1","APC","GSK3B","AXIN1","FZD1","LRP6","DVL1","TCF7"]),
-        ("hsa04330", "Notch signaling", &["NOTCH1","NOTCH2","JAG1","JAG2","DLL1","DLL4","HES1","HEY1","RBPJ","MAML1"]),
-        ("hsa04350", "TGF-beta signaling", &["TGFB1","TGFB2","TGFBR1","TGFBR2","SMAD2","SMAD3","SMAD4","SMAD7","BMP2","BMP4"]),
-        ("hsa04630", "JAK-STAT signaling", &["JAK1","JAK2","JAK3","TYK2","STAT1","STAT3","STAT5A","STAT5B","SOCS1","SOCS3"]),
-        ("hsa04210", "Apoptosis", &["CASP3","CASP8","CASP9","BAX","BCL2","BID","CYCS","APAF1","XIAP","FAS"]),
-        ("hsa03030", "DNA replication", &["MCM2","MCM3","MCM4","MCM5","MCM6","MCM7","PCNA","POLA1","POLE","RFC1"]),
-        ("hsa03410", "Base excision repair", &["OGG1","MUTYH","UNG","APEX1","XRCC1","POLB","LIG3","PARP1","FEN1","NEIL1"]),
-        ("hsa03420", "Nucleotide excision repair", &["XPA","XPB","XPC","XPD","XPF","XPG","ERCC1","DDB1","DDB2","CSA"]),
-        ("hsa03430", "Mismatch repair", &["MLH1","MSH2","MSH6","PMS2","MSH3","EXO1","PCNA","RFC1","LIG1","POLD1"]),
-        ("hsa04115", "p53 signaling", &["TP53","MDM2","MDM4","CDKN1A","BAX","PUMA","NOXA","GADD45A","SESN2","TIGAR"]),
+        (
+            "hsa05200",
+            "Pathways in cancer",
+            &[
+                "TP53", "KRAS", "PIK3CA", "AKT1", "EGFR", "BRAF", "MYC", "PTEN", "RB1", "CDKN2A",
+            ],
+        ),
+        (
+            "hsa04110",
+            "Cell cycle",
+            &[
+                "CDK1", "CDK2", "CDK4", "CDK6", "CCND1", "CCNE1", "RB1", "TP53", "CDKN1A", "E2F1",
+            ],
+        ),
+        (
+            "hsa04151",
+            "PI3K-Akt signaling",
+            &[
+                "PIK3CA", "PIK3R1", "AKT1", "AKT2", "PTEN", "MTOR", "PDK1", "GSK3B", "BAD", "FOXO3",
+            ],
+        ),
+        (
+            "hsa04010",
+            "MAPK signaling",
+            &[
+                "KRAS", "HRAS", "NRAS", "BRAF", "RAF1", "MAP2K1", "MAPK1", "MAPK3", "JUN", "FOS",
+            ],
+        ),
+        (
+            "hsa04064",
+            "NF-kappa B signaling",
+            &[
+                "NFKB1", "RELA", "IKBKB", "IKBKG", "TRAF2", "TRAF6", "TNF", "IL1B", "TLR4", "MYD88",
+            ],
+        ),
+        (
+            "hsa04310",
+            "Wnt signaling",
+            &[
+                "WNT1", "WNT3A", "CTNNB1", "APC", "GSK3B", "AXIN1", "FZD1", "LRP6", "DVL1", "TCF7",
+            ],
+        ),
+        (
+            "hsa04330",
+            "Notch signaling",
+            &[
+                "NOTCH1", "NOTCH2", "JAG1", "JAG2", "DLL1", "DLL4", "HES1", "HEY1", "RBPJ", "MAML1",
+            ],
+        ),
+        (
+            "hsa04350",
+            "TGF-beta signaling",
+            &[
+                "TGFB1", "TGFB2", "TGFBR1", "TGFBR2", "SMAD2", "SMAD3", "SMAD4", "SMAD7", "BMP2",
+                "BMP4",
+            ],
+        ),
+        (
+            "hsa04630",
+            "JAK-STAT signaling",
+            &[
+                "JAK1", "JAK2", "JAK3", "TYK2", "STAT1", "STAT3", "STAT5A", "STAT5B", "SOCS1",
+                "SOCS3",
+            ],
+        ),
+        (
+            "hsa04210",
+            "Apoptosis",
+            &[
+                "CASP3", "CASP8", "CASP9", "BAX", "BCL2", "BID", "CYCS", "APAF1", "XIAP", "FAS",
+            ],
+        ),
+        (
+            "hsa03030",
+            "DNA replication",
+            &[
+                "MCM2", "MCM3", "MCM4", "MCM5", "MCM6", "MCM7", "PCNA", "POLA1", "POLE", "RFC1",
+            ],
+        ),
+        (
+            "hsa03410",
+            "Base excision repair",
+            &[
+                "OGG1", "MUTYH", "UNG", "APEX1", "XRCC1", "POLB", "LIG3", "PARP1", "FEN1", "NEIL1",
+            ],
+        ),
+        (
+            "hsa03420",
+            "Nucleotide excision repair",
+            &[
+                "XPA", "XPB", "XPC", "XPD", "XPF", "XPG", "ERCC1", "DDB1", "DDB2", "CSA",
+            ],
+        ),
+        (
+            "hsa03430",
+            "Mismatch repair",
+            &[
+                "MLH1", "MSH2", "MSH6", "PMS2", "MSH3", "EXO1", "PCNA", "RFC1", "LIG1", "POLD1",
+            ],
+        ),
+        (
+            "hsa04115",
+            "p53 signaling",
+            &[
+                "TP53", "MDM2", "MDM4", "CDKN1A", "BAX", "PUMA", "NOXA", "GADD45A", "SESN2",
+                "TIGAR",
+            ],
+        ),
     ]
 }
 
@@ -1908,7 +2654,10 @@ fn builtin_fetch_sra(args: &[Value]) -> Result<Value> {
         None => {
             let mut fields = HashMap::new();
             fields.insert("accession".to_string(), Value::Str(accession));
-            fields.insert("error".to_string(), Value::Str("no SRA results found".to_string()));
+            fields.insert(
+                "error".to_string(),
+                Value::Str("no SRA results found".to_string()),
+            );
             fields.insert("title".to_string(), Value::Nil);
             fields.insert("platform".to_string(), Value::Nil);
             fields.insert("strategy".to_string(), Value::Nil);
@@ -1917,7 +2666,7 @@ fn builtin_fetch_sra(args: &[Value]) -> Result<Value> {
             fields.insert("total_runs".to_string(), Value::Nil);
             fields.insert("total_bases".to_string(), Value::Nil);
             fields.insert("download_cmd".to_string(), Value::Nil);
-            return Ok(Value::Record(fields));
+            return Ok(Value::Record((fields).into()));
         }
     };
 
@@ -1944,21 +2693,33 @@ fn builtin_fetch_sra(args: &[Value]) -> Result<Value> {
         .unwrap_or_default();
     fields.insert(
         "platform".to_string(),
-        if platform.is_empty() { Value::Nil } else { Value::Str(platform) },
+        if platform.is_empty() {
+            Value::Nil
+        } else {
+            Value::Str(platform)
+        },
     );
 
     // Extract strategy
     let strategy = extract_xml_tag(expxml, "Library_Strategy").unwrap_or_default();
     fields.insert(
         "strategy".to_string(),
-        if strategy.is_empty() { Value::Nil } else { Value::Str(strategy) },
+        if strategy.is_empty() {
+            Value::Nil
+        } else {
+            Value::Str(strategy)
+        },
     );
 
     // Extract source
     let source = extract_xml_tag(expxml, "Library_Source").unwrap_or_default();
     fields.insert(
         "source".to_string(),
-        if source.is_empty() { Value::Nil } else { Value::Str(source) },
+        if source.is_empty() {
+            Value::Nil
+        } else {
+            Value::Str(source)
+        },
     );
 
     // Extract organism
@@ -1967,7 +2728,11 @@ fn builtin_fetch_sra(args: &[Value]) -> Result<Value> {
         .unwrap_or_default();
     fields.insert(
         "organism".to_string(),
-        if organism.is_empty() { Value::Nil } else { Value::Str(organism) },
+        if organism.is_empty() {
+            Value::Nil
+        } else {
+            Value::Str(organism)
+        },
     );
 
     // Runs info from the runs field
@@ -1981,7 +2746,11 @@ fn builtin_fetch_sra(args: &[Value]) -> Result<Value> {
         .unwrap_or(0);
     fields.insert(
         "total_bases".to_string(),
-        if total_bases > 0 { Value::Int(total_bases) } else { Value::Nil },
+        if total_bases > 0 {
+            Value::Int(total_bases)
+        } else {
+            Value::Nil
+        },
     );
 
     // Build download command
@@ -1990,7 +2759,7 @@ fn builtin_fetch_sra(args: &[Value]) -> Result<Value> {
         Value::Str(format!("fasterq-dump {} --split-3 -e 8", accession)),
     );
 
-    Ok(Value::Record(fields))
+    Ok(Value::Record((fields).into()))
 }
 
 /// Simple XML attribute extraction: find `<tag ... attr="value"` and return value
@@ -2031,7 +2800,10 @@ fn builtin_blast_remote(args: &[Value]) -> Result<Value> {
     };
 
     // Determine program from sequence content
-    let program = if sequence.chars().all(|c| matches!(c.to_ascii_uppercase(), 'A' | 'T' | 'G' | 'C' | 'N' | 'U')) {
+    let program = if sequence
+        .chars()
+        .all(|c| matches!(c.to_ascii_uppercase(), 'A' | 'T' | 'G' | 'C' | 'N' | 'U'))
+    {
         "blastn"
     } else {
         "blastp"
@@ -2048,7 +2820,10 @@ fn builtin_blast_remote(args: &[Value]) -> Result<Value> {
     let mut fields = HashMap::new();
     fields.insert("program".to_string(), Value::Str(program.to_string()));
     fields.insert("database".to_string(), Value::Str(database));
-    fields.insert("query_length".to_string(), Value::Int(sequence.len() as i64));
+    fields.insert(
+        "query_length".to_string(),
+        Value::Int(sequence.len() as i64),
+    );
 
     // Try to submit and parse the RID
     if let Some(result) = crate::csv::try_fetch_url(&submit_url) {
@@ -2059,9 +2834,7 @@ fn builtin_blast_remote(args: &[Value]) -> Result<Value> {
                 let rid = text
                     .lines()
                     .find(|line| line.trim().starts_with("RID"))
-                    .and_then(|line| {
-                        line.split('=').nth(1).map(|s| s.trim().to_string())
-                    })
+                    .and_then(|line| line.split('=').nth(1).map(|s| s.trim().to_string()))
                     .or_else(|| {
                         // Also try QBlastInfo format
                         text.find("RID = ").map(|pos| {
@@ -2108,7 +2881,10 @@ fn builtin_blast_remote(args: &[Value]) -> Result<Value> {
             Err(e) => {
                 fields.insert("rid".to_string(), Value::Nil);
                 fields.insert("submitted".to_string(), Value::Bool(false));
-                fields.insert("error".to_string(), Value::Str(format!("BLAST submission failed: {e}")));
+                fields.insert(
+                    "error".to_string(),
+                    Value::Str(format!("BLAST submission failed: {e}")),
+                );
                 fields.insert("status_url".to_string(), Value::Nil);
                 fields.insert("results_url".to_string(), Value::Nil);
             }
@@ -2124,7 +2900,7 @@ fn builtin_blast_remote(args: &[Value]) -> Result<Value> {
         fields.insert("results_url".to_string(), Value::Nil);
     }
 
-    Ok(Value::Record(fields))
+    Ok(Value::Record((fields).into()))
 }
 
 // ── Helper functions ────────────────────────────────────────────────
@@ -2152,7 +2928,7 @@ fn builtin_base_counts(val: &Value) -> Result<Value> {
         Value::Float(if total > 0.0 { gc / total } else { 0.0 }),
     );
     result.insert("total".to_string(), Value::Int(data.len() as i64));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 fn require_str(val: &Value, func: &str) -> Result<String> {
@@ -2219,25 +2995,22 @@ fn builtin_scan_bio(args: &[Value]) -> Result<Value> {
 
     // --- Gene detection ---
     let gene_set: HashSet<&str> = [
-        "TP53", "BRCA1", "BRCA2", "PTEN", "RB1", "APC", "VHL", "KRAS", "NRAS", "BRAF",
-        "PIK3CA", "EGFR", "ERBB2", "HER2", "ALK", "RET", "MET", "ROS1", "MYC", "MYCN",
-        "CDKN2A", "CDK4", "CDK6", "MDM2", "ATM", "ATR", "CHEK2", "PALB2", "RAD51",
-        "MLH1", "MSH2", "MSH6", "PMS2", "JAK2", "FLT3", "KIT", "ABL1", "BCR",
-        "NOTCH1", "CTNNB1", "SMAD4", "STK11", "NF1", "NF2", "IDH1", "IDH2",
-        "DNMT3A", "TET2", "NPM1", "RUNX1", "WT1", "TERT", "FGFR1", "FGFR2", "FGFR3",
-        "MTOR", "AKT1", "EZH2", "ARID1A", "BCL2", "BCL6", "BTK", "CFTR", "HTT", "DMD",
-        "GBA", "LRRK2", "SNCA", "APP", "APOE", "HBB", "MTHFR", "CYP2D6", "ACE2",
-        "GAPDH", "ACTB", "VEGFA", "TNF", "IL6", "STAT3", "SOX2", "FOXL2", "SHH",
-        "PDGFRA", "MAP2K1", "CCND1", "CCNE1", "PBRM1", "SETD2", "KDM6A",
-        "TSC1", "TSC2", "BAP1", "SMARCB1", "DICER1", "POLE", "POLD1",
-        "RAD51C", "RAD51D", "BRIP1", "BARD1", "FANCA", "FANCC", "NBN", "MRE11",
-        "SMN1", "SMN2", "PKD1", "PKD2", "F5", "F2", "SERPINA1", "VKORC1",
-        "TPMT", "NUDT15", "DPYD", "UGT1A1", "CYP2C19", "CYP3A4", "SLCO1B1",
-        "PSEN1", "PSEN2", "MAPT", "GRN", "C9orf72", "SOD1", "FUS", "TARDBP",
-        "HBA1", "HBA2", "G6PD", "GATA1", "GATA2", "CEBPA", "SPI1", "PAX5",
-        "CD79A", "CD79B", "MYD88", "CARD11", "PLCG2", "IL2", "IL7", "IFNG",
-        "TGFB1", "SMAD2", "SMAD3", "BMP4", "WNT1", "WNT3A", "GLI1", "PTCH1", "SMO",
-        "TMPRSS2", "FMR1", "NAT2", "ABCB1",
+        "TP53", "BRCA1", "BRCA2", "PTEN", "RB1", "APC", "VHL", "KRAS", "NRAS", "BRAF", "PIK3CA",
+        "EGFR", "ERBB2", "HER2", "ALK", "RET", "MET", "ROS1", "MYC", "MYCN", "CDKN2A", "CDK4",
+        "CDK6", "MDM2", "ATM", "ATR", "CHEK2", "PALB2", "RAD51", "MLH1", "MSH2", "MSH6", "PMS2",
+        "JAK2", "FLT3", "KIT", "ABL1", "BCR", "NOTCH1", "CTNNB1", "SMAD4", "STK11", "NF1", "NF2",
+        "IDH1", "IDH2", "DNMT3A", "TET2", "NPM1", "RUNX1", "WT1", "TERT", "FGFR1", "FGFR2",
+        "FGFR3", "MTOR", "AKT1", "EZH2", "ARID1A", "BCL2", "BCL6", "BTK", "CFTR", "HTT", "DMD",
+        "GBA", "LRRK2", "SNCA", "APP", "APOE", "HBB", "MTHFR", "CYP2D6", "ACE2", "GAPDH", "ACTB",
+        "VEGFA", "TNF", "IL6", "STAT3", "SOX2", "FOXL2", "SHH", "PDGFRA", "MAP2K1", "CCND1",
+        "CCNE1", "PBRM1", "SETD2", "KDM6A", "TSC1", "TSC2", "BAP1", "SMARCB1", "DICER1", "POLE",
+        "POLD1", "RAD51C", "RAD51D", "BRIP1", "BARD1", "FANCA", "FANCC", "NBN", "MRE11", "SMN1",
+        "SMN2", "PKD1", "PKD2", "F5", "F2", "SERPINA1", "VKORC1", "TPMT", "NUDT15", "DPYD",
+        "UGT1A1", "CYP2C19", "CYP3A4", "SLCO1B1", "PSEN1", "PSEN2", "MAPT", "GRN", "C9orf72",
+        "SOD1", "FUS", "TARDBP", "HBA1", "HBA2", "G6PD", "GATA1", "GATA2", "CEBPA", "SPI1", "PAX5",
+        "CD79A", "CD79B", "MYD88", "CARD11", "PLCG2", "IL2", "IL7", "IFNG", "TGFB1", "SMAD2",
+        "SMAD3", "BMP4", "WNT1", "WNT3A", "GLI1", "PTCH1", "SMO", "TMPRSS2", "FMR1", "NAT2",
+        "ABCB1",
     ]
     .iter()
     .copied()
@@ -2245,9 +3018,9 @@ fn builtin_scan_bio(args: &[Value]) -> Result<Value> {
 
     // Exclude common English words that look like gene symbols
     let exclude: HashSet<&str> = [
-        "THE", "AND", "FOR", "NOT", "WITH", "FROM", "BUT", "ALL", "ARE", "WAS",
-        "SET", "MAP", "LET", "RUN", "USE", "AGE", "END", "TOP", "CAN", "MAY",
-        "HAS", "HAD", "BEEN", "HAVE", "THAT", "THIS", "WILL", "HER", "HIS",
+        "THE", "AND", "FOR", "NOT", "WITH", "FROM", "BUT", "ALL", "ARE", "WAS", "SET", "MAP",
+        "LET", "RUN", "USE", "AGE", "END", "TOP", "CAN", "MAY", "HAS", "HAD", "BEEN", "HAVE",
+        "THAT", "THIS", "WILL", "HER", "HIS",
     ]
     .iter()
     .copied()
@@ -2271,8 +3044,7 @@ fn builtin_scan_bio(args: &[Value]) -> Result<Value> {
         }
     }
     // HGVS notation
-    let hgvs_re =
-        regex::Regex::new(r"\b((?:NM_|NP_|NC_)\d+(?:\.\d+)?:[cpg]\.\w+)\b").unwrap();
+    let hgvs_re = regex::Regex::new(r"\b((?:NM_|NP_|NC_)\d+(?:\.\d+)?:[cpg]\.\w+)\b").unwrap();
     for cap in hgvs_re.captures_iter(&text) {
         let id = cap[1].to_string();
         if seen.insert(format!("v:{id}")) {
@@ -2362,14 +3134,19 @@ fn builtin_scan_bio(args: &[Value]) -> Result<Value> {
     // --- DOI detection ---
     let doi_re = regex::Regex::new(r"\b(10\.\d{4,9}/[^\s]{5,50})\b").unwrap();
     for cap in doi_re.captures_iter(&text) {
-        let id = cap[1].trim_end_matches(|c: char| c == '.' || c == ',' || c == ')' || c == ';').to_string();
+        let id = cap[1]
+            .trim_end_matches(|c: char| c == '.' || c == ',' || c == ')' || c == ';')
+            .to_string();
         if seen.insert(format!("a:doi:{id}")) {
             accessions.push(Value::Str(id));
         }
     }
 
     // --- File URL detection (scan for bio file extensions in URLs) ---
-    let url_re = regex::Regex::new(r"(https?://\S+\.(?:fasta|fa|fastq|fq|vcf|bed|gff|gtf|bam|sam|csv|tsv)(?:\.gz)?)").unwrap();
+    let url_re = regex::Regex::new(
+        r"(https?://\S+\.(?:fasta|fa|fastq|fq|vcf|bed|gff|gtf|bam|sam|csv|tsv)(?:\.gz)?)",
+    )
+    .unwrap();
     for cap in url_re.captures_iter(&text) {
         let url = cap[1].to_string();
         if seen.insert(format!("f:{url}")) {
@@ -2380,14 +3157,14 @@ fn builtin_scan_bio(args: &[Value]) -> Result<Value> {
     let total = genes.len() + variants.len() + accessions.len() + species.len() + files.len();
 
     let mut result = HashMap::new();
-    result.insert("genes".to_string(), Value::List(genes));
-    result.insert("variants".to_string(), Value::List(variants));
-    result.insert("accessions".to_string(), Value::List(accessions));
-    result.insert("species".to_string(), Value::List(species));
-    result.insert("files".to_string(), Value::List(files));
+    result.insert("genes".to_string(), Value::List((genes).into()));
+    result.insert("variants".to_string(), Value::List((variants).into()));
+    result.insert("accessions".to_string(), Value::List((accessions).into()));
+    result.insert("species".to_string(), Value::List((species).into()));
+    result.insert("files".to_string(), Value::List((files).into()));
     result.insert("total".to_string(), Value::Int(total as i64));
 
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 // ── read_pdf(path) — extract text from a PDF file ───────────────────
@@ -2414,7 +3191,12 @@ fn builtin_read_pdf(args: &[Value]) -> Result<Value> {
                 None,
             ));
         }
-        if path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()) != Some("pdf".to_string()) {
+        if path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            != Some("pdf".to_string())
+        {
             return Err(BioLangError::runtime(
                 ErrorKind::IOError,
                 format!("read_pdf(): expected .pdf file, got: {_path}"),
@@ -2466,10 +3248,7 @@ fn get_seq_data(val: &Value, func: &str) -> Result<String> {
     match val {
         Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => Ok(seq.data.clone()),
         other => Err(BioLangError::type_error(
-            format!(
-                "{func}() requires a sequence type, got {}",
-                other.type_of()
-            ),
+            format!("{func}() requires a sequence type, got {}", other.type_of()),
             None,
         )),
     }
@@ -2520,24 +3299,38 @@ fn builtin_cite(args: &[Value]) -> Result<Value> {
 
     let msg = &json["message"];
     if msg.is_null() {
-        return Err(BioLangError::runtime(ErrorKind::IOError, format!("cite: DOI not found: {doi}"), None));
+        return Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("cite: DOI not found: {doi}"),
+            None,
+        ));
     }
 
-    let title = msg["title"].as_array()
+    let title = msg["title"]
+        .as_array()
         .and_then(|a| a.first())
         .and_then(|t| t.as_str())
         .unwrap_or("Untitled");
 
-    let authors: Vec<String> = msg["author"].as_array()
-        .map(|arr| arr.iter().map(|a| {
-            let family = a["family"].as_str().unwrap_or("");
-            let given = a["given"].as_str().unwrap_or("");
-            if given.is_empty() { family.to_string() }
-            else { format!("{family}, {}.", given.chars().next().unwrap_or(' ')) }
-        }).collect())
+    let authors: Vec<String> = msg["author"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|a| {
+                    let family = a["family"].as_str().unwrap_or("");
+                    let given = a["given"].as_str().unwrap_or("");
+                    if given.is_empty() {
+                        family.to_string()
+                    } else {
+                        format!("{family}, {}.", given.chars().next().unwrap_or(' '))
+                    }
+                })
+                .collect()
+        })
         .unwrap_or_default();
 
-    let year = msg["published-print"]["date-parts"].as_array()
+    let year = msg["published-print"]["date-parts"]
+        .as_array()
         .or_else(|| msg["published-online"]["date-parts"].as_array())
         .or_else(|| msg["created"]["date-parts"].as_array())
         .and_then(|dp| dp.first())
@@ -2547,7 +3340,8 @@ fn builtin_cite(args: &[Value]) -> Result<Value> {
         .map(|y| y.to_string())
         .unwrap_or_else(|| "n.d.".to_string());
 
-    let journal = msg["container-title"].as_array()
+    let journal = msg["container-title"]
+        .as_array()
         .and_then(|a| a.first())
         .and_then(|j| j.as_str())
         .unwrap_or("");
@@ -2556,17 +3350,32 @@ fn builtin_cite(args: &[Value]) -> Result<Value> {
     let pages = msg["page"].as_str().unwrap_or("");
     let doi_str = msg["DOI"].as_str().unwrap_or(&doi);
 
-    let author_str = if authors.is_empty() { "Unknown".to_string() }
-        else if authors.len() <= 3 { authors.join(", ") }
-        else { format!("{} et al.", authors[0]) };
+    let author_str = if authors.is_empty() {
+        "Unknown".to_string()
+    } else if authors.len() <= 3 {
+        authors.join(", ")
+    } else {
+        format!("{} et al.", authors[0])
+    };
 
     let full_authors = authors.join(" and ");
 
     let apa = format!(
         "{} ({}). {}. {}{}{}. https://doi.org/{}",
-        author_str, year, title, journal,
-        if !volume.is_empty() { format!(", {volume}") } else { String::new() },
-        if !pages.is_empty() { format!(", {pages}") } else { String::new() },
+        author_str,
+        year,
+        title,
+        journal,
+        if !volume.is_empty() {
+            format!(", {volume}")
+        } else {
+            String::new()
+        },
+        if !pages.is_empty() {
+            format!(", {pages}")
+        } else {
+            String::new()
+        },
         doi_str
     );
 
@@ -2577,25 +3386,55 @@ fn builtin_cite(args: &[Value]) -> Result<Value> {
 
     let ris = format!(
         "TY  - JOUR\n{}TI  - {}\nJO  - {}\nVL  - {}\nSP  - {}\nPY  - {}\nDO  - {}\nER  -",
-        authors.iter().map(|a| format!("AU  - {a}\n")).collect::<String>(),
-        title, journal, volume, pages, year, doi_str
+        authors
+            .iter()
+            .map(|a| format!("AU  - {a}\n"))
+            .collect::<String>(),
+        title,
+        journal,
+        volume,
+        pages,
+        year,
+        doi_str
     );
 
     // Vancouver
     let vancouver = format!(
         "{}. {}. {}. {}{}{}.  doi:{}",
-        author_str, title, journal, year,
-        if !volume.is_empty() { format!(";{volume}") } else { String::new() },
-        if !pages.is_empty() { format!(":{pages}") } else { String::new() },
+        author_str,
+        title,
+        journal,
+        year,
+        if !volume.is_empty() {
+            format!(";{volume}")
+        } else {
+            String::new()
+        },
+        if !pages.is_empty() {
+            format!(":{pages}")
+        } else {
+            String::new()
+        },
         doi_str
     );
 
     // Harvard
     let harvard = format!(
         "{} ({}) '{}', {}{}{}.  https://doi.org/{}",
-        author_str, year, title, journal,
-        if !volume.is_empty() { format!(", {volume}") } else { String::new() },
-        if !pages.is_empty() { format!(", pp. {pages}") } else { String::new() },
+        author_str,
+        year,
+        title,
+        journal,
+        if !volume.is_empty() {
+            format!(", {volume}")
+        } else {
+            String::new()
+        },
+        if !pages.is_empty() {
+            format!(", pp. {pages}")
+        } else {
+            String::new()
+        },
         doi_str
     );
 
@@ -2621,6 +3460,1390 @@ fn builtin_cite(args: &[Value]) -> Result<Value> {
         result.insert("harvard".to_string(), Value::Str(harvard));
         result.insert("bibtex".to_string(), Value::Str(bibtex));
         result.insert("ris".to_string(), Value::Str(ris));
-        Ok(Value::Record(result))
+        Ok(Value::Record((result).into()))
+    }
+}
+
+// ── IUPAC helpers ────────────────────────────────────────────────────
+
+/// Returns true if a single DNA/RNA base matches an IUPAC ambiguity code.
+fn iupac_base_matches(iupac: char, base: char) -> bool {
+    let b = base.to_ascii_uppercase();
+    match iupac.to_ascii_uppercase() {
+        'A' => b == 'A',
+        'T' => b == 'T',
+        'U' => b == 'U' || b == 'T',
+        'G' => b == 'G',
+        'C' => b == 'C',
+        'N' => matches!(b, 'A' | 'T' | 'G' | 'C' | 'U'),
+        'R' => matches!(b, 'A' | 'G'),
+        'Y' => matches!(b, 'C' | 'T' | 'U'),
+        'S' => matches!(b, 'G' | 'C'),
+        'W' => matches!(b, 'A' | 'T' | 'U'),
+        'K' => matches!(b, 'G' | 'T' | 'U'),
+        'M' => matches!(b, 'A' | 'C'),
+        'B' => matches!(b, 'C' | 'G' | 'T' | 'U'),
+        'D' => matches!(b, 'A' | 'G' | 'T' | 'U'),
+        'H' => matches!(b, 'A' | 'C' | 'T' | 'U'),
+        'V' => matches!(b, 'A' | 'C' | 'G'),
+        _ => false,
+    }
+}
+
+/// Count mismatches between an IUPAC pattern and a same-length sequence slice.
+fn iupac_mismatches(pattern: &[char], seq_slice: &[char]) -> usize {
+    pattern
+        .iter()
+        .zip(seq_slice.iter())
+        .filter(|(&p, &s)| !iupac_base_matches(p, s))
+        .count()
+}
+
+/// Return the reverse-complement IUPAC pattern for a DNA IUPAC pattern.
+fn iupac_reverse_complement(pattern: &str) -> String {
+    pattern
+        .chars()
+        .rev()
+        .map(|c| match c.to_ascii_uppercase() {
+            'A' => 'T',
+            'T' => 'A',
+            'U' => 'A',
+            'G' => 'C',
+            'C' => 'G',
+            'R' => 'Y',
+            'Y' => 'R',
+            'S' => 'S',
+            'W' => 'W',
+            'K' => 'M',
+            'M' => 'K',
+            'B' => 'V',
+            'D' => 'H',
+            'H' => 'D',
+            'V' => 'B',
+            'N' => 'N',
+            other => other,
+        })
+        .collect()
+}
+
+// ── find_pattern(seq, pattern, max_mismatches=0) ─────────────────────
+
+fn builtin_find_pattern(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "find_pattern")?;
+    let pattern_raw = get_seq_data_or_str(&args[1], "find_pattern")?;
+    let max_mm = if args.len() > 2 {
+        require_int(&args[2], "find_pattern")? as usize
+    } else {
+        0
+    };
+
+    let pat_fwd: Vec<char> = pattern_raw.chars().collect();
+    let pat_rev_str = iupac_reverse_complement(&pattern_raw);
+    let pat_rev: Vec<char> = pat_rev_str.chars().collect();
+    let seq_chars: Vec<char> = seq.chars().collect();
+    let plen = pat_fwd.len();
+    let slen = seq_chars.len();
+
+    let mut hits: Vec<Value> = Vec::new();
+
+    if plen == 0 || plen > slen {
+        return Ok(Value::List((hits).into()));
+    }
+
+    for i in 0..=(slen - plen) {
+        let slice = &seq_chars[i..i + plen];
+
+        // Forward strand
+        let mm_fwd = iupac_mismatches(&pat_fwd, slice);
+        if mm_fwd <= max_mm {
+            let matched: String = slice.iter().collect();
+            let mut fields = HashMap::new();
+            fields.insert("pos".to_string(), Value::Int(i as i64));
+            fields.insert("strand".to_string(), Value::Str("+".to_string()));
+            fields.insert("matched".to_string(), Value::Str(matched));
+            fields.insert("mismatches".to_string(), Value::Int(mm_fwd as i64));
+            hits.push(Value::Record((fields).into()));
+        }
+
+        // Reverse complement strand (only if different from forward)
+        if pat_rev_str != pattern_raw {
+            let mm_rev = iupac_mismatches(&pat_rev, slice);
+            if mm_rev <= max_mm {
+                let matched: String = slice.iter().collect();
+                let mut fields = HashMap::new();
+                fields.insert("pos".to_string(), Value::Int(i as i64));
+                fields.insert("strand".to_string(), Value::Str("-".to_string()));
+                fields.insert("matched".to_string(), Value::Str(matched));
+                fields.insert("mismatches".to_string(), Value::Int(mm_rev as i64));
+                hits.push(Value::Record((fields).into()));
+            }
+        }
+    }
+
+    // Sort by position
+    hits.sort_by_key(|v| {
+        if let Value::Record(f) = v {
+            match f.get("pos") {
+                Some(Value::Int(n)) => *n,
+                _ => 0,
+            }
+        } else {
+            0
+        }
+    });
+
+    Ok(Value::List((hits).into()))
+}
+
+// ── kmer_index(seq, k) ───────────────────────────────────────────────
+
+fn builtin_kmer_index(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "kmer_index")?;
+    let k = require_int(&args[1], "kmer_index")? as usize;
+
+    if k == 0 || k > seq.len() {
+        return Ok(Value::Record((HashMap::new()).into()));
+    }
+
+    let mut index: HashMap<String, Vec<i64>> = HashMap::new();
+    for i in 0..=(seq.len() - k) {
+        let kmer = seq[i..i + k].to_string();
+        index.entry(kmer).or_default().push(i as i64);
+    }
+
+    let result: HashMap<String, Value> = index
+        .into_iter()
+        .map(|(kmer, positions)| {
+            (
+                kmer,
+                Value::List(positions.into_iter().map(Value::Int).collect::<Vec<_>>().into()),
+            )
+        })
+        .collect();
+
+    Ok(Value::Record((result).into()))
+}
+
+// ── windows(seq, size, step=1) ───────────────────────────────────────
+
+fn builtin_windows(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "windows")?;
+    let sequence_kind = match &args[0] {
+        Value::DNA(_) => Some("dna"),
+        Value::RNA(_) => Some("rna"),
+        Value::Protein(_) => Some("protein"),
+        _ => None,
+    };
+    let size = require_int(&args[1], "windows")? as usize;
+    let step = if args.len() > 2 {
+        require_int(&args[2], "windows")? as usize
+    } else {
+        1
+    };
+
+    if size == 0 || step == 0 || size > seq.len() {
+        return Ok(Value::List((vec![]).into()));
+    }
+
+    let mut windows = Vec::new();
+    let mut pos = 0usize;
+    while pos + size <= seq.len() {
+        let end = pos + size;
+        let window_seq = seq[pos..end].to_string();
+        let mut fields = HashMap::new();
+        fields.insert("pos".to_string(), Value::Int(pos as i64));
+        fields.insert("end".to_string(), Value::Int(end as i64));
+        let window_value = match sequence_kind {
+            Some("dna") => Value::DNA(BioSequence { data: window_seq }),
+            Some("rna") => Value::RNA(BioSequence { data: window_seq }),
+            Some("protein") => Value::Protein(BioSequence { data: window_seq }),
+            _ => Value::Str(window_seq),
+        };
+        fields.insert("seq".to_string(), window_value);
+        fields.insert("length".to_string(), Value::Int(size as i64));
+        windows.push(Value::Record((fields).into()));
+        pos += step;
+    }
+
+    Ok(Value::List((windows).into()))
+}
+
+// ── gc_skew(seq, window_size=1000) ───────────────────────────────────
+
+fn builtin_gc_skew(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "gc_skew")?;
+    let window_size = if args.len() > 1 {
+        require_int(&args[1], "gc_skew")? as usize
+    } else {
+        1000
+    };
+
+    if window_size == 0 || seq.is_empty() {
+        return Ok(Value::List((vec![]).into()));
+    }
+
+    let mut results = Vec::new();
+    let mut cumulative: f64 = 0.0;
+    let mut pos = 0usize;
+
+    while pos < seq.len() {
+        let end = (pos + window_size).min(seq.len());
+        let window = &seq[pos..end];
+
+        let g = window
+            .chars()
+            .filter(|c| c.to_ascii_uppercase() == 'G')
+            .count() as i64;
+        let c = window
+            .chars()
+            .filter(|c| c.to_ascii_uppercase() == 'C')
+            .count() as i64;
+
+        let gc_sum = g + c;
+        let skew = if gc_sum > 0 {
+            (g - c) as f64 / gc_sum as f64
+        } else {
+            0.0
+        };
+        cumulative += skew;
+
+        let mut fields = HashMap::new();
+        fields.insert("pos".to_string(), Value::Int(pos as i64));
+        fields.insert("end".to_string(), Value::Int(end as i64));
+        fields.insert("g".to_string(), Value::Int(g));
+        fields.insert("c".to_string(), Value::Int(c));
+        fields.insert("skew".to_string(), Value::Float(skew));
+        fields.insert("cumulative_skew".to_string(), Value::Float(cumulative));
+        results.push(Value::Record((fields).into()));
+
+        pos += window_size;
+    }
+
+    Ok(Value::List((results).into()))
+}
+
+// ── restriction_sites(seq, enzyme_or_pattern) ────────────────────────
+
+fn restriction_enzyme_pattern(name: &str) -> Option<&'static str> {
+    match name.to_uppercase().as_str() {
+        "ECORI" => Some("GAATTC"),
+        "BAMHI" => Some("GGATCC"),
+        "HINDIII" => Some("AAGCTT"),
+        "NOTI" => Some("GCGGCCGC"),
+        "XHOI" => Some("CTCGAG"),
+        "XBAI" => Some("TCTAGA"),
+        "SALI" => Some("GTCGAC"),
+        "KPNI" => Some("GGTACC"),
+        "SMAI" => Some("CCCGGG"),
+        "ECORV" => Some("GATATC"),
+        "MBOI" => Some("GATC"),
+        "HAEIII" => Some("GGCC"),
+        "ALUI" => Some("AGCT"),
+        "TAQI" => Some("TCGA"),
+        "MSPI" => Some("CCGG"),
+        "DRAI" => Some("TTTAAA"),
+        "NCOI" => Some("CCATGG"),
+        "SPHI" => Some("GCATGC"),
+        "PSTI" => Some("CTGCAG"),
+        "CLAI" => Some("ATCGAT"),
+        "APAI" => Some("GGGCCC"),
+        "NHEI" => Some("GCTAGC"),
+        "RSAI" => Some("GTAC"),
+        _ => None,
+    }
+}
+
+/// Known enzyme names (for "all" mode)
+static KNOWN_ENZYMES: &[(&str, &str)] = &[
+    ("EcoRI", "GAATTC"),
+    ("BamHI", "GGATCC"),
+    ("HindIII", "AAGCTT"),
+    ("NotI", "GCGGCCGC"),
+    ("XhoI", "CTCGAG"),
+    ("XbaI", "TCTAGA"),
+    ("SalI", "GTCGAC"),
+    ("KpnI", "GGTACC"),
+    ("SmaI", "CCCGGG"),
+    ("EcoRV", "GATATC"),
+    ("MboI", "GATC"),
+    ("HaeIII", "GGCC"),
+    ("AluI", "AGCT"),
+    ("TaqI", "TCGA"),
+    ("MspI", "CCGG"),
+    ("DraI", "TTTAAA"),
+    ("NcoI", "CCATGG"),
+    ("SphI", "GCATGC"),
+    ("PstI", "CTGCAG"),
+    ("ClaI", "ATCGAT"),
+    ("ApaI", "GGGCCC"),
+    ("NheI", "GCTAGC"),
+    ("RsaI", "GTAC"),
+];
+
+fn find_restriction_enzyme(seq: &str, enzyme_name: &str, pattern: &str) -> Vec<Value> {
+    let pat_chars: Vec<char> = pattern.chars().collect();
+    let pat_rc_str = iupac_reverse_complement(pattern);
+    let pat_rc_chars: Vec<char> = pat_rc_str.chars().collect();
+    let seq_chars: Vec<char> = seq.chars().collect();
+    let plen = pat_chars.len();
+    let slen = seq_chars.len();
+
+    let mut hits = Vec::new();
+    if plen == 0 || plen > slen {
+        return hits;
+    }
+
+    for i in 0..=(slen - plen) {
+        let slice = &seq_chars[i..i + plen];
+
+        // Forward
+        if iupac_mismatches(&pat_chars, slice) == 0 {
+            let site: String = slice.iter().collect();
+            let mut fields = HashMap::new();
+            fields.insert("pos".to_string(), Value::Int(i as i64));
+            fields.insert("end".to_string(), Value::Int((i + plen) as i64));
+            fields.insert("strand".to_string(), Value::Str("+".to_string()));
+            fields.insert("enzyme".to_string(), Value::Str(enzyme_name.to_string()));
+            fields.insert("site".to_string(), Value::Str(site));
+            hits.push(Value::Record((fields).into()));
+        }
+
+        // Reverse complement (skip if palindrome)
+        if pat_rc_str != pattern {
+            if iupac_mismatches(&pat_rc_chars, slice) == 0 {
+                let site: String = slice.iter().collect();
+                let mut fields = HashMap::new();
+                fields.insert("pos".to_string(), Value::Int(i as i64));
+                fields.insert("end".to_string(), Value::Int((i + plen) as i64));
+                fields.insert("strand".to_string(), Value::Str("-".to_string()));
+                fields.insert("enzyme".to_string(), Value::Str(enzyme_name.to_string()));
+                fields.insert("site".to_string(), Value::Str(site));
+                hits.push(Value::Record((fields).into()));
+            }
+        }
+    }
+    hits
+}
+
+fn builtin_restriction_sites(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "restriction_sites")?;
+    let enzyme_arg = match &args[1] {
+        Value::Str(s) => s.clone(),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "restriction_sites() enzyme requires Str, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+
+    let mut all_hits: Vec<Value> = Vec::new();
+
+    if enzyme_arg.to_lowercase() == "all" {
+        // Search all known enzymes
+        for &(name, pattern) in KNOWN_ENZYMES {
+            let hits = find_restriction_enzyme(&seq, name, pattern);
+            all_hits.extend(hits);
+        }
+    } else if let Some(pattern) = restriction_enzyme_pattern(&enzyme_arg) {
+        // Known enzyme by name
+        all_hits = find_restriction_enzyme(&seq, &enzyme_arg, pattern);
+    } else {
+        // Treat as custom IUPAC pattern
+        all_hits = find_restriction_enzyme(&seq, &enzyme_arg, &enzyme_arg);
+    }
+
+    // Sort by position then strand
+    all_hits.sort_by(|a, b| {
+        let pos_a = if let Value::Record(f) = a {
+            match f.get("pos") {
+                Some(Value::Int(n)) => *n,
+                _ => 0,
+            }
+        } else {
+            0
+        };
+        let pos_b = if let Value::Record(f) = b {
+            match f.get("pos") {
+                Some(Value::Int(n)) => *n,
+                _ => 0,
+            }
+        } else {
+            0
+        };
+        pos_a.cmp(&pos_b)
+    });
+
+    Ok(Value::List((all_hits).into()))
+}
+
+// ── align(a, b, mode="global", match_score=2, mismatch=-1, gap=-2) ───
+
+fn builtin_align(args: Vec<Value>) -> Result<Value> {
+    let seq_a = get_seq_data_or_str(&args[0], "align")?;
+    let seq_b = get_seq_data_or_str(&args[1], "align")?;
+
+    let mode = if args.len() > 2 {
+        match &args[2] {
+            Value::Str(s) => s.to_lowercase(),
+            _ => "global".to_string(),
+        }
+    } else {
+        "global".to_string()
+    };
+
+    let match_score: i64 = if args.len() > 3 {
+        require_int(&args[3], "align")?
+    } else {
+        2
+    };
+    let mismatch_score: i64 = if args.len() > 4 {
+        require_int(&args[4], "align")?
+    } else {
+        -1
+    };
+    let gap_score: i64 = if args.len() > 5 {
+        require_int(&args[5], "align")?
+    } else {
+        -2
+    };
+
+    let a: Vec<char> = seq_a.chars().collect();
+    let b: Vec<char> = seq_b.chars().collect();
+    let m = a.len();
+    let n = b.len();
+
+    // Build DP matrix
+    let mut dp = vec![vec![0i64; n + 1]; m + 1];
+
+    match mode.as_str() {
+        "local" | "sw" => {
+            // Smith-Waterman: initialize to 0
+            for i in 0..=m {
+                dp[i][0] = 0;
+            }
+            for j in 0..=n {
+                dp[0][j] = 0;
+            }
+        }
+        "semi" => {
+            // Semi-global: gaps at ends of b not penalized
+            for i in 0..=m {
+                dp[i][0] = i as i64 * gap_score;
+            }
+            for j in 0..=n {
+                dp[0][j] = 0;
+            } // free gaps at start of b
+        }
+        _ => {
+            // Global (Needleman-Wunsch)
+            for i in 0..=m {
+                dp[i][0] = i as i64 * gap_score;
+            }
+            for j in 0..=n {
+                dp[0][j] = j as i64 * gap_score;
+            }
+        }
+    }
+
+    for i in 1..=m {
+        for j in 1..=n {
+            let diag = dp[i - 1][j - 1]
+                + if a[i - 1] == b[j - 1] {
+                    match_score
+                } else {
+                    mismatch_score
+                };
+            let del = dp[i - 1][j] + gap_score;
+            let ins = dp[i][j - 1] + gap_score;
+            dp[i][j] = if mode == "local" || mode == "sw" {
+                diag.max(del).max(ins).max(0)
+            } else {
+                diag.max(del).max(ins)
+            };
+        }
+    }
+
+    // Traceback
+    let (mut i, mut j, final_score) = match mode.as_str() {
+        "local" | "sw" => {
+            // Find maximum cell
+            let mut max_val = 0i64;
+            let mut mi = 0;
+            let mut mj = 0;
+            for ii in 0..=m {
+                for jj in 0..=n {
+                    if dp[ii][jj] > max_val {
+                        max_val = dp[ii][jj];
+                        mi = ii;
+                        mj = jj;
+                    }
+                }
+            }
+            (mi, mj, max_val)
+        }
+        "semi" => {
+            // Find max in last row
+            let mut max_val = dp[m][0];
+            let mut best_j = 0;
+            for jj in 1..=n {
+                if dp[m][jj] >= max_val {
+                    max_val = dp[m][jj];
+                    best_j = jj;
+                }
+            }
+            (m, best_j, max_val)
+        }
+        _ => (m, n, dp[m][n]),
+    };
+
+    let mut aligned_a = Vec::new();
+    let mut aligned_b = Vec::new();
+
+    // Traceback loop
+    let stop_cond = |ii: usize, jj: usize| -> bool {
+        match mode.as_str() {
+            "local" | "sw" => dp[ii][jj] == 0,
+            _ => ii == 0 && jj == 0,
+        }
+    };
+
+    while !stop_cond(i, j) {
+        if i == 0 {
+            aligned_a.push('-');
+            aligned_b.push(b[j - 1]);
+            j -= 1;
+        } else if j == 0 {
+            aligned_a.push(a[i - 1]);
+            aligned_b.push('-');
+            i -= 1;
+        } else {
+            let diag_score = dp[i - 1][j - 1]
+                + if a[i - 1] == b[j - 1] {
+                    match_score
+                } else {
+                    mismatch_score
+                };
+            if dp[i][j] == diag_score {
+                aligned_a.push(a[i - 1]);
+                aligned_b.push(b[j - 1]);
+                i -= 1;
+                j -= 1;
+            } else if dp[i][j] == dp[i - 1][j] + gap_score {
+                aligned_a.push(a[i - 1]);
+                aligned_b.push('-');
+                i -= 1;
+            } else {
+                aligned_a.push('-');
+                aligned_b.push(b[j - 1]);
+                j -= 1;
+            }
+        }
+    }
+
+    aligned_a.reverse();
+    aligned_b.reverse();
+
+    // For semi-global: append trailing gaps for b
+    if mode == "semi" {
+        while j < n {
+            aligned_a.push('-');
+            aligned_b.push(b[j]);
+            j += 1;
+        }
+    }
+
+    // Compute identity and CIGAR
+    let len = aligned_a.len().max(aligned_b.len());
+    let aligned_a_str: String = aligned_a.iter().collect();
+    let aligned_b_str: String = aligned_b.iter().collect();
+
+    let mut matches = 0usize;
+    let mut cigar = String::new();
+    let mut last_op = ' ';
+    let mut op_count = 0usize;
+
+    let push_cigar = |cigar: &mut String, count: usize, op: char| {
+        if count > 0 {
+            cigar.push_str(&count.to_string());
+            cigar.push(op);
+        }
+    };
+
+    for (ca, cb) in aligned_a.iter().zip(aligned_b.iter()) {
+        let op = match (ca, cb) {
+            ('-', _) => 'I', // gap in a = insertion in b
+            (_, '-') => 'D', // gap in b = deletion from b
+            (x, y) if x == y => {
+                matches += 1;
+                'M'
+            }
+            _ => 'X',
+        };
+        if op == last_op {
+            op_count += 1;
+        } else {
+            push_cigar(&mut cigar, op_count, last_op);
+            last_op = op;
+            op_count = 1;
+        }
+    }
+    push_cigar(&mut cigar, op_count, last_op);
+
+    let identity = if len > 0 {
+        matches as f64 / len as f64
+    } else {
+        0.0
+    };
+
+    let mut fields = HashMap::new();
+    fields.insert("score".to_string(), Value::Int(final_score));
+    fields.insert("aligned_a".to_string(), Value::Str(aligned_a_str));
+    fields.insert("aligned_b".to_string(), Value::Str(aligned_b_str));
+    fields.insert("identity".to_string(), Value::Float(identity));
+    fields.insert("cigar".to_string(), Value::Str(cigar));
+
+    Ok(Value::Record((fields).into()))
+}
+
+// ── consensus(seqs: List<sequence>) ─────────────────────────────────
+
+fn builtin_consensus(args: Vec<Value>) -> Result<Value> {
+    let seqs_val = match &args[0] {
+        Value::List(list) => list.clone(),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "consensus() requires a List of sequences, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+
+    if seqs_val.is_empty() {
+        let mut fields = HashMap::new();
+        fields.insert("consensus".to_string(), Value::Str(String::new()));
+        fields.insert("profile".to_string(), Value::List((vec![]).into()));
+        fields.insert("n".to_string(), Value::Int(0));
+        fields.insert("length".to_string(), Value::Int(0));
+        return Ok(Value::Record((fields).into()));
+    }
+
+    // Extract sequence strings
+    let seqs: Vec<String> = seqs_val
+        .iter()
+        .map(|v| get_seq_data_or_str(v, "consensus"))
+        .collect::<Result<Vec<_>>>()?;
+
+    let length = seqs[0].len();
+    let n = seqs.len();
+
+    // Per-position counts: A, T, G, C, U, gap
+    let mut profile: Vec<HashMap<String, Value>> = Vec::with_capacity(length);
+    let mut consensus_chars: Vec<char> = Vec::with_capacity(length);
+
+    for pos in 0..length {
+        let mut counts: HashMap<char, usize> = HashMap::new();
+        for seq in &seqs {
+            let base = seq.chars().nth(pos).unwrap_or('-').to_ascii_uppercase();
+            *counts.entry(base).or_insert(0) += 1;
+        }
+
+        // Consensus = most frequent non-gap base
+        let best = counts
+            .iter()
+            .filter(|(&c, _)| c != '-')
+            .max_by_key(|(_, &v)| v)
+            .map(|(&c, _)| c)
+            .unwrap_or('N');
+        consensus_chars.push(best);
+
+        let mut pos_fields = HashMap::new();
+        pos_fields.insert("pos".to_string(), Value::Int(pos as i64));
+        pos_fields.insert(
+            "A".to_string(),
+            Value::Int(*counts.get(&'A').unwrap_or(&0) as i64),
+        );
+        pos_fields.insert(
+            "T".to_string(),
+            Value::Int(*counts.get(&'T').unwrap_or(&0) as i64),
+        );
+        pos_fields.insert(
+            "G".to_string(),
+            Value::Int(*counts.get(&'G').unwrap_or(&0) as i64),
+        );
+        pos_fields.insert(
+            "C".to_string(),
+            Value::Int(*counts.get(&'C').unwrap_or(&0) as i64),
+        );
+        pos_fields.insert(
+            "U".to_string(),
+            Value::Int(*counts.get(&'U').unwrap_or(&0) as i64),
+        );
+        pos_fields.insert(
+            "gap".to_string(),
+            Value::Int(*counts.get(&'-').unwrap_or(&0) as i64),
+        );
+        profile.push(pos_fields);
+    }
+
+    let mut fields = HashMap::new();
+    fields.insert(
+        "consensus".to_string(),
+        Value::Str(consensus_chars.iter().collect()),
+    );
+    fields.insert(
+        "profile".to_string(),
+        Value::List(
+            profile
+                .into_iter()
+                .map(|r| Value::Record(r.into()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
+    fields.insert("n".to_string(), Value::Int(n as i64));
+    fields.insert("length".to_string(), Value::Int(length as i64));
+
+    Ok(Value::Record((fields).into()))
+}
+
+// ── entropy(seq, window=100, step=1) ─────────────────────────────────
+
+fn builtin_entropy(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "entropy")?;
+    let window = if args.len() > 1 {
+        require_int(&args[1], "entropy")? as usize
+    } else {
+        100
+    };
+    let step = if args.len() > 2 {
+        require_int(&args[2], "entropy")? as usize
+    } else {
+        1
+    };
+
+    if window == 0 || step == 0 || seq.len() < window {
+        return Ok(Value::List((vec![]).into()));
+    }
+
+    let shannon_entropy = |s: &str| -> f64 {
+        let len = s.len() as f64;
+        if len == 0.0 {
+            return 0.0;
+        }
+        let mut counts: HashMap<char, usize> = HashMap::new();
+        for c in s.chars() {
+            *counts.entry(c.to_ascii_uppercase()).or_insert(0) += 1;
+        }
+        counts.values().fold(0.0, |acc, &count| {
+            if count == 0 {
+                acc
+            } else {
+                let p = count as f64 / len;
+                acc - p * p.log2()
+            }
+        })
+    };
+
+    let mut results = Vec::new();
+    let mut pos = 0usize;
+
+    while pos + window <= seq.len() {
+        let end = pos + window;
+        let h = shannon_entropy(&seq[pos..end]);
+        let mut fields = HashMap::new();
+        fields.insert("pos".to_string(), Value::Int(pos as i64));
+        fields.insert("end".to_string(), Value::Int(end as i64));
+        fields.insert("entropy".to_string(), Value::Float(h));
+        results.push(Value::Record((fields).into()));
+        pos += step;
+    }
+
+    Ok(Value::List((results).into()))
+}
+
+// ── iupac_match(seq, pattern) ────────────────────────────────────────
+
+fn builtin_iupac_match(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "iupac_match")?;
+    let pattern = get_seq_data_or_str(&args[1], "iupac_match")?;
+
+    if seq.len() != pattern.len() {
+        return Ok(Value::Bool(false));
+    }
+
+    let matches = seq
+        .chars()
+        .zip(pattern.chars())
+        .all(|(s, p)| iupac_base_matches(p, s));
+
+    Ok(Value::Bool(matches))
+}
+
+// ── Section 5: Advanced genomic/sequence primitives ──────────────────
+
+// ── six_frame_translate(seq) ─────────────────────────────────────────
+
+fn builtin_six_frame_translate(args: Vec<Value>) -> Result<Value> {
+    let dna = get_seq_data_or_str(&args[0], "six_frame_translate")?.to_uppercase();
+    let rc = bl_core::bio_core::seq_ops::reverse_complement_dna(&dna);
+    let mut results = Vec::new();
+    for (seq_str, sign) in [(&dna, 1i32), (&rc, -1i32)] {
+        for offset in 0..3usize {
+            let frame_label = if sign > 0 {
+                format!("+{}", offset + 1)
+            } else {
+                format!("-{}", offset + 1)
+            };
+            if seq_str.len() < offset + 3 {
+                continue;
+            }
+            let codons: String = seq_str[offset..]
+                .as_bytes()
+                .chunks(3)
+                .filter(|c| c.len() == 3)
+                .flat_map(|c| std::str::from_utf8(c).ok())
+                .collect::<Vec<&str>>()
+                .join("");
+            let protein = bl_core::bio_core::seq_ops::translate_to_stop(&codons);
+            let start = if sign > 0 {
+                offset
+            } else {
+                dna.len().saturating_sub(offset)
+            };
+            let mut rec = HashMap::new();
+            rec.insert("frame".to_string(), Value::Str(frame_label));
+            rec.insert("start".to_string(), Value::Int(start as i64));
+            rec.insert(
+                "protein".to_string(),
+                Value::Protein(bl_core::value::BioSequence {
+                    data: protein.clone(),
+                }),
+            );
+            rec.insert("length".to_string(), Value::Int(protein.len() as i64));
+            results.push(Value::Record((rec).into()));
+        }
+    }
+    Ok(Value::List((results).into()))
+}
+
+// ── cpg_islands(seq, min_length=200, gc_threshold=0.5, obs_exp_threshold=0.6) ──
+
+fn builtin_cpg_islands(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "cpg_islands")?.to_uppercase();
+    let min_length = if args.len() > 1 {
+        require_int(&args[1], "cpg_islands")? as usize
+    } else {
+        200
+    };
+    let gc_threshold = if args.len() > 2 {
+        match &args[2] {
+            Value::Float(f) => *f,
+            Value::Int(n) => *n as f64,
+            _ => 0.5,
+        }
+    } else {
+        0.5
+    };
+    let obs_exp_threshold = if args.len() > 3 {
+        match &args[3] {
+            Value::Float(f) => *f,
+            Value::Int(n) => *n as f64,
+            _ => 0.6,
+        }
+    } else {
+        0.6
+    };
+
+    let window = 200usize;
+    let step = 100usize;
+    let n = seq.len();
+
+    // Track which windows pass the criteria
+    let mut passing_windows: Vec<(usize, usize)> = Vec::new();
+
+    let mut pos = 0usize;
+    while pos + window <= n {
+        let end = pos + window;
+        let win = &seq[pos..end];
+        let len = win.len() as f64;
+        let g_count = win.chars().filter(|&c| c == 'G').count() as f64;
+        let c_count = win.chars().filter(|&c| c == 'C').count() as f64;
+        let gc_frac = (g_count + c_count) / len;
+
+        // Count observed CpG dinucleotides
+        let obs_cpg = win
+            .as_bytes()
+            .windows(2)
+            .filter(|w| w[0] == b'C' && w[1] == b'G')
+            .count() as f64;
+        let exp_cpg = (c_count * g_count) / len;
+
+        let obs_exp = if exp_cpg > 0.0 {
+            obs_cpg / exp_cpg
+        } else {
+            0.0
+        };
+
+        if gc_frac >= gc_threshold && obs_exp >= obs_exp_threshold {
+            passing_windows.push((pos, end));
+        }
+        pos += step;
+    }
+
+    // Merge consecutive/overlapping windows into islands
+    let mut islands: Vec<(usize, usize)> = Vec::new();
+    for (ws, we) in passing_windows {
+        if let Some(last) = islands.last_mut() {
+            if ws <= last.1 {
+                last.1 = last.1.max(we);
+                continue;
+            }
+        }
+        islands.push((ws, we));
+    }
+
+    // Filter by minimum length and compute stats
+    let mut results = Vec::new();
+    for (is, ie) in islands {
+        if ie - is < min_length {
+            continue;
+        }
+        let reg = &seq[is..ie];
+        let len = reg.len() as f64;
+        let g_count = reg.chars().filter(|&c| c == 'G').count() as f64;
+        let c_count = reg.chars().filter(|&c| c == 'C').count() as f64;
+        let gc_frac = (g_count + c_count) / len;
+        let obs_cpg = reg
+            .as_bytes()
+            .windows(2)
+            .filter(|w| w[0] == b'C' && w[1] == b'G')
+            .count() as f64;
+        let exp_cpg = (c_count * g_count) / len;
+        let obs_exp = if exp_cpg > 0.0 {
+            obs_cpg / exp_cpg
+        } else {
+            0.0
+        };
+        let mut rec = HashMap::new();
+        rec.insert("start".to_string(), Value::Int(is as i64));
+        rec.insert("end".to_string(), Value::Int(ie as i64));
+        rec.insert("length".to_string(), Value::Int((ie - is) as i64));
+        rec.insert("gc_fraction".to_string(), Value::Float(gc_frac));
+        rec.insert("obs_cpg".to_string(), Value::Float(obs_cpg));
+        rec.insert("exp_cpg".to_string(), Value::Float(exp_cpg));
+        rec.insert("obs_exp_ratio".to_string(), Value::Float(obs_exp));
+        results.push(Value::Record((rec).into()));
+    }
+    Ok(Value::List((results).into()))
+}
+
+// ── splice_sites(seq) ────────────────────────────────────────────────
+
+fn builtin_splice_sites(args: Vec<Value>) -> Result<Value> {
+    let seq = get_seq_data_or_str(&args[0], "splice_sites")?.to_uppercase();
+    let rc = bl_core::bio_core::seq_ops::reverse_complement_dna(&seq);
+    let n = seq.len();
+    let mut results = Vec::new();
+
+    for (strand_seq, strand_label) in [(&seq, "+"), (&rc, "-")] {
+        let bytes = strand_seq.as_bytes();
+        for i in 0..bytes.len().saturating_sub(1) {
+            let di = &bytes[i..i + 2];
+            let dinuc = std::str::from_utf8(di).unwrap_or("NN");
+
+            let (site_type, is_canonical) = match dinuc {
+                "GT" => ("donor", true),
+                "GC" => ("donor", false),
+                "AG" => ("acceptor", true),
+                _ => continue,
+            };
+
+            // Convert position back to forward-strand coordinates for "-" strand
+            let pos = if strand_label == "+" {
+                i
+            } else {
+                n.saturating_sub(i + 2)
+            };
+            let end = pos + 2;
+
+            let mut rec = HashMap::new();
+            rec.insert("pos".to_string(), Value::Int(pos as i64));
+            rec.insert("end".to_string(), Value::Int(end as i64));
+            rec.insert("strand".to_string(), Value::Str(strand_label.to_string()));
+            rec.insert("site_type".to_string(), Value::Str(site_type.to_string()));
+            rec.insert("dinucleotide".to_string(), Value::Str(dinuc.to_string()));
+            rec.insert("is_canonical".to_string(), Value::Bool(is_canonical));
+            results.push(Value::Record((rec).into()));
+        }
+    }
+
+    // Sort by position
+    results.sort_by_key(|v| {
+        if let Value::Record(f) = v {
+            match f.get("pos") {
+                Some(Value::Int(n)) => *n,
+                _ => 0,
+            }
+        } else {
+            0
+        }
+    });
+
+    Ok(Value::List((results).into()))
+}
+
+// ── genomic_bins(chrom_sizes, bin_size) ──────────────────────────────
+
+fn builtin_genomic_bins(args: Vec<Value>) -> Result<Value> {
+    let bin_size = require_int(&args[1], "genomic_bins")? as usize;
+    if bin_size == 0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "genomic_bins() bin_size must be > 0",
+            None,
+        ));
+    }
+    let chrom_list = extract_chrom_sizes(&args[0], "genomic_bins")?;
+
+    let columns = vec![
+        "chrom".to_string(),
+        "start".to_string(),
+        "end".to_string(),
+        "bin_id".to_string(),
+    ];
+    let mut rows: Vec<Vec<Value>> = Vec::new();
+    let mut bin_id: i64 = 0;
+
+    for (chrom, size) in chrom_list {
+        let mut start = 0usize;
+        while start < size {
+            let end = (start + bin_size).min(size);
+            rows.push(vec![
+                Value::Str(chrom.clone()),
+                Value::Int(start as i64),
+                Value::Int(end as i64),
+                Value::Int(bin_id),
+            ]);
+            bin_id += 1;
+            start += bin_size;
+        }
+    }
+
+    Ok(Value::Table(bl_core::value::Table::new(columns, rows)))
+}
+
+// ── tile_genome(chrom_sizes, tile_size, overlap=0) ───────────────────
+
+fn builtin_tile_genome(args: Vec<Value>) -> Result<Value> {
+    let tile_size = require_int(&args[1], "tile_genome")? as usize;
+    if tile_size == 0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "tile_genome() tile_size must be > 0",
+            None,
+        ));
+    }
+    let overlap = if args.len() > 2 {
+        require_int(&args[2], "tile_genome")? as usize
+    } else {
+        0
+    };
+    if overlap >= tile_size {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "tile_genome() overlap must be < tile_size",
+            None,
+        ));
+    }
+    let step = tile_size - overlap;
+    let chrom_list = extract_chrom_sizes(&args[0], "tile_genome")?;
+
+    let columns = vec![
+        "chrom".to_string(),
+        "start".to_string(),
+        "end".to_string(),
+        "bin_id".to_string(),
+    ];
+    let mut rows: Vec<Vec<Value>> = Vec::new();
+    let mut bin_id: i64 = 0;
+
+    for (chrom, size) in chrom_list {
+        let mut start = 0usize;
+        while start < size {
+            let end = (start + tile_size).min(size);
+            rows.push(vec![
+                Value::Str(chrom.clone()),
+                Value::Int(start as i64),
+                Value::Int(end as i64),
+                Value::Int(bin_id),
+            ]);
+            bin_id += 1;
+            start += step;
+        }
+    }
+
+    Ok(Value::Table(bl_core::value::Table::new(columns, rows)))
+}
+
+/// Helper: extract (chrom, size) pairs from Map<Str,Int> or List<Record{chrom,size}>
+fn extract_chrom_sizes(val: &Value, func: &str) -> Result<Vec<(String, usize)>> {
+    match val {
+        Value::Map(m) | Value::Record(m) => {
+            let mut out = Vec::new();
+            for (k, v) in m.iter() {
+                let sz = match v {
+                    Value::Int(n) => *n as usize,
+                    Value::Float(f) => *f as usize,
+                    _ => {
+                        return Err(BioLangError::type_error(
+                            format!("{func}() chrom_sizes values must be Int"),
+                            None,
+                        ))
+                    }
+                };
+                out.push((k.clone(), sz));
+            }
+            Ok(out)
+        }
+        Value::List(list) => {
+            let mut out = Vec::new();
+            for item in list.iter() {
+                match item {
+                    Value::Record(fields) => {
+                        let chrom =
+                            match fields.get("chrom") {
+                                Some(Value::Str(s)) => s.clone(),
+                                _ => return Err(BioLangError::type_error(
+                                    format!(
+                                        "{func}() chrom_sizes records must have 'chrom' Str field"
+                                    ),
+                                    None,
+                                )),
+                            };
+                        let sz =
+                            match fields.get("size") {
+                                Some(Value::Int(n)) => *n as usize,
+                                Some(Value::Float(f)) => *f as usize,
+                                _ => return Err(BioLangError::type_error(
+                                    format!(
+                                        "{func}() chrom_sizes records must have 'size' Int field"
+                                    ),
+                                    None,
+                                )),
+                            };
+                        out.push((chrom, sz));
+                    }
+                    _ => {
+                        return Err(BioLangError::type_error(
+                            format!("{func}() chrom_sizes list items must be Records"),
+                            None,
+                        ))
+                    }
+                }
+            }
+            Ok(out)
+        }
+        _ => Err(BioLangError::type_error(
+            format!("{func}() chrom_sizes must be Map or List<Record>"),
+            None,
+        )),
+    }
+}
+
+// ── extend_interval(record_or_list, upstream, downstream) ────────────
+
+fn builtin_extend_interval(args: Vec<Value>) -> Result<Value> {
+    let upstream = require_int(&args[1], "extend_interval")?;
+    let downstream = require_int(&args[2], "extend_interval")?;
+
+    fn extend_one(
+        rec: &HashMap<String, Value>,
+        upstream: i64,
+        downstream: i64,
+    ) -> HashMap<String, Value> {
+        let start = match rec.get("start") {
+            Some(Value::Int(n)) => *n,
+            Some(Value::Float(f)) => *f as i64,
+            _ => 0,
+        };
+        let end = match rec.get("end") {
+            Some(Value::Int(n)) => *n,
+            Some(Value::Float(f)) => *f as i64,
+            _ => 0,
+        };
+        let strand = rec.get("strand").and_then(|v| v.as_str()).unwrap_or(".");
+
+        let (new_start, new_end) = if strand == "-" {
+            // 5' is the end side for minus strand
+            (start - downstream, end + upstream)
+        } else {
+            (start - upstream, end + downstream)
+        };
+
+        let mut out = rec.clone();
+        out.insert("start".to_string(), Value::Int(new_start.max(0)));
+        out.insert("end".to_string(), Value::Int(new_end));
+        out
+    }
+
+    match &args[0] {
+        Value::Record(rec) => Ok(Value::Record((extend_one(rec, upstream, downstream)).into())),
+        Value::List(list) => {
+            let extended: Vec<Value> = list
+                .iter()
+                .map(|item| match item {
+                    Value::Record(rec) => Value::Record((extend_one(rec, upstream, downstream)).into()),
+                    other => other.clone(),
+                })
+                .collect();
+            Ok(Value::List((extended).into()))
+        }
+        other => Err(BioLangError::type_error(
+            format!(
+                "extend_interval() requires Record or List, got {}",
+                other.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+// ── flank(record_or_list, size, side="both") ─────────────────────────
+
+fn builtin_flank(args: Vec<Value>) -> Result<Value> {
+    let size = require_int(&args[1], "flank")?;
+    let side = if args.len() > 2 {
+        match &args[2] {
+            Value::Str(s) => s.clone(),
+            _ => "both".to_string(),
+        }
+    } else {
+        "both".to_string()
+    };
+
+    fn flank_one(
+        rec: &HashMap<String, Value>,
+        size: i64,
+        side: &str,
+    ) -> Vec<HashMap<String, Value>> {
+        let start = match rec.get("start") {
+            Some(Value::Int(n)) => *n,
+            Some(Value::Float(f)) => *f as i64,
+            _ => 0,
+        };
+        let end = match rec.get("end") {
+            Some(Value::Int(n)) => *n,
+            Some(Value::Float(f)) => *f as i64,
+            _ => 0,
+        };
+
+        let mut flanks = Vec::new();
+
+        let make_flank = |fs: i64, fe: i64| -> HashMap<String, Value> {
+            let mut f = rec.clone();
+            f.insert("start".to_string(), Value::Int(fs.max(0)));
+            f.insert("end".to_string(), Value::Int(fe));
+            f
+        };
+
+        match side {
+            "left" | "5'" => {
+                flanks.push(make_flank(start - size, start));
+            }
+            "right" | "3'" => {
+                flanks.push(make_flank(end, end + size));
+            }
+            _ => {
+                // "both"
+                flanks.push(make_flank(start - size, start));
+                flanks.push(make_flank(end, end + size));
+            }
+        }
+        flanks
+    }
+
+    match &args[0] {
+        Value::Record(rec) => {
+            let flanks = flank_one(rec, size, &side);
+            if flanks.len() == 1 {
+                Ok(Value::Record((flanks.into_iter().next().unwrap()).into()))
+            } else {
+                Ok(Value::List(
+                    flanks
+                        .into_iter()
+                        .map(|f| Value::Record(f.into()))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ))
+            }
+        }
+        Value::List(list) => {
+            let mut all_flanks = Vec::new();
+            for item in list.iter() {
+                match item {
+                    Value::Record(rec) => {
+                        for f in flank_one(rec.as_ref(), size, &side) {
+                            all_flanks.push(Value::Record((f).into()));
+                        }
+                    }
+                    other => all_flanks.push(other.clone()),
+                }
+            }
+            Ok(Value::List((all_flanks).into()))
+        }
+        other => Err(BioLangError::type_error(
+            format!("flank() requires Record or List, got {}", other.type_of()),
+            None,
+        )),
+    }
+}
+
+// ── center_interval(record_or_list) ──────────────────────────────────
+
+fn builtin_center_interval(args: Vec<Value>) -> Result<Value> {
+    fn center_one(rec: &HashMap<String, Value>) -> HashMap<String, Value> {
+        let start = match rec.get("start") {
+            Some(Value::Int(n)) => *n,
+            Some(Value::Float(f)) => *f as i64,
+            _ => 0,
+        };
+        let end = match rec.get("end") {
+            Some(Value::Int(n)) => *n,
+            Some(Value::Float(f)) => *f as i64,
+            _ => 0,
+        };
+        let mid = (start + end) / 2;
+        let mut out = rec.clone();
+        out.insert("start".to_string(), Value::Int((mid - 1).max(0)));
+        out.insert("end".to_string(), Value::Int(mid + 1));
+        out
+    }
+
+    match &args[0] {
+        Value::Record(rec) => Ok(Value::Record((center_one(rec)).into())),
+        Value::List(list) => {
+            let centered: Vec<Value> = list
+                .iter()
+                .map(|item| match item {
+                    Value::Record(rec) => Value::Record((center_one(rec)).into()),
+                    other => other.clone(),
+                })
+                .collect();
+            Ok(Value::List((centered).into()))
+        }
+        other => Err(BioLangError::type_error(
+            format!(
+                "center_interval() requires Record or List, got {}",
+                other.type_of()
+            ),
+            None,
+        )),
     }
 }

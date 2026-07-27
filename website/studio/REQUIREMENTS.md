@@ -4,13 +4,13 @@
 
 **Tagline:** Write, run, and share bioinformatics notebooks in your browser.
 
-**What it does:** Browser-based BioLang notebook with code cells, markdown cells, inline plots, table viewers, and shared variables — powered by WebAssembly. No server, no install, works offline.
+**What it does:** Browser-based BioLang notebook with code cells, markdown cells, inline plots, table viewers, and shared variables, powered locally by WebAssembly with optional SOMER remote execution. No server is required for local use.
 
 **URL:** `lang.bio/studio`
 
 **What it's NOT:**
 - Not Jupyter (no Python kernel, no server)
-- Not Google Colab (no cloud compute)
+- Not Google Colab (remote compute is explicit through a user-selected SOMER service)
 - Not an IDE (no project management, no git)
 
 It's a **lightweight, browser-based BioLang notebook** — like Observable or Deno notebooks, but for bioinformatics.

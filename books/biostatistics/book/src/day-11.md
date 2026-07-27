@@ -250,9 +250,10 @@ Tests whether an observed proportion differs from an expected value, or whether 
 # Observed genotype counts near APOE
 # Rows: Alzheimer's, Control
 # Columns: Risk allele present, Risk allele absent
-let observed = [[180, 320], [120, 380]]
+let observed = [180, 320, 120, 380]
+let expected = [150.0, 350.0, 150.0, 350.0]
 
-let result = chi_square(observed)
+let result = chi_square(observed, expected)
 print("=== Chi-Square Test of Independence ===")
 print("Chi-square statistic: {result.statistic:.4}")
 print("p-value: {result.p_value:.2e}")
@@ -285,17 +286,17 @@ if result.p_value < 0.05 {
 ```bio
 # Rare loss-of-function variant in 200 cases and 200 controls
 # Very small expected counts -> Fisher's exact test
-let observed = [[8, 192], [2, 198]]
+let observed = [8, 192, 2, 198]
 
 print("=== Fisher's Exact Test: Rare Variant ===")
 print("Observed: 8/200 cases vs 2/200 controls carry the variant\n")
 
 # Chi-square would be unreliable here
-let chi_result = chi_square(observed)
+let chi_result = chi_square(observed, [5.0, 195.0, 5.0, 195.0])
 print("Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
 
 # Fisher's exact is the correct choice
-let fisher_result = fisher_exact(observed)
+let fisher_result = fisher_exact(8, 192, 2, 198)
 print("Fisher's exact p-value: {fisher_result.p_value:.4}")
 
 # Odds ratio (inline)
@@ -387,8 +388,8 @@ if result.p_value > 0.05 {
 # EGFR mutation frequency in two populations
 # Asian cohort: 120/300 (40%), European cohort: 45/300 (15%)
 # Two-proportion test via chi_square
-let observed = [[120, 180], [45, 255]]
-let result = chi_square(observed)
+let observed = [120, 180, 45, 255]
+let result = chi_square(observed, [82.5, 217.5, 82.5, 217.5])
 
 print("=== Two-Proportion Test: EGFR Mutation Frequency ===")
 print("Asian: 120/300 = 40%")
@@ -398,7 +399,11 @@ print("p-value: {result.p_value:.2e}")
 print("Difference: 25 percentage points")
 
 # Visualize
-bar_chart(["Asian", "European"], [40.0, 15.0], {title: "EGFR Mutation Frequency by Population", y_label: "Mutation Frequency (%)"})
+let population_rates = table({
+  "population": ["Asian", "European"],
+  "mutation_frequency": [40.0, 15.0]
+})
+bar_chart(population_rates, {label: "population", value: "mutation_frequency"})
 ```
 
 ### Complete Workflow: Multi-Allelic Association
@@ -406,15 +411,16 @@ bar_chart(["Asian", "European"], [40.0, 15.0], {title: "EGFR Mutation Frequency 
 ```bio
 # Three genotypes at a pharmacogenomics locus
 # and three drug response categories
-let observed = [
-  [45, 30, 25],   # Poor metabolizer
-  [35, 55, 60],   # Intermediate
-  [20, 15, 15]    # Ultra-rapid
+let observed = [45, 30, 25, 35, 55, 60, 20, 15, 15]
+let expected = [
+  33.333, 33.333, 33.333,
+  50.0, 50.0, 50.0,
+  16.667, 16.667, 16.667
 ]
 let row_labels = ["Poor", "Intermediate", "Ultra-rapid"]
 let col_labels = ["AA", "AG", "GG"]
 
-let result = chi_square(observed)
+let result = chi_square(observed, expected)
 print("=== Chi-Square: Genotype vs Drug Response ===")
 print("Chi-square: {result.statistic:.4}")
 print("p-value: {result.p_value:.4}")
@@ -429,8 +435,9 @@ print("Cramer's V: {v:.4} (effect size)")
 print("\n           | AA   | AG   | GG   | Total")
 print("-----------|------|------|------|------")
 for i in 0..3 {
-  let total = observed[i][0] + observed[i][1] + observed[i][2]
-  print("{row_labels[i]:<11}| {observed[i][0]:>4} | {observed[i][1]:>4} | {observed[i][2]:>4} | {total:>4}")
+  let offset = i * 3
+  let total = observed[offset] + observed[offset + 1] + observed[offset + 2]
+  print("{row_labels[i]:<11}| {observed[offset]:>4} | {observed[offset + 1]:>4} | {observed[offset + 2]:>4} | {total:>4}")
 }
 ```
 

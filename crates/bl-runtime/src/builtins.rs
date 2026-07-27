@@ -319,6 +319,18 @@ pub fn register_builtins(env: &mut Environment) {
         builtins.push((name, arity));
     }
 
+    // Add provenance / backend-selection builtins (native only — subprocess + fs)
+    #[cfg(feature = "native")]
+    for (name, arity) in crate::provenance::provenance_builtin_list() {
+        builtins.push((name, arity));
+    }
+
+    // Add AnnData .zarr I/O builtins (native only — filesystem + flate2)
+    #[cfg(feature = "native")]
+    for (name, arity) in crate::anndata_zarr::anndata_builtin_list() {
+        builtins.push((name, arity));
+    }
+
     // Add LLM chat builtins (native only — HTTP to API providers)
     #[cfg(feature = "native")]
     for (name, arity) in crate::llm::llm_builtin_list() {
@@ -387,6 +399,88 @@ pub fn register_builtins(env: &mut Environment) {
 
     // Add core sequence builtins (WASM-safe — pure string transforms via bio_core)
     for (name, arity) in crate::seq::seq_builtin_list() {
+        builtins.push((name, arity));
+    }
+
+    // Add single-cell / CNV / tumour-purity builtins (Sections 6 + 7)
+    for (name, arity) in crate::singlecell::singlecell_builtin_list() {
+        builtins.push((name, arity));
+    }
+
+    // Tier-1 domain builtins: variants, bulk RNA-seq, phylogenetics, ChIP-seq, microbiome
+    for (name, arity) in crate::variants::variants_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::rnaseq::rnaseq_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::phylo::phylo_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::chipseq::chipseq_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::microbiome::microbiome_builtin_list() {
+        builtins.push((name, arity));
+    }
+    // Tier-2 full-Rust builtins: statistics, qpcr, proteomics, methylation, structure, network, popgen
+    for (name, arity) in crate::statistics::statistics_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::qpcr::qpcr_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::proteomics::proteomics_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::methylation::methylation_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::structure::structure_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::network::network_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::popgen::popgen_builtin_list() {
+        builtins.push((name, arity));
+    }
+    // Tier-3 full-Rust builtins: crispr, immune, deconvolution, metabolomics, longread, motif
+    for (name, arity) in crate::crispr::crispr_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::immune::immune_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::deconvolution::deconvolution_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::metabolomics::metabolomics_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::longread::longread_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::motif::motif_builtin_list() {
+        builtins.push((name, arity));
+    }
+    // Tier-4 full-Rust builtins: cnv, hic, atac, drug, gwas, annotation
+    for (name, arity) in crate::cnv::cnv_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::hic::hic_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::atac::atac_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::drug::drug_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::gwas::gwas_builtin_list() {
+        builtins.push((name, arity));
+    }
+    for (name, arity) in crate::annotation::annotation_builtin_list() {
         builtins.push((name, arity));
     }
 
@@ -499,6 +593,15 @@ pub fn register_builtins(env: &mut Environment) {
         builtins.push((name, arity));
     }
 
+    // `rank` is overloaded for Matrix (one argument) and Table (two arguments).
+    // Register the union arity after both modules so neither registration hides
+    // the other.
+    builtins.push(("rank", Arity::Range(1, 2)));
+    // Native BioLang also supports file-oriented FASTQ trimming in addition to
+    // the two-argument Quality-value operation from the statistics module.
+    #[cfg(feature = "native")]
+    builtins.push(("trim_quality", Arity::Range(2, 3)));
+
     for (name, arity) in builtins {
         env.define(
             name.to_string(),
@@ -513,96 +616,424 @@ pub fn register_builtins(env: &mut Environment) {
 /// Collect all known builtin function names (for "did you mean?" suggestions).
 pub fn all_builtin_names() -> Vec<&'static str> {
     let mut names: Vec<&'static str> = vec![
-        "print", "println", "len", "ncols", "columns", "type", "typeof",
-        "range", "map", "each", "filter", "flat_map", "scan", "reduce",
-        "sort", "abs", "min", "max", "int", "float", "str", "bool",
-        "push", "pop", "contains", "keys", "values", "reverse", "join", "split",
-        "head", "tail", "collect", "next", "count", "take", "to_stream",
-        "table", "to_table", "interval", "mutate", "summarize",
-        "zip", "enumerate", "flatten", "chunk", "slice", "concat",
-        "first", "last", "drop", "window", "frequencies", "repeat",
-        "count_if", "col", "jaccard",
-        "any", "all", "none", "find", "find_index", "take_while",
-        "ascii", "chr", "substr", "replace", "trim", "upper", "lower",
-        "starts_with", "ends_with",
-        "merge", "has_key", "remove_key", "to_string", "parse_json",
-        "compare", "exit", "try_call", "error", "help",
-        "bp", "kb", "mb", "gb",
-        "par_map", "par_filter",
-        "prop_test", "gen_int", "gen_float", "gen_str",
-        "is_range", "is_enum",
-        "set", "union", "intersection", "difference", "symmetric_difference",
-        "is_subset", "is_superset",
-        "is_set", "is_regex", "is_future", "await_all", "into",
-        "memoize", "time_it", "once",
-        "interval_tree", "query_overlaps", "count_overlaps", "bulk_overlaps",
-        "query_nearest", "coverage",
-        "motif_find", "motif_count", "consensus", "pwm", "pwm_scan",
+        "print",
+        "println",
+        "len",
+        "ncols",
+        "columns",
+        "type",
+        "typeof",
+        "range",
+        "map",
+        "each",
+        "filter",
+        "flat_map",
+        "scan",
+        "reduce",
+        "sort",
+        "abs",
+        "min",
+        "max",
+        "int",
+        "float",
+        "str",
+        "bool",
+        "push",
+        "pop",
+        "contains",
+        "keys",
+        "values",
+        "reverse",
+        "join",
+        "split",
+        "head",
+        "tail",
+        "collect",
+        "next",
+        "count",
+        "take",
+        "to_stream",
+        "table",
+        "to_table",
+        "interval",
+        "mutate",
+        "summarize",
+        "zip",
+        "enumerate",
+        "flatten",
+        "chunk",
+        "slice",
+        "concat",
+        "first",
+        "last",
+        "drop",
+        "window",
+        "frequencies",
+        "repeat",
+        "count_if",
+        "col",
+        "jaccard",
+        "any",
+        "all",
+        "none",
+        "find",
+        "find_index",
+        "take_while",
+        "ascii",
+        "chr",
+        "substr",
+        "replace",
+        "trim",
+        "upper",
+        "lower",
+        "starts_with",
+        "ends_with",
+        "merge",
+        "has_key",
+        "remove_key",
+        "to_string",
+        "parse_json",
+        "compare",
+        "exit",
+        "try_call",
+        "error",
+        "help",
+        "bp",
+        "kb",
+        "mb",
+        "gb",
+        "par_map",
+        "par_filter",
+        "prop_test",
+        "gen_int",
+        "gen_float",
+        "gen_str",
+        "is_range",
+        "is_enum",
+        "set",
+        "union",
+        "intersection",
+        "difference",
+        "symmetric_difference",
+        "is_subset",
+        "is_superset",
+        "is_set",
+        "is_regex",
+        "is_future",
+        "await_all",
+        "into",
+        "memoize",
+        "time_it",
+        "once",
+        "interval_tree",
+        "query_overlaps",
+        "count_overlaps",
+        "bulk_overlaps",
+        "query_nearest",
+        "coverage",
+        "motif_find",
+        "motif_count",
+        "consensus",
+        "pwm",
+        "pwm_scan",
         "pipeline_steps",
-        "where", "case_when", "tee", "tap", "inspect", "group_apply",
-        "gene", "variant", "genome",
-        "is_gene", "is_variant", "is_genome", "is_quality", "is_aligned_read",
-        "aligned_read", "flagstat",
-        "is_snp", "is_indel", "is_transition", "is_transversion",
-        "is_het", "is_hom_ref", "is_hom_alt", "is_multiallelic",
-        "variant_type", "variant_summary", "tstv_ratio", "het_hom_ratio",
-        "parse_vcf_info", "partition", "sort_by",
-        "coord_bed", "coord_vcf", "coord_gff", "coord_sam",
-        "coord_convert", "coord_system", "coord_check",
-        "strip_chr", "add_chr", "normalize_chrom",
-        "kmer_encode", "kmer_decode", "kmer_rc", "kmer_canonical",
-        "kmer_count", "kmer_distinct", "kmer_spectrum", "minimizers",
-        "stream_chunks", "stream_take", "stream_skip", "stream_batch", "memory_usage",
-        "scatter_by", "bench",
-        "table_col_types", "table_set_col_type", "table_validate", "table_schema", "table_cast",
+        "where",
+        "case_when",
+        "tee",
+        "tap",
+        "inspect",
+        "group_apply",
+        "gene",
+        "variant",
+        "genome",
+        "is_gene",
+        "is_variant",
+        "is_genome",
+        "is_quality",
+        "is_aligned_read",
+        "aligned_read",
+        "flagstat",
+        "is_snp",
+        "is_indel",
+        "is_transition",
+        "is_transversion",
+        "is_het",
+        "is_hom_ref",
+        "is_hom_alt",
+        "is_multiallelic",
+        "variant_type",
+        "variant_summary",
+        "tstv_ratio",
+        "het_hom_ratio",
+        "parse_vcf_info",
+        "partition",
+        "sort_by",
+        "coord_bed",
+        "coord_vcf",
+        "coord_gff",
+        "coord_sam",
+        "coord_convert",
+        "coord_system",
+        "coord_check",
+        "strip_chr",
+        "add_chr",
+        "normalize_chrom",
+        "kmer_encode",
+        "kmer_decode",
+        "kmer_rc",
+        "kmer_canonical",
+        "kmer_count",
+        "kmer_distinct",
+        "kmer_spectrum",
+        "minimizers",
+        "stream_chunks",
+        "stream_take",
+        "stream_skip",
+        "stream_batch",
+        "memory_usage",
+        "scatter_by",
+        "bench",
+        "table_col_types",
+        "table_set_col_type",
+        "table_validate",
+        "table_schema",
+        "table_cast",
         "pipe_fuse",
-        "with_provenance", "provenance", "provenance_chain", "checkpoint", "resume_checkpoint",
-        "is_nil", "is_int", "is_float", "is_num", "is_str", "is_bool",
-        "is_list", "is_map", "is_record", "is_table", "is_function",
-        "is_dna", "is_rna", "is_protein", "is_interval", "is_matrix",
-        "is_stream", "is_kmer", "is_sparse",
-        "env", "cwd", "assert", "debug",
+        "with_provenance",
+        "provenance",
+        "provenance_chain",
+        "checkpoint",
+        "resume_checkpoint",
+        "is_nil",
+        "is_int",
+        "is_float",
+        "is_num",
+        "is_str",
+        "is_bool",
+        "is_list",
+        "is_map",
+        "is_record",
+        "is_table",
+        "is_function",
+        "is_dna",
+        "is_rna",
+        "is_protein",
+        "is_interval",
+        "is_matrix",
+        "is_stream",
+        "is_kmer",
+        "is_sparse",
+        "env",
+        "cwd",
+        "assert",
+        "debug",
     ];
+    #[cfg(feature = "native")]
+    names.extend_from_slice(&["sleep", "gzip", "gunzip", "bgzip", "doctor", "config"]);
     // Add names from sub-module builtin lists
-    for (n, _) in crate::table_ops::table_builtin_list() { names.push(n); }
-    for (n, _) in crate::stats::stats_builtin_list() { names.push(n); }
-    for (n, _) in crate::json::json_builtin_list() { names.push(n); }
-    for (n, _) in crate::regex_ops::regex_builtin_list() { names.push(n); }
-    for (n, _) in crate::csv::csv_builtin_list() { names.push(n); }
-    for (n, _) in crate::plot::plot_builtin_list() { names.push(n); }
-    for (n, _) in crate::viz::viz_builtin_list() { names.push(n); }
-    for (n, _) in crate::bio_plots::bio_plots_builtin_list() { names.push(n); }
-    for (n, _) in crate::matrix::matrix_builtin_list() { names.push(n); }
+    for (n, _) in crate::table_ops::table_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::stats::stats_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::json::json_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::regex_ops::regex_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::csv::csv_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::plot::plot_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::viz::viz_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::bio_plots::bio_plots_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::matrix::matrix_builtin_list() {
+        names.push(n);
+    }
     #[cfg(feature = "native")]
-    for (n, _) in crate::enrich::enrich_builtin_list() { names.push(n); }
-    for (n, _) in crate::graph::graph_builtin_list() { names.push(n); }
-    for (n, _) in crate::bio_ops::bio_ops_builtin_list() { names.push(n); }
-    for (n, _) in crate::markdown::markdown_builtin_list() { names.push(n); }
-    for (n, _) in crate::hash::hash_builtin_list() { names.push(n); }
-    for (n, _) in crate::datetime::datetime_builtin_list() { names.push(n); }
-    for (n, _) in crate::text_ops::text_builtin_list() { names.push(n); }
-    for (n, _) in crate::sparse::sparse_builtin_list() { names.push(n); }
-    for (n, _) in crate::seq::seq_builtin_list() { names.push(n); }
+    for (n, _) in crate::enrich::enrich_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::graph::graph_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::bio_ops::bio_ops_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::markdown::markdown_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::hash::hash_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::datetime::datetime_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::text_ops::text_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::sparse::sparse_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::seq::seq_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::singlecell::singlecell_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::variants::variants_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::rnaseq::rnaseq_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::phylo::phylo_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::chipseq::chipseq_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::microbiome::microbiome_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::statistics::statistics_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::qpcr::qpcr_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::proteomics::proteomics_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::methylation::methylation_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::structure::structure_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::network::network_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::popgen::popgen_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::crispr::crispr_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::immune::immune_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::deconvolution::deconvolution_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::metabolomics::metabolomics_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::longread::longread_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::motif::motif_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::cnv::cnv_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::hic::hic_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::atac::atac_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::drug::drug_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::gwas::gwas_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::annotation::annotation_builtin_list() {
+        names.push(n);
+    }
     #[cfg(feature = "native")]
-    for (n, _) in bl_bio::bio_builtin_list() { names.push(n); }
+    for (n, _) in bl_bio::bio_builtin_list() {
+        names.push(n);
+    }
     #[cfg(not(feature = "native"))]
-    for (n, _) in crate::bio_wasm::bio_wasm_builtin_list() { names.push(n); }
+    for (n, _) in crate::bio_wasm::bio_wasm_builtin_list() {
+        names.push(n);
+    }
     #[cfg(not(feature = "native"))]
-    for (n, _) in crate::ncbi_wasm::ncbi_wasm_builtin_list() { names.push(n); }
+    for (n, _) in crate::ncbi_wasm::ncbi_wasm_builtin_list() {
+        names.push(n);
+    }
     #[cfg(feature = "native")]
     {
-        for (n, _) in crate::fs::fs_builtin_list() { names.push(n); }
-        for (n, _) in crate::http::http_builtin_list() { names.push(n); }
-        for (n, _) in crate::container::container_builtin_list() { names.push(n); }
-        for (n, _) in crate::llm::llm_builtin_list() { names.push(n); }
-        for (n, _) in crate::transfer::transfer_builtin_list() { names.push(n); }
-        for (n, _) in crate::nf_parse::nf_parse_builtin_list() { names.push(n); }
-        for (n, _) in crate::notify::notify_builtin_list() { names.push(n); }
-        for (n, _) in crate::sqlite::sqlite_builtin_list() { names.push(n); }
-        for (n, _) in crate::parquet::parquet_builtin_list() { names.push(n); }
-        for (n, _) in crate::apis::apis_builtin_list() { names.push(n); }
+        for (n, _) in crate::fs::fs_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::http::http_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::container::container_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::provenance::provenance_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::anndata_zarr::anndata_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::llm::llm_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::transfer::transfer_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::nf_parse::nf_parse_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::notify::notify_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::sqlite::sqlite_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::parquet::parquet_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::apis::apis_builtin_list() {
+            names.push(n);
+        }
     }
+    names.sort_unstable();
+    names.dedup();
     names
+}
+
+/// Return the runtime arity for every registered builtin.
+///
+/// Tooling should use this instead of duplicating registration tables.
+pub fn all_builtin_arities() -> Vec<(String, Arity)> {
+    let mut env = Environment::new();
+    register_builtins(&mut env);
+    let mut arities = env
+        .list_global_vars()
+        .into_iter()
+        .filter_map(|(name, value)| match value {
+            Value::NativeFunction { arity, .. } => Some((name.to_string(), arity.clone())),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    arities.sort_by(|left, right| left.0.cmp(&right.0));
+    arities.dedup_by(|left, right| left.0 == right.0);
+    arities
 }
 
 /// Levenshtein edit distance between two strings.
@@ -659,10 +1090,25 @@ fn format_for_print(val: &Value) -> String {
             }
         }
         Value::Interval(iv) => format!("{iv}"),
-        Value::Gene { symbol, chrom, start, end, strand, biotype, .. } => {
+        Value::Gene {
+            symbol,
+            chrom,
+            start,
+            end,
+            strand,
+            biotype,
+            ..
+        } => {
             format!("{symbol} {chrom}:{start}-{end}:{strand} [{biotype}]")
         }
-        Value::Variant { chrom, pos, ref_allele, alt_allele, quality, .. } => {
+        Value::Variant {
+            chrom,
+            pos,
+            ref_allele,
+            alt_allele,
+            quality,
+            ..
+        } => {
             format!("{chrom}:{pos} {ref_allele}>{alt_allele} Q={quality:.0}")
         }
         Value::Genome { name, assembly, .. } => format!("{name} {assembly}"),
@@ -698,9 +1144,18 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             Value::Matrix(m) => Ok(Value::Int((m.nrow * m.ncol) as i64)),
             Value::Set(s) => Ok(Value::Int(s.len() as i64)),
             Value::Kmer(km) => Ok(Value::Int(km.k as i64)),
+            Value::Interval(iv) => Ok(Value::Int((iv.end - iv.start).max(0))),
             Value::SparseMatrix(sm) => Ok(Value::Int((sm.nrow * sm.ncol) as i64)),
-            Value::Range { start, end, inclusive } => {
-                let len = if *inclusive { end - start + 1 } else { end - start };
+            Value::Range {
+                start,
+                end,
+                inclusive,
+            } => {
+                let len = if *inclusive {
+                    end - start + 1
+                } else {
+                    end - start
+                };
                 Ok(Value::Int(len.max(0)))
             }
             other => Err(BioLangError::type_error(
@@ -719,13 +1174,16 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         },
         "columns" => match &args[0] {
             Value::Table(t) => Ok(Value::List(
-                t.columns.iter().map(|c| Value::Str(c.clone())).collect(),
+                t.columns.iter().map(|c| Value::Str(c.clone())).collect::<Vec<_>>().into(),
             )),
             Value::Record(m) | Value::Map(m) => Ok(Value::List(
-                m.keys().map(|k| Value::Str(k.clone())).collect(),
+                m.keys().map(|k| Value::Str(k.clone())).collect::<Vec<_>>().into(),
             )),
             other => Err(BioLangError::type_error(
-                format!("columns() requires Table or Record, got {}", other.type_of()),
+                format!(
+                    "columns() requires Table or Record, got {}",
+                    other.type_of()
+                ),
                 None,
             )),
         },
@@ -780,7 +1238,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     i += step;
                 }
             }
-            Ok(Value::List(result))
+            Ok(Value::List((result).into()))
         }
         "abs" => match &args[0] {
             Value::Int(n) => Ok(Value::Int(n.abs())),
@@ -834,10 +1292,12 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "parse_json" => {
             let s = match &args[0] {
                 Value::Str(s) => s.as_str(),
-                other => return Err(BioLangError::type_error(
-                    format!("parse_json() requires Str, got {}", other.type_of()),
-                    None,
-                )),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!("parse_json() requires Str, got {}", other.type_of()),
+                        None,
+                    ))
+                }
             };
             match serde_json::from_str::<serde_json::Value>(&s) {
                 Ok(json_val) => Ok(json_to_value(json_val)),
@@ -851,14 +1311,26 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "compare" => {
             let ord = match (&args[0], &args[1]) {
                 (Value::Int(a), Value::Int(b)) => a.cmp(b),
-                (Value::Float(a), Value::Float(b)) => a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
+                (Value::Float(a), Value::Float(b)) => {
+                    a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+                }
                 (Value::Str(a), Value::Str(b)) => a.cmp(b),
-                (Value::Int(a), Value::Float(b)) => (*a as f64).partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
-                (Value::Float(a), Value::Int(b)) => a.partial_cmp(&(*b as f64)).unwrap_or(std::cmp::Ordering::Equal),
-                _ => return Err(BioLangError::type_error(
-                    format!("compare() requires comparable types, got {} and {}", args[0].type_of(), args[1].type_of()),
-                    None,
-                )),
+                (Value::Int(a), Value::Float(b)) => (*a as f64)
+                    .partial_cmp(b)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+                (Value::Float(a), Value::Int(b)) => a
+                    .partial_cmp(&(*b as f64))
+                    .unwrap_or(std::cmp::Ordering::Equal),
+                _ => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "compare() requires comparable types, got {} and {}",
+                            args[0].type_of(),
+                            args[1].type_of()
+                        ),
+                        None,
+                    ))
+                }
             };
             Ok(Value::Int(match ord {
                 std::cmp::Ordering::Less => -1,
@@ -867,33 +1339,41 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             }))
         }
         "exit" => {
-            let code = if args.is_empty() { 0 } else { require_int(&args[0], "exit")? as i32 };
+            let code = if args.is_empty() {
+                0
+            } else {
+                require_int(&args[0], "exit")? as i32
+            };
             std::process::exit(code);
         }
         "into" => {
             let target = match &args[1] {
                 Value::Str(s) => s.as_str(),
-                other => return Err(BioLangError::type_error(
-                    format!("into() requires type name as Str, got {}", other.type_of()),
-                    None,
-                )),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!("into() requires type name as Str, got {}", other.type_of()),
+                        None,
+                    ))
+                }
             };
             match target {
                 "List" | "list" => match &args[0] {
                     Value::List(_) => Ok(args[0].clone()),
-                    Value::Set(items) => Ok(Value::List(items.clone())),
-                    Value::Tuple(items) => Ok(Value::List(items.clone())),
-                    Value::Range { start, end, .. } => {
-                        Ok(Value::List(((*start as i64)..(*end as i64)).map(Value::Int).collect()))
-                    }
-                    other => Ok(Value::List(vec![other.clone()])),
+                    Value::Set(items) => Ok(Value::List((items.clone()).into())),
+                    Value::Tuple(items) => Ok(Value::List((items.clone()).into())),
+                    Value::Range { start, end, .. } => Ok(Value::List(
+                        ((*start as i64)..(*end as i64)).map(Value::Int).collect::<Vec<_>>().into(),
+                    )),
+                    other => Ok(Value::List((vec![other.clone()]).into())),
                 },
                 "Set" | "set" => match &args[0] {
                     Value::Set(_) => Ok(args[0].clone()),
                     Value::List(items) => {
                         let mut result = Vec::new();
-                        for item in items {
-                            if !result.contains(item) { result.push(item.clone()); }
+                        for item in items.iter() {
+                            if !result.contains(item) {
+                                result.push(item.clone());
+                            }
                         }
                         Ok(Value::Set(result))
                     }
@@ -906,15 +1386,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                         if let Some(Value::Record(first)) = items.first() {
                             let columns: Vec<String> = first.keys().cloned().collect();
                             let mut rows = Vec::new();
-                            for item in items {
+                            for item in items.iter() {
                                 if let Value::Record(map) = item {
-                                    let row: Vec<Value> = columns.iter().map(|c| map.get(c).cloned().unwrap_or(Value::Nil)).collect();
+                                    let row: Vec<Value> = columns
+                                        .iter()
+                                        .map(|c| map.get(c).cloned().unwrap_or(Value::Nil))
+                                        .collect();
                                     rows.push(row);
                                 }
                             }
                             Ok(Value::Table(bl_core::value::Table::new(columns, rows)))
                         } else {
-                            Ok(Value::Table(bl_core::value::Table::new(vec!["value".into()], items.iter().map(|v| vec![v.clone()]).collect())))
+                            Ok(Value::Table(bl_core::value::Table::new(
+                                vec!["value".into()],
+                                items.iter().map(|v| vec![v.clone()]).collect(),
+                            )))
                         }
                     }
                     other => Err(BioLangError::type_error(
@@ -926,17 +1412,25 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 "Int" | "int" => match &args[0] {
                     Value::Int(_) => Ok(args[0].clone()),
                     Value::Float(f) => Ok(Value::Int(*f as i64)),
-                    Value::Str(s) => s.parse::<i64>().map(Value::Int).map_err(|_|
-                        BioLangError::type_error(format!("cannot convert '{s}' to Int"), None)),
+                    Value::Str(s) => s.parse::<i64>().map(Value::Int).map_err(|_| {
+                        BioLangError::type_error(format!("cannot convert '{s}' to Int"), None)
+                    }),
                     Value::Bool(b) => Ok(Value::Int(if *b { 1 } else { 0 })),
-                    other => Err(BioLangError::type_error(format!("cannot convert {} to Int", other.type_of()), None)),
+                    other => Err(BioLangError::type_error(
+                        format!("cannot convert {} to Int", other.type_of()),
+                        None,
+                    )),
                 },
                 "Float" | "float" => match &args[0] {
                     Value::Float(_) => Ok(args[0].clone()),
                     Value::Int(n) => Ok(Value::Float(*n as f64)),
-                    Value::Str(s) => s.parse::<f64>().map(Value::Float).map_err(|_|
-                        BioLangError::type_error(format!("cannot convert '{s}' to Float"), None)),
-                    other => Err(BioLangError::type_error(format!("cannot convert {} to Float", other.type_of()), None)),
+                    Value::Str(s) => s.parse::<f64>().map(Value::Float).map_err(|_| {
+                        BioLangError::type_error(format!("cannot convert '{s}' to Float"), None)
+                    }),
+                    other => Err(BioLangError::type_error(
+                        format!("cannot convert {} to Float", other.type_of()),
+                        None,
+                    )),
                 },
                 "Record" | "record" => match &args[0] {
                     Value::Record(_) | Value::Map(_) => Ok(args[0].clone()),
@@ -961,7 +1455,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     ))
                 }
             };
-            list.push(args[1].clone());
+            Arc::make_mut(&mut list).push(args[1].clone());
             Ok(Value::List(list))
         }
         "pop" => {
@@ -974,7 +1468,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     ))
                 }
             };
-            list.pop();
+            Arc::make_mut(&mut list).pop();
             Ok(Value::List(list))
         }
         "contains" => match (&args[0], &args[1]) {
@@ -990,16 +1484,16 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             )),
         },
         "keys" => match &args[0] {
-            Value::Map(m) | Value::Record(m) => {
-                Ok(Value::List(m.keys().map(|k| Value::Str(k.clone())).collect()))
-            }
+            Value::Map(m) | Value::Record(m) => Ok(Value::List(
+                m.keys().map(|k| Value::Str(k.clone())).collect::<Vec<_>>().into(),
+            )),
             other => Err(BioLangError::type_error(
                 format!("keys() requires Map or Record, got {}", other.type_of()),
                 None,
             )),
         },
         "values" => match &args[0] {
-            Value::Map(m) | Value::Record(m) => Ok(Value::List(m.values().cloned().collect())),
+            Value::Map(m) | Value::Record(m) => Ok(Value::List(m.values().cloned().collect::<Vec<_>>().into())),
             other => Err(BioLangError::type_error(
                 format!("values() requires Map or Record, got {}", other.type_of()),
                 None,
@@ -1008,7 +1502,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "reverse" => match &args[0] {
             Value::List(l) => {
                 let mut r = l.clone();
-                r.reverse();
+                Arc::make_mut(&mut r).reverse();
                 Ok(Value::List(r))
             }
             Value::Str(s) => Ok(Value::Str(s.chars().rev().collect())),
@@ -1042,7 +1536,8 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Ok(Value::Str(strs.join(&sep)))
                 }
                 Value::Table(t) => {
-                    let strs: Vec<String> = table_to_records(t).iter().map(|v| format!("{v}")).collect();
+                    let strs: Vec<String> =
+                        table_to_records(t).iter().map(|v| format!("{v}")).collect();
                     Ok(Value::Str(strs.join(&sep)))
                 }
                 other => Err(BioLangError::type_error(
@@ -1055,7 +1550,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             (Value::Str(s), Value::Str(sep)) => Ok(Value::List(
                 s.split(sep.as_str())
                     .map(|p| Value::Str(p.to_string()))
-                    .collect(),
+                    .collect::<Vec<_>>().into(),
             )),
             _ => Err(BioLangError::type_error(
                 "split() requires (Str, Str)",
@@ -1065,7 +1560,11 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "ascii" => match &args[0] {
             Value::Str(s) => {
                 let c = s.chars().next().ok_or_else(|| {
-                    BioLangError::runtime(ErrorKind::TypeError, "ascii() requires non-empty string", None)
+                    BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "ascii() requires non-empty string",
+                        None,
+                    )
                 })?;
                 Ok(Value::Int(c as i64))
             }
@@ -1074,7 +1573,11 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "chr" => {
             let code = require_int(&args[0], "chr")? as u32;
             let c = char::from_u32(code).ok_or_else(|| {
-                BioLangError::runtime(ErrorKind::TypeError, format!("chr({code}): invalid code point"), None)
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("chr({code}): invalid code point"),
+                    None,
+                )
             })?;
             Ok(Value::Str(c.to_string()))
         }
@@ -1083,7 +1586,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 let start = require_int(&args[1], "substr")? as usize;
                 let chars: Vec<char> = s.chars().collect();
                 let end = if args.len() > 2 {
-                    (require_int(&args[2], "substr")? as usize).min(chars.len())
+                    start
+                        .saturating_add(require_int(&args[2], "substr")? as usize)
+                        .min(chars.len())
                 } else {
                     chars.len()
                 };
@@ -1096,7 +1601,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             (Value::Str(s), Value::Str(from), Value::Str(to)) => {
                 Ok(Value::Str(s.replace(from.as_str(), to.as_str())))
             }
-            _ => Err(BioLangError::type_error("replace() requires (Str, Str, Str)", None)),
+            _ => Err(BioLangError::type_error(
+                "replace() requires (Str, Str, Str)",
+                None,
+            )),
         },
         "trim" => match &args[0] {
             Value::Str(s) => Ok(Value::Str(s.trim().to_string())),
@@ -1112,11 +1620,17 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         },
         "starts_with" => match (&args[0], &args[1]) {
             (Value::Str(s), Value::Str(prefix)) => Ok(Value::Bool(s.starts_with(prefix.as_str()))),
-            _ => Err(BioLangError::type_error("starts_with() requires (Str, Str)", None)),
+            _ => Err(BioLangError::type_error(
+                "starts_with() requires (Str, Str)",
+                None,
+            )),
         },
         "ends_with" => match (&args[0], &args[1]) {
             (Value::Str(s), Value::Str(suffix)) => Ok(Value::Bool(s.ends_with(suffix.as_str()))),
-            _ => Err(BioLangError::type_error("ends_with() requires (Str, Str)", None)),
+            _ => Err(BioLangError::type_error(
+                "ends_with() requires (Str, Str)",
+                None,
+            )),
         },
         "head" => {
             let n = if args.len() > 1 {
@@ -1125,7 +1639,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 5
             };
             match &args[0] {
-                Value::List(l) => Ok(Value::List(l.iter().take(n).cloned().collect())),
+                Value::List(l) => Ok(Value::List(l.iter().take(n).cloned().collect::<Vec<_>>().into())),
                 Value::Table(t) => {
                     let rows = t.rows.iter().take(n).cloned().collect();
                     Ok(Value::Table(Table::new(t.columns.clone(), rows)))
@@ -1138,10 +1652,13 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                             None => break,
                         }
                     }
-                    Ok(Value::List(items))
+                    Ok(Value::List((items).into()))
                 }
                 other => Err(BioLangError::type_error(
-                    format!("head() requires List, Table, or Stream, got {}", other.type_of()),
+                    format!(
+                        "head() requires List, Table, or Stream, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             }
@@ -1155,7 +1672,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             match &args[0] {
                 Value::List(l) => {
                     let skip = l.len().saturating_sub(n);
-                    Ok(Value::List(l.iter().skip(skip).cloned().collect()))
+                    Ok(Value::List(l.iter().skip(skip).cloned().collect::<Vec<_>>().into()))
                 }
                 Value::Table(t) => {
                     let skip = t.rows.len().saturating_sub(n);
@@ -1188,13 +1705,19 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                         "\x1b[33mWarning:\x1b[0m collect() materialized {} items into memory.",
                         items.len()
                     );
-                    eprintln!("  Tip: Use head(n) or take(n) before collect() to limit memory usage.");
+                    eprintln!(
+                        "  Tip: Use head(n) or take(n) before collect() to limit memory usage."
+                    );
                 }
-                Ok(Value::List(items))
+                Ok(Value::List((items).into()))
             }
             Value::List(l) => Ok(Value::List(l)),
             Value::Table(t) => Ok(Value::Table(t)), // pass through
-            Value::Range { start, end, inclusive } => {
+            Value::Range {
+                start,
+                end,
+                inclusive,
+            } => {
                 let end_val = if inclusive { end + 1 } else { end };
                 let count = (end_val - start).max(0) as u64;
                 if count > 10_000_000 {
@@ -1207,10 +1730,13 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                         None,
                     ));
                 }
-                Ok(Value::List((start..end_val).map(Value::Int).collect()))
+                Ok(Value::List((start..end_val).map(Value::Int).collect::<Vec<_>>().into()))
             }
             other => Err(BioLangError::type_error(
-                format!("collect() requires Stream, List, Table, or Range, got {}", other.type_of()),
+                format!(
+                    "collect() requires Stream, List, Table, or Range, got {}",
+                    other.type_of()
+                ),
                 None,
             )),
         },
@@ -1232,7 +1758,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             Value::List(l) => Ok(Value::Int(l.len() as i64)),
             Value::Table(t) => Ok(Value::Int(t.num_rows() as i64)),
             other => Err(BioLangError::type_error(
-                format!("count() requires Stream, List, or Table, got {}", other.type_of()),
+                format!(
+                    "count() requires Stream, List, or Table, got {}",
+                    other.type_of()
+                ),
                 None,
             )),
         },
@@ -1247,28 +1776,36 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                             None => break,
                         }
                     }
-                    Ok(Value::List(items))
+                    Ok(Value::List((items).into()))
                 }
-                Value::List(l) => Ok(Value::List(l.into_iter().take(n).collect())),
+                Value::List(l) => Ok(Value::List(
+                    l.iter().take(n).cloned().collect::<Vec<_>>().into(),
+                )),
                 Value::Table(t) => {
                     let rows = t.rows.into_iter().take(n).collect();
                     Ok(Value::Table(Table::new(t.columns, rows)))
                 }
                 other => Err(BioLangError::type_error(
-                    format!("take() requires Stream, List, or Table, got {}", other.type_of()),
+                    format!(
+                        "take() requires Stream, List, or Table, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             }
         }
         "to_stream" => match args.into_iter().next().unwrap() {
-            Value::List(l) => Ok(Value::Stream(StreamValue::from_list("list", l))),
+            Value::List(l) => Ok(Value::Stream(StreamValue::from_list("list", (l).as_ref().clone()))),
             Value::Table(t) => {
                 let records = table_to_records(&t);
                 Ok(Value::Stream(StreamValue::from_list("table", records)))
             }
             Value::Stream(s) => Ok(Value::Stream(s)),
             other => Err(BioLangError::type_error(
-                format!("to_stream() requires List or Table, got {}", other.type_of()),
+                format!(
+                    "to_stream() requires List or Table, got {}",
+                    other.type_of()
+                ),
                 None,
             )),
         },
@@ -1276,10 +1813,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             match &args[0] {
                 // table([{a: 1, b: 2}, ...]) — List of Records (row-oriented)
                 Value::List(items) => {
-                    let mut recs = Vec::new();
-                    for item in items {
+                    let mut recs: Vec<std::collections::HashMap<String, Value>> = Vec::new();
+                    for item in items.iter() {
                         match item {
-                            Value::Record(map) => recs.push(map.clone()),
+                            Value::Record(map) => recs.push(map.as_ref().clone()),
                             other => {
                                 return Err(BioLangError::type_error(
                                     format!(
@@ -1302,7 +1839,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     let col_data: Vec<&Vec<Value>> = columns
                         .iter()
                         .map(|c| match map.get(c).unwrap() {
-                            Value::List(items) => Ok(items),
+                            Value::List(items) => Ok(items.as_ref()),
                             _ => Err(BioLangError::type_error(
                                 "table() column values must be Lists",
                                 None,
@@ -1321,10 +1858,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Ok(Value::Table(Table::new(columns, rows)))
                 }
                 Value::Stream(s) => {
-                    let mut recs = Vec::new();
+                    let mut recs: Vec<std::collections::HashMap<String, Value>> = Vec::new();
                     while let Some(item) = s.next() {
                         match item {
-                            Value::Record(map) => recs.push(map),
+                            Value::Record(map) => recs.push(map.as_ref().clone()),
                             other => {
                                 return Err(BioLangError::type_error(
                                     format!(
@@ -1346,7 +1883,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Ok(Value::Table(Table::from_records(&recs)))
                 }
                 other => Err(BioLangError::type_error(
-                    format!("table() requires List, Record, or Stream, got {}", other.type_of()),
+                    format!(
+                        "table() requires List, Record, or Stream, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             }
@@ -1404,16 +1944,14 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             }))
         }
         // ── Inline utility builtins ──────────────────────────────
-        "cwd" => {
-            match std::env::current_dir() {
-                Ok(p) => Ok(Value::Str(p.to_string_lossy().to_string())),
-                Err(e) => Err(BioLangError::runtime(
-                    ErrorKind::IOError,
-                    format!("cwd(): {e}"),
-                    None,
-                )),
-            }
-        }
+        "cwd" => match std::env::current_dir() {
+            Ok(p) => Ok(Value::Str(p.to_string_lossy().to_string())),
+            Err(e) => Err(BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("cwd(): {e}"),
+                None,
+            )),
+        },
         "env" => {
             let name = match &args[0] {
                 Value::Str(s) => s,
@@ -1435,11 +1973,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Value::Str(s) => s.clone(),
                     other => format!("{other}"),
                 };
-                Err(BioLangError::runtime(
-                    ErrorKind::AssertionFailed,
-                    msg,
-                    None,
-                ))
+                Err(BioLangError::runtime(ErrorKind::AssertionFailed, msg, None))
             } else {
                 Ok(Value::Nil)
             }
@@ -1447,7 +1981,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "debug" => {
             let val = &args[0];
             eprintln!("[{}] {}", val.type_of(), val);
-            Ok(Value::Nil)
+            Ok(val.clone())
         }
         #[cfg(feature = "native")]
         "sleep" => {
@@ -1478,18 +2012,33 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 }
             };
             let data = std::fs::read(input).map_err(|e| {
-                BioLangError::runtime(ErrorKind::IOError, format!("{name}() read failed: {e}"), None)
+                BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("{name}() read failed: {e}"),
+                    None,
+                )
             })?;
             let file = std::fs::File::create(output).map_err(|e| {
-                BioLangError::runtime(ErrorKind::IOError, format!("{name}() create failed: {e}"), None)
+                BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("{name}() create failed: {e}"),
+                    None,
+                )
             })?;
-            let mut encoder =
-                flate2::write::GzEncoder::new(file, flate2::Compression::default());
+            let mut encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
             encoder.write_all(&data).map_err(|e| {
-                BioLangError::runtime(ErrorKind::IOError, format!("{name}() compress failed: {e}"), None)
+                BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("{name}() compress failed: {e}"),
+                    None,
+                )
             })?;
             encoder.finish().map_err(|e| {
-                BioLangError::runtime(ErrorKind::IOError, format!("{name}() finish failed: {e}"), None)
+                BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("{name}() finish failed: {e}"),
+                    None,
+                )
             })?;
             Ok(Value::Str(output.to_string()))
         }
@@ -1514,7 +2063,11 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 }
             };
             let file = std::fs::File::open(input).map_err(|e| {
-                BioLangError::runtime(ErrorKind::IOError, format!("gunzip() open failed: {e}"), None)
+                BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("gunzip() open failed: {e}"),
+                    None,
+                )
             })?;
             let decoder = flate2::read::GzDecoder::new(file);
             // Cap decompressed size at 2 GB to prevent decompression bombs
@@ -1522,7 +2075,11 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let mut limited = std::io::Read::take(decoder, MAX_DECOMPRESS + 1);
             let mut data = Vec::new();
             std::io::Read::read_to_end(&mut limited, &mut data).map_err(|e| {
-                BioLangError::runtime(ErrorKind::IOError, format!("gunzip() decompress failed: {e}"), None)
+                BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("gunzip() decompress failed: {e}"),
+                    None,
+                )
             })?;
             if data.len() as u64 > MAX_DECOMPRESS {
                 return Err(BioLangError::runtime(
@@ -1532,7 +2089,11 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 ));
             }
             std::fs::write(output, &data).map_err(|e| {
-                BioLangError::runtime(ErrorKind::IOError, format!("gunzip() write failed: {e}"), None)
+                BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("gunzip() write failed: {e}"),
+                    None,
+                )
             })?;
             Ok(Value::Str(output.to_string()))
         }
@@ -1544,7 +2105,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "zip" => {
             let list_a = match &args[0] {
                 Value::List(l) => l.clone(),
-                Value::Table(t) => table_to_records(t),
+                Value::Table(t) => (table_to_records(t)).into(),
                 other => {
                     return Err(BioLangError::type_error(
                         format!("zip() requires List or Table, got {}", other.type_of()),
@@ -1554,7 +2115,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             };
             let list_b = match &args[1] {
                 Value::List(l) => l.clone(),
-                Value::Table(t) => table_to_records(t),
+                Value::Table(t) => (table_to_records(t)).into(),
                 other => {
                     return Err(BioLangError::type_error(
                         format!("zip() requires List or Table, got {}", other.type_of()),
@@ -1563,20 +2124,26 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 }
             };
             let pairs: Vec<Value> = list_a
-                .into_iter()
-                .zip(list_b)
-                .map(|(a, b)| Value::List(vec![a, b]))
+                .iter()
+                .zip(list_b.iter())
+                .map(|(a, b)| Value::List((vec![a.clone(), b.clone()]).into()))
                 .collect();
-            Ok(Value::List(pairs))
+            Ok(Value::List(pairs.into()))
         }
         "enumerate" => {
             let owned;
             let items = match &args[0] {
                 Value::List(l) => l,
-                Value::Table(t) => { owned = table_to_records(t); &owned }
+                Value::Table(t) => {
+                    owned = table_to_records(t);
+                    &owned
+                }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("enumerate() requires List or Table, got {}", other.type_of()),
+                        format!(
+                            "enumerate() requires List or Table, got {}",
+                            other.type_of()
+                        ),
                         None,
                     ))
                 }
@@ -1584,14 +2151,14 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let result: Vec<Value> = items
                 .iter()
                 .enumerate()
-                .map(|(i, v)| Value::List(vec![Value::Int(i as i64), v.clone()]))
+                .map(|(i, v)| Value::List((vec![Value::Int(i as i64), v.clone()]).into()))
                 .collect();
-            Ok(Value::List(result))
+            Ok(Value::List((result).into()))
         }
         "flatten" => {
             let items = match &args[0] {
                 Value::List(l) => l.clone(),
-                Value::Table(t) => table_to_records(t),
+                Value::Table(t) => (table_to_records(t)).into(),
                 other => {
                     return Err(BioLangError::type_error(
                         format!("flatten() requires List or Table, got {}", other.type_of()),
@@ -1600,19 +2167,22 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 }
             };
             let mut result = Vec::new();
-            for item in &items {
+            for item in items.iter() {
                 match item {
                     Value::List(inner) => result.extend(inner.iter().cloned()),
                     other => result.push(other.clone()),
                 }
             }
-            Ok(Value::List(result))
+            Ok(Value::List((result).into()))
         }
         "chunk" => {
             let owned;
             let items = match &args[0] {
                 Value::List(l) => l,
-                Value::Table(t) => { owned = table_to_records(t); &owned }
+                Value::Table(t) => {
+                    owned = table_to_records(t);
+                    &owned
+                }
                 other => {
                     return Err(BioLangError::type_error(
                         format!("chunk() requires List or Table, got {}", other.type_of()),
@@ -1630,50 +2200,52 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             }
             let chunks: Vec<Value> = items
                 .chunks(size)
-                .map(|c| Value::List(c.to_vec()))
+                .map(|c| Value::List((c.to_vec()).into()))
                 .collect();
-            Ok(Value::List(chunks))
+            Ok(Value::List((chunks).into()))
         }
-        "first" => {
-            match &args[0] {
-                Value::List(l) => Ok(l.first().cloned().unwrap_or(Value::Nil)),
-                Value::Table(t) => {
-                    if t.rows.is_empty() {
-                        Ok(Value::Nil)
-                    } else {
-                        Ok(Value::Record(t.row_to_record(0)))
-                    }
+        "first" => match &args[0] {
+            Value::List(l) => Ok(l.first().cloned().unwrap_or(Value::Nil)),
+            Value::Table(t) => {
+                if t.rows.is_empty() {
+                    Ok(Value::Nil)
+                } else {
+                    Ok(Value::Record((t.row_to_record(0)).into()))
                 }
-                Value::Stream(s) => Ok(s.next().unwrap_or(Value::Nil)),
-                other => Err(BioLangError::type_error(
-                    format!("first() requires List, Table, or Stream, got {}", other.type_of()),
-                    None,
-                )),
             }
-        }
-        "last" => {
-            match &args[0] {
-                Value::List(l) => Ok(l.last().cloned().unwrap_or(Value::Nil)),
-                Value::Table(t) => {
-                    if t.rows.is_empty() {
-                        Ok(Value::Nil)
-                    } else {
-                        Ok(Value::Record(t.row_to_record(t.rows.len() - 1)))
-                    }
+            Value::Stream(s) => Ok(s.next().unwrap_or(Value::Nil)),
+            other => Err(BioLangError::type_error(
+                format!(
+                    "first() requires List, Table, or Stream, got {}",
+                    other.type_of()
+                ),
+                None,
+            )),
+        },
+        "last" => match &args[0] {
+            Value::List(l) => Ok(l.last().cloned().unwrap_or(Value::Nil)),
+            Value::Table(t) => {
+                if t.rows.is_empty() {
+                    Ok(Value::Nil)
+                } else {
+                    Ok(Value::Record((t.row_to_record(t.rows.len() - 1)).into()))
                 }
-                Value::Stream(s) => {
-                    let mut last_val = Value::Nil;
-                    while let Some(v) = s.next() {
-                        last_val = v;
-                    }
-                    Ok(last_val)
-                }
-                other => Err(BioLangError::type_error(
-                    format!("last() requires List, Table, or Stream, got {}", other.type_of()),
-                    None,
-                )),
             }
-        }
+            Value::Stream(s) => {
+                let mut last_val = Value::Nil;
+                while let Some(v) = s.next() {
+                    last_val = v;
+                }
+                Ok(last_val)
+            }
+            other => Err(BioLangError::type_error(
+                format!(
+                    "last() requires List, Table, or Stream, got {}",
+                    other.type_of()
+                ),
+                None,
+            )),
+        },
         "drop" => {
             let n = if args.len() > 1 {
                 require_int(&args[1], "drop")? as usize
@@ -1683,7 +2255,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             match &args[0] {
                 Value::List(l) => {
                     let start = n.min(l.len());
-                    Ok(Value::List(l[start..].to_vec()))
+                    Ok(Value::List((l[start..].to_vec()).into()))
                 }
                 Value::Table(t) => {
                     let start = n.min(t.rows.len());
@@ -1701,11 +2273,13 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             if let Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) = &args[0] {
                 let size = require_int(&args[1], "window")? as usize;
                 if size == 0 || size > seq.data.len() {
-                    return Ok(Value::List(vec![]));
+                    return Ok(Value::List((vec![]).into()));
                 }
                 let windows: Vec<Value> = (0..=seq.data.len() - size)
                     .map(|i| {
-                        let sub = bl_core::value::BioSequence { data: seq.data[i..i + size].to_string() };
+                        let sub = bl_core::value::BioSequence {
+                            data: seq.data[i..i + size].to_string(),
+                        };
                         match &args[0] {
                             Value::DNA(_) => Value::DNA(sub),
                             Value::RNA(_) => Value::RNA(sub),
@@ -1714,15 +2288,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                         }
                     })
                     .collect();
-                return Ok(Value::List(windows));
+                return Ok(Value::List((windows).into()));
             }
             let owned;
             let items = match &args[0] {
                 Value::List(l) => l,
-                Value::Table(t) => { owned = table_to_records(t); &owned }
+                Value::Table(t) => {
+                    owned = table_to_records(t);
+                    &owned
+                }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("window() requires List, Table, or bio sequence, got {}", other.type_of()),
+                        format!(
+                            "window() requires List, Table, or bio sequence, got {}",
+                            other.type_of()
+                        ),
                         None,
                     ))
                 }
@@ -1736,18 +2316,18 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 ));
             }
             if items.len() < size {
-                return Ok(Value::List(vec![]));
+                return Ok(Value::List((vec![]).into()));
             }
             let windows: Vec<Value> = items
                 .windows(size)
-                .map(|w| Value::List(w.to_vec()))
+                .map(|w| Value::List((w.to_vec()).into()))
                 .collect();
-            Ok(Value::List(windows))
+            Ok(Value::List((windows).into()))
         }
         "frequencies" => {
             let items = match args.into_iter().next().unwrap() {
                 Value::List(l) => l,
-                Value::Table(t) => table_to_records(&t),
+                Value::Table(t) => (table_to_records(&t)).into(),
                 Value::Stream(s) => {
                     let mut v = Vec::new();
                     while let Some(item) = s.next() {
@@ -1756,68 +2336,71 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                             eprintln!(
                                 "\x1b[33mWarning:\x1b[0m frequencies() is consuming a large stream into memory."
                             );
-                            eprintln!("  Tip: Use head(n) before frequencies() to limit memory usage.");
+                            eprintln!(
+                                "  Tip: Use head(n) before frequencies() to limit memory usage."
+                            );
                         }
                     }
-                    v
+                    (v).into()
                 }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("frequencies() requires List or Stream, got {}", other.type_of()),
+                        format!(
+                            "frequencies() requires List or Stream, got {}",
+                            other.type_of()
+                        ),
                         None,
                     ))
                 }
             };
-            let mut counts: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
-            for item in &items {
+            let mut counts: std::collections::HashMap<String, Value> =
+                std::collections::HashMap::new();
+            for item in items.iter() {
                 let key = format!("{}", item);
                 let entry = counts.entry(key).or_insert(Value::Int(0));
                 if let Value::Int(n) = entry {
                     *n += 1;
                 }
             }
-            Ok(Value::Record(counts))
+            Ok(Value::Record((counts).into()))
         }
-        "repeat" => {
-            match (&args[0], &args[1]) {
-                (Value::Str(s), Value::Int(n)) => {
-                    let n = (*n).max(0) as usize;
-                    let total = s.len().saturating_mul(n);
-                    if total > 100_000_000 {
-                        return Err(BioLangError::runtime(
-                            ErrorKind::TypeError,
-                            format!(
-                                "repeat() would produce {total} bytes (limit: 100 MB)"
-                            ),
-                            None,
-                        ));
-                    }
-                    Ok(Value::Str(s.repeat(n)))
+        "repeat" => match (&args[0], &args[1]) {
+            (Value::Str(s), Value::Int(n)) => {
+                let n = (*n).max(0) as usize;
+                let total = s.len().saturating_mul(n);
+                if total > 100_000_000 {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        format!("repeat() would produce {total} bytes (limit: 100 MB)"),
+                        None,
+                    ));
                 }
-                (Value::List(l), Value::Int(n)) => {
-                    let n = (*n).max(0) as usize;
-                    let total = l.len().saturating_mul(n);
-                    if total > 10_000_000 {
-                        return Err(BioLangError::runtime(
-                            ErrorKind::TypeError,
-                            format!(
-                                "repeat() would produce {total} elements (limit: 10,000,000)"
-                            ),
-                            None,
-                        ));
-                    }
-                    let mut result = Vec::with_capacity(total);
-                    for _ in 0..n {
-                        result.extend(l.iter().cloned());
-                    }
-                    Ok(Value::List(result))
-                }
-                (other, _) => Err(BioLangError::type_error(
-                    format!("repeat() requires String or List as first argument, got {}", other.type_of()),
-                    None,
-                )),
+                Ok(Value::Str(s.repeat(n)))
             }
-        }
+            (Value::List(l), Value::Int(n)) => {
+                let n = (*n).max(0) as usize;
+                let total = l.len().saturating_mul(n);
+                if total > 10_000_000 {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        format!("repeat() would produce {total} elements (limit: 10,000,000)"),
+                        None,
+                    ));
+                }
+                let mut result = Vec::with_capacity(total);
+                for _ in 0..n {
+                    result.extend(l.iter().cloned());
+                }
+                Ok(Value::List((result).into()))
+            }
+            (other, _) => Err(BioLangError::type_error(
+                format!(
+                    "repeat() requires String or List as first argument, got {}",
+                    other.type_of()
+                ),
+                None,
+            )),
+        },
         "col" => {
             let table = match &args[0] {
                 Value::Table(t) => t,
@@ -1849,7 +2432,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     )
                 })?;
             let values: Vec<Value> = table.rows.iter().map(|row| row[col_idx].clone()).collect();
-            Ok(Value::List(values))
+            Ok(Value::List((values).into()))
         }
         "jaccard" => {
             let set_a: std::collections::HashSet<String> = match &args[0] {
@@ -1901,7 +2484,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     };
                     let end = end.min(seq.data.len());
                     let start = start.min(end);
-                    let sliced = bl_core::value::BioSequence { data: seq.data[start..end].to_string() };
+                    let sliced = bl_core::value::BioSequence {
+                        data: seq.data[start..end].to_string(),
+                    };
                     return Ok(match &args[0] {
                         Value::DNA(_) => Value::DNA(sliced),
                         Value::RNA(_) => Value::RNA(sliced),
@@ -1914,7 +2499,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 }
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("slice() requires List, Str, Table, or bio sequence, got {}", other.type_of()),
+                        format!(
+                            "slice() requires List, Str, Table, or bio sequence, got {}",
+                            other.type_of()
+                        ),
                         None,
                     ))
                 }
@@ -1927,7 +2515,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             };
             let end = end.min(items.len());
             let start = start.min(end);
-            Ok(Value::List(items[start..end].to_vec()))
+            Ok(Value::List((items[start..end].to_vec()).into()))
         }
         // ── Dual-dispatch: List vs Table ─────────────────────────
         "cumsum" => match &args[0] {
@@ -1938,11 +2526,42 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             Value::Table(_) => crate::table_ops::call_table_builtin("sample", args),
             _ => crate::stats::call_stats_builtin("sample", args),
         },
+        "pca" => match args.first() {
+            Some(Value::Matrix(_)) => crate::matrix::call_matrix_builtin("pca", args),
+            _ => crate::stats::call_stats_builtin("pca", args),
+        },
+        "rank" => match (args.first(), args.len()) {
+            (Some(Value::Matrix(_)), 1) => crate::matrix::call_matrix_builtin("rank", args),
+            (Some(Value::Table(_)), 2) => crate::table_ops::call_table_builtin("rank", args),
+            (Some(Value::Matrix(_)), _) => Err(BioLangError::runtime(
+                ErrorKind::ArityError,
+                "rank(Matrix) expects one argument",
+                None,
+            )),
+            (Some(Value::Table(_)), _) => Err(BioLangError::runtime(
+                ErrorKind::ArityError,
+                "rank(Table, column) expects two arguments",
+                None,
+            )),
+            _ => Err(BioLangError::type_error(
+                "rank() requires a Matrix or Table",
+                None,
+            )),
+        },
+        "trim_quality" => match args.first() {
+            Some(Value::Quality(_)) => crate::stats::call_stats_builtin("trim_quality", args),
+            #[cfg(feature = "native")]
+            Some(Value::Str(_)) => bl_bio::call_bio_builtin("trim_quality", args),
+            _ => Err(BioLangError::type_error(
+                "trim_quality() requires a Quality value or FASTQ input path",
+                None,
+            )),
+        },
         "concat" => match (&args[0], &args[1]) {
             (Value::List(a), Value::List(b)) => {
-                let mut result = a.clone();
+                let mut result: Vec<Value> = a.as_ref().clone();
                 result.extend(b.iter().cloned());
-                Ok(Value::List(result))
+                Ok(Value::List(result.into()))
             }
             (Value::Str(a), Value::Str(b)) => Ok(Value::Str(format!("{a}{b}"))),
             (Value::Table(_), Value::Table(_)) => {
@@ -1957,14 +2576,14 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         // ── Map/Record operations ────────────────────────────────
         "merge" => match (&args[0], &args[1]) {
             (Value::Map(a), Value::Map(b)) | (Value::Record(a), Value::Record(b)) => {
-                let mut result = a.clone();
-                for (k, v) in b {
+                let mut result: std::collections::HashMap<String, Value> = a.as_ref().clone();
+                for (k, v) in b.iter() {
                     result.insert(k.clone(), v.clone());
                 }
                 if matches!(&args[0], Value::Record(_)) {
-                    Ok(Value::Record(result))
+                    Ok(Value::Record(result.into()))
                 } else {
-                    Ok(Value::Map(result))
+                    Ok(Value::Map(result.into()))
                 }
             }
             _ => Err(BioLangError::type_error(
@@ -1984,12 +2603,12 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "remove_key" => match (&args[0], &args[1]) {
             (Value::Map(m), Value::Str(k)) => {
                 let mut result = m.clone();
-                result.remove(k);
+                Arc::make_mut(&mut result).remove(k);
                 Ok(Value::Map(result))
             }
             (Value::Record(m), Value::Str(k)) => {
                 let mut result = m.clone();
-                result.remove(k);
+                Arc::make_mut(&mut result).remove(k);
                 Ok(Value::Record(result))
             }
             _ => Err(BioLangError::type_error(
@@ -2009,7 +2628,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "is_nil" => Ok(Value::Bool(matches!(args[0], Value::Nil))),
         "is_int" => Ok(Value::Bool(matches!(args[0], Value::Int(_)))),
         "is_float" => Ok(Value::Bool(matches!(args[0], Value::Float(_)))),
-        "is_num" => Ok(Value::Bool(matches!(args[0], Value::Int(_) | Value::Float(_)))),
+        "is_num" => Ok(Value::Bool(matches!(
+            args[0],
+            Value::Int(_) | Value::Float(_)
+        ))),
         "is_str" => Ok(Value::Bool(matches!(args[0], Value::Str(_)))),
         "is_bool" => Ok(Value::Bool(matches!(args[0], Value::Bool(_)))),
         "is_list" => Ok(Value::Bool(matches!(args[0], Value::List(_)))),
@@ -2037,7 +2659,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "set" => match &args[0] {
             Value::List(items) => {
                 let mut result = Vec::new();
-                for item in items {
+                for item in items.iter() {
                     if !result.contains(item) {
                         result.push(item.clone());
                     }
@@ -2072,7 +2694,8 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         }
         "symmetric_difference" => {
             let (a, b) = require_two_sets(&args)?;
-            let mut result: Vec<Value> = a.iter().filter(|item| !b.contains(item)).cloned().collect();
+            let mut result: Vec<Value> =
+                a.iter().filter(|item| !b.contains(item)).cloned().collect();
             for item in &b {
                 if !a.contains(item) {
                     result.push(item.clone());
@@ -2100,11 +2723,16 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 }
             };
             let results: Vec<Value> = futures
-                .into_iter()
+                .iter()
+                .cloned()
                 .map(|v| match v {
                     Value::Future(ref state) => {
                         let mut guard = state.lock().map_err(|_| {
-                            BioLangError::runtime(ErrorKind::TypeError, "future lock poisoned", None)
+                            BioLangError::runtime(
+                                ErrorKind::TypeError,
+                                "future lock poisoned",
+                                None,
+                            )
                         })?;
                         match &*guard {
                             bl_core::value::FutureState::Resolved(val) => Ok(val.clone()),
@@ -2119,7 +2747,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     other => Ok(other),
                 })
                 .collect::<Result<Vec<_>>>()?;
-            Ok(Value::List(results))
+            Ok(Value::List((results).into()))
         }
         // ── Decorator builtins ───────────────────────────────────
         "memoize" | "time_it" | "once" => {
@@ -2150,104 +2778,102 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         // ── Pipeline steps (F15) ─────────────────────────────────
         "pipeline_steps" => builtin_pipeline_steps(&args),
         // F7: help() — show function doc and signature
-        "help" => {
-            match &args[0] {
-                Value::Function { name, params, doc, is_generator, .. } => {
-                    let fn_name = name.as_deref().unwrap_or("anonymous");
-                    let gen_marker = if *is_generator { "*" } else { "" };
-                    let param_strs: Vec<String> = params
-                        .iter()
-                        .map(|p| {
-                            let rest = if p.rest { "..." } else { "" };
-                            let ann = p
-                                .type_ann
-                                .as_ref()
-                                .map(|t| format!(": {}", t.name))
-                                .unwrap_or_default();
-                            format!("{rest}{}{ann}", p.name)
-                        })
-                        .collect();
-                    let sig = format!("fn{gen_marker} {fn_name}({})", param_strs.join(", "));
-                    let doc_str = doc.as_deref().unwrap_or("(no documentation)");
-                    Ok(Value::Str(format!("{sig}\n\n{doc_str}")))
-                }
-                Value::NativeFunction { name, arity } => {
-                    let arity_str = match arity {
-                        Arity::Exact(n) => format!("{n} args"),
-                        Arity::AtLeast(n) => format!("{n}+ args"),
-                        Arity::Range(a, b) => format!("{a}-{b} args"),
-                    };
-                    Ok(Value::Str(format!("<builtin {name}> ({arity_str})")))
-                }
-                other => Ok(Value::Str(format!("{}: {}", other.type_of(), other))),
+        "help" => match &args[0] {
+            Value::Function {
+                name,
+                params,
+                doc,
+                is_generator,
+                ..
+            } => {
+                let fn_name = name.as_deref().unwrap_or("anonymous");
+                let gen_marker = if *is_generator { "*" } else { "" };
+                let param_strs: Vec<String> = params
+                    .iter()
+                    .map(|p| {
+                        let rest = if p.rest { "..." } else { "" };
+                        let ann = p
+                            .type_ann
+                            .as_ref()
+                            .map(|t| format!(": {}", t.name))
+                            .unwrap_or_default();
+                        format!("{rest}{}{ann}", p.name)
+                    })
+                    .collect();
+                let sig = format!("fn{gen_marker} {fn_name}({})", param_strs.join(", "));
+                let doc_str = doc.as_deref().unwrap_or("(no documentation)");
+                Ok(Value::Str(format!("{sig}\n\n{doc_str}")))
             }
-        }
+            Value::NativeFunction { name, arity } => {
+                let arity_str = match arity {
+                    Arity::Exact(n) => format!("{n} args"),
+                    Arity::AtLeast(n) => format!("{n}+ args"),
+                    Arity::Range(a, b) => format!("{a}-{b} args"),
+                };
+                Ok(Value::Str(format!("<builtin {name}> ({arity_str})")))
+            }
+            other => Ok(Value::Str(format!("{}: {}", other.type_of(), other))),
+        },
         // F11: Unit builtins — return Int (bp count) for composable arithmetic
-        "bp" => {
-            match &args[0] {
-                Value::Int(n) => Ok(Value::Int(*n)),
-                Value::Float(f) => Ok(Value::Int(*f as i64)),
-                _ => Err(BioLangError::type_error("bp() requires number", None)),
-            }
-        }
-        "kb" => {
-            match &args[0] {
-                Value::Int(n) => Ok(Value::Int(*n * 1_000)),
-                Value::Float(f) => Ok(Value::Int((*f * 1_000.0) as i64)),
-                _ => Err(BioLangError::type_error("kb() requires number", None)),
-            }
-        }
-        "mb" => {
-            match &args[0] {
-                Value::Int(n) => Ok(Value::Int(*n * 1_000_000)),
-                Value::Float(f) => Ok(Value::Int((*f * 1_000_000.0) as i64)),
-                _ => Err(BioLangError::type_error("mb() requires number", None)),
-            }
-        }
-        "gb" => {
-            match &args[0] {
-                Value::Int(n) => Ok(Value::Int(*n * 1_000_000_000)),
-                Value::Float(f) => Ok(Value::Int((*f * 1_000_000_000.0) as i64)),
-                _ => Err(BioLangError::type_error("gb() requires number", None)),
-            }
-        }
+        "bp" => match &args[0] {
+            Value::Int(n) => Ok(Value::Int(*n)),
+            Value::Float(f) => Ok(Value::Int(*f as i64)),
+            _ => Err(BioLangError::type_error("bp() requires number", None)),
+        },
+        "kb" => match &args[0] {
+            Value::Int(n) => Ok(Value::Int(*n * 1_000)),
+            Value::Float(f) => Ok(Value::Int((*f * 1_000.0) as i64)),
+            _ => Err(BioLangError::type_error("kb() requires number", None)),
+        },
+        "mb" => match &args[0] {
+            Value::Int(n) => Ok(Value::Int(*n * 1_000_000)),
+            Value::Float(f) => Ok(Value::Int((*f * 1_000_000.0) as i64)),
+            _ => Err(BioLangError::type_error("mb() requires number", None)),
+        },
+        "gb" => match &args[0] {
+            Value::Int(n) => Ok(Value::Int(*n * 1_000_000_000)),
+            Value::Float(f) => Ok(Value::Int((*f * 1_000_000_000.0) as i64)),
+            _ => Err(BioLangError::type_error("gb() requires number", None)),
+        },
         // F13: PRNG generators for property testing
         "gen_int" => {
             let (min, max) = match args.len() {
                 1 => (0, require_int(&args[0], "gen_int")?),
-                2 => (require_int(&args[0], "gen_int")?, require_int(&args[1], "gen_int")?),
+                2 => (
+                    require_int(&args[0], "gen_int")?,
+                    require_int(&args[1], "gen_int")?,
+                ),
                 3 => {
                     let seed = require_int(&args[2], "gen_int")?;
                     let min = require_int(&args[0], "gen_int")?;
                     let max = require_int(&args[1], "gen_int")?;
                     // Simple LCG PRNG
-                    let val = ((seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407)) % (max - min + 1).max(1)) + min;
+                    let val = ((seed
+                        .wrapping_mul(6364136223846793005)
+                        .wrapping_add(1442695040888963407))
+                        % (max - min + 1).max(1))
+                        + min;
                     return Ok(Value::Int(val.abs()));
                 }
                 _ => unreachable!(),
             };
-            // Without seed, use a simple hash of current time
-            let val = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_nanos() as i64)
-                .unwrap_or(42);
-            let result = (val.abs() % (max - min + 1).max(1)) + min;
+            let width = max.saturating_sub(min).saturating_add(1).max(1) as u64;
+            let result = min + (crate::stats::xorshift_next_u64() % width) as i64;
             Ok(Value::Int(result))
         }
         "gen_float" => {
-            let val = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| (d.as_nanos() % 1_000_000) as f64 / 1_000_000.0)
-                .unwrap_or(0.5);
+            let val =
+                (crate::stats::xorshift_next_u64() >> 11) as f64 / (1u64 << 53) as f64;
             Ok(Value::Float(val))
         }
         "gen_str" => {
-            let len = if args.is_empty() { 10 } else { require_int(&args[0], "gen_str")? as usize };
+            let len = if args.is_empty() {
+                10
+            } else {
+                require_int(&args[0], "gen_str")? as usize
+            };
             let chars = "abcdefghijklmnopqrstuvwxyz";
-            let seed = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_nanos() as usize)
-                .unwrap_or(42);
+            let seed = crate::stats::xorshift_next_u64() as usize;
             let s: String = (0..len)
                 .map(|i| {
                     let idx = (seed.wrapping_add(i.wrapping_mul(7919))) % chars.len();
@@ -2277,25 +2903,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         }
         _ if crate::csv::is_csv_builtin(name) => crate::csv::call_csv_builtin(name, args),
         #[cfg(feature = "native")]
-        _ if crate::parquet::is_parquet_builtin(name) => crate::parquet::call_parquet_builtin(name, args),
+        _ if crate::parquet::is_parquet_builtin(name) => {
+            crate::parquet::call_parquet_builtin(name, args)
+        }
         _ if crate::table_ops::is_table_builtin(name) => {
             crate::table_ops::call_table_builtin(name, args)
         }
-        _ if crate::stats::is_stats_builtin(name) => {
-            crate::stats::call_stats_builtin(name, args)
-        }
-        _ if crate::plot::is_plot_builtin(name) => {
-            crate::plot::call_plot_builtin(name, args)
-        }
+        _ if crate::stats::is_stats_builtin(name) => crate::stats::call_stats_builtin(name, args),
+        _ if crate::plot::is_plot_builtin(name) => crate::plot::call_plot_builtin(name, args),
         _ if crate::matrix::is_matrix_builtin(name) => {
             crate::matrix::call_matrix_builtin(name, args)
         }
         _ if crate::bio_plots::is_bio_plots_builtin(name) => {
             crate::bio_plots::call_bio_plots_builtin(name, args)
         }
-        _ if crate::viz::is_viz_builtin(name) => {
-            crate::viz::call_viz_builtin(name, args)
-        }
+        _ if crate::viz::is_viz_builtin(name) => crate::viz::call_viz_builtin(name, args),
         // GAP 5: Sparse matrix operations
         _ if crate::sparse::is_sparse_builtin(name) => {
             crate::sparse::call_sparse_builtin(name, args)
@@ -2346,7 +2968,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "resume_checkpoint" => builtin_resume_checkpoint(args),
         // ── tee/tap/inspect: side-effect pass-through ──────────────
         // These are HOFs dispatched in interpreter.rs; these arms are fallbacks
-        "tee" | "tap" | "inspect" | "group_apply" => Ok(args.into_iter().next().unwrap_or(Value::Nil)),
+        "tee" | "tap" | "inspect" | "group_apply" => {
+            Ok(args.into_iter().next().unwrap_or(Value::Nil))
+        }
         // ── Bio type constructors ──────────────────────────────────
         "gene" => builtin_gene(args),
         "variant" => builtin_variant(args),
@@ -2378,17 +3002,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             crate::enrich::call_enrich_builtin(name, args)
         }
         #[cfg(feature = "native")]
-        _ if crate::apis::is_apis_builtin(name) => {
-            crate::apis::call_apis_builtin(name, args)
-        }
+        _ if crate::apis::is_apis_builtin(name) => crate::apis::call_apis_builtin(name, args),
         #[cfg(feature = "native")]
         _ if crate::container::is_container_builtin(name) => {
             crate::container::call_container_builtin(name, args)
         }
         #[cfg(feature = "native")]
-        _ if crate::llm::is_llm_builtin(name) => {
-            crate::llm::call_llm_builtin(name, args)
+        _ if crate::provenance::is_provenance_builtin(name) => {
+            crate::provenance::call_provenance_builtin(name, args)
         }
+        #[cfg(feature = "native")]
+        _ if crate::anndata_zarr::is_anndata_builtin(name) => {
+            crate::anndata_zarr::call_anndata_builtin(name, args)
+        }
+        #[cfg(feature = "native")]
+        _ if crate::llm::is_llm_builtin(name) => crate::llm::call_llm_builtin(name, args),
         #[cfg(feature = "native")]
         _ if crate::transfer::is_transfer_builtin(name) => {
             crate::transfer::call_transfer_builtin(name, args)
@@ -2408,13 +3036,89 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::markdown::is_markdown_builtin(name) => {
             crate::markdown::call_markdown_builtin(name, args)
         }
-        _ if crate::graph::is_graph_builtin(name) => {
-            crate::graph::call_graph_builtin(name, args)
+        _ if crate::graph::is_graph_builtin(name) => crate::graph::call_graph_builtin(name, args),
+        // Single-cell / CNV / tumour-purity builtins (Sections 6 + 7)
+        _ if crate::singlecell::is_singlecell_builtin(name) => {
+            crate::singlecell::call_singlecell_builtin(name, args)
+        }
+        // Tier-1 domain builtins
+        _ if crate::variants::is_variants_builtin(name) => {
+            crate::variants::call_variants_builtin(name, args)
+        }
+        _ if crate::rnaseq::is_rnaseq_builtin(name) => {
+            crate::rnaseq::call_rnaseq_builtin(name, args)
+        }
+        _ if crate::phylo::is_phylo_builtin(name) => {
+            crate::phylo::call_phylo_builtin(name, args)
+        }
+        _ if crate::chipseq::is_chipseq_builtin(name) => {
+            crate::chipseq::call_chipseq_builtin(name, args)
+        }
+        _ if crate::microbiome::is_microbiome_builtin(name) => {
+            crate::microbiome::call_microbiome_builtin(name, args)
+        }
+        // Tier-2 full-Rust builtins
+        _ if crate::statistics::is_statistics_builtin(name) => {
+            crate::statistics::call_statistics_builtin(name, args)
+        }
+        _ if crate::qpcr::is_qpcr_builtin(name) => {
+            crate::qpcr::call_qpcr_builtin(name, args)
+        }
+        _ if crate::proteomics::is_proteomics_builtin(name) => {
+            crate::proteomics::call_proteomics_builtin(name, args)
+        }
+        _ if crate::methylation::is_methylation_builtin(name) => {
+            crate::methylation::call_methylation_builtin(name, args)
+        }
+        _ if crate::structure::is_structure_builtin(name) => {
+            crate::structure::call_structure_builtin(name, args)
+        }
+        _ if crate::network::is_network_builtin(name) => {
+            crate::network::call_network_builtin(name, args)
+        }
+        _ if crate::popgen::is_popgen_builtin(name) => {
+            crate::popgen::call_popgen_builtin(name, args)
+        }
+        // Tier-3 full-Rust builtins
+        _ if crate::crispr::is_crispr_builtin(name) => {
+            crate::crispr::call_crispr_builtin(name, args)
+        }
+        _ if crate::immune::is_immune_builtin(name) => {
+            crate::immune::call_immune_builtin(name, args)
+        }
+        _ if crate::deconvolution::is_deconvolution_builtin(name) => {
+            crate::deconvolution::call_deconvolution_builtin(name, args)
+        }
+        _ if crate::metabolomics::is_metabolomics_builtin(name) => {
+            crate::metabolomics::call_metabolomics_builtin(name, args)
+        }
+        _ if crate::longread::is_longread_builtin(name) => {
+            crate::longread::call_longread_builtin(name, args)
+        }
+        _ if crate::motif::is_motif_builtin(name) => {
+            crate::motif::call_motif_builtin(name, args)
+        }
+        // Tier-4 full-Rust builtins
+        _ if crate::cnv::is_cnv_builtin(name) => {
+            crate::cnv::call_cnv_builtin(name, args)
+        }
+        _ if crate::hic::is_hic_builtin(name) => {
+            crate::hic::call_hic_builtin(name, args)
+        }
+        _ if crate::atac::is_atac_builtin(name) => {
+            crate::atac::call_atac_builtin(name, args)
+        }
+        _ if crate::drug::is_drug_builtin(name) => {
+            crate::drug::call_drug_builtin(name, args)
+        }
+        _ if crate::gwas::is_gwas_builtin(name) => {
+            crate::gwas::call_gwas_builtin(name, args)
+        }
+        _ if crate::annotation::is_annotation_builtin(name) => {
+            crate::annotation::call_annotation_builtin(name, args)
         }
         // Core sequence builtins (WASM-safe — transcribe, translate, gc_content, etc.)
-        _ if crate::seq::is_seq_builtin(name) => {
-            crate::seq::call_seq_builtin(name, args)
-        }
+        _ if crate::seq::is_seq_builtin(name) => crate::seq::call_seq_builtin(name, args),
         // NCBI E-utilities (WASM-safe — uses fetch hook for browser API calls)
         // Only reached on WASM builds; on native, apis.rs handles these above.
         #[cfg(not(feature = "native"))]
@@ -2515,7 +3219,10 @@ fn builtin_gene(args: Vec<Value>) -> Result<Value> {
                 description: String::new(),
             })
         }
-        _ => Err(BioLangError::type_error("gene() requires Record or Str", None)),
+        _ => Err(BioLangError::type_error(
+            "gene() requires Record or Str",
+            None,
+        )),
     }
 }
 
@@ -2525,13 +3232,21 @@ fn builtin_variant(args: Vec<Value>) -> Result<Value> {
     if args.len() >= 2 {
         let chrom = match &args[0] {
             Value::Str(s) => s.clone(),
-            other => return Err(BioLangError::type_error(
-                format!("variant() chrom must be String, got {}", other.type_of()), None)),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!("variant() chrom must be String, got {}", other.type_of()),
+                    None,
+                ))
+            }
         };
         let pos = match &args[1] {
             Value::Int(n) => *n,
-            other => return Err(BioLangError::type_error(
-                format!("variant() pos must be Int, got {}", other.type_of()), None)),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!("variant() pos must be Int, got {}", other.type_of()),
+                    None,
+                ))
+            }
         };
         if pos < 0 {
             return Err(BioLangError::runtime(
@@ -2543,19 +3258,35 @@ fn builtin_variant(args: Vec<Value>) -> Result<Value> {
         let ref_allele = if args.len() >= 3 {
             match &args[2] {
                 Value::Str(s) => s.clone(),
-                other => return Err(BioLangError::type_error(
-                    format!("variant() ref must be String, got {}", other.type_of()), None)),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!("variant() ref must be String, got {}", other.type_of()),
+                        None,
+                    ))
+                }
             }
-        } else { String::new() };
+        } else {
+            String::new()
+        };
         let alt_allele = if args.len() >= 4 {
             match &args[3] {
                 Value::Str(s) => s.clone(),
-                other => return Err(BioLangError::type_error(
-                    format!("variant() alt must be String, got {}", other.type_of()), None)),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!("variant() alt must be String, got {}", other.type_of()),
+                        None,
+                    ))
+                }
             }
-        } else { String::new() };
+        } else {
+            String::new()
+        };
         // Validate allele characters (IUPAC DNA + . for missing + * for deletion)
-        let valid_allele = |s: &str| s.is_empty() || s.chars().all(|c| "ACGTNRYWSMKBDHVacgtnrywsmkbdhv.*".contains(c));
+        let valid_allele = |s: &str| {
+            s.is_empty()
+                || s.chars()
+                    .all(|c| "ACGTNRYWSMKBDHVacgtnrywsmkbdhv.*".contains(c))
+        };
         if !valid_allele(&ref_allele) {
             return Err(BioLangError::runtime(
                 ErrorKind::TypeError,
@@ -2571,8 +3302,14 @@ fn builtin_variant(args: Vec<Value>) -> Result<Value> {
             ));
         }
         return Ok(Value::Variant {
-            chrom, pos, id: String::new(), ref_allele, alt_allele,
-            quality: 0.0, filter: String::new(), info: HashMap::new(),
+            chrom,
+            pos,
+            id: String::new(),
+            ref_allele,
+            alt_allele,
+            quality: 0.0,
+            filter: String::new(),
+            info: HashMap::new(),
         });
     }
     // Record form: variant({chrom: "chr7", pos: 55181378, ref: "T", alt: "A", ...})
@@ -2587,10 +3324,13 @@ fn builtin_variant(args: Vec<Value>) -> Result<Value> {
             let get_float = |m: &HashMap<String, Value>, k: &str| -> f64 {
                 m.get(k).and_then(|v| v.as_float()).unwrap_or(0.0)
             };
-            let info = map.get("info").and_then(|v| match v {
-                Value::Record(m) | Value::Map(m) => Some(m.clone()),
-                _ => None,
-            }).unwrap_or_default();
+            let info = map
+                .get("info")
+                .and_then(|v| match v {
+                    Value::Record(m) | Value::Map(m) => Some(m.clone()),
+                    _ => None,
+                })
+                .unwrap_or_default();
             Ok(Value::Variant {
                 chrom: get_str(map, "chrom"),
                 pos: get_int(map, "pos"),
@@ -2599,50 +3339,77 @@ fn builtin_variant(args: Vec<Value>) -> Result<Value> {
                 alt_allele: get_str(map, "alt"),
                 quality: get_float(map, "quality"),
                 filter: get_str(map, "filter"),
-                info,
+                info: (info).as_ref().clone(),
             })
         }
-        _ => Err(BioLangError::type_error("variant() requires Record or positional args (chrom, pos, ref, alt)", None)),
+        _ => Err(BioLangError::type_error(
+            "variant() requires Record or positional args (chrom, pos, ref, alt)",
+            None,
+        )),
     }
 }
 
 fn builtin_genome(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
-        Value::Str(name) => {
-            match bl_core::bio_core::Genome::from_name(name) {
-                Some(g) => Ok(Value::Genome {
-                    name: g.name,
-                    species: g.species,
-                    assembly: g.assembly,
-                    chromosomes: g.chromosomes,
-                }),
-                None => Err(BioLangError::runtime(
-                    ErrorKind::TypeError,
-                    format!("unknown genome '{name}'. Known: GRCh38, GRCh37, T2T-CHM13, GRCm39"),
-                    None,
-                )),
-            }
-        }
+        Value::Str(name) => match bl_core::bio_core::Genome::from_name(name) {
+            Some(g) => Ok(Value::Genome {
+                name: g.name,
+                species: g.species,
+                assembly: g.assembly,
+                chromosomes: g.chromosomes,
+            }),
+            None => Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("unknown genome '{name}'. Known: GRCh38, GRCh37, T2T-CHM13, GRCm39"),
+                None,
+            )),
+        },
         Value::Record(map) | Value::Map(map) => {
-            let name = map.get("name").and_then(|v| v.as_str()).unwrap_or("custom").to_string();
-            let species = map.get("species").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let assembly = map.get("assembly").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let chroms = map.get("chromosomes").and_then(|v| match v {
-                Value::List(items) => {
-                    Some(items.iter().filter_map(|item| match item {
-                        Value::Record(m) | Value::Map(m) => {
-                            let n = m.get("name")?.as_str()?.to_string();
-                            let l = m.get("length")?.as_int()?;
-                            Some((n, l))
-                        }
-                        _ => None,
-                    }).collect())
-                }
-                _ => None,
-            }).unwrap_or_default();
-            Ok(Value::Genome { name, species, assembly, chromosomes: chroms })
+            let name = map
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("custom")
+                .to_string();
+            let species = map
+                .get("species")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let assembly = map
+                .get("assembly")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let chroms = map
+                .get("chromosomes")
+                .and_then(|v| match v {
+                    Value::List(items) => Some(
+                        items
+                            .iter()
+                            .filter_map(|item| match item {
+                                Value::Record(m) | Value::Map(m) => {
+                                    let n = m.get("name")?.as_str()?.to_string();
+                                    let l = m.get("length")?.as_int()?;
+                                    Some((n, l))
+                                }
+                                _ => None,
+                            })
+                            .collect(),
+                    ),
+                    _ => None,
+                })
+                .unwrap_or_default();
+            Ok(Value::Genome {
+                name,
+                species,
+                assembly,
+                chromosomes: chroms,
+            })
         }
-        _ => Err(BioLangError::type_error("genome() requires Str or Record", None)),
+        _ => Err(BioLangError::type_error(
+            "genome() requires Str or Record",
+            None,
+        )),
     }
 }
 
@@ -2662,7 +3429,7 @@ fn builtin_doctor() -> Result<Value> {
         rec.insert("status".to_string(), Value::Str(status.to_string()));
         rec.insert("value".to_string(), Value::Str(value.to_string()));
         rec.insert("fix".to_string(), Value::Str(fix.to_string()));
-        checks.push(Value::Record(rec));
+        checks.push(Value::Record((rec).into()));
     };
 
     // ── Container Runtime ────────────────────────────────────
@@ -2901,9 +3668,9 @@ fn builtin_config(args: Vec<Value>) -> Result<Value> {
                 map.insert(key, value);
             }
         }
-        Value::Record(map)
+        Value::Record((map).into())
     } else {
-        Value::Record(HashMap::new())
+        Value::Record((HashMap::new()).into())
     };
 
     if args.is_empty() {
@@ -2937,15 +3704,13 @@ fn json_to_value(json: serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::Str(s),
-        serde_json::Value::Array(arr) => {
-            Value::List(arr.into_iter().map(json_to_value).collect())
-        }
+        serde_json::Value::Array(arr) => Value::List(arr.into_iter().map(json_to_value).collect::<Vec<_>>().into()),
         serde_json::Value::Object(map) => {
             let rec: std::collections::HashMap<String, Value> = map
                 .into_iter()
                 .map(|(k, v)| (k, json_to_value(v)))
                 .collect();
-            Value::Record(rec)
+            Value::Record((rec).into())
         }
     }
 }
@@ -2963,7 +3728,7 @@ fn require_int(val: &Value, func: &str) -> Result<i64> {
 /// Convert a Table's rows into a Vec of Record Values.
 fn table_to_records(t: &Table) -> Vec<Value> {
     (0..t.rows.len())
-        .map(|i| Value::Record(t.row_to_record(i)))
+        .map(|i| Value::Record((t.row_to_record(i)).into()))
         .collect()
 }
 
@@ -3009,11 +3774,7 @@ fn val_lt(a: &Value, b: &Value) -> Result<bool> {
         (Value::Float(a), Value::Int(b)) => Ok(*a < (*b as f64)),
         (Value::Str(a), Value::Str(b)) => Ok(a < b),
         _ => Err(BioLangError::type_error(
-            format!(
-                "cannot compare {} and {}",
-                a.type_of(),
-                b.type_of()
-            ),
+            format!("cannot compare {} and {}", a.type_of(), b.type_of()),
             None,
         )),
     }
@@ -3045,28 +3806,105 @@ fn require_two_sets(args: &[Value]) -> Result<(Vec<Value>, Vec<Value>)> {
 
 // ── Genomic range queries (F13) ─────────────────────────────────
 
-/// Build an interval tree from a Table with chrom, start, end columns.
+/// Build an interval tree from a Table or List with chrom, start, end values.
 /// Returns a Record with __type: "interval_tree" and per-chromosome sorted intervals.
 fn builtin_interval_tree(args: &[Value]) -> Result<Value> {
     use std::collections::HashMap;
 
     let table = match &args[0] {
-        Value::Table(t) => t,
+        Value::Table(t) => t.clone(),
+        Value::List(items) => {
+            let mut rows = Vec::with_capacity(items.len());
+            for (index, item) in items.iter().enumerate() {
+                match item {
+                    Value::Interval(iv) => rows.push(vec![
+                        Value::Str(iv.chrom.clone()),
+                        Value::Int(iv.start),
+                        Value::Int(iv.end),
+                        item.clone(),
+                    ]),
+                    Value::Record(record) => {
+                        let chrom = record.get("chrom").cloned().ok_or_else(|| {
+                            BioLangError::type_error(
+                                format!("interval_tree() item {index} has no 'chrom' field"),
+                                None,
+                            )
+                        })?;
+                        let start = record.get("start").cloned().ok_or_else(|| {
+                            BioLangError::type_error(
+                                format!("interval_tree() item {index} has no 'start' field"),
+                                None,
+                            )
+                        })?;
+                        let end = record.get("end").cloned().ok_or_else(|| {
+                            BioLangError::type_error(
+                                format!("interval_tree() item {index} has no 'end' field"),
+                                None,
+                            )
+                        })?;
+                        rows.push(vec![chrom, start, end, item.clone()]);
+                    }
+                    other => {
+                        return Err(BioLangError::type_error(
+                            format!(
+                                "interval_tree() item {index} must be Interval or Record, got {}",
+                                other.type_of()
+                            ),
+                            None,
+                        ))
+                    }
+                }
+            }
+            Table::new(
+                vec!["chrom".into(), "start".into(), "end".into(), "value".into()],
+                rows,
+            )
+        }
         other => {
             return Err(BioLangError::type_error(
-                format!("interval_tree() requires Table, got {}", other.type_of()),
+                format!(
+                    "interval_tree() requires Table or List, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
 
     // Find chrom, start, end column indices
-    let chrom_idx = table.columns.iter().position(|c| c == "chrom" || c == "chr")
-        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "interval_tree() requires 'chrom' column", None))?;
-    let start_idx = table.columns.iter().position(|c| c == "start")
-        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "interval_tree() requires 'start' column", None))?;
-    let end_idx = table.columns.iter().position(|c| c == "end")
-        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "interval_tree() requires 'end' column", None))?;
+    let chrom_idx = table
+        .columns
+        .iter()
+        .position(|c| c == "chrom" || c == "chr")
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "interval_tree() requires 'chrom' column",
+                None,
+            )
+        })?;
+    let start_idx = table
+        .columns
+        .iter()
+        .position(|c| c == "start")
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "interval_tree() requires 'start' column",
+                None,
+            )
+        })?;
+    let end_idx = table
+        .columns
+        .iter()
+        .position(|c| c == "end")
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "interval_tree() requires 'end' column",
+                None,
+            )
+        })?;
 
     // Group intervals by chromosome and sort by start
     let mut chroms: HashMap<String, Vec<(i64, i64, usize)>> = HashMap::new();
@@ -3094,30 +3932,45 @@ fn builtin_interval_tree(args: &[Value]) -> Result<Value> {
     // Store as Record with parallel arrays per chromosome for fast binary search.
     // { __type: "interval_tree", __table: Table, __chroms: {chr -> {starts: [...], ends: [...], indices: [...]}} }
     let mut tree = HashMap::new();
-    tree.insert("__type".to_string(), Value::Str("interval_tree".to_string()));
+    tree.insert(
+        "__type".to_string(),
+        Value::Str("interval_tree".to_string()),
+    );
 
     let mut chrom_map = HashMap::new();
     for (chr, intervals) in &chroms {
         let starts: Vec<Value> = intervals.iter().map(|(s, _, _)| Value::Int(*s)).collect();
         let ends: Vec<Value> = intervals.iter().map(|(_, e, _)| Value::Int(*e)).collect();
-        let indices: Vec<Value> = intervals.iter().map(|(_, _, ri)| Value::Int(*ri as i64)).collect();
+        let indices: Vec<Value> = intervals
+            .iter()
+            .map(|(_, _, ri)| Value::Int(*ri as i64))
+            .collect();
         let mut chr_rec = HashMap::new();
-        chr_rec.insert("starts".to_string(), Value::List(starts));
-        chr_rec.insert("ends".to_string(), Value::List(ends));
-        chr_rec.insert("indices".to_string(), Value::List(indices));
-        chrom_map.insert(chr.clone(), Value::Record(chr_rec));
+        chr_rec.insert("starts".to_string(), Value::List((starts).into()));
+        chr_rec.insert("ends".to_string(), Value::List((ends).into()));
+        chr_rec.insert("indices".to_string(), Value::List((indices).into()));
+        chrom_map.insert(chr.clone(), Value::Record((chr_rec).into()));
     }
-    tree.insert("__chroms".to_string(), Value::Record(chrom_map));
+    tree.insert("__chroms".to_string(), Value::Record((chrom_map).into()));
     tree.insert("__table".to_string(), Value::Table(table.clone()));
-    Ok(Value::Record(tree))
+    Ok(Value::Record((tree).into()))
 }
 
 /// Extract parallel arrays (starts, ends, indices) from a chromosome record in the interval tree.
 fn extract_chr_arrays<'a>(chr_rec: &'a Value) -> Option<(&'a [Value], &'a [Value], &'a [Value])> {
     if let Value::Record(m) = chr_rec {
-        let starts = match m.get("starts") { Some(Value::List(l)) => l.as_slice(), _ => return None };
-        let ends = match m.get("ends") { Some(Value::List(l)) => l.as_slice(), _ => return None };
-        let indices = match m.get("indices") { Some(Value::List(l)) => l.as_slice(), _ => return None };
+        let starts = match m.get("starts") {
+            Some(Value::List(l)) => l.as_slice(),
+            _ => return None,
+        };
+        let ends = match m.get("ends") {
+            Some(Value::List(l)) => l.as_slice(),
+            _ => return None,
+        };
+        let indices = match m.get("indices") {
+            Some(Value::List(l)) => l.as_slice(),
+            _ => return None,
+        };
         Some((starts, ends, indices))
     } else {
         None
@@ -3125,14 +3978,28 @@ fn extract_chr_arrays<'a>(chr_rec: &'a Value) -> Option<(&'a [Value], &'a [Value
 }
 
 /// Extract tree components: table, chrom_data record.
-fn extract_tree_parts(tree: &std::collections::HashMap<String, Value>) -> Result<(&Table, &std::collections::HashMap<String, Value>)> {
+fn extract_tree_parts(
+    tree: &std::collections::HashMap<String, Value>,
+) -> Result<(&Table, &std::collections::HashMap<String, Value>)> {
     let table = match tree.get("__table") {
         Some(Value::Table(t)) => t,
-        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "invalid interval_tree",
+                None,
+            ))
+        }
     };
     let chrom_data = match tree.get("__chroms") {
         Some(Value::Record(m)) => m,
-        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "invalid interval_tree",
+                None,
+            ))
+        }
     };
     Ok((&table, chrom_data))
 }
@@ -3143,14 +4010,25 @@ fn builtin_query_overlaps(args: &[Value]) -> Result<Value> {
         Value::Record(m) => m,
         other => {
             return Err(BioLangError::type_error(
-                format!("query_overlaps() requires interval_tree Record, got {}", other.type_of()),
+                format!(
+                    "query_overlaps() requires interval_tree Record, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
     let chrom = match &args[1] {
         Value::Str(s) => s.as_str(),
-        other => return Err(BioLangError::type_error(format!("query_overlaps() chrom requires Str, got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "query_overlaps() chrom requires Str, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     let q_start = require_int(&args[2], "query_overlaps")?;
     let q_end = require_int(&args[3], "query_overlaps")?;
@@ -3167,13 +4045,23 @@ fn builtin_query_overlaps(args: &[Value]) -> Result<Value> {
 
     // Binary search: starts sorted. Find cutoff where start >= q_end.
     let cutoff = starts.partition_point(|v| {
-        if let Value::Int(n) = v { *n < q_end } else { true }
+        if let Value::Int(n) = v {
+            *n < q_end
+        } else {
+            true
+        }
     });
     let mut result_rows = Vec::new();
     for i in 0..cutoff {
-        let end = match &ends[i] { Value::Int(n) => *n, _ => continue };
+        let end = match &ends[i] {
+            Value::Int(n) => *n,
+            _ => continue,
+        };
         if end > q_start {
-            let row_idx = match &indices[i] { Value::Int(n) => *n as usize, _ => continue };
+            let row_idx = match &indices[i] {
+                Value::Int(n) => *n as usize,
+                _ => continue,
+            };
             if let Some(row) = table.rows.get(row_idx) {
                 result_rows.push(row.clone());
             }
@@ -3188,14 +4076,25 @@ fn builtin_count_overlaps(args: &[Value]) -> Result<Value> {
         Value::Record(m) => m,
         other => {
             return Err(BioLangError::type_error(
-                format!("count_overlaps() requires interval_tree Record, got {}", other.type_of()),
+                format!(
+                    "count_overlaps() requires interval_tree Record, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
     let chrom = match &args[1] {
         Value::Str(s) => s.as_str(),
-        other => return Err(BioLangError::type_error(format!("count_overlaps() chrom requires Str, got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "count_overlaps() chrom requires Str, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     let q_start = require_int(&args[2], "count_overlaps")?;
     let q_end = require_int(&args[3], "count_overlaps")?;
@@ -3211,7 +4110,11 @@ fn builtin_count_overlaps(args: &[Value]) -> Result<Value> {
     };
 
     let cutoff = starts.partition_point(|v| {
-        if let Value::Int(n) = v { *n < q_end } else { true }
+        if let Value::Int(n) = v {
+            *n < q_end
+        } else {
+            true
+        }
     });
     let mut count: i64 = 0;
     for i in 0..cutoff {
@@ -3231,7 +4134,10 @@ fn builtin_bulk_overlaps(args: &[Value]) -> Result<Value> {
         Value::Record(m) => m,
         other => {
             return Err(BioLangError::type_error(
-                format!("bulk_overlaps() requires interval_tree Record, got {}", other.type_of()),
+                format!(
+                    "bulk_overlaps() requires interval_tree Record, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -3240,7 +4146,10 @@ fn builtin_bulk_overlaps(args: &[Value]) -> Result<Value> {
         Value::Table(t) => t,
         other => {
             return Err(BioLangError::type_error(
-                format!("bulk_overlaps() requires Table as second argument, got {}", other.type_of()),
+                format!(
+                    "bulk_overlaps() requires Table as second argument, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -3249,19 +4158,65 @@ fn builtin_bulk_overlaps(args: &[Value]) -> Result<Value> {
     let (_, chrom_data) = extract_tree_parts(tree)?;
 
     // Find chrom, start, end columns in queries table
-    let q_chrom_idx = queries.columns.iter().position(|c| c == "chrom" || c == "chr")
-        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "bulk_overlaps() query table requires 'chrom' column", None))?;
-    let q_start_idx = queries.columns.iter().position(|c| c == "start")
-        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "bulk_overlaps() query table requires 'start' column", None))?;
-    let q_end_idx = queries.columns.iter().position(|c| c == "end")
-        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "bulk_overlaps() query table requires 'end' column", None))?;
+    let q_chrom_idx = queries
+        .columns
+        .iter()
+        .position(|c| c == "chrom" || c == "chr")
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "bulk_overlaps() query table requires 'chrom' column",
+                None,
+            )
+        })?;
+    let q_start_idx = queries
+        .columns
+        .iter()
+        .position(|c| c == "start")
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "bulk_overlaps() query table requires 'start' column",
+                None,
+            )
+        })?;
+    let q_end_idx = queries
+        .columns
+        .iter()
+        .position(|c| c == "end")
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "bulk_overlaps() query table requires 'end' column",
+                None,
+            )
+        })?;
 
     // Pre-extract native arrays per chromosome for zero-overhead inner loop
-    let mut native_chroms: std::collections::HashMap<&str, (Vec<i64>, Vec<i64>)> = std::collections::HashMap::new();
+    let mut native_chroms: std::collections::HashMap<&str, (Vec<i64>, Vec<i64>)> =
+        std::collections::HashMap::new();
     for (chr, chr_rec) in chrom_data {
         if let Some((starts, ends, _)) = extract_chr_arrays(chr_rec) {
-            let s: Vec<i64> = starts.iter().filter_map(|v| if let Value::Int(n) = v { Some(*n) } else { None }).collect();
-            let e: Vec<i64> = ends.iter().filter_map(|v| if let Value::Int(n) = v { Some(*n) } else { None }).collect();
+            let s: Vec<i64> = starts
+                .iter()
+                .filter_map(|v| {
+                    if let Value::Int(n) = v {
+                        Some(*n)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            let e: Vec<i64> = ends
+                .iter()
+                .filter_map(|v| {
+                    if let Value::Int(n) = v {
+                        Some(*n)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
             native_chroms.insert(chr.as_str(), (s, e));
         }
     }
@@ -3272,8 +4227,14 @@ fn builtin_bulk_overlaps(args: &[Value]) -> Result<Value> {
             Value::Str(s) => s.as_str(),
             _ => continue,
         };
-        let q_start = match &row[q_start_idx] { Value::Int(n) => *n, _ => continue };
-        let q_end = match &row[q_end_idx] { Value::Int(n) => *n, _ => continue };
+        let q_start = match &row[q_start_idx] {
+            Value::Int(n) => *n,
+            _ => continue,
+        };
+        let q_end = match &row[q_end_idx] {
+            Value::Int(n) => *n,
+            _ => continue,
+        };
 
         if let Some((starts, ends)) = native_chroms.get(chrom) {
             // Binary search: find cutoff where start >= q_end
@@ -3294,17 +4255,32 @@ fn builtin_query_nearest(args: &[Value]) -> Result<Value> {
         Value::Record(m) => m,
         other => {
             return Err(BioLangError::type_error(
-                format!("query_nearest() requires interval_tree Record, got {}", other.type_of()),
+                format!(
+                    "query_nearest() requires interval_tree Record, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
     let chrom = match &args[1] {
         Value::Str(s) => s.as_str(),
-        other => return Err(BioLangError::type_error(format!("query_nearest() chrom requires Str, got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "query_nearest() chrom requires Str, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     let pos = require_int(&args[2], "query_nearest")?;
-    let k = if args.len() > 3 { require_int(&args[3], "query_nearest")? as usize } else { 1 };
+    let k = if args.len() > 3 {
+        require_int(&args[3], "query_nearest")? as usize
+    } else {
+        1
+    };
 
     let (table, chrom_data) = extract_tree_parts(tree)?;
     let chr_rec = match chrom_data.get(chrom) {
@@ -3318,7 +4294,11 @@ fn builtin_query_nearest(args: &[Value]) -> Result<Value> {
 
     // Binary search for insertion point, then expand outward to find k nearest.
     let insert_pt = starts.partition_point(|v| {
-        if let Value::Int(n) = v { *n <= pos } else { true }
+        if let Value::Int(n) = v {
+            *n <= pos
+        } else {
+            true
+        }
     });
     let mut scored: Vec<(i64, usize)> = Vec::new();
     let mut left = insert_pt.saturating_sub(1) as isize;
@@ -3329,18 +4309,72 @@ fn builtin_query_nearest(args: &[Value]) -> Result<Value> {
     while scanned < scan_limit && (left >= 0 || right < n) {
         if left >= 0 {
             let li = left as usize;
-            let start = match &starts[li] { Value::Int(n) => *n, _ => { left -= 1; scanned += 1; continue; } };
-            let end = match &ends[li] { Value::Int(n) => *n, _ => { left -= 1; scanned += 1; continue; } };
-            let row_idx = match &indices[li] { Value::Int(n) => *n as usize, _ => { left -= 1; scanned += 1; continue; } };
-            let dist = if pos < start { start - pos } else if pos > end { pos - end } else { 0 };
+            let start = match &starts[li] {
+                Value::Int(n) => *n,
+                _ => {
+                    left -= 1;
+                    scanned += 1;
+                    continue;
+                }
+            };
+            let end = match &ends[li] {
+                Value::Int(n) => *n,
+                _ => {
+                    left -= 1;
+                    scanned += 1;
+                    continue;
+                }
+            };
+            let row_idx = match &indices[li] {
+                Value::Int(n) => *n as usize,
+                _ => {
+                    left -= 1;
+                    scanned += 1;
+                    continue;
+                }
+            };
+            let dist = if pos < start {
+                start - pos
+            } else if pos > end {
+                pos - end
+            } else {
+                0
+            };
             scored.push((dist, row_idx));
             left -= 1;
         }
         if right < n {
-            let start = match &starts[right] { Value::Int(n) => *n, _ => { right += 1; scanned += 1; continue; } };
-            let end = match &ends[right] { Value::Int(n) => *n, _ => { right += 1; scanned += 1; continue; } };
-            let row_idx = match &indices[right] { Value::Int(n) => *n as usize, _ => { right += 1; scanned += 1; continue; } };
-            let dist = if pos < start { start - pos } else if pos > end { pos - end } else { 0 };
+            let start = match &starts[right] {
+                Value::Int(n) => *n,
+                _ => {
+                    right += 1;
+                    scanned += 1;
+                    continue;
+                }
+            };
+            let end = match &ends[right] {
+                Value::Int(n) => *n,
+                _ => {
+                    right += 1;
+                    scanned += 1;
+                    continue;
+                }
+            };
+            let row_idx = match &indices[right] {
+                Value::Int(n) => *n as usize,
+                _ => {
+                    right += 1;
+                    scanned += 1;
+                    continue;
+                }
+            };
+            let dist = if pos < start {
+                start - pos
+            } else if pos > end {
+                pos - end
+            } else {
+                0
+            };
             scored.push((dist, row_idx));
             right += 1;
         }
@@ -3361,24 +4395,39 @@ fn builtin_coverage(args: &[Value]) -> Result<Value> {
         Value::Record(m) => m,
         other => {
             return Err(BioLangError::type_error(
-                format!("coverage() requires interval_tree Record, got {}", other.type_of()),
+                format!(
+                    "coverage() requires interval_tree Record, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
     let chrom_data = match tree.get("__chroms") {
         Some(Value::Record(m)) => m,
-        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "invalid interval_tree", None)),
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "invalid interval_tree",
+                None,
+            ))
+        }
     };
 
     let mut rows = Vec::new();
-    for (chr, chr_rec) in chrom_data {
+    for (chr, chr_rec) in chrom_data.iter() {
         if let Some((starts, ends, _)) = extract_chr_arrays(chr_rec) {
             // Sweep line algorithm
             let mut events: Vec<(i64, i32)> = Vec::new();
             for i in 0..starts.len() {
-                let start = match &starts[i] { Value::Int(n) => *n, _ => continue };
-                let end = match &ends[i] { Value::Int(n) => *n, _ => continue };
+                let start = match &starts[i] {
+                    Value::Int(n) => *n,
+                    _ => continue,
+                };
+                let end = match &ends[i] {
+                    Value::Int(n) => *n,
+                    _ => continue,
+                };
                 events.push((start, 1));
                 events.push((end, -1));
             }
@@ -3432,7 +4481,11 @@ fn builtin_aligned_read(args: Vec<Value>) -> Result<Value> {
             if !seq.is_empty() && !qual.is_empty() && seq.len() != qual.len() {
                 return Err(BioLangError::runtime(
                     ErrorKind::TypeError,
-                    format!("aligned_read() seq length ({}) must match qual length ({})", seq.len(), qual.len()),
+                    format!(
+                        "aligned_read() seq length ({}) must match qual length ({})",
+                        seq.len(),
+                        qual.len()
+                    ),
                     None,
                 ));
             }
@@ -3450,7 +4503,10 @@ fn builtin_aligned_read(args: Vec<Value>) -> Result<Value> {
                 qual,
             }))
         }
-        _ => Err(BioLangError::type_error("aligned_read() requires Record", None)),
+        _ => Err(BioLangError::type_error(
+            "aligned_read() requires Record",
+            None,
+        )),
     }
 }
 
@@ -3458,10 +4514,15 @@ fn builtin_flagstat(args: &[Value]) -> Result<Value> {
     use std::collections::HashMap;
     let reads = match &args[0] {
         Value::List(items) => items,
-        other => return Err(BioLangError::type_error(
-            format!("flagstat() requires List of AlignedRead, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "flagstat() requires List of AlignedRead, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     let mut total = 0i64;
     let mut mapped = 0i64;
@@ -3472,17 +4533,33 @@ fn builtin_flagstat(args: &[Value]) -> Result<Value> {
     let mut supplementary = 0i64;
     let mut read1 = 0i64;
     let mut read2 = 0i64;
-    for item in reads {
+    for item in reads.iter() {
         if let Value::AlignedRead(r) = item {
             total += 1;
-            if r.is_mapped() { mapped += 1; }
-            if r.is_paired() { paired += 1; }
-            if r.is_proper_pair() { proper_pair += 1; }
-            if r.is_duplicate() { duplicates += 1; }
-            if r.is_secondary() { secondary += 1; }
-            if r.is_supplementary() { supplementary += 1; }
-            if r.is_read1() { read1 += 1; }
-            if r.is_read2() { read2 += 1; }
+            if r.is_mapped() {
+                mapped += 1;
+            }
+            if r.is_paired() {
+                paired += 1;
+            }
+            if r.is_proper_pair() {
+                proper_pair += 1;
+            }
+            if r.is_duplicate() {
+                duplicates += 1;
+            }
+            if r.is_secondary() {
+                secondary += 1;
+            }
+            if r.is_supplementary() {
+                supplementary += 1;
+            }
+            if r.is_read1() {
+                read1 += 1;
+            }
+            if r.is_read2() {
+                read2 += 1;
+            }
         }
     }
     let mut rec = HashMap::new();
@@ -3496,17 +4573,27 @@ fn builtin_flagstat(args: &[Value]) -> Result<Value> {
     rec.insert("read1".to_string(), Value::Int(read1));
     rec.insert("read2".to_string(), Value::Int(read2));
     if total > 0 {
-        rec.insert("mapped_pct".to_string(), Value::Float(mapped as f64 / total as f64 * 100.0));
-        rec.insert("duplicate_pct".to_string(), Value::Float(duplicates as f64 / total as f64 * 100.0));
+        rec.insert(
+            "mapped_pct".to_string(),
+            Value::Float(mapped as f64 / total as f64 * 100.0),
+        );
+        rec.insert(
+            "duplicate_pct".to_string(),
+            Value::Float(duplicates as f64 / total as f64 * 100.0),
+        );
     }
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── Variant classification builtins ──────────────────────────────
 
 fn extract_variant_fields(v: &Value) -> Option<(&str, &str)> {
     match v {
-        Value::Variant { ref_allele, alt_allele, .. } => Some((ref_allele.as_str(), alt_allele.as_str())),
+        Value::Variant {
+            ref_allele,
+            alt_allele,
+            ..
+        } => Some((ref_allele.as_str(), alt_allele.as_str())),
         _ => None,
     }
 }
@@ -3514,22 +4601,36 @@ fn extract_variant_fields(v: &Value) -> Option<(&str, &str)> {
 fn builtin_variant_predicate(args: &[Value], op: &str) -> Result<Value> {
     let (ref_allele, alt_allele) = match extract_variant_fields(&args[0]) {
         Some(pair) => pair,
-        None => return Err(BioLangError::type_error(
-            format!("{op}() requires Variant, got {}", args[0].type_of()),
-            None,
-        )),
+        None => {
+            return Err(BioLangError::type_error(
+                format!("{op}() requires Variant, got {}", args[0].type_of()),
+                None,
+            ))
+        }
     };
     let result = match op {
-        "is_snp" => bl_core::bio_core::vcf_ops::classify_variant(ref_allele, alt_allele.split(',').next().unwrap_or("")) == bl_core::bio_core::VariantType::Snp,
-        "is_indel" => bl_core::bio_core::vcf_ops::classify_variant(ref_allele, alt_allele.split(',').next().unwrap_or("")) == bl_core::bio_core::VariantType::Indel,
+        "is_snp" => {
+            bl_core::bio_core::vcf_ops::classify_variant(
+                ref_allele,
+                alt_allele.split(',').next().unwrap_or(""),
+            ) == bl_core::bio_core::VariantType::Snp
+        }
+        "is_indel" => {
+            bl_core::bio_core::vcf_ops::classify_variant(
+                ref_allele,
+                alt_allele.split(',').next().unwrap_or(""),
+            ) == bl_core::bio_core::VariantType::Indel
+        }
         "is_transition" => {
             let first_alt = alt_allele.split(',').next().unwrap_or("");
-            bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Snp
+            bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt)
+                == bl_core::bio_core::VariantType::Snp
                 && bl_core::bio_core::vcf_ops::is_transition(ref_allele, first_alt)
         }
         "is_transversion" => {
             let first_alt = alt_allele.split(',').next().unwrap_or("");
-            bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Snp
+            bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt)
+                == bl_core::bio_core::VariantType::Snp
                 && !bl_core::bio_core::vcf_ops::is_transition(ref_allele, first_alt)
         }
         "is_multiallelic" => alt_allele.contains(','),
@@ -3541,7 +4642,8 @@ fn builtin_variant_predicate(args: &[Value], op: &str) -> Result<Value> {
                 match gt_str {
                     Some(Value::Str(gt)) => {
                         let sep = if gt.contains('|') { '|' } else { '/' };
-                        let alleles: Vec<Option<u8>> = gt.split(sep)
+                        let alleles: Vec<Option<u8>> = gt
+                            .split(sep)
                             .map(|a| if a == "." { None } else { a.parse().ok() })
                             .collect();
                         match op {
@@ -3571,10 +4673,12 @@ fn builtin_variant_predicate(args: &[Value], op: &str) -> Result<Value> {
 fn builtin_variant_type(args: &[Value]) -> Result<Value> {
     let (ref_allele, alt_allele) = match extract_variant_fields(&args[0]) {
         Some(pair) => pair,
-        None => return Err(BioLangError::type_error(
-            format!("variant_type() requires Variant, got {}", args[0].type_of()),
-            None,
-        )),
+        None => {
+            return Err(BioLangError::type_error(
+                format!("variant_type() requires Variant, got {}", args[0].type_of()),
+                None,
+            ))
+        }
     };
     let first_alt = alt_allele.split(',').next().unwrap_or("");
     let vt = bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt);
@@ -3600,8 +4704,13 @@ fn builtin_variant_summary(args: &[Value]) -> Result<Value> {
             let mut transitions = 0u64;
             let mut transversions = 0u64;
             let mut multiallelic = 0u64;
-            for item in items {
-                if let Value::Variant { ref_allele, alt_allele, .. } = item {
+            for item in items.iter() {
+                if let Value::Variant {
+                    ref_allele,
+                    alt_allele,
+                    ..
+                } = item
+                {
                     if alt_allele.contains(',') {
                         multiallelic += 1;
                     }
@@ -3622,67 +4731,122 @@ fn builtin_variant_summary(args: &[Value]) -> Result<Value> {
                     }
                 }
             }
-            let ts_tv = if transversions > 0 { transitions as f64 / transversions as f64 } else { 0.0 };
+            let ts_tv = if transversions > 0 {
+                transitions as f64 / transversions as f64
+            } else {
+                0.0
+            };
             let mut rec = HashMap::new();
-            rec.insert("total".to_string(), Value::Int((snp + indel + mnp + other) as i64));
+            rec.insert(
+                "total".to_string(),
+                Value::Int((snp + indel + mnp + other) as i64),
+            );
             rec.insert("snp".to_string(), Value::Int(snp as i64));
             rec.insert("indel".to_string(), Value::Int(indel as i64));
             rec.insert("mnp".to_string(), Value::Int(mnp as i64));
             rec.insert("other".to_string(), Value::Int(other as i64));
             rec.insert("transitions".to_string(), Value::Int(transitions as i64));
-            rec.insert("transversions".to_string(), Value::Int(transversions as i64));
+            rec.insert(
+                "transversions".to_string(),
+                Value::Int(transversions as i64),
+            );
             rec.insert("ts_tv_ratio".to_string(), Value::Float(ts_tv));
             rec.insert("multiallelic".to_string(), Value::Int(multiallelic as i64));
-            return Ok(Value::Record(rec));
+            return Ok(Value::Record((rec).into()));
         }
-        other => return Err(BioLangError::type_error(
-            format!("variant_summary() requires Table or List of Variants, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "variant_summary() requires Table or List of Variants, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     // Table path: find ref/alt columns
-    let ref_idx = table.col_index("ref").or_else(|| table.col_index("ref_allele"));
-    let alt_idx = table.col_index("alt").or_else(|| table.col_index("alt_allele"));
+    let ref_idx = table
+        .col_index("ref")
+        .or_else(|| table.col_index("ref_allele"));
+    let alt_idx = table
+        .col_index("alt")
+        .or_else(|| table.col_index("alt_allele"));
     let (ref_idx, alt_idx) = match (ref_idx, alt_idx) {
         (Some(r), Some(a)) => (r, a),
-        _ => return Err(BioLangError::runtime(ErrorKind::TypeError, "variant_summary() requires 'ref' and 'alt' columns", None)),
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "variant_summary() requires 'ref' and 'alt' columns",
+                None,
+            ))
+        }
     };
     let mut variants: Vec<(&str, Vec<&str>)> = Vec::new();
     for row in &table.rows {
-        let ref_a = match &row[ref_idx] { Value::Str(s) => s.as_str(), _ => continue };
-        let alt_a = match &row[alt_idx] { Value::Str(s) => s.as_str(), _ => continue };
+        let ref_a = match &row[ref_idx] {
+            Value::Str(s) => s.as_str(),
+            _ => continue,
+        };
+        let alt_a = match &row[alt_idx] {
+            Value::Str(s) => s.as_str(),
+            _ => continue,
+        };
         let alts: Vec<&str> = alt_a.split(',').collect();
         variants.push((ref_a, alts));
     }
     let pairs: Vec<(&str, &[&str])> = variants.iter().map(|(r, a)| (*r, a.as_slice())).collect();
     let summary = bl_core::bio_core::vcf_ops::summarize_variants(&pairs);
     let mut rec = HashMap::new();
-    rec.insert("total".to_string(), Value::Int((summary.snp + summary.indel + summary.mnp + summary.other) as i64));
+    rec.insert(
+        "total".to_string(),
+        Value::Int((summary.snp + summary.indel + summary.mnp + summary.other) as i64),
+    );
     rec.insert("snp".to_string(), Value::Int(summary.snp as i64));
     rec.insert("indel".to_string(), Value::Int(summary.indel as i64));
     rec.insert("mnp".to_string(), Value::Int(summary.mnp as i64));
     rec.insert("other".to_string(), Value::Int(summary.other as i64));
-    rec.insert("transitions".to_string(), Value::Int(summary.transitions as i64));
-    rec.insert("transversions".to_string(), Value::Int(summary.transversions as i64));
+    rec.insert(
+        "transitions".to_string(),
+        Value::Int(summary.transitions as i64),
+    );
+    rec.insert(
+        "transversions".to_string(),
+        Value::Int(summary.transversions as i64),
+    );
     rec.insert("ts_tv_ratio".to_string(), Value::Float(summary.ts_tv_ratio));
-    rec.insert("multiallelic".to_string(), Value::Int(summary.multiallelic as i64));
-    Ok(Value::Record(rec))
+    rec.insert(
+        "multiallelic".to_string(),
+        Value::Int(summary.multiallelic as i64),
+    );
+    Ok(Value::Record((rec).into()))
 }
 
 fn builtin_tstv_ratio(args: &[Value]) -> Result<Value> {
     let items = match &args[0] {
         Value::List(items) => items,
-        other => return Err(BioLangError::type_error(
-            format!("tstv_ratio() requires List of Variants, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "tstv_ratio() requires List of Variants, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     let mut transitions = 0u64;
     let mut transversions = 0u64;
-    for item in items {
-        if let Value::Variant { ref_allele, alt_allele, .. } = item {
+    for item in items.iter() {
+        if let Value::Variant {
+            ref_allele,
+            alt_allele,
+            ..
+        } = item
+        {
             for alt in alt_allele.split(',') {
-                if bl_core::bio_core::vcf_ops::classify_variant(ref_allele, alt) == bl_core::bio_core::VariantType::Snp {
+                if bl_core::bio_core::vcf_ops::classify_variant(ref_allele, alt)
+                    == bl_core::bio_core::VariantType::Snp
+                {
                     if bl_core::bio_core::vcf_ops::is_transition(ref_allele, alt) {
                         transitions += 1;
                     } else {
@@ -3692,26 +4856,36 @@ fn builtin_tstv_ratio(args: &[Value]) -> Result<Value> {
             }
         }
     }
-    let ratio = if transversions > 0 { transitions as f64 / transversions as f64 } else { 0.0 };
+    let ratio = if transversions > 0 {
+        transitions as f64 / transversions as f64
+    } else {
+        0.0
+    };
     Ok(Value::Float(ratio))
 }
 
 fn builtin_het_hom_ratio(args: &[Value]) -> Result<Value> {
     let items = match &args[0] {
         Value::List(items) => items,
-        other => return Err(BioLangError::type_error(
-            format!("het_hom_ratio() requires List of Variants, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "het_hom_ratio() requires List of Variants, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     let mut het = 0u64;
     let mut hom = 0u64;
-    for item in items {
+    for item in items.iter() {
         if let Value::Variant { ref info, .. } = item {
             let gt_str = info.get("GT").or_else(|| info.get("gt"));
             if let Some(Value::Str(gt)) = gt_str {
                 let sep = if gt.contains('|') { '|' } else { '/' };
-                let alleles: Vec<Option<u8>> = gt.split(sep)
+                let alleles: Vec<Option<u8>> = gt
+                    .split(sep)
                     .map(|a| if a == "." { None } else { a.parse().ok() })
                     .collect();
                 let vals: Vec<u8> = alleles.iter().filter_map(|a| *a).collect();
@@ -3725,7 +4899,11 @@ fn builtin_het_hom_ratio(args: &[Value]) -> Result<Value> {
             }
         }
     }
-    let ratio = if hom > 0 { het as f64 / hom as f64 } else { 0.0 };
+    let ratio = if hom > 0 {
+        het as f64 / hom as f64
+    } else {
+        0.0
+    };
     Ok(Value::Float(ratio))
 }
 
@@ -3733,13 +4911,15 @@ fn builtin_parse_vcf_info(args: &[Value]) -> Result<Value> {
     use std::collections::HashMap;
     let info_str = match &args[0] {
         Value::Str(s) => s.as_str(),
-        other => return Err(BioLangError::type_error(
-            format!("parse_vcf_info() requires Str, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("parse_vcf_info() requires Str, got {}", other.type_of()),
+                None,
+            ))
+        }
     };
     if info_str == "." || info_str.is_empty() {
-        return Ok(Value::Record(HashMap::new()));
+        return Ok(Value::Record((HashMap::new()).into()));
     }
     let mut rec = HashMap::new();
     for part in info_str.split(';') {
@@ -3750,12 +4930,19 @@ fn builtin_parse_vcf_info(args: &[Value]) -> Result<Value> {
         if let Some((key, val)) = part.split_once('=') {
             if val.contains(',') {
                 // Multi-value: parse each element
-                let items: Vec<Value> = val.split(',').map(|v| {
-                    if let Ok(n) = v.parse::<i64>() { Value::Int(n) }
-                    else if let Ok(f) = v.parse::<f64>() { Value::Float(f) }
-                    else { Value::Str(v.to_string()) }
-                }).collect();
-                rec.insert(key.to_string(), Value::List(items));
+                let items: Vec<Value> = val
+                    .split(',')
+                    .map(|v| {
+                        if let Ok(n) = v.parse::<i64>() {
+                            Value::Int(n)
+                        } else if let Ok(f) = v.parse::<f64>() {
+                            Value::Float(f)
+                        } else {
+                            Value::Str(v.to_string())
+                        }
+                    })
+                    .collect();
+                rec.insert(key.to_string(), Value::List((items).into()));
             } else if let Ok(n) = val.parse::<i64>() {
                 rec.insert(key.to_string(), Value::Int(n));
             } else if let Ok(f) = val.parse::<f64>() {
@@ -3768,7 +4955,7 @@ fn builtin_parse_vcf_info(args: &[Value]) -> Result<Value> {
             rec.insert(part.to_string(), Value::Bool(true));
         }
     }
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── Sequence pattern matching (F14) ─────────────────────────────
@@ -3776,16 +4963,31 @@ fn builtin_parse_vcf_info(args: &[Value]) -> Result<Value> {
 /// Convert IUPAC ambiguity code to regex character class.
 fn iupac_to_regex(c: char) -> &'static str {
     match c.to_ascii_uppercase() {
-        'A' => "A", 'T' => "T", 'C' => "C", 'G' => "G", 'U' => "U",
-        'R' => "[AG]", 'Y' => "[CT]", 'W' => "[AT]", 'S' => "[GC]",
-        'M' => "[AC]", 'K' => "[GT]", 'B' => "[CGT]", 'D' => "[AGT]",
-        'H' => "[ACT]", 'V' => "[ACG]", 'N' => "[ACGT]",
+        'A' => "A",
+        'T' => "T",
+        'C' => "C",
+        'G' => "G",
+        'U' => "U",
+        'R' => "[AG]",
+        'Y' => "[CT]",
+        'W' => "[AT]",
+        'S' => "[GC]",
+        'M' => "[AC]",
+        'K' => "[GT]",
+        'B' => "[CGT]",
+        'D' => "[AGT]",
+        'H' => "[ACT]",
+        'V' => "[ACG]",
+        'N' => "[ACGT]",
         _ => ".",
     }
 }
 
 fn iupac_pattern_to_regex(pattern: &str) -> String {
-    pattern.chars().map(|c| iupac_to_regex(c).to_string()).collect()
+    pattern
+        .chars()
+        .map(|c| iupac_to_regex(c).to_string())
+        .collect()
 }
 
 fn builtin_motif_find(args: &[Value]) -> Result<Value> {
@@ -3794,42 +4996,79 @@ fn builtin_motif_find(args: &[Value]) -> Result<Value> {
     let seq = match &args[0] {
         Value::DNA(s) | Value::RNA(s) => &s.data,
         Value::Str(s) => s,
-        other => return Err(BioLangError::type_error(format!("motif_find() requires DNA/RNA/Str, got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("motif_find() requires DNA/RNA/Str, got {}", other.type_of()),
+                None,
+            ))
+        }
     };
     let pattern = match &args[1] {
         Value::Str(s) => s.clone(),
-        other => return Err(BioLangError::type_error(format!("motif_find() pattern requires Str, got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("motif_find() pattern requires Str, got {}", other.type_of()),
+                None,
+            ))
+        }
     };
 
     let regex_pat = iupac_pattern_to_regex(&pattern);
     let re = regex::Regex::new(&format!("(?i){regex_pat}")).map_err(|e| {
-        BioLangError::runtime(ErrorKind::TypeError, format!("motif_find() invalid pattern: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("motif_find() invalid pattern: {e}"),
+            None,
+        )
     })?;
 
-    let results: Vec<Value> = re.find_iter(seq).map(|m| {
-        let mut rec = HashMap::new();
-        rec.insert("start".to_string(), Value::Int(m.start() as i64));
-        rec.insert("end".to_string(), Value::Int(m.end() as i64));
-        rec.insert("match".to_string(), Value::Str(m.as_str().to_string()));
-        Value::Record(rec)
-    }).collect();
-    Ok(Value::List(results))
+    let results: Vec<Value> = re
+        .find_iter(seq)
+        .map(|m| {
+            let mut rec = HashMap::new();
+            rec.insert("start".to_string(), Value::Int(m.start() as i64));
+            rec.insert("end".to_string(), Value::Int(m.end() as i64));
+            rec.insert("match".to_string(), Value::Str(m.as_str().to_string()));
+            Value::Record((rec).into())
+        })
+        .collect();
+    Ok(Value::List((results).into()))
 }
 
 fn builtin_motif_count(args: &[Value]) -> Result<Value> {
     let seq = match &args[0] {
         Value::DNA(s) | Value::RNA(s) => &s.data,
         Value::Str(s) => s,
-        other => return Err(BioLangError::type_error(format!("motif_count() requires DNA/RNA/Str, got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "motif_count() requires DNA/RNA/Str, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     let pattern = match &args[1] {
         Value::Str(s) => s.clone(),
-        other => return Err(BioLangError::type_error(format!("motif_count() pattern requires Str, got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "motif_count() pattern requires Str, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
 
     let regex_pat = iupac_pattern_to_regex(&pattern);
     let re = regex::Regex::new(&format!("(?i){regex_pat}")).map_err(|e| {
-        BioLangError::runtime(ErrorKind::TypeError, format!("motif_count() invalid pattern: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("motif_count() invalid pattern: {e}"),
+            None,
+        )
     })?;
 
     Ok(Value::Int(re.find_iter(seq).count() as i64))
@@ -3837,14 +5076,26 @@ fn builtin_motif_count(args: &[Value]) -> Result<Value> {
 
 fn builtin_consensus(args: &[Value]) -> Result<Value> {
     let sequences: Vec<&str> = match &args[0] {
-        Value::List(items) => {
-            items.iter().map(|v| match v {
+        Value::List(items) => items
+            .iter()
+            .map(|v| match v {
                 Value::DNA(s) | Value::RNA(s) => Ok(s.data.as_str()),
                 Value::Str(s) => Ok(s.as_str()),
-                other => Err(BioLangError::type_error(format!("consensus() requires List of DNA/RNA/Str, got {}", other.type_of()), None)),
-            }).collect::<Result<Vec<_>>>()?
+                other => Err(BioLangError::type_error(
+                    format!(
+                        "consensus() requires List of DNA/RNA/Str, got {}",
+                        other.type_of()
+                    ),
+                    None,
+                )),
+            })
+            .collect::<Result<Vec<_>>>()?,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("consensus() requires List, got {}", other.type_of()),
+                None,
+            ))
         }
-        other => return Err(BioLangError::type_error(format!("consensus() requires List, got {}", other.type_of()), None)),
     };
 
     if sequences.is_empty() {
@@ -3867,7 +5118,12 @@ fn builtin_consensus(args: &[Value]) -> Result<Value> {
                 }
             }
         }
-        let max_idx = counts.iter().enumerate().max_by_key(|(_, &c)| c).map(|(i, _)| i).unwrap_or(0);
+        let max_idx = counts
+            .iter()
+            .enumerate()
+            .max_by_key(|(_, &c)| c)
+            .map(|(i, _)| i)
+            .unwrap_or(0);
         result.push(['A', 'C', 'G', 'T'][max_idx]);
     }
     Ok(Value::Str(result))
@@ -3875,18 +5131,30 @@ fn builtin_consensus(args: &[Value]) -> Result<Value> {
 
 fn builtin_pwm(args: &[Value]) -> Result<Value> {
     let sequences: Vec<&str> = match &args[0] {
-        Value::List(items) => {
-            items.iter().map(|v| match v {
+        Value::List(items) => items
+            .iter()
+            .map(|v| match v {
                 Value::DNA(s) | Value::RNA(s) => Ok(s.data.as_str()),
                 Value::Str(s) => Ok(s.as_str()),
-                other => Err(BioLangError::type_error(format!("pwm() requires List of DNA/RNA/Str, got {}", other.type_of()), None)),
-            }).collect::<Result<Vec<_>>>()?
+                other => Err(BioLangError::type_error(
+                    format!(
+                        "pwm() requires List of DNA/RNA/Str, got {}",
+                        other.type_of()
+                    ),
+                    None,
+                )),
+            })
+            .collect::<Result<Vec<_>>>()?,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("pwm() requires List, got {}", other.type_of()),
+                None,
+            ))
         }
-        other => return Err(BioLangError::type_error(format!("pwm() requires List, got {}", other.type_of()), None)),
     };
 
     if sequences.is_empty() {
-        return Ok(Value::List(vec![]));
+        return Ok(Value::List((vec![]).into()));
     }
 
     let max_len = sequences.iter().map(|s| s.len()).max().unwrap_or(0);
@@ -3911,20 +5179,30 @@ fn builtin_pwm(args: &[Value]) -> Result<Value> {
         rec.insert("C".to_string(), Value::Float(counts[1] / n));
         rec.insert("G".to_string(), Value::Float(counts[2] / n));
         rec.insert("T".to_string(), Value::Float(counts[3] / n));
-        matrix.push(Value::Record(rec));
+        matrix.push(Value::Record((rec).into()));
     }
-    Ok(Value::List(matrix))
+    Ok(Value::List((matrix).into()))
 }
 
 fn builtin_pwm_scan(args: &[Value]) -> Result<Value> {
     let seq = match &args[0] {
         Value::DNA(s) | Value::RNA(s) => &s.data,
         Value::Str(s) => s,
-        other => return Err(BioLangError::type_error(format!("pwm_scan() requires DNA/RNA/Str, got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("pwm_scan() requires DNA/RNA/Str, got {}", other.type_of()),
+                None,
+            ))
+        }
     };
     let pwm = match &args[1] {
         Value::List(l) => l,
-        other => return Err(BioLangError::type_error(format!("pwm_scan() requires List (PWM), got {}", other.type_of()), None)),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("pwm_scan() requires List (PWM), got {}", other.type_of()),
+                None,
+            ))
+        }
     };
     let threshold = if args.len() > 2 {
         match &args[2] {
@@ -3938,7 +5216,7 @@ fn builtin_pwm_scan(args: &[Value]) -> Result<Value> {
 
     let pwm_len = pwm.len();
     if pwm_len == 0 || seq.len() < pwm_len {
-        return Ok(Value::List(vec![]));
+        return Ok(Value::List((vec![]).into()));
     }
 
     let mut hits = Vec::new();
@@ -3959,10 +5237,10 @@ fn builtin_pwm_scan(args: &[Value]) -> Result<Value> {
             let mut rec = std::collections::HashMap::new();
             rec.insert("pos".to_string(), Value::Int(i as i64));
             rec.insert("score".to_string(), Value::Float(score));
-            hits.push(Value::Record(rec));
+            hits.push(Value::Record((rec).into()));
         }
     }
-    Ok(Value::List(hits))
+    Ok(Value::List((hits).into()))
 }
 
 // ── Pipeline steps (F15) ────────────────────────────────────────
@@ -3976,10 +5254,16 @@ fn builtin_pipeline_steps(args: &[Value]) -> Result<Value> {
                 let mut rows = Vec::new();
                 for (i, step) in steps.iter().enumerate() {
                     if let Value::Record(s) = step {
-                        let name = s.get("name").map(|v| format!("{v}")).unwrap_or_else(|| format!("step_{i}"));
+                        let name = s
+                            .get("name")
+                            .map(|v| format!("{v}"))
+                            .unwrap_or_else(|| format!("step_{i}"));
                         let plugin = s.get("plugin").map(|v| format!("{v}")).unwrap_or_default();
                         let params = s.get("params").map(|v| format!("{v}")).unwrap_or_default();
-                        let depends = s.get("depends_on").map(|v| format!("{v}")).unwrap_or_default();
+                        let depends = s
+                            .get("depends_on")
+                            .map(|v| format!("{v}"))
+                            .unwrap_or_default();
                         rows.push(vec![
                             Value::Int(i as i64),
                             Value::Str(name),
@@ -3990,18 +5274,33 @@ fn builtin_pipeline_steps(args: &[Value]) -> Result<Value> {
                     }
                 }
                 Ok(Value::Table(Table::new(
-                    vec!["step".into(), "name".into(), "plugin".into(), "params".into(), "depends_on".into()],
+                    vec![
+                        "step".into(),
+                        "name".into(),
+                        "plugin".into(),
+                        "params".into(),
+                        "depends_on".into(),
+                    ],
                     rows,
                 )))
             } else {
                 Ok(Value::Table(Table::new(
-                    vec!["step".into(), "name".into(), "plugin".into(), "params".into(), "depends_on".into()],
+                    vec![
+                        "step".into(),
+                        "name".into(),
+                        "plugin".into(),
+                        "params".into(),
+                        "depends_on".into(),
+                    ],
                     vec![],
                 )))
             }
         }
         other => Err(BioLangError::type_error(
-            format!("pipeline_steps() requires Record (pipeline), got {}", other.type_of()),
+            format!(
+                "pipeline_steps() requires Record (pipeline), got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -4013,7 +5312,8 @@ fn builtin_coord_tag(args: Vec<Value>, system: &str) -> Result<Value> {
     use std::collections::HashMap;
     match args.into_iter().next().unwrap() {
         Value::Record(mut map) => {
-            map.insert("__coord_system".to_string(), Value::Str(system.to_string()));
+            Arc::make_mut(&mut map)
+                .insert("__coord_system".to_string(), Value::Str(system.to_string()));
             Ok(Value::Record(map))
         }
         Value::Interval(iv) => {
@@ -4023,10 +5323,14 @@ fn builtin_coord_tag(args: Vec<Value>, system: &str) -> Result<Value> {
             map.insert("end".to_string(), Value::Int(iv.end));
             map.insert("strand".to_string(), Value::Str(format!("{}", iv.strand)));
             map.insert("__coord_system".to_string(), Value::Str(system.to_string()));
-            Ok(Value::Record(map))
+            Ok(Value::Record((map).into()))
         }
         other => Err(BioLangError::type_error(
-            format!("coord_{}() requires Record or Interval, got {}", system, other.type_of()),
+            format!(
+                "coord_{}() requires Record or Interval, got {}",
+                system,
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -4047,7 +5351,10 @@ fn builtin_coord_convert(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.as_str(),
         other => {
             return Err(BioLangError::type_error(
-                format!("coord_convert() target must be Str, got {}", other.type_of()),
+                format!(
+                    "coord_convert() target must be Str, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -4064,9 +5371,13 @@ fn builtin_coord_convert(args: Vec<Value>) -> Result<Value> {
     let end = rec.get("end").and_then(|v| v.as_int()).unwrap_or(0);
 
     let (new_start, new_end) = CoordSystem::convert(from_sys, to_sys, start, end);
-    rec.insert("start".to_string(), Value::Int(new_start));
-    rec.insert("end".to_string(), Value::Int(new_end));
-    rec.insert("__coord_system".to_string(), Value::Str(to_system.to_string()));
+    let rec_mut = Arc::make_mut(&mut rec);
+    rec_mut.insert("start".to_string(), Value::Int(new_start));
+    rec_mut.insert("end".to_string(), Value::Int(new_end));
+    rec_mut.insert(
+        "__coord_system".to_string(),
+        Value::Str(to_system.to_string()),
+    );
     Ok(Value::Record(rec))
 }
 
@@ -4112,12 +5423,19 @@ fn builtin_strip_chr(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.as_str(),
         Value::Interval(iv) => {
             let mut iv = iv.clone();
-            iv.chrom = iv.chrom.strip_prefix("chr").unwrap_or(&iv.chrom).to_string();
+            iv.chrom = iv
+                .chrom
+                .strip_prefix("chr")
+                .unwrap_or(&iv.chrom)
+                .to_string();
             return Ok(Value::Interval(iv));
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("strip_chr() requires Str or Interval, got {}", other.type_of()),
+                format!(
+                    "strip_chr() requires Str or Interval, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -4139,7 +5457,10 @@ fn builtin_add_chr(args: Vec<Value>) -> Result<Value> {
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("add_chr() requires Str or Interval, got {}", other.type_of()),
+                format!(
+                    "add_chr() requires Str or Interval, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -4164,7 +5485,10 @@ fn builtin_normalize_chrom(args: Vec<Value>) -> Result<Value> {
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("normalize_chrom() requires Str or Interval, got {}", other.type_of()),
+                format!(
+                    "normalize_chrom() requires Str or Interval, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -4196,7 +5520,10 @@ fn builtin_kmer_encode(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.clone(),
         other => {
             return Err(BioLangError::type_error(
-                format!("kmer_encode() requires DNA/RNA/Str, got {}", other.type_of()),
+                format!(
+                    "kmer_encode() requires DNA/RNA/Str, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -4223,7 +5550,7 @@ fn builtin_kmer_encode(args: Vec<Value>) -> Result<Value> {
     } else {
         // Extract all k-mers
         let kmers = Kmer::extract_all(&seq, k);
-        Ok(Value::List(kmers.into_iter().map(Value::Kmer).collect()))
+        Ok(Value::List(kmers.into_iter().map(Value::Kmer).collect::<Vec<_>>().into()))
     }
 }
 
@@ -4318,8 +5645,11 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
             }
             seq_count += 1;
             if seq_count >= 1000 && seq_count % 10000 == 0 {
-                eprint!("\r\x1b[2Kkmer_count: {} sequences, {} unique k-mers...",
-                    seq_count, fast_counts.len());
+                eprint!(
+                    "\r\x1b[2Kkmer_count: {} sequences, {} unique k-mers...",
+                    seq_count,
+                    fast_counts.len()
+                );
             }
         }
         if seq_count >= 1000 {
@@ -4334,14 +5664,36 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => vec![s.clone()],
         Value::List(items) => {
             let mut out = Vec::with_capacity(items.len());
-            for item in items {
+            for item in items.iter() {
                 match extract_seq_str(item) {
                     Some(s) => out.push(s),
                     None => {
+                        // A Record IS an accepted type, but only via its `seq`
+                        // field — saying "must be ... Record, got Record" told
+                        // the caller nothing. Name the real problem instead.
+                        let detail = match item {
+                            Value::Record(map) => {
+                                let mut keys: Vec<&str> =
+                                    map.keys().map(String::as_str).collect();
+                                keys.sort_unstable();
+                                format!(
+                                    "record has no 'seq' field (found: {})",
+                                    if keys.is_empty() {
+                                        "no fields".to_string()
+                                    } else {
+                                        keys.join(", ")
+                                    }
+                                )
+                            }
+                            other => format!(
+                                "got {}, expected DNA/RNA/Str or a record with a 'seq' field",
+                                other.type_of()
+                            ),
+                        };
                         return Err(BioLangError::type_error(
-                            format!("kmer_count() list items must be DNA/RNA/Str/Record, got {}", item.type_of()),
+                            format!("kmer_count() list items: {detail}"),
                             None,
-                        ))
+                        ));
                     }
                 }
             }
@@ -4367,7 +5719,10 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("kmer_count() requires DNA/RNA/Str/List/Table/Stream, got {}", other.type_of()),
+                format!(
+                    "kmer_count() requires DNA/RNA/Str/List/Table/Stream, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -4379,9 +5734,13 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
     let mut fast_counts: rustc_hash::FxHashMap<u64, i64> = rustc_hash::FxHashMap::default();
     for (i, seq) in seqs.iter().enumerate() {
         if show_progress && (i % 10000 == 0 || i == total - 1) {
-            eprint!("\r\x1b[2Kkmer_count: {}/{} sequences ({:.0}%), {} unique k-mers...",
-                i + 1, total, (i + 1) as f64 / total as f64 * 100.0,
-                fast_counts.len());
+            eprint!(
+                "\r\x1b[2Kkmer_count: {}/{} sequences ({:.0}%), {} unique k-mers...",
+                i + 1,
+                total,
+                (i + 1) as f64 / total as f64 * 100.0,
+                fast_counts.len()
+            );
         }
         Kmer::count_into(seq, k, &mut fast_counts);
     }
@@ -4419,8 +5778,11 @@ fn builtin_kmer_distinct(args: Vec<Value>) -> Result<Value> {
             }
             seq_count += 1;
             if seq_count >= 1000 && seq_count % 10000 == 0 {
-                eprint!("\r\x1b[2Kkmer_distinct: {} sequences, {} unique k-mers...",
-                    seq_count, fast_counts.len());
+                eprint!(
+                    "\r\x1b[2Kkmer_distinct: {} sequences, {} unique k-mers...",
+                    seq_count,
+                    fast_counts.len()
+                );
             }
         }
         if seq_count >= 1000 {
@@ -4435,12 +5797,15 @@ fn builtin_kmer_distinct(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => vec![s.clone()],
         Value::List(items) => {
             let mut out = Vec::with_capacity(items.len());
-            for item in items {
+            for item in items.iter() {
                 match extract_seq_str(item) {
                     Some(s) => out.push(s),
                     None => {
                         return Err(BioLangError::type_error(
-                            format!("kmer_distinct() list items must be DNA/RNA/Str/Record, got {}", item.type_of()),
+                            format!(
+                                "kmer_distinct() list items must be DNA/RNA/Str/Record, got {}",
+                                item.type_of()
+                            ),
                             None,
                         ))
                     }
@@ -4468,7 +5833,10 @@ fn builtin_kmer_distinct(args: Vec<Value>) -> Result<Value> {
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("kmer_distinct() requires DNA/RNA/Str/List/Table/Stream, got {}", other.type_of()),
+                format!(
+                    "kmer_distinct() requires DNA/RNA/Str/List/Table/Stream, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -4479,8 +5847,12 @@ fn builtin_kmer_distinct(args: Vec<Value>) -> Result<Value> {
     let mut fast_counts: rustc_hash::FxHashMap<u64, i64> = rustc_hash::FxHashMap::default();
     for (i, seq) in seqs.iter().enumerate() {
         if show_progress && (i % 10000 == 0 || i == total - 1) {
-            eprint!("\r\x1b[2Kkmer_distinct: {}/{} sequences ({:.0}%)...",
-                i + 1, total, (i + 1) as f64 / total as f64 * 100.0);
+            eprint!(
+                "\r\x1b[2Kkmer_distinct: {}/{} sequences ({:.0}%)...",
+                i + 1,
+                total,
+                (i + 1) as f64 / total as f64 * 100.0
+            );
         }
         Kmer::count_into(seq, k, &mut fast_counts);
     }
@@ -4561,7 +5933,9 @@ impl KmerCounter {
     /// Try to create a SQLite temp DB and flush the in-memory map to it.
     /// Returns the DB on success, or a human-readable reason on failure.
     #[cfg(feature = "native")]
-    fn try_spill_to_disk(mem: &mut std::collections::HashMap<String, i64>) -> std::result::Result<KmerDiskStore, String> {
+    fn try_spill_to_disk(
+        mem: &mut std::collections::HashMap<String, i64>,
+    ) -> std::result::Result<KmerDiskStore, String> {
         // Check available disk space before creating DB
         let tmp = std::env::temp_dir();
         match check_disk_space(&tmp) {
@@ -4580,7 +5954,10 @@ impl KmerCounter {
         Ok(db)
     }
 
-    fn add_batch(&mut self, counts: &std::collections::HashMap<bl_core::bio_core::Kmer, u64>) -> Result<()> {
+    fn add_batch(
+        &mut self,
+        counts: &std::collections::HashMap<bl_core::bio_core::Kmer, u64>,
+    ) -> Result<()> {
         // Top-N mode: use in-memory with pruning
         if let Some(top_n) = self.top_n {
             let mem = self.mem.as_mut().unwrap();
@@ -4703,13 +6080,16 @@ impl KmerCounter {
             // This uses ~40 bytes/entry vs ~200 bytes/entry for a full Table.
             let rows = db.query_sorted_compact(limit)?;
             let n = rows.len();
-            eprintln!("\x1b[2m  {} unique k-mers → streaming result (use head(n) or collect)\x1b[0m", n);
+            eprintln!(
+                "\x1b[2m  {} unique k-mers → streaming result (use head(n) or collect)\x1b[0m",
+                n
+            );
             drop(self); // drops KmerDiskStore → temp file cleaned up
             let iter = rows.into_iter().map(|(km, cnt)| {
                 let mut rec = std::collections::HashMap::new();
                 rec.insert("kmer".to_string(), Value::Str(km));
                 rec.insert("count".to_string(), Value::Int(cnt));
-                Value::Record(rec)
+                Value::Record((rec).into())
             });
             return Ok(Value::Stream(bl_core::value::StreamValue::new(
                 format!("kmer_count({n} disk)"),
@@ -4735,7 +6115,7 @@ impl KmerCounter {
                 let mut rec = std::collections::HashMap::new();
                 rec.insert("kmer".to_string(), Value::Str(km));
                 rec.insert("count".to_string(), Value::Int(cnt));
-                Value::Record(rec)
+                Value::Record((rec).into())
             });
             return Ok(Value::Stream(bl_core::value::StreamValue::new(
                 format!("kmer_count({n})"),
@@ -4759,8 +6139,11 @@ fn check_disk_space(path: &std::path::Path) -> Option<u64> {
         let drive = path.to_string_lossy();
         let drive_letter = drive.chars().next()?;
         let output = std::process::Command::new("powershell")
-            .args(["-NoProfile", "-Command",
-                &format!("(Get-PSDrive {drive_letter}).Free")])
+            .args([
+                "-NoProfile",
+                "-Command",
+                &format!("(Get-PSDrive {drive_letter}).Free"),
+            ])
             .output()
             .ok()?;
         let s = String::from_utf8_lossy(&output.stdout);
@@ -4800,17 +6183,28 @@ impl KmerDiskStore {
         let tmp_path = crate::tempfiles::temp_path("kmer");
         crate::tempfiles::register(tmp_path.clone());
         let conn = rusqlite::Connection::open(&tmp_path).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("failed to open SQLite temp DB: {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("failed to open SQLite temp DB: {e}"),
+                None,
+            )
         })?;
-        conn.execute_batch("
+        conn.execute_batch(
+            "
             PRAGMA journal_mode = OFF;
             PRAGMA synchronous = OFF;
             PRAGMA cache_size = -64000;
             PRAGMA temp_store = MEMORY;
             PRAGMA page_size = 8192;
             CREATE TABLE kmers (kmer TEXT PRIMARY KEY, count INTEGER NOT NULL) WITHOUT ROWID;
-        ").map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("SQLite setup failed: {e}"), None)
+        ",
+        )
+        .map_err(|e| {
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("SQLite setup failed: {e}"),
+                None,
+            )
         })?;
         Ok(Self { conn, tmp_path })
     }
@@ -4820,12 +6214,14 @@ impl KmerDiskStore {
             BioLangError::runtime(ErrorKind::IOError, format!("SQLite transaction: {e}"), None)
         })?;
         {
-            let mut stmt = tx.prepare(
-                "INSERT INTO kmers (kmer, count) VALUES (?1, ?2)
-                 ON CONFLICT(kmer) DO UPDATE SET count = count + ?2"
-            ).map_err(|e| {
-                BioLangError::runtime(ErrorKind::IOError, format!("SQLite prepare: {e}"), None)
-            })?;
+            let mut stmt = tx
+                .prepare(
+                    "INSERT INTO kmers (kmer, count) VALUES (?1, ?2)
+                 ON CONFLICT(kmer) DO UPDATE SET count = count + ?2",
+                )
+                .map_err(|e| {
+                    BioLangError::runtime(ErrorKind::IOError, format!("SQLite prepare: {e}"), None)
+                })?;
             for (kmer, count) in mem.drain() {
                 stmt.execute(rusqlite::params![kmer, count]).map_err(|e| {
                     BioLangError::runtime(ErrorKind::IOError, format!("SQLite insert: {e}"), None)
@@ -4839,18 +6235,23 @@ impl KmerDiskStore {
     }
 
     fn to_table(&self, limit: usize) -> Result<Value> {
-        let mut stmt = self.conn.prepare(
-            "SELECT kmer, count FROM kmers ORDER BY count DESC LIMIT ?1"
-        ).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
-        })?;
-        let rows: Vec<Vec<Value>> = stmt.query_map([limit as i64], |row| {
-            let kmer: String = row.get(0)?;
-            let count: i64 = row.get(1)?;
-            Ok(vec![Value::Str(kmer), Value::Int(count)])
-        }).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
-        })?.filter_map(|r| r.ok()).collect();
+        let mut stmt = self
+            .conn
+            .prepare("SELECT kmer, count FROM kmers ORDER BY count DESC LIMIT ?1")
+            .map_err(|e| {
+                BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
+            })?;
+        let rows: Vec<Vec<Value>> = stmt
+            .query_map([limit as i64], |row| {
+                let kmer: String = row.get(0)?;
+                let count: i64 = row.get(1)?;
+                Ok(vec![Value::Str(kmer), Value::Int(count)])
+            })
+            .map_err(|e| {
+                BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
 
         Ok(Value::Table(Table::new(
             vec!["kmer".into(), "count".into()],
@@ -4861,25 +6262,33 @@ impl KmerDiskStore {
     /// Query sorted rows as compact (String, i64) pairs — much less memory than Value rows.
     /// The DB can be dropped immediately after this call; the Vec owns all data.
     fn query_sorted_compact(&self, limit: usize) -> Result<Vec<(String, i64)>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT kmer, count FROM kmers ORDER BY count DESC LIMIT ?1"
-        ).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
-        })?;
-        let rows: Vec<(String, i64)> = stmt.query_map([limit as i64], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-        }).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
-        })?.filter_map(|r| r.ok()).collect();
+        let mut stmt = self
+            .conn
+            .prepare("SELECT kmer, count FROM kmers ORDER BY count DESC LIMIT ?1")
+            .map_err(|e| {
+                BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
+            })?;
+        let rows: Vec<(String, i64)> = stmt
+            .query_map([limit as i64], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })
+            .map_err(|e| {
+                BioLangError::runtime(ErrorKind::IOError, format!("SQLite query: {e}"), None)
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
         Ok(rows)
     }
 }
 
-fn kmer_counts_to_table(merged: std::collections::HashMap<String, i64>, limit: usize) -> Result<Value> {
+fn kmer_counts_to_table(
+    merged: std::collections::HashMap<String, i64>,
+    limit: usize,
+) -> Result<Value> {
     if limit < merged.len() {
         // Partial sort: only need top `limit` entries
-        use std::collections::BinaryHeap;
         use std::cmp::Reverse;
+        use std::collections::BinaryHeap;
         let mut heap: BinaryHeap<Reverse<(i64, String)>> = BinaryHeap::with_capacity(limit + 1);
         for (km, cnt) in merged {
             heap.push(Reverse((cnt, km)));
@@ -4923,7 +6332,11 @@ fn kmer_counts_to_table(merged: std::collections::HashMap<String, i64>, limit: u
 
 /// Convert u64-keyed kmer counts to Value output.
 /// Decodes kmer integers to strings only at the final output stage.
-fn fast_counts_to_value<S: std::hash::BuildHasher>(counts: std::collections::HashMap<u64, i64, S>, k: u8, top_n: Option<usize>) -> Result<Value> {
+fn fast_counts_to_value<S: std::hash::BuildHasher>(
+    counts: std::collections::HashMap<u64, i64, S>,
+    k: u8,
+    top_n: Option<usize>,
+) -> Result<Value> {
     let limit = top_n.unwrap_or(usize::MAX);
 
     // Streaming mode for large unbounded results — lazy heap-pop iterator
@@ -4941,7 +6354,7 @@ fn fast_counts_to_value<S: std::hash::BuildHasher>(counts: std::collections::Has
             let mut rec = std::collections::HashMap::new();
             rec.insert("kmer".to_string(), Value::Str(kmer_str));
             rec.insert("count".to_string(), Value::Int(cnt));
-            Value::Record(rec)
+            Value::Record((rec).into())
         });
         return Ok(Value::Stream(bl_core::value::StreamValue::new(
             format!("kmer_count({n})"),
@@ -4951,8 +6364,8 @@ fn fast_counts_to_value<S: std::hash::BuildHasher>(counts: std::collections::Has
 
     // Table mode with top-N: BinaryHeap partial sort O(n log limit)
     if limit < counts.len() {
-        use std::collections::BinaryHeap;
         use std::cmp::Reverse;
+        use std::collections::BinaryHeap;
         let mut heap: BinaryHeap<Reverse<(i64, u64)>> = BinaryHeap::with_capacity(limit + 1);
         for (enc, cnt) in &counts {
             heap.push(Reverse((*cnt, *enc)));
@@ -5037,9 +6450,7 @@ fn builtin_kmer_spectrum(args: Vec<Value>) -> Result<Value> {
         .into_iter()
         .map(|(freq, cnt)| vec![Value::Int(freq), Value::Int(cnt)])
         .collect();
-    rows.sort_by_key(|r| {
-        if let Value::Int(f) = &r[0] { *f } else { 0 }
-    });
+    rows.sort_by_key(|r| if let Value::Int(f) = &r[0] { *f } else { 0 });
     Ok(Value::Table(Table::new(
         vec!["frequency".into(), "count".into()],
         rows,
@@ -5084,10 +6495,10 @@ fn builtin_minimizers(args: Vec<Value>) -> Result<Value> {
             let mut rec = std::collections::HashMap::new();
             rec.insert("kmer".to_string(), Value::Kmer(km));
             rec.insert("pos".to_string(), Value::Int(pos as i64));
-            Value::Record(rec)
+            Value::Record((rec).into())
         })
         .collect();
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 // ── GAP 3: Streaming builtins ───────────────────────────────────
@@ -5095,10 +6506,13 @@ fn builtin_minimizers(args: Vec<Value>) -> Result<Value> {
 fn builtin_stream_chunks(args: Vec<Value>) -> Result<Value> {
     let stream = match &args[0] {
         Value::Stream(s) => s.clone(),
-        Value::List(items) => StreamValue::from_list("list", items.clone()),
+        Value::List(items) => StreamValue::from_list("list", (items).as_ref().clone()),
         other => {
             return Err(BioLangError::type_error(
-                format!("stream_chunks() requires Stream or List, got {}", other.type_of()),
+                format!(
+                    "stream_chunks() requires Stream or List, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -5106,7 +6520,9 @@ fn builtin_stream_chunks(args: Vec<Value>) -> Result<Value> {
     let n = require_int(&args[1], "stream_chunks")? as usize;
     if n == 0 {
         return Err(BioLangError::runtime(
-            ErrorKind::TypeError, "stream_chunks() chunk size must be > 0", None,
+            ErrorKind::TypeError,
+            "stream_chunks() chunk size must be > 0",
+            None,
         ));
     }
 
@@ -5123,7 +6539,7 @@ fn builtin_stream_chunks(args: Vec<Value>) -> Result<Value> {
         if chunk.is_empty() {
             None
         } else {
-            Some(Value::List(chunk))
+            Some(Value::List((chunk).into()))
         }
     });
 
@@ -5136,10 +6552,13 @@ fn builtin_stream_chunks(args: Vec<Value>) -> Result<Value> {
 fn builtin_stream_take(args: Vec<Value>) -> Result<Value> {
     let stream = match &args[0] {
         Value::Stream(s) => s.clone(),
-        Value::List(items) => StreamValue::from_list("list", items.clone()),
+        Value::List(items) => StreamValue::from_list("list", (items).as_ref().clone()),
         other => {
             return Err(BioLangError::type_error(
-                format!("stream_take() requires Stream or List, got {}", other.type_of()),
+                format!(
+                    "stream_take() requires Stream or List, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -5152,16 +6571,19 @@ fn builtin_stream_take(args: Vec<Value>) -> Result<Value> {
             None => break,
         }
     }
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 fn builtin_stream_skip(args: Vec<Value>) -> Result<Value> {
     let stream = match &args[0] {
         Value::Stream(s) => s.clone(),
-        Value::List(items) => StreamValue::from_list("list", items.clone()),
+        Value::List(items) => StreamValue::from_list("list", (items).as_ref().clone()),
         other => {
             return Err(BioLangError::type_error(
-                format!("stream_skip() requires Stream or List, got {}", other.type_of()),
+                format!(
+                    "stream_skip() requires Stream or List, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -5185,8 +6607,11 @@ fn builtin_memory_usage() -> Result<Value> {
     // We can't easily get heap size in pure Rust without allocator hooks
     // Report what we can: placeholder for system-level info
     rec.insert("heap_bytes".to_string(), Value::Int(0));
-    rec.insert("note".to_string(), Value::Str("approximate — use OS tools for precise measurement".to_string()));
-    Ok(Value::Record(rec))
+    rec.insert(
+        "note".to_string(),
+        Value::Str("approximate — use OS tools for precise measurement".to_string()),
+    );
+    Ok(Value::Record((rec).into()))
 }
 
 // ── GAP 6: Typed table columns ──────────────────────────────────
@@ -5223,7 +6648,7 @@ fn builtin_table_col_types(args: Vec<Value>) -> Result<Value> {
         }
         types.insert(col.clone(), Value::Str(type_name.to_string()));
     }
-    Ok(Value::Record(types))
+    Ok(Value::Record((types).into()))
 }
 
 fn builtin_table_set_col_type(args: Vec<Value>) -> Result<Value> {
@@ -5231,7 +6656,10 @@ fn builtin_table_set_col_type(args: Vec<Value>) -> Result<Value> {
         Value::Table(t) => t.clone(),
         other => {
             return Err(BioLangError::type_error(
-                format!("table_set_col_type() requires Table, got {}", other.type_of()),
+                format!(
+                    "table_set_col_type() requires Table, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -5240,7 +6668,10 @@ fn builtin_table_set_col_type(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.clone(),
         other => {
             return Err(BioLangError::type_error(
-                format!("table_set_col_type() col must be Str, got {}", other.type_of()),
+                format!(
+                    "table_set_col_type() col must be Str, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -5249,7 +6680,10 @@ fn builtin_table_set_col_type(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.clone(),
         other => {
             return Err(BioLangError::type_error(
-                format!("table_set_col_type() type must be Str, got {}", other.type_of()),
+                format!(
+                    "table_set_col_type() type must be Str, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -5263,8 +6697,8 @@ fn builtin_table_set_col_type(args: Vec<Value>) -> Result<Value> {
 
     let mut result = std::collections::HashMap::new();
     result.insert("table".to_string(), Value::Table(t));
-    result.insert("schema".to_string(), Value::Record(schema));
-    Ok(Value::Record(result))
+    result.insert("schema".to_string(), Value::Record((schema).into()));
+    Ok(Value::Record((result).into()))
 }
 
 fn builtin_table_validate(args: Vec<Value>) -> Result<Value> {
@@ -5283,8 +6717,11 @@ fn builtin_table_validate(args: Vec<Value>) -> Result<Value> {
         _ => {
             let mut result = std::collections::HashMap::new();
             result.insert("valid".to_string(), Value::Bool(false));
-            result.insert("errors".to_string(), Value::List(vec![Value::Str("missing 'table' field".into())]));
-            return Ok(Value::Record(result));
+            result.insert(
+                "errors".to_string(),
+                Value::List((vec![Value::Str("missing 'table' field".into())]).into()),
+            );
+            return Ok(Value::Record((result).into()));
         }
     };
     let schema = match rec.get("schema") {
@@ -5292,13 +6729,13 @@ fn builtin_table_validate(args: Vec<Value>) -> Result<Value> {
         _ => {
             let mut result = std::collections::HashMap::new();
             result.insert("valid".to_string(), Value::Bool(true));
-            result.insert("errors".to_string(), Value::List(vec![]));
-            return Ok(Value::Record(result));
+            result.insert("errors".to_string(), Value::List((vec![]).into()));
+            return Ok(Value::Record((result).into()));
         }
     };
 
     let mut errors = Vec::new();
-    for (col, type_val) in schema {
+    for (col, type_val) in schema.iter() {
         let type_str = match type_val {
             Value::Str(s) => s.as_str(),
             _ => continue,
@@ -5322,8 +6759,8 @@ fn builtin_table_validate(args: Vec<Value>) -> Result<Value> {
 
     let mut result = std::collections::HashMap::new();
     result.insert("valid".to_string(), Value::Bool(errors.is_empty()));
-    result.insert("errors".to_string(), Value::List(errors));
-    Ok(Value::Record(result))
+    result.insert("errors".to_string(), Value::List((errors).into()));
+    Ok(Value::Record((result).into()))
 }
 
 fn builtin_table_schema(args: Vec<Value>) -> Result<Value> {
@@ -5339,7 +6776,7 @@ fn builtin_table_schema(args: Vec<Value>) -> Result<Value> {
     let mut result = std::collections::HashMap::new();
     result.insert(
         "columns".to_string(),
-        Value::List(t.columns.iter().map(|c| Value::Str(c.clone())).collect()),
+        Value::List(t.columns.iter().map(|c| Value::Str(c.clone())).collect::<Vec<_>>().into()),
     );
     // Infer types
     let mut types = Vec::new();
@@ -5355,10 +6792,10 @@ fn builtin_table_schema(args: Vec<Value>) -> Result<Value> {
         }
         types.push(Value::Str(type_name));
     }
-    result.insert("types".to_string(), Value::List(types));
+    result.insert("types".to_string(), Value::List((types).into()));
     result.insert("nrow".to_string(), Value::Int(t.num_rows() as i64));
     result.insert("ncol".to_string(), Value::Int(t.num_cols() as i64));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 fn builtin_table_cast(args: Vec<Value>) -> Result<Value> {
@@ -5391,7 +6828,11 @@ fn builtin_table_cast(args: Vec<Value>) -> Result<Value> {
     };
 
     let ci = t.col_index(&col).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::TypeError, &format!("column '{col}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            &format!("column '{col}' not found"),
+            None,
+        )
     })?;
 
     let mut new_rows = t.rows.clone();
@@ -5427,7 +6868,10 @@ fn builtin_pipe_fuse(args: Vec<Value>) -> Result<Value> {
         Value::List(l) => l.clone(),
         other => {
             return Err(BioLangError::type_error(
-                format!("pipe_fuse() first arg must be List, got {}", other.type_of()),
+                format!(
+                    "pipe_fuse() first arg must be List, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -5447,26 +6891,32 @@ fn builtin_with_provenance(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => {
             let mut m = std::collections::HashMap::new();
             m.insert("operation".to_string(), Value::Str(s.clone()));
-            m
+            (m).into()
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("with_provenance() meta must be Record or Str, got {}", other.type_of()),
+                format!(
+                    "with_provenance() meta must be Record or Str, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
 
     let mut prov = std::collections::HashMap::new();
-    prov.insert("timestamp".to_string(), Value::Str(chrono::Utc::now().to_rfc3339()));
-    for (k, v) in meta {
-        prov.insert(k, v);
+    prov.insert(
+        "timestamp".to_string(),
+        Value::Str(chrono::Utc::now().to_rfc3339()),
+    );
+    for (k, v) in meta.iter() {
+        prov.insert(k.clone(), v.clone());
     }
 
     let mut result = std::collections::HashMap::new();
     result.insert("__value".to_string(), value);
-    result.insert("__provenance".to_string(), Value::Record(prov));
-    Ok(Value::Record(result))
+    result.insert("__provenance".to_string(), Value::Record((prov).into()));
+    Ok(Value::Record((result).into()))
 }
 
 fn builtin_provenance(args: Vec<Value>) -> Result<Value> {
@@ -5500,7 +6950,7 @@ fn builtin_provenance_chain(args: Vec<Value>) -> Result<Value> {
             _ => break,
         }
     }
-    Ok(Value::List(chain))
+    Ok(Value::List((chain).into()))
 }
 
 fn builtin_checkpoint(args: Vec<Value>) -> Result<Value> {
@@ -5534,7 +6984,10 @@ fn builtin_resume_checkpoint(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.clone(),
         other => {
             return Err(BioLangError::type_error(
-                format!("resume_checkpoint() name must be Str, got {}", other.type_of()),
+                format!(
+                    "resume_checkpoint() name must be Str, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -5543,7 +6996,10 @@ fn builtin_resume_checkpoint(args: Vec<Value>) -> Result<Value> {
     #[cfg(feature = "native")]
     {
         if let Some(home) = dirs::home_dir() {
-            let path = home.join(".biolang").join("checkpoints").join(format!("{name}.json"));
+            let path = home
+                .join(".biolang")
+                .join("checkpoints")
+                .join(format!("{name}.json"));
             if path.exists() {
                 if let Ok(contents) = std::fs::read_to_string(&path) {
                     return Ok(Value::Str(contents));

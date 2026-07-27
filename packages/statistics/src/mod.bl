@@ -1,0 +1,23 @@
+# statistics — Statistical analysis for BioLang
+#
+# Quick start:
+#   import "statistics" as stat
+#
+#   let adj = stat.bh(p_values)
+#   stat.fisher(8, 2, 1, 5)
+#   stat.permtest(group_a, group_b, n=10000)
+#   stat.bootstrap(values, conf=0.95)
+#   stat.inflation(gwas_pvalues)
+
+import "statistics/src/tests"      as tests
+import "statistics/src/correction" as corr
+
+fn bh(p_values)                         { corr.bh(p_values) }
+fn bonferroni(p_values)                  { corr.bonferroni(p_values) }
+fn inflation(p_values)                   { corr.inflation(p_values) }
+fn significant(p_values, t=0.05)         { corr.significant(p_values, t) }
+fn fisher(a, b, c, d)                    { tests.fisher(a, b, c, d) }
+fn chi2(observed, expected)              { tests.chi2(observed, expected) }
+fn permtest(a, b, n=1000)               { tests.permtest(a, b, n) }
+fn bootstrap(values, n=1000, conf=0.95) { tests.bootstrap(values, n, conf) }
+fn pearson(x, y)                         { tests.pearson(x, y) }

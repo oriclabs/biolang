@@ -28,28 +28,27 @@
         <section class="mb-12" id="verify_checksum">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">verify_checksum</span></h2>
           <p class="text-slate-400 mt-2">Verify a file's checksum against an expected value. Supports MD5, SHA-1, and SHA-256 algorithms.</p>
-          <pre><code class="language-biolang">verify_checksum(path, expected, algorithm?) -> bool</code></pre>
+          <pre><code class="language-text">verify_checksum(path, expected) -> bool</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
               <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">path</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Path to file</td></tr>
               <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">expected</td><td class="py-2 px-3">string</td><td class="py-2 px-3">Expected checksum (hex string)</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">algorithm</td><td class="py-2 px-3">string (optional)</td><td class="py-2 px-3">"md5", "sha1", or "sha256" (default: "sha256")</td></tr>
             </tbody>
           </table>
           <pre><code class="language-biolang"># Verify downloaded reference genome
-let ok = verify_checksum("GRCh38.fa.gz", "abc123def...", "sha256")
-assert(ok, "Checksum mismatch!")
+let ok = verify_checksum("GRCh38.fa.gz", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+assert ok, "Checksum mismatch!"
 
 # Verify with MD5
-let valid = verify_checksum("data.bam", "d41d8cd98f00b204e9800998ecf8427e", "md5")
+let valid = verify_checksum("data.bam", "d41d8cd98f00b204e9800998ecf8427e")
 println("File integrity:", valid)</code></pre>
         </section>
 
         <section class="mb-12" id="sketch">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sketch</span></h2>
           <p class="text-slate-400 mt-2">Create a bottom-sketch (sorted MinHash) of k-mer hashes from a sequence. Compact representation for approximate sequence comparison.</p>
-          <pre><code class="language-biolang">sketch(sequence, k, sketch_size) -> list</code></pre>
+          <pre><code class="language-text">sketch(sequence, k, sketch_size) -> list</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>

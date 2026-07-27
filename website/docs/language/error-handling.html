@@ -25,7 +25,7 @@
         <h1>Error Handling</h1>
         <p>
           BioLang uses <code>try</code>/<code>catch</code> for exception-style error handling and
-          <code>assert(condition, "message")</code> for precondition checks. Uncaught errors
+          <code>assert condition, "message"</code> for precondition checks. Uncaught errors
           propagate up the call stack automatically.
         </p>
 
@@ -85,13 +85,13 @@ let loaded = paths
           with <code>try</code>/<code>catch</code>:
         </p>
         <pre><code class="language-biolang"># Assertions that pass do nothing
-assert(1 + 1 == 2, "math works")
-assert(len([1, 2, 3]) == 3, "len is correct")
+assert 1 + 1 == 2, "math works"
+assert len([1, 2, 3]) == 3, "len is correct"
 println("all assertions passed")
 
 # A failing assertion throws an error
 try {
-  assert(1 > 2, "one is not greater than two")
+  assert 1 > 2, "one is not greater than two"
 } catch e {
   println(f"Caught assertion: {e}")
 }</code></pre>
@@ -104,7 +104,7 @@ try {
         </p>
         <pre><code class="language-biolang"># An error in any pipe stage stops the chain
 fn must_be_positive(n) {
-  if n <= 0 {
+  if n &lt;= 0 {
     error(f"expected positive, got {n}")
   }
   n
@@ -142,7 +142,7 @@ println(f"Succeeded: {good}, Failed: {bad}")</code></pre>
         <h2>Validation Pattern</h2>
         <pre><code class="language-biolang"># Use assert for precondition checks
 fn analyze(scores) {
-  assert(len(scores) > 0, "scores list must not be empty")
+  assert len(scores) > 0, "scores list must not be empty"
   let avg = sum(scores) / len(scores)
   let mx = max(scores)
   {average: avg, maximum: mx}

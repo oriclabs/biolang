@@ -85,26 +85,19 @@ let batch_C = [
 ]
 
 # Build header
-let header = "sample_id,center,condition"
-for g in range(0, 50) {
-    header = f"{header},{gene_names[g]}"
-}
-
-let lines = [header]
+let header = "sample_id,center,condition," + join(gene_names, ",")
 
 # 60 samples: centers A(1-20), B(21-40), C(41-60)
 # Within each center: samples 1-10 = tumor, 11-20 = normal
-for s in range(0, 60) {
-    let center_idx = s / 20  # 0, 1, 2
+let rows = range(0, 60) |> map(|s| {
+    let center_idx = int(s / 20)  # 0, 1, 2
     let within = s % 20
     let is_tumor = within < 10
     let center = if center_idx == 0 { "A" } else if center_idx == 1 { "B" } else { "C" }
     let condition = if is_tumor { "tumor" } else { "normal" }
     let sample_id = f"{center}_{condition}_{(within % 10) + 1:02}"
 
-    let row = f"{sample_id},{center},{condition}"
-
-    for g in range(0, 50) {
+    let values = range(0, 50) |> map(|g| {
         let base = base_expr[g]
         # Add batch effect
         let batch = if center_idx == 0 { 0.0 }
@@ -115,13 +108,13 @@ for s in range(0, 60) {
         # Add sample-level noise (small relative to batch)
         let noise = ((s * 50 + g) * 2654435761 % 1000) / 1000.0 - 0.5
         let expr = round(base + batch + bio + noise * 0.6, 2)
-        row = f"{row},{expr}"
-    }
+        str(expr)
+    })
+    f"{sample_id},{center},{condition}," + join(values, ",")
+})
 
-    lines = append(lines, row)
-}
-
-write_lines(lines, "data/batch_expression.csv")
+let lines = [header] + rows
+write_lines("data/batch_expression.csv", lines)
 println("Wrote data/batch_expression.csv: 50 genes x 60 samples")
 println("  3 centers (A, B, C), 10 tumor + 10 normal each")
 println("  Batch effect: ~2.5 log2 units (explains ~40% variance)")

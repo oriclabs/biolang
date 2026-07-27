@@ -37,16 +37,16 @@ let gwas_data = [
     "MR_pooled,Ference,2016,JACC,62240,127299,-13.1,1.2,0.00000001"
 ]
 for d in gwas_data {
-    gwas_lines = append(gwas_lines, d)
+    gwas_lines = push(gwas_lines, d)
 }
-write_lines(gwas_lines, "data/gwas_studies.csv")
+write_lines("data/gwas_studies.csv", gwas_lines)
 
 # ── File 2: Same 5 studies + 3 small unpublished studies with null results ──
 # Demonstrates publication bias / funnel plot asymmetry
 let bias_lines = ["study,first_author,year,journal,n_cases,n_controls,beta,se,p_value"]
 # Include the 5 published studies
 for d in gwas_data {
-    bias_lines = append(bias_lines, d)
+    bias_lines = push(bias_lines, d)
 }
 # Add 3 small unpublished studies with null / weak results (file-drawer problem)
 let unpublished = [
@@ -58,9 +58,9 @@ let unpublished = [
     "Thesis_C,Unpub_C,2019,unpublished,45,135,1.2,12.8,0.93"
 ]
 for u in unpublished {
-    bias_lines = append(bias_lines, u)
+    bias_lines = push(bias_lines, u)
 }
-write_lines(bias_lines, "data/publication_bias_demo.csv")
+write_lines("data/publication_bias_demo.csv", bias_lines)
 
 println("Created data/gwas_studies.csv")
 println("  5 published studies of PCSK9 variants and LDL cholesterol")

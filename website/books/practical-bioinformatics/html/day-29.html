@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-e720ecec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -226,9 +226,13 @@ bl init.bl
 </code></pre>
 <p>This creates a count matrix with 200 genes across 6 samples (3 control, 3 treated), along with sample metadata and gene annotations.</p>
 <p>Now load everything:</p>
-<pre><code class="language-bio">let counts = read_tsv("data/counts.tsv")
-let samples = read_tsv("data/samples.tsv")
-let gene_info = read_tsv("data/gene_info.tsv")
+<blockquote>
+<p><strong>Requires CLI:</strong> TSV readers require the native runtime. Run the capstone
+blocks together after <code>bl run init.bl</code>.</p>
+</blockquote>
+<pre><code class="language-bio">let counts = tsv("data/counts.tsv")
+let samples = tsv("data/samples.tsv")
+let gene_info = tsv("data/gene_info.tsv")
 
 println(f"Genes: {len(counts)}")
 println(f"Samples: {len(samples)}")
@@ -238,13 +242,16 @@ Samples: 6
 </code></pre>
 <p>The count matrix has columns: <code>gene</code>, <code>ctrl_1</code>, <code>ctrl_2</code>, <code>ctrl_3</code>, <code>treat_1</code>, <code>treat_2</code>, <code>treat_3</code>. Each row is a gene; each value is a non-negative integer count.</p>
 <p>Let us validate the structure:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
 <pre><code class="language-bio">fn validate_counts(counts, samples) {
     if len(counts) == 0 {
         error("Count matrix is empty")
     }
     let sample_ids = samples |&gt; map(|s| s.sample_id)
     sample_ids |&gt; each(|sid| {
-        let col_names = counts |&gt; keys()
+        let col_names = counts |&gt; columns()
         if contains(col_names, sid) == false {
             error(f"Sample {sid} not found in count matrix")
         }
@@ -262,6 +269,9 @@ println(f"Validation: {validation.status} ({validation.genes} genes, {validation
 <p>Before analysis, we check library sizes and identify problematic genes.</p>
 <h3 id="library-sizes"><a class="header" href="#library-sizes">Library Sizes</a></h3>
 <p>Library size is the total count across all genes for a given sample. Large differences between libraries suggest a technical problem or the need for careful normalization.</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
 <pre><code class="language-bio">let sample_ids = samples |&gt; map(|s| s.sample_id)
 
 let lib_sizes = sample_ids |&gt; map(|sid| {
@@ -283,6 +293,9 @@ lib_sizes |&gt; each(|ls| {
 <p>Good — library sizes are within a factor of 1.15 of each other. If one sample had 10x fewer reads, we would investigate or exclude it.</p>
 <h3 id="zero-count-genes"><a class="header" href="#zero-count-genes">Zero-Count Genes</a></h3>
 <p>Genes with zero counts across all samples carry no information. Let us count them:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
 <pre><code class="language-bio">let zero_genes = counts |&gt; filter(|row| {
     let total = sample_ids |&gt; map(|sid| int(row[sid])) |&gt; sum()
     total == 0
@@ -293,7 +306,8 @@ println(f"Genes with zero counts across all samples: {len(zero_genes)}")
 </code></pre>
 <h3 id="filtering-low-count-genes"><a class="header" href="#filtering-low-count-genes">Filtering Low-Count Genes</a></h3>
 <p>Standard practice is to remove genes where the total count across all samples is below a threshold. This reduces the multiple testing burden and removes noisy genes.</p>
-<pre><code class="language-bio">let min_total = 10
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let min_total = 10
 
 let filtered = counts |&gt; where(|row| {
     let total = sample_ids |&gt; map(|sid| int(row[sid])) |&gt; sum()
@@ -322,7 +336,8 @@ Genes after filter (total &gt;= 10): 180
 
   → Sample 2 actually has HALF the relative expression of Sample 1
 </code></pre>
-<pre><code class="language-bio">fn compute_cpm(counts, sample_ids) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn compute_cpm(counts, sample_ids) {
     let lib_sizes = sample_ids |&gt; map(|sid| {
         counts |&gt; map(|row| int(row[sid])) |&gt; sum()
     })
@@ -360,7 +375,8 @@ println(f"CPM for {first_gene.gene}: ctrl_1={first_gene.ctrl_1}, treat_1={first_
 
   → Gene B is LESS expressed per unit length, despite equal raw counts
 </code></pre>
-<pre><code class="language-bio">fn compute_tpm(counts, sample_ids, gene_info) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn compute_tpm(counts, sample_ids, gene_info) {
     let length_map = {}
     gene_info |&gt; each(|g| {
         length_map[g.gene] = float(g.length)
@@ -472,7 +488,8 @@ let de_results = differential_expression(cpm, ctrl_ids, treat_ids)
 <li>For rank <em>i</em> out of <em>m</em> total tests: adjusted p = p-value * m / i</li>
 <li>Enforce monotonicity (each adjusted p &gt;= the one before it)</li>
 </ol>
-<pre><code class="language-bio">fn benjamini_hochberg(de_results) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn benjamini_hochberg(de_results) {
     let sorted = de_results |&gt; sort_by(|a, b| {
         if a.pvalue &lt; b.pvalue { -1 }
         else if a.pvalue &gt; b.pvalue { 1 }
@@ -554,13 +571,12 @@ Significant DE genes (|log2FC| &gt; 1.0, FDR &lt; 0.05): 45
     }
 })
 
-let volcano_svg = volcano(
-    volcano_data |&gt; map(|r| r.log2fc),
-    volcano_data |&gt; map(|r| r.neg_log10_padj),
-    "Drug Treatment: Volcano Plot",
-    "log2 Fold Change",
-    "-log10(adjusted p-value)"
-)
+let volcano_svg = volcano(corrected |&gt; to_table(), {
+    fc: "log2fc",
+    p: "padj",
+    fc_threshold: fc_threshold,
+    p_threshold: fdr_threshold
+})
 
 write_lines([volcano_svg], "data/output/volcano.svg")
 println("Wrote volcano plot to data/output/volcano.svg")
@@ -593,12 +609,11 @@ let heatmap_matrix = heatmap_data |&gt; map(|row| {
 
 let heatmap_labels = heatmap_data |&gt; map(|row| row.gene)
 
-let hm_svg = heatmap(
-    heatmap_matrix,
-    "Top DE Genes: Expression Heatmap",
-    heatmap_labels,
-    sample_ids
-)
+let hm_svg = heatmap(heatmap_matrix, {
+    title: "Top DE Genes: Expression Heatmap",
+    row_labels: heatmap_labels,
+    col_labels: sample_ids
+})
 
 write_lines([hm_svg], "data/output/heatmap.svg")
 println("Wrote heatmap to data/output/heatmap.svg")
@@ -610,7 +625,8 @@ println("Wrote heatmap to data/output/heatmap.svg")
 <p>The idea is simple: if 10% of all genes are involved in “apoptosis” but 40% of your DE genes are, then apoptosis is enriched — the drug likely affects cell death pathways.</p>
 <h3 id="simple-enrichment-calculation"><a class="header" href="#simple-enrichment-calculation">Simple Enrichment Calculation</a></h3>
 <p>We compute enrichment using a straightforward approach: for each GO term, compare the fraction of DE genes annotated with that term to the fraction in the background (all tested genes).</p>
-<pre><code class="language-bio">fn compute_enrichment(significant_genes, all_genes, gene_info) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn compute_enrichment(significant_genes, all_genes, gene_info) {
     let sig_names = significant_genes |&gt; map(|g| g.gene)
     let all_names = all_genes |&gt; map(|g| g.gene)
     let n_sig = len(sig_names)
@@ -682,7 +698,8 @@ let go_details = top_go_ids |&gt; map(|term_id| {
 <h2 id="section-10-pathway-analysis"><a class="header" href="#section-10-pathway-analysis">Section 10: Pathway Analysis</a></h2>
 <!-- requires: internet, API access -->
 <p>While GO enrichment looks at individual functional terms, pathway analysis asks which coordinated biological pathways are affected. We use the Reactome database.</p>
-<pre><code class="language-bio">fn pathway_enrichment(significant_genes) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn pathway_enrichment(significant_genes) {
     let gene_names = significant_genes |&gt; map(|g| g.gene)
     let pathway_counts = {}
 
@@ -762,9 +779,10 @@ summary_lines |&gt; each(|line| println(line))
 <hr>
 <h2 id="section-12-complete-pipeline"><a class="header" href="#section-12-complete-pipeline">Section 12: Complete Pipeline</a></h2>
 <p>Here is the entire analysis as a single clean script. This is the version in <code>days/day-29/scripts/analysis.bl</code>:</p>
-<pre><code class="language-bio">let counts = read_tsv("data/counts.tsv")
-let samples = read_tsv("data/samples.tsv")
-let gene_info = read_tsv("data/gene_info.tsv")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let counts = tsv("data/counts.tsv")
+let samples = tsv("data/samples.tsv")
+let gene_info = tsv("data/gene_info.tsv")
 
 let sample_ids = samples |&gt; map(|s| s.sample_id)
 let ctrl_ids = samples |&gt; filter(|s| s.condition == "control") |&gt; map(|s| s.sample_id)
@@ -999,9 +1017,9 @@ write_lines(summary_lines, "data/output/summary.txt")
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

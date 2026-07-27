@@ -183,12 +183,12 @@ print(head(de_results, 5))
 # │ ...    │    ...   │    ...   │    ...   │     ...  │
 
 # Count significant genes
-de_results |> filter(|row| row["fdr"] < 0.05 and abs(row["log2fc"]) > 1.0) |> into sig
+de_results |> filter(|row| row["fdr"] &lt; 0.05 and abs(row["log2fc"]) > 1.0) |> into sig
 sig |> filter(|row| row["log2fc"] > 0.0) |> into up
-sig |> filter(|row| row["log2fc"] < 0.0) |> into down
+sig |> filter(|row| row["log2fc"] &lt; 0.0) |> into down
 
 print("\n=== Summary ===")
-print(f"Significant (FDR<0.05, |log2FC|>1): {nrow(sig)}")
+print(f"Significant (FDR&lt;0.05, |log2FC|>1): {nrow(sig)}")
 print(f"  Upregulated:   {nrow(up)}")
 print(f"  Downregulated: {nrow(down)}")</code></pre>
 
@@ -203,10 +203,10 @@ let pvals = col(de_results, "pvalue")
 let bonf = mutate(de_results, "bonf_pvalue", |row| min(row.pvalue * n_genes, 1.0))
 
 # Compare methods
-let n_bh = nrow(filter(bh, |row| row["fdr"] < 0.05))
-let n_bonf = nrow(filter(bonf, |row| row["bonf_pvalue"] < 0.05))
+let n_bh = nrow(filter(bh, |row| row["fdr"] &lt; 0.05))
+let n_bonf = nrow(filter(bonf, |row| row["bonf_pvalue"] &lt; 0.05))
 
-print("Significant genes (FDR<0.05):")
+print("Significant genes (FDR&lt;0.05):")
 print(f"  Benjamini-Hochberg: {n_bh}")
 print(f"  Bonferroni:         {n_bonf}")
 
@@ -323,7 +323,7 @@ fn run_de_analysis(counts_file, design_file, output_dir) {
   write_csv(de, f"{output_dir}/de_results.csv")
 
   # Significant genes
-  let sig = de |> filter(|r| r["fdr"] < 0.05 and abs(r["log2fc"]) > 1.0)
+  let sig = de |> filter(|r| r["fdr"] &lt; 0.05 and abs(r["log2fc"]) > 1.0)
   write_csv(sig, f"{output_dir}/significant_genes.csv")
 
   # Plots
@@ -336,9 +336,9 @@ fn run_de_analysis(counts_file, design_file, output_dir) {
   # Summary
   print("=== DE Analysis Complete ===")
   print(f"Total genes tested: {nrow(de)}")
-  print(f"Significant (FDR<0.05, |FC|>2): {nrow(sig)}")
+  print(f"Significant (FDR&lt;0.05, |FC|>2): {nrow(sig)}")
   let up_count = nrow(filter(sig, |r| r["log2fc"] > 0))
-  let down_count = nrow(filter(sig, |r| r["log2fc"] < 0))
+  let down_count = nrow(filter(sig, |r| r["log2fc"] &lt; 0))
   print(f"  Up: {up_count}")
   print(f"  Down: {down_count}")
   print(f"Results saved to {output_dir}/")

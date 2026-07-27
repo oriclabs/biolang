@@ -28,7 +28,7 @@
         <section class="mb-12" id="upper">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">upper</span> / <span class="text-violet-400 font-mono">lower</span></h2>
           <p class="text-slate-400 mt-2">Convert string to uppercase or lowercase.</p>
-          <pre><code class="language-biolang">upper(s) -> string
+          <pre><code class="language-text">upper(s) -> string
 lower(s) -> string</code></pre>
           <pre><code class="language-biolang">upper("atcg")   # "ATCG"
 lower("BRCA1")  # "brca1"
@@ -41,7 +41,7 @@ let normalized = upper(seq)   # "ATCGATCG"</code></pre>
         <section class="mb-12" id="trim">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">trim</span> / <span class="text-violet-400 font-mono">trim_left</span> / <span class="text-violet-400 font-mono">trim_right</span></h2>
           <p class="text-slate-400 mt-2">Remove whitespace from both ends, start, or end of a string.</p>
-          <pre><code class="language-biolang">trim(s) -> string
+          <pre><code class="language-text">trim(s) -> string
 trim_left(s) -> string
 trim_right(s) -> string</code></pre>
           <pre><code class="language-biolang">trim("  ATCG  ")        # "ATCG"
@@ -56,7 +56,7 @@ trim(header)   # ">NM_001256799.3  Homo sapiens BRCA1"</code></pre>
         <section class="mb-12" id="split">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">split</span></h2>
           <p class="text-slate-400 mt-2">Split a string by a delimiter into a list of substrings.</p>
-          <pre><code class="language-biolang">split(s, delimiter) -> list</code></pre>
+          <pre><code class="language-text">split(s, delimiter) -> list</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -77,7 +77,7 @@ println("RNAME:", fields[2])   # RNAME: chr1</code></pre>
         <section class="mb-12" id="join">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">join</span></h2>
           <p class="text-slate-400 mt-2">Join a list of strings with a separator.</p>
-          <pre><code class="language-biolang">join(list, separator) -> string</code></pre>
+          <pre><code class="language-text">join(list, separator) -> string</code></pre>
           <pre><code class="language-biolang">join(["A", "T", "C", "G"], "")      # "ATCG"
 join(["chr1", "1000", "2000"], ":")   # "chr1:1000:2000"
 join(["BRCA1", "TP53", "EGFR"], ", ") # "BRCA1, TP53, EGFR"</code></pre>
@@ -86,7 +86,7 @@ join(["BRCA1", "TP53", "EGFR"], ", ") # "BRCA1, TP53, EGFR"</code></pre>
         <section class="mb-12" id="replace">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">replace</span></h2>
           <p class="text-slate-400 mt-2">Replace all occurrences of a substring.</p>
-          <pre><code class="language-biolang">replace(s, old, new) -> string</code></pre>
+          <pre><code class="language-text">replace(s, old, new) -> string</code></pre>
           <pre><code class="language-biolang">replace("ATCGATCG", "T", "U")   # "AUCGAUCG"  (DNA to RNA)
 replace("chr1:1000-2000", "chr", "")  # "1:1000-2000"</code></pre>
         </section>
@@ -94,7 +94,7 @@ replace("chr1:1000-2000", "chr", "")  # "1:1000-2000"</code></pre>
         <section class="mb-12" id="starts_with">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">starts_with</span> / <span class="text-violet-400 font-mono">ends_with</span> / <span class="text-violet-400 font-mono">contains</span></h2>
           <p class="text-slate-400 mt-2">Test for substring presence at start, end, or anywhere.</p>
-          <pre><code class="language-biolang">starts_with(s, prefix) -> bool
+          <pre><code class="language-text">starts_with(s, prefix) -> bool
 ends_with(s, suffix) -> bool
 contains(s, substring) -> bool</code></pre>
           <pre><code class="language-biolang">starts_with("NM_001256", "NM_")   # true
@@ -110,7 +110,7 @@ filter(headers, |h| starts_with(h, ">NM_"))
         <section class="mb-12" id="repeat">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">repeat</span></h2>
           <p class="text-slate-400 mt-2">Repeat a string n times.</p>
-          <pre><code class="language-biolang">repeat(s, n) -> string</code></pre>
+          <pre><code class="language-text">repeat(s, n) -> string</code></pre>
           <pre><code class="language-biolang">repeat("AT", 4)    # "ATATATAT"
 repeat("-", 40)    # "----------------------------------------"</code></pre>
         </section>
@@ -118,23 +118,23 @@ repeat("-", 40)    # "----------------------------------------"</code></pre>
         <section class="mb-12" id="pad">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">pad_left</span> / <span class="text-violet-400 font-mono">pad_right</span></h2>
           <p class="text-slate-400 mt-2">Pad a string to a target length with a fill character.</p>
-          <pre><code class="language-biolang">pad_left(s, width, fill?) -> string
-pad_right(s, width, fill?) -> string</code></pre>
+          <pre><code class="language-text">pad_left(s, width, fill) -> string
+pad_right(s, width, fill) -> string</code></pre>
           <pre><code class="language-biolang">pad_left("42", 5, "0")    # "00042"
-pad_right("BRCA1", 10)    # "BRCA1     "
+pad_right("BRCA1", 10, " ")    # "BRCA1     "
 
 # Align output columns
 let genes = ["TP53", "BRCA1", "EGFR"]
 let pvals = [0.001, 0.05, 0.003]
 zip(genes, pvals) |> map(|pair| {
-  pad_right(pair[0], 8) + str(pair[1])
+  pad_right(pair[0], 8, " ") + str(pair[1])
 }) |> map(println)</code></pre>
         </section>
 
         <section class="mb-12" id="char_at">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">char_at</span> / <span class="text-violet-400 font-mono">substr</span> / <span class="text-violet-400 font-mono">index_of</span></h2>
           <p class="text-slate-400 mt-2">Positional access into strings.</p>
-          <pre><code class="language-biolang">char_at(s, index) -> string
+          <pre><code class="language-text">char_at(s, index) -> string
 substr(s, start, length?) -> string
 index_of(s, substr) -> int | nil</code></pre>
           <pre><code class="language-biolang">char_at("ATCG", 2)           # "C"
@@ -152,7 +152,7 @@ let codon = substr(seq, codon_start, 3)   # "CGA"</code></pre>
         <section class="mb-12" id="format">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">format</span></h2>
           <p class="text-slate-400 mt-2">Format a string with <code>{}</code> placeholders, replaced in order by arguments.</p>
-          <pre><code class="language-biolang">format(template, args...) -> string</code></pre>
+          <pre><code class="language-text">format(template, args...) -> string</code></pre>
           <pre><code class="language-biolang">format("chr{}:{}-{}", 1, 1000, 2000)
 # "chr1:1000-2000"
 

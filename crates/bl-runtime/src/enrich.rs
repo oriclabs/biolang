@@ -60,10 +60,10 @@ fn builtin_read_gmt(args: Vec<Value>) -> Result<Value> {
             .filter(|s| !s.is_empty())
             .map(|s| Value::Str(s.to_string()))
             .collect();
-        map.insert(name, Value::List(genes));
+        map.insert(name, Value::List((genes).into()));
     }
 
-    Ok(Value::Map(map))
+    Ok(Value::Map((map).into()))
 }
 
 /// Over-Representation Analysis using hypergeometric test.
@@ -91,7 +91,7 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
     let gene_sets: HashMap<String, Vec<String>> = match &args[1] {
         Value::Map(m) => {
             let mut sets = HashMap::new();
-            for (name, val) in m {
+            for (name, val) in m.iter() {
                 match val {
                     Value::List(items) => {
                         let gs: Vec<String> = items
@@ -128,8 +128,7 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
         }
     };
 
-    let gene_set_ref: std::collections::HashSet<&str> =
-        genes.iter().map(|s| s.as_str()).collect();
+    let gene_set_ref: std::collections::HashSet<&str> = genes.iter().map(|s| s.as_str()).collect();
     let n = genes.len() as u64; // number of drawn (query genes)
 
     let mut results: Vec<(String, usize, f64, Vec<String>)> = Vec::new();
@@ -154,8 +153,7 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
         let upper = n.min(big_k);
         let mut p_value = 0.0;
         for x in k..=upper {
-            p_value +=
-                bl_core::bio_core::stats_ops::hypergeometric_prob(x, big_k, big_n2, n);
+            p_value += bl_core::bio_core::stats_ops::hypergeometric_prob(x, big_k, big_n2, n);
         }
         p_value = p_value.min(1.0);
 
@@ -167,8 +165,7 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
 
     // BH correction
     let raw_p: Vec<f64> = results.iter().map(|r| r.2).collect();
-    let adjusted =
-        bl_core::bio_core::stats_ops::benjamini_hochberg_correction(&raw_p, 0.05);
+    let adjusted = bl_core::bio_core::stats_ops::benjamini_hochberg_correction(&raw_p, 0.05);
 
     // Build output table
     let columns = vec![
@@ -208,7 +205,7 @@ fn builtin_gsea(args: Vec<Value>) -> Result<Value> {
     let gene_sets: HashMap<String, Vec<String>> = match &args[1] {
         Value::Map(m) => {
             let mut sets = HashMap::new();
-            for (name, val) in m {
+            for (name, val) in m.iter() {
                 if let Value::List(items) = val {
                     let gs: Vec<String> = items
                         .iter()
@@ -229,7 +226,11 @@ fn builtin_gsea(args: Vec<Value>) -> Result<Value> {
 
     // Get gene and score columns
     let gene_idx = table.col_index("gene").ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::TypeError, "gsea() table needs 'gene' column", None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "gsea() table needs 'gene' column",
+            None,
+        )
     })?;
     let score_idx = table.col_index("score").ok_or_else(|| {
         BioLangError::runtime(
@@ -373,7 +374,10 @@ fn compute_es(ranked: &[(String, f64)], gene_set: &std::collections::HashSet<&st
         .filter(|(g, _)| gene_set.contains(g.as_str()))
         .map(|(_, s)| s.abs())
         .sum();
-    let n_miss = n - ranked.iter().filter(|(g, _)| gene_set.contains(g.as_str())).count() as f64;
+    let n_miss = n - ranked
+        .iter()
+        .filter(|(g, _)| gene_set.contains(g.as_str()))
+        .count() as f64;
 
     if n_hit == 0.0 || n_miss == 0.0 {
         return 0.0;
@@ -396,4 +400,3 @@ fn compute_es(ranked: &[(String, f64)], gene_set: &std::collections::HashSet<&st
 
     max_dev
 }
-

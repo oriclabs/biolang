@@ -1,0 +1,5 @@
+fn stats(fastq_text)          { fastq_stats(fastq_text) }
+fn n50(lengths)               { n50(lengths) }
+fn length_hist(lengths, bins=20) { read_length_hist(lengths, bins) }
+fn gc_per_read(fastq_text)    { gc_per_read(fastq_text) }
+fn quality_dist(fastq_text)   { read_quality_dist(fastq_text) }

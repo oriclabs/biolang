@@ -28,7 +28,7 @@
         <section class="mb-12" id="sparkline">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sparkline</span></h2>
           <p class="text-slate-400 mt-2">Render a compact inline chart using Unicode block characters. Perfect for showing trends in a single line.</p>
-          <pre><code class="language-biolang">sparkline(data) -> string</code></pre>
+          <pre><code class="language-text">sparkline(data) -> string</code></pre>
           <pre><code class="language-biolang">sparkline([1, 5, 2, 8, 3, 7, 4, 6])
 # "&#9602;&#9606;&#9603;&#9608;&#9603;&#9607;&#9604;&#9606;"
 
@@ -43,7 +43,7 @@ println("Coverage: ", sparkline(coverage))</code></pre>
         <section class="mb-12" id="bar_chart">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">bar_chart</span></h2>
           <p class="text-slate-400 mt-2">Bar chart in the terminal.</p>
-          <pre><code class="language-biolang">bar_chart(data, opts?) -> string</code></pre>
+          <pre><code class="language-text">bar_chart(data, opts?) -> string</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -67,16 +67,16 @@ G |█████████████████████████�
         <section class="mb-12" id="boxplot">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">boxplot</span></h2>
           <p class="text-slate-400 mt-2">ASCII boxplot showing min, Q1, median, Q3, max, and outliers.</p>
-          <pre><code class="language-biolang">boxplot(data, opts?) -> string</code></pre>
+          <pre><code class="language-text">boxplot(data, opts?) -> string</code></pre>
           <pre><code class="language-biolang">let quality = [28, 30, 32, 35, 33, 31, 29, 36, 34, 27, 38, 12]
 println(boxplot(quality, {title: "Base Quality Scores", width: 60}))
 
 # Multiple boxplots
-let samples = {
+let samples = table({
   "Control": [28, 30, 32, 35, 33],
   "Treated": [22, 25, 28, 24, 26],
   "Mutant":  [35, 38, 40, 37, 36]
-}
+})
 println(boxplot(samples))</code></pre>
 <div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
   <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
@@ -89,34 +89,35 @@ println(boxplot(samples))</code></pre>
         <section class="mb-12" id="hist">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">hist</span></h2>
           <p class="text-slate-400 mt-2">Text-mode histogram with configurable bin count.</p>
-          <pre><code class="language-biolang">hist(data, bins?) -> string</code></pre>
-          <pre><code class="language-biolang">let lengths = range(0, 1000) |> map(|_| int(random() * 300))
+          <pre><code class="language-text">hist(data, bins?) -> string</code></pre>
+          <pre><code class="language-biolang">set_seed(42)
+let lengths = range(0, 1000) |> map(|_| int(random() * 300))
 println(hist(lengths, 15))</code></pre>
 <div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
   <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
-  <pre class="!border-0 !rounded-none !mt-0 !mb-0"><code class="text-slate-300 text-sm">Read Length Distribution
-  0-20  |████████████████  | 156
- 20-40  |█████████████████████████████████| 312
- 40-60  |██████████████████████████████████████████████████| 487
- 60-80  |███████████████████████████████████████████████  | 461
- 80-100 |██████████████████████████████████████████      | 398
-100-120 |████████████████████████████████████            | 345
-120-140 |██████████████████████████████                  | 289
-140-160 |████████████████████████                        | 231
-160-180 |██████████████████                              | 178
-180-200 |████████████████                                | 148
-200-220 |██████████                                      | 98
-220-240 |██████                                          | 62
-240-260 |████                                            | 41
-260-280 |██                                              | 22
-280-300 |█                                               | 8</code></pre>
+  <pre class="!border-0 !rounded-none !mt-0 !mb-0"><code class="text-slate-300 text-sm">Histogram (n=1000, bins=15):
+  [     0.0,     19.9) |█████████████████████████████ 59
+  [    19.9,     39.9) |████████████████████████████ 57
+  [    39.9,     59.8) |█████████████████████████████████ 68
+  [    59.8,     79.7) |██████████████████████████████ 61
+  [    79.7,     99.7) |█████████████████████████████ 59
+  [    99.7,    119.6) |██████████████████████████████████ 69
+  [   119.6,    139.5) |█████████████████████████████████████ 75
+  [   139.5,    159.5) |███████████████████████████████████████ 79
+  [   159.5,    179.4) |█████████████████████████████████ 67
+  [   179.4,    199.3) |███████████████████████████████ 63
+  [   199.3,    219.3) |████████████████████████████████████████ 81
+  [   219.3,    239.2) |██████████████████████████████████ 70
+  [   239.2,    259.1) |█████████████████████████████ 60
+  [   259.1,    279.1) |████████████████████████████████████ 73
+  [   279.1,    299.0] |█████████████████████████████ 59</code></pre>
 </div>
         </section>
 
         <section class="mb-12" id="scatter">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">scatter</span></h2>
           <p class="text-slate-400 mt-2">Terminal scatter plot using Braille characters for sub-cell resolution.</p>
-          <pre><code class="language-biolang">scatter(x, y) -> string</code></pre>
+          <pre><code class="language-text">scatter(x, y) -> string</code></pre>
           <pre><code class="language-biolang">let x = range(0, 50) |> map(|i| float(i) / 10.0)
 let y = map(x, |v| sin(v))
 println(scatter(x, y))</code></pre>
@@ -140,7 +141,7 @@ println(scatter(x, y))</code></pre>
         <section class="mb-12" id="heatmap_ascii">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">heatmap_ascii</span></h2>
           <p class="text-slate-400 mt-2">Render a heatmap in the terminal using Unicode block characters.</p>
-          <pre><code class="language-biolang">heatmap_ascii(data, opts?) -> string</code></pre>
+          <pre><code class="language-text">heatmap_ascii(data, opts?) -> string</code></pre>
           <pre><code class="language-biolang">let data = matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 println(heatmap_ascii(data, {title: "Expression"}))</code></pre>
         </section>

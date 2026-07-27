@@ -12,11 +12,12 @@ parameter list, and a body enclosed in braces.
 
 ```biolang
 fn gc_content(seq) {
-    let gc = seq |> filter(|b| b == "G" || b == "C") |> len()
+    let bases = range(0, seq_len(seq)) |> map(|i| char_at(str(seq), i))
+    let gc = bases |> filter(|b| b == "G" || b == "C") |> len()
     gc / seq_len(seq)
 }
 
-let ratio = gc_content("ATGCGCTA")
+let ratio = gc_content(dna"ATGCGCTA")
 # ratio => 0.5
 ```
 
@@ -47,7 +48,8 @@ fn median_quality(quals) {
 
 Parameters can carry default values. Callers may omit them.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn trim_reads(records, min_qual: 20, min_len: 36) {
     records
         |> filter(|r| mean(r.quality) >= min_qual)
@@ -107,6 +109,10 @@ fn make_depth_filter(min_depth) {
 }
 
 let deep_enough = make_depth_filter(30)
+let variants = [
+    {info: {DP: 12}},
+    {info: {DP: 48}}
+]
 let filtered = variants |> filter(deep_enough)
 ```
 
@@ -121,11 +127,12 @@ fn apply_qc_chain(reads, filters) {
 }
 
 let filters = [
-    |r| mean(r.quality) >= 20,
+    |r| mean_phred(r.quality) >= 20,
     |r| seq_len(r.seq) >= 50,
     |r| gc_content(r.seq) < 0.8
 ]
 
+let raw_reads = read_fastq("data/reads.fastq")
 let passing = apply_qc_chain(raw_reads, filters)
 ```
 
@@ -133,6 +140,11 @@ Because pipe inserts as the first argument, you can chain higher-order
 functions fluently:
 
 ```biolang
+let counts = [
+    {gene_name: "TP53", biotype: "protein_coding", tpm: 72.4},
+    {gene_name: "MALAT1", biotype: "lncRNA", tpm: 530.0},
+    {gene_name: "BRCA1", biotype: "protein_coding", tpm: 18.7}
+]
 let top_genes = counts
     |> filter(|g| g.biotype == "protein_coding")
     |> sort_by(|g| -g.tpm)
@@ -196,9 +208,9 @@ clauses.
 ```biolang
 # Use a wrapper function for timing
 fn timed_align(fastq, ref_genome) {
-    let t0 = now()
+    let t0 = timestamp()
     let result = align_reads(fastq, ref_genome)
-    print("Alignment took " + str(now() - t0) + "s")
+    print("Alignment took " + str(timestamp() - t0) + "s")
     result
 }
 
@@ -225,7 +237,8 @@ fn tree_leaf_count(node) {
 
 Combine `@memoize` with recursion for dynamic-programming-style algorithms:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 @memoize
 fn needleman_wunsch_score(seq1, seq2, i, j, gap_penalty: -2) {
     if i == 0 then { return j * gap_penalty }
@@ -248,7 +261,8 @@ let score = needleman_wunsch_score("AGTACG", "ACATAG", 6, 6)
 Counting k-mer matches across many sequences calls the same function millions
 of times. Caching the GC computation removes redundant work.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 @memoize
 fn kmer_gc(kmer_str) {
     gc_content(dna(kmer_str))
@@ -273,7 +287,8 @@ print(f"K-mers: {result.n_kmers}, Mean GC: {result.mean_gc:.3f}")
 A factory function returns a closure configured with experiment-specific
 thresholds. Different sequencing protocols produce different acceptable ranges.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn make_qc_filter(min_qual: 20, min_len: 50, max_n_frac: 0.05) {
     |read| {
         let avg_q = mean(read.quality)

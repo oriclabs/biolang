@@ -362,7 +362,8 @@ print("Null genes: {is_true |> filter(|x| x == 0) |> len()}")
 
 ### Applying All Correction Methods
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Apply multiple correction methods
 let p_bonf = p_adjust(p_values, "bonferroni")
 let p_holm = p_adjust(p_values, "holm")
@@ -418,7 +419,8 @@ for i in 0..len(p_bh) {
   }
 }
 
-volcano(log2_fc, neg_log10_p, {title: "Differential Expression: Tumor vs Normal", x_label: "log2 Fold Change", y_label: "-log10(FDR-adjusted p-value)", fc_threshold: 1.0, p_threshold: 0.05, highlight: colors})
+let volcano_data = table({"log2fc": log2_fc, "pvalue": p_bh})
+volcano(volcano_data, {fc_threshold: 1.0, p_threshold: 0.05})
 
 # Count genes in each quadrant
 let sig_up = 0
@@ -457,7 +459,7 @@ let sorted_p = sort(p_vals)
 let bh_thresholds = range(1, 101) |> map(|i| i / 100 * 0.05)
 
 # Plot sorted p-values against BH thresholds
-scatter(range(1, 101), sorted_p, {title: "BH Procedure: Sorted p-values vs Threshold Line", x_label: "Rank", y_label: "p-value", overlay_lines: [[range(1, 101), bh_thresholds]]})
+scatter(range(1, 101), sorted_p)
 
 let bh_adjusted = p_adjust(p_vals, "BH")
 let n_sig = bh_adjusted |> filter(|p| p < 0.05) |> len()

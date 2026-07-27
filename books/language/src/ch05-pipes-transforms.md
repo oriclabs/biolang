@@ -15,8 +15,9 @@ gc_content(dna"ATCGATCGATCG")
 dna"ATCGATCGATCG" |> gc_content()
 
 # And these:
-filter(reads, |r| mean(r.quality) >= 30)
-reads |> filter(|r| mean(r.quality) >= 30)
+let reads = read_fastq("data/reads.fastq")
+filter(reads, |r| mean_phred(r.quality) >= 30)
+reads |> filter(|r| mean_phred(r.quality) >= 30)
 ```
 
 ### Why Pipe-First Matters for Bioinformatics
@@ -26,7 +27,7 @@ Without pipes, nested function calls read inside-out:
 ```biolang
 # Hard to follow -- you read from the innermost call outward
 write_tsv(
-  sort(
+  sort_by(
     summarize(
       group_by(
         filter(read_vcf("data/variants.vcf"), |v| v.qual >= 30),
@@ -34,8 +35,7 @@ write_tsv(
       ),
       |chrom, rows| {n: len(rows), mean_qual: mean(col(rows, "qual"))}
     ),
-    "n",
-    descending: true
+    |row| -row.n
   ),
   "chrom_summary.csv"
 )
@@ -49,7 +49,7 @@ read_vcf("data/variants.vcf")
   |> filter(|v| v.qual >= 30)
   |> group_by("chrom")
   |> summarize(|chrom, rows| {n: len(rows), mean_qual: mean(col(rows, "qual"))})
-  |> sort("n", descending: true)
+  |> sort_by(|row| -row.n)
   |> write_tsv("chrom_summary.csv")
 ```
 
@@ -70,7 +70,7 @@ read_bam("sample.sorted.bam")
     mean_mapq: mean(col(rows, "mapq")),
     mean_insert: mean(col(rows, "insert_size"))
   })
-  |> sort("mapped_reads", descending: true)
+  |> sort_by(|row| -row.mapped_reads)
   |> mutate("pct", |row| row.mapped_reads / sum(col(rows, "mapped_reads")) * 100.0)
   |> write_tsv("alignment_stats.csv")
 ```
@@ -122,7 +122,7 @@ read_fasta("data/sequences.fasta")
   |>> |seqs| write_fasta(seqs, "contigs_gt1kb.fa")
   |> filter(|s| gc_content(s.seq) >= 0.3 && gc_content(s.seq) <= 0.7)
   |>> |seqs| write_fasta(seqs, "contigs_normal_gc.fa")
-  |> sort(|s| seq_len(s.seq), descending: true)
+  |> sort_by(|s| -seq_len(s.seq))
   |> take(100)
   |> write_fasta("top100_contigs.fa")
 ```
@@ -163,7 +163,7 @@ print(f"Reference genome size: {total_bases / 1e9:.2f} Gb")
 ```biolang
 # Rank genes by expression level
 let top_genes = csv("tpm.csv")
-  |> sort("tpm", descending: true)
+  |> sort_by(|row| -row.tpm)
   |> take(50)
   |> map(|row| row.gene_name)
 ```
@@ -215,7 +215,7 @@ let cumulative = read_bam("sorted.bam")
 ```biolang
 # Sliding window GC content
 let gc_track = dna"ATCGATCGATCGATCGCCCCGGGG"
-  |> window(size: 10, step: 5)
+  |> window(10)
   |> map(|w| gc_content(w))
 
 # Chunk reads into batches for parallel processing
@@ -233,8 +233,8 @@ let r2 = read_fastq("data/reads.fastq")
 
 let paired = zip(r1, r2) |> map(|pair| {
   id: pair[0].id,
-  r1_qual: mean(pair[0].quality),
-  r2_qual: mean(pair[1].quality),
+  r1_qual: mean_phred(pair[0].quality),
+  r2_qual: mean_phred(pair[1].quality),
   combined_length: seq_len(pair[0].seq) + seq_len(pair[1].seq)
 })
 ```
@@ -244,9 +244,9 @@ let paired = zip(r1, r2) |> map(|pair| {
 ```biolang
 # Number contigs by size rank
 read_fasta("data/sequences.fasta")
-  |> sort(|s| seq_len(s.seq), descending: true)
+  |> sort_by(|s| -seq_len(s.seq))
   |> enumerate()
-  |> map(|i, seq| {rank: i + 1, id: seq.id, length: seq_len(seq.seq)})
+  |> map(|pair| {rank: pair[0] + 1, id: pair[1].id, length: seq_len(pair[1].seq)})
   |> take(10)
   |> each(|row| print(f"#{row.rank}: {row.id} ({row.length} bp)"))
 ```
@@ -260,10 +260,11 @@ preserving left-to-right reading order:
 
 ```biolang
 # Traditional style — reads right-to-left:
-let passed = variants |> filter(|v| v.quality >= 30)
+let variants = read_vcf("data/variants.vcf")
+let passed = variants |> filter(|v| v.qual >= 30)
 
 # With |> into — reads left-to-right:
-variants |> filter(|v| v.quality >= 30) |> into passed
+variants |> filter(|v| v.qual >= 30) |> into passed_again
 ```
 
 The syntax `expr |> into name` is equivalent to `let name = expr`. It evaluates
@@ -279,7 +280,9 @@ read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30)
   |> into high_quality
 
-high_quality |> map(|r| trim(r, 20)) |> into trimmed
+high_quality
+  |> map(|r| {...r, trim_end: trim_quality(r.quality, 20)})
+  |> into trimmed
 
 print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")
 ```
@@ -404,7 +407,9 @@ read_vcf("data/variants.vcf")
   |>> |vs| print(f"Actionable variants: {len(vs)}")
 
   # Step 7: Sort by priority and position
-  |> sort(["tier", "chrom", "pos"])
+  |> sort_by(|v| v.pos)
+  |> sort_by(|v| v.chrom)
+  |> sort_by(|v| v.tier)
 
   # Step 8: Generate report
   |> map(|v| {
@@ -488,7 +493,7 @@ let all_somatic = pair_results
     n_patients: len(g.values),
     patients: g.values |> map(|v| v.patient)
   })
-  |> sort("n_patients", descending: true)
+  |> sort_by(|row| -row.n_patients)
 
 print(f"\nRecurrent somatic variants (in >= 2 patients): {len(all_somatic)}")
 all_somatic |> take(20) |> each(|v|

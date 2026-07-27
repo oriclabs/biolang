@@ -416,11 +416,11 @@ histogram(fc_values, {
 
 # 4. Heatmap of top significant genes
 let top_genes = de
-  |> filter(|r| r.pvalue < 0.01)
+  |> filter(|r| r.pvalue &lt; 0.01)
   |> arrange("pvalue")
   |> head(20)
 
-let expr_matrix = read_read_csv("data/expression.csv")
+let expr_matrix = read_csv("data/expression.csv")
   |> filter(|r| r.gene in col(top_genes, "gene"))
 
 let samples = ["ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3"]
@@ -435,7 +435,7 @@ heatmap(expr_matrix, {
 
 # 5. Genome track of significant regions
 let regions = de
-  |> filter(|r| r.pvalue < 1e-8)
+  |> filter(|r| r.pvalue &lt; 1e-8)
 
 genome_track(regions, {
   chrom: "chrom",

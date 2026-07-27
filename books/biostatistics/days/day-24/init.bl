@@ -23,9 +23,9 @@ let studies = [
     "TopMed_multi,5,62784,0.000080"
 ]
 for s in studies {
-    var_lines = append(var_lines, s)
+    var_lines = push(var_lines, s)
 }
-write_lines(var_lines, "data/variant_observations.csv")
+write_lines("data/variant_observations.csv", var_lines)
 
 # ── File 2: Diagnostic performance of clinical genetic tests ──
 # Published sensitivity, specificity, and prevalence for 5 genetic conditions
@@ -58,9 +58,9 @@ let diag_data = [
     "familial_hypercholesterolemia,LDLR/APOB/PCSK9,0.004,0.800,0.960,0.074,0.999"
 ]
 for d in diag_data {
-    diag_lines = append(diag_lines, d)
+    diag_lines = push(diag_lines, d)
 }
-write_lines(diag_lines, "data/diagnostic_performance.csv")
+write_lines("data/diagnostic_performance.csv", diag_lines)
 
 println("Created data/variant_observations.csv")
 println("  7 population studies for BRCA2 c.5946delT (rs80359550)")

@@ -93,11 +93,11 @@ fn test_classify_star() {
 #[test]
 fn test_summarize_variants() {
     let variants: Vec<(&str, &[&str])> = vec![
-        ("A", &["G"] as &[&str]),         // SNP, transition
-        ("C", &["T"]),                     // SNP, transition
-        ("A", &["T"]),                     // SNP, transversion
-        ("AC", &["A"]),                    // Indel
-        ("G", &["A", "T"] as &[&str]),     // multi: 2 SNPs (Ts + Tv)
+        ("A", &["G"] as &[&str]),      // SNP, transition
+        ("C", &["T"]),                 // SNP, transition
+        ("A", &["T"]),                 // SNP, transversion
+        ("AC", &["A"]),                // Indel
+        ("G", &["A", "T"] as &[&str]), // multi: 2 SNPs (Ts + Tv)
     ];
     let summary = summarize_variants(&variants);
     assert_eq!(summary.snp, 5); // A>G, C>T, A>T, G>A, G>T

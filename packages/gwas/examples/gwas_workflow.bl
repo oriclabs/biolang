@@ -1,0 +1,19 @@
+import "gwas" as gwas
+
+# Load GWAS summary statistics
+let ss = gwas.load("data/my_gwas_sumstats.txt")
+
+# Genomic inflation factor (should be ~1.0)
+gwas.lambda(ss.pval)
+
+# Genome-wide significant hits (p < 5×10⁻⁸)
+let hits = gwas.hits(ss)
+
+# LD-naive clumping: independent loci
+let loci = gwas.clump(ss, p=5e-8, window=250)
+
+# Manhattan plot data (for downstream plotting)
+gwas.manhattan(ss)
+
+# QQ plot data
+gwas.qq(ss.pval)

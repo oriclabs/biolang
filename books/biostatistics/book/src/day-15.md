@@ -264,7 +264,8 @@ Useful for dose-response curves, growth curves, and non-linear biomarker relatio
 
 ### Building a Multiple Regression Model
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Pancreatic cancer: predict tumor stage from biomarkers
 let n = 120
@@ -272,25 +273,29 @@ let n = 120
 # Simulate correlated biomarkers
 let age = rnorm(n, 65, 10)
 let tumor_size = rnorm(n, 3.5, 1.2)
-let ca19_9 = tumor_size * 50 + rnorm(n, 100, 40)
-let cea = ca19_9 * 0.3 + rnorm(n, 5, 3)  # correlated with CA19-9
+let ca19_9 = zip(tumor_size, rnorm(n, 100, 40))
+    |> map(|pair| pair[0] * 50 + pair[1])
+let cea = zip(ca19_9, rnorm(n, 5, 3))
+    |> map(|pair| pair[0] * 0.3 + pair[1])  # correlated with CA19-9
 let mki67 = rnorm(n, 30, 15)
 let albumin = rnorm(n, 3.5, 0.5)
 let crp = rnorm(n, 15, 10)
 let nlr = rnorm(n, 4, 2)
 
 # True model: stage depends on tumor_size, ca19_9, mki67, age
-let stage = 1.0 + 0.4 * tumor_size + 0.003 * ca19_9 + 0.01 * mki67
-    + 0.01 * age - 0.3 * albumin
-    + rnorm(n, 0, 0.3)
+let stage_noise = rnorm(n, 0, 0.3)
+let stage = range(0, n) |> map(|i|
+    1.0 + 0.4 * tumor_size[i] + 0.003 * ca19_9[i] + 0.01 * mki67[i]
+        + 0.01 * age[i] - 0.3 * albumin[i] + stage_noise[i]
+)
 
 # Fit multiple regression with all predictors
 let data = table({
-    "stage": stage, "age": age, "tumor_size": tumor_size,
+    "outcome_stage": stage, "age": age, "tumor_size": tumor_size,
     "ca19_9": ca19_9, "cea": cea, "mki67": mki67,
     "albumin": albumin, "crp": crp, "nlr": nlr
 })
-let model_full = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp + nlr", data)
+let model_full = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp + nlr, data)
 
 print("=== Full Model ===")
 print("R²: {model_full.r_squared |> round(3)}")
@@ -320,14 +325,15 @@ for i in 0..8 {
 
 ### Stepwise Model Selection
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Manual model comparison: fit reduced models and compare R²
 # Drop CEA (collinear with CA19-9) and noise variables (CRP, NLR)
 let data_reduced = table({
-    "stage": stage, "age": age, "tumor_size": tumor_size,
+    "outcome_stage": stage, "age": age, "tumor_size": tumor_size,
     "ca19_9": ca19_9, "mki67": mki67, "albumin": albumin
 })
-let model_reduced = lm("stage ~ age + tumor_size + ca19_9 + mki67 + albumin", data_reduced)
+let model_reduced = lm(~outcome_stage ~ age + tumor_size + ca19_9 + mki67 + albumin, data_reduced)
 
 print("=== Model Comparison ===")
 print("Full model R²:    {model_full.r_squared |> round(3)}")
@@ -356,8 +362,8 @@ let full_r2 = model_full.r_squared
 print("Full model R²: {full_r2 |> round(4)}")
 
 # Compare by dropping noise predictors
-let model_no_crp = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + nlr", data)
-let model_no_nlr = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp", data)
+let model_no_crp = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + nlr, data)
+let model_no_nlr = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp, data)
 print("Without CRP: R² = {model_no_crp.r_squared |> round(4)}")
 print("Without NLR: R² = {model_no_nlr.r_squared |> round(4)}")
 print("Predictors with minimal R² drop are candidates for removal")
@@ -369,16 +375,16 @@ print("Predictors with minimal R² drop are candidates for removal")
 set_seed(42)
 # Non-linear biomarker relationship
 let bmi = rnorm(100, 29, 5)
-let risk = 0.5 + 0.1 * (bmi - 25) ** 2 + rnorm(100, 0, 2)
+let risk = zip(bmi, rnorm(100, 0, 2))
+    |> map(|pair| 0.5 + 0.1 * (pair[0] - 25) ** 2 + pair[1])
 
 # Linear fit — misses the U-shape
-let model_linear = lm(risk, bmi)
+let model_linear = lm(bmi, risk)
 print("Linear R²: {model_linear.r_squared |> round(3)}")
 
 # Polynomial fit — add bmi² term
-let bmi_sq = bmi |> map(|x| x ** 2)
-let poly_data = table({"risk": risk, "bmi": bmi, "bmi_sq": bmi_sq})
-let model_poly = lm("risk ~ bmi + bmi_sq", poly_data)
+let bmi_centered_sq = bmi |> map(|x| (x - 25) ** 2)
+let model_poly = lm(bmi_centered_sq, risk)
 print("Quadratic R²: {model_poly.r_squared |> round(3)}")
 
 # Visualize the improvement
@@ -389,7 +395,8 @@ plot(plot_data, {type: "scatter", x: "BMI", y: "Risk",
 
 ### Predicted vs. Actual Plot
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # The ultimate model validation plot
 # Compute predicted values from the reduced model
 let predicted_stage = model_reduced.fitted
@@ -467,12 +474,15 @@ set_seed(42)
 let n = 150
 let x1 = rnorm(n, 10, 3)
 let x2 = rnorm(n, 5, 2)
-let x3 = x1 * 0.5 + rnorm(n, 0, 1)  # correlated with x1
+let x3 = zip(x1, rnorm(n, 0, 1))
+    |> map(|pair| pair[0] * 0.5 + pair[1])  # correlated with x1
 let x4 = rnorm(n, 20, 5)
 let x5 = rnorm(n, 0, 1)  # noise
 let x6 = rnorm(n, 0, 1)  # noise
 
-let y = 5 + 2 * x1 + 1.5 * x2 + 0.5 * x4 + rnorm(n, 0, 3)
+let y_noise = rnorm(n, 0, 3)
+let y = range(0, n)
+    |> map(|i| 5 + 2 * x1[i] + 1.5 * x2[i] + 0.5 * x4[i] + y_noise[i])
 
 # 1. Fit full model with all 6 predictors using lm()
 # 2. Check pairwise cor() — which predictors are collinear?
@@ -501,7 +511,8 @@ Fit linear, quadratic, and cubic models to a dose-response curve. Use AIC to sel
 ```bio
 set_seed(42)
 let dose = rnorm(80, 25, 12) |> map(|d| max(d, 1))
-let response = 10 + 5 * log2(dose) + rnorm(80, 0, 3)
+let response = zip(dose, rnorm(80, 0, 3))
+    |> map(|pair| 10 + 5 * log2(pair[0]) + pair[1])
 
 # 1. Fit lm() with dose, dose + dose², dose + dose² + dose³
 # 2. Compare R² and adj_r_squared for each

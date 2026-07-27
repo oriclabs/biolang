@@ -16,8 +16,16 @@ pub fn regex_builtin_list() -> Vec<(&'static str, Arity)> {
 
 /// Check if a name is a known regex builtin.
 pub fn is_regex_builtin(name: &str) -> bool {
-    matches!(name, "regex_match" | "regex_find" | "regex_replace" | "regex_split"
-        | "regex_captures" | "regex_find_all" | "regex_replace_all")
+    matches!(
+        name,
+        "regex_match"
+            | "regex_find"
+            | "regex_replace"
+            | "regex_split"
+            | "regex_captures"
+            | "regex_find_all"
+            | "regex_replace_all"
+    )
 }
 
 /// Execute a regex builtin by name.
@@ -64,7 +72,10 @@ fn extract_pattern(val: &Value, func: &str) -> Result<String> {
             Ok(p)
         }
         other => Err(BioLangError::type_error(
-            format!("{func}() pattern requires Str or Regex, got {}", other.type_of()),
+            format!(
+                "{func}() pattern requires Str or Regex, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -91,10 +102,15 @@ fn builtin_regex_find(args: Vec<Value>) -> Result<Value> {
     let s = match &args[0] {
         Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => &seq.data,
         Value::Str(s) => s,
-        other => return Err(BioLangError::type_error(
-            format!("regex_find() requires Str or bio sequence, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "regex_find() requires Str or bio sequence, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
     let pattern = extract_pattern(&args[1], "regex_find")?;
     let re = compile_regex(&pattern, "regex_find")?;
@@ -102,7 +118,7 @@ fn builtin_regex_find(args: Vec<Value>) -> Result<Value> {
         .find_iter(s)
         .map(|m| Value::Str(m.as_str().to_string()))
         .collect();
-    Ok(Value::List(matches))
+    Ok(Value::List((matches).into()))
 }
 
 fn builtin_regex_replace(args: Vec<Value>) -> Result<Value> {
@@ -126,7 +142,7 @@ fn builtin_regex_captures(args: Vec<Value>) -> Result<Value> {
                     None => Value::Nil,
                 })
                 .collect();
-            Ok(Value::List(groups))
+            Ok(Value::List((groups).into()))
         }
         None => Ok(Value::Nil),
     }
@@ -137,6 +153,5 @@ fn builtin_regex_split(args: Vec<Value>) -> Result<Value> {
     let pattern = extract_pattern(&args[1], "regex_split")?;
     let re = compile_regex(&pattern, "regex_split")?;
     let parts: Vec<Value> = re.split(s).map(|p| Value::Str(p.to_string())).collect();
-    Ok(Value::List(parts))
+    Ok(Value::List((parts).into()))
 }
-

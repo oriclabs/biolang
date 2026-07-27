@@ -1,0 +1,16 @@
+fn degree(edges)              { degree_centrality(edges) }
+fn betweenness(edges)         { betweenness_centrality(edges) }
+fn path(edges, src, tgt)      { shortest_path(edges, src, tgt) }
+fn components(edges)          { connected_components(edges) }
+fn hub_genes(edges, top_n=20) { degree_centrality(edges) |> take(top_n) }
+
+fn largest_component(edges) {
+  let comps   = connected_components(edges)
+  let biggest = comps
+    |> group_by(fn(r) -> r.component)
+    |> map(fn(c, rows) -> {comp: c, size: len(rows)})
+    |> sort_by(fn(r) -> r.size, descending=true)
+    |> first
+  let nodes = comps |> filter(fn(r) -> r.component == biggest.comp) |> map(fn(r) -> r.node)
+  subnetwork(edges, nodes)
+}

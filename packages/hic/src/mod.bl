@@ -1,0 +1,23 @@
+# hic — Hi-C chromatin conformation analysis for BioLang
+#
+# Quick start:
+#   import "hic" as hic
+#
+#   let norm     = hic.normalize(contact_matrix)
+#   let scores   = hic.insulation(norm, window=10)
+#   let tads     = hic.boundaries(scores, delta=0.1)
+#   hic.decay(norm)
+
+import "hic/src/tads" as tads
+
+fn normalize(matrix)              { ice_normalize(matrix) }
+fn insulation(matrix, window=10)  { tads.insulation(matrix, window) }
+fn boundaries(scores, delta=0.1)  { tads.boundaries(scores, delta) }
+fn decay(matrix)                  { tads.decay(matrix) }
+fn expected(matrix)               { tads.expected(matrix) }
+
+fn obs_over_expected(matrix) {
+  let exp = expected_contacts(matrix)
+  # element-wise division handled by caller
+  {observed: matrix, expected: exp}
+}

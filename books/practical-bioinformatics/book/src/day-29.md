@@ -63,10 +63,13 @@ This creates a count matrix with 200 genes across 6 samples (3 control, 3 treate
 
 Now load everything:
 
+> **Requires CLI:** TSV readers require the native runtime. Run the capstone
+> blocks together after `bl run init.bl`.
+
 ```bio
-let counts = read_tsv("data/counts.tsv")
-let samples = read_tsv("data/samples.tsv")
-let gene_info = read_tsv("data/gene_info.tsv")
+let counts = tsv("data/counts.tsv")
+let samples = tsv("data/samples.tsv")
+let gene_info = tsv("data/gene_info.tsv")
 
 println(f"Genes: {len(counts)}")
 println(f"Samples: {len(samples)}")
@@ -81,6 +84,8 @@ The count matrix has columns: `gene`, `ctrl_1`, `ctrl_2`, `ctrl_3`, `treat_1`, `
 
 Let us validate the structure:
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```bio
 fn validate_counts(counts, samples) {
     if len(counts) == 0 {
@@ -88,7 +93,7 @@ fn validate_counts(counts, samples) {
     }
     let sample_ids = samples |> map(|s| s.sample_id)
     sample_ids |> each(|sid| {
-        let col_names = counts |> keys()
+        let col_names = counts |> columns()
         if contains(col_names, sid) == false {
             error(f"Sample {sid} not found in count matrix")
         }
@@ -113,6 +118,8 @@ Before analysis, we check library sizes and identify problematic genes.
 ### Library Sizes
 
 Library size is the total count across all genes for a given sample. Large differences between libraries suggest a technical problem or the need for careful normalization.
+
+> **Requires CLI:** This block continues the native capstone session.
 
 ```bio
 let sample_ids = samples |> map(|s| s.sample_id)
@@ -142,6 +149,8 @@ Good --- library sizes are within a factor of 1.15 of each other. If one sample 
 
 Genes with zero counts across all samples carry no information. Let us count them:
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```bio
 let zero_genes = counts |> filter(|row| {
     let total = sample_ids |> map(|sid| int(row[sid])) |> sum()
@@ -158,7 +167,8 @@ Genes with zero counts across all samples: 5
 
 Standard practice is to remove genes where the total count across all samples is below a threshold. This reduces the multiple testing burden and removes noisy genes.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let min_total = 10
 
 let filtered = counts |> where(|row| {
@@ -198,7 +208,8 @@ CPM normalizes for library size. Divide each count by the sample's total count, 
   → Sample 2 actually has HALF the relative expression of Sample 1
 ```
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn compute_cpm(counts, sample_ids) {
     let lib_sizes = sample_ids |> map(|sid| {
         counts |> map(|row| int(row[sid])) |> sum()
@@ -242,7 +253,8 @@ TPM normalizes for both gene length and library size. First divide by gene lengt
   → Gene B is LESS expressed per unit length, despite equal raw counts
 ```
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn compute_tpm(counts, sample_ids, gene_info) {
     let length_map = {}
     gene_info |> each(|g| {
@@ -376,7 +388,8 @@ The Benjamini-Hochberg (BH) procedure is the standard method for FDR control in 
 2. For rank *i* out of *m* total tests: adjusted p = p-value * m / i
 3. Enforce monotonicity (each adjusted p >= the one before it)
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn benjamini_hochberg(de_results) {
     let sorted = de_results |> sort_by(|a, b| {
         if a.pvalue < b.pvalue { -1 }
@@ -470,13 +483,12 @@ let volcano_data = corrected |> map(|row| {
     }
 })
 
-let volcano_svg = volcano(
-    volcano_data |> map(|r| r.log2fc),
-    volcano_data |> map(|r| r.neg_log10_padj),
-    "Drug Treatment: Volcano Plot",
-    "log2 Fold Change",
-    "-log10(adjusted p-value)"
-)
+let volcano_svg = volcano(corrected |> to_table(), {
+    fc: "log2fc",
+    p: "padj",
+    fc_threshold: fc_threshold,
+    p_threshold: fdr_threshold
+})
 
 write_lines([volcano_svg], "data/output/volcano.svg")
 println("Wrote volcano plot to data/output/volcano.svg")
@@ -514,12 +526,11 @@ let heatmap_matrix = heatmap_data |> map(|row| {
 
 let heatmap_labels = heatmap_data |> map(|row| row.gene)
 
-let hm_svg = heatmap(
-    heatmap_matrix,
-    "Top DE Genes: Expression Heatmap",
-    heatmap_labels,
-    sample_ids
-)
+let hm_svg = heatmap(heatmap_matrix, {
+    title: "Top DE Genes: Expression Heatmap",
+    row_labels: heatmap_labels,
+    col_labels: sample_ids
+})
 
 write_lines([hm_svg], "data/output/heatmap.svg")
 println("Wrote heatmap to data/output/heatmap.svg")
@@ -539,7 +550,8 @@ The idea is simple: if 10% of all genes are involved in "apoptosis" but 40% of y
 
 We compute enrichment using a straightforward approach: for each GO term, compare the fraction of DE genes annotated with that term to the fraction in the background (all tested genes).
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn compute_enrichment(significant_genes, all_genes, gene_info) {
     let sig_names = significant_genes |> map(|g| g.gene)
     let all_names = all_genes |> map(|g| g.gene)
@@ -622,7 +634,8 @@ let go_details = top_go_ids |> map(|term_id| {
 
 While GO enrichment looks at individual functional terms, pathway analysis asks which coordinated biological pathways are affected. We use the Reactome database.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn pathway_enrichment(significant_genes) {
     let gene_names = significant_genes |> map(|g| g.gene)
     let pathway_counts = {}
@@ -712,10 +725,11 @@ summary_lines |> each(|line| println(line))
 
 Here is the entire analysis as a single clean script. This is the version in `days/day-29/scripts/analysis.bl`:
 
-```bio
-let counts = read_tsv("data/counts.tsv")
-let samples = read_tsv("data/samples.tsv")
-let gene_info = read_tsv("data/gene_info.tsv")
+```text
+# Conceptual or diagnostic example; not directly executable.
+let counts = tsv("data/counts.tsv")
+let samples = tsv("data/samples.tsv")
+let gene_info = tsv("data/gene_info.tsv")
 
 let sample_ids = samples |> map(|s| s.sample_id)
 let ctrl_ids = samples |> filter(|s| s.condition == "control") |> map(|s| s.sample_id)

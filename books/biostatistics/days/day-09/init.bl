@@ -61,15 +61,15 @@ let healthy_data = [
 
 for i in range(0, 15) {
     let d = ibd_data[i]
-    micro_lines = append(micro_lines,
+    micro_lines = push(micro_lines,
         f"IBD_{i + 1:02},IBD,{d[0]},{d[1]},{d[2]},{d[3]},{d[4]},{d[5]},{d[6]},{d[7]},{d[8]},{d[9]}")
 }
 for i in range(0, 15) {
     let d = healthy_data[i]
-    micro_lines = append(micro_lines,
+    micro_lines = push(micro_lines,
         f"HLT_{i + 1:02},healthy,{d[0]},{d[1]},{d[2]},{d[3]},{d[4]},{d[5]},{d[6]},{d[7]},{d[8]},{d[9]}")
 }
-write_lines(micro_lines, "data/microbiome_abundance.csv")
+write_lines("data/microbiome_abundance.csv", micro_lines)
 
 # --- File 2: body_site_diversity.csv ---
 # Shannon diversity index across 4 body sites from HMP
@@ -100,10 +100,10 @@ for s in range(0, 4) {
     let site = sites[s]
     let divs = all_divs[s]
     for i in range(0, 20) {
-        div_lines = append(div_lines, f"{site}_{i + 1:02},{site},{divs[i]}")
+        div_lines = push(div_lines, f"{site}_{i + 1:02},{site},{divs[i]}")
     }
 }
-write_lines(div_lines, "data/body_site_diversity.csv")
+write_lines("data/body_site_diversity.csv", div_lines)
 
 println("Generated 2 files in data/")
 println("  data/microbiome_abundance.csv — 30 samples, 10 genera (IBDMDB)")

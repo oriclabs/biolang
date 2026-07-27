@@ -126,11 +126,11 @@ pub fn parse_nextflow(path: &str) -> Result<Value> {
 
     let mut record = HashMap::new();
     record.insert("params".to_string(), params);
-    record.insert("processes".to_string(), Value::List(processes));
-    record.insert("includes".to_string(), Value::List(includes));
-    record.insert("workflow".to_string(), Value::List(workflow));
+    record.insert("processes".to_string(), Value::List((processes).into()));
+    record.insert("includes".to_string(), Value::List((includes).into()));
+    record.insert("workflow".to_string(), Value::List((workflow).into()));
     record.insert("dsl".to_string(), Value::Str(dsl));
-    Ok(Value::Record(record))
+    Ok(Value::Record((record).into()))
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +160,7 @@ fn extract_params(content: &str) -> Value {
         }
     }
 
-    Value::Record(params)
+    Value::Record((params).into())
 }
 
 // ---------------------------------------------------------------------------
@@ -188,11 +188,11 @@ fn extract_processes(content: &str) -> Vec<Value> {
             proc.insert("name".to_string(), Value::Str(name));
             proc.insert(
                 "inputs".to_string(),
-                Value::List(inputs.into_iter().map(|s| Value::Str(s)).collect()),
+                Value::List(inputs.into_iter().map(|s| Value::Str(s)).collect::<Vec<_>>().into()),
             );
             proc.insert(
                 "outputs".to_string(),
-                Value::List(outputs.into_iter().map(|s| Value::Str(s)).collect()),
+                Value::List(outputs.into_iter().map(|s| Value::Str(s)).collect::<Vec<_>>().into()),
             );
             proc.insert(
                 "script".to_string(),
@@ -205,7 +205,7 @@ fn extract_processes(content: &str) -> Vec<Value> {
             proc.insert("cpus".to_string(), opt_to_value(cpus));
             proc.insert("memory".to_string(), opt_to_value(memory));
             proc.insert("time".to_string(), opt_to_value(time));
-            processes.push(Value::Record(proc));
+            processes.push(Value::Record((proc).into()));
         }
     }
 
@@ -327,8 +327,7 @@ fn extract_between_triple_quotes(body: &str, quote: &str) -> Option<String> {
 fn extract_simple_directive(body: &str, directive: &str) -> Option<String> {
     let re_str = format!(r"(?m)^\s*{}\s+(.+?)\s*$", regex::escape(directive));
     let re = regex::Regex::new(&re_str).unwrap();
-    re.captures(body)
-        .map(|cap| strip_quotes(cap[1].trim()))
+    re.captures(body).map(|cap| strip_quotes(cap[1].trim()))
 }
 
 fn opt_to_value(opt: Option<String>) -> Value {
@@ -348,10 +347,8 @@ fn extract_includes(content: &str) -> Vec<Value> {
     // Pattern: include { NAME } from 'path'
     // Pattern: include { NAME as ALIAS } from 'path'
     // Pattern: include { NAME; NAME2 } from 'path' — multiple imports
-    let include_re = regex::Regex::new(
-        r#"include\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]"#,
-    )
-    .unwrap();
+    let include_re =
+        regex::Regex::new(r#"include\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]"#).unwrap();
     let item_re = regex::Regex::new(r"(\w+)(?:\s+as\s+(\w+))?").unwrap();
 
     for cap in include_re.captures_iter(content) {
@@ -370,7 +367,7 @@ fn extract_includes(content: &str) -> Vec<Value> {
                 },
             );
             rec.insert("from".to_string(), Value::Str(from.clone()));
-            includes.push(Value::Record(rec));
+            includes.push(Value::Record((rec).into()));
         }
     }
 
@@ -409,7 +406,10 @@ fn detect_dsl(content: &str) -> String {
         return format!("DSL{}", &cap[1]);
     }
     // Heuristic: if there is a `workflow {` block, assume DSL2
-    if regex::Regex::new(r"(?m)^\s*workflow\s*\{").unwrap().is_match(content) {
+    if regex::Regex::new(r"(?m)^\s*workflow\s*\{")
+        .unwrap()
+        .is_match(content)
+    {
         return "DSL2".to_string();
     }
     // Default
@@ -444,19 +444,19 @@ fn generate_bl_from_nf(rec: &HashMap<String, Value>) -> Result<String> {
     // Extract processes as pipeline stages
     let processes = match rec.get("processes") {
         Some(Value::List(l)) => l.clone(),
-        _ => Vec::new(),
+        _ => (Vec::new()).into(),
     };
 
     // Extract workflow steps to determine ordering
     let workflow = match rec.get("workflow") {
         Some(Value::List(l)) => l.clone(),
-        _ => Vec::new(),
+        _ => (Vec::new()).into(),
     };
 
     if !processes.is_empty() {
         out.push_str("pipeline {\n");
 
-        for proc_val in &processes {
+        for proc_val in processes.iter() {
             if let Value::Record(proc) = proc_val {
                 let name = match proc.get("name") {
                     Some(Value::Str(s)) => s.clone(),
@@ -515,7 +515,10 @@ fn generate_bl_from_nf(rec: &HashMap<String, Value>) -> Result<String> {
                 if let Some(Value::Str(script)) = proc.get("script") {
                     out.push_str(&format!(
                         "    run: \"{}\"\n",
-                        script.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n")
+                        script
+                            .replace('\\', "\\\\")
+                            .replace('"', "\\\"")
+                            .replace('\n', "\\n")
                     ));
                 }
 
@@ -526,7 +529,7 @@ fn generate_bl_from_nf(rec: &HashMap<String, Value>) -> Result<String> {
         // Workflow connections
         if !workflow.is_empty() {
             out.push_str("  # Workflow\n");
-            for step in &workflow {
+            for step in workflow.iter() {
                 if let Value::Str(s) = step {
                     out.push_str(&format!("  # {}\n", s));
                 }
@@ -583,13 +586,13 @@ fn generate_bl_from_galaxy(rec: &HashMap<String, Value>) -> Result<String> {
 
     let steps = match rec.get("steps") {
         Some(Value::List(l)) => l.clone(),
-        _ => Vec::new(),
+        _ => (Vec::new()).into(),
     };
 
     if !steps.is_empty() {
         out.push_str("pipeline {\n");
 
-        for step_val in &steps {
+        for step_val in steps.iter() {
             if let Value::Record(step) = step_val {
                 let name = match step.get("name") {
                     Some(Value::Str(s)) => to_snake_case(s),
@@ -645,11 +648,7 @@ fn generate_bl_from_galaxy(rec: &HashMap<String, Value>) -> Result<String> {
                         keys.sort();
                         for key in keys {
                             let val = &tool_params[key];
-                            out.push_str(&format!(
-                                "    {}: {}\n",
-                                key,
-                                value_to_bl_literal(val)
-                            ));
+                            out.push_str(&format!("    {}: {}\n", key, value_to_bl_literal(val)));
                         }
                     }
                 }
@@ -753,8 +752,14 @@ params.flag = true
             Value::Record(p) => p,
             _ => panic!("expected params Record"),
         };
-        assert_eq!(params.get("reads").unwrap(), &Value::Str("data/*.fastq.gz".to_string()));
-        assert_eq!(params.get("genome").unwrap(), &Value::Str("GRCh38".to_string()));
+        assert_eq!(
+            params.get("reads").unwrap(),
+            &Value::Str("data/*.fastq.gz".to_string())
+        );
+        assert_eq!(
+            params.get("genome").unwrap(),
+            &Value::Str("GRCh38".to_string())
+        );
         assert_eq!(params.get("threads").unwrap(), &Value::Int(8));
         assert_eq!(params.get("flag").unwrap(), &Value::Bool(true));
     }
@@ -778,7 +783,10 @@ params {
             Value::Record(p) => p,
             _ => panic!("expected params Record"),
         };
-        assert_eq!(params.get("outdir").unwrap(), &Value::Str("./results".to_string()));
+        assert_eq!(
+            params.get("outdir").unwrap(),
+            &Value::Str("./results".to_string())
+        );
         assert_eq!(params.get("min_quality").unwrap(), &Value::Int(20));
     }
 
@@ -832,7 +840,10 @@ process ALIGN {
             _ => panic!("expected List"),
         };
         assert_eq!(inputs.len(), 2);
-        assert_eq!(inputs[0], Value::Str("tuple val(sample_id), path(reads)".to_string()));
+        assert_eq!(
+            inputs[0],
+            Value::Str("tuple val(sample_id), path(reads)".to_string())
+        );
         assert_eq!(inputs[1], Value::Str("path genome".to_string()));
 
         let outputs = match proc.get("outputs").unwrap() {
@@ -873,15 +884,24 @@ include { TRIMGALORE as TRIM } from './modules/trimgalore'
         };
         assert_eq!(inc0.get("name").unwrap(), &Value::Str("FASTQC".to_string()));
         assert_eq!(inc0.get("alias").unwrap(), &Value::Nil);
-        assert_eq!(inc0.get("from").unwrap(), &Value::Str("./modules/fastqc".to_string()));
+        assert_eq!(
+            inc0.get("from").unwrap(),
+            &Value::Str("./modules/fastqc".to_string())
+        );
 
         let inc1 = match &includes[1] {
             Value::Record(r) => r,
             _ => panic!("expected Record"),
         };
-        assert_eq!(inc1.get("name").unwrap(), &Value::Str("TRIMGALORE".to_string()));
+        assert_eq!(
+            inc1.get("name").unwrap(),
+            &Value::Str("TRIMGALORE".to_string())
+        );
         assert_eq!(inc1.get("alias").unwrap(), &Value::Str("TRIM".to_string()));
-        assert_eq!(inc1.get("from").unwrap(), &Value::Str("./modules/trimgalore".to_string()));
+        assert_eq!(
+            inc1.get("from").unwrap(),
+            &Value::Str("./modules/trimgalore".to_string())
+        );
     }
 
     #[test]
@@ -1000,9 +1020,7 @@ workflow {
 
     #[test]
     fn test_multiple_includes_single_line() {
-        let nf = write_temp_nf(
-            r#"include { FOO; BAR } from './modules/shared'"#,
-        );
+        let nf = write_temp_nf(r#"include { FOO; BAR } from './modules/shared'"#);
         let result = parse_nextflow(nf.path().to_str().unwrap()).unwrap();
         let rec = match result {
             Value::Record(r) => r,
@@ -1111,32 +1129,59 @@ workflow {
     #[test]
     fn test_galaxy_to_bl() {
         let mut wf = HashMap::new();
-        wf.insert("name".to_string(), Value::Str("RNA-seq Analysis".to_string()));
-        wf.insert("annotation".to_string(), Value::Str("Basic RNA-seq pipeline".to_string()));
+        wf.insert(
+            "name".to_string(),
+            Value::Str("RNA-seq Analysis".to_string()),
+        );
+        wf.insert(
+            "annotation".to_string(),
+            Value::Str("Basic RNA-seq pipeline".to_string()),
+        );
 
         let mut step1 = HashMap::new();
         step1.insert("name".to_string(), Value::Str("FastQC".to_string()));
-        step1.insert("tool_id".to_string(), Value::Str("toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74".to_string()));
-        step1.insert("inputs".to_string(), Value::List(vec![Value::Str("input_file".to_string())]));
-        step1.insert("outputs".to_string(), Value::List(vec![Value::Str("html_file".to_string())]));
+        step1.insert(
+            "tool_id".to_string(),
+            Value::Str("toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74".to_string()),
+        );
+        step1.insert(
+            "inputs".to_string(),
+            Value::List((vec![Value::Str("input_file".to_string())]).into()),
+        );
+        step1.insert(
+            "outputs".to_string(),
+            Value::List((vec![Value::Str("html_file".to_string())]).into()),
+        );
 
         let mut step2 = HashMap::new();
         step2.insert("name".to_string(), Value::Str("HISAT2".to_string()));
-        step2.insert("tool_id".to_string(), Value::Str("toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.2.1".to_string()));
-        step2.insert("inputs".to_string(), Value::List(vec![Value::Str("input_reads".to_string())]));
-        step2.insert("outputs".to_string(), Value::List(vec![Value::Str("aligned_bam".to_string())]));
+        step2.insert(
+            "tool_id".to_string(),
+            Value::Str("toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.2.1".to_string()),
+        );
+        step2.insert(
+            "inputs".to_string(),
+            Value::List((vec![Value::Str("input_reads".to_string())]).into()),
+        );
+        step2.insert(
+            "outputs".to_string(),
+            Value::List((vec![Value::Str("aligned_bam".to_string())]).into()),
+        );
 
-        wf.insert("steps".to_string(), Value::List(vec![
-            Value::Record(step1),
-            Value::Record(step2),
-        ]));
+        wf.insert(
+            "steps".to_string(),
+            Value::List((vec![Value::Record((step1).into()), Value::Record((step2).into())]).into()),
+        );
 
         let bl = generate_bl_from_galaxy(&wf).unwrap();
         assert!(bl.contains("# Generated from Galaxy workflow: RNA-seq Analysis"));
         assert!(bl.contains("# Basic RNA-seq pipeline"));
         assert!(bl.contains("pipeline {"));
-        assert!(bl.contains("stage fast_qc") || bl.contains("stage fastqc"),
-            "expected stage name, got:\n{}", bl);
+        assert!(
+            bl.contains("stage fast_qc") || bl.contains("stage fastqc"),
+            "expected stage name, got:\n{}",
+            bl
+        );
         assert!(bl.contains("stage hisat2"));
         assert!(bl.contains("tool: \"toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74\""));
     }
@@ -1154,12 +1199,15 @@ workflow {
 
     #[test]
     fn test_value_to_bl_literal() {
-        assert_eq!(value_to_bl_literal(&Value::Str("hello".into())), "\"hello\"");
+        assert_eq!(
+            value_to_bl_literal(&Value::Str("hello".into())),
+            "\"hello\""
+        );
         assert_eq!(value_to_bl_literal(&Value::Int(42)), "42");
         assert_eq!(value_to_bl_literal(&Value::Bool(true)), "true");
         assert_eq!(value_to_bl_literal(&Value::Nil), "nil");
         assert_eq!(
-            value_to_bl_literal(&Value::List(vec![Value::Int(1), Value::Int(2)])),
+            value_to_bl_literal(&Value::List((vec![Value::Int(1), Value::Int(2)]).into())),
             "[1, 2]"
         );
     }

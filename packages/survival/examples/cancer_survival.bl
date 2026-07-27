@@ -1,0 +1,219 @@
+# cancer_survival.bl — Clinical survival analysis on TCGA-style data
+#
+# Demonstrates Kaplan-Meier curves, log-rank tests, univariate and
+# multivariate Cox regression, and a text forest plot of hazard ratios.
+#
+# Input file:
+#   data/clinical.csv — columns: patient_id, os_months, os_event, stage, age, treatment
+#     os_months  — overall survival time in months
+#     os_event   — 1 = deceased, 0 = censored (alive at last follow-up)
+#     stage      — "I", "II", "III", "IV"
+#     age        — continuous (years)
+#     treatment  — "chemo", "immuno", "combo"
+#
+# Run: bl run examples/cancer_survival.bl
+
+import "survival" as surv
+
+println("=" * 64)
+println("Cancer Survival Analysis — TCGA-style Clinical Data")
+println("=" * 64)
+
+# ── Load clinical data ────────────────────────────────────────────────────────
+println("")
+println("Loading clinical data...")
+let clinical = csv("data/clinical.csv") |> collect()
+let n_patients = len(clinical)
+
+let times  = clinical |> map(|r| r.os_months)
+let events = clinical |> map(|r| r.os_event)
+let stages = clinical |> map(|r| r.stage)
+let ages   = clinical |> map(|r| r.age)
+let treats = clinical |> map(|r| r.treatment)
+
+println(f"  Patients: {n_patients}")
+println(f"  Events:   {events |> filter(|e| e == 1) |> len()}")
+println(f"  Censored: {events |> filter(|e| e == 0) |> len()}")
+
+# ── Step 1: Overall KM Curve ──────────────────────────────────────────────────
+println("")
+println("Step 1: Overall Kaplan-Meier Curve")
+println("─────────────────────────────────────────────")
+
+let km_overall = surv.km(times, events)
+let med_overall = surv.median_survival(km_overall)
+let rmst_24 = surv.restricted_mean(km_overall, 24.0)
+
+println(f"  N (total):   {km_overall.n_total}")
+println(f"  Events:      {km_overall.n_events}")
+println(f"  Median OS:   {med_overall.median} months")
+if med_overall.lower_ci != nil {
+    println(f"  95% CI:      {med_overall.lower_ci} – {med_overall.upper_ci} months")
+}
+println(f"  RMST(24mo):  {rmst_24} months")
+
+# ── Step 2: KM by Stage with Log-Rank Test ───────────────────────────────────
+println("")
+println("Step 2: Kaplan-Meier by Tumor Stage + Log-Rank Test")
+println("─────────────────────────────────────────────────────")
+
+let km_by_stage = surv.km_by_group(times, events, stages)
+
+for grp in km_by_stage {
+    let med = surv.median_survival(grp.km_result)
+    let n   = grp.km_result.n_total
+    let ev  = grp.km_result.n_events
+    let med_str = if med.median != nil then f"{med.median} mo" else "not reached"
+    println(f"  Stage {grp.group}: n={n}, events={ev}, median OS={med_str}")
+}
+
+# Pairwise log-rank: early (I+II) vs late (III+IV)
+let early_times  = []
+let early_events = []
+let late_times   = []
+let late_events  = []
+for i in range(0, n_patients) {
+    if stages[i] == "I" or stages[i] == "II" {
+        early_times  = append(early_times,  times[i])
+        early_events = append(early_events, events[i])
+    } else {
+        late_times  = append(late_times,  times[i])
+        late_events = append(late_events, events[i])
+    }
+}
+
+let km_early = surv.km(early_times, early_events)
+let km_late  = surv.km(late_times,  late_events)
+let lr_test  = surv.km_compare(km_early, km_late)
+
+println("")
+println(f"  Log-rank test (Stage I/II vs III/IV):")
+println(f"    Chi-squared: {round(lr_test.chi_square, 3)}")
+println(f"    df:          {lr_test.df}")
+println(f"    p-value:     {lr_test.p_value}")
+let sig_str = if lr_test.p_value < 0.05 then "SIGNIFICANT" else "not significant"
+println(f"    Result:      {sig_str} (alpha = 0.05)")
+
+# ── Step 3: Univariate Cox Regression ────────────────────────────────────────
+println("")
+println("Step 3: Univariate Cox Regression for All Covariates")
+println("──────────────────────────────────────────────────────")
+
+# Build a covariate table from clinical data
+# Encode stage as ordinal: I=1, II=2, III=3, IV=4
+let stage_numeric = stages |> map(|s|
+    if s == "I" then 1.0
+    else if s == "II" then 2.0
+    else if s == "III" then 3.0
+    else 4.0
+)
+
+# Encode treatment as binary flags: chemo (ref), immuno, combo
+let is_immuno = treats |> map(|t| if t == "immuno" then 1.0 else 0.0)
+let is_combo  = treats |> map(|t| if t == "combo"  then 1.0 else 0.0)
+
+# Age normalized to decades for interpretable HRs
+let age_decades = ages |> map(|a| a / 10.0)
+
+# Build covariate table for univariate helper
+let cov_table = []
+for i in range(0, n_patients) {
+    cov_table = append(cov_table, {
+        stage:    stage_numeric[i],
+        age_per10: age_decades[i],
+        immuno:   is_immuno[i],
+        combo:    is_combo[i]
+    })
+}
+
+let uni_results = surv.cox_univariate(times, events, cov_table)
+
+println("")
+println(f"  {'Covariate':<14} {'HR':>7} {'95% CI':>18} {'p-value':>10}  Sig")
+println(f"  {'─' * 55}")
+for r in uni_results {
+    let ci_str = f"{r.hr_lower_ci} – {r.hr_upper_ci}"
+    println(f"  {r.covariate:<14} {r.hr:>7} {ci_str:>18} {r.pvalue:>10}  {r.stars}")
+}
+
+# ── Step 4: Multivariate Cox Model ────────────────────────────────────────────
+println("")
+println("Step 4: Multivariate Cox Proportional Hazards Model")
+println("─────────────────────────────────────────────────────")
+println("  Covariates: stage (ordinal), age (per 10 yr), immuno, combo")
+
+let multi_cox = surv.cox(
+    times, events,
+    [stage_numeric, age_decades, is_immuno, is_combo],
+    ["Stage (ordinal)", "Age (per 10yr)", "Immuno vs Chemo", "Combo vs Chemo"]
+)
+
+let hr_table = surv.hazard_ratio_table(multi_cox)
+
+println("")
+println(f"  {'Covariate':<20} {'HR':>7} {'95% CI':>18} {'p-value':>10}  Sig")
+println(f"  {'─' * 63}")
+for r in hr_table {
+    let ci_str = f"{r.lower_95ci} – {r.upper_95ci}"
+    println(f"  {r.covariate:<20} {r.hr:>7} {ci_str:>18} {r.pvalue:>10}  {r.stars}")
+}
+
+# Concordance
+let risk_scores = multi_cox.linear_predictors
+let ci_result = surv.c_index(times, events, risk_scores)
+println("")
+println(f"  C-index (concordance): {ci_result.c_index}")
+println(f"  Concordant pairs: {ci_result.concordant_pairs}")
+println(f"  Discordant pairs: {ci_result.discordant_pairs}")
+
+# ── Step 5: Forest Plot (text) ────────────────────────────────────────────────
+println("")
+println("Step 5: Forest Plot — Multivariate Hazard Ratios")
+println("  HR < 1 = protective, HR > 1 = harmful")
+println("  (each ● represents the point estimate; |──| is the 95% CI)")
+println("")
+
+let min_hr = hr_table |> map(|r| r.lower_95ci) |> min()
+let max_hr = hr_table |> map(|r| r.upper_95ci) |> max()
+let log_min = log2(min_hr + 0.001)
+let log_max = log2(max_hr + 0.001)
+let plot_width = 40
+
+println(f"  {'Covariate':<20}  {'Forest plot (log HR scale)'}")
+println(f"  {'─' * 65}")
+
+for r in hr_table {
+    let log_hr  = log2(r.hr + 0.001)
+    let log_lo  = log2(r.lower_95ci + 0.001)
+    let log_hi  = log2(r.upper_95ci + 0.001)
+    let hr_range = log_max - log_min
+    let null_pos = int((0.0 - log_min) / hr_range * plot_width)
+    let pt_pos   = int((log_hr - log_min) / hr_range * plot_width)
+    let lo_pos   = int((log_lo - log_min) / hr_range * plot_width)
+    let hi_pos   = int((log_hi - log_min) / hr_range * plot_width)
+
+    # Build bar string
+    let bar = str(" ") * (plot_width + 2)
+    # Draw CI line
+    for p in range(lo_pos, hi_pos + 1) {
+        if p >= 0 and p < plot_width {
+            bar = str_replace(bar, p, "─")
+        }
+    }
+    # Draw null line (HR=1)
+    if null_pos >= 0 and null_pos < plot_width {
+        bar = str_replace(bar, null_pos, "|")
+    }
+    # Draw point estimate
+    if pt_pos >= 0 and pt_pos < plot_width {
+        bar = str_replace(bar, pt_pos, "●")
+    }
+
+    let hr_ci = f"{r.hr} ({r.lower_95ci}–{r.upper_95ci})"
+    println(f"  {r.covariate:<20}  {bar}  {hr_ci}")
+}
+
+println("")
+println("=" * 64)
+println(f"Survival analysis complete. N={n_patients} patients.")
+println("=" * 64)

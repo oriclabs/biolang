@@ -1,0 +1,25 @@
+# Score cells against named lists of marker gene indices.
+# marker_sets: list of {name: "T cell", genes: [idx1, idx2, ...]}
+# Returns obj with .type_scores field: table (cell, type_name, score)
+fn score_markers(obj, marker_sets) {
+  let matrix = obj.norm_matrix
+  let scores = marker_sets
+    |> flat_map(fn(ms) ->
+        range(n_cells(obj))
+        |> map(fn(c) -> {
+            cell:      c,
+            type_name: ms.name,
+            score:     ms.genes |> map(fn(g) -> matrix[g][c]) |> mean
+          })
+      )
+  obj |> set_field("type_scores", scores)
+}
+
+# Return the highest-scoring type label per cell
+fn top_type_per_cell(obj) {
+  obj.type_scores
+    |> group_by(fn(r) -> r.cell)
+    |> map(fn(cell, rows) ->
+        rows |> sort_by(fn(r) -> r.score, descending = true) |> first
+      )
+}

@@ -118,7 +118,7 @@ print(cds.seq |> gc_content())
 # Get protein sequence
 let prot = ensembl_sequence("ENSP00000350283", "protein")
 print(prot.seq |> len())
-print(prot.seq |> molecular_weight())</code></pre>
+print("Protein length:", len(prot.seq))</code></pre>
 
         <h2>Practical Example: Gene Annotation Pipeline</h2>
         <pre><code class="language-biolang"># Annotate a list of genes using Ensembl

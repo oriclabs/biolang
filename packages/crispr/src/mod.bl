@@ -1,0 +1,18 @@
+# crispr — CRISPR screen analysis for BioLang
+#
+# Quick start:
+#   import "crispr" as crispr
+#
+#   let counts = crispr.load("counts.txt")
+#   let hits   = crispr.hits(counts, ctrl=[0,1], trt=[2,3])
+#   crispr.qc(counts)
+
+import "crispr/src/scoring" as sc
+
+fn load(path)                          { read_text(path) |> guide_counts }
+fn lfc(counts, ctrl, trt)              { sc.lfc(counts, ctrl, trt) }
+fn score(counts, ctrl, trt)            { sc.score(counts, ctrl, trt) }
+fn hits(counts, ctrl, trt, n=20)       { sc.top_hits(counts, ctrl, trt, n) }
+fn qc(counts)                          { crispr_qc(counts) }
+fn guide_gc(seq)                       { guide_gc(seq) }
+fn essential(score_table, n=20)        { essential_genes(score_table, n) }

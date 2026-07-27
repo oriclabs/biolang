@@ -117,8 +117,8 @@ pub fn is_builtin(name: &str) -> bool {
 /// BioLang keywords for completion.
 pub fn keywords() -> Vec<&'static str> {
     vec![
-        "let", "fn", "if", "else", "for", "in", "while", "break", "continue", "return",
-        "match", "import", "true", "false", "nil", "and", "or", "not", "try", "catch",
-        "pipeline", "assert", "yield", "enum",
+        "let", "fn", "if", "else", "for", "in", "while", "break", "continue", "return", "match",
+        "import", "true", "false", "nil", "and", "or", "not", "try", "catch", "pipeline", "assert",
+        "yield", "enum",
     ]
 }

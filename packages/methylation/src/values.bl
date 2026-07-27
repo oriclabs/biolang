@@ -1,0 +1,6 @@
+# Beta and M-value conversions.
+
+fn to_mvalue(beta_vec)  { beta_to_mvalue(beta_vec) }
+fn to_beta(m_vec)       { mvalue_to_beta(m_vec) }
+fn density(positions, window=500) { cpg_density(positions, window) }
+fn clock_age(beta_vec, coefs)     { epigenetic_age(beta_vec, coefs) }

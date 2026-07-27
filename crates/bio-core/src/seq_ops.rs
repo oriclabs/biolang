@@ -33,8 +33,12 @@ pub fn is_valid_rna(seq: &str) -> bool {
 
 /// Returns `true` if every character is a valid nucleotide (A, C, G, T, U, N, -), case-insensitive.
 pub fn is_valid_nucleotide(seq: &str) -> bool {
-    seq.bytes()
-        .all(|b| matches!(b.to_ascii_uppercase(), b'A' | b'C' | b'G' | b'T' | b'U' | b'N' | b'-'))
+    seq.bytes().all(|b| {
+        matches!(
+            b.to_ascii_uppercase(),
+            b'A' | b'C' | b'G' | b'T' | b'U' | b'N' | b'-'
+        )
+    })
 }
 
 /// Detect whether a sequence is DNA, RNA, or ambiguous.

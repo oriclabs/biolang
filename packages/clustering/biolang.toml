@@ -1,0 +1,18 @@
+[package]
+name = "clustering"
+version = "0.1.0"
+description = "Cell and sample clustering: k-means, hierarchical, and graph-based Leiden/Louvain"
+authors = ["BioLang Contributors"]
+license = "MIT"
+keywords = ["clustering", "kmeans", "leiden", "scrna", "single-cell"]
+categories = ["bioinformatics", "machine-learning", "single-cell"]
+homepage = "https://biolang.dev/docs/bio/clustering"
+repository = "https://github.com/biolang/packages/clustering"
+readme = "README.md"
+
+[dependencies]
+# No external dependencies — uses BioLang core builtins only:
+#   knn_graph, mean, variance, sqrt, abs, round
+
+[lib]
+entry = "src/mod.bl"

@@ -1,0 +1,21 @@
+import "metabolomics" as metab
+
+# Feature table: mz, rt, plus sample intensity columns
+# let features = read_csv("data/features.csv")
+
+# Group features by m/z and RT proximity
+# let grouped = metab.group(features, mz_ppm=5.0, rt_tol=0.1)
+
+# Log-transform and normalize
+# let normalized = metab.log_transform(features) |> metab.normalize("median")
+
+# Annotate by m/z matching against HMDB
+# metab.match_mz(180.0634, hmdb_db, ppm=5.0)
+
+# Isotope correction for 13C tracing experiment
+let m0_to_m3 = [1000.0, 15.0, 2.5, 0.8]
+metab.isotopes(m0_to_m3, n_carbons=3)
+
+# Pathway enrichment for hit metabolites
+# let hits = ["glucose", "fructose-6-phosphate", "ATP"]
+# metab.enrich(hits, kegg_pathway_db)

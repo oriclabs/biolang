@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -191,7 +191,8 @@
 <p>Verify the installation:</p>
 <pre><code class="language-bash">bl --version
 </code></pre>
-<p>You should see output like <code>biolang 0.x.y</code>. Any version 0.4.0 or later includes all the statistical builtins used in this book.</p>
+<p>You should see the installed BioLang release. This edition is validated against
+the current 1.x CLI and runtime.</p>
 <h3 id="windows"><a class="header" href="#windows">Windows</a></h3>
 <p>Open PowerShell and run:</p>
 <pre><code class="language-powershell">irm https://biolang.org/install.ps1 | iex
@@ -224,10 +225,33 @@
 bl&gt; mean([10, 20, 30, 40, 50])
 30.0
 
-bl&gt; sd([10, 20, 30, 40, 50])
+bl&gt; stdev([10, 20, 30, 40, 50])
 15.8114
 </code></pre>
 <p>If these commands produce output, your installation is complete.</p>
+<h2 id="current-analysis-tooling"><a class="header" href="#current-analysis-tooling">Current Analysis Tooling</a></h2>
+<p>Validate scripts and inspect runtime readiness before a long analysis:</p>
+<pre><code class="language-bash">bl check analysis.bl helpers.bl
+bl doctor
+</code></pre>
+<p>Create a package in the current directory and install its dependencies:</p>
+<pre><code class="language-bash">bl init --name trial-analysis
+bl install
+</code></pre>
+<p>Migrate an existing analysis with syntax validation:</p>
+<pre><code class="language-bash">bl import analysis.py --validate -o analysis.bl
+bl import analysis.R --validate -o analysis.bl
+bl import report.ipynb --validate -o report.bl
+bl import report.Rmd --validate -o report.bl
+</code></pre>
+<p>Run <code>.bln</code> or <code>.bl.md</code> notebooks, convert Jupyter notebooks, and export reports:</p>
+<pre><code class="language-bash">bl notebook analysis.bln
+bl notebook analysis.bln --to-ipynb &gt; analysis.ipynb
+bl notebook analysis.bln --export html &gt; analysis.html
+</code></pre>
+<p>Use <code>bl metadata --format json</code> when checking exact builtin signatures. Imported
+analyses must still be scientifically validated against their Python or R
+source because statistical libraries can use different defaults.</p>
 <h2 id="python-setup-optional"><a class="header" href="#python-setup-optional">Python Setup (Optional)</a></h2>
 <p>Python comparisons are included for every day but are not required. If you want to run them, you need Python 3.8 or later.</p>
 <h3 id="installing-python"><a class="header" href="#installing-python">Installing Python</a></h3>
@@ -435,7 +459,7 @@ diff my_output.txt expected/output.txt
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

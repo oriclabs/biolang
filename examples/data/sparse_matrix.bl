@@ -41,14 +41,14 @@ println("Col sums:", sparse_col_sums(sm))
 
 # ── Normalize sparse matrix ──
 # normalize_sparse(matrix, method) -> normalized matrix
-# Methods: "l1", "l2", "max"
-let normed = normalize_sparse(sm, "l1")
-println("\n=== L1 Normalized ===")
+# Methods: "log1p_cpm", "scale"
+let normed = normalize_sparse(sm, "log1p_cpm")
+println("\n=== log1p CPM Normalized ===")
 println(to_dense(normed))
 
-let l2_normed = normalize_sparse(sm, "l2")
-println("\n=== L2 Normalized ===")
-println(to_dense(l2_normed))
+let scaled = normalize_sparse(sm, "scale")
+println("\n=== Scaled ===")
+println(to_dense(scaled))
 
 # ── Round-trip: dense -> sparse -> dense ──
 let original = matrix([[5, 0, 0], [0, 3, 0], [0, 0, 7]])

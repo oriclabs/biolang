@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-e720ecec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -220,7 +220,7 @@ manhattan(gwas, title: "Genome-Wide Association Study")
 </blockquote>
 <p>The <code>manhattan()</code> function expects a table with <code>chrom</code>, <code>pos</code>, and <code>pvalue</code> columns. It automatically arranges chromosomes along the x-axis, alternates colors, and draws a significance threshold line at p = 5e-8.</p>
 <p>To produce SVG for a publication figure:</p>
-<pre><code class="language-bio">let svg = manhattan(gwas, format: "svg", title: "GWAS Results")
+<pre><code class="language-bio">let svg = manhattan(gwas, {format: "svg", title: "GWAS Results"})
 save_svg(svg, "figures/manhattan.svg")
 </code></pre>
 <blockquote>
@@ -238,11 +238,11 @@ qq_plot(pvalues, title: "QQ Plot — Observed vs Expected")
 <p>Gene expression experiments produce continuous measurements across conditions. Violin plots show the full distribution shape, density plots smooth out individual observations, PCA reveals sample clustering, and clustered heatmaps show both gene and sample groupings.</p>
 <h3 id="violin-plot"><a class="header" href="#violin-plot">Violin Plot</a></h3>
 <p>A violin plot combines a box plot with a kernel density estimate, showing the full shape of the data distribution in each group.</p>
-<pre><code class="language-bio">let groups = {
+<pre><code class="language-bio">let groups = table({
     control: [5.2, 4.8, 5.1, 4.9, 5.3, 5.0, 4.7, 5.4],
     low_dose: [6.5, 7.1, 6.8, 6.3, 7.0, 6.6, 6.9, 7.2],
     high_dose: [9.2, 8.8, 9.5, 9.0, 8.6, 9.3, 8.9, 9.1]
-}
+})
 violin(groups, title: "Expression by Treatment Group")
 </code></pre>
 <p>The <code>violin()</code> function takes a record where each key is a group name and each value is a list of numbers. It renders mirrored kernel density estimates for each group.</p>
@@ -302,7 +302,10 @@ roc_curve(predictions, title: "Classifier Performance")
     {study: "Chen 2022", effect: 1.2, ci_lower: 0.8, ci_upper: 1.8},
     {study: "Patel 2023", effect: 1.6, ci_lower: 1.2, ci_upper: 2.1},
 ] |&gt; to_table()
-forest_plot(studies, title: "Meta-Analysis: Gene X Association")
+forest_plot(studies, {
+    label: "study", estimate: "effect", lower: "ci_lower", upper: "ci_upper",
+    title: "Meta-Analysis: Gene X Association"
+})
 </code></pre>
 <p>The <code>forest_plot()</code> function expects columns <code>study</code>, <code>effect</code>, <code>ci_lower</code>, and <code>ci_upper</code>. Each study is shown as a point with horizontal whiskers for the confidence interval. A vertical line at effect = 1.0 marks the null.</p>
 <hr>
@@ -377,9 +380,13 @@ venn(sets, title: "Gene Overlap Across Experiments")
 <h3 id="oncoprint"><a class="header" href="#oncoprint">Oncoprint</a></h3>
 <p>An oncoprint shows the mutation landscape of a cancer cohort. Each row is a gene, each column is a sample, and colored tiles indicate mutation types (missense, nonsense, amplification, deletion). This is the standard visualization for cancer genomics studies.</p>
 <pre><code class="language-bio">let mutations_matrix = [
-    {gene: "TP53", sample1: "Missense", sample2: "Nonsense", sample3: "None", sample4: "Missense"},
-    {gene: "KRAS", sample1: "None", sample2: "Missense", sample3: "Missense", sample4: "None"},
-    {gene: "EGFR", sample1: "Amplification", sample2: "None", sample3: "None", sample4: "Deletion"},
+    {gene: "TP53", sample: "sample1", type: "missense"},
+    {gene: "TP53", sample: "sample2", type: "nonsense"},
+    {gene: "TP53", sample: "sample4", type: "missense"},
+    {gene: "KRAS", sample: "sample2", type: "missense"},
+    {gene: "KRAS", sample: "sample3", type: "missense"},
+    {gene: "EGFR", sample: "sample1", type: "amplification"},
+    {gene: "EGFR", sample: "sample4", type: "deletion"},
 ] |&gt; to_table()
 oncoprint(mutations_matrix, title: "Mutation Landscape")
 </code></pre>
@@ -402,7 +409,7 @@ sashimi(junctions, title: "Splice Junctions — BRCA1")
     [20, 40, 100, 30],
     [5, 10, 30, 100],
 ]
-hic_map(contacts, title: "Chromatin Contacts")
+hic_map(matrix(contacts), title: "Chromatin Contacts")
 </code></pre>
 <p>The <code>hic_map()</code> function takes a nested list (symmetric matrix) of contact frequencies.</p>
 <hr>
@@ -440,7 +447,7 @@ rainfall(mutation_positions, title: "Mutation Clustering")
 manhattan(gwas, title: "Quick Look")
 
 # SVG output — returns a string
-let svg = manhattan(gwas, format: "svg", title: "GWAS Results")
+let svg = manhattan(gwas, {format: "svg", title: "GWAS Results"})
 save_svg(svg, "figures/manhattan.svg")
 
 # save_plot is an alias for save_svg
@@ -569,9 +576,9 @@ save_plot(violin(groups, format: "svg"), "figures/violin.svg")
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

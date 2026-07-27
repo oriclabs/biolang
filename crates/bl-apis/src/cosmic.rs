@@ -77,9 +77,7 @@ impl CosmicClient {
 
     pub fn with_client(base: BaseClient) -> Result<Self> {
         if base.get_api_key("COSMIC_API_KEY").is_none() {
-            return Err(ApiError::Auth(
-                "COSMIC_API_KEY not configured".into(),
-            ));
+            return Err(ApiError::Auth("COSMIC_API_KEY not configured".into()));
         }
         Ok(CosmicClient { base })
     }
@@ -96,15 +94,10 @@ impl CosmicClient {
     /// Search mutations by gene name.
     pub fn search_gene(&self, gene: &str) -> Result<Vec<CosmicMutation>> {
         let auth = self.auth_headers();
-        let headers: Vec<(&str, &str)> = auth
-            .iter()
-            .map(|(k, v)| (*k, v.as_str()))
-            .collect();
+        let headers: Vec<(&str, &str)> = auth.iter().map(|(k, v)| (*k, v.as_str())).collect();
         let base = base_url();
         let url = format!("{base}/mutations/gene/{gene}");
-        let json = self
-            .base
-            .get_json_with_headers(&url, &headers)?;
+        let json = self.base.get_json_with_headers(&url, &headers)?;
 
         parse_mutations(&json)
     }
@@ -112,15 +105,10 @@ impl CosmicClient {
     /// Get a specific mutation by COSMIC ID.
     pub fn get_mutation(&self, mutation_id: &str) -> Result<CosmicMutation> {
         let auth = self.auth_headers();
-        let headers: Vec<(&str, &str)> = auth
-            .iter()
-            .map(|(k, v)| (*k, v.as_str()))
-            .collect();
+        let headers: Vec<(&str, &str)> = auth.iter().map(|(k, v)| (*k, v.as_str())).collect();
         let base = base_url();
         let url = format!("{base}/mutations/{mutation_id}");
-        let json = self
-            .base
-            .get_json_with_headers(&url, &headers)?;
+        let json = self.base.get_json_with_headers(&url, &headers)?;
 
         let mutations = parse_mutations(&json)?;
         mutations.into_iter().next().ok_or_else(|| ApiError::Parse {
@@ -132,15 +120,10 @@ impl CosmicClient {
     /// Get Cancer Gene Census entries.
     pub fn gene_census(&self) -> Result<Vec<CensusGene>> {
         let auth = self.auth_headers();
-        let headers: Vec<(&str, &str)> = auth
-            .iter()
-            .map(|(k, v)| (*k, v.as_str()))
-            .collect();
+        let headers: Vec<(&str, &str)> = auth.iter().map(|(k, v)| (*k, v.as_str())).collect();
         let base = base_url();
         let url = format!("{base}/census/genes");
-        let json = self
-            .base
-            .get_json_with_headers(&url, &headers)?;
+        let json = self.base.get_json_with_headers(&url, &headers)?;
 
         let arr = json.as_array().ok_or_else(|| ApiError::Parse {
             context: "COSMIC census".into(),
@@ -150,14 +133,8 @@ impl CosmicClient {
         let mut genes = Vec::new();
         for item in arr {
             genes.push(CensusGene {
-                gene_symbol: item["gene_symbol"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                name: item["name"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
+                gene_symbol: item["gene_symbol"].as_str().unwrap_or_default().to_string(),
+                name: item["name"].as_str().unwrap_or_default().to_string(),
                 role_in_cancer: item["role_in_cancer"]
                     .as_str()
                     .unwrap_or_default()
@@ -329,10 +306,9 @@ mod tests {
 
     #[test]
     fn test_parse_mutations_large_count() {
-        let json: serde_json::Value = serde_json::from_str(
-            r#"[{"id": "COSM1", "gene": "TP53", "count": 9999999999}]"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"[{"id": "COSM1", "gene": "TP53", "count": 9999999999}]"#)
+                .unwrap();
         let mutations = parse_mutations(&json).unwrap();
         assert_eq!(mutations.len(), 1);
         assert_eq!(mutations[0].count, 9999999999);

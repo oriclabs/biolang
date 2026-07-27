@@ -83,6 +83,6 @@ let fasta_content = [
     "HKLAQIPAHKIDHRLKNVTCSKDLQETTHKIEEIINQNAEKHSNSAWTAENITVKSTGSN",
     "TLQVKHSGGKAGVSNAHNISVSF"
 ]
-write_lines(fasta_content, "data/sequences.fasta")
+write_lines("data/sequences.fasta", fasta_content)
 
 print("Day 26 data initialized: Alzheimer's disease DE genes, ClinVar variants, UniProt sequences")

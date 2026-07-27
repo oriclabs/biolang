@@ -110,19 +110,20 @@ bl run analysis.bl input.fastq output.csv
 
 ### `bl init` — Create a New Project
 
-Scaffolds a new BioLang project directory:
+Initializes the current directory as a BioLang package:
 
 ```bash
-bl init my-project
+mkdir my-project
+cd my-project
+bl init --name my-project
 ```
 
 This creates:
 
 ```
 my-project/
+  biolang.toml   # Package metadata and dependencies
   main.bl        # Entry point
-  data/          # Data directory
-  results/       # Output directory
 ```
 
 ### `bl lsp` — Language Server
@@ -137,12 +138,50 @@ You typically do not run this directly — your editor starts it automatically.
 
 ### `bl plugins` — Plugin Management
 
-Lists or manages BioLang plugins:
+Lists installed BioLang plugins. Use `bl add` and `bl remove` to change them:
 
 ```bash
-bl plugins          # List installed plugins
-bl plugins install  # Install a plugin
+bl add kmer-tools --path ./kmer-tools
+bl plugins
+bl remove kmer-tools
 ```
+
+### Validation, Packages, and Migration
+
+Check scripts without executing them:
+
+```bash
+bl check main.bl src/qc.bl
+bl doctor
+```
+
+Initialize the current directory as a package and install its dependencies:
+
+```bash
+bl init --name my-analysis
+bl install
+```
+
+Convert an existing Python, R, Jupyter, or R Markdown analysis and validate the
+generated BioLang before reviewing it:
+
+```bash
+bl import analysis.py --validate -o analysis.bl
+bl import analysis.R --validate -o analysis.bl
+bl import report.ipynb --validate -o report.bl
+bl import report.Rmd --validate -o report.bl
+```
+
+Run a BioLang notebook or export it as HTML:
+
+```bash
+bl notebook report.bln
+bl notebook report.bln --export html > report.html
+```
+
+Conversion is a migration aid, not a scientific equivalence guarantee. Compare
+key results with the original script, especially defaults for missing values,
+statistical tests, factor handling, and multiple-testing correction.
 
 ## Setting Up Python (Optional)
 

@@ -177,7 +177,7 @@ nfcore_search("variant")
     description: p.description,
     latest: p.latest_release
   })
-  |> sort(.stars)
+  |> sort_by(|pipeline_info| pipeline_info.stars)
   |> reverse()
   |> print()</code></pre>
 

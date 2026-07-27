@@ -1,0 +1,122 @@
+[
+ {
+  "file": "books\\language\\html\\ch03-variables-types.html",
+  "name": "sort",
+  "given": 2,
+  "piped": true,
+  "effective": 3,
+  "expected": "1-2",
+  "sig": "sort(list, cmp_fn?) → List",
+  "line": 51,
+  "sourceLine": "|> sort(\"size\", descending: true)",
+  "call": "sort("
+ },
+ {
+  "file": "books\\language\\html\\ch05-pipes-transforms.html",
+  "name": "sort",
+  "given": 3,
+  "piped": false,
+  "effective": 3,
+  "expected": "1-2",
+  "sig": "sort(list, cmp_fn?) → List",
+  "line": 3,
+  "sourceLine": "sort(",
+  "call": "sort("
+ },
+ {
+  "file": "books\\language\\html\\ch05-pipes-transforms.html",
+  "name": "sort",
+  "given": 2,
+  "piped": true,
+  "effective": 3,
+  "expected": "1-2",
+  "sig": "sort(list, cmp_fn?) → List",
+  "line": 5,
+  "sourceLine": "|> sort(\"n\", descending: true)",
+  "call": "sort("
+ },
+ {
+  "file": "books\\language\\html\\ch05-pipes-transforms.html",
+  "name": "sort",
+  "given": 2,
+  "piped": true,
+  "effective": 3,
+  "expected": "1-2",
+  "sig": "sort(list, cmp_fn?) → List",
+  "line": 10,
+  "sourceLine": "|> sort(\"mapped_reads\", descending: true)",
+  "call": "sort("
+ },
+ {
+  "file": "books\\language\\html\\ch05-pipes-transforms.html",
+  "name": "sort",
+  "given": 2,
+  "piped": true,
+  "effective": 3,
+  "expected": "1-2",
+  "sig": "sort(list, cmp_fn?) → List",
+  "line": 6,
+  "sourceLine": "|> sort(|s| seq_len(s.seq), descending: true)",
+  "call": "sort("
+ },
+ {
+  "file": "books\\language\\html\\ch05-pipes-transforms.html",
+  "name": "sort",
+  "given": 2,
+  "piped": true,
+  "effective": 3,
+  "expected": "1-2",
+  "sig": "sort(list, cmp_fn?) → List",
+  "line": 3,
+  "sourceLine": "|> sort(\"tpm\", descending: true)",
+  "call": "sort("
+ },
+ {
+  "file": "books\\language\\html\\ch05-pipes-transforms.html",
+  "name": "trim",
+  "given": 2,
+  "piped": false,
+  "effective": 2,
+  "expected": "1",
+  "sig": "trim(str) → Str",
+  "line": 6,
+  "sourceLine": "high_quality |> map(|r| trim(r, 20)) |> into trimmed",
+  "call": "trim("
+ },
+ {
+  "file": "books\\language\\html\\ch05-pipes-transforms.html",
+  "name": "sort",
+  "given": 2,
+  "piped": true,
+  "effective": 3,
+  "expected": "1-2",
+  "sig": "sort(list, cmp_fn?) → List",
+  "line": 63,
+  "sourceLine": "|> sort(\"n_patients\", descending: true)",
+  "call": "sort("
+ },
+ {
+  "file": "books\\language\\html\\ch16c-knowledge-graphs.html",
+  "name": "sort_by",
+  "given": 2,
+  "piped": true,
+  "effective": 3,
+  "expected": "2",
+  "sig": "sort_by(arg1, arg2)",
+  "line": 14,
+  "sourceLine": "|> sort_by(|r| r.deg, desc: true)",
+  "call": "sort_by("
+ },
+ {
+  "file": "books\\language\\html\\ch16d-pdb-enrichment.html",
+  "name": "rename",
+  "given": 1,
+  "piped": true,
+  "effective": 2,
+  "expected": "3",
+  "sig": "rename(arg1, arg2, arg3)",
+  "line": 4,
+  "sourceLine": "|> rename({log2fc: \"score\"})",
+  "call": "rename("
+ }
+]

@@ -1,0 +1,5 @@
+[package]
+name = "network"
+version = "0.1.0"
+description = "Biological network analysis: PPI networks, centrality, shortest paths, community detection, disease modules"
+authors = ["BioLang"]

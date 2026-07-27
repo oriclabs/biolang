@@ -91,7 +91,7 @@ for seq in seqs {
         <pre><code class="language-biolang"># Iterate over a list
 let genes = ["BRCA1", "TP53", "EGFR"]
 for gene in genes {
-  if len(gene) <= 4 then println(f"{gene} is short")
+  if len(gene) &lt;= 4 then println(f"{gene} is short")
   else println(f"{gene} is long")
 }
 # BRCA1 is long
@@ -134,7 +134,7 @@ println(f"Total: {total}")</code></pre>
         <pre><code class="language-biolang"># Basic while loop
 let count = 0
 let total = 0
-while count < 10 {
+while count &lt; 10 {
   total = total + count
   count = count + 1
 }
@@ -287,7 +287,7 @@ let sequences = [
 for s in sequences {
   let gc = gc_content(s.bases)
   let category = if gc > 0.6 then "GC-rich"
-    else if gc < 0.4 then "AT-rich"
+    else if gc &lt; 0.4 then "AT-rich"
     else "balanced"
   println(f"{s.name}: GC={gc}, {category}")
 }

@@ -1,0 +1,8 @@
+gene	chrom	function	omim	gene_disease
+MTHFR	chr1	Folate metabolism	607093	moderate
+EGFR	chr7	Receptor tyrosine kinase	131550	definitive
+KRAS	chr12	RAS/MAPK signalling	190070	definitive
+BRCA2	chr13	Homologous recombination repair	600185	definitive
+TP53	chr17	DNA damage response and cell-cycle control	191170	definitive
+BRCA1	chr17	Homologous recombination repair	113705	definitive
+PIK3CA	chr3	PI3K/AKT signalling	171834	definitive

@@ -108,7 +108,7 @@ println(result)   # [30, 40, 50]</code></pre>
         <pre><code class="language-biolang"># Each pipe stage on its own line for readability
 let genes = ["BRCA1", "TP53", "EGFR", "MYC", "KRAS"]
 let report = genes
-  |> filter(|g| len(g) <= 4)
+  |> filter(|g| len(g) &lt;= 4)
   |> map(|g| f"Gene: {g}")
   |> join(", ")
 println(report)   # Gene: TP53, Gene: EGFR, Gene: MYC, Gene: KRAS</code></pre>
@@ -190,7 +190,7 @@ let data = [
 
 # Filter significant, sort by fold change, report
 data
-  |> filter(|r| r.pvalue < 0.05)
+  |> filter(|r| r.pvalue &lt; 0.05)
   |> sort_by(|a, b| if b.log2fc > a.log2fc then 1 else -1)
   |> each(|r| println(f"{r.gene}: log2FC={r.log2fc}, p={r.pvalue}"))
 # BRCA1: log2FC=3.2, p=0.001
@@ -224,7 +224,7 @@ println(safe)   # [100, 50, 33]
 
 # Forking a pipeline
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-let small = numbers |> filter(|x| x <= 5)
+let small = numbers |> filter(|x| x &lt;= 5)
 let large = numbers |> filter(|x| x > 5)
 println(f"Small: {small}")
 println(f"Large: {large}")</code></pre>

@@ -22,9 +22,10 @@ fn* counting() {
 let s = counting()
 collect(s)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(1), Value::Int(2), Value::Int(3),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3),]).into())
+    );
 }
 
 #[test]
@@ -63,9 +64,10 @@ let b = next(s)
 let c = next(s)
 [a, b, c]
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(0), Value::Int(1), Value::Int(2),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(0), Value::Int(1), Value::Int(2),]).into())
+    );
 }
 
 // 4.3: Stream pipeline chaining (lazy map/filter on streams)
@@ -84,9 +86,10 @@ let doubled = map(s, |x| x * 2)
 let big = filter(doubled, |x| x > 4)
 collect(big)
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(6), Value::Int(8), Value::Int(10),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(6), Value::Int(8), Value::Int(10),]).into())
+    );
 }
 
 #[test]
@@ -99,9 +102,10 @@ fn* items() {
 }
 items().map(|x| x + 1).filter(|x| x > 15).collect()
 "#;
-    assert_eq!(eval(code), Value::List(vec![
-        Value::Int(21), Value::Int(31),
-    ]));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(21), Value::Int(31),]).into())
+    );
 }
 
 #[test]

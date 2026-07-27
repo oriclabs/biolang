@@ -44,8 +44,8 @@ s3_upload("results/analysis.tsv", "s3://my-results-bucket/project_001/analysis.t
 # Upload multiple files
 let files = glob("results/*.tsv")
 for f in files {
-  s3_upload("results/#{f}", "s3://my-results-bucket/project_001/#{f}")
-  print("Uploaded #{f}")
+  s3_upload(f"results/{f}", f"s3://my-results-bucket/project_001/{f}")
+  print(f"Uploaded {f}")
 }</code></pre>
 
         <h3>Listing and filtering S3 objects</h3>
@@ -53,20 +53,20 @@ for f in files {
 let objects = s3_list("s3://genomics-data/samples/batch_001/")
 
 for obj in objects {
-  print("#{obj.name} (#{obj.size} bytes)")
+  print(f"{obj.name} ({obj.size} bytes)")
 }
 
 # Find all FASTQ files in a bucket
 let fastq_files = s3_list("s3://genomics-data/fastq/")
   |> filter(|obj| ends_with(obj.name, ".fq.gz"))
 
-print("Found #{len(fastq_files)} FASTQ files")
+print(f"Found {len(fastq_files)} FASTQ files")
 
 # Download, then process locally
 s3_download("s3://my-bucket/data/counts.csv", "counts.csv")
 let data = read_csv("data/counts.csv")
   |> filter(|row| int(row["count"]) > 10)
-print("Filtered rows: #{len(data)}")</code></pre>
+print(f"Filtered rows: {len(data)}")</code></pre>
 
         <h3>Working with public S3 buckets</h3>
         <pre><code class="language-biolang"># Access public datasets via download (HTTP URLs for public data)
@@ -94,7 +94,7 @@ gcs_upload("results/variants.vcf.gz", "gs://my-gcs-bucket/results/run_001/varian
 # Process GCS data locally after download
 gcs_download("gs://my-gcs-bucket/data/counts.tsv", "counts.tsv")
 let data = tsv("counts.tsv")
-print("Loaded #{len(data)} rows")</code></pre>
+print(f"Loaded {len(data)} rows")</code></pre>
 
         <h3>Accessing public GCS datasets</h3>
         <pre><code class="language-biolang"># Access public genomics datasets on GCS
@@ -117,13 +117,13 @@ gcs_download(
 let account = env("AZURE_STORAGE_ACCOUNT")
 
 # Download from Azure Blob Storage
-shell("az storage blob download --account-name #{account} --container-name genomics-data --name references/GRCh38.fa --file refs/GRCh38.fa")
+shell(f"az storage blob download --account-name {account} --container-name genomics-data --name references/GRCh38.fa --file refs/GRCh38.fa")
 
 # Upload to Azure
-shell("az storage blob upload --account-name #{account} --container-name results --name project_001/report.html --file results/report.html")
+shell(f"az storage blob upload --account-name {account} --container-name results --name project_001/report.html --file results/report.html")
 
 # List blobs
-let result = shell("az storage blob list --account-name #{account} --container-name genomics-data --prefix samples/ --output json")
+let result = shell(f"az storage blob list --account-name {account} --container-name genomics-data --prefix samples/ --output json")
 print(result.stdout)</code></pre>
 
         <h2>HTTP/FTP Downloads</h2>
@@ -157,7 +157,7 @@ let urls = [
 
 par_map(urls, |item| {
   download(item.url, item.dest)
-  print("Downloaded #{item.dest}")
+  print(f"Downloaded {item.dest}")
 })
 
 print("All downloads complete")</code></pre>
@@ -170,20 +170,20 @@ let vcf_count = read_vcf("https://example.com/data/variants.vcf.gz")
   |> filter(|v| v.chrom == "chr22" && v.filter == "PASS")
   |> count
 
-print("PASS variants on chr22: #{vcf_count}")
+print(f"PASS variants on chr22: {vcf_count}")
 
 # Stream FASTA from a URL
 let genes = read_fasta("https://ftp.ensembl.org/pub/current/fasta/homo_sapiens/cds/Homo_sapiens.GRCh38.cds.all.fa.gz")
   |> filter(|r| contains(r.id, "BRCA1"))
   |> collect
 
-print("BRCA1 transcripts: #{len(genes)}")</code></pre>
+print(f"BRCA1 transcripts: {len(genes)}")</code></pre>
 
         <h3>Working with signed URLs</h3>
         <pre><code class="language-biolang"># Generate a pre-signed URL using the AWS CLI
 let result = shell("aws s3 presign s3://my-results/analysis/report.html --expires-in 3600")
 let signed_url = trim(result.stdout)
-print("Share this link: #{signed_url}")
+print(f"Share this link: {signed_url}")
 
 # Download from a pre-signed URL
 download(signed_url, "downloaded_report.html")</code></pre>

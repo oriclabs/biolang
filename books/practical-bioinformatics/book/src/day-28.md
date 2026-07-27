@@ -104,7 +104,7 @@ The `read_vcf()` function returns a table with columns: `chrom`, `pos`, `id`, `r
 
 ```biolang
 let variant_count = variants |> len()
-let columns = variants |> keys()
+let columns = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
 ```
 
 ### Validation Checks
@@ -120,7 +120,7 @@ fn validate_vcf(variants) {
 
     let required_cols = ["chrom", "pos", "ref", "alt", "qual"]
     required_cols |> each(|col| {
-        let col_names = variants |> keys()
+        let col_names = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
         if contains(col_names, col) == false {
             error(f"Missing required VCF column: {col}")
         }
@@ -142,8 +142,8 @@ Raw variant calls include many low-confidence calls. We filter on two standard q
 - **DP** --- Read depth. DP >= 10 ensures sufficient evidence supports the call.
 
 ```biolang
-fn quality_filter(variants, min_qual, min_dp) {
-    variants |> where(|row| {
+fn filter_variants(variants, min_qual, min_dp) {
+    variants |> filter(|row| {
         let q = float(row.qual)
         let d = try {
             let info_str = row.info
@@ -165,7 +165,7 @@ fn quality_filter(variants, min_qual, min_dp) {
 We extract DP from the INFO field, which is semicolon-delimited. The `try/catch` ensures malformed INFO fields do not crash the pipeline --- they simply get depth zero and are filtered out.
 
 ```biolang
-let qc_passed = quality_filter(variants, 30.0, 10)
+let qc_passed = filter_variants(variants, 30.0, 10)
 ```
 
 ---
@@ -174,31 +174,42 @@ let qc_passed = quality_filter(variants, 30.0, 10)
 
 Next we annotate variants with gene information and ClinVar classifications. We load our reference databases as tables and join:
 
+> **Requires CLI:** TSV readers require the native runtime. Run this and the
+> remaining capstone blocks after `bl run init.bl`.
+
 ```biolang
-let gene_db = read_tsv("data/gene_db.tsv")
-let clinvar_db = read_tsv("data/clinvar_db.tsv")
+let gene_db = tsv("data/gene_db.tsv")
+let clinvar_db = tsv("data/clinvar_db.tsv")
 ```
 
 ### Building an Annotation Key
 
 To join variants with our databases, we need a common key. We construct a variant key from chromosome, position, reference allele, and alternate allele:
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```biolang
 fn make_variant_key(row) {
     return f"{row.chrom}:{row.pos}:{row.ref}:{row.alt}"
 }
 
-let annotated = qc_passed |> mutate("variant_key", |row| make_variant_key(row))
+let annotated = qc_passed |> map(|row| {
+    let info = parse_vcf_info(row.info)
+    {...row, variant_key: make_variant_key(row), gene: info.GENE ?? ""}
+}) |> to_table()
 ```
 
 ### Joining with Gene and ClinVar Data
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```biolang
-let with_genes = join_tables(annotated, gene_db, "gene")
-let with_clinvar = join_tables(with_genes, clinvar_db, "variant_key")
+let with_genes = left_join(annotated, gene_db, "gene")
+let with_clinvar = left_join(with_genes, clinvar_db, "variant_key")
 ```
 
-The `join_tables()` function (Day 10) performs an inner join on the shared column. Variants without a match in the reference database are retained with empty annotation fields.
+`left_join()` attaches matching annotations while retaining variants that have
+no database match.
 
 ### API-Based Annotation (Optional)
 
@@ -246,9 +257,11 @@ In our capstone pipeline, we use the pre-built local databases from `init.bl` to
 
 Common variants are unlikely to cause rare disease. We filter out variants with an allele frequency (AF) above 1% in population databases:
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```biolang
 fn frequency_filter(variants, max_af) {
-    variants |> where(|row| {
+    variants |> filter(|row| {
         let af = try {
             let info_str = row.info
             let parts = split(info_str, ";")
@@ -276,17 +289,21 @@ The logic mirrors real clinical pipelines: absent AF is treated as zero (novel v
 
 Clinical exome analysis does not report all variants --- it focuses on genes relevant to the clinical indication. For hereditary cancer, we apply the cancer gene panel:
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```biolang
-let cancer_panel = read_tsv("data/cancer_panel.tsv")
-let acmg_genes = read_tsv("data/acmg_genes.tsv")
+let cancer_panel = tsv("data/cancer_panel.tsv")
+let acmg_genes = tsv("data/acmg_genes.tsv")
 ```
 
 ### Panel Matching
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```biolang
 fn panel_filter(variants, panel) {
-    let panel_genes = panel |> select("gene") |> map(|row| row.gene)
-    variants |> where(|row| {
+    let panel_genes = col(panel, "gene")
+    variants |> filter(|row| {
         let gene = try { row.gene } catch err { "" }
         panel_genes |> filter(|g| g == gene) |> len() > 0
     })
@@ -382,11 +399,15 @@ fn score_variant(row) {
 
 Apply classification to all panel variants:
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```biolang
 let classified = panel_variants |> map(|row| score_variant(row))
 ```
 
 ### Grouping by Classification
+
+> **Requires CLI:** This block continues the native capstone session.
 
 ```biolang
 let pathogenic = classified |> filter(|v| v.classification == "Pathogenic")
@@ -528,22 +549,25 @@ Here is the entire pipeline, end to end. Each stage flows into the next via pipe
 ```biolang
 # --- Load data ---
 let variants = read_vcf("data/patient.vcf")
-let gene_db = read_tsv("data/gene_db.tsv")
-let clinvar_db = read_tsv("data/clinvar_db.tsv")
-let cancer_panel = read_tsv("data/cancer_panel.tsv")
-let patient_meta = read_tsv("data/patient_info.tsv")
+let gene_db = tsv("data/gene_db.tsv")
+let clinvar_db = tsv("data/clinvar_db.tsv")
+let cancer_panel = tsv("data/cancer_panel.tsv")
+let patient_meta = tsv("data/patient_info.tsv")
 let patient_info = patient_meta[0]
 
 # --- Validate ---
 let validation = validate_vcf(variants)
 
 # --- Quality filter ---
-let qc_passed = quality_filter(variants, 30.0, 10)
+let qc_passed = filter_variants(variants, 30.0, 10)
 
 # --- Annotate ---
-let annotated = qc_passed |> mutate("variant_key", |row| make_variant_key(row))
-let with_genes = join_tables(annotated, gene_db, "gene")
-let with_clinvar = join_tables(with_genes, clinvar_db, "variant_key")
+let annotated = qc_passed |> map(|row| {
+    let info = parse_vcf_info(row.info)
+    {...row, variant_key: make_variant_key(row), gene: info.GENE ?? ""}
+}) |> to_table()
+let with_genes = left_join(annotated, gene_db, "gene")
+let with_clinvar = left_join(with_genes, clinvar_db, "variant_key")
 
 # --- Frequency filter ---
 let rare_variants = frequency_filter(with_clinvar, 0.01)

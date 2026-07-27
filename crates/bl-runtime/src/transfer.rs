@@ -115,10 +115,7 @@ fn format_bytes(bytes: u64) -> String {
 /// Derive a local filename from a URL path.
 fn filename_from_url(url: &str) -> String {
     let path = url.split('?').next().unwrap_or(url);
-    path.rsplit('/')
-        .next()
-        .unwrap_or("download")
-        .to_string()
+    path.rsplit('/').next().unwrap_or("download").to_string()
 }
 
 /// Run a subprocess with live stderr output and return (stdout, exit_code).
@@ -137,11 +134,7 @@ fn run_with_progress(cmd: &str, args: &[&str], func: &str) -> Result<(String, i3
         })?;
 
     let output = child.wait_with_output().map_err(|e| {
-        BioLangError::runtime(
-            ErrorKind::IOError,
-            format!("{func}() failed: {e}"),
-            None,
-        )
+        BioLangError::runtime(ErrorKind::IOError, format!("{func}() failed: {e}"), None)
     })?;
 
     let code = output.status.code().unwrap_or(-1);
@@ -313,10 +306,7 @@ fn builtin_ftp_download(args: Vec<Value>) -> Result<Value> {
                     total as f64 / 1_048_576.0
                 );
             } else {
-                eprint!(
-                    "\r  ftp: {:.1} MB  ",
-                    downloaded as f64 / 1_048_576.0
-                );
+                eprint!("\r  ftp: {:.1} MB  ", downloaded as f64 / 1_048_576.0);
             }
         }
     }
@@ -337,7 +327,7 @@ fn builtin_ftp_download(args: Vec<Value>) -> Result<Value> {
     rec.insert("path".to_string(), Value::Str(local_path));
     rec.insert("size".to_string(), Value::Int(downloaded as i64));
     rec.insert("protocol".to_string(), Value::Str("ftp".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 /// ftp_list(url) → List of Records {name, size, type}
@@ -363,11 +353,7 @@ fn builtin_ftp_list(args: Vec<Value>) -> Result<Value> {
     })?;
 
     let entries = ftp.nlst(Some(&remote_path)).map_err(|e| {
-        BioLangError::runtime(
-            ErrorKind::IOError,
-            format!("ftp_list() failed: {e}"),
-            None,
-        )
+        BioLangError::runtime(ErrorKind::IOError, format!("ftp_list() failed: {e}"), None)
     })?;
 
     let _ = ftp.quit();
@@ -376,19 +362,15 @@ fn builtin_ftp_list(args: Vec<Value>) -> Result<Value> {
         .into_iter()
         .filter(|e| !e.is_empty())
         .map(|entry| {
-            let name = entry
-                .rsplit('/')
-                .next()
-                .unwrap_or(&entry)
-                .to_string();
+            let name = entry.rsplit('/').next().unwrap_or(&entry).to_string();
             let mut rec = HashMap::new();
             rec.insert("name".to_string(), Value::Str(name));
             rec.insert("path".to_string(), Value::Str(entry));
-            Value::Record(rec)
+            Value::Record((rec).into())
         })
         .collect();
 
-    Ok(Value::List(items))
+    Ok(Value::List((items).into()))
 }
 
 /// ftp_upload(path, url) → {size, protocol}
@@ -432,7 +414,11 @@ fn builtin_ftp_upload(args: Vec<Value>) -> Result<Value> {
             )
         })?;
 
-    eprintln!("  ftp: uploading {} ({}) → {remote_path}", local_path, format_bytes(size as u64));
+    eprintln!(
+        "  ftp: uploading {} ({}) → {remote_path}",
+        local_path,
+        format_bytes(size as u64)
+    );
 
     let mut cursor = std::io::Cursor::new(content);
     ftp.put_file(&remote_path, &mut cursor).map_err(|e| {
@@ -448,7 +434,7 @@ fn builtin_ftp_upload(args: Vec<Value>) -> Result<Value> {
     let mut rec = HashMap::new();
     rec.insert("size".to_string(), Value::Int(size as i64));
     rec.insert("protocol".to_string(), Value::Str("ftp".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── SFTP/SCP (subprocess) ───────────────────────────────────────
@@ -471,9 +457,7 @@ fn builtin_sftp_download(args: Vec<Value>) -> Result<Value> {
     eprintln!("  scp: downloading {scp_src} → {local}");
     run_checked("scp", &["-q", &scp_src, &local], "sftp_download")?;
 
-    let size = std::fs::metadata(&local)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let size = std::fs::metadata(&local).map(|m| m.len()).unwrap_or(0);
 
     eprintln!("  scp: done ({})", format_bytes(size));
 
@@ -481,7 +465,7 @@ fn builtin_sftp_download(args: Vec<Value>) -> Result<Value> {
     rec.insert("path".to_string(), Value::Str(local));
     rec.insert("size".to_string(), Value::Int(size as i64));
     rec.insert("protocol".to_string(), Value::Str("scp".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 /// sftp_upload(path, url) → {size}
@@ -489,19 +473,20 @@ fn builtin_sftp_upload(args: Vec<Value>) -> Result<Value> {
     let local = require_str(&args[0], "sftp_upload")?;
     let remote = require_str(&args[1], "sftp_upload")?;
 
-    let size = std::fs::metadata(local)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let size = std::fs::metadata(local).map(|m| m.len()).unwrap_or(0);
 
     let scp_dest = normalize_ssh_url(remote);
 
-    eprintln!("  scp: uploading {local} ({}) → {scp_dest}", format_bytes(size));
+    eprintln!(
+        "  scp: uploading {local} ({}) → {scp_dest}",
+        format_bytes(size)
+    );
     run_checked("scp", &["-q", local, &scp_dest], "sftp_upload")?;
 
     let mut rec = HashMap::new();
     rec.insert("size".to_string(), Value::Int(size as i64));
     rec.insert("protocol".to_string(), Value::Str("scp".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 /// scp(source, dest) → {exit_code}  (generic scp wrapper)
@@ -514,7 +499,7 @@ fn builtin_scp(args: Vec<Value>) -> Result<Value> {
     rec.insert("source".to_string(), Value::Str(src.to_string()));
     rec.insert("dest".to_string(), Value::Str(dst.to_string()));
     rec.insert("protocol".to_string(), Value::Str("scp".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 fn normalize_ssh_url(url: &str) -> String {
@@ -547,15 +532,13 @@ fn builtin_s3_download(args: Vec<Value>) -> Result<Value> {
     eprintln!("  s3: downloading {s3_url}");
     run_checked("aws", &["s3", "cp", s3_url, &local], "s3_download")?;
 
-    let size = std::fs::metadata(&local)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let size = std::fs::metadata(&local).map(|m| m.len()).unwrap_or(0);
 
     let mut rec = HashMap::new();
     rec.insert("path".to_string(), Value::Str(local));
     rec.insert("size".to_string(), Value::Int(size as i64));
     rec.insert("protocol".to_string(), Value::Str("s3".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 /// s3_upload(path, s3_url) → {size}
@@ -563,17 +546,18 @@ fn builtin_s3_upload(args: Vec<Value>) -> Result<Value> {
     let local = require_str(&args[0], "s3_upload")?;
     let s3_url = require_str(&args[1], "s3_upload")?;
 
-    let size = std::fs::metadata(local)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let size = std::fs::metadata(local).map(|m| m.len()).unwrap_or(0);
 
-    eprintln!("  s3: uploading {local} ({}) → {s3_url}", format_bytes(size));
+    eprintln!(
+        "  s3: uploading {local} ({}) → {s3_url}",
+        format_bytes(size)
+    );
     run_checked("aws", &["s3", "cp", local, s3_url], "s3_upload")?;
 
     let mut rec = HashMap::new();
     rec.insert("size".to_string(), Value::Int(size as i64));
     rec.insert("protocol".to_string(), Value::Str("s3".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 /// s3_list(s3_url, opts?) → List of Records
@@ -619,11 +603,11 @@ fn builtin_s3_list(args: Vec<Value>) -> Result<Value> {
                 rec.insert("name".to_string(), Value::Str(name.to_string()));
                 rec.insert("type".to_string(), Value::Str("dir".into()));
             }
-            Value::Record(rec)
+            Value::Record((rec).into())
         })
         .collect();
 
-    Ok(Value::List(items))
+    Ok(Value::List((items).into()))
 }
 
 // ── GCS (gsutil subprocess) ─────────────────────────────────────
@@ -642,15 +626,13 @@ fn builtin_gcs_download(args: Vec<Value>) -> Result<Value> {
     eprintln!("  gcs: downloading {gs_url}");
     run_checked("gsutil", &["cp", gs_url, &local], "gcs_download")?;
 
-    let size = std::fs::metadata(&local)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let size = std::fs::metadata(&local).map(|m| m.len()).unwrap_or(0);
 
     let mut rec = HashMap::new();
     rec.insert("path".to_string(), Value::Str(local));
     rec.insert("size".to_string(), Value::Int(size as i64));
     rec.insert("protocol".to_string(), Value::Str("gcs".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 /// gcs_upload(path, gs_url) → {size}
@@ -658,17 +640,18 @@ fn builtin_gcs_upload(args: Vec<Value>) -> Result<Value> {
     let local = require_str(&args[0], "gcs_upload")?;
     let gs_url = require_str(&args[1], "gcs_upload")?;
 
-    let size = std::fs::metadata(local)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let size = std::fs::metadata(local).map(|m| m.len()).unwrap_or(0);
 
-    eprintln!("  gcs: uploading {local} ({}) → {gs_url}", format_bytes(size));
+    eprintln!(
+        "  gcs: uploading {local} ({}) → {gs_url}",
+        format_bytes(size)
+    );
     run_checked("gsutil", &["cp", local, gs_url], "gcs_upload")?;
 
     let mut rec = HashMap::new();
     rec.insert("size".to_string(), Value::Int(size as i64));
     rec.insert("protocol".to_string(), Value::Str("gcs".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── rsync (subprocess) ──────────────────────────────────────────
@@ -679,10 +662,7 @@ fn builtin_rsync(args: Vec<Value>) -> Result<Value> {
     let src = require_str(&args[0], "rsync")?;
     let dst = require_str(&args[1], "rsync")?;
 
-    let mut cmd_args: Vec<String> = vec![
-        "-av".to_string(),
-        "--progress".to_string(),
-    ];
+    let mut cmd_args: Vec<String> = vec!["-av".to_string(), "--progress".to_string()];
 
     if args.len() > 2 {
         if let Value::Record(opts) = &args[2] {
@@ -708,7 +688,7 @@ fn builtin_rsync(args: Vec<Value>) -> Result<Value> {
     rec.insert("source".to_string(), Value::Str(src.to_string()));
     rec.insert("dest".to_string(), Value::Str(dst.to_string()));
     rec.insert("protocol".to_string(), Value::Str("rsync".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── Aspera (ascp subprocess) ────────────────────────────────────
@@ -728,9 +708,7 @@ fn builtin_aspera_download(args: Vec<Value>) -> Result<Value> {
 
     // ascp needs the OpenSSH key path — check common locations
     let key_candidates = [
-        std::env::var("ASPERA_SCP_PASS")
-            .ok()
-            .unwrap_or_default(),
+        std::env::var("ASPERA_SCP_PASS").ok().unwrap_or_default(),
         expand_home("~/.aspera/connect/etc/asperaweb_id_dsa.openssh"),
         expand_home("~/.aspera/cli/etc/asperaweb_id_dsa.openssh"),
     ];
@@ -739,11 +717,7 @@ fn builtin_aspera_download(args: Vec<Value>) -> Result<Value> {
         .iter()
         .find(|p| !p.is_empty() && std::path::Path::new(p).exists());
 
-    let mut cmd_args = vec![
-        "-QT",
-        "-l", "300m",
-        "-P", "33001",
-    ];
+    let mut cmd_args = vec!["-QT", "-l", "300m", "-P", "33001"];
 
     let key_str;
     if let Some(key) = key_path {
@@ -760,7 +734,7 @@ fn builtin_aspera_download(args: Vec<Value>) -> Result<Value> {
     let mut rec = HashMap::new();
     rec.insert("path".to_string(), Value::Str(local));
     rec.insert("protocol".to_string(), Value::Str("aspera".into()));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 fn expand_home(path: &str) -> String {
@@ -799,7 +773,7 @@ fn builtin_sra_prefetch(args: Vec<Value>) -> Result<Value> {
     rec.insert("path".to_string(), Value::Str(sra_path));
     rec.insert("accession".to_string(), Value::Str(accession.to_string()));
     rec.insert("output_dir".to_string(), Value::Str(output_dir));
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 /// sra_fastq(accession, path?) → {path, accession}
@@ -817,7 +791,13 @@ fn builtin_sra_fastq(args: Vec<Value>) -> Result<Value> {
     eprintln!("  sra: converting {accession} to FASTQ → {output_dir}");
     run_checked(
         "fasterq-dump",
-        &[accession, "--outdir", &output_dir, "--progress", "--split-3"],
+        &[
+            accession,
+            "--outdir",
+            &output_dir,
+            "--progress",
+            "--split-3",
+        ],
         "sra_fastq",
     )?;
 
@@ -827,9 +807,7 @@ fn builtin_sra_fastq(args: Vec<Value>) -> Result<Value> {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             if name.starts_with(accession) && name.ends_with(".fastq") {
-                files.push(Value::Str(
-                    entry.path().to_string_lossy().to_string(),
-                ));
+                files.push(Value::Str(entry.path().to_string_lossy().to_string()));
             }
         }
     }
@@ -837,8 +815,8 @@ fn builtin_sra_fastq(args: Vec<Value>) -> Result<Value> {
     let mut rec = HashMap::new();
     rec.insert("accession".to_string(), Value::Str(accession.to_string()));
     rec.insert("output_dir".to_string(), Value::Str(output_dir));
-    rec.insert("files".to_string(), Value::List(files));
-    Ok(Value::Record(rec))
+    rec.insert("files".to_string(), Value::List((files).into()));
+    Ok(Value::Record((rec).into()))
 }
 
 // Tests are inline because they exercise private helpers: parse_ftp_url, normalize_ssh_url,
@@ -892,10 +870,7 @@ mod tests {
 
     #[test]
     fn test_filename_from_url() {
-        assert_eq!(
-            filename_from_url("ftp://host/path/to/file.gz"),
-            "file.gz"
-        );
+        assert_eq!(filename_from_url("ftp://host/path/to/file.gz"), "file.gz");
         assert_eq!(
             filename_from_url("s3://bucket/key/data.bam?version=1"),
             "data.bam"
@@ -926,8 +901,7 @@ mod tests {
     // Edge case: parse_ftp_url with no path
     #[test]
     fn test_parse_ftp_url_no_path() {
-        let (host, port, path, _user, _pass) =
-            parse_ftp_url("ftp://ftp.example.com").unwrap();
+        let (host, port, path, _user, _pass) = parse_ftp_url("ftp://ftp.example.com").unwrap();
         assert_eq!(host, "ftp.example.com");
         assert_eq!(port, 21);
         assert_eq!(path, "/");
@@ -988,16 +962,27 @@ mod tests {
     #[test]
     fn test_is_transfer_builtin_all_known() {
         let known = [
-            "ftp_download", "ftp_list", "ftp_upload",
-            "sftp_download", "sftp_upload", "scp",
-            "s3_download", "s3_upload", "s3_list",
-            "gcs_download", "gcs_upload",
+            "ftp_download",
+            "ftp_list",
+            "ftp_upload",
+            "sftp_download",
+            "sftp_upload",
+            "scp",
+            "s3_download",
+            "s3_upload",
+            "s3_list",
+            "gcs_download",
+            "gcs_upload",
             "rsync",
             "aspera_download",
-            "sra_prefetch", "sra_fastq",
+            "sra_prefetch",
+            "sra_fastq",
         ];
         for name in &known {
-            assert!(is_transfer_builtin(name), "{name} should be a transfer builtin");
+            assert!(
+                is_transfer_builtin(name),
+                "{name} should be a transfer builtin"
+            );
         }
         // Negative cases
         assert!(!is_transfer_builtin("http_get"));
@@ -1017,10 +1002,7 @@ mod tests {
     // Edge case: normalize_ssh_url with no path
     #[test]
     fn test_normalize_ssh_url_no_path() {
-        assert_eq!(
-            normalize_ssh_url("sftp://user@host"),
-            "user@host"
-        );
+        assert_eq!(normalize_ssh_url("sftp://user@host"), "user@host");
     }
 
     // Edge case: format_bytes boundary values

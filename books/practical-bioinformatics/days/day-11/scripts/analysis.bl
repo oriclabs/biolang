@@ -138,7 +138,7 @@ print("")
 print("=== Dotplot ===")
 let dot_seq1 = dna"ATCGATCGATCG"
 let dot_seq2 = dna"ATCGTTGATCG"
-dotplot(dot_seq1, dot_seq2, window: 3, title: "Pairwise comparison")
+dotplot(dot_seq1, dot_seq2, {window: 3, format: "svg"})
 print("Dotplot generated (SVG output)")
 print("")
 

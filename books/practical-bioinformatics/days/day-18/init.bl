@@ -77,7 +77,7 @@ for i in range(0, len(bed_lines)) {
         bed_content = bed_content + "\n" + bed_lines[i]
     }
 }
-write(bed_content, "data/exons.bed")
+write_text("data/exons.bed", bed_content)
 print("  Created data/exons.bed (37 exons: TP53, BRCA1, EGFR, KRAS)")
 
 # ── Variants VCF: Real ClinVar pathogenic/likely-pathogenic variants ──
@@ -133,7 +133,7 @@ for i in range(0, len(vcf_header)) {
 for i in range(0, len(vcf_variants)) {
     vcf_content = vcf_content + "\n" + vcf_variants[i]
 }
-write(vcf_content, "data/variants.vcf")
+write_text("data/variants.vcf", vcf_content)
 print("  Created data/variants.vcf (17 ClinVar variants across TP53, BRCA1, EGFR, KRAS)")
 
 # ── GFF annotation: Real RefSeq features for TP53 and BRCA1 ──────────
@@ -189,7 +189,7 @@ for i in range(0, len(gff_header)) {
 for i in range(0, len(gff_features)) {
     gff_content = gff_content + "\n" + gff_features[i]
 }
-write(gff_content, "data/annotations.gff")
+write_text("data/annotations.gff", gff_content)
 print("  Created data/annotations.gff (TP53 + BRCA1 RefSeq features, GRCh38)")
 
 print("\nSetup complete. Run the Day 18 scripts with:")

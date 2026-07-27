@@ -111,8 +111,8 @@ print(f"TP53 interacts with: {tp53_partners}")
 # ["BAX", "CDKN1A", "MDM2"]
 
 # Node degree (number of connections)
-print(f"TP53 degree: {degree(g, 'TP53')}")    # 3
-print(f"BCL2 degree: {degree(g, 'BCL2')}")    # 1
+print("TP53 degree: " + str(degree(g, "TP53")))    # 3
+print("BCL2 degree: " + str(degree(g, "BCL2")))    # 1
 
 # Check if an edge exists
 print(has_edge(g, "TP53", "BAX"))     # true
@@ -170,13 +170,16 @@ print(f"Subgraph: {node_count(sub)} nodes, {edge_count(sub)} edges")
           In practice you'll build graphs from files or API results, not by hand.
           Here's how to construct a graph from a CSV edge list:
         </p>
-        <pre><code class="language-biolang"># requires: interactions.csv in working directory
-# Suppose interactions.csv has columns: gene_a, gene_b, score
-let edges_data = read_csv("data/expression.csv")
+        <pre><code class="language-biolang"># A CSV edge list would produce the same three-column table.
+let edges_data = from_records([
+  {gene_a: "TP53", gene_b: "MDM2", score: 0.99},
+  {gene_a: "TP53", gene_b: "CDKN1A", score: 0.95},
+  {gene_a: "BRCA1", gene_b: "RAD51", score: 0.92},
+])
 
 let g = graph()
-let g = edges_data |> reduce(g, |g, row| {
-  add_edge(g, row.gene_a, row.gene_b, {score: into(row.score, "Float")})
+let g = edges_data |> to_records() |> reduce(g, |g, row| {
+  add_edge(g, row.gene_a, row.gene_b, {score: row.score})
 })
 
 print(f"Built graph: {node_count(g)} genes, {edge_count(g)} interactions")</code></pre>
@@ -205,7 +208,7 @@ print(f"STRING network: {node_count(g)} proteins, {edge_count(g)} interactions")
 # Find hub genes (highest degree)
 let hub_genes = nodes(g)
   |> map(|n| {gene: n, degree: degree(g, n)})
-  |> sort_by(|r| r.degree, desc: true)
+  |> sort_by(|r| -r.degree)
   |> take(5)
 
 print("Top 5 hub genes:")
@@ -272,7 +275,7 @@ print(f"Components: {len(connected_components(g))}")
 # Hub analysis
 let hubs = nodes(g)
   |> map(|n| {gene: n, deg: degree(g, n)})
-  |> sort_by(|r| r.deg, desc: true)
+  |> sort_by(|r| -r.deg)
 
 print("\nDegree ranking:")
 hubs |> each(|r| print(f"  {r.gene}: {r.deg}"))

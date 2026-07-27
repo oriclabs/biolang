@@ -121,7 +121,7 @@ data.frame(
   |> take(5)
   |> map(|r| {
     let mean_q = mean_phred(r.quality)
-    print("{r.id}: mean Q={mean_q:.1}, len={r.length}")
+    print(f"{r.id}: mean Q={mean_q:.1}, len={r.length}")
   })</code></pre>
 
         <h2>GC Content Calculation</h2>
@@ -147,31 +147,28 @@ cat(sprintf("GC content: %.3f\n", sum(gc)))</code></pre>
         <h3>Python (pandas)</h3>
         <pre><code class="language-python">import pandas as pd
 
-df = pd.read_csv("samples.csv")
+df = pd.read_csv("data/sample_sheet.csv")
 result = (
-    df[df["reads"] >= 1_000_000]
-    .assign(million_reads=lambda x: x["reads"] / 1e6)
-    .sort_values("reads", ascending=False)
-    [["sample_id", "million_reads"]]
+    df[df["tissue"] == "tumor"]
+    .sort_values("sample_id")
+    [["sample_id", "condition"]]
 )
 print(result.to_string(index=False))</code></pre>
 
         <h3>R (dplyr)</h3>
         <pre><code class="language-r">library(dplyr)
 
-read.csv("samples.csv") |>
-  filter(reads >= 1e6) |>
-  mutate(million_reads = reads / 1e6) |>
-  arrange(desc(reads)) |>
-  select(sample_id, million_reads) |>
+read.csv("data/sample_sheet.csv") |>
+  filter(tissue == "tumor") |>
+  arrange(sample_id) |>
+  select(sample_id, condition) |>
   print()</code></pre>
 
         <h3>BioLang</h3>
         <pre><code class="language-biolang">read_csv("data/sample_sheet.csv")
-  |> filter(|row| row["reads"] >= 1_000_000)
-  |> mutate("million_reads", |row| row["reads"] / 1_000_000.0)
-  |> select("sample_id", "million_reads")
-  |> arrange("-million_reads")
+  |> filter(|row| row.tissue == "tumor")
+  |> select("sample_id", "condition")
+  |> arrange("sample_id")
   |> print()</code></pre>
 
         <h2>Reverse Complement</h2>
@@ -207,8 +204,15 @@ summary(data)</code></pre>
 
         <h3>BioLang</h3>
         <pre><code class="language-biolang">let data = [38.5, 40.2, 35.1, 42.0, 37.8, 39.1, 41.3]
-data |> describe() |> print()
-# { mean: 39.14, median: 39.10, std_dev: 2.27, min: 35.10, max: 42.00, count: 7 }</code></pre>
+let summary = {
+  mean: mean(data),
+  median: median(data),
+  std_dev: stdev(data),
+  min: min(data),
+  max: max(data),
+  count: len(data)
+}
+print(summary)</code></pre>
 
         <h2>K-mer Counting</h2>
         <h3>Python</h3>
@@ -231,9 +235,9 @@ head(sort(freqs, decreasing = TRUE), 5)</code></pre>
         <h3>BioLang</h3>
         <pre><code class="language-biolang">let counts = kmer_count(dna"ATCGATCGATCG", 3)
 counts
-  |> sort(|a, b| b["count"] - a["count"])
+  |> sort_by(|row| -row.count)
   |> take(5)
-  |> map(|kv| print("{kv['kmer']}: {kv['count']}"))</code></pre>
+  |> each(|row| println(f"{row.kmer}: {row.count}"))</code></pre>
 
         <h2>Writing Output Files</h2>
         <h3>Python</h3>
@@ -255,7 +259,7 @@ write_json(results, "results.json", pretty = TRUE)</code></pre>
   "pass_rate": 0.95,
   "mean_quality": 35.2
 }
-write_text("results.json", results)</code></pre>
+write_text("results.json", json_pretty(results))</code></pre>
 
         <h2>Pattern Matching</h2>
         <p>

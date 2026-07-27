@@ -1,0 +1,43 @@
+# ecoli_oric.bl — Predict the oriC of E. coli K-12 MG1655
+#
+# Run: bl ecoli_oric.bl
+# Requires: ecoli_k12_mg1655.fa (NCBI accession U00096)
+
+import "oric" as oric
+
+# Load genome (first FASTA record)
+let genome = fasta("ecoli_k12_mg1655.fa") |> first() |> .seq
+println("Genome length:", seq_len(genome), "bp")
+
+# Predict oriC
+let result = oric.predict_oric(genome,
+    window_size    = 1000,
+    search_radius  = 500,
+    max_mismatches = 1
+)
+
+println("=== oriC Prediction ===")
+println("Candidate position: ", result.candidate_pos, " bp")
+println("Confidence:         ", result.confidence, " / 5")
+println("Note:               ", result.note)
+println("AT fraction:        ", result.at_fraction)
+println("DnaA boxes found:   ", result.dnaa_box_count)
+
+if result.dnaa_box_count > 0 {
+    println("\nDnaA box positions:")
+    for box in result.dnaa_boxes {
+        println("  pos=", box.pos, " strand=", box.strand, " matched=", box.matched, " mm=", box.mismatches)
+    }
+}
+
+println("\nGC skew maximum (oriC side): pos=", result.skew_max.pos, " skew=", result.skew_max.cumulative_skew)
+println("GC skew minimum (ter side):  pos=", result.skew_min.pos, " skew=", result.skew_min.cumulative_skew)
+
+# Export skew profile as CSV
+let tbl = oric.scan_oric_table(genome, 1000, 500)
+tbl |> write_csv("ecoli_gc_skew.csv")
+println("\nGC skew profile written to ecoli_gc_skew.csv")
+
+# Print ASCII chart
+println()
+oric.plot_skew(genome, 2000)

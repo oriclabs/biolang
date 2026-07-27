@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-fade6fca.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -291,7 +291,8 @@ let annotation = try {
 </code></pre>
 <h3 id="exponential-backoff"><a class="header" href="#exponential-backoff">Exponential Backoff</a></h3>
 <p>For high-traffic APIs, increase delay between retries using a helper:</p>
-<pre><code class="language-biolang">fn fetch_with_backoff(url, max_attempts: 5) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn fetch_with_backoff(url, max_attempts: 5) {
     let attempt = 0
     let result = nil
 
@@ -323,7 +324,11 @@ let gene_name = annotation?.gene_name ?? "unknown"
 let af = variant.info?.AF ?? variant.info?.MAF ?? 0.0
 </code></pre>
 <p><code>??</code> chains naturally. The first non-nil value wins:</p>
-<pre><code class="language-biolang">let symbol = record.hugo_symbol ?? record.gene_id ?? record.locus_tag ?? "uncharacterised"
+<pre><code class="language-biolang">let record = {gene_id: "ENSG00000141510"}
+let symbol = if has_key(record, "hugo_symbol") then record.hugo_symbol
+    else if has_key(record, "gene_id") then record.gene_id
+    else if has_key(record, "locus_tag") then record.locus_tag
+    else "uncharacterised"
 </code></pre>
 <h2 id="optional-chaining-"><a class="header" href="#optional-chaining-">Optional Chaining: ?.</a></h2>
 <p>The <code>?.</code> operator short-circuits a field access chain when any intermediate
@@ -344,7 +349,8 @@ let protein_change = variant.annotation?.consequences?.protein?.hgvs
 <h3 id="missing-fields-in-records"><a class="header" href="#missing-fields-in-records">Missing Fields in Records</a></h3>
 <p>Biological file formats are under-specified. A BED file might have 3 columns
 or 12. A VCF INFO field might omit half the keys. Build defensive accessors.</p>
-<pre><code class="language-biolang">fn safe_info(variant, key, default: nil) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn safe_info(variant, key, default: nil) {
     try {
         let info = parse_info(variant.info_str)
         info[key] ?? default
@@ -380,7 +386,8 @@ let clnsig = safe_info(v, "CLNSIG", default: "not_reported")
 </code></pre>
 <h3 id="nil-safe-aggregation"><a class="header" href="#nil-safe-aggregation">Nil-safe Aggregation</a></h3>
 <p>When computing statistics over optional fields, filter out nil values first:</p>
-<pre><code class="language-biolang">let qualities = variants
+<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+let qualities = variants
     |&gt; map(|v| v.qual)
     |&gt; filter(|q| q != nil)
 
@@ -441,7 +448,8 @@ let sequences = parse_fasta_robust("mixed_quality.fasta")
 <h2 id="example-retrying-api-calls-to-ncbi"><a class="header" href="#example-retrying-api-calls-to-ncbi">Example: Retrying API Calls to NCBI</a></h2>
 <p>Query NCBI’s E-utilities for gene summaries, handling the rate limit and
 transient failures that are common on public APIs.</p>
-<pre><code class="language-biolang"># requires: internet connection
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 fn fetch_gene_summaries(gene_ids) {
     let results = []
@@ -492,7 +500,8 @@ for s in summaries {
 <p>Real VCF files have inconsistent INFO columns. Some records carry <code>AF</code>, others
 do not. Some have <code>CLNSIG</code>, most do not. Use <code>?.</code> and <code>??</code> to process them
 uniformly.</p>
-<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let variants = read_vcf("data/variants.vcf")
 
 let annotated = variants |&gt; map(|v| {
     let info = parse_info(v.info_str)
@@ -605,8 +614,8 @@ results instead of crashing with none.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

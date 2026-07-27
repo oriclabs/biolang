@@ -1,0 +1,104 @@
+# singlecell/src/markers.bl — Cell annotation and gene scoring
+#
+# Wraps cell_cycle_score, module_score, and doublet_score.
+
+## cell_cycle(obj, s_genes, g2m_genes) → Record
+##
+## Score S-phase and G2M-phase gene sets per cell and assign a phase label.
+##
+## s_genes   — List<Int> indices of S-phase marker genes in obj.genes
+## g2m_genes — List<Int> indices of G2M-phase marker genes in obj.genes
+##
+## Adds obj.cell_cycle_info (List<Record{s_score, g2m_score, phase}>).
+fn cell_cycle(obj, s_genes, g2m_genes) {
+    let mat = obj.norm_matrix
+    let scores = cell_cycle_score(mat, s_genes, g2m_genes)
+    {... obj, cell_cycle_info: scores}
+}
+
+## gene_module_score(obj, gene_indices) → Record
+##
+## Compute the mean expression of a gene module per cell.
+## gene_indices — List<Int> of gene positions in obj.genes.
+##
+## Adds obj.module_scores (List<Float>).
+fn gene_module_score(obj, gene_indices) {
+    let mat = obj.norm_matrix
+    let scores = module_score(mat, gene_indices)
+    {... obj, module_scores: scores}
+}
+
+## doublets(obj, n_sim) → Record
+##
+## Score each cell for likelihood of being a doublet.
+## n_sim — number of simulated artificial doublets (default 500).
+##
+## Adds obj.doublet_scores (List<Float> in [0, 1]).
+fn doublets(obj, n_sim = 500) {
+    let scores = doublet_score(obj.matrix, n_sim)
+    {... obj, doublet_scores: scores}
+}
+
+## flag_doublets(obj, threshold) → Record
+##
+## Mark cells with doublet_score > threshold as doublets.
+## Returns obj with obj.is_doublet (List<Bool>) added.
+fn flag_doublets(obj, threshold = 0.5) {
+    let is_dbl = obj.doublet_scores |> map(|s| s > threshold)
+    {... obj, is_doublet: is_dbl}
+}
+
+## marker_table(obj, cluster_a, cluster_b) → List<Record>
+##
+## Marker genes between two clusters using a real Wilcoxon rank-sum
+## (Mann-Whitney U) test per gene, with Benjamini-Hochberg FDR correction
+## across all genes.
+##
+## Returns List<Record{gene, mean_a, mean_b, log2fc, pvalue, padj, significant}>.
+## A gene is `significant` when its FDR-adjusted p-value < 0.05 and
+## |log2 fold-change| >= 1.0.
+fn marker_table(obj, cluster_a, cluster_b) {
+    let mat = obj.norm_matrix
+    let cls = obj.clusters
+    let n_g = len(obj.genes)
+
+    let idx_a = range(0, obj.n_cells) |> filter(|i| cls[i] == cluster_a)
+    let idx_b = range(0, obj.n_cells) |> filter(|i| cls[i] == cluster_b)
+
+    let pseudo = 0.5
+
+    # Pass 1 — per-gene effect size and Wilcoxon rank-sum p-value.
+    let stats = []
+    let pvals = []
+
+    for j in range(0, n_g) {
+        let vals_a = idx_a |> map(|i| mat[i][j])
+        let vals_b = idx_b |> map(|i| mat[i][j])
+        let m_a = mean(vals_a)
+        let m_b = mean(vals_b)
+        let lfc = log2((m_b + pseudo) / (m_a + pseudo))
+
+        let w = wilcoxon(vals_a, vals_b)
+        let p = w.pvalue
+
+        stats = push(stats, {
+            gene:   obj.genes[j],
+            mean_a: round(m_a, 4),
+            mean_b: round(m_b, 4),
+            log2fc: round(lfc, 4),
+            pvalue: p
+        })
+        pvals = push(pvals, p)
+    }
+
+    # Pass 2 — Benjamini-Hochberg FDR across every tested gene.
+    let padj = p_adjust(pvals, "bh")
+
+    range(0, n_g) |> map(|j| {
+        let s = stats[j]
+        let q = padj[j]
+        {... s,
+         padj:        q,
+         significant: q < 0.05 and abs(s.log2fc) >= 1.0}
+    })
+}

@@ -66,34 +66,27 @@ let mono_base = [
 
 let profiles = [t_cell_base, b_cell_base, mono_base]
 let type_names = ["T_cell", "B_cell", "Monocyte"]
-let type_counts = [200, 150, 150]
 let n_genes = len(genes)
 
 # ── Build CSV header ──
 let header = "cell_id,cell_type," + join(genes, ",")
-let lines = [header]
-
-let cell_num = 0
-for t in range(0, 3) {
+let rows = range(0, 500) |> map(|idx| {
+    let t = if idx < 200 { 0 } else if idx < 350 { 1 } else { 2 }
     let base = profiles[t]
     let ctype = type_names[t]
-    for i in range(0, type_counts[t]) {
-        cell_num = cell_num + 1
-        let vals = []
-        for g in range(0, n_genes) {
-            # Deterministic noise: sin/cos hash based on cell and gene index
-            let noise_seed = cell_num * 137 + g * 59
-            let noise = ((noise_seed * 2654435761) % 10000) / 10000.0 - 0.5
-            let val = base[g] + noise * 1.8
-            if val < 0.0 then val = 0.0
-            vals = append(vals, f"{round(val, 2)}")
-        }
-        let row = f"cell_{cell_num},{ctype}," + join(vals, ",")
-        lines = append(lines, row)
-    }
-}
+    let cell_num = idx + 1
+    let vals = range(0, n_genes) |> map(|g| {
+        let noise_seed = cell_num * 137 + g * 59
+        let noise = ((noise_seed * 2654435761) % 10000) / 10000.0 - 0.5
+        let raw = base[g] + noise * 1.8
+        let value = if raw < 0.0 { 0.0 } else { raw }
+        str(round(value, 2))
+    })
+    f"cell_{cell_num},{ctype}," + join(vals, ",")
+})
 
-write_lines(lines, "data/scrna_expression.csv")
+let lines = [header] + rows
+write_lines("data/scrna_expression.csv", lines)
 
 println(f"Created data/scrna_expression.csv")
 println(f"  500 cells (200 T, 150 B, 150 mono) x {n_genes} genes")

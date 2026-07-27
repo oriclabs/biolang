@@ -6,7 +6,9 @@ use std::io::Write as IoWrite;
 
 pub fn alignment_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
-        ("align", Arity::Range(2, 3)),
+        // bl-runtime dispatches align() through its sequence implementation
+        // before reaching this compatibility implementation.
+        ("align", Arity::Range(2, 6)),
         ("score_matrix", Arity::Exact(1)),
         ("edit_distance", Arity::Exact(2)),
         ("hamming_distance", Arity::Exact(2)),
@@ -19,8 +21,13 @@ pub fn alignment_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_alignment_builtin(name: &str) -> bool {
     matches!(
         name,
-        "align" | "score_matrix" | "edit_distance" | "hamming_distance"
-            | "msa" | "distance_matrix" | "conservation_scores"
+        "align"
+            | "score_matrix"
+            | "edit_distance"
+            | "hamming_distance"
+            | "msa"
+            | "distance_matrix"
+            | "conservation_scores"
     )
 }
 
@@ -102,7 +109,7 @@ fn builtin_align(args: Vec<Value>) -> Result<Value> {
     record.insert("gaps".to_string(), Value::Int(result.gaps as i64));
     record.insert("cigar".to_string(), Value::Str(result.cigar));
 
-    Ok(Value::Record(record))
+    Ok(Value::Record((record).into()))
 }
 
 fn builtin_score_matrix(args: Vec<Value>) -> Result<Value> {
@@ -110,10 +117,7 @@ fn builtin_score_matrix(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.as_str(),
         other => {
             return Err(BioLangError::type_error(
-                format!(
-                    "score_matrix() requires Str, got {}",
-                    other.type_of()
-                ),
+                format!("score_matrix() requires Str, got {}", other.type_of()),
                 None,
             ))
         }
@@ -138,7 +142,10 @@ fn builtin_score_matrix(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
 
     // Set row and column names to amino acid letters
-    let aa_names: Vec<String> = alignment::AA_ORDER.iter().map(|&b| (b as char).to_string()).collect();
+    let aa_names: Vec<String> = alignment::AA_ORDER
+        .iter()
+        .map(|&b| (b as char).to_string())
+        .collect();
     m.row_names = Some(aa_names.clone());
     m.col_names = Some(aa_names);
 
@@ -218,7 +225,10 @@ fn extract_aligned_sequences(val: &Value, func: &str) -> Result<Vec<(String, Str
                 let mut result = Vec::with_capacity(seq_list.len());
                 for (i, v) in seq_list.iter().enumerate() {
                     let s = get_seq_str(v, func)?;
-                    let name = name_list.get(i).cloned().unwrap_or_else(|| format!("seq{}", i + 1));
+                    let name = name_list
+                        .get(i)
+                        .cloned()
+                        .unwrap_or_else(|| format!("seq{}", i + 1));
                     result.push((name, s));
                 }
                 if result.len() < 2 {
@@ -250,7 +260,10 @@ fn extract_aligned_sequences(val: &Value, func: &str) -> Result<Vec<(String, Str
             Ok(result)
         }
         _ => Err(BioLangError::type_error(
-            format!("{func}() requires a List or MSA Record, got {}", val.type_of()),
+            format!(
+                "{func}() requires a List or MSA Record, got {}",
+                val.type_of()
+            ),
             None,
         )),
     }
@@ -261,7 +274,10 @@ fn builtin_msa(args: Vec<Value>) -> Result<Value> {
         Value::List(l) => l,
         other => {
             return Err(BioLangError::type_error(
-                format!("msa() requires a List of sequences, got {}", other.type_of()),
+                format!(
+                    "msa() requires a List of sequences, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -272,7 +288,7 @@ fn builtin_msa(args: Vec<Value>) -> Result<Value> {
     // Parse optional opts
     let _opts: HashMap<String, Value> = if args.len() > 1 {
         if let Value::Record(o) = &args[1] {
-            o.clone()
+            (**o).clone()
         } else {
             HashMap::new()
         }
@@ -307,10 +323,7 @@ fn try_msa_external(seqs: &[(String, String)]) -> std::result::Result<Value, Str
     let input_str = input_path.to_string_lossy().to_string();
 
     // Try mafft
-    let mafft_result = Command::new("mafft")
-        .arg("--auto")
-        .arg(&input_str)
-        .output();
+    let mafft_result = Command::new("mafft").arg("--auto").arg(&input_str).output();
 
     if let Ok(output) = mafft_result {
         if output.status.success() {
@@ -378,16 +391,16 @@ fn parse_aligned_fasta(fasta: &str) -> std::result::Result<Value, String> {
     let mut record = HashMap::new();
     record.insert(
         "sequences".to_string(),
-        Value::List(sequences.into_iter().map(Value::Str).collect()),
+        Value::List(sequences.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
     );
     record.insert(
         "names".to_string(),
-        Value::List(names.into_iter().map(Value::Str).collect()),
+        Value::List(names.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
     );
     record.insert("n_seqs".to_string(), Value::Int(n_seqs as i64));
     record.insert("length".to_string(), Value::Int(length as i64));
 
-    Ok(Value::Record(record))
+    Ok(Value::Record((record).into()))
 }
 
 /// Progressive alignment: align each sequence to a growing consensus/profile.
@@ -437,16 +450,16 @@ fn progressive_align(seqs: &[(String, String)]) -> Result<Value> {
     let mut record = HashMap::new();
     record.insert(
         "sequences".to_string(),
-        Value::List(aligned.into_iter().map(Value::Str).collect()),
+        Value::List(aligned.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
     );
     record.insert(
         "names".to_string(),
-        Value::List(names.into_iter().map(Value::Str).collect()),
+        Value::List(names.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
     );
     record.insert("n_seqs".to_string(), Value::Int(n_seqs as i64));
     record.insert("length".to_string(), Value::Int(length as i64));
 
-    Ok(Value::Record(record))
+    Ok(Value::Record((record).into()))
 }
 
 /// Build a simple consensus from aligned sequences (majority-rule).
@@ -595,7 +608,7 @@ fn builtin_conservation_scores(args: Vec<Value>) -> Result<Value> {
     let seqs = extract_aligned_sequences(&args[0], "conservation_scores")?;
 
     if seqs.is_empty() {
-        return Ok(Value::List(vec![]));
+        return Ok(Value::List((vec![]).into()));
     }
 
     let seq_strs: Vec<&[u8]> = seqs.iter().map(|(_, s)| s.as_bytes()).collect();
@@ -651,6 +664,5 @@ fn builtin_conservation_scores(args: Vec<Value>) -> Result<Value> {
         scores.push(Value::Float(conservation));
     }
 
-    Ok(Value::List(scores))
+    Ok(Value::List((scores).into()))
 }
-

@@ -1,0 +1,40 @@
+# oric — Origin of replication prediction for bacterial genomes
+#
+# Re-exports the public API from src/find.bl
+#
+# Example:
+#   import "oric" as oric
+#   let genome = read_file("ecoli_k12.fa") |> fasta() |> first() |> .seq
+#   let result  = oric.predict_oric(genome)
+#   println("Predicted oriC at:", result.candidate_pos, "bp")
+#   println("Confidence:", result.confidence, "/5 —", result.note)
+#   println("DnaA boxes found:", result.dnaa_box_count)
+
+import "oric/src/find" as _find
+
+const DNAA_BOX_CONSENSUS = _find.DNAA_BOX_CONSENSUS
+const DNAA_BOX_IUPAC     = _find.DNAA_BOX_IUPAC
+
+fn find_dnaa_boxes(seq, pattern = DNAA_BOX_CONSENSUS, max_mismatches = 1) {
+    _find.find_dnaa_boxes(seq, pattern, max_mismatches)
+}
+
+fn gc_skew_profile(seq, window_size = 1000) {
+    _find.gc_skew_profile(seq, window_size)
+}
+
+fn find_skew_minimum(profile) { _find.find_skew_minimum(profile) }
+fn find_skew_maximum(profile) { _find.find_skew_maximum(profile) }
+fn at_content(seq)            { _find.at_content(seq) }
+
+fn predict_oric(seq, window_size = 1000, search_radius = 500, dnaa_pattern = DNAA_BOX_CONSENSUS, max_mismatches = 1) {
+    _find.predict_oric(seq, window_size, search_radius, dnaa_pattern, max_mismatches)
+}
+
+fn scan_oric_table(seq, window_size = 1000, step = 500) {
+    _find.scan_oric_table(seq, window_size, step)
+}
+
+fn plot_skew(seq, window_size = 1000) {
+    _find.plot_skew(seq, window_size)
+}

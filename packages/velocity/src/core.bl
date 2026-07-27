@@ -1,0 +1,30 @@
+# Estimate per-gene, per-cell RNA velocity.
+# spliced and unspliced must be genes × cells matrices with matching shape.
+# Uses the deterministic (steady-state) model: v = β * unspliced - spliced
+# where β_g = mean(spliced_g) / (mean(unspliced_g) + ε)
+fn estimate(obj) {
+  let s = obj.spliced
+  let u = obj.unspliced
+  let v = velocity_estimate(s, u)
+  obj |> set_field("velocity", v)
+}
+
+# Project velocity onto a low-dimensional embedding (e.g. UMAP).
+# Returns obj with .velocity_arrows field: table (cell, dx, dy).
+# Approximation: for each cell find k-NN in embedding space, compute
+# mean velocity-weighted displacement toward each neighbor.
+fn project(obj, k = 10) {
+  let emb  = obj.obsm_X_umap
+  let adj  = knn_graph(emb, k)
+  let arrows = adj
+    |> group_by(fn(r) -> r.cell)
+    |> map(fn(cell_id, neighbors) -> {
+        cell: cell_id,
+        dx:   neighbors |> map(fn(r) -> r.weight * (emb[r.neighbor].x - emb[cell_id].x)) |> mean,
+        dy:   neighbors |> map(fn(r) -> r.weight * (emb[r.neighbor].y - emb[cell_id].y)) |> mean
+      })
+  obj |> set_field("velocity_arrows", arrows)
+}
+
+fn get_velocity(obj) { obj.velocity }
+fn get_arrows(obj)   { obj.velocity_arrows }

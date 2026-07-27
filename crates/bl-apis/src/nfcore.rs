@@ -127,7 +127,10 @@ impl NfCoreClient {
     /// Build headers for GitHub API requests.
     fn github_headers(&self) -> Vec<(String, String)> {
         let mut headers = vec![
-            ("Accept".to_string(), "application/vnd.github.v3+json".to_string()),
+            (
+                "Accept".to_string(),
+                "application/vnd.github.v3+json".to_string(),
+            ),
             ("User-Agent".to_string(), "bio-apis/0.1".to_string()),
         ];
         if let Some(token) = self.base.get_api_key("GITHUB_TOKEN") {
@@ -165,12 +168,11 @@ impl NfCoreClient {
 
         let mut pipelines = Vec::new();
         for item in &arr {
-            let p: PipelineSummary = serde_json::from_value(item.clone()).map_err(|e| {
-                ApiError::Parse {
+            let p: PipelineSummary =
+                serde_json::from_value(item.clone()).map_err(|e| ApiError::Parse {
                     context: "nf-core pipeline entry".into(),
                     source: e.to_string(),
-                }
-            })?;
+                })?;
             if !p.archived {
                 pipelines.push(p);
             }
@@ -226,7 +228,10 @@ impl NfCoreClient {
             stargazers_count: json["stargazers_count"].as_u64().unwrap_or(0),
             archived: json["archived"].as_bool().unwrap_or(false),
             html_url: json["html_url"].as_str().unwrap_or_default().to_string(),
-            default_branch: json["default_branch"].as_str().unwrap_or("master").to_string(),
+            default_branch: json["default_branch"]
+                .as_str()
+                .unwrap_or("master")
+                .to_string(),
             created_at: json["created_at"].as_str().unwrap_or_default().to_string(),
             updated_at: json["updated_at"].as_str().unwrap_or_default().to_string(),
             open_issues_count: json["open_issues_count"].as_u64().unwrap_or(0),
@@ -249,7 +254,10 @@ impl NfCoreClient {
         for item in arr {
             releases.push(Release {
                 tag_name: item["tag_name"].as_str().unwrap_or_default().to_string(),
-                published_at: item["published_at"].as_str().unwrap_or_default().to_string(),
+                published_at: item["published_at"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string(),
             });
         }
         Ok(releases)
@@ -358,10 +366,8 @@ mod tests {
 
     #[test]
     fn test_license_deserialize() {
-        let json: serde_json::Value = serde_json::from_str(
-            r#"{"spdx_id": "MIT", "name": "MIT License"}"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"spdx_id": "MIT", "name": "MIT License"}"#).unwrap();
         let l: License = serde_json::from_value(json).unwrap();
         assert_eq!(l.spdx_id, "MIT");
         assert_eq!(l.name, "MIT License");

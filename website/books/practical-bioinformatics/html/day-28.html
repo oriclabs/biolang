@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-e720ecec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -267,7 +267,7 @@ bl init.bl
 </code></pre>
 <p>The <code>read_vcf()</code> function returns a table with columns: <code>chrom</code>, <code>pos</code>, <code>id</code>, <code>ref</code>, <code>alt</code>, <code>qual</code>, <code>filter</code>, <code>info</code>. Let us inspect its shape:</p>
 <pre><code class="language-biolang">let variant_count = variants |&gt; len()
-let columns = variants |&gt; keys()
+let columns = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
 </code></pre>
 <h3 id="validation-checks"><a class="header" href="#validation-checks">Validation Checks</a></h3>
 <p>Clinical pipelines fail loudly. We validate before proceeding:</p>
@@ -279,7 +279,7 @@ let columns = variants |&gt; keys()
 
     let required_cols = ["chrom", "pos", "ref", "alt", "qual"]
     required_cols |&gt; each(|col| {
-        let col_names = variants |&gt; keys()
+        let col_names = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
         if contains(col_names, col) == false {
             error(f"Missing required VCF column: {col}")
         }
@@ -296,8 +296,8 @@ let columns = variants |&gt; keys()
 <li><strong>QUAL</strong> — Phred-scaled quality score. QUAL &gt;= 30 means the variant call has a 1-in-1000 chance of being wrong.</li>
 <li><strong>DP</strong> — Read depth. DP &gt;= 10 ensures sufficient evidence supports the call.</li>
 </ul>
-<pre><code class="language-biolang">fn quality_filter(variants, min_qual, min_dp) {
-    variants |&gt; where(|row| {
+<pre><code class="language-biolang">fn filter_variants(variants, min_qual, min_dp) {
+    variants |&gt; filter(|row| {
         let q = float(row.qual)
         let d = try {
             let info_str = row.info
@@ -316,27 +316,41 @@ let columns = variants |&gt; keys()
 }
 </code></pre>
 <p>We extract DP from the INFO field, which is semicolon-delimited. The <code>try/catch</code> ensures malformed INFO fields do not crash the pipeline — they simply get depth zero and are filtered out.</p>
-<pre><code class="language-biolang">let qc_passed = quality_filter(variants, 30.0, 10)
+<pre><code class="language-biolang">let qc_passed = filter_variants(variants, 30.0, 10)
 </code></pre>
 <hr>
 <h2 id="section-5-variant-annotation"><a class="header" href="#section-5-variant-annotation">Section 5: Variant Annotation</a></h2>
 <p>Next we annotate variants with gene information and ClinVar classifications. We load our reference databases as tables and join:</p>
-<pre><code class="language-biolang">let gene_db = read_tsv("data/gene_db.tsv")
-let clinvar_db = read_tsv("data/clinvar_db.tsv")
+<blockquote>
+<p><strong>Requires CLI:</strong> TSV readers require the native runtime. Run this and the
+remaining capstone blocks after <code>bl run init.bl</code>.</p>
+</blockquote>
+<pre><code class="language-biolang">let gene_db = tsv("data/gene_db.tsv")
+let clinvar_db = tsv("data/clinvar_db.tsv")
 </code></pre>
 <h3 id="building-an-annotation-key"><a class="header" href="#building-an-annotation-key">Building an Annotation Key</a></h3>
 <p>To join variants with our databases, we need a common key. We construct a variant key from chromosome, position, reference allele, and alternate allele:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
 <pre><code class="language-biolang">fn make_variant_key(row) {
     return f"{row.chrom}:{row.pos}:{row.ref}:{row.alt}"
 }
 
-let annotated = qc_passed |&gt; mutate("variant_key", |row| make_variant_key(row))
+let annotated = qc_passed |&gt; map(|row| {
+    let info = parse_vcf_info(row.info)
+    {...row, variant_key: make_variant_key(row), gene: info.GENE ?? ""}
+}) |&gt; to_table()
 </code></pre>
 <h3 id="joining-with-gene-and-clinvar-data"><a class="header" href="#joining-with-gene-and-clinvar-data">Joining with Gene and ClinVar Data</a></h3>
-<pre><code class="language-biolang">let with_genes = join_tables(annotated, gene_db, "gene")
-let with_clinvar = join_tables(with_genes, clinvar_db, "variant_key")
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
+<pre><code class="language-biolang">let with_genes = left_join(annotated, gene_db, "gene")
+let with_clinvar = left_join(with_genes, clinvar_db, "variant_key")
 </code></pre>
-<p>The <code>join_tables()</code> function (Day 10) performs an inner join on the shared column. Variants without a match in the reference database are retained with empty annotation fields.</p>
+<p><code>left_join()</code> attaches matching annotations while retaining variants that have
+no database match.</p>
 <h3 id="api-based-annotation-optional"><a class="header" href="#api-based-annotation-optional">API-Based Annotation (Optional)</a></h3>
 <!-- requires: internet, API access -->
 <p>For real-world analysis, you would query live databases. Here is how you might enrich a variant with Ensembl VEP:</p>
@@ -371,8 +385,11 @@ fn lookup_gene_disease(gene_name) {
 <hr>
 <h2 id="section-6-frequency-filtering"><a class="header" href="#section-6-frequency-filtering">Section 6: Frequency Filtering</a></h2>
 <p>Common variants are unlikely to cause rare disease. We filter out variants with an allele frequency (AF) above 1% in population databases:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
 <pre><code class="language-biolang">fn frequency_filter(variants, max_af) {
-    variants |&gt; where(|row| {
+    variants |&gt; filter(|row| {
         let af = try {
             let info_str = row.info
             let parts = split(info_str, ";")
@@ -395,13 +412,19 @@ let rare_variants = frequency_filter(with_clinvar, 0.01)
 <hr>
 <h2 id="section-7-gene-panel-filtering"><a class="header" href="#section-7-gene-panel-filtering">Section 7: Gene Panel Filtering</a></h2>
 <p>Clinical exome analysis does not report all variants — it focuses on genes relevant to the clinical indication. For hereditary cancer, we apply the cancer gene panel:</p>
-<pre><code class="language-biolang">let cancer_panel = read_tsv("data/cancer_panel.tsv")
-let acmg_genes = read_tsv("data/acmg_genes.tsv")
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
+<pre><code class="language-biolang">let cancer_panel = tsv("data/cancer_panel.tsv")
+let acmg_genes = tsv("data/acmg_genes.tsv")
 </code></pre>
 <h3 id="panel-matching"><a class="header" href="#panel-matching">Panel Matching</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
 <pre><code class="language-biolang">fn panel_filter(variants, panel) {
-    let panel_genes = panel |&gt; select("gene") |&gt; map(|row| row.gene)
-    variants |&gt; where(|row| {
+    let panel_genes = col(panel, "gene")
+    variants |&gt; filter(|row| {
         let gene = try { row.gene } catch err { "" }
         panel_genes |&gt; filter(|g| g == gene) |&gt; len() &gt; 0
     })
@@ -487,9 +510,15 @@ fn score_variant(row) {
 }
 </code></pre>
 <p>Apply classification to all panel variants:</p>
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
 <pre><code class="language-biolang">let classified = panel_variants |&gt; map(|row| score_variant(row))
 </code></pre>
 <h3 id="grouping-by-classification"><a class="header" href="#grouping-by-classification">Grouping by Classification</a></h3>
+<blockquote>
+<p><strong>Requires CLI:</strong> This block continues the native capstone session.</p>
+</blockquote>
 <pre><code class="language-biolang">let pathogenic = classified |&gt; filter(|v| v.classification == "Pathogenic")
 let likely_path = classified |&gt; filter(|v| v.classification == "Likely Pathogenic")
 let vus = classified |&gt; filter(|v| v.classification == "VUS")
@@ -614,22 +643,25 @@ fn build_report(patient_info, classified, qc_stats) {
 <p>Here is the entire pipeline, end to end. Each stage flows into the next via pipes and function calls:</p>
 <pre><code class="language-biolang"># --- Load data ---
 let variants = read_vcf("data/patient.vcf")
-let gene_db = read_tsv("data/gene_db.tsv")
-let clinvar_db = read_tsv("data/clinvar_db.tsv")
-let cancer_panel = read_tsv("data/cancer_panel.tsv")
-let patient_meta = read_tsv("data/patient_info.tsv")
+let gene_db = tsv("data/gene_db.tsv")
+let clinvar_db = tsv("data/clinvar_db.tsv")
+let cancer_panel = tsv("data/cancer_panel.tsv")
+let patient_meta = tsv("data/patient_info.tsv")
 let patient_info = patient_meta[0]
 
 # --- Validate ---
 let validation = validate_vcf(variants)
 
 # --- Quality filter ---
-let qc_passed = quality_filter(variants, 30.0, 10)
+let qc_passed = filter_variants(variants, 30.0, 10)
 
 # --- Annotate ---
-let annotated = qc_passed |&gt; mutate("variant_key", |row| make_variant_key(row))
-let with_genes = join_tables(annotated, gene_db, "gene")
-let with_clinvar = join_tables(with_genes, clinvar_db, "variant_key")
+let annotated = qc_passed |&gt; map(|row| {
+    let info = parse_vcf_info(row.info)
+    {...row, variant_key: make_variant_key(row), gene: info.GENE ?? ""}
+}) |&gt; to_table()
+let with_genes = left_join(annotated, gene_db, "gene")
+let with_clinvar = left_join(with_genes, clinvar_db, "variant_key")
 
 # --- Frequency filter ---
 let rare_variants = frequency_filter(with_clinvar, 0.01)
@@ -827,9 +859,9 @@ candidates; humans make diagnoses.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

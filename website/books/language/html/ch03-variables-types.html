@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-fade6fca.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -297,7 +297,8 @@ print(sample.mean_coverage)   # =&gt; 32.5
 </code></pre>
 <h3 id="string-keys"><a class="header" href="#string-keys">String Keys</a></h3>
 <p>Record keys can be identifiers or strings:</p>
-<pre><code class="language-biolang">let annotation = {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let annotation = {
   "gene_name": "EGFR",
   "Gene Ontology": "GO:0005524",
   chrom: "chr7"
@@ -363,7 +364,8 @@ print(is_record(rec))  # =&gt; true
 print(is_str(rec))     # =&gt; false
 </code></pre>
 <p>Available type check functions:</p>
-<pre><code class="language-biolang">is_int(val)
+<pre><code class="language-biolang">let val = dna"ATCG"
+is_int(val)
 is_float(val)
 is_str(val)
 is_bool(val)
@@ -402,7 +404,8 @@ let region = into(variant("chr1", 1000, "A", "T"), "Interval")
 </code></pre>
 <h2 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h2>
 <p>Define aliases to make code self-documenting:</p>
-<pre><code class="language-biolang">type Locus = Record
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+type Locus = Record
 type SampleMeta = Record
 type QCMetrics = Record
 
@@ -426,7 +429,10 @@ let threads = args.threads ?? 4
 </code></pre>
 <h3 id="-optional-chain"><a class="header" href="#-optional-chain"><code>?.</code> Optional Chain</a></h3>
 <p>Safely accesses nested fields, returning nil if any intermediate value is nil:</p>
-<pre><code class="language-biolang">let clinvar_status = variant_record?.annotation?.clinvar?.significance
+<pre><code class="language-biolang">let variant_record = {
+  annotation: {clinvar: {significance: "Pathogenic"}}
+}
+let clinvar_status = variant_record?.annotation?.clinvar?.significance
 # Returns nil if annotation, clinvar, or significance is missing
 
 # Combine with ??
@@ -530,7 +536,7 @@ by_type |&gt; each(|g| print(f"  {g.key}: {len(g.values)}"))
 # Flag high-impact variants
 let high_impact = classified
   |&gt; filter(|v| v.is_valid &amp;&amp; v.variant_type != "SNV" &amp;&amp; v.size &gt; 50)
-  |&gt; sort("size", descending: true)
+  |&gt; sort_by(|v| -v.size)
 
 print(f"\nHigh-impact structural variants (&gt;50bp): {len(high_impact)}")
 high_impact |&gt; take(10) |&gt; each(|v| {
@@ -596,8 +602,8 @@ large tabular datasets that dominate bioinformatics.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

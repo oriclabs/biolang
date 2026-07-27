@@ -23,7 +23,7 @@ for l in line_list {
 # ── cut: extract columns (like Unix cut) ──
 # cut(text, delimiter, fields) -> extracted text
 let tsv = "name\tage\tcity\nAlice\t30\tNYC\nBob\t25\tSF"
-let names = cut(tsv, "\t", "1")
+let names = cut(tsv, "\t", 1)
 println("\n=== cut (field 1) ===")
 println(names)
 

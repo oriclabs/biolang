@@ -1,0 +1,17 @@
+# cnv — Copy number variation analysis for BioLang
+#
+# Quick start:
+#   import "cnv" as cnv
+#
+#   let ratios   = cnv.ratios(tumor_depths, normal_depths)
+#   let segments = cnv.segment(ratios)
+#   cnv.call(segments, ploidy=2)
+#   cnv.summary(segments)
+
+import "cnv/src/segment" as seg
+
+fn ratios(tumor, normal)          { seg.ratios(tumor, normal) }
+fn segment(ratios)                { seg.segment(ratios) }
+fn call(segments, ploidy=2)       { seg.call(segments, ploidy) }
+fn allelic(baf, ratio)            { seg.allelic(baf, ratio) }
+fn summary(segments)              { cnv_summary(segments) }

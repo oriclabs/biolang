@@ -312,14 +312,14 @@ let tumor = [8.1, 7.9, 8.5, 7.6, 8.3]
 let result = ttest(normal, tumor)
 println(f"t = {round(result.statistic, 3)}")
 println(f"p = {result.p_value}")
-println(f"Significant: {result.p_value < 0.05}")</code></pre>
+println(f"Significant: {result.p_value &lt; 0.05}")</code></pre>
         </div>
         <div class="min-w-0">
           <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Pipes &amp; Lambdas</h3>
 <pre class="text-sm rounded-lg overflow-x-auto max-w-full"><code class="language-biolang"># Pipe-first: data flows left to right
 let genes = ["BRCA1", "TP53", "EGFR", "KRAS"]
 genes
-  |> filter(|g| len(g) <= 4)
+  |> filter(|g| len(g) &lt;= 4)
   |> map(|g| f"{g} ({len(g)} chars)")
   |> each(|g| println(g))</code></pre>
         </div>
@@ -551,31 +551,12 @@ print(df.describe())</code></pre>
         <p class="text-slate-400">Open-source reference covering every BioLang language feature. Read online or download the PDF.</p>
       </div>
       <div class="grid md:grid-cols-1 max-w-2xl mx-auto gap-5">
-        <!-- Hidden: Practical Bioinformatics
-        <a href="books/practical-bioinformatics/html/index.html" class="group bg-slate-800/30 border border-cyan-500/20 hover:border-cyan-400/40 rounded-xl p-6 transition-all">
-          <div class="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">30-day course</div>
-          <h3 class="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors mb-2">Practical Bioinformatics</h3>
-          <p class="text-sm text-slate-400">From zero to bioinformatician. Biology + BioLang + Python + R taught together with real datasets from NCBI, ClinVar, TCGA, and UniProt.</p>
-        </a>
-        -->
-        <!-- Hidden: Practical Biostatistics
-        <a href="books/biostatistics/html/index.html" class="group bg-slate-800/30 border border-purple-500/20 hover:border-purple-400/40 rounded-xl p-6 transition-all">
-          <div class="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-2">30-day course</div>
-          <h3 class="text-lg font-bold text-white group-hover:text-purple-300 transition-colors mb-2">Practical Biostatistics</h3>
-          <p class="text-sm text-slate-400">From zero to biostatistician. t-tests, ANOVA, regression, survival analysis, PCA, clustering, Bayesian, and GWAS with BioLang, Python, and R.</p>
-        </a>
-        -->
         <a href="books/language/html/index.html" class="group bg-slate-800/30 border border-violet-500/20 hover:border-violet-400/40 rounded-xl p-6 transition-all">
           <div class="text-xs font-semibold text-violet-400 uppercase tracking-wider mb-2">Reference</div>
           <h3 class="text-lg font-bold text-white group-hover:text-violet-300 transition-colors mb-2">The BioLang Language</h3>
           <p class="text-sm text-slate-400">Comprehensive reference for every language feature: syntax, types, pipes, tables, streams, file I/O, bio APIs, statistics, and visualization.</p>
         </a>
       </div>
-      <!-- Hidden: View all books link
-      <div class="text-center mt-6">
-        <a href="books.html" class="text-sm text-slate-500 hover:text-violet-400 transition-colors">View all books &rarr;</a>
-      </div>
-      -->
     </div>
   </section>
 

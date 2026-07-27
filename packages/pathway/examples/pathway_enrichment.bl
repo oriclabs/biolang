@@ -1,0 +1,166 @@
+# pathway_enrichment.bl — Full pathway analysis pipeline
+#
+# Demonstrates:
+#   1. Loading DE results from the differential package output
+#   2. Ranking genes for GSEA by sign(log2FC) × -log10(pvalue)
+#   3. Pre-ranked GSEA on Hallmark gene sets (GMT format)
+#   4. ORA on significantly upregulated genes
+#   5. Printing top 20 pathways
+#   6. Generating a text-mode bubble plot
+#
+# Input files:
+#   data/de_results.csv     — DE results (gene, log2fc, pvalue, padj, significant)
+#   data/hallmarks.gmt      — MSigDB Hallmark gene sets in GMT format
+#   data/c2_kegg.gmt        — KEGG gene sets in GMT format (optional ORA background)
+#
+# Run: bl run examples/pathway_enrichment.bl
+
+import "pathway" as pw
+
+println("=" * 64)
+println("Pathway Enrichment Analysis")
+println("GSEA (pre-ranked) + ORA (over-representation)")
+println("=" * 64)
+
+# ── Step 1: Load DE results ───────────────────────────────────────────────────
+println("")
+println("Step 1: Loading DE results...")
+
+let de_results = csv("data/de_results.csv") |> collect()
+let n_genes = len(de_results)
+
+let sig_genes = de_results |> filter(|r| r.significant == "true" or r.significant == true)
+let up_genes  = sig_genes  |> filter(|r| r.log2fc > 0)
+let down_genes = sig_genes |> filter(|r| r.log2fc < 0)
+
+println(f"  Total genes in analysis: {n_genes}")
+println(f"  Significant (FDR<5%):    {len(sig_genes)}")
+println(f"  Upregulated:             {len(up_genes)}")
+println(f"  Downregulated:           {len(down_genes)}")
+
+# ── Step 2: Rank all genes by signal strength ─────────────────────────────────
+println("")
+println("Step 2: Ranking genes by sign(log2FC) × -log10(p-value)...")
+
+let ranked_genes = de_results |> map(|r| {
+    let sign_fc    = if r.log2fc >= 0 then 1.0 else -1.0
+    let neg_log_p  = -(log2(r.pvalue + 0.0000000001) / log2(10))
+    let rank_score = sign_fc * neg_log_p
+    {gene: r.gene, score: rank_score, log2fc: r.log2fc, pvalue: r.pvalue}
+}) |> sort_by(|r| - r.score)
+
+println(f"  Ranked {len(ranked_genes)} genes")
+println(f"  Top gene:    {ranked_genes[0].gene} (score={round(ranked_genes[0].score, 3)})")
+println(f"  Bottom gene: {ranked_genes[len(ranked_genes) - 1].gene} (score={round(ranked_genes[len(ranked_genes) - 1].score, 3)})")
+
+# ── Step 3: Load gene sets (GMT format) ──────────────────────────────────────
+println("")
+println("Step 3: Loading Hallmark gene sets (GMT)...")
+
+# GMT format: tab-delimited, each line = pathway_name\tURL\tgene1\tgene2...
+let gmt_lines = read_lines("data/hallmarks.gmt")
+let gene_sets = gmt_lines
+    |> filter(|line| len(line) > 0 and not line[0..1] == "#")
+    |> map(|line| {
+        let parts = split(line, "\t")
+        let name  = parts[0]
+        let genes = parts |> skip(2)   # skip name and URL columns
+        {name: name, genes: genes}
+    })
+
+println(f"  Loaded {len(gene_sets)} Hallmark gene sets")
+
+# ── Step 4: GSEA pre-ranked ───────────────────────────────────────────────────
+println("")
+println("Step 4: Running GSEA pre-ranked analysis...")
+
+let gsea_results = pw.gsea_preranked(ranked_genes, gene_sets)
+
+let gsea_sig = gsea_results |> filter(|r| r.significant)
+let gsea_pos = gsea_sig     |> filter(|r| r.nes > 0)
+let gsea_neg = gsea_sig     |> filter(|r| r.nes < 0)
+
+println(f"  Gene sets tested:    {len(gene_sets)}")
+println(f"  Significant (FDR<25%): {len(gsea_sig)}")
+println(f"  Positively enriched: {len(gsea_pos)}")
+println(f"  Negatively enriched: {len(gsea_neg)}")
+
+# ── Step 5: ORA on upregulated genes ─────────────────────────────────────────
+println("")
+println("Step 5: ORA on significantly upregulated genes...")
+
+let up_gene_names = up_genes |> map(|r| r.gene)
+let ora_results = pw.ora(up_gene_names, gene_sets, 20000)
+let ora_sig     = pw.fdr_filter(ora_results, 0.05)
+
+println(f"  Query gene list:     {len(up_gene_names)} upregulated genes")
+println(f"  Gene sets tested:    {len(gene_sets)}")
+println(f"  Significant (FDR<5%): {len(ora_sig)}")
+
+# ── Step 6: Print top 20 pathways (GSEA) ─────────────────────────────────────
+println("")
+println("Step 6: Top 20 Pathways from GSEA")
+println("─────────────────────────────────────────────────────────────────")
+println(f"  {'Pathway':<42} {'NES':>7} {'padj':>8} {'Overlap':>8}")
+println(f"  {'─' * 70}")
+
+let top20_gsea = pw.top_pathways(gsea_results, 20)
+for r in top20_gsea {
+    let name = if len(r.pathway) > 40 then r.pathway[0..40] + "…" else r.pathway
+    let sig_marker = if r.significant then "*" else " "
+    println(f"  {sig_marker}{name:<42} {r.nes:>7} {r.padj:>8} {r.n_overlap:>8}/{r.n_genes}")
+}
+println(f"  (* = FDR < 0.25)")
+
+println("")
+println("Top 20 Pathways from ORA (upregulated genes)")
+println("─────────────────────────────────────────────────────────────────")
+println(f"  {'Pathway':<42} {'OR':>7} {'padj':>8} {'Overlap':>8}")
+println(f"  {'─' * 70}")
+
+let top20_ora = pw.top_pathways(ora_results, 20)
+for r in top20_ora {
+    let name = if len(r.pathway) > 40 then r.pathway[0..40] + "…" else r.pathway
+    let sig_marker = if r.significant then "*" else " "
+    println(f"  {sig_marker}{name:<42} {r.odds_ratio:>7} {r.padj:>8} {r.n_overlap:>8}/{r.n_pathway}")
+}
+println(f"  (* = FDR < 0.05)")
+
+# ── Step 7: Enrichment plot for top GSEA pathway ─────────────────────────────
+println("")
+println("Step 7: Enrichment plot for top pathway")
+println("")
+
+if len(top20_gsea) > 0 {
+    let top_pathway = top20_gsea[0].pathway
+    pw.plot_enrichment(gsea_results, top_pathway)
+
+    # Show leading edge genes
+    let le_genes = pw.leading_edge(gsea_results, top_pathway)
+    println(f"Leading edge genes ({len(le_genes)} total):")
+    println(f"  {join(le_genes |> take(15), \", \")}...")
+}
+
+# ── Step 8: Bubble plot of ORA results ───────────────────────────────────────
+println("")
+println("Step 8: ORA Bubble Plot (top 15 significant pathways)")
+println("")
+pw.bubble_plot(ora_results, 15)
+
+# ── Write results to CSV ─────────────────────────────────────────────────────
+println("")
+println("Writing results...")
+mkdir("results")
+
+write_csv(gsea_results, "results/gsea_results.csv")
+write_csv(ora_results,  "results/ora_results.csv")
+println(f"  Wrote {len(gsea_results)} GSEA results → results/gsea_results.csv")
+println(f"  Wrote {len(ora_results)} ORA results   → results/ora_results.csv")
+
+# ── Summary ──────────────────────────────────────────────────────────────────
+println("")
+println("=" * 64)
+println("Pathway analysis complete.")
+println(f"  GSEA: {len(gsea_sig)} significant pathways (FDR < 0.25)")
+println(f"  ORA:  {len(ora_sig)} significant pathways (FDR < 0.05)")
+println("=" * 64)

@@ -59,7 +59,7 @@ base_counts(seq)          # => {A: 3, T: 3, C: 3, G: 3}</code></pre>
 
         <h3>Subsequence Extraction</h3>
         <p>
-          Use <code>subseq(seq, start, end)</code> for zero-based, half-open substring extraction:
+          Use <code>subseq(seq, start, stop)</code> for zero-based, half-open substring extraction:
         </p>
         <pre><code class="language-biolang">let seq = dna"ATCGATCGATCG"
 
@@ -68,16 +68,16 @@ subseq(seq, 4, 8)     # => dna"ATCG"</code></pre>
 
         <h3>Concatenation</h3>
         <p>
-          DNA sequences can be concatenated with the <code>+</code> operator. Both operands must
+          DNA sequences can be concatenated with the <code>++</code> operator. Both operands must
           be the same type &mdash; concatenating DNA with RNA is a type error:
         </p>
         <pre><code class="language-biolang">let left = dna"ATCG"
 let right = dna"GCTA"
 
-let combined = left + right    # => dna"ATCGGCTA"
+let combined = left ++ right   # => dna"ATCGGCTA"
 
 # Type error: cannot concatenate DNA and RNA
-# mixed = left + rna"AUCG"   # Error!</code></pre>
+# mixed = left ++ rna"AUCG"  # Error!</code></pre>
 
         <h2>RNA Sequences</h2>
         <p>
@@ -134,7 +134,7 @@ prot |> to_string()           # => "MKTLVFGADRHWYCNQEIPS"</code></pre>
         <pre><code class="language-biolang"># DNA → RNA → Protein in one pipeline
 let gene = dna"ATGAAACTGTTGGTCTTT"
 
-let protein = gene
+let peptide = gene
   |> transcribe()       # DNA → RNA
   |> translate()        # RNA → Protein
   # => protein"MKLVVF"
@@ -187,8 +187,10 @@ let gc_rich = sequences
           Explicit conversions between types are available where biologically meaningful.
           Implicit conversions are never performed:
         </p>
-        <pre><code class="language-biolang"># String to sequence (use the type-name function)
-let seq = dna("ATCGATCG")
+        <pre><code class="language-biolang"># DNA literals are validated when the source is parsed
+let seq = dna"ATCGATCG"
+
+# Runtime conversion functions validate RNA and protein strings
 let rna_seq = rna("AUCGAUCG")
 let prot = protein("MKTLVF")
 
@@ -209,13 +211,14 @@ println("Mean Phred:", mean_phred(q))
 println("Min Phred:", min_phred(q))
 println("Error rate:", error_rate(q))
 
-# Trim low-quality bases
-let trimmed = trim_quality(q, 20)  # trim below Q20
+# Quality-value overload: return the trailing trim position for Q20
+let trim_pos = trim_quality(q, 20)
+println("Trim at:", trim_pos)
 
 # FASTQ records include quality scores
 let reads = read_fastq("data/reads.fastq")
 for read in reads {
-  if mean_phred(read.quality) < 25 {
+  if mean_phred(read.quality) &lt; 25 {
     println("Low quality read:", read.id)
   }
 }</code></pre>
@@ -230,7 +233,8 @@ for read in reads {
               <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">mean_phred(q)</code></td><td class="py-2 px-3">Average Phred score across all positions</td></tr>
               <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">min_phred(q)</code></td><td class="py-2 px-3">Minimum Phred score</td></tr>
               <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">error_rate(q)</code></td><td class="py-2 px-3">Mean per-base error probability</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">trim_quality(q, min)</code></td><td class="py-2 px-3">Trim trailing bases below threshold</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">trim_quality(q, min)</code></td><td class="py-2 px-3">Return the trailing trim position for a Quality value</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3"><code class="text-cyan-400">trim_quality(input, output, min)</code></td><td class="py-2 px-3">CLI-only overload that trims a FASTQ file and writes the result</td></tr>
             </tbody>
           </table>
         </section>
@@ -245,8 +249,8 @@ let genome = gb(3.1)           # 3100000000
 
 # Use with intervals
 let start = mb(10)
-let end = start + kb(500)
-interval("chr1", start, end)</code></pre>
+let stop = start + kb(500)
+interval("chr1", start, stop)</code></pre>
         </section>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

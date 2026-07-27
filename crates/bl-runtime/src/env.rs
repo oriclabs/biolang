@@ -77,10 +77,8 @@ impl Environment {
             match self.scopes[scope_id].parent {
                 Some(parent) => scope_id = parent,
                 None => {
-                    let mut err = BioLangError::name_error(
-                        format!("undefined variable '{name}'"),
-                        span,
-                    );
+                    let mut err =
+                        BioLangError::name_error(format!("undefined variable '{name}'"), span);
                     // "Did you mean?" — find closest variable name
                     if let Some(suggestion) = self.find_similar(name) {
                         err = err.with_suggestion(format!("did you mean '{suggestion}'?"));

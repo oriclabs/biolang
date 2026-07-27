@@ -194,18 +194,12 @@ impl NcbiClient {
         let json = self.base.get_json(&url)?;
         let info = &json["einforesult"]["dbinfo"];
         Ok(DbInfo {
-            db_name: info["dbname"]
-                .as_str()
-                .unwrap_or(db)
-                .to_string(),
+            db_name: info["dbname"].as_str().unwrap_or(db).to_string(),
             count: info["count"]
                 .as_str()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0),
-            description: info["description"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            description: info["description"].as_str().unwrap_or_default().to_string(),
         })
     }
 
@@ -224,17 +218,12 @@ impl NcbiClient {
             for set in sets {
                 if let Some(dbs) = set["linksetdbs"].as_array() {
                     for db_entry in dbs {
-                        let dbto_name = db_entry["dbto"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string();
+                        let dbto_name = db_entry["dbto"].as_str().unwrap_or_default().to_string();
                         let link_ids: Vec<String> = db_entry["links"]
                             .as_array()
                             .map(|arr| {
                                 arr.iter()
-                                    .filter_map(|v| {
-                                        v["id"].as_str().map(String::from)
-                                    })
+                                    .filter_map(|v| v["id"].as_str().map(String::from))
                                     .collect()
                             })
                             .unwrap_or_default();
@@ -278,33 +267,47 @@ impl NcbiClient {
         for doc in docs {
             genes.push(GeneSummary {
                 id: doc.uid.clone(),
-                name: doc.fields.get("name")
+                name: doc
+                    .fields
+                    .get("name")
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string(),
-                symbol: doc.fields.get("nomenclaturesymbol")
+                symbol: doc
+                    .fields
+                    .get("nomenclaturesymbol")
                     .or_else(|| doc.fields.get("name"))
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string(),
-                description: doc.fields.get("description")
+                description: doc
+                    .fields
+                    .get("description")
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string(),
-                organism: doc.fields.get("organism")
+                organism: doc
+                    .fields
+                    .get("organism")
                     .and_then(|v| v.get("scientificname"))
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string(),
-                chromosome: doc.fields.get("chromosome")
+                chromosome: doc
+                    .fields
+                    .get("chromosome")
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string(),
-                location: doc.fields.get("maplocation")
+                location: doc
+                    .fields
+                    .get("maplocation")
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string(),
-                summary: doc.fields.get("summary")
+                summary: doc
+                    .fields
+                    .get("summary")
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string(),
@@ -399,13 +402,49 @@ mod tests {
         };
         let gs = GeneSummary {
             id: doc.uid.clone(),
-            name: doc.fields.get("name").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-            symbol: doc.fields.get("nomenclaturesymbol").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-            description: doc.fields.get("description").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-            organism: doc.fields.get("organism").and_then(|v| v.get("scientificname")).and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-            chromosome: doc.fields.get("chromosome").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-            location: doc.fields.get("maplocation").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-            summary: doc.fields.get("summary").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+            name: doc
+                .fields
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            symbol: doc
+                .fields
+                .get("nomenclaturesymbol")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            description: doc
+                .fields
+                .get("description")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            organism: doc
+                .fields
+                .get("organism")
+                .and_then(|v| v.get("scientificname"))
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            chromosome: doc
+                .fields
+                .get("chromosome")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            location: doc
+                .fields
+                .get("maplocation")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            summary: doc
+                .fields
+                .get("summary")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string(),
         };
         assert_eq!(gs.id, "672");
         assert_eq!(gs.symbol, "BRCA1");
@@ -443,8 +482,8 @@ mod tests {
 
     #[test]
     fn test_urlencod_unicode() {
-        let encoded = urlencod("\u{00e9}");  // e-acute
-        // Non-ASCII bytes should be percent-encoded
+        let encoded = urlencod("\u{00e9}"); // e-acute
+                                            // Non-ASCII bytes should be percent-encoded
         assert!(encoded.contains('%'));
         assert!(!encoded.contains('\u{00e9}'));
     }

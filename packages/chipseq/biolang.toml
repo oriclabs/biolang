@@ -1,0 +1,5 @@
+[package]
+name = "chipseq"
+version = "0.1.0"
+description = "ChIP-seq and ATAC-seq: peak merging, consensus peaks, FRiP score, TSS enrichment, annotation"
+authors = ["BioLang"]

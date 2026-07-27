@@ -168,7 +168,7 @@ seqs |> each(|s| {
   print(s.info.description)
   print("  Length:   " + str(len(seq)) + " residues")
   print("  Chains:  " + join(s.info.chains, ", "))
-  print("  His pct: " + str(round(count(seq, "H") / len(seq) * 100, 1)) + "%")
+  print("  His pct: " + str(round(count_if(to_string(seq), |aa| aa == "H") / len(seq) * 100, 1)) + "%")
 })
 
 # Output:
@@ -318,7 +318,7 @@ let background = read_lines("all_expressed_genes.txt")
 
 let ora = enrich(de_genes, gene_sets, background)
 ora
-  |> filter(|r| r.fdr < 0.05)
+  |> filter(|r| r.fdr &lt; 0.05)
   |> print()
 
 #  term           | overlap | set_size | p_value  | fdr     | genes
@@ -357,7 +357,7 @@ let gene_sets = read_gmt("h.all.v2024.1.symbols.gmt")
 
 let gsea_results = gsea(ranked, gene_sets)
 gsea_results
-  |> filter(|r| r.fdr < 0.25)
+  |> filter(|r| r.fdr &lt; 0.25)
   |> print()
 
 #  term                      | es    | nes   | p_value | fdr   | leading_edge
@@ -404,9 +404,9 @@ let de = tsv("deseq2_results.tsv")
 
 # --- Over-Representation Analysis ---
 
-# Select significant DE genes (padj < 0.05, |log2FC| > 1)
+# Select significant DE genes (padj &lt; 0.05, |log2FC| > 1)
 let sig_genes = de
-  |> filter(|r| r.padj < 0.05 and abs(r.log2fc) > 1.0)
+  |> filter(|r| r.padj &lt; 0.05 and abs(r.log2fc) > 1.0)
   |> map(|r| r.gene)
 
 # All tested genes as background
@@ -417,7 +417,7 @@ let go_bp = read_gmt("c5.go.bp.v2024.1.symbols.gmt")
 
 # Run ORA
 let ora_results = enrich(sig_genes, go_bp, background)
-let sig_ora = ora_results |> filter(|r| r.fdr < 0.05)
+let sig_ora = ora_results |> filter(|r| r.fdr &lt; 0.05)
 print("ORA: " + str(nrow(sig_ora)) + " significant GO terms")
 sig_ora |> head(10) |> print()
 
@@ -434,12 +434,12 @@ let hallmarks = read_gmt("h.all.v2024.1.symbols.gmt")
 
 # Run GSEA
 let gsea_results = gsea(ranked, hallmarks)
-let sig_gsea = gsea_results |> filter(|r| r.fdr < 0.25)
+let sig_gsea = gsea_results |> filter(|r| r.fdr &lt; 0.25)
 print("GSEA: " + str(nrow(sig_gsea)) + " significant hallmark pathways")
 
 # Separate up- and down-regulated pathways
 let up_paths = sig_gsea |> filter(|r| r.nes > 0) |> sort_by(|r| -r.nes)
-let dn_paths = sig_gsea |> filter(|r| r.nes < 0) |> sort_by(|r| r.nes)
+let dn_paths = sig_gsea |> filter(|r| r.nes &lt; 0) |> sort_by(|r| r.nes)
 
 print("Upregulated pathways:")
 up_paths |> each(|r| print("  " + r.term + " (NES=" + str(round(r.nes, 2)) + ")"))
@@ -506,5 +506,8 @@ sig_gsea |> write_tsv("gsea_significant.tsv")</code></pre>
   </div>
   <script src="../../js/components.js"></script>
   <script>hljs.highlightAll();</script>
-</body>
+    <script src="../../js/copy-code.js"></script>
+    <script src="../../js/main.js"></script>
+    <script src="../../js/playground.js"></script>
+  </body>
 </html>

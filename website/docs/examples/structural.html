@@ -133,7 +133,7 @@ let contacts = []
 for i in 0..n {
   for j in (i + 1)..n {
     let dist = atom_dist(ca_atoms[i], ca_atoms[j])
-    if dist <= cutoff {
+    if dist &lt;= cutoff {
       contacts = contacts |> push({
         res_i: ca_atoms[i].resid,
         res_j: ca_atoms[j].resid,
@@ -143,7 +143,7 @@ for i in 0..n {
   }
 }
 
-print(f"Contacts (< {cutoff} A): {contacts |> len}")
+print(f"Contacts (&lt; {cutoff} A): {contacts |> len}")
 contacts |> write_tsv("contact_map.tsv")
 
 # Sequence separation statistics
@@ -161,7 +161,7 @@ let interface_cutoff = 4.5  # Angstroms
 
 let interface = chain_a |> flat_map(|atom_a| {
   chain_b
-    |> filter(|atom_b| { atom_dist(atom_a, atom_b) <= interface_cutoff })
+    |> filter(|atom_b| { atom_dist(atom_a, atom_b) &lt;= interface_cutoff })
     |> map(|atom_b| { {
       chain_a_res: f"{atom_a.resname}{atom_a.resid}",
       chain_a_atom: atom_a.name,
@@ -196,9 +196,15 @@ fn get_atom(atoms, resid, name) {
 
 # Dihedral angle from four points
 fn dihedral(p1, p2, p3, p4) {
-  let b1x = p2.x - p1.x; let b1y = p2.y - p1.y; let b1z = p2.z - p1.z
-  let b2x = p3.x - p2.x; let b2y = p3.y - p2.y; let b2z = p3.z - p2.z
-  let b3x = p4.x - p3.x; let b3y = p4.y - p3.y; let b3z = p4.z - p3.z
+  let b1x = p2.x - p1.x
+  let b1y = p2.y - p1.y
+  let b1z = p2.z - p1.z
+  let b2x = p3.x - p2.x
+  let b2y = p3.y - p2.y
+  let b2z = p3.z - p2.z
+  let b3x = p4.x - p3.x
+  let b3y = p4.y - p3.y
+  let b3z = p4.z - p3.z
   # Cross products n1 = b1 x b2, n2 = b2 x b3
   let n1x = b1y * b2z - b1z * b2y
   let n1y = b1z * b2x - b1x * b2z
@@ -209,7 +215,7 @@ fn dihedral(p1, p2, p3, p4) {
   let dot_nn = n1x * n2x + n1y * n2y + n1z * n2z
   let cross_x = n1y * n2z - n1z * n2y
   let b2_len = sqrt(b2x * b2x + b2y * b2y + b2z * b2z)
-  atan(b2_len * (b1x * n2x + b1y * n2y + b1z * n2z), dot_nn) * 180.0 / 3.14159265
+  atan2(b2_len * (b1x * n2x + b1y * n2y + b1z * n2z), dot_nn) * 180.0 / 3.14159265
 }
 
 # Compute phi/psi for each residue (skip first and last)
@@ -235,9 +241,9 @@ print(f"Computed dihedral angles for {dihedrals |> len} residues")
 # Classify: most-favored regions (simplified)
 fn is_favored(phi, psi) {
   # Alpha helix region
-  (phi > -180.0 && phi < -20.0 && psi > -80.0 && psi < 0.0) ||
+  (phi > -180.0 && phi &lt; -20.0 && psi > -80.0 && psi &lt; 0.0) ||
   # Beta sheet region
-  (phi > -180.0 && phi < -40.0 && psi > 50.0 && psi < 180.0)
+  (phi > -180.0 && phi &lt; -40.0 && psi > 50.0 && psi &lt; 180.0)
 }
 
 let favored = dihedrals |> filter(|d| { is_favored(d.phi, d.psi) }) |> len

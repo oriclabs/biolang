@@ -50,9 +50,7 @@ impl Checker {
                     }
                 }
             }
-            Stmt::Fn {
-                params, body, ..
-            } => {
+            Stmt::Fn { params, body, .. } => {
                 // Check param defaults against annotations
                 for p in params {
                     if let (Some(ann), Some(default)) = (&p.type_ann, &p.default) {

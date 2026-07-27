@@ -124,46 +124,27 @@ impl EnsemblClient {
 
     /// Look up a gene by symbol and species.
     pub fn gene_by_symbol(&self, species: &str, symbol: &str) -> Result<Gene> {
-        let json = self.get_json(&format!(
-            "/lookup/symbol/{species}/{symbol}?expand=0"
-        ))?;
+        let json = self.get_json(&format!("/lookup/symbol/{species}/{symbol}?expand=0"))?;
         parse_gene(&json)
     }
 
     /// Fetch sequence by Ensembl ID. `seq_type`: "genomic", "cdna", "cds", "protein".
     pub fn sequence_by_id(&self, id: &str, seq_type: &str) -> Result<Sequence> {
-        let json = self.get_json(&format!(
-            "/sequence/id/{id}?type={seq_type}"
-        ))?;
+        let json = self.get_json(&format!("/sequence/id/{id}?type={seq_type}"))?;
         Ok(Sequence {
             id: json["id"].as_str().unwrap_or(id).to_string(),
             seq: json["seq"].as_str().unwrap_or_default().to_string(),
-            molecule: json["molecule"]
-                .as_str()
-                .unwrap_or(seq_type)
-                .to_string(),
+            molecule: json["molecule"].as_str().unwrap_or(seq_type).to_string(),
         })
     }
 
     /// Fetch sequence by genomic region.
-    pub fn sequence_by_region(
-        &self,
-        species: &str,
-        region: &str,
-    ) -> Result<Sequence> {
-        let json = self.get_json(&format!(
-            "/sequence/region/{species}/{region}"
-        ))?;
+    pub fn sequence_by_region(&self, species: &str, region: &str) -> Result<Sequence> {
+        let json = self.get_json(&format!("/sequence/region/{species}/{region}"))?;
         Ok(Sequence {
-            id: json["id"]
-                .as_str()
-                .unwrap_or(region)
-                .to_string(),
+            id: json["id"].as_str().unwrap_or(region).to_string(),
             seq: json["seq"].as_str().unwrap_or_default().to_string(),
-            molecule: json["molecule"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            molecule: json["molecule"].as_str().unwrap_or_default().to_string(),
         })
     }
 
@@ -174,23 +155,14 @@ impl EnsemblClient {
     }
 
     /// Variant Effect Predictor via region/allele.
-    pub fn vep_region(
-        &self,
-        species: &str,
-        region: &str,
-        allele: &str,
-    ) -> Result<Vec<VepResult>> {
-        let json = self.get_json(&format!(
-            "/vep/{species}/region/{region}/{allele}"
-        ))?;
+    pub fn vep_region(&self, species: &str, region: &str, allele: &str) -> Result<Vec<VepResult>> {
+        let json = self.get_json(&format!("/vep/{species}/region/{region}/{allele}"))?;
         parse_vep_array(&json)
     }
 
     /// Fetch orthologs for a gene.
     pub fn orthologs(&self, id: &str) -> Result<Vec<Ortholog>> {
-        let json = self.get_json(&format!(
-            "/homology/id/{id}?type=orthologues"
-        ))?;
+        let json = self.get_json(&format!("/homology/id/{id}?type=orthologues"))?;
 
         let mut results = Vec::new();
         if let Some(data) = json["data"].as_array() {
@@ -199,29 +171,20 @@ impl EnsemblClient {
                     for h in homologies {
                         results.push(Ortholog {
                             source: OrthologGene {
-                                id: h["source"]["id"]
-                                    .as_str()
-                                    .unwrap_or_default()
-                                    .to_string(),
+                                id: h["source"]["id"].as_str().unwrap_or_default().to_string(),
                                 species: h["source"]["species"]
                                     .as_str()
                                     .unwrap_or_default()
                                     .to_string(),
                             },
                             target: OrthologGene {
-                                id: h["target"]["id"]
-                                    .as_str()
-                                    .unwrap_or_default()
-                                    .to_string(),
+                                id: h["target"]["id"].as_str().unwrap_or_default().to_string(),
                                 species: h["target"]["species"]
                                     .as_str()
                                     .unwrap_or_default()
                                     .to_string(),
                             },
-                            type_: h["type"]
-                                .as_str()
-                                .unwrap_or_default()
-                                .to_string(),
+                            type_: h["type"].as_str().unwrap_or_default().to_string(),
                         });
                     }
                 }
@@ -244,26 +207,14 @@ impl Default for EnsemblClient {
 
 fn parse_gene(json: &serde_json::Value) -> Result<Gene> {
     Ok(Gene {
-        id: json["id"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
+        id: json["id"].as_str().unwrap_or_default().to_string(),
         symbol: json["display_name"]
             .as_str()
             .unwrap_or_default()
             .to_string(),
-        description: json["description"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
-        species: json["species"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
-        biotype: json["biotype"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
+        description: json["description"].as_str().unwrap_or_default().to_string(),
+        species: json["species"].as_str().unwrap_or_default().to_string(),
+        biotype: json["biotype"].as_str().unwrap_or_default().to_string(),
         start: json["start"].as_u64().unwrap_or(0),
         end: json["end"].as_u64().unwrap_or(0),
         strand: json["strand"].as_i64().unwrap_or(0) as i8,
@@ -366,7 +317,10 @@ mod tests {
         assert_eq!(results[0].allele_string, "C/T");
         assert_eq!(results[0].most_severe_consequence, "missense_variant");
         assert_eq!(results[0].transcript_consequences.len(), 1);
-        assert_eq!(results[0].transcript_consequences[0].gene_id, "ENSG00000012048");
+        assert_eq!(
+            results[0].transcript_consequences[0].gene_id,
+            "ENSG00000012048"
+        );
         assert_eq!(results[0].transcript_consequences[0].impact, "MODERATE");
     }
 

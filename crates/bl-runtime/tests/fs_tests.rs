@@ -24,7 +24,9 @@ fn test_file_exists_false() {
 fn test_file_exists_nonexistent_path() {
     let result = call_fs_builtin(
         "file_exists",
-        vec![Value::Str("/some/deeply/nested/nonexistent/path.txt".into())],
+        vec![Value::Str(
+            "/some/deeply/nested/nonexistent/path.txt".into(),
+        )],
     )
     .unwrap();
     assert_eq!(result, Value::Bool(false));
@@ -40,7 +42,10 @@ fn test_read_write_text() {
 
     call_fs_builtin(
         "write_text",
-        vec![Value::Str(path_str.clone()), Value::Str("hello world".into())],
+        vec![
+            Value::Str(path_str.clone()),
+            Value::Str("hello world".into()),
+        ],
     )
     .unwrap();
 
@@ -61,9 +66,11 @@ fn test_read_text_empty_file() {
 
 #[test]
 fn test_read_text_not_found() {
-    assert!(
-        call_fs_builtin("read_text", vec![Value::Str("/nonexistent/path.txt".into())]).is_err()
-    );
+    assert!(call_fs_builtin(
+        "read_text",
+        vec![Value::Str("/nonexistent/path.txt".into())]
+    )
+    .is_err());
 }
 
 #[test]
@@ -94,7 +101,7 @@ fn test_list_dir() {
 
     if let Value::List(items) = result {
         assert_eq!(items.len(), 2);
-        for item in &items {
+        for item in items.iter() {
             if let Value::Record(rec) = item {
                 assert!(rec.contains_key("name"));
                 assert!(rec.contains_key("size"));
@@ -146,9 +153,11 @@ fn test_mkdir_already_exists() {
 
 #[test]
 fn test_basename() {
-    let result =
-        call_fs_builtin("basename", vec![Value::Str("/home/user/data/sample.fastq".into())])
-            .unwrap();
+    let result = call_fs_builtin(
+        "basename",
+        vec![Value::Str("/home/user/data/sample.fastq".into())],
+    )
+    .unwrap();
     assert_eq!(result, Value::Str("sample.fastq".into()));
 }
 
@@ -169,9 +178,11 @@ fn test_basename_root_path() {
 
 #[test]
 fn test_dirname() {
-    let result =
-        call_fs_builtin("dirname", vec![Value::Str("/home/user/data/sample.fastq".into())])
-            .unwrap();
+    let result = call_fs_builtin(
+        "dirname",
+        vec![Value::Str("/home/user/data/sample.fastq".into())],
+    )
+    .unwrap();
     assert_eq!(result, Value::Str("/home/user/data".into()));
 }
 
@@ -255,7 +266,7 @@ fn test_glob_no_match() {
     let dir = tempfile::tempdir().unwrap();
     let pattern = dir.path().join("*.zzz").to_string_lossy().to_string();
     let result = call_fs_builtin("glob", vec![Value::Str(pattern)]).unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 // ── read_lines / write_lines tests ──────────────────────────────
@@ -273,7 +284,7 @@ fn test_read_write_lines() {
     ];
     call_fs_builtin(
         "write_lines",
-        vec![Value::Str(path_str.clone()), Value::List(lines)],
+        vec![Value::Str(path_str.clone()), Value::List((lines).into())],
     )
     .unwrap();
 

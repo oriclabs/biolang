@@ -325,7 +325,12 @@ fn test_destruct_record() {
 fn test_for_loop_simple() {
     let prog = parse("for x in items { x }");
     match &prog.stmts[0].node {
-        Stmt::For { pattern, iter, body, .. } => {
+        Stmt::For {
+            pattern,
+            iter,
+            body,
+            ..
+        } => {
             assert!(matches!(pattern, ForPattern::Single(n) if n == "x"));
             assert!(matches!(iter.node, Expr::Ident(ref n) if n == "items"));
             assert_eq!(body.len(), 1);
@@ -422,15 +427,13 @@ fn test_match_type_pattern() {
     let prog = parse("match x { Int(n) => n, Str(s) => 0 }");
     match &prog.stmts[0].node {
         Stmt::Expr(expr) => match &expr.node {
-            Expr::Match { arms, .. } => {
-                match &arms[0].pattern.node {
-                    Pattern::TypePattern { type_name, binding } => {
-                        assert_eq!(type_name, "Int");
-                        assert_eq!(binding.as_deref(), Some("n"));
-                    }
-                    other => panic!("expected TypePattern, got {other:?}"),
+            Expr::Match { arms, .. } => match &arms[0].pattern.node {
+                Pattern::TypePattern { type_name, binding } => {
+                    assert_eq!(type_name, "Int");
+                    assert_eq!(binding.as_deref(), Some("n"));
                 }
-            }
+                other => panic!("expected TypePattern, got {other:?}"),
+            },
             other => panic!("expected Match, got {other:?}"),
         },
         other => panic!("expected Expr, got {other:?}"),
@@ -776,11 +779,17 @@ fn test_record_literal() {
             Expr::Record(entries) => {
                 assert_eq!(entries.len(), 2);
                 match &entries[0] {
-                    RecordEntry::Field(k, v) => { assert_eq!(k, "x"); assert_eq!(v.node, Expr::Int(1)); }
+                    RecordEntry::Field(k, v) => {
+                        assert_eq!(k, "x");
+                        assert_eq!(v.node, Expr::Int(1));
+                    }
                     other => panic!("expected Field, got {other:?}"),
                 }
                 match &entries[1] {
-                    RecordEntry::Field(k, v) => { assert_eq!(k, "y"); assert_eq!(v.node, Expr::Int(2)); }
+                    RecordEntry::Field(k, v) => {
+                        assert_eq!(k, "y");
+                        assert_eq!(v.node, Expr::Int(2));
+                    }
                     other => panic!("expected Field, got {other:?}"),
                 }
             }
@@ -814,7 +823,13 @@ fn test_index_access_expression() {
         Stmt::Expr(expr) => match &expr.node {
             Expr::Index { object, index } => {
                 assert!(matches!(object.node, Expr::Ident(ref n) if n == "arr"));
-                assert!(matches!(index.node, Expr::Binary { op: BinaryOp::Add, .. }));
+                assert!(matches!(
+                    index.node,
+                    Expr::Binary {
+                        op: BinaryOp::Add,
+                        ..
+                    }
+                ));
             }
             other => panic!("expected Index, got {other:?}"),
         },
@@ -1022,8 +1037,20 @@ fn test_logical_lower_than_comparison() {
         Stmt::Expr(expr) => match &expr.node {
             Expr::Binary { op, left, right } => {
                 assert_eq!(*op, BinaryOp::And);
-                assert!(matches!(left.node, Expr::Binary { op: BinaryOp::Gt, .. }));
-                assert!(matches!(right.node, Expr::Binary { op: BinaryOp::Lt, .. }));
+                assert!(matches!(
+                    left.node,
+                    Expr::Binary {
+                        op: BinaryOp::Gt,
+                        ..
+                    }
+                ));
+                assert!(matches!(
+                    right.node,
+                    Expr::Binary {
+                        op: BinaryOp::Lt,
+                        ..
+                    }
+                ));
             }
             other => panic!("expected Binary, got {other:?}"),
         },
@@ -1057,7 +1084,13 @@ fn test_sub_and_div() {
         Stmt::Expr(expr) => match &expr.node {
             Expr::Binary { op, right, .. } => {
                 assert_eq!(*op, BinaryOp::Sub);
-                assert!(matches!(right.node, Expr::Binary { op: BinaryOp::Div, .. }));
+                assert!(matches!(
+                    right.node,
+                    Expr::Binary {
+                        op: BinaryOp::Div,
+                        ..
+                    }
+                ));
             }
             other => panic!("expected Binary, got {other:?}"),
         },
@@ -1109,7 +1142,13 @@ fn test_lambda_multiple_params() {
                 assert_eq!(params.len(), 2);
                 assert_eq!(params[0].name, "a");
                 assert_eq!(params[1].name, "b");
-                assert!(matches!(body.node, Expr::Binary { op: BinaryOp::Add, .. }));
+                assert!(matches!(
+                    body.node,
+                    Expr::Binary {
+                        op: BinaryOp::Add,
+                        ..
+                    }
+                ));
             }
             other => panic!("expected Lambda, got {other:?}"),
         },
@@ -1247,7 +1286,9 @@ fn test_function_return_type() {
     let prog = parse("fn add(a: Int, b: Int) -> Int { a + b }");
     match &prog.stmts[0].node {
         Stmt::Fn {
-            return_type, params, ..
+            return_type,
+            params,
+            ..
         } => {
             assert_eq!(return_type.as_ref().unwrap().name, "Int");
             assert_eq!(params[0].type_ann.as_ref().unwrap().name, "Int");
@@ -1540,9 +1581,7 @@ fn test_list_comprehension() {
     let prog = parse("[x * 2 for x in items]");
     match &prog.stmts[0].node {
         Stmt::Expr(expr) => match &expr.node {
-            Expr::ListComp {
-                var, condition, ..
-            } => {
+            Expr::ListComp { var, condition, .. } => {
                 assert_eq!(var, "x");
                 assert!(condition.is_none());
             }
@@ -1677,7 +1716,9 @@ fn test_qual_literal() {
 fn test_yield_statement() {
     let prog = parse("fn* gen() { yield 1 }");
     match &prog.stmts[0].node {
-        Stmt::Fn { body, is_generator, .. } => {
+        Stmt::Fn {
+            body, is_generator, ..
+        } => {
             assert!(*is_generator);
             assert!(matches!(body[0].node, Stmt::Yield(_)));
         }
@@ -1881,25 +1922,29 @@ fn test_with_statement() {
 #[test]
 fn test_given_newline_separated_arms() {
     // Was OOM: parser broke after first arm due to else{break} after comma check
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 given {
     x < 0     => "negative"
     x == 0    => "zero"
     x < 100   => "small"
     otherwise => "large"
 }
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_given_comma_separated_arms() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 given {
     x < 0 => "negative",
     x == 0 => "zero",
     otherwise => "large",
 }
-"#);
+"#,
+    );
 }
 
 #[test]
@@ -1919,18 +1964,21 @@ fn test_given_empty() {
 
 #[test]
 fn test_given_with_complex_exprs() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 given {
     a > 10 && b < 20 => call_fn(a, b)
     c + d == 42      => [1, 2, 3]
     otherwise         => {x: 1, y: 2}
 }
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_given_nested_in_for() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 for v in items {
     let label = given {
         is_snp(v) => "snp"
@@ -1939,12 +1987,14 @@ for v in items {
     }
     print(label)
 }
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_given_nested_given() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 given {
     x == 1 => given {
         y == 1 => "a"
@@ -1953,12 +2003,14 @@ given {
     }
     otherwise => "d"
 }
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_given_with_block_bodies() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 given {
     x > 10 => {
         let a = x * 2
@@ -1969,13 +2021,15 @@ given {
         b
     }
 }
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_given_five_arms_newline() {
     // Ensure 5+ arms with newlines work (was breaking after 1st arm)
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 given {
     a => 1
     b => 2
@@ -1984,7 +2038,8 @@ given {
     e => 5
     otherwise => 0
 }
-"#);
+"#,
+    );
 }
 
 // ============================================================================
@@ -1993,30 +2048,36 @@ given {
 
 #[test]
 fn test_multiline_pipe_let() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 let result = data
     |> filter(|n| n > 3)
     |> map(|n| n * 2)
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_multiline_pipe_bare_expr() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 items
     |> filter(|x| x > 0)
     |> map(|x| x * 2)
     |> reduce(0, |a, b| a + b)
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_multiline_pipe_after_call() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 get_data()
     |> filter(|x| x.valid)
     |> each |x| process(x)
-"#);
+"#,
+    );
 }
 
 // ============================================================================
@@ -2025,33 +2086,41 @@ get_data()
 
 #[test]
 fn test_pipe_trailing_lambda_each() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 items |> each |x| print(x)
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_pipe_trailing_lambda_map() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 items |> map |x| x * 2
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_pipe_trailing_lambda_filter() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 items |> filter |x| x > 0
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_pipe_trailing_lambda_last_in_chain() {
     // Trailing lambda works on the last pipe; earlier pipes need parens
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 data
     |> filter(|x| x > 0)
     |> map |x| x * 2
-"#);
+"#,
+    );
 }
 
 // ============================================================================
@@ -2060,16 +2129,20 @@ data
 
 #[test]
 fn test_string_key_record_simple() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 let r = {"key": "value", "num": 42}
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_string_key_record_in_condition() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 if r.key == "value" { "yes" } else { "no" }
-"#);
+"#,
+    );
 }
 
 // ============================================================================
@@ -2078,33 +2151,41 @@ if r.key == "value" { "yes" } else { "no" }
 
 #[test]
 fn test_if_then_simple() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 if x > 0 then print("positive")
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_if_then_else() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 if x > 0 then "positive" else "non-positive"
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_if_block_else_newline() {
     // `} \n else` should work — parser peeks past newlines for else
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 fn classify(gc) {
     if gc > 60.0 { "GC-rich" }
     else if gc < 40.0 { "AT-rich" }
     else { "balanced" }
 }
-"#);
+"#,
+    );
 }
 
 #[test]
 fn test_if_block_else_same_line() {
-    let _prog = parse(r#"
+    let _prog = parse(
+        r#"
 if x > 0 { "pos" } else { "neg" }
-"#);
+"#,
+    );
 }

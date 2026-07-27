@@ -1,0 +1,14 @@
+import "chipseq" as cs
+
+let peaks_ctrl    = cs.load_narrowpeak("results/ctrl_peaks.narrowPeak")
+let peaks_treated = cs.load_narrowpeak("results/treated_peaks.narrowPeak")
+
+cs.qc_report(peaks_ctrl,    reads_in_peaks=320000, total_reads=25000000)
+cs.qc_report(peaks_treated, reads_in_peaks=280000, total_reads=22000000)
+
+let merged_ctrl    = cs.merge(peaks_ctrl)
+let merged_treated = cs.merge(peaks_treated)
+let consensus = cs.consensus([merged_ctrl, merged_treated], min_samples=2)
+
+cs.mean_peak_size(consensus)
+cs.n_peaks(consensus)

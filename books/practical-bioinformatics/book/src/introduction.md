@@ -170,10 +170,10 @@ Here is what BioLang looks like in practice. This script reads a FASTQ file, fil
 let reads = read_fastq("data/reads.fastq")
 
 reads
-  |> filter(|r| r.quality >= 30)
-  |> map(|r| gc_content(r.sequence))
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> map(|r| gc_content(r.seq))
   |> mean()
-  |> println("Mean GC content of high-quality reads: {}")
+  |> tap(|gc| println(f"Mean GC content of high-quality reads: {gc}"))
 ```
 
 Five lines. No imports. No boilerplate. The pipe operator makes it clear what happens at each step: read the file, filter by quality, extract GC content, compute the mean, print the result.

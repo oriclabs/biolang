@@ -139,7 +139,8 @@ print(sample.mean_coverage)   # => 32.5
 
 Record keys can be identifiers or strings:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let annotation = {
   "gene_name": "EGFR",
   "Gene Ontology": "GO:0005524",
@@ -222,6 +223,7 @@ print(is_str(rec))     # => false
 Available type check functions:
 
 ```biolang
+let val = dna"ATCG"
 is_int(val)
 is_float(val)
 is_str(val)
@@ -268,7 +270,8 @@ let region = into(variant("chr1", 1000, "A", "T"), "Interval")
 
 Define aliases to make code self-documenting:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 type Locus = Record
 type SampleMeta = Record
 type QCMetrics = Record
@@ -303,6 +306,9 @@ let threads = args.threads ?? 4
 Safely accesses nested fields, returning nil if any intermediate value is nil:
 
 ```biolang
+let variant_record = {
+  annotation: {clinvar: {significance: "Pathogenic"}}
+}
 let clinvar_status = variant_record?.annotation?.clinvar?.significance
 # Returns nil if annotation, clinvar, or significance is missing
 
@@ -413,7 +419,7 @@ by_type |> each(|g| print(f"  {g.key}: {len(g.values)}"))
 # Flag high-impact variants
 let high_impact = classified
   |> filter(|v| v.is_valid && v.variant_type != "SNV" && v.size > 50)
-  |> sort("size", descending: true)
+  |> sort_by(|v| -v.size)
 
 print(f"\nHigh-impact structural variants (>50bp): {len(high_impact)}")
 high_impact |> take(10) |> each(|v| {

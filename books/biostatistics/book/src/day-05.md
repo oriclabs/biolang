@@ -450,7 +450,8 @@ Think of detecting a treatment effect as hearing a whisper in a crowd. The whisp
 
 ### Simulating Power
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Simulate a clinical trial to understand power
 
@@ -666,7 +667,8 @@ For each scenario, identify the type of bias and explain how it could affect res
 
 Estimate the uncertainty in a correlation coefficient using the bootstrap.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Gene expression vs. protein abundance (moderate correlation)
 let n = 40

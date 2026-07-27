@@ -26,7 +26,8 @@ let scratch = sqlite()
 statements return the number of affected rows. Use `?` placeholders for
 parameterized queries.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Create a table
 sql(db, "CREATE TABLE IF NOT EXISTS qc (
   sample TEXT PRIMARY KEY,
@@ -93,7 +94,8 @@ sql_schema(db, "qc")
 
 Store QC results from every sample run, then query across all runs:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let db = sqlite("lab_results.db")
 
 sql(db, "CREATE TABLE IF NOT EXISTS qc (

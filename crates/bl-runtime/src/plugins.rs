@@ -41,7 +41,10 @@ pub fn resolve_plugin(import_path: &str) -> Option<(PathBuf, PluginManifest)> {
 }
 
 /// Resolve a plugin manifest within a specific plugins root directory.
-pub fn resolve_plugin_in(import_path: &str, plugins_root: &Path) -> Option<(PathBuf, PluginManifest)> {
+pub fn resolve_plugin_in(
+    import_path: &str,
+    plugins_root: &Path,
+) -> Option<(PathBuf, PluginManifest)> {
     let name = normalize_plugin_name(import_path);
     let plugin_dir = plugins_root.join(&name);
     let manifest_path = plugin_dir.join("plugin.json");
@@ -77,7 +80,10 @@ pub fn load_plugin(import_path: &str) -> bl_core::error::Result<HashMap<String, 
 }
 
 /// Load a plugin from a specific plugins root directory.
-pub fn load_plugin_in(import_path: &str, plugins_root: &Path) -> bl_core::error::Result<HashMap<String, Value>> {
+pub fn load_plugin_in(
+    import_path: &str,
+    plugins_root: &Path,
+) -> bl_core::error::Result<HashMap<String, Value>> {
     let (plugin_dir, manifest) = match resolve_plugin_in(import_path, plugins_root) {
         Some(pair) => pair,
         None => return Ok(HashMap::new()),
@@ -85,7 +91,10 @@ pub fn load_plugin_in(import_path: &str, plugins_root: &Path) -> bl_core::error:
     build_plugin_exports(&plugin_dir, &manifest)
 }
 
-fn build_plugin_exports(plugin_dir: &Path, manifest: &PluginManifest) -> bl_core::error::Result<HashMap<String, Value>> {
+fn build_plugin_exports(
+    plugin_dir: &Path,
+    manifest: &PluginManifest,
+) -> bl_core::error::Result<HashMap<String, Value>> {
     let mut exports = HashMap::new();
     for op in &manifest.operations {
         exports.insert(
@@ -115,7 +124,7 @@ pub fn call_plugin(
     let params = if args.len() == 1 {
         if let Value::Record(ref map) = args[0] {
             let mut obj = serde_json::Map::new();
-            for (k, v) in map {
+            for (k, v) in map.iter() {
                 obj.insert(k.clone(), value_to_json(v));
             }
             serde_json::Value::Object(obj)
@@ -157,7 +166,10 @@ pub fn call_plugin(
                 ("python".to_string(), vec![])
             }
         }
-        "deno" => ("deno".to_string(), vec!["run".to_string(), "--allow-all".to_string()]),
+        "deno" => (
+            "deno".to_string(),
+            vec!["run".to_string(), "--allow-all".to_string()],
+        ),
         "typescript" => ("npx".to_string(), vec!["tsx".to_string()]),
         "r" => ("Rscript".to_string(), vec![]),
         "native" => (entry_path.to_string_lossy().to_string(), vec![]),
@@ -193,10 +205,7 @@ pub fn call_plugin(
     // Write request to stdin, then close it
     if let Some(mut stdin) = child.stdin.take() {
         stdin.write_all(request_json.as_bytes()).map_err(|e| {
-            BioLangError::plugin_error(
-                format!("failed to write to plugin stdin: {e}"),
-                None,
-            )
+            BioLangError::plugin_error(format!("failed to write to plugin stdin: {e}"), None)
         })?;
     }
 
@@ -320,7 +329,7 @@ mod tests {
 
     #[test]
     fn test_value_to_json_list() {
-        let list = Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)]);
+        let list = Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into());
         assert_eq!(value_to_json(&list), serde_json::json!([1, 2, 3]));
     }
 
@@ -328,7 +337,7 @@ mod tests {
     fn test_value_to_json_record() {
         let mut map = HashMap::new();
         map.insert("x".to_string(), Value::Int(10));
-        let rec = Value::Record(map);
+        let rec = Value::Record((map).into());
         let j = value_to_json(&rec);
         assert_eq!(j.get("x").unwrap(), &serde_json::json!(10));
     }
@@ -351,11 +360,7 @@ mod tests {
         let v = json_to_value(j);
         assert_eq!(
             v,
-            Value::List(vec![
-                Value::Int(1),
-                Value::Str("two".into()),
-                Value::Nil,
-            ])
+            Value::List((vec![Value::Int(1), Value::Str("two".into()), Value::Nil,]).into())
         );
     }
 
@@ -372,13 +377,13 @@ mod tests {
 
     #[test]
     fn test_value_json_roundtrip() {
-        let original = Value::List(vec![
+        let original = Value::List((vec![
             Value::Int(1),
             Value::Float(2.5),
             Value::Str("test".into()),
             Value::Bool(false),
             Value::Nil,
-        ]);
+        ]).into());
         let json = value_to_json(&original);
         let roundtripped = json_to_value(json);
         assert_eq!(original, roundtripped);
@@ -480,8 +485,8 @@ mod tests {
     // Edge case: value_to_json with nested lists
     #[test]
     fn test_value_to_json_nested_lists() {
-        let inner = Value::List(vec![Value::Int(1), Value::Int(2)]);
-        let outer = Value::List(vec![inner, Value::Str("x".into())]);
+        let inner = Value::List((vec![Value::Int(1), Value::Int(2)]).into());
+        let outer = Value::List((vec![inner, Value::Str("x".into())]).into());
         let j = value_to_json(&outer);
         assert_eq!(j, serde_json::json!([[1, 2], "x"]));
     }
@@ -491,13 +496,19 @@ mod tests {
     fn test_value_to_json_bio_sequences() {
         use bl_core::value::BioSequence;
 
-        let dna = Value::DNA(BioSequence { data: "ATCG".to_string() });
+        let dna = Value::DNA(BioSequence {
+            data: "ATCG".to_string(),
+        });
         assert_eq!(value_to_json(&dna), serde_json::json!("ATCG"));
 
-        let rna = Value::RNA(BioSequence { data: "AUCG".to_string() });
+        let rna = Value::RNA(BioSequence {
+            data: "AUCG".to_string(),
+        });
         assert_eq!(value_to_json(&rna), serde_json::json!("AUCG"));
 
-        let protein = Value::Protein(BioSequence { data: "MVLSP".to_string() });
+        let protein = Value::Protein(BioSequence {
+            data: "MVLSP".to_string(),
+        });
         assert_eq!(value_to_json(&protein), serde_json::json!("MVLSP"));
     }
 
@@ -594,20 +605,20 @@ mod tests {
         inner_rec.insert("nested_int".to_string(), Value::Int(99));
 
         let mut outer_rec = HashMap::new();
-        outer_rec.insert("inner".to_string(), Value::Record(inner_rec));
+        outer_rec.insert("inner".to_string(), Value::Record((inner_rec).into()));
         outer_rec.insert(
             "list".to_string(),
-            Value::List(vec![
+            Value::List((vec![
                 Value::Int(1),
                 Value::Float(2.5),
                 Value::Bool(true),
                 Value::Nil,
-                Value::List(vec![Value::Str("deep".into())]),
-            ]),
+                Value::List((vec![Value::Str("deep".into())]).into()),
+            ]).into()),
         );
         outer_rec.insert("flag".to_string(), Value::Bool(false));
 
-        let original = Value::Record(outer_rec);
+        let original = Value::Record((outer_rec).into());
         let json = value_to_json(&original);
         let roundtripped = json_to_value(json);
         // Compare via JSON serialization to avoid HashMap ordering issues

@@ -49,11 +49,10 @@ impl BaseClient {
             .set("Accept-Encoding", "identity")
             .call()
             .map_err(|e| map_ureq_error(e, url))?;
-        resp.into_string()
-            .map_err(|e| ApiError::Parse {
-                context: url.to_string(),
-                source: e.to_string(),
-            })
+        resp.into_string().map_err(|e| ApiError::Parse {
+            context: url.to_string(),
+            source: e.to_string(),
+        })
     }
 
     /// HTTP GET returning parsed JSON.
@@ -87,11 +86,7 @@ impl BaseClient {
     }
 
     /// HTTP GET with custom headers, returning raw text.
-    pub fn get_text_with_headers(
-        &self,
-        url: &str,
-        headers: &[(&str, &str)],
-    ) -> Result<String> {
+    pub fn get_text_with_headers(&self, url: &str, headers: &[(&str, &str)]) -> Result<String> {
         let mut req = self.agent.get(url).set("Accept-Encoding", "identity");
         for (k, v) in headers {
             req = req.set(k, v);
@@ -104,11 +99,7 @@ impl BaseClient {
     }
 
     /// HTTP POST with JSON body, returning parsed JSON.
-    pub fn post_json(
-        &self,
-        url: &str,
-        body: &serde_json::Value,
-    ) -> Result<serde_json::Value> {
+    pub fn post_json(&self, url: &str, body: &serde_json::Value) -> Result<serde_json::Value> {
         let resp = self
             .agent
             .post(url)
@@ -135,9 +126,7 @@ impl BaseClient {
             .collect::<Vec<_>>()
             .join("&");
         req = req.set("Content-Type", "application/x-www-form-urlencoded");
-        let resp = req
-            .send_string(&body)
-            .map_err(|e| map_ureq_error(e, url))?;
+        let resp = req.send_string(&body).map_err(|e| map_ureq_error(e, url))?;
         resp.into_string().map_err(|e| ApiError::Parse {
             context: url.to_string(),
             source: e.to_string(),
@@ -155,9 +144,12 @@ impl Default for BaseClient {
 /// Checks ALL_PROXY, HTTPS_PROXY, HTTP_PROXY in order (case-insensitive).
 fn proxy_from_env() -> Option<ureq::Proxy> {
     for var in &[
-        "ALL_PROXY", "all_proxy",
-        "HTTPS_PROXY", "https_proxy",
-        "HTTP_PROXY", "http_proxy",
+        "ALL_PROXY",
+        "all_proxy",
+        "HTTPS_PROXY",
+        "https_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
     ] {
         if let Ok(val) = std::env::var(var) {
             if !val.is_empty() {

@@ -89,17 +89,17 @@ fn to_markdown_special_characters() {
 
 #[test]
 fn to_markdown_empty_list() {
-    let result = call_markdown_builtin("to_markdown", vec![Value::List(vec![])]).unwrap();
+    let result = call_markdown_builtin("to_markdown", vec![Value::List((vec![]).into())]).unwrap();
     assert_eq!(result, Value::Str(String::new()));
 }
 
 #[test]
 fn to_markdown_simple_list() {
-    let list = Value::List(vec![
+    let list = Value::List((vec![
         Value::Str("alpha".into()),
         Value::Str("beta".into()),
         Value::Str("gamma".into()),
-    ]);
+    ]).into());
     let result = call_markdown_builtin("to_markdown", vec![list]).unwrap();
     if let Value::Str(s) = &result {
         assert!(s.contains("- alpha"));
@@ -112,8 +112,8 @@ fn to_markdown_simple_list() {
 
 #[test]
 fn to_markdown_nested_list() {
-    let inner = Value::List(vec![Value::Int(1), Value::Int(2)]);
-    let outer = Value::List(vec![inner, Value::Int(3)]);
+    let inner = Value::List((vec![Value::Int(1), Value::Int(2)]).into());
+    let outer = Value::List((vec![inner, Value::Int(3)]).into());
     let result = call_markdown_builtin("to_markdown", vec![outer]).unwrap();
     assert!(matches!(result, Value::Str(_)));
 }
@@ -162,7 +162,7 @@ fn to_markdown_record() {
     let mut map = HashMap::new();
     map.insert("sample".to_string(), Value::Str("S001".into()));
     map.insert("reads".to_string(), Value::Int(1000000));
-    let result = call_markdown_builtin("to_markdown", vec![Value::Record(map)]).unwrap();
+    let result = call_markdown_builtin("to_markdown", vec![Value::Record((map).into())]).unwrap();
     if let Value::Str(s) = &result {
         assert!(s.contains("**sample**: S001"));
         assert!(s.contains("**reads**: 1000000"));
@@ -180,7 +180,7 @@ fn to_markdown_list_of_records_as_table() {
     r2.insert("name".to_string(), Value::Str("TP53".into()));
     r2.insert("chr".to_string(), Value::Str("17".into()));
 
-    let list = Value::List(vec![Value::Record(r1), Value::Record(r2)]);
+    let list = Value::List((vec![Value::Record((r1).into()), Value::Record((r2).into())]).into());
     let result = call_markdown_builtin("to_markdown", vec![list]).unwrap();
     if let Value::Str(s) = &result {
         // Should render as table, not bullet list
@@ -262,7 +262,7 @@ fn to_html_table() {
 
 #[test]
 fn to_html_empty_list() {
-    let result = call_markdown_builtin("to_html", vec![Value::List(vec![])]).unwrap();
+    let result = call_markdown_builtin("to_html", vec![Value::List((vec![]).into())]).unwrap();
     if let Value::Str(s) = &result {
         assert!(s.contains("<!DOCTYPE html>"));
         assert!(s.contains("<ul>"));

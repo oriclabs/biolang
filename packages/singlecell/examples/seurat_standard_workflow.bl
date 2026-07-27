@@ -1,0 +1,86 @@
+# Standard single-cell workflow — the BioLang equivalent of Seurat's
+# singleCell_standard_workflow.R (kpatel427/YouTubeTutorials).
+#
+# Section numbering follows the R script so the two can be read side by side.
+#
+# Generate the demo 10x directory first, from packages/:
+#
+#   python singlecell/examples/make_demo_10x.py
+#
+# then:  bl run singlecell/examples/seurat_standard_workflow.bl
+
+import "singlecell/src/mod" as sc
+
+# ── Load ──────────────────────────────────────────────────────────────────────
+# R: Read10X_h5(...) then CreateSeuratObject(min.cells = 3, min.features = 200)
+let raw = read_10x("nsclc_like")
+println("loaded: " + str(raw.n_cells) + " cells x " + str(raw.n_genes) + " genes")
+
+# min_genes is 20 rather than Seurat's 200 only because this demo dataset has
+# 168 genes total; on a real 30k-gene matrix use 200.
+let obj = raw |> sc.filter_genes(3) |> sc.filter_cells(20, 2500, 5.0)
+println("after filtering: " + str(obj.n_cells) + " cells x " + str(obj.n_genes) + " genes")
+
+# ── 1. QC ─────────────────────────────────────────────────────────────────────
+# R: PercentageFeatureSet(pattern = "^MT-"), VlnPlot, FeatureScatter
+# BioLang computes the same metrics; pct_mito uses the MT- prefix too.
+let q = sc.qc(obj).cell_qc_table
+println("median genes/cell = " + str(median(q |> col("n_genes"))))
+println("median pct_mito   = " + str(round(median(q |> col("pct_mito")), 2)))
+
+# ── 2-4. Normalize, variable features ─────────────────────────────────────────
+# R: NormalizeData() ; FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+let norm = obj |> sc.normalize(10000.0) |> sc.variable_genes(2000)
+println("top 10 variable genes: " + join(norm.hvg_genes |> take(10), ", "))
+
+# ── 5-6. Scale, PCA ───────────────────────────────────────────────────────────
+# R: ScaleData() ; RunPCA()
+let scaled = norm |> sc.scale()
+let pcs = pca(scaled.hvg_matrix, 15)
+println("PC1-5 variance explained: " +
+        join(pcs.explained_variance_ratio |> take(5)
+             |> map(|v| str(round(v * 100.0, 1)) + "%"), " "))
+
+# ── 7. Clustering ─────────────────────────────────────────────────────────────
+# R: FindNeighbors(dims = 1:15) ; FindClusters(resolution = c(0.1,0.3,0.5,0.7,1))
+let graph = norm |> sc.neighbors(15)
+println("")
+println("resolution sweep:")
+for r in [0.1, 0.3, 0.5, 0.7, 1.0] {
+    let res = graph |> sc.cluster_leiden(15, r)
+    println("  res=" + str(r) + " -> " + str(res.clusters |> unique |> len) + " clusters")
+}
+
+let final = graph |> sc.cluster_leiden(15, 0.5)
+let labels = final.clusters
+
+# ── 8. UMAP ───────────────────────────────────────────────────────────────────
+# R: RunUMAP(dims = 1:15) ; DimPlot(reduction = "umap")
+let emb = umap(final.hvg_matrix, 2)
+println("")
+println("UMAP embedding: " + join(dim(emb) |> map(|d| str(d)), " x "))
+
+# ── Check against the known populations ───────────────────────────────────────
+let truth = read_lines("nsclc_like/truth.csv") |> filter(|s| len(s) > 0)
+            |> map(|line| split(line, ","))
+let tb = truth |> map(|r| r[0])
+let tp = truth |> map(|r| int(r[1]))
+let want = final.barcodes |> map(|b| tp[find_index(tb, |x| x == b)])
+
+println("clusters at res=0.5: " + str(labels |> unique |> len))
+println("ARI vs known populations = " + str(round(ari(labels, want), 4)))
+
+# ── The same thing as one call ────────────────────────────────────────────────
+# sc.standard() runs the ceremony above and prints the explicit pipeline it
+# ran, with each parameter marked [default] or [set]. Start here when
+# exploring, then paste the printed pipeline back and edit whichever step you
+# need. Warnings (everything filtered out, single cluster) print regardless of
+# `quiet`, because those are the failures that otherwise show up only as an
+# empty result three steps later.
+println("")
+println("── one-call equivalent ──")
+let quick = sc.standard(raw, 0.5, 2000, 15, 20)
+println("")
+println("same answer? ARI = " +
+        str(round(ari(quick.clusters,
+                      quick.barcodes |> map(|b| tp[find_index(tb, |x| x == b)])), 4)))

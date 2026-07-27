@@ -28,7 +28,7 @@
         <section class="mb-12" id="chat">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">chat</span></h2>
           <p class="text-slate-400 mt-2">Send a prompt to the configured LLM and return the text response.</p>
-          <pre><code class="language-biolang">chat(prompt, opts?) -> string</code></pre>
+          <pre><code class="language-text">chat(prompt, opts?) -> string</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Default</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -52,7 +52,7 @@ answer = chat("Explain this VCF line: chr17 43094464 . G A 500 PASS", {
         <section class="mb-12" id="chat_code">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">chat_code</span></h2>
           <p class="text-slate-400 mt-2">Ask the LLM to generate BioLang code. Returns only the code block, stripped of markdown fencing.</p>
-          <pre><code class="language-biolang">chat_code(description, opts?) -> string</code></pre>
+          <pre><code class="language-text">chat_code(description, opts?) -> string</code></pre>
           <pre><code class="language-biolang">let code = chat_code("Read a FASTQ file, compute per-base quality stats, and make a boxplot")
 println(code)
 # lines = read_lines("sample.fastq")
@@ -63,7 +63,7 @@ println(code)
         <section class="mb-12" id="llm_models">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">llm_models</span></h2>
           <p class="text-slate-400 mt-2">List available models from the configured provider.</p>
-          <pre><code class="language-biolang">llm_models() -> list</code></pre>
+          <pre><code class="language-text">llm_models() -> list</code></pre>
           <pre><code class="language-biolang">let models = llm_models()
 for m in models {
   println(m)

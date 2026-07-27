@@ -37,12 +37,12 @@ let ctrl_values = [
 ]
 
 for i in range(0, 50) {
-    bio_lines = append(bio_lines, f"AD_{i + 1:03},alzheimer,{ad_values[i]}")
+    bio_lines = push(bio_lines, f"AD_{i + 1:03},alzheimer,{ad_values[i]}")
 }
 for i in range(0, 50) {
-    bio_lines = append(bio_lines, f"CN_{i + 1:03},control,{ctrl_values[i]}")
+    bio_lines = push(bio_lines, f"CN_{i + 1:03},control,{ctrl_values[i]}")
 }
-write_lines(bio_lines, "data/biomarker_alzheimer.csv")
+write_lines("data/biomarker_alzheimer.csv", bio_lines)
 
 # --- File 2: null_simulation.csv ---
 # 1000 z-statistics generated under H0 (standard normal distribution)
@@ -69,28 +69,27 @@ let z_blocks = [
 ]
 
 # Write the first 100 (lower tail)
-for b in range(0, 10) {
-    for j in range(0, 10) {
-        let idx = b * 10 + j + 1
-        null_lines = append(null_lines, f"{idx},{z_blocks[b][j]}")
-    }
-}
+let lower_tail = range(0, 100) |> map(|i| {
+    let b = int(i / 10)
+    let j = i % 10
+    f"{i + 1},{z_blocks[b][j]}"
+})
 
 # Middle 800 values: linearly spaced from -1.276 to +1.276
-for i in range(0, 800) {
+let middle = range(0, 800) |> map(|i| {
     let z = round(-1.276 + i * 2.552 / 799.0, 3)
-    null_lines = append(null_lines, f"{i + 101},{z}")
-}
+    f"{i + 101},{z}"
+})
 
 # Upper tail 100: mirror of lower tail
-for b in range(0, 10) {
-    for j in range(0, 10) {
-        let idx = 900 + b * 10 + j + 1
-        let z = round(-1.0 * z_blocks[9 - b][9 - j], 3)
-        null_lines = append(null_lines, f"{idx},{z}")
-    }
-}
-write_lines(null_lines, "data/null_simulation.csv")
+let upper_tail = range(0, 100) |> map(|i| {
+    let b = int(i / 10)
+    let j = i % 10
+    let z = round(-1.0 * z_blocks[9 - b][9 - j], 3)
+    f"{i + 901},{z}"
+})
+null_lines = null_lines + lower_tail + middle + upper_tail
+write_lines("data/null_simulation.csv", null_lines)
 
 println("Generated 2 files in data/")
 println("  data/biomarker_alzheimer.csv — 100 p-tau181 values (Janelidze 2020)")

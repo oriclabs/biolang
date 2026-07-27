@@ -65,7 +65,7 @@ let expr_rows = [
 ]
 
 let expr_lines = [expr_header] + expr_rows
-write_lines(expr_lines, "data/expression.csv")
+write_lines("data/expression.csv", expr_lines)
 print(f"  Created data/expression.csv ({len(expr_rows)} genes x 6 tissues)")
 
 # ============================================================
@@ -113,7 +113,7 @@ let info_rows = [
 ]
 
 let info_lines = [info_header] + info_rows
-write_lines(info_lines, "data/gene_info.csv")
+write_lines("data/gene_info.csv", info_lines)
 print(f"  Created data/gene_info.csv ({len(info_rows)} genes)")
 
 print("")

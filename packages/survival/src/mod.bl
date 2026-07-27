@@ -1,0 +1,29 @@
+# survival — Kaplan-Meier survival curves and Cox proportional hazards models
+#
+# Re-exports the public API from src/km.bl and src/cox.bl
+#
+# Example:
+#   import "survival" as surv
+#   let km_result = surv.km(times, events)
+#   let med = surv.median_survival(km_result)
+#   println(f"Median survival: {med.median} months (95% CI: {med.lower_ci}–{med.upper_ci})")
+
+import "survival/src/km"  as _km
+import "survival/src/cox" as _cox
+
+# --- From km.bl ---
+
+fn km(times, events)                            { _km.km(times, events) }
+fn km_by_group(times, events, groups)           { _km.km_by_group(times, events, groups) }
+fn median_survival(km_result)                   { _km.median_survival(km_result) }
+fn restricted_mean(km_result, tau)              { _km.restricted_mean(km_result, tau) }
+fn km_compare(result_a, result_b)               { _km.km_compare(result_a, result_b) }
+
+# --- From cox.bl ---
+
+fn cox(times, events, covariates, covariate_names = nil) {
+    _cox.cox(times, events, covariates, covariate_names)
+}
+fn cox_univariate(times, events, covariate_table)   { _cox.cox_univariate(times, events, covariate_table) }
+fn hazard_ratio_table(cox_result)                   { _cox.hazard_ratio_table(cox_result) }
+fn c_index(times, events, predicted_risk)            { _cox.c_index(times, events, predicted_risk) }

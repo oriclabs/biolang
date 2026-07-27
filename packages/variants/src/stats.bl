@@ -1,0 +1,31 @@
+# Variant statistics and QC metrics.
+
+fn summary(table)         { variant_summary(table) }
+fn titv(table)            { titv_ratio(table) }
+fn afs(table, field="AF") { allele_freq(table, field) }
+
+fn rare_variants(table, max_af = 0.01) {
+  let af_list = allele_freq(table, "AF")
+  table
+    |> zip(af_list)
+    |> filter(fn(r, af) -> af <= max_af)
+    |> map(fn(r, _) -> r)
+}
+
+fn common_variants(table, min_af = 0.05) {
+  let af_list = allele_freq(table, "AF")
+  table
+    |> zip(af_list)
+    |> filter(fn(r, af) -> af >= min_af)
+    |> map(fn(r, _) -> r)
+}
+
+fn qc_report(table) {
+  {
+    total:       len(table),
+    pass:        table |> filter(fn(r) -> r.filter == "PASS") |> len,
+    snps:        table |> filter(fn(r) -> len(r.ref_) == 1 & len(r.alt) == 1) |> len,
+    indels:      table |> filter(fn(r) -> len(r.ref_) != len(r.alt)) |> len,
+    titv_ratio:  titv_ratio(table)
+  }
+}

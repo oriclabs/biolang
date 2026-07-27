@@ -33,10 +33,7 @@ fn test_regex_match_false() {
 fn test_regex_match_anchored_full_match() {
     let result = call_regex_builtin(
         "regex_match",
-        vec![
-            Value::Str("abc".into()),
-            Value::Str(r"^abc$".into()),
-        ],
+        vec![Value::Str("abc".into()), Value::Str(r"^abc$".into())],
     )
     .unwrap();
     assert_eq!(result, Value::Bool(true));
@@ -46,10 +43,7 @@ fn test_regex_match_anchored_full_match() {
 fn test_regex_match_anchored_no_match() {
     let result = call_regex_builtin(
         "regex_match",
-        vec![
-            Value::Str("xabcx".into()),
-            Value::Str(r"^abc$".into()),
-        ],
+        vec![Value::Str("xabcx".into()), Value::Str(r"^abc$".into())],
     )
     .unwrap();
     assert_eq!(result, Value::Bool(false));
@@ -59,10 +53,7 @@ fn test_regex_match_anchored_no_match() {
 fn test_regex_match_case_sensitive_by_default() {
     let result = call_regex_builtin(
         "regex_match",
-        vec![
-            Value::Str("Hello".into()),
-            Value::Str("hello".into()),
-        ],
+        vec![Value::Str("Hello".into()), Value::Str("hello".into())],
     )
     .unwrap();
     // is_match does partial match: "Hello" contains no "hello" (case-sensitive)
@@ -74,10 +65,7 @@ fn test_regex_match_case_insensitive_via_flag() {
     // Using inline flag (?i)
     let result = call_regex_builtin(
         "regex_match",
-        vec![
-            Value::Str("Hello".into()),
-            Value::Str("(?i)hello".into()),
-        ],
+        vec![Value::Str("Hello".into()), Value::Str("(?i)hello".into())],
     )
     .unwrap();
     assert_eq!(result, Value::Bool(true));
@@ -148,10 +136,10 @@ fn test_regex_find_multiple() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
+        Value::List((vec![
             Value::Str("chr1:100-200".into()),
             Value::Str("chr2:300-400".into()),
-        ])
+        ]).into())
     );
 }
 
@@ -162,7 +150,7 @@ fn test_regex_find_no_match() {
         vec![Value::Str("hello world".into()), Value::Str(r"\d+".into())],
     )
     .unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
@@ -178,10 +166,10 @@ fn test_regex_find_with_groups_returns_full_match() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
+        Value::List((vec![
             Value::Str("foo123".into()),
             Value::Str("bar456".into()),
-        ])
+        ]).into())
     );
 }
 
@@ -192,7 +180,7 @@ fn test_regex_find_empty_string() {
         vec![Value::Str("".into()), Value::Str(r"\w+".into())],
     )
     .unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
@@ -206,7 +194,7 @@ fn test_regex_find_empty_pattern() {
     // Empty pattern matches empty string at each position
     if let Value::List(items) = &result {
         assert!(items.len() >= 3); // "", "", "" (before a, before b, after b)
-        for item in items {
+        for item in items.iter() {
             assert_eq!(item, &Value::Str("".into()));
         }
     }
@@ -224,11 +212,11 @@ fn test_regex_find_unicode_pattern() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
+        Value::List((vec![
             Value::Str("\u{03b1}".into()),
             Value::Str("\u{03b2}".into()),
             Value::Str("\u{03b3}".into()),
-        ])
+        ]).into())
     );
 }
 
@@ -236,18 +224,12 @@ fn test_regex_find_unicode_pattern() {
 fn test_regex_find_adjacent_matches() {
     let result = call_regex_builtin(
         "regex_find",
-        vec![
-            Value::Str("aabbb".into()),
-            Value::Str(r"a+|b+".into()),
-        ],
+        vec![Value::Str("aabbb".into()), Value::Str(r"a+|b+".into())],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("aa".into()),
-            Value::Str("bbb".into()),
-        ])
+        Value::List((vec![Value::Str("aa".into()), Value::Str("bbb".into()),]).into())
     );
 }
 
@@ -368,11 +350,11 @@ fn test_regex_split_basic() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
+        Value::List((vec![
             Value::Str("gene1".into()),
             Value::Str("gene2".into()),
             Value::Str("gene3".into()),
-        ])
+        ]).into())
     );
 }
 
@@ -380,20 +362,17 @@ fn test_regex_split_basic() {
 fn test_regex_split_pattern_at_start() {
     let result = call_regex_builtin(
         "regex_split",
-        vec![
-            Value::Str(",a,b,c".into()),
-            Value::Str(",".into()),
-        ],
+        vec![Value::Str(",a,b,c".into()), Value::Str(",".into())],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
+        Value::List((vec![
             Value::Str("".into()),
             Value::Str("a".into()),
             Value::Str("b".into()),
             Value::Str("c".into()),
-        ])
+        ]).into())
     );
 }
 
@@ -401,20 +380,17 @@ fn test_regex_split_pattern_at_start() {
 fn test_regex_split_pattern_at_end() {
     let result = call_regex_builtin(
         "regex_split",
-        vec![
-            Value::Str("a,b,c,".into()),
-            Value::Str(",".into()),
-        ],
+        vec![Value::Str("a,b,c,".into()), Value::Str(",".into())],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
+        Value::List((vec![
             Value::Str("a".into()),
             Value::Str("b".into()),
             Value::Str("c".into()),
             Value::Str("".into()),
-        ])
+        ]).into())
     );
 }
 
@@ -422,16 +398,10 @@ fn test_regex_split_pattern_at_end() {
 fn test_regex_split_no_match() {
     let result = call_regex_builtin(
         "regex_split",
-        vec![
-            Value::Str("hello world".into()),
-            Value::Str(r"\d+".into()),
-        ],
+        vec![Value::Str("hello world".into()), Value::Str(r"\d+".into())],
     )
     .unwrap();
-    assert_eq!(
-        result,
-        Value::List(vec![Value::Str("hello world".into())])
-    );
+    assert_eq!(result, Value::List((vec![Value::Str("hello world".into())]).into()));
 }
 
 #[test]
@@ -441,7 +411,7 @@ fn test_regex_split_empty_string() {
         vec![Value::Str("".into()), Value::Str(",".into())],
     )
     .unwrap();
-    assert_eq!(result, Value::List(vec![Value::Str("".into())]));
+    assert_eq!(result, Value::List((vec![Value::Str("".into())]).into()));
 }
 
 #[test]
@@ -456,12 +426,12 @@ fn test_regex_split_whitespace_pattern() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
+        Value::List((vec![
             Value::Str("".into()),
             Value::Str("hello".into()),
             Value::Str("world".into()),
             Value::Str("".into()),
-        ])
+        ]).into())
     );
 }
 
@@ -477,11 +447,11 @@ fn test_regex_split_unicode() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
+        Value::List((vec![
             Value::Str("alpha".into()),
             Value::Str("beta".into()),
             Value::Str("gamma".into()),
-        ])
+        ]).into())
     );
 }
 

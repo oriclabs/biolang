@@ -1,0 +1,18 @@
+# CITE-seq: joint RNA + ADT (antibody-derived tags) analysis.
+# rna_matrix / adt_matrix are genes × cells and proteins × cells respectively.
+fn from_citeseq(rna_matrix, adt_matrix, genes, proteins, barcodes) {
+  {
+    matrix:     rna_matrix,
+    adt_matrix: adt_matrix,
+    genes:      genes,
+    proteins:   proteins,
+    barcodes:   barcodes,
+    modality:   "CITE-seq"
+  }
+}
+
+# CLR-normalise ADT counts (log1p of library-size normalised values)
+fn normalize_adt(obj, target = 10000.0) {
+  let norm = normalize_total(obj.adt_matrix, target) |> log1p_transform
+  obj |> set_field("adt_norm", norm)
+}

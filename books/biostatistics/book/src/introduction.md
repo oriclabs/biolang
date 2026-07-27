@@ -6,7 +6,11 @@ You have the data. Thousands of gene expression measurements. Hundreds of patien
 
 This book fixes that. In 30 days, you will go from statistical anxiety to statistical fluency — not by memorizing formulas, but by solving real biological problems with real data. Every test you learn has a reason. Every formula has a story. Every p-value has a context.
 
-And you will do it all in BioLang, a language with over 400 statistical builtins that lets you express an entire analysis — from data loading to hypothesis testing to publication-quality visualization — in a handful of readable, pipe-chained lines.
+And you will do it all in BioLang, whose current runtime provides hundreds of
+builtins across statistics, data handling, biological formats, and
+visualization. That lets you express an analysis — from data loading to
+hypothesis testing to publication-quality visualization — in readable,
+pipe-chained steps.
 
 ## Who This Book Is For
 
@@ -63,9 +67,9 @@ The book is organized into four weeks plus capstone projects:
 |------|------|-------|----------------|
 | **Week 1** | 1-5 | Foundations | Understand distributions, probability, and descriptive statistics |
 | **Week 2** | 6-12 | Core Methods | Master hypothesis testing, t-tests, ANOVA, chi-square, non-parametric tests |
-| **Week 3** | 13-20 | Modeling | Regression, survival analysis, dimensionality reduction, clustering |
-| **Week 4** | 21-27 | Advanced Topics | Multiple testing, Bayesian methods, power analysis, resampling, study design |
-| **Capstone** | 28-30 | Projects | Differential expression study, GWAS analysis, clinical trial analysis |
+| **Week 3** | 13-20 | Modeling | Correlation, regression, survival, design, effect size, and batch effects |
+| **Week 4** | 21-27 | Advanced Topics | PCA, clustering, resampling, Bayesian methods, visualization, and reproducibility |
+| **Capstone** | 28-30 | Projects | Clinical trial, differential expression, and GWAS analyses |
 
 Each day follows the same structure:
 
@@ -99,21 +103,20 @@ If you can run `bl --version` and get a version number, you are ready.
 
 ## The Companion Files
 
-Every day has a companion directory with runnable code, sample data, and expected output. The structure looks like this:
+Every day has a companion directory with a BioLang setup script and Python and
+R comparison scripts. The runnable BioLang analyses are the code blocks in the
+chapter itself. The current companion structure is:
 
 ```
 biostatistics/
   days/
     day-01/
-      README.md           # Day overview and instructions
       init.bl             # Setup script — run this first
       scripts/
-        analysis.bl       # BioLang solutions
         analysis.py       # Python equivalent
         analysis.R        # R equivalent
       expected/
-        output.txt        # Expected output for verification
-      compare.md          # Side-by-side language comparison
+        .gitkeep          # Reserved for chapter-specific baselines
     day-02/
       ...
 ```
@@ -122,11 +125,18 @@ To use the companion files:
 
 1. **Run `init.bl` first.** Each day's init script generates sample datasets, downloads reference data, or creates whatever that day's exercises need. Run it with `bl run init.bl`.
 
-2. **Work through the exercises.** Try to solve them yourself before looking at the solutions in `scripts/`.
+2. **Run the BioLang blocks in the chapter.** Blocks on the same page may build
+   on variables defined earlier. File-backed and network examples are marked as
+   CLI-only.
 
-3. **Check your output.** Compare your results against the files in `expected/` to verify correctness. Statistical results should match within rounding tolerance.
+3. **Validate your script.** Run `bl check analysis.bl`, then compare important
+   estimates with the Python and R scripts. Statistical results should agree
+   within the stated rounding tolerance and method assumptions.
 
-4. **Read `compare.md`.** After completing a day in BioLang, read the comparison document to see how the same analyses look in Python and R. This is especially valuable if you plan to work in multi-language environments.
+4. **Use `scripts/analysis.py` and `scripts/analysis.R` for independent
+   validation.** Check test variants, missing-value behavior, correction
+   methods, and model families before treating small numerical differences as
+   errors.
 
 To get the companion files:
 
@@ -172,41 +182,40 @@ install.packages(c("stats", "survival", "ggplot2", "dplyr", "pwr", "lme4", "boot
 
 ## A Quick Taste
 
-Here is what statistical analysis looks like in BioLang. This script loads gene expression data, runs a t-test between two conditions, and generates a volcano plot — all in pipe style:
+Here is what statistical analysis looks like in BioLang. This script loads a
+differential-expression result table, adjusts p-values, filters significant
+genes, and generates a volcano plot:
 
 ```bio
-# Load expression data for two conditions
-let ctrl = read_csv("data/expression.csv")
-let treat = read_csv("data/expression.csv")
-
-# Run t-tests for every gene, correct for multiple testing
-let results = ctrl
-  |> join(treat, "gene_id")
-  |> mutate("pvalue", ttest(ctrl_expr, treat_expr).p)
-  |> mutate("log2fc", log2(mean(treat_expr) / mean(ctrl_expr)))
-  |> mutate("padj", p_adjust(pvalue, "BH"))
-  |> mutate("significant", padj < 0.05 and abs(log2fc) > 1.0)
+# Load a compact differential-expression result table
+let expression = read_csv("data/expression.csv")
+let adjusted = p_adjust(col(expression, "pvalue"), "BH")
+let results = zip(to_records(expression), adjusted)
+  |> map(|pair| {...pair[0], padj: pair[1]})
+  |> to_table()
 
 # How many genes are differentially expressed?
-results
-  |> filter(significant)
-  |> len()
-  |> println("Differentially expressed genes: {}")
+let significant = results
+  |> filter(|row| row.padj < 0.05 && abs(row.log2fc) > 1.0)
+println("Differentially expressed genes: " + str(len(significant)))
 
 # Volcano plot
-results |> volcano_plot("log2fc", "padj", "gene_id")
+volcano(results, {fc: "log2fc", p: "padj"})
 ```
 
-Twelve lines. No imports. No boilerplate. The pipe operator makes the analytical logic visible: load, join, test, correct, filter, plot. You will understand every line of this by Day 10.
+The pipe operator makes the analytical logic visible: load, correct, combine,
+filter, and plot. You will understand every line by the end of Week 2.
 
 Here is another example — survival analysis in three lines:
 
 ```bio
 let patients = read_csv("data/clinical.csv")
-
-patients
-  |> kaplan_meier("months", "deceased", "treatment")
-  |> surv_plot({title: "Overall Survival by Treatment Arm"})
+let survival = patients |> map(|row| {
+  time: row.survival_months,
+  event: if row.status == "deceased" { 1 } else { 0 },
+  group: row.treatment
+}) |> to_table()
+kaplan_meier(survival, {title: "Overall Survival by Treatment"})
 ```
 
 And power analysis for planning your next experiment:
@@ -218,29 +227,46 @@ println("Required sample size per group: {result.n}")
 println("Effect size: {result.effect_size}, alpha: {result.alpha}, power: {result.power}")
 ```
 
-BioLang's 400+ statistical builtins mean you spend your time thinking about the biology, not fighting the syntax.
+BioLang's statistical, tabular, and visualization builtins keep the analysis
+close to the biological question.
 
 ## Week-by-Week Overview
 
 ### Week 1: Foundations (Days 1-5)
 
-You start where every statistical analysis starts — with the data itself. What does a distribution look like? How do you measure center and spread? What is probability, and why does it matter for hypothesis testing? Day 1 introduces distributions with real gene expression data. Day 2 covers descriptive statistics. Day 3 tackles probability and the normal distribution. Day 4 introduces sampling and the central limit theorem. Day 5 covers confidence intervals. By Friday, you have the vocabulary and intuition to understand every test that follows.
+You start where every statistical analysis starts — with the data itself. Day
+1 explains why statistics matters; Day 2 covers descriptive statistics; Day 3
+examines distributions; Day 4 introduces probability; and Day 5 covers
+sampling, bias, and sample size.
 
 ### Week 2: Core Methods (Days 6-12)
 
-Now the testing begins. Day 6 introduces hypothesis testing and p-values. Day 7 covers t-tests — one-sample, two-sample, paired — with gene expression data. Day 8 is ANOVA for comparing multiple groups. Day 9 handles non-parametric alternatives for when your data violates assumptions. Day 10 tackles chi-square and Fisher's exact tests for categorical data. Day 11 introduces correlation and simple linear regression. Day 12 brings multiple testing correction — Bonferroni, Benjamini-Hochberg, and permutation — the single most important topic for genomics.
+Day 6 introduces confidence intervals. Day 7 covers hypothesis tests and
+p-values; Day 8 covers t-tests; Day 9 handles non-parametric alternatives; Day
+10 covers ANOVA; Day 11 tackles categorical tests; and Day 12 addresses
+multiple-testing correction.
 
 ### Week 3: Modeling (Days 13-20)
 
-You move from testing to modeling. Day 13 covers multiple regression. Day 14 introduces logistic regression for binary outcomes. Day 15 is survival analysis — Kaplan-Meier curves and log-rank tests. Day 16 continues with Cox proportional hazards models. Day 17 introduces PCA and dimensionality reduction. Day 18 covers clustering — hierarchical, k-means, and silhouette analysis. Day 19 tackles effect sizes and confidence intervals as alternatives to p-values. Day 20 brings statistical visualization — volcano plots, Manhattan plots, Q-Q plots, forest plots, and heatmaps.
+You move from association to modeling. Day 13 covers correlation; Day 14
+introduces linear regression; Day 15 extends it to multiple predictors; Day 16
+covers logistic regression; Day 17 covers survival analysis; Day 18 covers
+experimental design and power; Day 19 focuses on effect sizes; and Day 20
+handles batch effects and confounding.
 
 ### Week 4: Advanced Topics and Capstones (Days 21-27)
 
-You tackle the hard problems. Day 21 covers bootstrap and permutation methods. Day 22 introduces Bayesian statistics with biological examples. Day 23 is power analysis and sample size calculation. Day 24 covers experimental design — randomization, blocking, batch effects. Day 25 tackles mixed models for repeated measures and nested designs. Day 26 introduces enrichment analysis — gene ontology, pathway analysis, GSEA. Day 27 covers meta-analysis for combining results across studies.
+Day 21 covers PCA and dimensionality reduction. Day 22 covers clustering. Day
+23 introduces bootstrap and permutation methods; Day 24 introduces Bayesian
+thinking; Day 25 develops statistical visualization; Day 26 covers
+meta-analysis; and Day 27 turns the methods into a reproducible workflow.
 
 ### Capstone Projects (Days 28-30)
 
-Three full projects that integrate everything you have learned. Day 28: conduct a complete RNA-seq differential expression study with quality control, normalization, testing, multiple correction, and pathway enrichment. Day 29: analyze a genome-wide association study with Manhattan plots, Q-Q plots, and genomic inflation correction. Day 30: analyze a clinical trial dataset with survival analysis, subgroup comparisons, and a statistical report suitable for publication.
+Three full projects integrate the book. Day 28 analyzes a clinical trial with
+survival and subgroup outcomes. Day 29 conducts a differential-expression
+study. Day 30 analyzes a genome-wide association study with Manhattan and Q-Q
+plots and genomic-inflation checks.
 
 ## Conventions Used in This Book
 
@@ -276,7 +302,9 @@ Multi-language comparisons appear with labeled blocks:
 **BioLang:**
 ```bio
 let data = read_csv("data/expression.csv")
-data |> ttest(ctrl, treated) |> println()
+let control = data |> filter(|row| row.condition == "control") |> map(|row| row.sample1)
+let treated = data |> filter(|row| row.condition == "treatment") |> map(|row| row.sample1)
+println(ttest(control, treated))
 ```
 
 **Python:**

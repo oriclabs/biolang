@@ -47,11 +47,14 @@ impl Lexer {
                     self.advance(); // consume first #
                     if !self.is_at_end() && self.current() == '{' {
                         self.advance();
-                        self.tokens.push(Token::new(TokenKind::HashLBrace, Span::new(start, self.pos)));
+                        self.tokens.push(Token::new(
+                            TokenKind::HashLBrace,
+                            Span::new(start, self.pos),
+                        ));
                     } else if !self.is_at_end() && self.current() == '#' {
                         // Doc comment: ## ...
                         self.advance(); // consume second #
-                        // Skip one optional leading space
+                                        // Skip one optional leading space
                         if !self.is_at_end() && self.current() == ' ' {
                             self.advance();
                         }
@@ -83,12 +86,15 @@ impl Lexer {
                     self.advance();
                     if !self.is_at_end() && self.current() == '+' {
                         self.advance();
-                        self.tokens.push(Token::new(TokenKind::PlusPlus, Span::new(start, self.pos)));
+                        self.tokens
+                            .push(Token::new(TokenKind::PlusPlus, Span::new(start, self.pos)));
                     } else if !self.is_at_end() && self.current() == '=' {
                         self.advance();
-                        self.tokens.push(Token::new(TokenKind::PlusEq, Span::new(start, self.pos)));
+                        self.tokens
+                            .push(Token::new(TokenKind::PlusEq, Span::new(start, self.pos)));
                     } else {
-                        self.tokens.push(Token::new(TokenKind::Plus, Span::new(start, self.pos)));
+                        self.tokens
+                            .push(Token::new(TokenKind::Plus, Span::new(start, self.pos)));
                     }
                 }
                 '*' => {
@@ -96,12 +102,15 @@ impl Lexer {
                     self.advance();
                     if !self.is_at_end() && self.current() == '*' {
                         self.advance();
-                        self.tokens.push(Token::new(TokenKind::StarStar, Span::new(start, self.pos)));
+                        self.tokens
+                            .push(Token::new(TokenKind::StarStar, Span::new(start, self.pos)));
                     } else if !self.is_at_end() && self.current() == '=' {
                         self.advance();
-                        self.tokens.push(Token::new(TokenKind::StarEq, Span::new(start, self.pos)));
+                        self.tokens
+                            .push(Token::new(TokenKind::StarEq, Span::new(start, self.pos)));
                     } else {
-                        self.tokens.push(Token::new(TokenKind::Star, Span::new(start, self.pos)));
+                        self.tokens
+                            .push(Token::new(TokenKind::Star, Span::new(start, self.pos)));
                     }
                 }
                 '%' => self.single(TokenKind::Percent),
@@ -110,13 +119,22 @@ impl Lexer {
                     self.advance();
                     if !self.is_at_end() && self.current() == '?' {
                         self.advance();
-                        self.tokens.push(Token::new(TokenKind::QuestionQuestion, Span::new(start, self.pos)));
+                        self.tokens.push(Token::new(
+                            TokenKind::QuestionQuestion,
+                            Span::new(start, self.pos),
+                        ));
                     } else if !self.is_at_end() && self.current() == '.' {
                         self.advance();
-                        self.tokens.push(Token::new(TokenKind::QuestionDot, Span::new(start, self.pos)));
+                        self.tokens.push(Token::new(
+                            TokenKind::QuestionDot,
+                            Span::new(start, self.pos),
+                        ));
                     } else if !self.is_at_end() && self.current() == '=' {
                         self.advance();
-                        self.tokens.push(Token::new(TokenKind::QuestionEq, Span::new(start, self.pos)));
+                        self.tokens.push(Token::new(
+                            TokenKind::QuestionEq,
+                            Span::new(start, self.pos),
+                        ));
                     } else {
                         return Err(BioLangError::new(
                             ErrorKind::UnexpectedChar,
@@ -134,15 +152,19 @@ impl Lexer {
                         self.advance();
                         if !self.is_at_end() && self.current() == '.' {
                             self.advance();
-                            self.tokens.push(Token::new(TokenKind::DotDotDot, Span::new(start, self.pos)));
+                            self.tokens
+                                .push(Token::new(TokenKind::DotDotDot, Span::new(start, self.pos)));
                         } else if !self.is_at_end() && self.current() == '=' {
                             self.advance();
-                            self.tokens.push(Token::new(TokenKind::DotDotEq, Span::new(start, self.pos)));
+                            self.tokens
+                                .push(Token::new(TokenKind::DotDotEq, Span::new(start, self.pos)));
                         } else {
-                            self.tokens.push(Token::new(TokenKind::DotDot, Span::new(start, self.pos)));
+                            self.tokens
+                                .push(Token::new(TokenKind::DotDot, Span::new(start, self.pos)));
                         }
                     } else {
-                        self.tokens.push(Token::new(TokenKind::Dot, Span::new(start, self.pos)));
+                        self.tokens
+                            .push(Token::new(TokenKind::Dot, Span::new(start, self.pos)));
                     }
                 }
                 ':' => self.single(TokenKind::Colon),
@@ -169,9 +191,11 @@ impl Lexer {
                         self.advance();
                         if !self.is_at_end() && self.current() == '=' {
                             self.advance();
-                            self.tokens.push(Token::new(TokenKind::SlashEq, Span::new(start, self.pos)));
+                            self.tokens
+                                .push(Token::new(TokenKind::SlashEq, Span::new(start, self.pos)));
                         } else {
-                            self.tokens.push(Token::new(TokenKind::Slash, Span::new(start, self.pos)));
+                            self.tokens
+                                .push(Token::new(TokenKind::Slash, Span::new(start, self.pos)));
                         }
                     } else {
                         // Regex literal context
@@ -465,7 +489,8 @@ impl Lexer {
     fn single(&mut self, kind: TokenKind) {
         let start = self.pos;
         self.advance();
-        self.tokens.push(Token::new(kind, Span::new(start, self.pos)));
+        self.tokens
+            .push(Token::new(kind, Span::new(start, self.pos)));
     }
 
     fn string(&mut self) -> Result<()> {
@@ -482,8 +507,10 @@ impl Lexer {
             } else {
                 // Empty string ""
                 self.advance(); // consume closing "
-                self.tokens
-                    .push(Token::new(TokenKind::Str(String::new()), Span::new(start, self.pos)));
+                self.tokens.push(Token::new(
+                    TokenKind::Str(String::new()),
+                    Span::new(start, self.pos),
+                ));
                 return Ok(());
             }
         }
@@ -521,8 +548,10 @@ impl Lexer {
         }
 
         self.advance(); // consume closing "
-        self.tokens
-            .push(Token::new(TokenKind::Str(value), Span::new(start, self.pos)));
+        self.tokens.push(Token::new(
+            TokenKind::Str(value),
+            Span::new(start, self.pos),
+        ));
         Ok(())
     }
 
@@ -575,8 +604,10 @@ impl Lexer {
         // Dedent: strip common leading whitespace (Python-style)
         let dedented = self.dedent_string(&value);
 
-        self.tokens
-            .push(Token::new(TokenKind::Str(dedented), Span::new(start, self.pos)));
+        self.tokens.push(Token::new(
+            TokenKind::Str(dedented),
+            Span::new(start, self.pos),
+        ));
         Ok(())
     }
 
@@ -585,19 +616,27 @@ impl Lexer {
         if lines.is_empty() {
             return String::new();
         }
-        // Find minimum indentation of non-empty lines
+        // Count leading whitespace in characters (not bytes) to handle multi-byte chars.
+        let indent_chars =
+            |line: &str| -> usize { line.chars().take_while(|c| c.is_whitespace()).count() };
         let min_indent = lines
             .iter()
             .filter(|line| !line.trim().is_empty())
-            .map(|line| line.len() - line.trim_start().len())
+            .map(|line| indent_chars(line))
             .min()
             .unwrap_or(0);
-        // Strip common prefix and rejoin
+        // Strip exactly min_indent chars from the front of each line.
         let result: Vec<&str> = lines
             .iter()
             .map(|line| {
-                if line.len() >= min_indent {
-                    &line[min_indent..]
+                if indent_chars(line) >= min_indent {
+                    // Find the byte offset of the min_indent-th character.
+                    let byte_offset = line
+                        .char_indices()
+                        .nth(min_indent)
+                        .map(|(i, _)| i)
+                        .unwrap_or(line.len());
+                    &line[byte_offset..]
                 } else {
                     line.trim()
                 }
@@ -729,12 +768,20 @@ impl Lexer {
 
         if is_float {
             let value: f64 = text.parse().map_err(|_| {
-                BioLangError::new(ErrorKind::InvalidNumber, format!("invalid float: {text}"), Some(span))
+                BioLangError::new(
+                    ErrorKind::InvalidNumber,
+                    format!("invalid float: {text}"),
+                    Some(span),
+                )
             })?;
             self.tokens.push(Token::new(TokenKind::Float(value), span));
         } else {
             let value: i64 = text.parse().map_err(|_| {
-                BioLangError::new(ErrorKind::InvalidNumber, format!("invalid integer: {text}"), Some(span))
+                BioLangError::new(
+                    ErrorKind::InvalidNumber,
+                    format!("invalid integer: {text}"),
+                    Some(span),
+                )
             })?;
             self.tokens.push(Token::new(TokenKind::Int(value), span));
         }
@@ -824,8 +871,10 @@ impl Lexer {
         }
 
         self.advance(); // consume closing "
-        self.tokens
-            .push(Token::new(TokenKind::FStr(value), Span::new(start, self.pos)));
+        self.tokens.push(Token::new(
+            TokenKind::FStr(value),
+            Span::new(start, self.pos),
+        ));
         Ok(())
     }
 
@@ -851,8 +900,10 @@ impl Lexer {
             ));
         }
         self.advance(); // consume closing "
-        self.tokens
-            .push(Token::new(TokenKind::Str(value), Span::new(start, self.pos)));
+        self.tokens.push(Token::new(
+            TokenKind::Str(value),
+            Span::new(start, self.pos),
+        ));
         Ok(())
     }
 
@@ -895,7 +946,9 @@ impl Lexer {
             )),
             TokenKind::ProteinLit(_) => Some((
                 "protein",
-                Box::new(|c: char| "ACDEFGHIKLMNPQRSTVWYXBZJUOacdefghiklmnpqrstvwyxbzjuo*".contains(c)),
+                Box::new(|c: char| {
+                    "ACDEFGHIKLMNPQRSTVWYXBZJUOacdefghiklmnpqrstvwyxbzjuo*".contains(c)
+                }),
             )),
             TokenKind::QualLit(_) => Some((
                 "quality",
@@ -909,7 +962,9 @@ impl Lexer {
                 if !is_valid(ch) {
                     let msg = format!(
                         "invalid character '{}' at position {} in {} literal",
-                        ch, i + 1, kind
+                        ch,
+                        i + 1,
+                        kind
                     );
                     return Err(BioLangError::new(
                         ErrorKind::UnexpectedChar,

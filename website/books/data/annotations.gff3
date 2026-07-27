@@ -1,0 +1,8 @@
+##gff-version 3
+##sequence-region chr1 1 2000
+chr1	test	gene	120	980	.	+	.	ID=gene0001;Name=geneA
+chr1	test	mRNA	120	980	.	+	.	ID=mRNA0001;Name=geneA.1
+chr1	test	exon	120	400	.	+	.	ID=exon0001;Name=geneA.e1
+chr1	test	exon	700	980	.	+	.	ID=exon0002;Name=geneA.e2
+chr1	test	gene	1200	1850	.	+	.	ID=gene0002;Name=geneB
+chr1	test	exon	1200	1850	.	+	.	ID=exon0003;Name=geneB.e1

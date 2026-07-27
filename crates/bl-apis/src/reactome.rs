@@ -77,10 +77,9 @@ impl ReactomeClient {
     pub fn search(&self, query: &str) -> Result<Vec<ReactomeEntry>> {
         let base = base_url();
         let url = format!("{base}/search/query?query={query}&cluster=true");
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let mut entries = Vec::new();
         if let Some(groups) = json["results"].as_array() {
@@ -88,14 +87,8 @@ impl ReactomeClient {
                 if let Some(items) = group["entries"].as_array() {
                     for item in items {
                         entries.push(ReactomeEntry {
-                            id: item["stId"]
-                                .as_str()
-                                .unwrap_or_default()
-                                .to_string(),
-                            name: item["name"]
-                                .as_str()
-                                .unwrap_or_default()
-                                .to_string(),
+                            id: item["stId"].as_str().unwrap_or_default().to_string(),
+                            name: item["name"].as_str().unwrap_or_default().to_string(),
                             schema_class: item["schemaClass"]
                                 .as_str()
                                 .or_else(|| group["name"].as_str())
@@ -119,44 +112,29 @@ impl ReactomeClient {
     pub fn pathway(&self, id: &str) -> Result<Pathway> {
         let base = base_url();
         let pw_url = format!("{base}/data/query/{id}");
-        let json = self.base.get_json_with_headers(
-            &pw_url,
-            &[("Accept", "application/json")],
-        )?;
+        let json = self
+            .base
+            .get_json_with_headers(&pw_url, &[("Accept", "application/json")])?;
 
         Ok(Pathway {
-            id: json["stId"]
-                .as_str()
-                .unwrap_or(id)
-                .to_string(),
-            name: json["displayName"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
-            species: json["speciesName"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            id: json["stId"].as_str().unwrap_or(id).to_string(),
+            name: json["displayName"].as_str().unwrap_or_default().to_string(),
+            species: json["speciesName"].as_str().unwrap_or_default().to_string(),
             is_disease: json["isInDisease"].as_bool().unwrap_or(false),
             is_inferred: json["isInferred"].as_bool().unwrap_or(false),
         })
     }
 
     /// Find pathways associated with a gene (by gene name).
-    pub fn pathways_for_gene(
-        &self,
-        gene: &str,
-        species: &str,
-    ) -> Result<Vec<Pathway>> {
+    pub fn pathways_for_gene(&self, gene: &str, species: &str) -> Result<Vec<Pathway>> {
         // Use the search endpoint filtered to pathways
         let base = base_url();
         let url = format!(
             "{base}/search/query?query={gene}&species={species}&types=Pathway&cluster=true"
         );
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let mut pathways = Vec::new();
         if let Some(groups) = json["results"].as_array() {
@@ -164,14 +142,8 @@ impl ReactomeClient {
                 if let Some(items) = group["entries"].as_array() {
                     for item in items {
                         pathways.push(Pathway {
-                            id: item["stId"]
-                                .as_str()
-                                .unwrap_or_default()
-                                .to_string(),
-                            name: item["name"]
-                                .as_str()
-                                .unwrap_or_default()
-                                .to_string(),
+                            id: item["stId"].as_str().unwrap_or_default().to_string(),
+                            name: item["name"].as_str().unwrap_or_default().to_string(),
                             species: item["species"]
                                 .as_array()
                                 .and_then(|a| a.first())
@@ -192,10 +164,9 @@ impl ReactomeClient {
     pub fn pathway_events(&self, id: &str) -> Result<Vec<Event>> {
         let base = base_url();
         let url = format!("{base}/data/pathway/{id}/containedEvents");
-        let json = self.base.get_json_with_headers(
-            &url,
-            &[("Accept", "application/json")],
-        )?;
+        let json = self
+            .base
+            .get_json_with_headers(&url, &[("Accept", "application/json")])?;
 
         let arr = json.as_array().ok_or_else(|| ApiError::Parse {
             context: "Reactome events".into(),
@@ -205,18 +176,9 @@ impl ReactomeClient {
         let mut events = Vec::new();
         for item in arr {
             events.push(Event {
-                id: item["stId"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                name: item["displayName"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                schema_class: item["schemaClass"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
+                id: item["stId"].as_str().unwrap_or_default().to_string(),
+                name: item["displayName"].as_str().unwrap_or_default().to_string(),
+                schema_class: item["schemaClass"].as_str().unwrap_or_default().to_string(),
             });
         }
         Ok(events)

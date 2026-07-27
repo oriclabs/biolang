@@ -24,7 +24,8 @@ Verify the installation:
 bl --version
 ```
 
-You should see output like `biolang 0.x.y`. Any version 0.4.0 or later includes all the statistical builtins used in this book.
+You should see the installed BioLang release. This edition is validated against
+the current 1.x CLI and runtime.
 
 ### Windows
 
@@ -65,11 +66,48 @@ bl> ttest([1.0, 2.0, 3.0], [4.0, 5.0, 6.0])
 bl> mean([10, 20, 30, 40, 50])
 30.0
 
-bl> sd([10, 20, 30, 40, 50])
+bl> stdev([10, 20, 30, 40, 50])
 15.8114
 ```
 
 If these commands produce output, your installation is complete.
+
+## Current Analysis Tooling
+
+Validate scripts and inspect runtime readiness before a long analysis:
+
+```bash
+bl check analysis.bl helpers.bl
+bl doctor
+```
+
+Create a package in the current directory and install its dependencies:
+
+```bash
+bl init --name trial-analysis
+bl install
+```
+
+Migrate an existing analysis with syntax validation:
+
+```bash
+bl import analysis.py --validate -o analysis.bl
+bl import analysis.R --validate -o analysis.bl
+bl import report.ipynb --validate -o report.bl
+bl import report.Rmd --validate -o report.bl
+```
+
+Run `.bln` or `.bl.md` notebooks, convert Jupyter notebooks, and export reports:
+
+```bash
+bl notebook analysis.bln
+bl notebook analysis.bln --to-ipynb > analysis.ipynb
+bl notebook analysis.bln --export html > analysis.html
+```
+
+Use `bl metadata --format json` when checking exact builtin signatures. Imported
+analyses must still be scientifically validated against their Python or R
+source because statistical libraries can use different defaults.
 
 ## Python Setup (Optional)
 

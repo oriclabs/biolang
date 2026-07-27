@@ -1,0 +1,17 @@
+import "singlecell" as sc
+import "spatial"    as sp
+
+let obj = sc.load("data/visium/filtered_feature_bc_matrix/")
+  |> sc.filter_cells
+  |> sc.normalize
+  |> sc.variable_genes(2000)
+  |> sc.neighbors
+  |> sc.cluster
+
+let obj = sp.load_coords(obj, "data/visium/spatial/tissue_positions_list.csv")
+  |> sp.neighbors(6)
+  |> sp.variable_genes
+
+sp.top_svg(obj, 20)
+sp.niche_enrichment(obj)
+sp.top_neighbors_of(obj, "0")

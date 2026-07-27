@@ -69,7 +69,7 @@ let fasta_lines = [
     "EKAQGRKKKSSPCPQHLAVTAPLLTETEDPRCSAQYTAKELSHCSDKGVSEAMQSKKSQHM",
     "AEVVKECPHE"
 ]
-write_lines(fasta_lines, "data/orthologs.fasta")
+write_lines("data/orthologs.fasta", fasta_lines)
 
 # --- Species information with real taxonomic data ---
 let species_info_lines = [
@@ -83,7 +83,7 @@ let species_info_lines = [
     "tp53_frog\tFrog\tXenopus laevis\t8355\t352\tXenopus_laevis_v10.1\tTp53\tP07193",
     "tp53_fly\tFruit fly\tDrosophila melanogaster\t7227\t797\tRelease_6\tp53\tQ9VB32"
 ]
-write_lines(species_info_lines, "data/species_info.tsv")
+write_lines("data/species_info.tsv", species_info_lines)
 
 # --- Real TP53 domain boundaries from InterPro/Pfam ---
 # Domain positions are approximate for each ortholog based on published structural data
@@ -126,6 +126,6 @@ let domain_lines = [
     "tp53_fly\tDNA-binding\t110\t240\tIPR011615\tPF00870\tmedium",
     "tp53_fly\tTetramerization\t244\t260\tIPR010991\tPF07710\tlow"
 ]
-write_lines(domain_lines, "data/domain_annotations.tsv")
+write_lines("data/domain_annotations.tsv", domain_lines)
 
 print("Day 30 data initialized: TP53 orthologs from 8 species (UniProt), domain annotations, taxonomy")

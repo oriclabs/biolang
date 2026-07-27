@@ -2,7 +2,6 @@
 /// that could cause parser hangs (infinite recursion / OOM).
 ///
 /// Each test must complete in bounded time. A hang = test timeout = bug.
-
 use bl_core::value::Value;
 use bl_lexer::Lexer;
 use bl_parser::Parser;
@@ -42,7 +41,8 @@ fn parses_ok(code: &str) -> bool {
 
 #[test]
 fn test_given_newline_arms() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 42
 given {
     x < 0     => "negative"
@@ -50,13 +50,15 @@ given {
     x < 100   => "small"
     otherwise => "large"
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("small".into()));
 }
 
 #[test]
 fn test_given_comma_arms() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 42
 given {
     x < 0 => "negative",
@@ -64,13 +66,15 @@ given {
     x < 100 => "small",
     otherwise => "large",
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("small".into()));
 }
 
 #[test]
 fn test_given_mixed_separators() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = -5
 given {
     x < 0 => "negative",
@@ -78,45 +82,53 @@ given {
     x < 100 => "small"
     otherwise => "large"
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("negative".into()));
 }
 
 #[test]
 fn test_given_single_arm() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 given {
     true => 42
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(42));
 }
 
 #[test]
 fn test_given_otherwise_only() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 given {
     false => 1
     otherwise => 99
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(99));
 }
 
 #[test]
 fn test_given_no_match_returns_nil() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 given {
     false => 1
     false => 2
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Nil);
 }
 
 #[test]
 fn test_given_with_complex_conditions() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let a = 10
 let b = 20
 given {
@@ -124,13 +136,15 @@ given {
     a + b == 30        => "sum is 30"
     otherwise           => "other"
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("sum is 30".into()));
 }
 
 #[test]
 fn test_given_nested_in_for() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let results = []
 for x in [1, -1, 0] {
     let label = given {
@@ -141,30 +155,37 @@ for x in [1, -1, 0] {
     results = results + [label]
 }
 results
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Str("pos".into()),
-        Value::Str("neg".into()),
-        Value::Str("zero".into()),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Str("pos".into()),
+            Value::Str("neg".into()),
+            Value::Str("zero".into()),
+        ]).into())
+    );
 }
 
 #[test]
 fn test_given_in_let_binding() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 5
 let y = given {
     x > 10 => "big"
     otherwise => "small"
 }
 y
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("small".into()));
 }
 
 #[test]
 fn test_given_as_function_body() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 fn classify(n) {
     given {
         n < 0     => "negative"
@@ -174,7 +195,8 @@ fn classify(n) {
     }
 }
 classify(5)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("small".into()));
 }
 
@@ -184,38 +206,44 @@ classify(5)
 
 #[test]
 fn test_match_newline_arms() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = "hello"
 match x {
     "hi" => 1
     "hello" => 2
     _ => 0
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(2));
 }
 
 #[test]
 fn test_match_comma_arms() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 match 42 {
     1 => "one",
     42 => "answer",
     _ => "other",
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("answer".into()));
 }
 
 #[test]
 fn test_match_with_guard() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let n = 15
 match n {
     x if x > 10 => "big"
     _ => "small"
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("big".into()));
 }
 
@@ -225,43 +253,57 @@ match n {
 
 #[test]
 fn test_multiline_pipe_chain() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 data
     |> filter(|n| n > 5)
     |> map(|n| n * 2)
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(12), Value::Int(14), Value::Int(16),
-        Value::Int(18), Value::Int(20),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Int(12),
+            Value::Int(14),
+            Value::Int(16),
+            Value::Int(18),
+            Value::Int(20),
+        ]).into())
+    );
 }
 
 #[test]
 fn test_multiline_pipe_in_let() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let result = [1, 2, 3, 4, 5]
     |> filter(|n| n > 2)
     |> map(|n| n * 10)
 result
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(30), Value::Int(40), Value::Int(50),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(30), Value::Int(40), Value::Int(50),]).into())
+    );
 }
 
 #[test]
 fn test_multiline_pipe_three_stages() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = [10, 20, 30, 40, 50]
     |> filter(|n| n >= 20)
     |> map(|n| n + 1)
     |> filter(|n| n < 42)
 x
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(21), Value::Int(31), Value::Int(41),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(21), Value::Int(31), Value::Int(41),]).into())
+    );
 }
 
 // ============================================================================
@@ -270,30 +312,35 @@ x
 
 #[test]
 fn test_pipe_trailing_lambda_each() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [1, 2, 3] |> each |n| n * 2
-"#);
+"#,
+    );
     assert_eq!(result, Value::Nil);
 }
 
 #[test]
 fn test_pipe_trailing_lambda_map() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [10, 20, 30] |> map |n| n + 1
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(11), Value::Int(21), Value::Int(31),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(11), Value::Int(21), Value::Int(31),]).into())
+    );
 }
 
 #[test]
 fn test_pipe_trailing_lambda_filter() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [1, 2, 3, 4, 5] |> filter |n| n > 3
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(4), Value::Int(5),
-    ]));
+"#,
+    );
+    assert_eq!(result, Value::List((vec![Value::Int(4), Value::Int(5),]).into()));
 }
 
 #[test]
@@ -301,14 +348,17 @@ fn test_pipe_trailing_lambda_last_in_chain() {
     // Trailing lambda works on the LAST pipe in a chain.
     // Earlier pipes need parens because the lambda body would
     // swallow subsequent |> operators.
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [1, 2, 3, 4, 5]
     |> filter(|n| n > 2)
     |> map |n| n * 10
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(30), Value::Int(40), Value::Int(50),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(30), Value::Int(40), Value::Int(50),]).into())
+    );
 }
 
 // ============================================================================
@@ -318,35 +368,43 @@ fn test_pipe_trailing_lambda_last_in_chain() {
 #[test]
 fn test_each_returns_nil() {
     // each() is side-effect only — returns Nil, not a mapped list
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [1, 2, 3] |> each(|n| n * 2)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Nil);
 }
 
 #[test]
 fn test_each_on_table_returns_nil() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let t = from_records([{a: 1, b: 10}, {a: 2, b: 20}])
 t |> each(|r| r.a + r.b)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Nil);
 }
 
 #[test]
 fn test_each_with_record_transform() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let data = [{name: "a", val: 1}, {name: "b", val: 2}]
 data |> each |r| r.name
-"#);
+"#,
+    );
     assert_eq!(result, Value::Nil);
 }
 
 #[test]
 fn test_each_empty_list() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [] |> each(|n| n * 2)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Nil);
 }
 
@@ -356,73 +414,89 @@ fn test_each_empty_list() {
 
 #[test]
 fn test_variant_positional_4_args() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let v = variant("chr1", 100, "A", "G")
 v.chrom
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("chr1".into()));
 }
 
 #[test]
 fn test_variant_positional_ref_alt_access() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let v = variant("chr7", 55181378, "T", "A")
 v.ref + ">" + v.alt
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("T>A".into()));
 }
 
 #[test]
 fn test_variant_positional_2_args() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let v = variant("chr1", 500)
 v.pos
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(500));
 }
 
 #[test]
 fn test_variant_positional_3_args() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let v = variant("chr1", 100, "A")
 v.ref
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("A".into()));
 }
 
 #[test]
 fn test_variant_record_form() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let v = variant({chrom: "chr1", pos: 100, ref: "A", alt: "G"})
 v.alt
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("G".into()));
 }
 
 #[test]
 fn test_variant_is_snp() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let v = variant("chr1", 100, "A", "G")
 is_snp(v)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Bool(true));
 }
 
 #[test]
 fn test_variant_is_indel() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let v = variant("chr1", 100, "ACG", "A")
 is_indel(v)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Bool(true));
 }
 
 #[test]
 fn test_variant_type_classification() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let v = variant("chr1", 100, "A", "G")
 variant_type(v)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("Snp".into()));
 }
 
@@ -432,7 +506,8 @@ variant_type(v)
 
 #[test]
 fn test_for_with_given_body() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let results = []
 for x in [1, -1, 0, 5, -3] {
     let label = given {
@@ -443,19 +518,24 @@ for x in [1, -1, 0, 5, -3] {
     results = results + [label]
 }
 results
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Str("pos".into()),
-        Value::Str("neg".into()),
-        Value::Str("zero".into()),
-        Value::Str("pos".into()),
-        Value::Str("neg".into()),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Str("pos".into()),
+            Value::Str("neg".into()),
+            Value::Str("zero".into()),
+            Value::Str("pos".into()),
+            Value::Str("neg".into()),
+        ]).into())
+    );
 }
 
 #[test]
 fn test_for_with_match_body() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let results = []
 for x in ["a", "b", "c"] {
     let val = match x {
@@ -466,15 +546,18 @@ for x in ["a", "b", "c"] {
     results = results + [val]
 }
 results
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(1), Value::Int(2), Value::Int(0),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(0),]).into())
+    );
 }
 
 #[test]
 fn test_for_with_pipe_chain_body() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let all = []
 for group in [[1,2,3], [4,5,6]] {
     let doubled = group |> map(|n| n * 10)
@@ -482,23 +565,32 @@ for group in [[1,2,3], [4,5,6]] {
     all = all + [s]
 }
 all
-"#);
-    assert_eq!(result, Value::List(vec![Value::Int(60), Value::Int(150)]));
+"#,
+    );
+    assert_eq!(result, Value::List((vec![Value::Int(60), Value::Int(150)]).into()));
 }
 
 #[test]
 fn test_for_when_guard() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let evens = []
 for x in range(1, 11) when x % 2 == 0 {
     evens = evens + [x]
 }
 evens
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(2), Value::Int(4), Value::Int(6),
-        Value::Int(8), Value::Int(10),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Int(2),
+            Value::Int(4),
+            Value::Int(6),
+            Value::Int(8),
+            Value::Int(10),
+        ]).into())
+    );
 }
 
 // ============================================================================
@@ -507,26 +599,30 @@ evens
 
 #[test]
 fn test_while_basic() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 0
 while x < 5 {
     x = x + 1
 }
 x
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(5));
 }
 
 #[test]
 fn test_while_with_break() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 0
 while true {
     x = x + 1
     if x >= 3 { break }
 }
 x
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(3));
 }
 
@@ -536,25 +632,29 @@ x
 
 #[test]
 fn test_unless_false_runs_body() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 10
 unless x > 100 {
     x = x + 1
 }
 x
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(11));
 }
 
 #[test]
 fn test_unless_true_skips_body() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 10
 unless x < 100 {
     x = x + 1
 }
 x
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(10));
 }
 
@@ -564,28 +664,34 @@ x
 
 #[test]
 fn test_destruct_list() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let [a, b, c] = [10, 20, 30]
 a + b + c
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(60));
 }
 
 #[test]
 fn test_destruct_record() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let {x, y} = {x: 1, y: 2}
 x + y
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(3));
 }
 
 #[test]
 fn test_destruct_list_with_rest() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let [first, ...rest] = [1, 2, 3, 4, 5]
 len(rest)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(4));
 }
 
@@ -620,22 +726,26 @@ fn test_fstring_nested_function() {
 
 #[test]
 fn test_triple_quote_basic() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = """
 hello
 world
 """
 len(s) > 0
-"#);
+"#,
+    );
     assert_eq!(result, Value::Bool(true));
 }
 
 #[test]
 fn test_triple_quote_with_quotes_inside() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = """He said "hello" to them"""
 s
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str(r#"He said "hello" to them"#.into()));
 }
 
@@ -645,27 +755,33 @@ s
 
 #[test]
 fn test_pipe_single() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 5 |> str()
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("5".into()));
 }
 
 #[test]
 fn test_pipe_inserts_first_arg() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 fn add(a, b) { a + b }
 10 |> add(5)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(15));
 }
 
 #[test]
 fn test_tap_pipe() {
     // |>> calls RHS with value for side effects, returns ORIGINAL value
-    let result = eval(r#"
+    let result = eval(
+        r#"
 42 |>> print
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(42));
 }
 
@@ -675,7 +791,8 @@ fn test_tap_pipe() {
 
 #[test]
 fn test_variant_pipeline_with_given() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let examples = [
     variant("chr1", 100, "A", "G"),
     variant("chr1", 200, "A", "T"),
@@ -693,36 +810,45 @@ for v in examples {
     labels = labels + [detail]
 }
 labels
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Str("transition".into()),
-        Value::Str("transversion".into()),
-        Value::Str("indel".into()),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Str("transition".into()),
+            Value::Str("transversion".into()),
+            Value::Str("indel".into()),
+        ]).into())
+    );
 }
 
 #[test]
 fn test_each_pipe_with_record_transform() {
     // each() executes side effects, returns Nil
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let data = [{name: "Alice", age: 30}, {name: "Bob", age: 25}]
 data |> each |p| p.name
-"#);
+"#,
+    );
     assert_eq!(result, Value::Nil);
 }
 
 #[test]
 fn test_filter_map_chain_multiline() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     |> filter(|n| n % 2 == 0)
     |> map(|n| n * n)
     |> filter(|n| n > 20)
 result
-"#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(36), Value::Int(64), Value::Int(100),
-    ]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(36), Value::Int(64), Value::Int(100),]).into())
+    );
 }
 
 // ============================================================================
@@ -732,7 +858,8 @@ result
 #[test]
 fn test_given_five_arms_newlines() {
     // Regression: given with >2 newline-separated arms used to OOM
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 3
 given {
     x == 1 => "one"
@@ -741,13 +868,15 @@ given {
     x == 4 => "four"
     otherwise => "other"
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("three".into()));
 }
 
 #[test]
 fn test_given_with_block_bodies() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 5
 given {
     x > 10 => {
@@ -759,13 +888,15 @@ given {
         b
     }
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(6));
 }
 
 #[test]
 fn test_deeply_nested_given() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 1
 let y = 2
 given {
@@ -776,20 +907,23 @@ given {
     }
     otherwise => "x?"
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("x1y2".into()));
 }
 
 #[test]
 fn test_string_key_record_in_given() {
     // Regression: string-key records were another parser OOM trigger
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let r = {"key": "value"}
 given {
     r.key == "value" => "found"
     otherwise => "missing"
 }
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("found".into()));
 }
 
@@ -941,26 +1075,32 @@ fn test_gene_rejects_empty_symbol() {
 #[test]
 fn test_gene_record_rejects_empty_symbol() {
     // Use string keys to avoid `end` being a keyword token
-    assert!(eval_err(r#"
+    assert!(eval_err(
+        r#"
 let r = {"symbol": "", "chrom": "chr17", "start": 100, "end": 200}
 gene(r)
-"#));
+"#
+    ));
 }
 
 #[test]
 fn test_gene_record_rejects_end_before_start() {
-    assert!(eval_err(r#"
+    assert!(eval_err(
+        r#"
 let r = {"symbol": "BRCA1", "chrom": "chr17", "start": 200, "end": 100}
 gene(r)
-"#));
+"#
+    ));
 }
 
 #[test]
 fn test_gene_record_valid() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let r = {"symbol": "BRCA1", "chrom": "chr17", "start": 100, "end": 200}
 gene(r)
-"#);
+"#,
+    );
     assert!(matches!(result, Value::Gene { .. }));
 }
 
@@ -968,26 +1108,32 @@ gene(r)
 
 #[test]
 fn test_aligned_read_rejects_flag_out_of_range() {
-    assert!(eval_err(r#"
+    assert!(eval_err(
+        r#"
 let r = {qname: "r1", flag: 5000, seq: "ATCG", qual: "IIII"}
 aligned_read(r)
-"#));
+"#
+    ));
 }
 
 #[test]
 fn test_aligned_read_rejects_seq_qual_mismatch() {
-    assert!(eval_err(r#"
+    assert!(eval_err(
+        r#"
 let r = {qname: "r1", flag: 0, seq: "ATCG", qual: "II"}
 aligned_read(r)
-"#));
+"#
+    ));
 }
 
 #[test]
 fn test_aligned_read_valid() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let r = {qname: "r1", flag: 0, seq: "ATCG", qual: "IIII"}
 aligned_read(r)
-"#);
+"#,
+    );
     assert!(matches!(result, Value::AlignedRead(_)));
 }
 
@@ -1001,21 +1147,25 @@ fn test_graph_create_empty() {
 
 #[test]
 fn test_graph_add_node() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_node(g, "A")
         has_node(g, "A")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Bool(true));
 }
 
 #[test]
 fn test_graph_add_node_with_attrs() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_node(g, "BRCA1", {biotype: "protein_coding"})
         node_attr(g, "BRCA1")
-    "#);
+    "#,
+    );
     if let Value::Record(m) = result {
         assert_eq!(m.get("biotype"), Some(&Value::Str("protein_coding".into())));
     } else {
@@ -1024,33 +1174,44 @@ fn test_graph_add_node_with_attrs() {
 }
 
 #[test]
+fn test_graph_missing_node_attributes_return_nil() {
+    assert_eq!(eval(r#"node_attr(graph(), "missing")"#), Value::Nil);
+}
+
+#[test]
 fn test_graph_add_edge() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         has_edge(g, "A", "B")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Bool(true));
 }
 
 #[test]
 fn test_graph_auto_adds_nodes_on_edge() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "X", "Y")
         has_node(g, "X")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Bool(true));
 }
 
 #[test]
 fn test_graph_neighbors() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = add_edge(g, "A", "C")
         neighbors(g, "A")
-    "#);
+    "#,
+    );
     if let Value::List(items) = result {
         let names: Vec<&str> = items.iter().filter_map(|v| v.as_str()).collect();
         assert!(names.contains(&"B"));
@@ -1062,11 +1223,13 @@ fn test_graph_neighbors() {
 
 #[test]
 fn test_graph_undirected_neighbors() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         neighbors(g, "B")
-    "#);
+    "#,
+    );
     if let Value::List(items) = result {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].as_str(), Some("A"));
@@ -1077,11 +1240,13 @@ fn test_graph_undirected_neighbors() {
 
 #[test]
 fn test_graph_directed_no_reverse_neighbor() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph(true)
         let g = add_edge(g, "A", "B")
         neighbors(g, "B")
-    "#);
+    "#,
+    );
     if let Value::List(items) = result {
         assert_eq!(items.len(), 0);
     } else {
@@ -1091,24 +1256,28 @@ fn test_graph_directed_no_reverse_neighbor() {
 
 #[test]
 fn test_graph_degree() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = add_edge(g, "A", "C")
         degree(g, "A")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(2));
 }
 
 #[test]
 fn test_graph_shortest_path() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = add_edge(g, "B", "C")
         let g = add_edge(g, "C", "D")
         shortest_path(g, "A", "D")
-    "#);
+    "#,
+    );
     if let Value::List(items) = result {
         let path: Vec<&str> = items.iter().filter_map(|v| v.as_str()).collect();
         assert_eq!(path, vec!["A", "B", "C", "D"]);
@@ -1119,23 +1288,27 @@ fn test_graph_shortest_path() {
 
 #[test]
 fn test_graph_no_path_returns_nil() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_node(g, "A")
         let g = add_node(g, "B")
         shortest_path(g, "A", "B")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Nil);
 }
 
 #[test]
 fn test_graph_nodes_list() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_node(g, "B")
         let g = add_node(g, "A")
         nodes(g)
-    "#);
+    "#,
+    );
     if let Value::List(items) = result {
         let names: Vec<&str> = items.iter().filter_map(|v| v.as_str()).collect();
         assert_eq!(names, vec!["A", "B"]); // sorted
@@ -1146,82 +1319,96 @@ fn test_graph_nodes_list() {
 
 #[test]
 fn test_graph_remove_node() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = add_edge(g, "B", "C")
         let g = remove_node(g, "B")
         has_node(g, "B")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Bool(false));
 }
 
 #[test]
 fn test_graph_remove_node_removes_edges() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = add_edge(g, "B", "C")
         let g = remove_node(g, "B")
         has_edge(g, "A", "B")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Bool(false));
 }
 
 #[test]
 fn test_graph_remove_edge() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = remove_edge(g, "A", "B")
         has_edge(g, "A", "B")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Bool(false));
 }
 
 #[test]
 fn test_graph_edges_table() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B", {weight: 0.9})
         edges(g)
-    "#);
+    "#,
+    );
     assert!(matches!(result, Value::Table(_)));
 }
 
 #[test]
 fn test_graph_subgraph() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = add_edge(g, "B", "C")
         let g = add_edge(g, "C", "D")
         let sub = subgraph(g, ["A", "B"])
         has_edge(sub, "A", "B")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Bool(true));
 }
 
 #[test]
 fn test_graph_subgraph_excludes_outside_edges() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = add_edge(g, "B", "C")
         let sub = subgraph(g, ["A", "B"])
         has_edge(sub, "B", "C")
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Bool(false));
 }
 
 #[test]
 fn test_graph_connected_components() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let g = graph()
         let g = add_edge(g, "A", "B")
         let g = add_node(g, "C")
         connected_components(g)
-    "#);
+    "#,
+    );
     if let Value::List(components) = result {
         assert_eq!(components.len(), 2);
     } else {
@@ -1235,30 +1422,40 @@ fn test_graph_connected_components() {
 
 #[test]
 fn test_sort_by_table_ascending() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let t = from_records([{name: "alice", score: 80}, {name: "bob", score: 95}, {name: "charlie", score: 70}])
 let sorted = sort_by(t, |r| r.score)
 sorted |> to_records |> map(|r| r.name)
-    "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Str("charlie".into()),
-        Value::Str("alice".into()),
-        Value::Str("bob".into()),
-    ]));
+    "#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Str("charlie".into()),
+            Value::Str("alice".into()),
+            Value::Str("bob".into()),
+        ]).into())
+    );
 }
 
 #[test]
 fn test_sort_by_table_descending() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let t = from_records([{name: "x", val: 3}, {name: "y", val: 1}, {name: "z", val: 2}])
 let sorted = sort_by(t, |r| -r.val)
 sorted |> to_records |> map(|r| r.name)
-    "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Str("x".into()),
-        Value::Str("z".into()),
-        Value::Str("y".into()),
-    ]));
+    "#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Str("x".into()),
+            Value::Str("z".into()),
+            Value::Str("y".into()),
+        ]).into())
+    );
 }
 
 // ============================================================================
@@ -1267,12 +1464,14 @@ sorted |> to_records |> map(|r| r.name)
 
 #[test]
 fn test_kmer_count_on_list() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let seqs = [dna"AAAA", dna"AAAA"]
 let counts = kmer_count(seqs, 2)
 # "AA" appears 3 times per "AAAA", so 6 total across 2 sequences
 counts |> filter(|r| r.kmer == "AA") |> map(|r| r.count) |> first
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(6));
 }
 
@@ -1283,10 +1482,12 @@ counts |> filter(|r| r.kmer == "AA") |> map(|r| r.count) |> first
 #[test]
 fn test_mean_phred_on_string() {
     // ASCII '!' = 33 = Phred 0, 'I' = 73 = Phred 40
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let q = "IIIII"
 mean_phred(q)
-    "#);
+    "#,
+    );
     if let Value::Float(v) = result {
         assert!((v - 40.0).abs() < 0.01, "expected ~40.0, got {}", v);
     } else {
@@ -1300,17 +1501,21 @@ mean_phred(q)
 
 #[test]
 fn test_raw_string_no_escapes() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 r"hello\nworld"
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Str("hello\\nworld".into()));
 }
 
 #[test]
 fn test_raw_string_windows_path() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 r"C:\Users\data\reads.fq"
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Str("C:\\Users\\data\\reads.fq".into()));
 }
 
@@ -1320,38 +1525,79 @@ r"C:\Users\data\reads.fq"
 
 #[test]
 fn test_sort_by_comparator_list() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let nums = [3, 1, 4, 1, 5]
 sort_by(nums, |a, b| a - b)
-    "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(1), Value::Int(1), Value::Int(3), Value::Int(4), Value::Int(5),
-    ]));
+    "#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(3),
+            Value::Int(4),
+            Value::Int(5),
+        ]).into())
+    );
 }
 
 #[test]
 fn test_sort_by_comparator_descending() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let nums = [3, 1, 4, 1, 5]
 sort_by(nums, |a, b| b - a)
-    "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(1), Value::Int(1),
-    ]));
+    "#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Int(5),
+            Value::Int(4),
+            Value::Int(3),
+            Value::Int(1),
+            Value::Int(1),
+        ]).into())
+    );
+}
+
+#[test]
+fn test_sort_by_comparator_accepts_float_differences() {
+    let result = eval(
+        r#"
+let nums = [3.5, 1.0, 2.25]
+sort_by(nums, |a, b| a - b)
+    "#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Float(1.0),
+            Value::Float(2.25),
+            Value::Float(3.5),
+        ]).into())
+    );
 }
 
 #[test]
 fn test_sort_by_comparator_table() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let t = from_records([{name: "a", v: 3}, {name: "b", v: 1}, {name: "c", v: 2}])
 let sorted = sort_by(t, |a, b| b.v - a.v)
 sorted |> to_records |> map(|r| r.name)
-    "#);
-    assert_eq!(result, Value::List(vec![
-        Value::Str("a".into()),
-        Value::Str("c".into()),
-        Value::Str("b".into()),
-    ]));
+    "#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Str("a".into()),
+            Value::Str("c".into()),
+            Value::Str("b".into()),
+        ]).into())
+    );
 }
 
 // ============================================================================
@@ -1361,11 +1607,13 @@ sorted |> to_records |> map(|r| r.name)
 #[test]
 fn test_kmer_count_on_record_list() {
     // Simulate stream records with "seq" field
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let records = [{seq: dna"AAAA"}, {seq: dna"AAAA"}]
 let counts = kmer_count(records, 2)
 counts |> filter(|r| r.kmer == "AA") |> map(|r| r.count) |> first
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(6));
 }
 
@@ -1375,20 +1623,24 @@ counts |> filter(|r| r.kmer == "AA") |> map(|r| r.count) |> first
 
 #[test]
 fn test_min_phred_on_string() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let q = "I!I"
 min_phred(q)
-    "#);
+    "#,
+    );
     // '!' = 33 - 33 = Phred 0
     assert_eq!(result, Value::Int(0));
 }
 
 #[test]
 fn test_error_rate_on_string() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let q = "IIIII"
 error_rate(q)
-    "#);
+    "#,
+    );
     if let Value::Float(v) = result {
         assert!(v < 0.001, "Phred 40 error rate should be tiny, got {}", v);
     } else {
@@ -1402,10 +1654,12 @@ error_rate(q)
 
 #[test]
 fn test_raw_string_in_expression() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let p = r"C:\test\new"
 len(p)
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(11));
 }
 
@@ -1414,86 +1668,102 @@ len(p)
 #[test]
 fn test_pipe_at_start_of_next_line() {
     // Lexer strips newlines before |> so this is a single pipeline expression
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [3, 1, 2]
 |> sort()
 |> first()
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(1));
 }
 
 #[test]
 fn test_pipe_at_start_with_indentation() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [5, 10, 15, 20]
   |> filter(|x| x > 8)
   |> len()
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(3));
 }
 
 #[test]
 fn test_pipe_at_start_mixed_with_trailing() {
     // Mix of trailing |> on some lines and leading |> on others
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [1, 2, 3, 4, 5] |>
   filter(|x| x > 2)
   |> map(|x| x * 10)
   |> sum()
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(120));
 }
 
 #[test]
 fn test_pipe_at_start_does_not_affect_non_pipe_statements() {
     // Separate statements without pipes remain independent
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = 10
 let y = 20
 x + y
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(30));
 }
 
 #[test]
 fn test_tap_pipe_at_start_of_line() {
     // ~ (tap pipe) at start of line should also work
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let x = [1, 2, 3]
   ~ len()
 last(x)
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(3));
 }
 
 #[test]
 fn test_multiline_pipeline_with_lambda() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 ["hello", "world", "foo"]
   |> filter(|s| len(s) > 3)
   |> map(|s| upper(s))
   |> len()
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(2));
 }
 
 #[test]
 fn test_sort_by_on_stream() {
     // sort_by should collect a stream into a list, then sort
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = to_stream([3, 1, 4, 1, 5])
 sort_by(s, |x| x) |> first()
-    "#);
+    "#,
+    );
     assert_eq!(result, Value::Int(1));
 }
 
 #[test]
 fn test_sort_by_stream_comparator() {
     // sort_by with 2-arg comparator on a stream
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = to_stream([{name: "b", val: 2}, {name: "a", val: 1}, {name: "c", val: 3}])
 sort_by(s, |a, b| a.val - b.val) |> first()
-    "#);
+    "#,
+    );
     assert!(matches!(result, Value::Record(_)));
     if let Value::Record(rec) = result {
         assert_eq!(rec.get("name"), Some(&Value::Str("a".into())));
@@ -1503,9 +1773,11 @@ sort_by(s, |a, b| a.val - b.val) |> first()
 #[test]
 fn test_kmer_count_top_n() {
     // kmer_count with top N parameter: kmer_count(seq, k, top)
-    let result = eval(r#"
+    let result = eval(
+        r#"
 kmer_count(dna"AAAAAACCCCCCGGGGGGTTTTTT", 2, 2)
-    "#);
+    "#,
+    );
     // Should return only top 2 k-mers by count (sorted descending)
     if let Value::Table(tbl) = result {
         assert_eq!(tbl.rows.len(), 2);
@@ -1541,8 +1813,10 @@ fn table_first() {
 
 #[test]
 fn table_first_empty() {
-    let val = eval(r#"let t = table([])
-first(t)"#);
+    let val = eval(
+        r#"let t = table([])
+first(t)"#,
+    );
     assert_eq!(val, Value::Nil);
 }
 
@@ -1560,8 +1834,10 @@ fn table_last() {
 
 #[test]
 fn table_last_empty() {
-    let val = eval(r#"let t = table([])
-last(t)"#);
+    let val = eval(
+        r#"let t = table([])
+last(t)"#,
+    );
     assert_eq!(val, Value::Nil);
 }
 
@@ -1628,21 +1904,30 @@ fn table_collect_passthrough() {
 
 #[test]
 fn table_to_stream_and_collect() {
-    let code = format!("{}\nlet s = to_stream(t)\nlet items = collect(s)\nlen(items)", make_table_code());
+    let code = format!(
+        "{}\nlet s = to_stream(t)\nlet items = collect(s)\nlen(items)",
+        make_table_code()
+    );
     let val = eval(&code);
     assert_eq!(val, Value::Int(4));
 }
 
 #[test]
 fn table_enumerate() {
-    let code = format!("{}\nlet pairs = enumerate(t)\nlet p = first(pairs)\nfirst(p)", make_table_code());
+    let code = format!(
+        "{}\nlet pairs = enumerate(t)\nlet p = first(pairs)\nfirst(p)",
+        make_table_code()
+    );
     let val = eval(&code);
     assert_eq!(val, Value::Int(0));
 }
 
 #[test]
 fn table_enumerate_second_element_is_record() {
-    let code = format!("{}\nlet pairs = enumerate(t)\nlet p = first(pairs)\nlast(p)", make_table_code());
+    let code = format!(
+        "{}\nlet pairs = enumerate(t)\nlet p = first(pairs)\nlast(p)",
+        make_table_code()
+    );
     let val = eval(&code);
     if let Value::Record(r) = val {
         assert_eq!(r.get("name"), Some(&Value::Str("Alice".into())));
@@ -1653,14 +1938,20 @@ fn table_enumerate_second_element_is_record() {
 
 #[test]
 fn table_chunk() {
-    let code = format!("{}\nlet chunks = chunk(t, 2)\nlen(chunks)", make_table_code());
+    let code = format!(
+        "{}\nlet chunks = chunk(t, 2)\nlen(chunks)",
+        make_table_code()
+    );
     let val = eval(&code);
     assert_eq!(val, Value::Int(2));
 }
 
 #[test]
 fn table_chunk_inner_size() {
-    let code = format!("{}\nlet chunks = chunk(t, 3)\nlen(first(chunks))", make_table_code());
+    let code = format!(
+        "{}\nlet chunks = chunk(t, 3)\nlen(first(chunks))",
+        make_table_code()
+    );
     let val = eval(&code);
     assert_eq!(val, Value::Int(3));
 }
@@ -1674,7 +1965,10 @@ fn table_window() {
 
 #[test]
 fn table_window_inner_size() {
-    let code = format!("{}\nlet wins = window(t, 3)\nlen(first(wins))", make_table_code());
+    let code = format!(
+        "{}\nlet wins = window(t, 3)\nlen(first(wins))",
+        make_table_code()
+    );
     let val = eval(&code);
     assert_eq!(val, Value::Int(3));
 }
@@ -1721,7 +2015,11 @@ join(t, ", ")"#;
     let val = eval(code);
     // join on table converts rows to record strings
     if let Value::Str(s) = val {
-        assert!(s.contains("A"), "join output should contain field values: {}", s);
+        assert!(
+            s.contains("A"),
+            "join output should contain field values: {}",
+            s
+        );
     } else {
         panic!("expected Str, got {:?}", val);
     }
@@ -1781,14 +2079,20 @@ fn table_pipe_drop_len() {
 #[test]
 fn table_filter_map_on_table() {
     // filter and map on Table already work via HOF dispatch, but verify
-    let code = format!("{}\nt |> filter(|r| r.age > 27) |> len()", make_table_code());
+    let code = format!(
+        "{}\nt |> filter(|r| r.age > 27) |> len()",
+        make_table_code()
+    );
     let val = eval(&code);
     assert_eq!(val, Value::Int(3)); // Alice(30), Charlie(35), Diana(28)
 }
 
 #[test]
 fn table_sort_by() {
-    let code = format!("{}\nt |> sort_by(|r| r.score) |> first()", make_table_code());
+    let code = format!(
+        "{}\nt |> sort_by(|r| r.score) |> first()",
+        make_table_code()
+    );
     let val = eval(&code);
     if let Value::Record(r) = val {
         // sort ascending: lowest score first = Charlie (72)
@@ -1846,8 +2150,10 @@ fn or_in_filter_expression() {
 
 #[test]
 fn and_with_comparison() {
-    let val = eval(r#"let x = 10
-x > 5 and x < 20"#);
+    let val = eval(
+        r#"let x = 10
+x > 5 and x < 20"#,
+    );
     assert_eq!(val, Value::Bool(true));
 }
 
@@ -1864,16 +2170,23 @@ fn and_multiline() {
 
 #[test]
 fn pipe_into_basic() {
-    let val = eval(r#"[1, 2, 3] |> len() |> into count
-count"#);
+    let val = eval(
+        r#"[1, 2, 3] |> len() |> into count
+count"#,
+    );
     assert_eq!(val, Value::Int(3));
 }
 
 #[test]
 fn pipe_into_creates_binding() {
-    let val = eval(r#"[10, 20, 30] |> map(|x| x * 2) |> into doubled
-doubled"#);
-    assert_eq!(val, Value::List(vec![Value::Int(20), Value::Int(40), Value::Int(60)]));
+    let val = eval(
+        r#"[10, 20, 30] |> map(|x| x * 2) |> into doubled
+doubled"#,
+    );
+    assert_eq!(
+        val,
+        Value::List((vec![Value::Int(20), Value::Int(40), Value::Int(60)]).into())
+    );
 }
 
 #[test]
@@ -1885,18 +2198,22 @@ fn pipe_into_returns_value() {
 
 #[test]
 fn pipe_into_chain() {
-    let val = eval(r#"[1, 2, 3, 4, 5]
+    let val = eval(
+        r#"[1, 2, 3, 4, 5]
   |> filter(|x| x > 2)
   |> into filtered
-len(filtered)"#);
+len(filtered)"#,
+    );
     assert_eq!(val, Value::Int(3));
 }
 
 #[test]
 fn pipe_into_shadows_existing() {
-    let val = eval(r#"let x = 10
+    let val = eval(
+        r#"let x = 10
 [1, 2, 3] |> len() |> into x
-x"#);
+x"#,
+    );
     assert_eq!(val, Value::Int(3));
 }
 
@@ -1906,60 +2223,76 @@ x"#);
 
 #[test]
 fn parse_vcf_info_basic() {
-    let val = eval(r#"let info = parse_vcf_info("DP=30;AF=0.5;MQ=60")
-info.DP"#);
+    let val = eval(
+        r#"let info = parse_vcf_info("DP=30;AF=0.5;MQ=60")
+info.DP"#,
+    );
     assert_eq!(val, Value::Int(30));
 }
 
 #[test]
 fn parse_vcf_info_float() {
-    let val = eval(r#"let info = parse_vcf_info("DP=30;AF=0.5;MQ=60")
-info.AF"#);
+    let val = eval(
+        r#"let info = parse_vcf_info("DP=30;AF=0.5;MQ=60")
+info.AF"#,
+    );
     assert_eq!(val, Value::Float(0.5));
 }
 
 #[test]
 fn parse_vcf_info_flag() {
-    let val = eval(r#"let info = parse_vcf_info("DP=30;DB")
-info.DB"#);
+    let val = eval(
+        r#"let info = parse_vcf_info("DP=30;DB")
+info.DB"#,
+    );
     assert_eq!(val, Value::Bool(true));
 }
 
 #[test]
 fn parse_vcf_info_empty() {
-    let val = eval(r#"let info = parse_vcf_info(".")
-len(keys(info))"#);
+    let val = eval(
+        r#"let info = parse_vcf_info(".")
+len(keys(info))"#,
+    );
     assert_eq!(val, Value::Int(0));
 }
 
 #[test]
 fn parse_vcf_info_multi_value() {
     // Comma-separated values become a List
-    let val = eval(r#"let info = parse_vcf_info("AF=0.45,0.12;DP=30")
-len(info.AF)"#);
+    let val = eval(
+        r#"let info = parse_vcf_info("AF=0.45,0.12;DP=30")
+len(info.AF)"#,
+    );
     assert_eq!(val, Value::Int(2));
 }
 
 #[test]
 fn parse_vcf_info_multi_value_first() {
-    let val = eval(r#"let info = parse_vcf_info("AF=0.45,0.12")
-first(info.AF)"#);
+    let val = eval(
+        r#"let info = parse_vcf_info("AF=0.45,0.12")
+first(info.AF)"#,
+    );
     assert_eq!(val, Value::Float(0.45));
 }
 
 #[test]
 fn parse_vcf_info_single_value_is_scalar() {
     // Single value (no comma) stays as a scalar, not a List
-    let val = eval(r#"let info = parse_vcf_info("AF=0.45;DP=30")
-info.AF >= 0.01"#);
+    let val = eval(
+        r#"let info = parse_vcf_info("AF=0.45;DP=30")
+info.AF >= 0.01"#,
+    );
     assert_eq!(val, Value::Bool(true));
 }
 
 #[test]
 fn parse_vcf_info_multi_value_compare_uses_first() {
     // Multi-value AF like "0.35,0.10" becomes List; comparison auto-uses first element
-    let val = eval(r#"let info = parse_vcf_info("AF=0.35,0.10")
-info.AF >= 0.01"#);
+    let val = eval(
+        r#"let info = parse_vcf_info("AF=0.35,0.10")
+info.AF >= 0.01"#,
+    );
     assert_eq!(val, Value::Bool(true));
 }
 
@@ -1979,7 +2312,9 @@ fn dnorm_standard() {
     let val = eval("dnorm(0)");
     if let Value::Float(f) = val {
         assert!((f - 0.3989).abs() < 0.001, "dnorm(0) ≈ 0.3989, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
@@ -1987,7 +2322,9 @@ fn pnorm_standard() {
     let val = eval("pnorm(0)");
     if let Value::Float(f) = val {
         assert!((f - 0.5).abs() < 0.001, "pnorm(0) = 0.5, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
@@ -1995,7 +2332,9 @@ fn pnorm_with_mean_sd() {
     let val = eval("pnorm(10, 10, 1)");
     if let Value::Float(f) = val {
         assert!((f - 0.5).abs() < 0.001, "pnorm(10, 10, 1) = 0.5, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
@@ -2003,23 +2342,35 @@ fn qnorm_standard() {
     let val = eval("qnorm(0.975)");
     if let Value::Float(f) = val {
         assert!((f - 1.96).abs() < 0.02, "qnorm(0.975) ≈ 1.96, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
 fn dbinom_basic() {
     let val = eval("dbinom(3, 10, 0.5)");
     if let Value::Float(f) = val {
-        assert!((f - 0.1172).abs() < 0.001, "dbinom(3,10,0.5) ≈ 0.1172, got {f}");
-    } else { panic!("expected Float"); }
+        assert!(
+            (f - 0.1172).abs() < 0.001,
+            "dbinom(3,10,0.5) ≈ 0.1172, got {f}"
+        );
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
 fn pbinom_basic() {
     let val = eval("pbinom(5, 10, 0.5)");
     if let Value::Float(f) = val {
-        assert!((f - 0.6230).abs() < 0.001, "pbinom(5,10,0.5) ≈ 0.623, got {f}");
-    } else { panic!("expected Float"); }
+        assert!(
+            (f - 0.6230).abs() < 0.001,
+            "pbinom(5,10,0.5) ≈ 0.623, got {f}"
+        );
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
@@ -2027,7 +2378,9 @@ fn dpois_basic() {
     let val = eval("dpois(3, 2.0)");
     if let Value::Float(f) = val {
         assert!((f - 0.1804).abs() < 0.001, "dpois(3,2) ≈ 0.1804, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
@@ -2035,7 +2388,9 @@ fn ppois_basic() {
     let val = eval("ppois(3, 2.0)");
     if let Value::Float(f) = val {
         assert!((f - 0.8571).abs() < 0.001, "ppois(3,2) ≈ 0.857, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
@@ -2055,7 +2410,9 @@ fn dexp_basic() {
     let val = eval("dexp(1.0, 1.0)");
     if let Value::Float(f) = val {
         assert!((f - 0.3679).abs() < 0.001, "dexp(1,1) ≈ 0.368, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
@@ -2063,7 +2420,9 @@ fn pexp_basic() {
     let val = eval("pexp(1.0, 1.0)");
     if let Value::Float(f) = val {
         assert!((f - 0.6321).abs() < 0.001, "pexp(1,1) ≈ 0.632, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 #[test]
@@ -2113,8 +2472,13 @@ let result = kmeans(data, 2)
 result.iterations"#;
     let val = eval(code);
     if let Value::Int(n) = val {
-        assert!(n >= 1 && n <= 10, "should converge quickly, got {n} iterations");
-    } else { panic!("expected Int"); }
+        assert!(
+            n >= 1 && n <= 10,
+            "should converge quickly, got {n} iterations"
+        );
+    } else {
+        panic!("expected Int");
+    }
 }
 
 // ============================================================
@@ -2144,7 +2508,9 @@ result.aic"#;
     let val = eval(code);
     if let Value::Float(f) = val {
         assert!(f > 0.0, "AIC should be positive, got {f}");
-    } else { panic!("expected Float"); }
+    } else {
+        panic!("expected Float");
+    }
 }
 
 // ============================================================
@@ -2165,45 +2531,53 @@ fn test_resolve_registered() {
 
 #[test]
 fn test_bio_join_auto_detect_key() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let left = [{gene: "BRCA1", score: 10}, {gene: "TP53", score: 20}]
 let right = [{gene: "BRCA1", pathway: "repair"}, {gene: "TP53", pathway: "apoptosis"}]
 let joined = bio_join(left, right)
 len(joined)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(2));
 }
 
 #[test]
 fn test_bio_join_explicit_key() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let a = [{id: "A", val: 1}, {id: "B", val: 2}]
 let b = [{id: "A", name: "alpha"}, {id: "C", name: "charlie"}]
 let joined = bio_join(a, b, "id")
 len(joined)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(1)); // inner join
 }
 
 #[test]
 fn test_bio_join_left() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let a = [{gene: "A", val: 1}, {gene: "B", val: 2}]
 let b = [{gene: "A", name: "alpha"}]
 let joined = bio_join(a, b, "gene", "left")
 len(joined)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(2)); // left join keeps all from left
 }
 
 #[test]
 fn test_bio_join_case_insensitive() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let a = [{gene: "BRCA1", val: 1}]
 let b = [{gene: "brca1", name: "test"}]
 let joined = bio_join(a, b, "gene")
 len(joined)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(1));
 }
 
@@ -2213,12 +2587,14 @@ len(joined)
 
 #[test]
 fn test_diff_table_basic() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let a = [{id: "A", val: 1}, {id: "B", val: 2}]
 let b = [{id: "A", val: 1}, {id: "B", val: 3}, {id: "C", val: 4}]
 let d = diff_table(a, b, "id")
 d.unchanged
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(1));
 }
 
@@ -2228,27 +2604,31 @@ d.unchanged
 
 #[test]
 fn test_qc_report_basic() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let reads = [
     {id: "r1", sequence: "ATCGATCG", quality: "IIIIIIII", length: 8},
     {id: "r2", sequence: "GCTAGCTA", quality: "HHHHGGGG", length: 8},
 ]
 let qc = qc_report(reads)
 qc.total_reads
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(2));
 }
 
 #[test]
 fn test_qc_report_total_bases() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let reads = [
     {id: "r1", sequence: "ATCG", quality: "IIII", length: 4},
     {id: "r2", sequence: "GCTA", quality: "HHHH", length: 4},
 ]
 let qc = qc_report(reads)
 qc.total_bases
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(8));
 }
 
@@ -2258,11 +2638,13 @@ qc.total_bases
 
 #[test]
 fn test_primer_design_returns_list() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let seq = dna"ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG"
 let primers = primer_design(seq, 20, 40)
 typeof(primers)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("List".into()));
 }
 
@@ -2272,11 +2654,13 @@ typeof(primers)
 
 #[test]
 fn test_heatmap_returns_svg() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 let svg = heatmap(data)
 starts_with(svg, "<svg")
-"#);
+"#,
+    );
     assert_eq!(result, Value::Bool(true));
 }
 
@@ -2286,32 +2670,38 @@ starts_with(svg, "<svg")
 
 #[test]
 fn test_spread_basic() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let base = {a: 1, b: 2}
 let extended = {...base, c: 3}
 extended.c
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(3));
 }
 
 #[test]
 fn test_spread_override() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let defaults = {color: "red", size: 10}
 let custom = {...defaults, color: "blue"}
 custom.color
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("blue".into()));
 }
 
 #[test]
 fn test_spread_multiple() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let a = {x: 1}
 let b = {y: 2}
 let merged = {...a, ...b, z: 3}
 merged.x + merged.y + merged.z
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(6));
 }
 
@@ -2321,17 +2711,29 @@ merged.x + merged.y + merged.z
 
 #[test]
 fn test_concat_lists() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 [1, 2] ++ [3, 4]
-"#);
-    assert_eq!(result, Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)]));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::List((vec![
+            Value::Int(1),
+            Value::Int(2),
+            Value::Int(3),
+            Value::Int(4)
+        ]).into())
+    );
 }
 
 #[test]
 fn test_concat_strings() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 "hello" ++ " world"
-"#);
+"#,
+    );
     assert_eq!(result, Value::Str("hello world".into()));
 }
 
@@ -2341,11 +2743,13 @@ fn test_concat_strings() {
 
 #[test]
 fn test_each_returns_nil_with_side_effects() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let count = 0
 [1, 2, 3] |> each(|n| { count = count + n })
 count
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(6));
 }
 
@@ -2355,11 +2759,18 @@ count
 
 #[test]
 fn test_slice_dna() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let seq = dna"ATCGATCG"
 slice(seq, 2, 6)
-"#);
-    assert_eq!(result, Value::DNA(bl_core::value::BioSequence { data: "CGAT".into() }));
+"#,
+    );
+    assert_eq!(
+        result,
+        Value::DNA(bl_core::value::BioSequence {
+            data: "CGAT".into()
+        })
+    );
 }
 
 // ============================================================
@@ -2368,11 +2779,13 @@ slice(seq, 2, 6)
 
 #[test]
 fn test_find_motif_dna_args() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let seq = dna"ATCGAATTCGATCG"
 let positions = find_motif(seq, dna"GAATTC")
 len(positions)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(1));
 }
 
@@ -2382,11 +2795,13 @@ len(positions)
 
 #[test]
 fn test_window_dna() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let seq = dna"ATCG"
 let wins = window(seq, 2)
 len(wins)
-"#);
+"#,
+    );
     assert_eq!(result, Value::Int(3));
 }
 
@@ -2396,10 +2811,12 @@ len(wins)
 
 #[test]
 fn test_ani_identical() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = dna"ATCGATCGATCGATCGATCGATCG"
 ani(s, s)
-"#);
+"#,
+    );
     if let Value::Float(v) = result {
         assert!((v - 1.0).abs() < 0.001);
     } else {
@@ -2413,11 +2830,13 @@ ani(s, s)
 
 #[test]
 fn test_enrichment_score_basic() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let values = {A: 10.0, B: 20.0, C: 5.0, D: 15.0}
 let gene_set = ["A", "B"]
 enrichment_score(values, gene_set)
-"#);
+"#,
+    );
     if let Value::Float(v) = result {
         assert!(v > 1.0); // A+B mean (15) > global mean (12.5)
     } else {

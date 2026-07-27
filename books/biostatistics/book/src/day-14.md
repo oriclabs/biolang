@@ -268,23 +268,25 @@ A single extreme observation can dramatically change the fitted line. Leverage a
 
 ```bio
 set_seed(42)
+fn linear_noise(x, intercept, slope, noise) {
+    zip(x, noise) |> map(|pair| intercept + slope * pair[0] + pair[1])
+}
 # NCI-60 pharmacogenomics: predict IC50 from target expression
 let n = 60
 
 # Simulate expression and drug sensitivity
 let expression = rnorm(n, 10, 3)
-let ic50 = 85 - 4.5 * expression + rnorm(n, 0, 8)
+let ic50 = linear_noise(expression, 85, -4.5, rnorm(n, 0, 8))
 
 # Fit simple linear regression
-let model = lm(ic50, expression)
+let model = lm(expression, ic50)
 
 # Print model summary
 print("=== Linear Regression Summary ===")
 print("Intercept: {model.intercept}")
 print("Slope: {model.slope}")
 print("R²: {model.r_squared}")
-print("Adjusted R²: {model.adj_r_squared}")
-print("F-statistic p-value: {model.p_value}")
+print("Slope p-value: {model.p_value}")
 ```
 
 ### Interpreting Coefficients
@@ -355,10 +357,11 @@ plot(plot_data, {type: "scatter", x: "Expression", y: "IC50",
 set_seed(42)
 # Show danger of extrapolation
 let x = rnorm(50, 10, 3)
-let y = 100 - 3 * x + 0.2 * x ** 2 + rnorm(50, 0, 3)
+let y = zip(x, rnorm(50, 0, 3))
+    |> map(|pair| 100 - 3 * pair[0] + 0.2 * pair[0] ** 2 + pair[1])
 
 # Fit linear model in observed range
-let model_extrap = lm(y, x)
+let model_extrap = lm(x, y)
 print("R² in training range: {model_extrap.r_squared |> round(3)}")
 
 # Predict within range — reasonable
@@ -378,15 +381,16 @@ print("Extrapolation error demonstrates the danger!")
 set_seed(42)
 # Many biological relationships are linear on the log scale
 let dose = rnorm(40, 50, 25) |> map(|d| max(d, 0.1))
-let response = 50 / (1 + (dose / 10) ** 1.5) + rnorm(40, 0, 3)
+let response = zip(dose, rnorm(40, 0, 3))
+    |> map(|pair| 50 / (1 + (pair[0] / 10) ** 1.5) + pair[1])
 
 # Linear model on raw scale — poor fit
-let model_raw = lm(response, dose)
+let model_raw = lm(dose, response)
 print("R² (raw scale): {model_raw.r_squared |> round(3)}")
 
 # Log-transform dose — much better
 let log_dose = dose |> map(|d| log2(d))
-let model_log = lm(response, log_dose)
+let model_log = lm(log_dose, response)
 print("R² (log scale): {model_log.r_squared |> round(3)}")
 
 # Compare residual plots to see the difference
@@ -444,9 +448,9 @@ A study measures tumor mutation burden (TMB) and neoantigen count across 80 mela
 set_seed(42)
 let n = 80
 let tmb = rnorm(n, 200, 80)
-let neoantigens = 5 + 0.15 * tmb + rnorm(n, 0, 12)
+let neoantigens = linear_noise(tmb, 5, 0.15, rnorm(n, 0, 12))
 
-# 1. Fit lm(neoantigens, tmb)
+# 1. Fit lm(tmb, neoantigens)
 # 2. What is the slope? Interpret it biologically
 # 3. What is model.r_squared? Is TMB a good predictor of neoantigen count?
 # 4. Predict neoantigen count for TMB = 100, 200, 400
@@ -459,9 +463,10 @@ Fit a linear model to the dose-response data below and use residual plots to det
 ```bio
 set_seed(42)
 let dose = rnorm(60, 25, 12) |> map(|d| max(d, 1))
-let effect = 20 * log2(dose) + rnorm(60, 0, 5)
+let effect = zip(dose, rnorm(60, 0, 5))
+    |> map(|pair| 20 * log2(pair[0]) + pair[1])
 
-# 1. Fit lm(effect, dose)
+# 1. Fit lm(dose, effect)
 # 2. Create residuals vs fitted plot — what pattern do you see?
 # 3. Try log-transforming dose and re-fitting
 # 4. Compare R² values and residual patterns
@@ -474,7 +479,7 @@ Demonstrate why prediction intervals are always wider than confidence intervals.
 ```bio
 set_seed(42)
 let x = rnorm(50, 10, 5)
-let y = 10 + 2 * x + rnorm(50, 0, 4)
+let y = linear_noise(x, 10, 2, rnorm(50, 0, 4))
 
 # 1. Fit lm(y, x)
 # 2. Generate predictions for x = 0, 2, 4, ..., 20
@@ -489,7 +494,7 @@ Add a single influential outlier to well-behaved data and show how it changes th
 ```bio
 set_seed(42)
 let x_clean = rnorm(49, 10, 2)
-let y_clean = 5 + 1.5 * x_clean + rnorm(49, 0, 2)
+let y_clean = linear_noise(x_clean, 5, 1.5, rnorm(49, 0, 2))
 
 # Add one extreme outlier at x=10, y=50 (should be ~20)
 # 1. Fit model with and without the outlier

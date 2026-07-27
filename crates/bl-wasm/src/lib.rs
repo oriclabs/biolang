@@ -3,15 +3,22 @@ use wasm_bindgen::prelude::*;
 use bl_core::value::Value;
 use bl_lexer::Lexer;
 use bl_parser::Parser;
-use bl_runtime::Interpreter;
 use bl_runtime::builtins::set_output_buffer;
 use bl_runtime::csv::set_fetch_hook;
+use bl_runtime::Interpreter;
 
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 thread_local! {
-    static INTERPRETER: RefCell<Interpreter> = RefCell::new(Interpreter::new());
+    /// `Option` so `evaluate` can TAKE the interpreter out, run user code while
+    /// holding no borrow, and put it back. wasm32 cannot unwind, so a panic
+    /// inside user code would otherwise leak the `RefMut` guard forever and
+    /// every later call would fail with "RefCell already borrowed" — one bad
+    /// example on a docs page broke every Run button after it until reload.
+    /// With the value taken out, a panic just leaves `None` and the next call
+    /// starts from a fresh interpreter.
+    static INTERPRETER: RefCell<Option<Interpreter>> = RefCell::new(Some(Interpreter::new()));
     static OUTPUT_BUF: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
 }
 
@@ -42,8 +49,7 @@ fn js_fetch_closure(url: &str) -> std::result::Result<String, String> {
 /// Set up fetch hooks so read_csv/read_fasta/read_fastq/read_vcf/read_bed/read_gff
 /// can access local files and URLs in WASM via the JS __blFetch bridge.
 fn install_fetch_hooks() {
-    let hook: Arc<dyn Fn(&str) -> std::result::Result<String, String>> =
-        Arc::new(js_fetch_closure);
+    let hook: Arc<dyn Fn(&str) -> std::result::Result<String, String>> = Arc::new(js_fetch_closure);
     set_fetch_hook(Some(hook));
 }
 
@@ -55,6 +61,18 @@ pub fn init() {
 
     // Install fetch hooks for CSV and bio I/O (FASTA, FASTQ, VCF, BED, GFF)
     install_fetch_hooks();
+}
+
+/// Take the interpreter out of thread-local storage, creating a fresh one if a
+/// previous call panicked and never put it back.
+fn take_interpreter() -> Interpreter {
+    INTERPRETER
+        .with(|c| c.borrow_mut().take())
+        .unwrap_or_else(Interpreter::new)
+}
+
+fn put_interpreter(interp: Interpreter) {
+    INTERPRETER.with(|c| *c.borrow_mut() = Some(interp));
 }
 
 /// Evaluate BioLang source code. Returns JSON: `{ok, value, type, output, error}`
@@ -69,9 +87,10 @@ pub fn evaluate(source: &str) -> String {
     });
     set_output_buffer(Some(buf.clone()));
 
-    let result = INTERPRETER.with(|interp| {
-        let mut interp = interp.borrow_mut();
-
+    // Held as a plain local, NOT a RefCell borrow, so a panic below cannot
+    // poison the module for every subsequent call.
+    let mut owned = take_interpreter();
+    let result = (|interp: &mut Interpreter| -> serde_json::Value {
         // Lex
         let tokens = match Lexer::new(source).tokenize() {
             Ok(t) => t,
@@ -97,7 +116,9 @@ pub fn evaluate(source: &str) -> String {
         };
 
         if parse_result.has_errors() {
-            let msg = parse_result.errors.iter()
+            let msg = parse_result
+                .errors
+                .iter()
                 .map(|e| e.message.clone())
                 .collect::<Vec<_>>()
                 .join("; ");
@@ -128,8 +149,9 @@ pub fn evaluate(source: &str) -> String {
                 })
             }
         }
-    });
+    })(&mut owned);
 
+    put_interpreter(owned);
     set_output_buffer(None);
     result.to_string()
 }
@@ -137,16 +159,24 @@ pub fn evaluate(source: &str) -> String {
 /// Reset the interpreter state.
 #[wasm_bindgen]
 pub fn reset() {
-    INTERPRETER.with(|interp| {
-        interp.borrow_mut().reset();
+    // Always install a working interpreter, even if a previous panic left None.
+    INTERPRETER.with(|c| {
+        let mut slot = c.borrow_mut();
+        match slot.as_mut() {
+            Some(i) => i.reset(),
+            None => *slot = Some(Interpreter::new()),
+        }
     });
 }
 
 /// List all variables in the current environment. Returns JSON array.
 #[wasm_bindgen]
 pub fn list_variables() -> String {
-    INTERPRETER.with(|interp| {
-        let interp = interp.borrow();
+    INTERPRETER.with(|c| {
+        let slot = c.borrow();
+        let Some(interp) = slot.as_ref() else {
+            return "[]".to_string();
+        };
         let vars = interp.env().list_global_vars();
         let entries: Vec<serde_json::Value> = vars
             .into_iter()
@@ -184,12 +214,31 @@ pub fn tokenize(source: &str) -> String {
     }
 }
 
+/// Convert Python, R, Jupyter, or R Markdown and return a structured validation result.
+#[wasm_bindgen]
+pub fn import_source(source: &str, format: &str, filename: &str) -> String {
+    match bl_import::import_source(source, format, filename) {
+        Ok(result) => serde_json::json!({ "ok": true, "result": result }).to_string(),
+        Err(error) => serde_json::json!({ "ok": false, "error": error }).to_string(),
+    }
+}
+
+/// Validate a BioLang script or BioLang notebook without executing it.
+#[wasm_bindgen]
+pub fn validate_import(source: &str, notebook: bool) -> String {
+    serde_json::to_string(&bl_import::validate_biolang(source, notebook))
+        .unwrap_or_else(|error| serde_json::json!({ "valid": false, "diagnostics": [{ "message": error.to_string() }] }).to_string())
+}
+
 /// List all builtin functions. Returns JSON array of {name, signature, category}.
 #[wasm_bindgen]
 pub fn list_builtins() -> String {
     // Return the full catalog from the REPL catalog constants embedded here
-    INTERPRETER.with(|interp| {
-        let interp = interp.borrow();
+    INTERPRETER.with(|c| {
+        let slot = c.borrow();
+        let Some(interp) = slot.as_ref() else {
+            return "[]".to_string();
+        };
         let vars = interp.env().list_global_vars();
         let builtins: Vec<serde_json::Value> = vars
             .into_iter()
@@ -236,17 +285,16 @@ fn token_kind_class(kind: &bl_lexer::TokenKind) -> &'static str {
         Str(_) | FStr(_) => "string",
         DnaLit(_) | RnaLit(_) | ProteinLit(_) | QualLit(_) => "bio",
         Ident(_) => "ident",
-        Let | Fn | If | Else | For | In | While | Break | Continue | Match | Return
-        | Assert | Try | Catch | Pipeline | Import | Yield | Enum
-        | Struct | Async | Await | Trait | Impl | Const | With | Then | Unless
-        | Guard | Do | End | When | Defer | As | Stage | Parallel | Not | From
-        | Given | Otherwise | Retry | Where | Into => "keyword",
+        Let | Fn | If | Else | For | In | While | Break | Continue | Match | Return | Assert
+        | Try | Catch | Pipeline | Import | Yield | Enum | Struct | Async | Await | Trait
+        | Impl | Const | With | Then | Unless | Guard | Do | End | When | Defer | As | Stage
+        | Parallel | Not | From | Given | Otherwise | Retry | Where | Into => "keyword",
         True | False | Nil => "literal",
         PipeOp | TapPipe => "pipe",
-        Plus | PlusPlus | Minus | Star | StarStar | Slash | Percent | PlusEq | MinusEq | StarEq | SlashEq
-        | QuestionQuestion | QuestionDot | QuestionEq | EqEq | Neq | Lt | Gt | Le | Ge
-        | And | Or | Bang | Eq | Tilde | Dot | Arrow | FatArrow
-        | DotDot | DotDotEq | DotDotDot | At | Amp | Caret | Shl | Shr => "operator",
+        Plus | PlusPlus | Minus | Star | StarStar | Slash | Percent | PlusEq | MinusEq | StarEq
+        | SlashEq | QuestionQuestion | QuestionDot | QuestionEq | EqEq | Neq | Lt | Gt | Le
+        | Ge | And | Or | Bang | Eq | Tilde | Dot | Arrow | FatArrow | DotDot | DotDotEq
+        | DotDotDot | At | Amp | Caret | Shl | Shr => "operator",
         RegexLit(_, _) => "string",
         LParen | RParen | LBrace | RBrace | LBracket | RBracket | Bar | HashLBrace => "delimiter",
         Colon | Comma => "punctuation",

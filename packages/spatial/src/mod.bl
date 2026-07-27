@@ -1,0 +1,26 @@
+# spatial — Spatial transcriptomics analysis for BioLang
+#
+# Works on a singlecell object enriched with spatial coordinates.
+#
+# Typical workflow:
+#   import "spatial" as sp
+#   import "singlecell" as sc
+#
+#   let obj = sc.load("data/10x/") |> sc.normalize |> sc.cluster
+#   let obj = sp.load_coords(obj, "data/tissue_positions.csv")
+#   let obj = sp.neighbors(obj)          # build spatial adjacency (k=6 for Visium)
+#   let obj = sp.variable_genes(obj)     # Moran's I per gene
+#   sp.top_svg(obj, 50)                  # top 50 spatially variable genes
+#   sp.niche_enrichment(obj)             # which clusters co-localise?
+
+import "spatial/src/coords" as coords
+import "spatial/src/svg"    as svg
+import "spatial/src/niche"  as niche
+
+fn load_coords(obj, csv)               { coords.load_coords(obj, csv) }
+fn get_coords(obj)                     { coords.get_coords(obj) }
+fn neighbors(obj, k = 6)               { coords.neighbors(obj, k) }
+fn variable_genes(obj, min_expr = 0.1) { svg.variable_genes(obj, min_expr) }
+fn top_svg(obj, n = 50)                { svg.top_svg(obj, n) }
+fn niche_enrichment(obj)               { niche.niche_enrichment(obj) }
+fn top_neighbors_of(obj, cluster)      { niche.top_neighbors_of(obj, cluster) }

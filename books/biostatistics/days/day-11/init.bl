@@ -20,16 +20,17 @@ let lines = ["subject_id,group,apoe_e4_carrier"]
 let case_carriers = 200
 let ctrl_carriers = 75
 
-for i in range(0, 500) {
+let case_rows = range(0, 500) |> map(|i| {
     let carrier = if i < case_carriers { "yes" } else { "no" }
-    lines = append(lines, f"AD_{i + 1:04},case,{carrier}")
-}
-for i in range(0, 500) {
+    f"AD_{i + 1:04},case,{carrier}"
+})
+let control_rows = range(0, 500) |> map(|i| {
     let carrier = if i < ctrl_carriers { "yes" } else { "no" }
-    lines = append(lines, f"CTRL_{i + 1:04},control,{carrier}")
-}
+    f"CTRL_{i + 1:04},control,{carrier}"
+})
+lines = lines + case_rows + control_rows
 
-write_lines(lines, "data/apoe_alzheimer.csv")
+write_lines("data/apoe_alzheimer.csv", lines)
 println("Wrote data/apoe_alzheimer.csv: 1000 subjects (500 AD cases, 500 controls)")
 println("  Expected OR ~ 3.78 for APOE e4 carriers (Farrer et al. 1997)")
 
@@ -43,17 +44,17 @@ println("  Expected OR ~ 3.78 for APOE e4 carriers (Farrer et al. 1997)")
 let hwe_lines = ["snp_id,obs_AA,obs_AB,obs_BB,allele_freq_A"]
 
 # rs1426654 (SLC24A5) — CEU p(A)=0.98, in HWE
-hwe_lines = append(hwe_lines, "rs1426654,480,19,1,0.979")
+hwe_lines = push(hwe_lines, "rs1426654,480,19,1,0.979")
 # rs12913832 (HERC2/OCA2 eye color) — CEU p(A)=0.79, in HWE
-hwe_lines = append(hwe_lines, "rs12913832,314,173,13,0.801")
+hwe_lines = push(hwe_lines, "rs12913832,314,173,13,0.801")
 # rs7903146 (TCF7L2 diabetes risk) — CEU p(A)=0.71, in HWE
-hwe_lines = append(hwe_lines, "rs7903146,254,201,45,0.709")
+hwe_lines = push(hwe_lines, "rs7903146,254,201,45,0.709")
 # rs4988235 (LCT lactase) — excess homozygotes, HWE violation (possible selection)
-hwe_lines = append(hwe_lines, "rs4988235,310,90,100,0.710")
+hwe_lines = push(hwe_lines, "rs4988235,310,90,100,0.710")
 # rs334 (HBB sickle cell) — excess homozygotes, HWE violation (genotyping artifact)
-hwe_lines = append(hwe_lines, "rs334,400,30,70,0.830")
+hwe_lines = push(hwe_lines, "rs334,400,30,70,0.830")
 
-write_lines(hwe_lines, "data/hardy_weinberg_test.csv")
+write_lines("data/hardy_weinberg_test.csv", hwe_lines)
 println("Wrote data/hardy_weinberg_test.csv: 5 SNPs (3 in HWE, 2 deviating)")
 
 # ============================================================
@@ -68,15 +69,15 @@ let rare_lines = ["subject_id,group,variant_present"]
 # 20 breast cancer cases: 3 carry the variant (15% for enriched clinical cohort)
 let case_variant = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 for i in range(0, 20) {
-    rare_lines = append(rare_lines, f"CASE_{i + 1:03},case,{case_variant[i]}")
+    rare_lines = push(rare_lines, f"CASE_{i + 1:03},case,{case_variant[i]}")
 }
 
 # 20 controls: 0 carry the variant
 for i in range(0, 20) {
-    rare_lines = append(rare_lines, f"CTRL_{i + 1:03},control,0")
+    rare_lines = push(rare_lines, f"CTRL_{i + 1:03},control,0")
 }
 
-write_lines(rare_lines, "data/rare_variant.csv")
+write_lines("data/rare_variant.csv", rare_lines)
 println("Wrote data/rare_variant.csv: 40 subjects (20 cases, 20 controls)")
 println("  BRCA2 c.5946delT (rs80359550) — Fisher's exact test appropriate")
 println("")

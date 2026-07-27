@@ -118,7 +118,7 @@ let ora_results = enrich(de_genes, gene_sets, background_size)
 
 print("ORA results:")
 ora_results |> each(|r| {
-  print(f"  {r.term}: p={r.pvalue:.4e}, overlap={r.overlap}/{r.term_size}")
+  print(f"  {r.term}: p={r.pvalue}, overlap={r.overlap}/{r.term_size}")
 })</code></pre>
         <p>
           The <code>enrich()</code> function returns a list of records, each containing:
@@ -144,15 +144,15 @@ ora_results |> each(|r| {
 
         <!-- Step 4 -->
         <h2>Step 4: Filter significant results</h2>
-        <pre><code class="language-biolang"># Filter by FDR < 0.05
+        <pre><code class="language-biolang"># Filter by FDR &lt; 0.05
 let significant = ora_results
-  |> filter(|r| r.fdr < 0.05)
+  |> filter(|r| r.fdr &lt; 0.05)
   |> sort_by(|r| r.fdr)
 
-print(f"\nSignificant pathways (FDR < 0.05): {len(significant)}")
+print(f"\nSignificant pathways (FDR &lt; 0.05): {len(significant)}")
 significant |> each(|r| {
   print(f"  {r.term}")
-  print(f"    FDR: {r.fdr:.4e}, Overlap: {r.overlap}/{r.term_size}")
+  print(f"    FDR: {r.fdr}, Overlap: {r.overlap}/{r.term_size}")
   print(f"    Genes: {r.genes}")
 })</code></pre>
 
@@ -186,7 +186,7 @@ let gsea_results = gsea(ranked_genes, gene_sets)
 
 print("GSEA results:")
 gsea_results |> each(|r| {
-  print(f"  {r.term}: NES={r.nes:.3f}, p={r.pvalue:.4e}, FDR={r.fdr:.4e}")
+  print(f"  {r.term}: NES={r.nes}, p={r.pvalue}, FDR={r.fdr}")
 })</code></pre>
         <p>
           GSEA results include:
@@ -221,7 +221,7 @@ let raw_pvalues = [0.001, 0.013, 0.039, 0.052, 0.11, 0.23, 0.45]
 let adjusted = p_adjust(raw_pvalues, "bh")
 print("Raw → Adjusted:")
 range(0, len(raw_pvalues)) |> each(|i| {
-  print(f"  {raw_pvalues[i]:.3f} → {adjusted[i]:.3f}")
+  print(f"  {raw_pvalues[i]} → {adjusted[i]}")
 })</code></pre>
 
         <!-- Step 7 -->
@@ -245,7 +245,7 @@ nodes(g) |> filter(|n| !starts_with(n, "HALLMARK_")) |> into gene_nodes
 let multi_pathway = gene_nodes
   |> map(|n| {gene: n, pathways: degree(g, n)})
   |> filter(|r| r.pathways > 1)
-  |> sort_by(|r| r.pathways, desc: true)
+  |> sort_by(|r| -r.pathways)
 
 print("\nGenes in multiple enriched pathways:")
 multi_pathway |> each(|r| print(f"  {r.gene}: {r.pathways} pathways"))</code></pre>
@@ -269,10 +269,10 @@ let de_genes = ["TP53", "CDKN1A", "BAX", "GADD45A", "MDM2", "BRCA1", "CHEK2",
 # ORA
 print("=== Over-Representation Analysis ===")
 let ora = enrich(de_genes, gene_sets, 20000)
-  |> filter(|r| r.fdr < 0.05)
+  |> filter(|r| r.fdr &lt; 0.05)
   |> sort_by(|r| r.fdr)
 
-ora |> each(|r| print(f"  {r.term}: FDR={r.fdr:.4e}, {r.overlap}/{r.term_size} genes"))
+ora |> each(|r| print(f"  {r.term}: FDR={r.fdr}, {r.overlap}/{r.term_size} genes"))
 
 # GSEA with ranked list
 print("\n=== Gene Set Enrichment Analysis ===")
@@ -288,7 +288,7 @@ let ranked = [
 let gsea_res = gsea(ranked, gene_sets)
   |> sort_by(|r| r.fdr)
 
-gsea_res |> each(|r| print(f"  {r.term}: NES={r.nes:.3f}, FDR={r.fdr:.4e}"))
+gsea_res |> each(|r| print(f"  {r.term}: NES={r.nes}, FDR={r.fdr}"))
 
 # Pathway network
 print("\n=== Pathway-Gene Network ===")

@@ -22,7 +22,7 @@ pub fn matrix_builtin_list() -> Vec<(&'static str, Arity)> {
         ("col_sums", Arity::Exact(1)),
         ("row_means", Arity::Exact(1)),
         ("col_means", Arity::Exact(1)),
-        ("pca", Arity::Exact(2)),
+        ("pca", Arity::Range(1, 2)),
         ("cor_matrix", Arity::Exact(1)),
         ("cov_matrix", Arity::Exact(1)),
         ("dist_matrix", Arity::Exact(2)),
@@ -180,7 +180,7 @@ fn builtin_matrix(args: Vec<Value>) -> Result<Value> {
                                 None,
                             ));
                         }
-                        for item in items {
+                        for item in items.iter() {
                             let v = match item {
                                 Value::Int(n) => *n as f64,
                                 Value::Float(f) => *f,
@@ -219,7 +219,10 @@ fn builtin_matrix_from_table(args: Vec<Value>) -> Result<Value> {
         Value::Table(t) => t,
         other => {
             return Err(BioLangError::type_error(
-                format!("matrix_from_table() requires Table, got {}", other.type_of()),
+                format!(
+                    "matrix_from_table() requires Table, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -304,10 +307,10 @@ fn builtin_eye(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_dim(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "dim")?;
-    Ok(Value::List(vec![
+    Ok(Value::List((vec![
         Value::Int(m.nrow as i64),
         Value::Int(m.ncol as i64),
-    ]))
+    ]).into()))
 }
 
 fn builtin_transpose(args: Vec<Value>) -> Result<Value> {
@@ -337,7 +340,7 @@ fn builtin_mat_mul(args: Vec<Value>) -> Result<Value> {
     let a = require_matrix(&args[0], "mat_mul")?;
     let b = require_matrix(&args[1], "mat_mul")?;
     let result = a
-        .mul_elementwise(b)
+        .dot(b)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(Value::Matrix(result))
 }
@@ -359,31 +362,39 @@ fn builtin_dot(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_row_sums(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "row_sums")?;
-    Ok(Value::List(m.row_sums().into_iter().map(Value::Float).collect()))
+    Ok(Value::List(
+        m.row_sums().into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+    ))
 }
 
 fn builtin_col_sums(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "col_sums")?;
-    Ok(Value::List(m.col_sums().into_iter().map(Value::Float).collect()))
+    Ok(Value::List(
+        m.col_sums().into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+    ))
 }
 
 fn builtin_row_means(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "row_means")?;
     Ok(Value::List(
-        m.row_means().into_iter().map(Value::Float).collect(),
+        m.row_means().into_iter().map(Value::Float).collect::<Vec<_>>().into(),
     ))
 }
 
 fn builtin_col_means(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "col_means")?;
     Ok(Value::List(
-        m.col_means().into_iter().map(Value::Float).collect(),
+        m.col_means().into_iter().map(Value::Float).collect::<Vec<_>>().into(),
     ))
 }
 
 fn builtin_pca(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "pca")?;
-    let n_components = require_int(&args[1], "pca")? as usize;
+    let n_components = if let Some(value) = args.get(1) {
+        require_int(value, "pca")? as usize
+    } else {
+        50_usize.min(m.nrow).min(m.ncol)
+    };
 
     // Convert matrix to Vec<Vec<f64>> for stats_ops
     let mut rows: Vec<Vec<f64>> = Vec::with_capacity(m.nrow);
@@ -397,7 +408,12 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
     let mut result = HashMap::new();
     result.insert(
         "explained_variance".to_string(),
-        Value::List(res.explained_variance.into_iter().map(Value::Float).collect()),
+        Value::List(
+            res.explained_variance
+                .into_iter()
+                .map(Value::Float)
+                .collect::<Vec<_>>().into(),
+        ),
     );
     result.insert(
         "explained_variance_ratio".to_string(),
@@ -405,7 +421,7 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
             res.explained_variance_ratio
                 .into_iter()
                 .map(Value::Float)
-                .collect(),
+                .collect::<Vec<_>>().into(),
         ),
     );
 
@@ -429,7 +445,7 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 fn builtin_cor_matrix(args: Vec<Value>) -> Result<Value> {
@@ -439,7 +455,8 @@ fn builtin_cor_matrix(args: Vec<Value>) -> Result<Value> {
     let mut data = vec![0.0; ncol * ncol];
     for i in 0..ncol {
         for j in 0..ncol {
-            data[i * ncol + j] = bl_core::bio_core::stats_ops::pearson_correlation(&cols[i], &cols[j]);
+            data[i * ncol + j] =
+                bl_core::bio_core::stats_ops::pearson_correlation(&cols[i], &cols[j]);
         }
     }
     let result = Matrix::new(data, ncol, ncol)
@@ -452,7 +469,10 @@ fn builtin_cov_matrix(args: Vec<Value>) -> Result<Value> {
     let ncol = m.ncol;
     let nrow = m.nrow;
     let cols: Vec<Vec<f64>> = (0..ncol).map(|j| m.col(j)).collect();
-    let means: Vec<f64> = cols.iter().map(|c| c.iter().sum::<f64>() / nrow as f64).collect();
+    let means: Vec<f64> = cols
+        .iter()
+        .map(|c| c.iter().sum::<f64>() / nrow as f64)
+        .collect();
     let mut data = vec![0.0; ncol * ncol];
     for i in 0..ncol {
         for j in 0..ncol {
@@ -487,13 +507,12 @@ fn builtin_dist_matrix(args: Vec<Value>) -> Result<Value> {
         for j in (i + 1)..nrow {
             let rj = m.row(j);
             let d = match method {
-                "euclidean" => {
-                    ri.iter()
-                        .zip(&rj)
-                        .map(|(a, b)| (a - b).powi(2))
-                        .sum::<f64>()
-                        .sqrt()
-                }
+                "euclidean" => ri
+                    .iter()
+                    .zip(&rj)
+                    .map(|(a, b)| (a - b).powi(2))
+                    .sum::<f64>()
+                    .sqrt(),
                 "manhattan" => ri.iter().zip(&rj).map(|(a, b)| (a - b).abs()).sum::<f64>(),
                 _ => {
                     return Err(BioLangError::runtime(
@@ -526,11 +545,16 @@ fn builtin_row(args: Vec<Value>) -> Result<Value> {
     if i >= m.nrow {
         return Err(BioLangError::runtime(
             ErrorKind::IndexOutOfBounds,
-            format!("row index {} out of bounds for {}x{} matrix", i, m.nrow, m.ncol),
+            format!(
+                "row index {} out of bounds for {}x{} matrix",
+                i, m.nrow, m.ncol
+            ),
             None,
         ));
     }
-    Ok(Value::List(m.row(i).into_iter().map(Value::Float).collect()))
+    Ok(Value::List(
+        m.row(i).into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+    ))
 }
 
 fn builtin_mat_col(args: Vec<Value>) -> Result<Value> {
@@ -547,16 +571,23 @@ fn builtin_mat_col(args: Vec<Value>) -> Result<Value> {
     if j >= m.ncol {
         return Err(BioLangError::runtime(
             ErrorKind::IndexOutOfBounds,
-            format!("col index {} out of bounds for {}x{} matrix", j, m.nrow, m.ncol),
+            format!(
+                "col index {} out of bounds for {}x{} matrix",
+                j, m.nrow, m.ncol
+            ),
             None,
         ));
     }
-    Ok(Value::List(m.col(j).into_iter().map(Value::Float).collect()))
+    Ok(Value::List(
+        m.col(j).into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+    ))
 }
 
 fn builtin_trace(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "trace")?;
-    let t = m.trace().map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let t = m
+        .trace()
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(Value::Float(t))
 }
 
@@ -567,13 +598,17 @@ fn builtin_norm(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_determinant(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "determinant")?;
-    let d = m.determinant().map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let d = m
+        .determinant()
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(Value::Float(d))
 }
 
 fn builtin_inverse(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "inverse")?;
-    let inv = m.inverse().map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let inv = m
+        .inverse()
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(Value::Matrix(inv))
 }
 
@@ -599,38 +634,46 @@ fn builtin_solve(args: Vec<Value>) -> Result<Value> {
             ))
         }
     };
-    let x = a.solve(&b_vec).map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::List(x.into_iter().map(Value::Float).collect()))
+    let x = a
+        .solve(&b_vec)
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    Ok(Value::List(x.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
 }
 
 fn builtin_eigenvalues(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "eigenvalues")?;
-    let (vals, vecs) = m.eigen().map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let (vals, vecs) = m
+        .eigen()
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     let mut result = HashMap::new();
     result.insert(
         "values".to_string(),
-        Value::List(vals.into_iter().map(Value::Float).collect()),
+        Value::List(vals.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
     );
     result.insert("vectors".to_string(), Value::Matrix(vecs));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 fn builtin_svd(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "svd")?;
-    let (u, s, vt) = m.svd().map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let (u, s, vt) = m
+        .svd()
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     let mut result = HashMap::new();
     result.insert("u".to_string(), Value::Matrix(u));
     result.insert(
         "d".to_string(),
-        Value::List(s.into_iter().map(Value::Float).collect()),
+        Value::List(s.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
     );
     result.insert("vt".to_string(), Value::Matrix(vt));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 fn builtin_rank(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "rank")?;
-    let r = m.rank().map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let r = m
+        .rank()
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(Value::Int(r as i64))
 }
 
@@ -652,7 +695,11 @@ fn builtin_diag(args: Vec<Value>) -> Result<Value> {
                 Value::Int(n) => Ok(*n as f64),
                 Value::Float(f) => Ok(*f),
                 other => Err(BioLangError::type_error(
-                    format!("diag() element {} must be numeric, got {}", i, other.type_of()),
+                    format!(
+                        "diag() element {} must be numeric, got {}",
+                        i,
+                        other.type_of()
+                    ),
                     None,
                 )),
             })
@@ -673,4 +720,3 @@ fn builtin_diag(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(Value::Matrix(m))
 }
-

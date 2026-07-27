@@ -1,0 +1,29 @@
+# rnaseq — Bulk RNA-seq analysis for BioLang
+#
+# Handles loading from Salmon/featureCounts, QC, normalization,
+# and handoff to the differential package for DE analysis.
+#
+# Quick start:
+#   import "rnaseq" as rna
+#   import "differential" as de
+#
+#   let counts = rna.from_featurecounts("counts.txt")
+#   let counts = rna.filter_genes(counts)
+#   rna.library_sizes(counts)
+#   rna.correlation(counts)
+#   let norm = rna.normalize_sf(counts)
+#   # feed into de.deseq(counts, conditions)
+
+import "rnaseq/src/load" as load
+import "rnaseq/src/qc"   as qc
+
+fn from_salmon(path)                              { load.from_salmon(path) }
+fn from_featurecounts(path)                       { load.from_featurecounts(path) }
+fn from_csv(path)                                 { load.from_csv(path) }
+fn library_sizes(matrix)                          { qc.library_sizes(matrix) }
+fn correlation(matrix)                            { qc.correlation(matrix) }
+fn filter_genes(matrix, min_count=10, min_samples=2) { qc.filter_genes(matrix, min_count, min_samples) }
+fn normalize_tpm(matrix, lengths)                 { qc.normalize_tpm(matrix, lengths) }
+fn normalize_sf(matrix)                           { qc.normalize_sf(matrix) }
+fn size_factors(matrix)                           { size_factors(matrix) }
+fn tpm(matrix, lengths)                           { tpm_matrix(matrix, lengths) }

@@ -53,7 +53,7 @@ When Y is binary (0 or 1), linear regression has fundamental problems:
     <rect x="220" y="4" width="65" height="18" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="0.5"/>
     <text x="252" y="16" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">P > 1.0 !</text>
     <rect x="42" y="252" width="65" height="18" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="0.5"/>
-    <text x="74" y="264" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">P < 0.0 !</text>
+    <text x="74" y="264" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">P &lt; 0.0 !</text>
   </g>
   <!-- Right panel: Logistic -->
   <g transform="translate(360, 40)">
@@ -289,7 +289,8 @@ let pdl1 = rnorm(n, 30, 20) |> map(|x| max(min(x, 100), 0))
 let msi = rnorm(n, 0, 1) |> map(|x| if x > 1.0 { 1 } else { 0 })  # ~15% MSI-high
 
 # True response probability (logistic model)
-let log_odds = -3 + 0.15 * tmb + 0.02 * pdl1 + 1.5 * msi
+let log_odds = range(0, n)
+    |> map(|i| -3 + 0.15 * tmb[i] + 0.02 * pdl1[i] + 1.5 * msi[i])
 let prob = log_odds |> map(|x| 1.0 / (1.0 + exp(-x)))
 let response = prob |> map(|p| if rnorm(1, 0, 1)[0] < p { 1 } else { 0 })
 
@@ -297,7 +298,7 @@ print("Response rate: {(response |> sum) / n * 100 |> round(1)}%")
 
 # Fit logistic regression
 let glm_data = table({"response": response, "TMB": tmb, "PDL1": pdl1, "MSI": msi})
-let model = glm("response ~ TMB + PDL1 + MSI", glm_data, "binomial")
+let model = glm(~response ~ TMB + PDL1 + MSI, glm_data, "binomial")
 
 print("=== Logistic Regression Results ===")
 print("Intercept: {model.intercept |> round(3)}")
@@ -324,7 +325,8 @@ for i in 0..3 {
 
 ### ROC Curve and AUC
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Compute predicted probabilities from model
 let pred_prob = []
 for i in 0..n {
@@ -353,7 +355,8 @@ if auc_val >= 0.80 {
 
 ### Finding the Optimal Threshold
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Sensitivity/specificity at different thresholds
 let thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
@@ -389,13 +392,13 @@ for t in thresholds {
 
 ```bio
 # Logistic regression via the general GLM interface
-let model_glm = glm("response ~ TMB + PDL1 + MSI", glm_data, "binomial")
+let model_glm = glm(~response ~ TMB + PDL1 + MSI, glm_data, "binomial")
 
 # Same results, but now you can swap families:
 
 # Poisson regression for count data (e.g., number of mutations)
 # let count_data = table({"mutations": mutation_count, "exposure": exposure, "age": age})
-# let count_model = glm("mutations ~ exposure + age", count_data, "poisson")
+# let count_model = glm(~mutations ~ exposure + age, count_data, "poisson")
 ```
 
 ### Visualizing Predicted Probabilities
@@ -421,7 +424,8 @@ boxplot(bp_table, {title: "Predicted Probabilities by Actual Outcome"})
 
 ### Effect of Individual Predictors
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Show how each predictor shifts the probability curve
 # Fix other predictors at their means
 let tmb_range = [0, 5, 10, 15, 20, 25, 30]
@@ -498,11 +502,12 @@ let biomarker_a = rnorm(n, 50, 15)
 let biomarker_b = rnorm(n, 10, 4)
 let age = rnorm(n, 55, 12)
 
-let log_odds = -5 + 0.04 * biomarker_a + 0.2 * biomarker_b + 0.03 * age
+let log_odds = range(0, n)
+    |> map(|i| -5 + 0.04 * biomarker_a[i] + 0.2 * biomarker_b[i] + 0.03 * age[i])
 let prob = log_odds |> map(|x| 1.0 / (1.0 + exp(-x)))
 let cancer = prob |> map(|p| if rnorm(1, 0, 1)[0] < p { 1 } else { 0 })
 
-# 1. Fit glm("cancer ~ biomarker_a + biomarker_b + age", data, "binomial")
+# 1. Fit glm(~cancer ~ biomarker_a + biomarker_b + age, data, "binomial")
 # 2. Compute and interpret odds ratios: exp(coefficient) for each predictor
 # 3. Which biomarker has the strongest effect?
 # 4. What does the OR for age mean clinically?
@@ -530,8 +535,8 @@ set_seed(42)
 let n = 150
 
 # Simulate data where TMB is a moderate predictor and MSI adds substantial value
-# 1. Fit model_simple = glm("response ~ TMB", data, "binomial")
-# 2. Fit model_full = glm("response ~ TMB + PDL1 + MSI", data, "binomial")
+# 1. Fit model_simple = glm(~response ~ TMB, data, "binomial")
+# 2. Fit model_full = glm(~response ~ TMB + PDL1 + MSI, data, "binomial")
 # 3. Compare AUC values
 # 4. Plot both ROC curves
 # 5. Is the improvement worth the added complexity?
@@ -547,7 +552,7 @@ let n = 100
 let msi = rnorm(n, 0, 1) |> map(|x| if x > 0.84 { 1 } else { 0 })
 let response = msi  # perfect separation!
 
-# 1. Try fitting glm("response ~ msi", data, "binomial")
+# 1. Try fitting glm(~response ~ msi, data, "binomial")
 # 2. What happens to the coefficient and its standard error?
 # 3. Why is this a problem? (Hint: the MLE doesn't exist)
 # 4. How would you handle this in practice?

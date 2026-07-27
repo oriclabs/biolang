@@ -292,10 +292,7 @@ Differential expression analysis identifies genes whose expression differs signi
 let counts = csv("data/counts.csv")
 
 # Run differential expression analysis
-let de_results = diff_expr(counts,
-    control: ["normal_1", "normal_2", "normal_3"],
-    treatment: ["tumor_1", "tumor_2", "tumor_3"]
-)
+let de_results = diff_expr(counts, [0, 0, 0, 1, 1, 1])
 println(f"DE results: {nrow(de_results)} genes")
 println(de_results |> head(5))
 ```
@@ -430,16 +427,13 @@ The **volcano plot** is the classic differential expression visualization. It pl
 ```bio
 # requires: data/counts.csv in working directory
 let counts = csv("data/counts.csv")
-let de_results = diff_expr(counts,
-    control: ["normal_1", "normal_2", "normal_3"],
-    treatment: ["tumor_1", "tumor_2", "tumor_3"]
-)
+let de_results = diff_expr(counts, [0, 0, 0, 1, 1, 1])
 
 # Basic volcano plot
 volcano(de_results)
 
 # With thresholds highlighted
-volcano(de_results, fc_threshold: 1.0, p_threshold: 0.05, title: "Tumor vs Normal")
+volcano(de_results, {fc_threshold: 1.0, p_threshold: 0.05})
 ```
 
 The plot marks genes as:
@@ -529,10 +523,7 @@ let norm = tpm(counts, gene_lengths)
 println(f"3. TPM normalization complete")
 
 # Step 4: Differential expression
-let de = diff_expr(counts,
-    control: ["normal_1", "normal_2", "normal_3"],
-    treatment: ["tumor_1", "tumor_2", "tumor_3"]
-)
+let de = diff_expr(counts, [0, 0, 0, 1, 1, 1])
 
 # Step 5: Filter significant
 let sig = de
@@ -554,7 +545,7 @@ println(top_down)
 
 # Step 7: Visualize
 println("\n5. Generating volcano plot...")
-volcano(de, fc_threshold: 1.0, p_threshold: 0.05, title: "Tumor vs Normal DE")
+volcano(de, {fc_threshold: 1.0, p_threshold: 0.05})
 
 # Step 8: Export
 write_csv(sig, "results/significant_genes.csv")

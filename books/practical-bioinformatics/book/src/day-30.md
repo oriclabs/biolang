@@ -108,10 +108,14 @@ For our offline analysis, `init.bl` generates realistic synthetic sequences for 
 
 Let us begin the analysis. First, we load all ortholog sequences and examine their basic properties.
 
+> **Requires CLI:** TSV readers require the native runtime. Run the capstone
+> blocks together after `bl run init.bl`.
+
 ```bio
 let orthologs = read_fasta("data/orthologs.fasta")
+    |> filter(|s| starts_with(s.id, "tp53_"))
 
-let species_info = read_tsv("data/species_info.tsv")
+let species_info = tsv("data/species_info.tsv")
 
 let seq_table = orthologs |> map(|seq| {
     let name = seq.id
@@ -120,8 +124,8 @@ let seq_table = orthologs |> map(|seq| {
     {
         species: row_info.common_name,
         seq_id: name,
-        length_aa: len(seq.sequence),
-        gc: gc_content(seq.sequence)
+        length_aa: len(seq.seq),
+        gc: gc_content(seq.seq)
     }
 }) |> to_table()
 
@@ -135,7 +139,8 @@ Notice how the sequence lengths vary across species. Vertebrate p53 orthologs ar
 
 Different organisms can have subtly different amino acid preferences. Let us measure the composition of key residues:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn aa_frequency(sequence, residue) {
     let count = sequence |> split("") |> filter(|c| c == residue) |> len()
     round(float(count) / float(len(sequence)) * 100.0, 2)
@@ -147,7 +152,7 @@ let composition = orthologs |> map(|seq| {
     let info = species_info |> filter(|s| s.seq_id == seq.id)
     let row = { species: info[0].common_name }
     key_residues |> each(|r| {
-        row[r] = aa_frequency(seq.sequence, r)
+        row[r] = aa_frequency(seq.seq, r)
     })
     row
 }) |> to_table()
@@ -167,18 +172,18 @@ Now we compare sequences pairwise. BioLang provides two built-in tools for this:
 A dotplot places one sequence along each axis and marks positions where residues match. Conserved regions appear as diagonal lines. Insertions, deletions, and rearrangements break the diagonal.
 
 ```bio
-let human_seq = orthologs |> filter(|s| contains(s.id, "human")) |> map(|s| s.sequence)
-let mouse_seq = orthologs |> filter(|s| contains(s.id, "mouse")) |> map(|s| s.sequence)
+let human_seq = orthologs |> filter(|s| contains(s.id, "human")) |> map(|s| s.seq)
+let mouse_seq = orthologs |> filter(|s| contains(s.id, "mouse")) |> map(|s| s.seq)
 
-dotplot(human_seq[0], mouse_seq[0], "data/output/dotplot_human_mouse.svg")
+dotplot(human_seq[0], mouse_seq[0])
 ```
 
 For closely related species (human vs. mouse, ~90 Mya divergence), you will see a strong diagonal line --- high conservation across the full length. Let us also compare human to a distant species:
 
 ```bio
-let fly_seq = orthologs |> filter(|s| contains(s.id, "fly")) |> map(|s| s.sequence)
+let fly_seq = orthologs |> filter(|s| contains(s.id, "fly")) |> map(|s| s.seq)
 
-dotplot(human_seq[0], fly_seq[0], "data/output/dotplot_human_fly.svg")
+dotplot(human_seq[0], fly_seq[0])
 ```
 
 The human-fly dotplot shows a fragmented diagonal. The DNA-binding domain (approximately residues 100--290 in human p53) still shows conservation, but the N-terminal transactivation domain and C-terminal regulatory domain have diverged substantially.
@@ -186,6 +191,8 @@ The human-fly dotplot shows a fragmented diagonal. The DNA-binding domain (appro
 ### K-mer based similarity
 
 For quantitative comparison, we use k-mer overlap. Two sequences that share many k-mers are similar; those that share few are divergent. This does not require alignment --- it is an alignment-free similarity measure.
+
+> **Requires CLI:** This block continues the native capstone session.
 
 ```bio
 fn kmer_similarity(seq_a, seq_b, k) {
@@ -204,10 +211,10 @@ let similarities = orthologs |> map(|seq| {
     let info = species_info |> filter(|s| s.seq_id == seq.id)
     {
         species: info[0].common_name,
-        kmer3_similarity: kmer_similarity(human_protein, seq.sequence, 3),
-        kmer5_similarity: kmer_similarity(human_protein, seq.sequence, 5)
+        kmer3_similarity: kmer_similarity(human_protein, seq.seq, 3),
+        kmer5_similarity: kmer_similarity(human_protein, seq.seq, 5)
     }
-}) |> to_table() |> sort_by("kmer5_similarity", "desc")
+}) |> to_table() |> sort_by(|row| -row.kmer5_similarity)
 
 println("=== K-mer Similarity to Human TP53 ===")
 println(similarities)
@@ -257,7 +264,7 @@ fn window_identity(sequences, window_size) {
 
 let vertebrate_seqs = orthologs
     |> filter(|s| !contains(s.id, "fly") && !contains(s.id, "worm") && !contains(s.id, "yeast"))
-    |> map(|s| s.sequence)
+    |> map(|s| s.seq)
 
 let conservation = window_identity(vertebrate_seqs, 10)
 
@@ -311,8 +318,10 @@ You should see that the DNA-binding domain (residues 95--290) has the highest co
 
 Beyond conservation at the sequence level, we can compare the domain architecture --- which functional modules are present in each species' ortholog.
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```bio
-let domain_annotations = read_tsv("data/domain_annotations.tsv")
+let domain_annotations = tsv("data/domain_annotations.tsv")
 
 let architecture = species_info |> map(|sp| {
     let domains = domain_annotations |> filter(|d| d.seq_id == sp.seq_id)
@@ -340,7 +349,8 @@ The key observation: the DNA-binding domain is present in all animal orthologs. 
 
 To construct a phylogenetic tree, we need a distance matrix. We will use k-mer divergence as our distance metric. This is an alignment-free approach that works well for moderately divergent sequences.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn kmer_distance(seq_a, seq_b, k) {
     let sim = kmer_similarity(seq_a, seq_b, k)
     round(1.0 - sim, 4)
@@ -350,7 +360,7 @@ let species_names = orthologs |> map(|s| {
     let info = species_info |> filter(|sp| sp.seq_id == s.id)
     info[0].common_name
 })
-let sequences = orthologs |> map(|s| s.sequence)
+let sequences = orthologs |> map(|s| s.seq)
 
 let n = len(sequences)
 let dist_rows = range(0, n) |> map(|i| {
@@ -373,20 +383,19 @@ The distance matrix should reflect the known evolutionary relationships: human-m
 
 ## Section 8: Phylogenetic Tree Construction
 
-BioLang provides `phylo_tree()` for building a simple neighbor-joining tree from a distance matrix. This is a good first approximation --- for publication-quality trees, you would use external tools like RAxML, IQ-TREE, or MEGA.
+BioLang provides `phylo_tree()` for rendering a tree represented in Newick
+format. Build or infer the Newick tree with a dedicated phylogenetics tool,
+then use BioLang to inspect and render it.
 
 ```bio
-let labels = species_names
-let matrix = range(0, n) |> map(|i| {
-    range(0, n) |> map(|j| {
-        kmer_distance(sequences[i], sequences[j], 4)
-    })
-})
-
-phylo_tree(labels, matrix, "data/output/phylo_tree.svg")
+let tree_newick = "((Human:0.05,Mouse:0.06):0.04,(Chicken:0.16,(Frog:0.20,Zebrafish:0.23):0.05):0.08,(Fly:0.40,Yeast:0.70):0.15);"
+phylo_tree(tree_newick, {format: "svg", title: "TP53 family"})
 ```
 
-> **Honesty note**: The `phylo_tree()` builtin implements a basic neighbor-joining algorithm. For real research, you would export the distance matrix and use dedicated phylogenetics software (RAxML, IQ-TREE, BEAST, MrBayes) that supports bootstrapping, model selection, and Bayesian inference. BioLang is designed for data preparation and exploratory analysis, not as a replacement for specialized phylogenetic tools.
+> **Honesty note**: `phylo_tree()` is a Newick renderer, not a tree-inference
+> engine. For research, infer the tree with IQ-TREE, RAxML-NG, BEAST, or
+> MrBayes, including model selection and support estimation, then render the
+> resulting Newick tree in BioLang.
 
 ### Interpreting the tree
 
@@ -401,6 +410,8 @@ If the tree topology matches the known species tree, the gene evolved vertically
 ## Section 9: Evolutionary Rate Analysis
 
 Not all parts of a protein evolve at the same rate. Functionally critical residues are under strong purifying selection (slow evolution), while less important regions accumulate mutations freely. We can measure this by comparing the rate of change across domains.
+
+> **Requires CLI:** This block continues the native capstone session.
 
 ```bio
 fn domain_divergence(seqs, sp_info, domain_start, domain_end) {
@@ -421,6 +432,7 @@ fn domain_divergence(seqs, sp_info, domain_start, domain_end) {
     })
 }
 
+let sequences = orthologs |> map(|s| s.seq)
 let dbd_rates = domain_divergence(sequences, species_info, 95, 290)
 let tad_rates = domain_divergence(sequences, species_info, 0, 60)
 
@@ -442,10 +454,12 @@ println(rate_comparison)
 
 The ratio column tells the story. If the TAD evolves 2--3x faster than the DBD, the DNA-binding domain is under much stronger selective constraint. This is exactly what decades of p53 research have shown: mutations in the DNA-binding domain cause cancer, while the transactivation domain tolerates more variation.
 
+> **Requires CLI:** This block continues the native capstone session.
+
 ```bio
 let rate_table = rate_comparison
-scatter(rate_table, "divergence_mya", "dbd_rate", "data/output/rate_dbd.svg")
-scatter(rate_table, "divergence_mya", "tad_rate", "data/output/rate_tad.svg")
+scatter(col(rate_table, "divergence_mya"), col(rate_table, "dbd_rate"))
+scatter(col(rate_table, "divergence_mya"), col(rate_table, "tad_rate"))
 ```
 
 ---
@@ -475,7 +489,7 @@ first_10 |> each(|a| {
     println("  " + a.goId + " " + a.goName + " [" + a.goAspect + "]")
 })
 
-let network = string_network(["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"])
+let network = string_network(["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"], 9606)
 println("=== STRING Network (TP53 + partners) ===")
 println("  Interactions found: " + str(len(network)))
 
@@ -492,16 +506,18 @@ These external queries provide context that pure sequence analysis cannot: which
 
 Here is the full analysis assembled into a single, clean pipeline. This is what `scripts/analysis.bl` contains --- load data, compare sequences, score conservation, build a tree, measure evolutionary rates, and produce a summary report.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let orthologs = read_fasta("data/orthologs.fasta")
-let species_info = read_tsv("data/species_info.tsv")
-let domain_annotations = read_tsv("data/domain_annotations.tsv")
+    |> filter(|s| starts_with(s.id, "tp53_"))
+let species_info = tsv("data/species_info.tsv")
+let domain_annotations = tsv("data/domain_annotations.tsv")
 
 let species_names = orthologs |> map(|s| {
     let info = species_info |> filter(|sp| sp.seq_id == s.id)
     info[0].common_name
 })
-let sequences = orthologs |> map(|s| s.sequence)
+let sequences = orthologs |> map(|s| s.seq)
 let n = len(sequences)
 
 fn kmer_similarity(seq_a, seq_b, k) {
@@ -522,7 +538,7 @@ let seq_summary = orthologs |> map(|seq| {
     let info = species_info |> filter(|s| s.seq_id == seq.id)
     {
         species: info[0].common_name,
-        length_aa: len(seq.sequence),
+        length_aa: len(seq.seq),
         divergence_mya: info[0].divergence_mya
     }
 }) |> to_table()
@@ -534,34 +550,37 @@ let sim_table = orthologs |> map(|seq| {
     let info = species_info |> filter(|s| s.seq_id == seq.id)
     {
         species: info[0].common_name,
-        kmer3_sim: kmer_similarity(human_protein, seq.sequence, 3),
-        kmer5_sim: kmer_similarity(human_protein, seq.sequence, 5)
+        kmer3_sim: kmer_similarity(human_protein, seq.seq, 3),
+        kmer5_sim: kmer_similarity(human_protein, seq.seq, 5)
     }
-}) |> to_table() |> sort_by("kmer5_sim", "desc")
+}) |> to_table() |> sort_by(|row| -row.kmer5_sim)
 
 write_tsv(sim_table, "data/output/similarity_table.tsv")
 
-dotplot(sequences[0], sequences[1], "data/output/dotplot_human_mouse.svg")
-dotplot(sequences[0], sequences[5], "data/output/dotplot_human_fly.svg")
+let human_mouse_dotplot = dotplot(sequences[0], sequences[1], {format: "svg"})
+let human_fly_dotplot = dotplot(sequences[0], sequences[7], {format: "svg"})
+save_plot(human_mouse_dotplot, "data/output/dotplot_human_mouse.svg")
+save_plot(human_fly_dotplot, "data/output/dotplot_human_fly.svg")
 
 let dist_matrix = range(0, n) |> map(|i| {
-    let row = { species: species_names[i] }
-    range(0, n) |> each(|j| {
-        row[species_names[j]] = kmer_distance(sequences[i], sequences[j], 4)
-    })
-    row
+    {
+        species: species_names[i],
+        Human: kmer_distance(sequences[i], sequences[0], 4),
+        Mouse: kmer_distance(sequences[i], sequences[1], 4),
+        Rat: kmer_distance(sequences[i], sequences[2], 4),
+        Dog: kmer_distance(sequences[i], sequences[3], 4),
+        Chicken: kmer_distance(sequences[i], sequences[4], 4),
+        Zebrafish: kmer_distance(sequences[i], sequences[5], 4),
+        Frog: kmer_distance(sequences[i], sequences[6], 4),
+        Fruit_fly: kmer_distance(sequences[i], sequences[7], 4)
+    }
 }) |> to_table()
 
 write_tsv(dist_matrix, "data/output/distance_matrix.tsv")
 
-let labels = species_names
-let matrix = range(0, n) |> map(|i| {
-    range(0, n) |> map(|j| {
-        kmer_distance(sequences[i], sequences[j], 4)
-    })
-})
-
-phylo_tree(labels, matrix, "data/output/phylo_tree.svg")
+let tree_newick = "((Human:0.05,Mouse:0.06,Rat:0.06,Dog:0.08):0.04,(Chicken:0.16,(Frog:0.20,Zebrafish:0.23):0.05):0.08,Fruit_fly:0.40);"
+let tree_svg = phylo_tree(tree_newick, {format: "svg", title: "TP53 family"})
+save_plot(tree_svg, "data/output/phylo_tree.svg")
 
 let domain_regions = [
     { name: "N-terminal_TAD", start: 0, end_pos: 60 },
@@ -599,11 +618,17 @@ fn window_identity(seqs, window_size) {
 
 let vertebrate_seqs = orthologs
     |> filter(|s| !contains(s.id, "fly") && !contains(s.id, "worm") && !contains(s.id, "yeast"))
-    |> map(|s| s.sequence)
+    |> map(|s| s.seq)
 
 let conservation = window_identity(vertebrate_seqs, 10)
 let cons_table = conservation |> to_table()
-line(cons_table, "position", "conservation", "data/output/conservation_profile.svg")
+let conservation_svg = plot(cons_table, {
+    type: "line",
+    x: "position",
+    y: "conservation",
+    title: "TP53 conservation profile"
+})
+save_plot(conservation_svg, "data/output/conservation_profile.svg")
 
 let domain_cons = domain_regions |> map(|d| {
     let region = conservation |> filter(|w| w.position >= d.start && w.position < d.end_pos)
@@ -660,8 +685,22 @@ let evo_rates = range(0, len(dbd)) |> map(|i| {
 }) |> to_table()
 
 write_tsv(evo_rates, "data/output/evolutionary_rates.tsv")
-scatter(evo_rates, "divergence_mya", "dbd_rate", "data/output/rate_dbd.svg")
-scatter(evo_rates, "divergence_mya", "tad_rate", "data/output/rate_tad.svg")
+let dbd_rate_svg = plot(evo_rates, {
+    type: "scatter",
+    x: "divergence_mya",
+    y: "dbd_rate",
+    title: "DNA-binding domain evolutionary rate"
+})
+let tad_rate_svg = plot(evo_rates, {
+    type: "scatter",
+    x: "divergence_mya",
+    y: "tad_rate",
+    title: "Transactivation domain evolutionary rate"
+})
+save_plot(dbd_rate_svg, "data/output/rate_dbd.svg")
+save_plot(tad_rate_svg, "data/output/rate_tad.svg")
+
+let sequence_lengths = col(seq_summary, "length_aa")
 
 let summary_lines = [
     "=== Multi-Species TP53 Gene Family Analysis ===",
@@ -670,9 +709,9 @@ let summary_lines = [
     "Vertebrate orthologs: " + str(len(vertebrate_seqs)),
     "",
     "Sequence lengths (aa):",
-    "  Min: " + str(seq_summary |> select("length_aa") |> map(|r| r.length_aa) |> min()),
-    "  Max: " + str(seq_summary |> select("length_aa") |> map(|r| r.length_aa) |> max()),
-    "  Mean: " + str(round(seq_summary |> select("length_aa") |> map(|r| float(r.length_aa)) |> mean(), 1)),
+    "  Min: " + str(min(sequence_lengths)),
+    "  Max: " + str(max(sequence_lengths)),
+    "  Mean: " + str(round(mean(sequence_lengths), 1)),
     "",
     "Domain conservation (vertebrates):",
     "  DNA-binding domain: " + str((domain_cons |> filter(|r| r.domain == "DNA-binding"))[0].mean_conservation),
@@ -711,7 +750,7 @@ This capstone demonstrates the structure and logic of comparative genomics. But 
 **What we did:**
 - Alignment-free sequence comparison (k-mer similarity)
 - Position-based conservation scoring (approximate)
-- Neighbor-joining tree from k-mer distances
+- Pairwise k-mer distance matrix plus an illustrative Newick tree
 - Domain architecture comparison
 - Evolutionary rate analysis across domains
 

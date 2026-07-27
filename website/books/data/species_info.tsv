@@ -1,0 +1,9 @@
+seq_id	common_name	scientific_name	divergence_mya	seq_length
+tp53_human	Human	Homo sapiens	0	120
+tp53_mouse	Mouse	Mus musculus	90	120
+tp53_rat	Rat	Rattus norvegicus	90	120
+tp53_dog	Dog	Canis lupus familiaris	96	120
+tp53_chicken	Chicken	Gallus gallus	320	120
+tp53_frog	Frog	Xenopus laevis	352	120
+tp53_zebrafish	Zebrafish	Danio rerio	435	120
+tp53_fly	Fruit fly	Drosophila melanogaster	797	120

@@ -1,0 +1,24 @@
+# Peak set operations.
+
+fn load_bed(bed_path) {
+  read_csv(bed_path, sep="\t", header=false)
+    |> rename_columns(["chrom", "start", "end"])
+}
+
+fn load_narrowpeak(np_path) {
+  read_csv(np_path, sep="\t", header=false)
+    |> rename_columns(["chrom", "start", "end", "name", "score", "strand", "signal", "pvalue", "qvalue", "summit"])
+}
+
+fn merge(peaks_table)                        { merge_peaks(peaks_table) }
+fn consensus(peak_list, min_samples=2)       { consensus_peaks(peak_list, min_samples) }
+fn annotate(peaks, genes)                    { peak_annotation(peaks, genes) }
+fn n_peaks(table)                            { len(table) }
+
+fn filter_blacklist(peaks, blacklist) {
+  peaks |> filter(fn(p) ->
+    !(blacklist |> any(fn(b) ->
+      b.chrom == p.chrom & b.start < p.end & b.end > p.start
+    ))
+  )
+}

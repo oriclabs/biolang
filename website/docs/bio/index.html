@@ -84,8 +84,9 @@ let prot = protein"MKTLVFGADRHWYCNQEIPS"</code></pre>
         <h2>Format Support</h2>
         <p>
           BioLang has built-in readers and writers for the most common bioinformatics file formats.
-          All format functions return lazy streams by default, enabling processing of files larger
-          than available memory:
+          Short readers such as <code>fasta()</code>, <code>fastq()</code>, and
+          <code>vcf()</code> return lazy streams for files larger than memory. The
+          corresponding <code>read_*</code> functions load reusable data:
         </p>
         <ul>
           <li><strong class="text-violet-400">FASTA / FASTQ</strong> &mdash; Sequence data with quality scores</li>
@@ -102,8 +103,8 @@ records = read_fasta("data/sequences.fasta")
 
 # Process with pipes
 records
-  |> filter(|r| len(r.sequence) > 1000)
-  |> map(|r| { id: r.id, gc: gc_content(r.sequence) })
+  |> filter(|r| len(r.seq) > 1000)
+  |> map(|r| { id: r.id, gc: gc_content(r.seq) })
   |> to_table()
   |> print()</code></pre>
 

@@ -14,19 +14,19 @@ print("Loaded GWAS data: " + str(len(gwas)) + " variants")
 
 # Manhattan plot (ASCII)
 print("\nManhattan plot:")
-manhattan(gwas, title: "Genome-Wide Association Study")
+manhattan(gwas, {title: "Genome-Wide Association Study"})
 
 # QQ plot
 let pvalues = col(gwas, "pvalue") |> collect()
 print("\nQQ plot:")
-qq_plot(pvalues, title: "QQ Plot — Observed vs Expected")
+qq_plot(pvalues, {title: "QQ Plot - Observed vs Expected"})
 
 # Save SVG versions
-let svg = manhattan(gwas, format: "svg", title: "GWAS Results")
+let svg = manhattan(gwas, {format: "svg", title: "GWAS Results"})
 save_svg(svg, "figures/manhattan.svg")
 print("\nSaved figures/manhattan.svg")
 
-let qq_svg = qq_plot(pvalues, format: "svg", title: "QQ Plot")
+let qq_svg = qq_plot(pvalues, {format: "svg", title: "QQ Plot"})
 save_svg(qq_svg, "figures/qq_plot.svg")
 print("Saved figures/qq_plot.svg")
 

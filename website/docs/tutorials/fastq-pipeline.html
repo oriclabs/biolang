@@ -150,38 +150,34 @@ print(f"GC range: {min(gc_values)} - {max(gc_values)}")</code></pre>
         <p>
           Low-quality reads introduce errors in downstream analysis. Let us filter them out.
         </p>
-        <pre><code class="language-biolang"># filter_reads filters a stream by "quality" or "length" criterion
-# filter_reads(stream, criterion, threshold)
+        <pre><code class="language-biolang"># filter_reads(input_path, output_path, options)
+let result = filter_reads(
+  "data/reads.fastq",
+  "data/reads.filtered.fastq",
+  {
+    min_quality: 20,
+    min_len: 50,
+    max_n: 5,
+    complexity: 0.3
+  }
+)
 
-# Filter reads with mean quality >= 20
-let passed = filter_reads(reads, "quality", 20)
-let passed_list = collect(passed)
-print(f"Passed quality filter: {len(passed_list)} reads")
-
-# Filter by minimum length
-let long_reads = filter_reads(reads, "length", 50)
-let long_list = collect(long_reads)
-print(f"Passed length filter: {len(long_list)} reads")
-
-# Chain filters using the pipe operator — |> into binds the result
-reads
-  |> filter_reads("quality", 20)
-  |> filter_reads("length", 50)
-  |> collect()
-  |> into clean
-
-print(f"After both filters: {len(clean)} reads")</code></pre>
+print(f"Passed filters: {result.passed} of {result.total} reads")
+let clean = read_fastq(result.output)</code></pre>
 
         <!-- Step 5 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Trimming Low-Quality Ends</h2>
         <p>
           Instead of discarding entire reads, we can trim low-quality bases from the 3' end.
         </p>
-        <pre><code class="language-biolang"># trim_quality(stream, threshold, min_len) trims low-quality
-# bases from read ends and discards reads shorter than min_len
-let trimmed = trim_quality(reads, 20, 30)
-let trimmed_list = collect(trimmed)
-print(f"After trimming: {len(trimmed_list)} reads")
+        <pre><code class="language-biolang"># trim_quality(input_path, output_path, threshold) trims the 3' end
+let trim_result = trim_quality(
+  "data/reads.fastq",
+  "data/reads.trimmed.fastq",
+  20
+)
+let trimmed_list = read_fastq(trim_result.output)
+print(f"After trimming: {trim_result.passed_reads} reads")
 
 # Compare stats before and after
 let raw_stats = read_stats(reads)
@@ -189,12 +185,13 @@ let trim_stats = read_stats(trimmed_list)
 print(f"Mean length before: {round(raw_stats.mean_length, 1)}")
 print(f"Mean length after:  {round(trim_stats.mean_length, 1)}")
 
-# You can also trim a fixed number of bases from read ends
-# trim_reads(stream, n) trims n bases from the 3' end
-# trim_reads(stream, n, "both") trims from both ends
-let hard_trimmed = trim_reads(reads, 10)
-let hard_list = collect(hard_trimmed)
-print(f"After hard trim: {len(hard_list)} reads")</code></pre>
+# Sliding-window trimming can also enforce a minimum length
+let window_result = trim_reads(
+  "data/reads.fastq",
+  "data/reads.window-trimmed.fastq",
+  {quality: 20, min_len: 30, window: 4, cut_front: true, cut_tail: true}
+)
+print(f"After window trimming: {window_result.passed_reads} reads")</code></pre>
 
         <!-- Step 6 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — K-mer Counting</h2>
@@ -243,14 +240,15 @@ print(detected)</code></pre>
 
 fn run_qc(input_path, output_path) {
   print(f"Reading {input_path}...")
-  let raw = fastq(input_path)
-
-  # Pipeline: trim quality -> filter by quality -> filter by length
-  let clean = raw
-    |> trim_quality(20, 30)
-    |> filter_reads("quality", 25)
-    |> filter_reads("length", 50)
-    |> collect()
+  # Trim and filter in one file-to-file pass
+  let trimming = trim_reads(input_path, output_path, {
+    quality: 25,
+    min_len: 50,
+    window: 4,
+    cut_front: true,
+    cut_tail: true
+  })
+  let clean = read_fastq(output_path)
 
   # Compute stats on both raw and clean
   let raw_stats = read_stats(read_fastq(input_path))
@@ -265,9 +263,7 @@ fn run_qc(input_path, output_path) {
   print(f"Mean GC:      {round(raw_stats.gc_content, 4)}   {round(clean_stats.gc_content, 4)}")
   print(f"Q30 %%:        {round(raw_stats.q30_pct, 1)}      {round(clean_stats.q30_pct, 1)}")
 
-  # Write clean reads
-  write_fastq(clean, output_path)
-  print(f"\nWrote {len(clean)} clean reads to {output_path}")
+  print(f"\nWrote {trimming.passed_reads} clean reads to {output_path}")
 }
 
 # Run the pipeline
@@ -315,7 +311,7 @@ print("Summary saved to examples/qc_summary.csv")</code></pre>
           <ul class="space-y-1 text-slate-400 text-sm">
             <li>For large files, use <code>fastq()</code> (stream) instead of <code>read_fastq()</code> (table) to process reads in constant memory. See the <a href="streaming.html" class="text-cyan-400 hover:underline">Streaming tutorial</a>.</li>
             <li>The pipe operator <code>|&gt;</code> lets you build readable pipelines. Each step receives the output of the previous step.</li>
-            <li>Use <code>bl run --verbose qc.bio</code> to see timing information for each step.</li>
+            <li>Use <code>:time &lt;expression&gt;</code> in the BioLang REPL to measure an expensive expression.</li>
           </ul>
         </div>
 

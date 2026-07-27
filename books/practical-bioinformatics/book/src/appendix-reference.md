@@ -34,7 +34,7 @@ x = 100
 | `Protein` | `protein"MARS"` | Amino acid sequence |
 | `List` | `[1, 2, 3]` | Ordered collection |
 | `Record` | `{name: "A", val: 1}` | Named fields |
-| `Table` | `to_table(rows, cols)` | 2D data structure |
+| `Table` | `to_table(rows)` | 2D data structure from records |
 | `Interval` | `interval("chr1", 100, 200)` | Genomic region |
 | `Function` | `fn(x) { x + 1 }` | Named function |
 | `Closure` | `\|x\| x + 1` | Anonymous function |
@@ -74,7 +74,8 @@ data
 
 Named functions:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let square = fn(x) {
   x * x
 }
@@ -109,19 +110,21 @@ nums |> filter(|x| x > 3) # [4, 5]
 
 ### Tables
 
-```bio
-let t = to_table(rows, ["name", "value", "score"])
+```text
+# Conceptual or diagnostic example; not directly executable.
+let t = to_table(rows)
 t |> select("name", "score")
 t |> where(|row| row.score > 0.5)
 t |> mutate("log_score", |row| log2(row.score))
 t |> summarize(|key, rows| {category: key, mean_score: mean(rows |> col("score"))})
 t |> group_by("category")
-t |> sort_by("score", "desc")
+t |> sort_by(|row| -row.score)
 ```
 
 ### Control Flow
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # If/else
 if x > 0 then
   println("positive")
@@ -142,7 +145,8 @@ end
 
 ### Error Handling
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 try
   let data = read_fasta("missing.fa")
 catch e
@@ -197,14 +201,14 @@ h.my_function()
 
 | Function | Description |
 |----------|-------------|
-| `to_table(rows, columns)` | Create table from row data and column names |
+| `to_table(records)` | Create a table from a list of records |
 | `select(table, "col1", "col2", ...)` | Select columns by name |
 | `where(table, predicate)` | Filter rows by condition |
 | `mutate(table, name, func)` | Add or transform a column |
 | `summarize(grouped, \|key, rows\| {...})` | Aggregate grouped data |
 | `join_tables(t1, t2, key)` | Join two tables on a key column |
 | `group_by(table, column)` | Group rows by column value |
-| `sort_by(table, column, order)` | Sort rows (`"asc"` or `"desc"`) |
+| `sort_by(table, key_fn)` | Sort rows by a key; negate numeric keys for descending order |
 
 ### Statistics
 
@@ -352,7 +356,12 @@ The `bl` command-line tool:
 | `bl run script.bl` | Execute a BioLang script |
 | `bl repl` | Start interactive REPL (also: `bl` with no args) |
 | `bl lsp` | Start the Language Server Protocol server |
-| `bl init project-name` | Scaffold a new project directory |
+| `bl init --name project-name` | Initialize the current directory as a package |
+| `bl install [path]` | Install manifest dependencies or a local package |
+| `bl import file.py --validate -o file.bl` | Convert Python, R, Jupyter, or R Markdown |
+| `bl notebook report.bln` | Run a BioLang notebook |
+| `bl doctor` | Check runtime capabilities and external tools |
+| `bl metadata --format json` | Export language and builtin metadata |
 | `bl plugins` | List installed plugins |
 
 ### Common Usage Patterns
@@ -363,11 +372,7 @@ Run a script:
 bl run analysis.bl
 ```
 
-Run a one-liner:
-
-```bash
-bl -e 'gc_content(dna"ATGCGATCG") |> println()'
-```
+For a quick expression without creating a file, start `bl repl`.
 
 Start the REPL and load a file:
 
@@ -389,8 +394,8 @@ NCBI_API_KEY=your-key bl run fetch_genes.bl
 
 ```bio
 read_fastq("data/reads.fastq")
-  |> filter(|r| r.quality >= 30)
-  |> map(|r| gc_content(r.sequence))
+  |> filter(|r| mean_phred(r.quality) >= 30)
+  |> map(|r| gc_content(r.seq))
   |> mean()
 ```
 
@@ -416,8 +421,8 @@ let rows = reads |> map(|r| {
   gc: gc_content(r.sequence),
   quality: r.quality
 })
-let t = to_table(rows, ["name", "length", "gc", "quality"])
-t |> sort_by("gc", "desc") |> write_csv("summary.csv")
+let t = to_table(rows)
+t |> sort_by(|row| -row.gc) |> write_csv("summary.csv")
 ```
 
 > **Requires CLI:** This example uses file I/O not available in the browser. Run with `bl run`.
@@ -435,14 +440,15 @@ println(f"Found {len(motifs)} TATA boxes in TP53")
 
 ### Multi-Step Pipeline with Error Handling
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 try
   let variants = read_vcf("data/variants.vcf")
   let filtered = variants
     |> filter(|v| v.quality >= 30)
     |> filter(|v| v.alt != ".")
   println(f"Kept {len(filtered)} of {len(variants)} variants")
-  write_csv(to_table(filtered, keys(filtered[0])), "filtered.csv")
+  write_csv(to_table(filtered), "filtered.csv")
 catch e
   println(f"Pipeline failed: {e}")
 end
@@ -462,7 +468,7 @@ let results = files |> par_map(|f| {
     mean_gc: reads |> map(|r| gc_content(r.sequence)) |> mean()
   }
 })
-to_table(results, ["file", "count", "mean_gc"]) |> write_csv("batch_results.csv")
+to_table(results) |> write_csv("batch_results.csv")
 ```
 
 > **Requires CLI:** This example uses file I/O not available in the browser. Run with `bl run`.

@@ -1,0 +1,17 @@
+import "qpcr" as qpcr
+
+# Standard curve → efficiency
+let standard_cts  = [15.2, 18.5, 21.8, 25.1, 28.4]
+let log_dilutions = [0.0, -1.0, -2.0, -3.0, -4.0]
+let eff = qpcr.efficiency(standard_cts, log_dilutions)
+
+# Single comparison (sample vs reference gene vs control condition)
+let sample_ct   = 28.5
+let ref_ct      = 22.0
+let dct         = qpcr.dct(sample_ct, ref_ct)
+let control_dct = 6.2
+let fold_change = qpcr.ddct(dct, control_dct)
+
+# Plate-level: ct_table is genes × samples, rows 0+1 are reference genes
+# let norm = qpcr.normalize(ct_table, ref_indices=[0, 1])
+# qpcr.stability(ct_table, ref_indices=[0, 1])

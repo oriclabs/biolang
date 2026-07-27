@@ -115,7 +115,7 @@ go
 let cancer_genes = ["BRCA1", "TP53", "EGFR", "KRAS", "PIK3CA", "PTEN"]
 
 let comparison = cancer_genes |> map(|gene| {
-  let results = uniprot_search("gene:{gene} AND organism_id:9606 AND reviewed:true")
+  let results = uniprot_search(f"gene:{gene} AND organism_id:9606 AND reviewed:true")
   let entry = uniprot_entry(results[0].accession)
 
   {

@@ -1,0 +1,25 @@
+# celltypes — Automated cell type annotation for BioLang
+#
+# Two approaches:
+#   1. Reference-based: k-NN cosine similarity to a labelled atlas (reference_classify builtin)
+#   2. Marker-based: score cells against curated marker gene index lists
+#
+# Quick start:
+#   import "celltypes" as ct
+#
+#   let obj = ct.from_reference(obj, ref_matrix, ref_labels)
+#   ct.type_counts(obj)
+#   ct.low_confidence(obj, 0.7)
+
+import "celltypes/src/classify" as classify
+import "celltypes/src/markers"  as markers
+
+fn from_reference(obj, ref_matrix, ref_labels) {
+  classify.from_reference(obj, ref_matrix, ref_labels)
+}
+fn get_labels(obj)                  { classify.get_labels(obj) }
+fn confidence_table(obj)            { classify.confidence_table(obj) }
+fn low_confidence(obj, t = 0.6)     { classify.low_confidence(obj, t) }
+fn type_counts(obj)                 { classify.type_counts(obj) }
+fn score_markers(obj, marker_sets)  { markers.score_markers(obj, marker_sets) }
+fn top_type_per_cell(obj)           { markers.top_type_per_cell(obj) }

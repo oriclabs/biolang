@@ -192,9 +192,10 @@ print(f"Impact: {vep.impact}")
 print("\n=== Step 10: Complete Protein Reports ===\n")
 
 fn protein_report(accession) {
-    print(f"\n{'=' * 50}")
+    let divider = repeat("=", 50)
+    print(f"\n{divider}")
     print(f"Protein Report: {accession}")
-    print(f"{'=' * 50}\n")
+    print(f"{divider}\n")
 
     let entry = uniprot_entry(accession)
     print(f"Name: {entry.name}")

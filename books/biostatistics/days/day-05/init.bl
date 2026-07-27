@@ -27,23 +27,23 @@ for i in range(0, 280) {
     let maf = round(0.001 + (i % 50) * 0.001, 4)
     let chr = chroms[i % 25]
     let pos = pos_base + i * 50000
-    pop_lines = append(pop_lines, f"rs{1000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
+    pop_lines = push(pop_lines, f"rs{1000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
 }
 # Low-frequency variants (120 SNPs, MAF 0.05-0.15)
 for i in range(0, 120) {
     let maf = round(0.050 + (i % 20) * 0.005, 3)
     let chr = chroms[i % 25]
     let pos = pos_base + 15000000 + i * 80000
-    pop_lines = append(pop_lines, f"rs{2000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
+    pop_lines = push(pop_lines, f"rs{2000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
 }
 # Common variants (100 SNPs, MAF 0.15-0.50)
 for i in range(0, 100) {
     let maf = round(0.150 + i * 0.0035, 3)
     let chr = chroms[i % 25]
     let pos = pos_base + 25000000 + i * 120000
-    pop_lines = append(pop_lines, f"rs{3000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
+    pop_lines = push(pop_lines, f"rs{3000000 + i},{chr},{pos},{refs[i % 10]},{alts[i % 10]},{maf}")
 }
-write_lines(pop_lines, "data/population_allele_freq.csv")
+write_lines("data/population_allele_freq.csv", pop_lines)
 
 # --- File 2: sampling_demo.csv ---
 # Pre-computed sample means for CLT demonstration
@@ -89,10 +89,10 @@ for s in range(0, 4) {
     let sz = sizes[s]
     let ms = all_means[s]
     for r in range(0, 50) {
-        samp_lines = append(samp_lines, f"{sz},{r + 1},{ms[r]}")
+        samp_lines = push(samp_lines, f"{sz},{r + 1},{ms[r]}")
     }
 }
-write_lines(samp_lines, "data/sampling_demo.csv")
+write_lines("data/sampling_demo.csv", samp_lines)
 
 println("Generated 2 files in data/")
 println("  data/population_allele_freq.csv — 500 SNPs, 1000 Genomes EUR MAFs")

@@ -376,9 +376,9 @@ histogram(col(dp_table, "count"), {
 # protein_report.bl — full protein analysis pipeline
 
 fn analyze_protein(accession) {
-  print(f"\n{'=' * 60}")
+  print("\n" + repeat("=", 60))
   print(f"Analyzing {accession}")
-  print(f"{'=' * 60}")
+  print(repeat("=", 60))
 
   # Fetch all data from UniProt
   let entry    = uniprot_entry(accession)
