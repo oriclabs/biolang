@@ -167,3 +167,174 @@ url = "https://rosalind.info/problems/dag/"
 status = "solved"
 asserted = true
 topics = ["graphs"]
+
+[[problem]]
+id = "DIJ"
+title = "Dijkstra's Algorithm"
+file = "examples/dij.bl"
+url = "https://rosalind.info/problems/dij/"
+status = "solved"
+asserted = true
+topics = ["graphs", "shortest-paths"]
+
+[[problem]]
+id = "HS"
+title = "Heap Sort"
+file = "examples/hs.bl"
+url = "https://rosalind.info/problems/hs/"
+status = "solved"
+asserted = true
+topics = ["sorting", "heaps"]
+
+[[problem]]
+id = "INV"
+title = "Counting Inversions"
+file = "examples/inv.bl"
+url = "https://rosalind.info/problems/inv/"
+status = "solved"
+asserted = true
+note = "Counted during the merge rather than pairwise, so this is n log n where INS's swap count is quadratic. The two problems ask for the same number."
+topics = ["sorting", "divide-and-conquer"]
+
+[[problem]]
+id = "PAR3"
+title = "3-Way Partition"
+file = "examples/par3.bl"
+url = "https://rosalind.info/problems/par3/"
+status = "solved"
+asserted = true
+note = "Dutch national flag. Any valid arrangement is accepted, so the three regions are asserted rather than one output; this one happens to match the sample."
+topics = ["sorting"]
+
+[[problem]]
+id = "SQ"
+title = "Square in a Graph"
+file = "examples/sq.bl"
+url = "https://rosalind.info/problems/sq/"
+status = "solved"
+asserted = true
+topics = ["graphs"]
+
+[[problem]]
+id = "BF"
+title = "Bellman-Ford Algorithm"
+file = "examples/bf.bl"
+url = "https://rosalind.info/problems/bf/"
+status = "solved"
+asserted = true
+topics = ["graphs", "shortest-paths"]
+
+[[problem]]
+id = "CTE"
+title = "Shortest Cycle Through a Given Edge"
+file = "examples/cte.bl"
+url = "https://rosalind.info/problems/cte/"
+status = "solved"
+asserted = true
+topics = ["graphs", "shortest-paths"]
+
+[[problem]]
+id = "MED"
+title = "Median"
+file = "examples/med.bl"
+url = "https://rosalind.info/problems/med/"
+status = "solved"
+asserted = true
+note = "Quickselect: recurses into one side only, so it answers the question without sorting. Cross-checked against sorting in the assertion."
+topics = ["searching", "selection"]
+
+[[problem]]
+id = "PS"
+title = "Partial Sort"
+file = "examples/ps.bl"
+url = "https://rosalind.info/problems/ps/"
+status = "solved"
+asserted = true
+topics = ["sorting", "selection"]
+
+[[problem]]
+id = "TS"
+title = "Topological Sorting"
+file = "examples/ts.bl"
+url = "https://rosalind.info/problems/ts/"
+status = "solved"
+asserted = true
+note = "Any order with every edge pointing forwards is accepted, so that property is asserted rather than the sample text."
+topics = ["graphs", "ordering"]
+
+[[problem]]
+id = "HDAG"
+title = "Hamiltonian Path in DAG"
+file = "examples/hdag.bl"
+url = "https://rosalind.info/problems/hdag/"
+status = "solved"
+asserted = true
+note = "Hard in general, easy on a DAG: a Hamiltonian path exists exactly when consecutive vertices of the topological order are joined by an edge."
+topics = ["graphs", "ordering"]
+
+[[problem]]
+id = "NWC"
+title = "Negative Weight Cycle"
+file = "examples/nwc.bl"
+url = "https://rosalind.info/problems/nwc/"
+status = "solved"
+asserted = true
+note = "Every distance starts at 0, not just vertex 1, so a cycle unreachable from vertex 1 is still found."
+topics = ["graphs", "shortest-paths"]
+
+[[problem]]
+id = "QS"
+title = "Quick Sort"
+file = "examples/qs.bl"
+url = "https://rosalind.info/problems/qs/"
+status = "solved"
+asserted = true
+topics = ["sorting", "recursion"]
+
+[[problem]]
+id = "SCC"
+title = "Strongly Connected Components"
+file = "examples/scc.bl"
+url = "https://rosalind.info/problems/scc/"
+status = "solved"
+asserted = true
+note = "Kosaraju, both passes iterative: a recursive depth-first search reads better but its depth is the length of a path, and the track allows 10^3 vertices."
+topics = ["graphs"]
+
+[[problem]]
+id = "2SAT"
+title = "2-Satisfiability"
+file = "examples/2sat.bl"
+url = "https://rosalind.info/problems/2sat/"
+status = "solved"
+asserted = true
+note = "The hardest problem in the track and the one that pays off the rest: the implication graph is solved with the same Kosaraju pass SCC uses. Answers are checked by substituting them back into the formula, since any satisfying assignment is accepted."
+topics = ["graphs", "satisfiability"]
+
+[[problem]]
+id = "GS"
+title = "General Sink"
+file = "examples/gs.bl"
+url = "https://rosalind.info/problems/gs/"
+status = "solved"
+asserted = true
+topics = ["graphs"]
+
+[[problem]]
+id = "SC"
+title = "Semi-Connected Graph"
+file = "examples/sc.bl"
+url = "https://rosalind.info/problems/sc/"
+status = "solved"
+asserted = true
+topics = ["graphs"]
+
+[[problem]]
+id = "SDAG"
+title = "Shortest Paths in DAG"
+file = "examples/sdag.bl"
+url = "https://rosalind.info/problems/sdag/"
+status = "solved"
+asserted = true
+note = "Relaxing once in topological order is linear, where Bellman-Ford needs n-1 rounds; acyclicity is what buys that."
+topics = ["graphs", "shortest-paths"]

@@ -1,5 +1,3 @@
-/* @ts-self-types="./bl_wasm.d.ts" */
-
 /**
  * Evaluate BioLang source code. Returns JSON: `{ok, value, type, output, error}`
  * @param {string} source

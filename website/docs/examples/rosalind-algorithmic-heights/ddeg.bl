@@ -1,0 +1,39 @@
+# Rosalind: DDEG — Double-Degree Array
+# https://rosalind.info/problems/ddeg/
+#
+# Given: A simple graph with n vertices in the edge list format.
+# Return: An array D[1..n] where D[i] is the sum of the degrees of i's neighbours.
+
+let n = 5
+let edges = [[1, 2], [2, 3], [4, 3], [2, 4]]
+
+# Two passes rather than one: the neighbour sum for a vertex needs every degree
+# to be final first, so the degrees are counted before anything is summed.
+let degree = []
+for _ in range(0, n) {
+    degree = push(degree, 0)
+}
+for edge in edges {
+    degree[edge[0] - 1] = degree[edge[0] - 1] + 1
+    degree[edge[1] - 1] = degree[edge[1] - 1] + 1
+}
+
+let neighbour_sum = []
+for _ in range(0, n) {
+    neighbour_sum = push(neighbour_sum, 0)
+}
+for edge in edges {
+    let u = edge[0] - 1
+    let v = edge[1] - 1
+    neighbour_sum[u] = neighbour_sum[u] + degree[v]
+    neighbour_sum[v] = neighbour_sum[v] + degree[u]
+}
+
+let result = neighbour_sum |> map(|d| str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 3 5 5 5 0")
+
+fn test_ddeg_neighbour_degree_sums() {
+    assert result == "3 5 5 5 0", "DDEG: got " + result
+}

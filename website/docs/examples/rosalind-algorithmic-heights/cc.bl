@@ -1,0 +1,58 @@
+# Rosalind: CC — Connected Components
+# https://rosalind.info/problems/cc/
+#
+# Given: A simple graph with n vertices in the edge list format.
+# Return: The number of connected components in the graph.
+
+let n = 12
+let edges = [
+    [1, 2], [1, 5], [5, 9], [5, 10], [9, 10],
+    [3, 4], [3, 7], [3, 8], [4, 8], [7, 11],
+    [8, 11], [11, 12], [8, 12],
+]
+
+# Undirected, so every edge goes in both directions. Vertex 6 appears in no
+# edge and is still a component of its own, which is why the sweep below starts
+# from every vertex rather than from the endpoints of the edge list.
+let adjacent = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+}
+for edge in edges {
+    let u = edge[0] - 1
+    let v = edge[1] - 1
+    adjacent[u] = push(adjacent[u], v)
+    adjacent[v] = push(adjacent[v], u)
+}
+
+let seen = []
+for _ in range(0, n) {
+    seen = push(seen, false)
+}
+
+let components = 0
+for start in range(0, n) {
+    if seen[start] == false {
+        components = components + 1
+        # Flood the whole component from this vertex before moving on.
+        let stack = [start]
+        seen[start] = true
+        while len(stack) > 0 {
+            let current = stack[len(stack) - 1]
+            stack = slice(stack, 0, len(stack) - 1)
+            for next in adjacent[current] {
+                if seen[next] == false {
+                    seen[next] = true
+                    stack = push(stack, next)
+                }
+            }
+        }
+    }
+}
+
+println("Result:   " + str(components))
+println("Expected: 3")
+
+fn test_cc_component_count() {
+    assert components == 3, "CC: got " + str(components)
+}

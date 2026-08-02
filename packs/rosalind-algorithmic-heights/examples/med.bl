@@ -1,0 +1,44 @@
+# Rosalind: MED — Median
+# https://rosalind.info/problems/med/
+#
+# Given: A positive integer n, an array A[1..n] of integers, and a number k.
+# Return: The k-th smallest element of A.
+
+let a = [2, 36, 5, 21, 8, 13, 11, 20, 5, 4, 1]
+let k = 8
+
+# Quickselect: partition around a pivot, then recurse into the side that holds
+# the k-th element instead of both. Sorting would answer the question too and do
+# more work than asked — this is the problem's point. The array holds 5 twice,
+# so the equal region is kept separate rather than folded into one side.
+fn select_kth(xs, rank) {
+    if len(xs) <= 1 {
+        xs[0]
+    } else {
+        let pivot = xs[int(len(xs) / 2)]
+        let below = xs |> filter(|v| v < pivot)
+        let equal = xs |> filter(|v| v == pivot)
+        let above = xs |> filter(|v| v > pivot)
+
+        if rank <= len(below) {
+            select_kth(below, rank)
+        } else {
+            if rank <= len(below) + len(equal) {
+                pivot
+            } else {
+                select_kth(above, rank - len(below) - len(equal))
+            }
+        }
+    }
+}
+
+let result = select_kth(a, k)
+
+println("Result:   " + str(result))
+println("Expected: 13")
+println("Sorted:   " + str(sort(a)))
+
+fn test_med_kth_smallest() {
+    assert result == 13, "MED: got " + str(result)
+    assert result == sort(a)[k - 1], "MED: disagrees with sorting, got " + str(result)
+}

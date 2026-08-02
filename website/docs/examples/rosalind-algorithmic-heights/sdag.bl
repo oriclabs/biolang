@@ -1,0 +1,69 @@
+# Rosalind: SDAG — Shortest Paths in DAG
+# https://rosalind.info/problems/sdag/
+#
+# Given: A weighted DAG with integer edge weights and n vertices in the edge
+# list format.
+# Return: An array D[1..n] of shortest path lengths from vertex 1, with "x"
+# where a vertex is unreachable.
+
+let n = 5
+let edges = [[2, 3, 4], [4, 3, -2], [1, 4, 1], [1, 5, -3], [2, 4, -2], [5, 4, 1]]
+
+# Weights can be negative, so Dijkstra is out; but the graph is acyclic, so
+# Bellman-Ford's n-1 rounds are unnecessary. Relaxing the edges once in
+# topological order is enough, because a vertex is only ever reached from
+# vertices that come before it. That makes this linear where BF is quadratic.
+let adjacent = []
+let indegree = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+    indegree = push(indegree, 0)
+}
+for edge in edges {
+    adjacent[edge[0] - 1] = push(adjacent[edge[0] - 1], [edge[1] - 1, edge[2]])
+    indegree[edge[1] - 1] = indegree[edge[1] - 1] + 1
+}
+
+let order = []
+for v in range(0, n) {
+    if indegree[v] == 0 {
+        order = push(order, v)
+    }
+}
+let head = 0
+while head < len(order) {
+    let current = order[head]
+    head = head + 1
+    for link in adjacent[current] {
+        indegree[link[0]] = indegree[link[0]] - 1
+        if indegree[link[0]] == 0 {
+            order = push(order, link[0])
+        }
+    }
+}
+
+let infinity = 1000000000
+let distance = []
+for _ in range(0, n) {
+    distance = push(distance, infinity)
+}
+distance[0] = 0
+
+for v in order {
+    if distance[v] < infinity {
+        for link in adjacent[v] {
+            if distance[v] + link[1] < distance[link[0]] {
+                distance[link[0]] = distance[v] + link[1]
+            }
+        }
+    }
+}
+
+let result = distance |> map(|d| if d == infinity then "x" else str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 0 x -4 -2 -3")
+
+fn test_sdag_shortest_paths() {
+    assert result == "0 x -4 -2 -3", "SDAG: got " + result
+}

@@ -1,0 +1,68 @@
+# Rosalind: DIJ — Dijkstra's Algorithm
+# https://rosalind.info/problems/dij/
+#
+# Given: A simple directed graph with positive edge weights and n vertices in
+# the edge list format.
+# Return: An array D[1..n] of shortest path lengths from vertex 1, with -1 where
+# a vertex is unreachable.
+
+let n = 6
+let edges = [
+    [3, 4, 4], [1, 2, 4], [1, 3, 2], [2, 3, 3], [6, 3, 2],
+    [3, 5, 5], [5, 4, 1], [3, 2, 1], [2, 4, 2], [2, 5, 3],
+]
+
+let adjacent = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+}
+for edge in edges {
+    let u = edge[0] - 1
+    adjacent[u] = push(adjacent[u], [edge[1] - 1, edge[2]])
+}
+
+# Scanning for the nearest unsettled vertex rather than using a priority queue:
+# quadratic, and clearer. Positive weights are what make the greedy choice safe
+# — once a vertex is settled no later path can improve it.
+let infinity = 1000000000
+let distance = []
+let settled = []
+for _ in range(0, n) {
+    distance = push(distance, infinity)
+    settled = push(settled, false)
+}
+distance[0] = 0
+
+let step = 0
+while step < n {
+    let nearest = -1
+    for v in range(0, n) {
+        if settled[v] == false and distance[v] < infinity {
+            if nearest == -1 or distance[v] < distance[nearest] {
+                nearest = v
+            }
+        }
+    }
+    if nearest == -1 {
+        step = n
+    } else {
+        settled[nearest] = true
+        for link in adjacent[nearest] {
+            let next = link[0]
+            let weight = link[1]
+            if distance[nearest] + weight < distance[next] {
+                distance[next] = distance[nearest] + weight
+            }
+        }
+        step = step + 1
+    }
+}
+
+let result = distance |> map(|d| if d == infinity then "-1" else str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 0 3 2 5 6 -1")
+
+fn test_dij_shortest_paths() {
+    assert result == "0 3 2 5 6 -1", "DIJ: got " + result
+}

@@ -1,0 +1,65 @@
+# Rosalind: GS — General Sink
+# https://rosalind.info/problems/gs/
+#
+# Given: A positive integer k and k simple directed graphs in the edge list format.
+# Return: For each graph, a vertex from which all other vertices are reachable,
+# or -1 if there is none.
+
+let graphs = [
+    { vertices: 3, edges: [[3, 2], [2, 1]] },
+    { vertices: 3, edges: [[3, 2], [1, 2]] },
+]
+
+# Reachability from each vertex in turn. At this size that is the clear way to
+# say it; the linear answer condenses the strongly connected components and
+# checks whether the single source of the condensation reaches everything, which
+# is the same test done once instead of n times.
+fn reachable_from(adjacent, start, n) {
+    let seen = []
+    for _ in range(0, n) {
+        seen = push(seen, false)
+    }
+    seen[start] = true
+    let stack = [start]
+    let count = 1
+    while len(stack) > 0 {
+        let current = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        for next in adjacent[current] {
+            if seen[next] == false {
+                seen[next] = true
+                count = count + 1
+                stack = push(stack, next)
+            }
+        }
+    }
+    count
+}
+
+fn general_sink(graph) {
+    let n = graph.vertices
+    let adjacent = []
+    for _ in range(0, n) {
+        adjacent = push(adjacent, [])
+    }
+    for edge in graph.edges {
+        adjacent[edge[0] - 1] = push(adjacent[edge[0] - 1], edge[1] - 1)
+    }
+
+    let answer = -1
+    for v in range(0, n) {
+        if answer == -1 and reachable_from(adjacent, v, n) == n {
+            answer = v + 1
+        }
+    }
+    answer
+}
+
+let result = graphs |> map(|g| str(general_sink(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 3 -1")
+
+fn test_gs_finds_the_source_vertex() {
+    assert result == "3 -1", "GS: got " + result
+}

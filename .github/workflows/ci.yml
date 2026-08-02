@@ -104,9 +104,16 @@ jobs:
       # not prove that: the WASM build ships a subset of the builtins, so a pack
       # can be green here and dead in the playground. Run the same sources
       # through the real module and check the answers they print.
+      # Every pack, not just the default one. This step ran only the armory
+      # pack until the Algorithmic Heights pack was added, so a problem that
+      # needed a parser fix newer than the committed WASM passed CI while
+      # failing in the playground.
       - name: Check packs run in the browser build
         working-directory: website
-        run: node tests/run_pack_wasm.mjs
+        run: |
+          for pack in ../packs/*/; do
+            node tests/run_pack_wasm.mjs "$(basename "$pack")"
+          done
 
       # The docs table tells readers which problems run in a browser, worked out
       # by static analysis. This runs each one for real and fails if the claim
