@@ -17,7 +17,14 @@ const metadataPath = path.join(desktopRoot, "src", "generated", "builtin-metadat
 const packageMetadataPath = path.join(desktopRoot, "src", "generated", "package-metadata.json");
 const execFileAsync = promisify(execFile);
 
-const read = (relativePath) => readFile(path.join(repositoryRoot, relativePath), "utf8");
+// The index embeds source files verbatim, and this file is committed and checked
+// for staleness. Git hands a Windows checkout CRLF and a Linux one LF for the
+// same blob, so without this the artifact records the checkout rather than the
+// sources and CI reports a difference that exists on no one's disk.
+const readText = async (absolutePath) =>
+  (await readFile(absolutePath, "utf8")).replace(/\r\n/g, "\n");
+
+const read = (relativePath) => readText(path.join(repositoryRoot, relativePath));
 const cleanInline = (value) => value
   .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
   .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
@@ -222,7 +229,7 @@ async function exampleEntries() {
   const entries = [];
   for (const { root, collection, category: fixedCategory } of await exampleRoots()) {
     for (const absolute of await exampleFiles(root).catch(() => [])) {
-      const code = await readFile(absolute, "utf8");
+      const code = await readText(absolute);
       const relative = path.relative(repositoryRoot, absolute).replaceAll("\\", "/");
       const withinExamples = path.relative(root, absolute).replaceAll("\\", "/");
       const category = fixedCategory
@@ -351,7 +358,7 @@ async function packageMetadata() {
     const packageRoot = path.join(root, directory.name);
     let manifest;
     try {
-      manifest = await readFile(path.join(packageRoot, "biolang.toml"), "utf8");
+      manifest = await readText(path.join(packageRoot, "biolang.toml"));
     } catch {
       continue;
     }
@@ -362,7 +369,7 @@ async function packageMetadata() {
     const files = await exampleFiles(packageRoot);
     const modules = new Map();
     for (const absolute of files) {
-      const source = await readFile(absolute, "utf8");
+      const source = await readText(absolute);
       const relative = path.relative(repositoryRoot, absolute).replaceAll("\\", "/");
       const aliases = new Map(
         [...source.matchAll(/import\s+"([^"]+)"\s+as\s+([A-Za-z_]\w*)/g)]
