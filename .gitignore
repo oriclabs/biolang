@@ -110,3 +110,8 @@ node_modules/
 /dist/packs/
 /website/packs/
 /website/workbench/
+
+# Pack archives are generated and their bytes depend on the checkout line
+# endings, so a Windows and a Linux build produce different files from identical
+# sources. The .html, .bln and .bl beside them are text and stay committed.
+/website/docs/examples/*.zip
