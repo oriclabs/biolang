@@ -1,0 +1,11 @@
+# fasta.bl — FASTA helpers, imported with a relative path by basics/imports.bl
+
+# Strip the leading ">" and keep the identifier up to the first space.
+fn header_id(header) {
+    let without_marker = replace(header, ">", "")
+    split(without_marker, " ")[0]
+}
+
+fn gc_fraction(sequence) {
+    gc_content(dna(sequence))
+}

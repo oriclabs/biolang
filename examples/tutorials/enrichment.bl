@@ -30,7 +30,7 @@ let ora_results = enrich(de_genes, gene_sets, background_size)
 
 print("\n=== ORA Results ===")
 ora_results |> each(|r| {
-  print(f"  {r.term}: p={r.pvalue}, overlap={r.overlap}/{r.term_size}")
+  print(f"  {r.term}: p={r.p_value}, overlap={r.overlap}")
 })
 
 # Filter by FDR
@@ -41,7 +41,7 @@ let significant = ora_results |>
 print(f"\nSignificant pathways (FDR < 0.05): {len(significant)}")
 significant |> each(|r| {
   print(f"  {r.term}")
-  print(f"    FDR: {r.fdr}, Overlap: {r.overlap}/{r.term_size}")
+  print(f"    FDR: {r.fdr}, Overlap: {r.overlap}")
   print(f"    Genes: {r.genes}")
 })
 
@@ -63,11 +63,11 @@ let ranked_genes = [
   {gene: "BCL2", score: -2.1},
 ]
 
-let gsea_results = gsea(ranked_genes, gene_sets)
+let gsea_results = gsea(from_records(ranked_genes), gene_sets)
 
 print("\n=== GSEA Results ===")
 gsea_results |> each(|r| {
-  print(f"  {r.term}: NES={r.nes}, p={r.pvalue}, FDR={r.fdr}")
+  print(f"  {r.term}: NES={r.nes}, p={r.p_value}, FDR={r.fdr}")
 })
 
 # ── 5. Multiple Testing Correction ───────────────────────────

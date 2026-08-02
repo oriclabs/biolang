@@ -1,49 +1,81 @@
 # llm-chat.bl — LLM Chat Integration
+# requires: network
 # Tutorial: https://lang.bio/docs/tutorials/llm-chat.html
 #
 # Run with: bl run examples/tutorials/llm-chat.bl
 #
-# Note: Requires an LLM API key. Set one of:
+# Requires an LLM API key. Set one of:
 #   ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL
+#
+# Any OpenAI-compatible provider works through the OpenAI path. For OpenRouter:
+#   OPENAI_API_KEY=<your key>
+#   OPENAI_BASE_URL=https://openrouter.ai/api
+#   OPENAI_MODEL=openai/gpt-4o-mini
+# The request goes to {OPENAI_BASE_URL}/v1/chat/completions, so the base URL
+# stops before the /v1.
 
-# ── 1. Simple Question ────────────────────────────────────────
+# Nothing below works without credentials, and a tutorial that dies with an
+# IOError in a fresh checkout teaches nothing. Check first and say what to set.
+let has_key = env("ANTHROPIC_API_KEY") != nil or env("OPENAI_API_KEY") != nil or env("OLLAMA_MODEL") != nil
 
-let answer = chat("What is the significance of a Ti/Tv ratio above 2.0 in human WGS?")
-print(answer)
+if !has_key {
+    println("No LLM credentials found — skipping the live calls.")
+    println("Set one of ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_MODEL, then rerun:")
+    println("  bl run examples/tutorials/llm-chat.bl")
+    println("")
+    println("What the tutorial does once a key is set:")
+    println("  chat(question)         ask a question")
+    println("  chat(question, data)   ask about a value you already have")
+    println("  chat_code(description) generate BioLang source")
+    println("  llm_models()           list the models available to you")
+} else {
+  # A key being present does not mean the call will succeed — quota, rate
+  # limits and outages are all normal. Report them instead of aborting.
+  try {
+    # ── 1. Simple Question ────────────────────────────────────────
 
-# ── 2. Pass Data Context ─────────────────────────────────────
+    let answer = chat("What is the significance of a Ti/Tv ratio above 2.0 in human WGS?")
+    print(answer)
 
-let stats = {
-  total_reads: 48_000_000,
-  passing_q30: 42_500_000,
-  mean_gc: 0.412,
-  duplicate_rate: 0.18,
-  mean_coverage: 32.5,
+    # ── 2. Pass Data Context ─────────────────────────────────────
+
+    let stats = {
+      total_reads: 48_000_000,
+      passing_q30: 42_500_000,
+      mean_gc: 0.412,
+      duplicate_rate: 0.18,
+      mean_coverage: 32.5,
+    }
+
+    let interpretation = chat("Interpret these QC metrics. Any red flags?", stats)
+    print(interpretation)
+
+    # ── 3. Analyze DE Results ────────────────────────────────────
+
+    let de_results = [
+      {gene: "TP53", log2fc: 3.2, pvalue: 1.2e-8},
+      {gene: "BRCA1", log2fc: 2.8, pvalue: 4.5e-7},
+      {gene: "MYC", log2fc: -2.1, pvalue: 3.3e-6},
+      {gene: "CDK4", log2fc: 1.5, pvalue: 0.002},
+    ]
+
+    let analysis = chat("What biological processes are suggested by these DE genes?", de_results)
+    print(analysis)
+
+    # ── 4. Code Generation ───────────────────────────────────────
+
+    let code = chat_code("Read a FASTQ file, filter reads with mean Phred > 30, and print the count")
+    print(code)
+
+    # ── 5. Check Available Models ────────────────────────────────
+
+    let models = llm_models()
+    print(f"\nAvailable: {models}")
+  } catch e {
+    println("LLM call failed: " ++ str(e))
+    println("Credentials are set, so this is the provider rejecting the request")
+    println("(quota, rate limit, or an outage) rather than a BioLang problem.")
+  }
 }
-
-let interpretation = chat("Interpret these QC metrics. Any red flags?", stats)
-print(interpretation)
-
-# ── 3. Analyze DE Results ────────────────────────────────────
-
-let de_results = [
-  {gene: "TP53", log2fc: 3.2, pvalue: 1.2e-8},
-  {gene: "BRCA1", log2fc: 2.8, pvalue: 4.5e-7},
-  {gene: "MYC", log2fc: -2.1, pvalue: 3.3e-6},
-  {gene: "CDK4", log2fc: 1.5, pvalue: 0.002},
-]
-
-let analysis = chat("What biological processes are suggested by these DE genes?", de_results)
-print(analysis)
-
-# ── 4. Code Generation ───────────────────────────────────────
-
-let code = chat_code("Read a FASTQ file, filter reads with mean Phred > 30, and print the count")
-print(code)
-
-# ── 5. Check Available Models ────────────────────────────────
-
-let models = llm_models()
-print(f"\nAvailable: {models}")
 
 print("\nLLM chat tutorial complete.")

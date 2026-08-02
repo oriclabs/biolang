@@ -1,13 +1,43 @@
 # markdown_report.bl — Generate a Markdown analysis report with BioLang
-# Uses md_* builtins to produce a well-structured document
+#
+# Markdown is just text, so the formatting helpers are ordinary functions
+# rather than builtins. Defining them here keeps the report readable and shows
+# how to build a small domain vocabulary of your own.
+
+# ── Markdown helpers ────────────────────────────────────────────
+
+fn md_header(text, level) {
+    repeat("#", level) ++ " " ++ text
+}
+
+fn md_bold(text) { "**" ++ text ++ "**" }
+fn md_italic(text) { "*" ++ text ++ "*" }
+fn md_code(text) { "`" ++ text ++ "`" }
+fn md_quote(text) { "> " ++ text }
+fn md_link(text, url) { "[" ++ text ++ "](" ++ url ++ ")" }
+
+fn md_list(items) {
+    items |> map(|item| "- " ++ item) |> join("\n")
+}
+
+# A leading header row, then the `---` separator Markdown needs, then the body.
+fn md_table(rows) {
+    let row_line = |cells| "| " ++ join(cells, " | ") ++ " |"
+    let header = rows[0]
+    let divider = header |> map(|_| "---")
+    # drop(rows, 1), not tail(rows): tail() returns the *last* n rows and
+    # defaults to all of them, so it would repeat the header.
+    let body = drop(rows, 1) |> map(row_line)
+    join([row_line(header), row_line(divider)] + body, "\n")
+}
 
 # ── Header and Introduction ─────────────────────────────────────
 
 md_header("Sample QC Report", 1) |> println()
 md_header("Experiment: RNA-Seq Mouse Cortex", 2) |> println()
 
-md_bold("Date:") ++ " 2026-03-06" |> println()
-md_bold("Analyst:") ++ " " ++ md_italic("Automated Pipeline v2.1") |> println()
+println(md_bold("Date:") ++ " 2026-03-06")
+println(md_bold("Analyst:") ++ " " ++ md_italic("Automated Pipeline v2.1"))
 println("")
 
 md_quote("All samples passed minimum quality thresholds.") |> println()

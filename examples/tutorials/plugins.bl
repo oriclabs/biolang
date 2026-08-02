@@ -1,28 +1,36 @@
-# plugins.bl — Using BioLang Plugins
+# plugins.bl — Using BioLang modules and plugins
 # Tutorial: https://lang.bio/docs/tutorials/plugins.html
 #
 # Run with: bl run examples/tutorials/plugins.bl
 #
-# Note: This tutorial demonstrates the plugin import system.
-# The motif_finder plugin must be installed first:
+# A published plugin is installed first and imported by name:
 #   bl add motif_finder
+#   import "motif_finder"
+#
+# The import below resolves to motif_finder.bl next to this file, so the
+# tutorial runs in a fresh checkout. Everything after it is identical either
+# way — an installed plugin and a local module expose the same interface.
 
-import "motif_finder"
+import "motif_finder.bl" as motifs
 
-# Find motifs in promoter sequences
+# Find motifs shared by a set of promoter sequences
 let seqs = ["ATCGATCGATCG", "GATCGATCGATC", "CGATCGATCGAT"]
 
-let motifs = find_motifs(seqs, 6, 10, 0.3, "enumerate")
+let found = motifs.find_motifs(seqs, 6, 10, 0.3, "enumerate")
 
 print("=== Discovered Motifs ===")
-print(motifs)
+for m in found |> take(5) {
+  print(f"  {m.motif}  seen {m.count}x")
+}
 
-# Generate an ASCII logo for aligned sequences
+# Show a per-position consensus for an aligned set
 let alignment = ["ATCG", "ATCG", "ATCG", "AACG"]
-let logo = motif_logo(alignment, "results/top_motif_logo.svg", "ascii")
-print(logo)
+print("\n=== Motif Logo ===")
+print(motifs.motif_logo(alignment, "results/top_motif_logo.svg", "ascii"))
 
-# Scan with a known PWM loaded from CSV
-let pwm = csv("data/known_pwm.csv")
-let hits = scan_motif(seqs, pwm, 0.85)
-print(hits)
+# Scan the same sequences for a known consensus
+let hits = motifs.scan_motif(seqs, "ATCGAT", 0.8)
+print(f"\nWindows matching ATCGAT at >=80%: {len(hits)}")
+for h in hits |> take(5) {
+  print(f"  {h.window}  score={round(h.score, 2)}")
+}

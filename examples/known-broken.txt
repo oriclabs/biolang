@@ -1,0 +1,15 @@
+# Examples that do not currently run, checked by scripts/check-examples-run.mjs.
+#
+# The list is empty: every example under examples/ runs.
+#
+# This list may only shrink. Adding a line is allowed when an example is broken
+# for a reason you cannot fix now, but the script fails if an unlisted example
+# breaks, and it also fails once a listed example starts passing — so a fix
+# cannot be made without removing its line.
+#
+# Examples that reach the network handle failure themselves rather than being
+# listed here: llm-chat.bl reports a missing key or a rejected request and
+# carries on, which is what any example depending on a remote service should do.
+#
+# examples/apis/ and examples/research/ are excluded by the script entirely —
+# they need credentials and live services, so they cannot be a build gate.

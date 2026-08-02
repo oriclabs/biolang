@@ -1,0 +1,11 @@
+# stats.bl — summary statistics, imported under an alias by imports.bl
+
+fn mean_of(values) {
+    sum(values) / float(len(values))
+}
+
+fn stdev_of(values) {
+    let m = mean_of(values)
+    let squared = values |> map(|v| (float(v) - m) * (float(v) - m))
+    sqrt(sum(squared) / float(len(values)))
+}

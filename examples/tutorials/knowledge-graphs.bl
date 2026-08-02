@@ -69,9 +69,12 @@ let g = add_edge(g, "CDK2", "RB1", {score: 0.932, type: "phosphorylation"})
 print(f"\nExtended network: {node_count(g)} genes, {edge_count(g)} interactions")
 
 # Hub analysis
+# sort_by takes (collection, fn) only — named arguments do not reach builtins,
+# so descending order is expressed by reversing.
 let hubs = nodes(g) |>
   map(|n| {gene: n, deg: degree(g, n)}) |>
-  sort_by(|r| r.deg, desc: true)
+  sort_by(|r| r.deg) |>
+  reverse()
 
 print("\nDegree ranking:")
 hubs |> each(|r| print(f"  {r.gene}: {r.deg}"))

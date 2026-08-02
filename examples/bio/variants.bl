@@ -8,7 +8,7 @@ let vcf_stream = vcf("tests/data/test.vcf")
 
 println("=== VCF Records (stream) ===")
 vcf_stream |> each(|v| {
-    println("  ", v.chrom, ":", v.pos, " ", v.ref, "->", v.alt, " QUAL=", v.qual)
+    println("  ", v.chrom, ":", v.pos, " ", v.ref, "->", v.alt, " QUAL=", v.quality)
 })
 
 # ── Table Mode for Filtering ─────────────────────────────────
@@ -29,7 +29,7 @@ println("\nManual SNP: ", snp.chrom, ":", snp.pos, " ", snp.ref, "->", snp.alt)
 
 # ── Quality Filtering ────────────────────────────────────────
 # Keep only high-confidence variants (QUAL >= 30)
-let hq_vars = variants |> filter(|v| v.qual >= 30)
+let hq_vars = variants |> filter(|v| v.quality >= 30)
 println("High-quality variants (QUAL>=30): ", hq_vars |> count())
 
 # Keep only PASS variants
@@ -37,8 +37,8 @@ let pass_vars = variants |> filter(|v| v.filter == "PASS")
 println("PASS variants: ", pass_vars |> count())
 
 # ── SNP vs Indel Classification ──────────────────────────────
-let snps = variants |> filter(|v| v.ref.length == 1 && v.alt.length == 1)
-let indels = variants |> filter(|v| v.ref.length != v.alt.length)
+let snps = variants |> filter(|v| len(v.ref) == 1 && len(v.alt) == 1)
+let indels = variants |> filter(|v| len(v.ref) != len(v.alt))
 println("SNPs:   ", snps |> count())
 println("Indels: ", indels |> count())
 

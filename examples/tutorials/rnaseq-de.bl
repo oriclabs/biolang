@@ -65,14 +65,17 @@ print(f"\nGenes after filtering: {nrow(expressed)}")
 
 # ── 5. Differential Expression ───────────────────────────────
 
-# diff_expr(count_table, n_control_columns)
-let de_results = diff_expr(expressed, 3)
+# diff_expr(count_table, groups) — `groups` labels each sample column with the
+# condition it belongs to, so the first three are control (0) and the rest
+# treated (1).
+let groups = [0, 0, 0, 1, 1, 1]
+let de_results = diff_expr(expressed, groups)
 
 print("\n=== DE Results ===")
 print(head(de_results, 5))
 
 # Count significant genes
-let sig = de_results |> filter(|row| row["fdr"] < 0.05 and abs(row["log2fc"]) > 1.0)
+let sig = de_results |> filter(|row| row["padj"] < 0.05 and abs(row["log2fc"]) > 1.0)
 let up = sig |> filter(|row| row["log2fc"] > 0.0)
 let down = sig |> filter(|row| row["log2fc"] < 0.0)
 
