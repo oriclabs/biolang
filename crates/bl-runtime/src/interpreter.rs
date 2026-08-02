@@ -332,7 +332,7 @@ impl Interpreter {
                 Ok(Value::Nil)
             }
             Stmt::Assign { name, value } => {
-                if self.env.get(&format!("__const_{name}"), None).is_ok() {
+                if self.env.has(&format!("__const_{name}")) {
                     return Err(BioLangError::runtime(
                         ErrorKind::TypeError,
                         format!("cannot reassign const binding '{name}'"),
@@ -346,27 +346,42 @@ impl Interpreter {
             Stmt::IndexAssign { name, index, value } => {
                 let index_value = self.eval_expr(index)?;
                 let new_value = self.eval_expr(value)?;
-                let target = self.env.get(name, Some(stmt.span))?.clone();
+                let span = stmt.span;
+                let index_span = index.span;
 
-                let updated = match target {
-                    Value::List(mut items) => {
+                // Borrowed mutably rather than read out and stored back: the
+                // binding stays the container's only owner, so make_mut updates
+                // in place. Cloning first gives the Arc a second owner and
+                // copies the whole container on every element write.
+                let target = match self.env.get_mut(name) {
+                    Some(value) => value,
+                    None => {
+                        // Re-run through `get` so an unbound name still reports
+                        // the usual error, suggestion and all.
+                        self.env.get(name, Some(span))?;
+                        unreachable!("get_mut missed a name that get resolved")
+                    }
+                };
+
+                match target {
+                    Value::List(items) => {
                         let position = match index_value {
                             Value::Int(n) if n >= 0 => n as usize,
                             Value::Int(n) => {
                                 return Err(BioLangError::runtime(
                                     ErrorKind::IndexOutOfBounds,
                                     format!("index {n} is negative"),
-                                    Some(index.span),
+                                    Some(index_span),
                                 ))
                             }
                             other => {
                                 return Err(BioLangError::type_error(
                                     format!("list index must be Int, got {}", other.type_of()),
-                                    Some(index.span),
+                                    Some(index_span),
                                 ))
                             }
                         };
-                        let slots = std::sync::Arc::make_mut(&mut items);
+                        let slots = std::sync::Arc::make_mut(items);
                         if position >= slots.len() {
                             return Err(BioLangError::runtime(
                                 ErrorKind::IndexOutOfBounds,
@@ -374,27 +389,24 @@ impl Interpreter {
                                     "index {position} out of bounds for a list of length {}",
                                     slots.len()
                                 ),
-                                Some(index.span),
+                                Some(index_span),
                             ));
                         }
                         slots[position] = new_value;
-                        Value::List(items)
                     }
-                    Value::Map(mut entries) => {
+                    Value::Map(entries) => {
                         let key = match index_value {
                             Value::Str(s) => s,
                             other => format!("{other}"),
                         };
-                        std::sync::Arc::make_mut(&mut entries).insert(key, new_value);
-                        Value::Map(entries)
+                        std::sync::Arc::make_mut(entries).insert(key, new_value);
                     }
-                    Value::Record(mut entries) => {
+                    Value::Record(entries) => {
                         let key = match index_value {
                             Value::Str(s) => s,
                             other => format!("{other}"),
                         };
-                        std::sync::Arc::make_mut(&mut entries).insert(key, new_value);
-                        Value::Record(entries)
+                        std::sync::Arc::make_mut(entries).insert(key, new_value);
                     }
                     other => {
                         return Err(BioLangError::type_error(
@@ -402,12 +414,10 @@ impl Interpreter {
                                 "cannot assign into {} — only lists, maps and records support indexed assignment",
                                 other.type_of()
                             ),
-                            Some(stmt.span),
+                            Some(span),
                         ))
                     }
-                };
-
-                self.env.set(name, updated, Some(stmt.span))?;
+                }
                 Ok(Value::Nil)
             }
             Stmt::Expr(expr) => self.eval_expr(expr),
@@ -903,15 +913,15 @@ impl Interpreter {
                 }
                 // Validate trait implementation if specified
                 if let Some(ref trait_n) = trait_name {
-                    if let Ok(trait_meta) =
-                        self.env.get(&format!("__trait_{trait_n}"), None).cloned()
+                    if let Some(trait_meta) =
+                        self.env.lookup(&format!("__trait_{trait_n}")).cloned()
                     {
                         if let Value::Record(meta) = trait_meta {
                             if let Some(Value::List(required)) = meta.get("methods") {
                                 for req in required.iter() {
                                     if let Value::Str(method_name) = req {
                                         let key = format!("__impl_{type_name}_{method_name}");
-                                        if self.env.get(&key, None).is_err() {
+                                        if !self.env.has(&key) {
                                             return Err(BioLangError::runtime(
                                                 ErrorKind::TypeError,
                                                 format!("impl {trait_n} for {type_name}: missing required method '{method_name}'"),
@@ -1016,7 +1026,7 @@ impl Interpreter {
                 let current = self.env.get(name, None).cloned().unwrap_or(Value::Nil);
                 if current == Value::Nil {
                     let val = self.eval_expr(value)?;
-                    if self.env.get(name, None).is_ok() {
+                    if self.env.has(name) {
                         self.env.set(name, val, Some(stmt.span))?;
                     } else {
                         self.env.define(name.clone(), val);
@@ -2967,7 +2977,7 @@ impl Interpreter {
             } => {
                 // Check for struct constructor (empty body + __struct_ctor_ marker)
                 if let Some(ref name) = fn_name {
-                    if self.env.get(&format!("__struct_ctor_{name}"), None).is_ok() {
+                    if self.env.has(&format!("__struct_ctor_{name}")) {
                         return self.call_struct_constructor(name, params, &args, span);
                     }
                     // Check for enum constructor
@@ -2985,7 +2995,7 @@ impl Interpreter {
                         }
                     }
                     // Check for async function
-                    if self.env.get(&format!("__async_{name}"), None).is_ok() {
+                    if self.env.has(&format!("__async_{name}")) {
                         let future_state = bl_core::value::FutureState::Pending {
                             params: params.clone(),
                             body: body.clone(),
@@ -3017,7 +3027,7 @@ impl Interpreter {
                 } else {
                     // @validate decorator: check argument types against annotations
                     if let Some(ref name) = fn_name {
-                        if self.env.get(&format!("__validate_{name}"), None).is_ok() {
+                        if self.env.has(&format!("__validate_{name}")) {
                             self.validate_args(name, params, &args, span)?;
                         }
                     }
@@ -3049,7 +3059,7 @@ impl Interpreter {
                     // @vectorize: auto-map over List first argument
                     if let Some(ref name) = fn_name {
                         let vectorize_key = format!("__vectorize_{name}");
-                        if self.env.get(&vectorize_key, None).is_ok() {
+                        if self.env.has(&vectorize_key) {
                             if let Some(first_arg) = args.first() {
                                 if let Value::List(items) = first_arg.clone() {
                                     let mut results = Vec::with_capacity(items.len());

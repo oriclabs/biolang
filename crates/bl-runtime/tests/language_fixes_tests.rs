@@ -181,3 +181,41 @@ fn an_empty_function_body_still_returns_nil() {
     let code = "fn nothing() { }\nstr(nothing())";
     assert_eq!(eval_str(code), "nil");
 }
+
+// Assigning into a container updates it through a mutable borrow so the binding
+// stays its only owner and Arc::make_mut writes in place. Reading the value out
+// and storing it back copied the whole container on every element write, which
+// made a sorting loop cubic. These check that the sharing rules did not change
+// with it: a second name for the same list must not see the update.
+
+#[test]
+fn assigning_through_one_name_leaves_the_other_alone() {
+    let code = "let a = [1, 2, 3]\nlet b = a\nb[0] = 99\na[0]";
+    assert_eq!(eval_int(code), 1);
+}
+
+#[test]
+fn the_assigned_name_does_see_the_update() {
+    let code = "let a = [1, 2, 3]\nlet b = a\nb[0] = 99\nb[0]";
+    assert_eq!(eval_int(code), 99);
+}
+
+#[test]
+fn map_assignment_does_not_leak_through_a_shared_binding() {
+    let code = "let m = {\"k\": 1}\nlet n = m\nn[\"k\"] = 42\nm[\"k\"]";
+    assert_eq!(eval_int(code), 1);
+}
+
+#[test]
+fn assigning_into_an_unbound_name_still_reports_it() {
+    let code = "missing[0] = 1";
+    let tokens = Lexer::new(code).tokenize().unwrap();
+    let parsed = Parser::new(tokens).parse().unwrap();
+    let mut interp = Interpreter::new();
+    let error = interp.run(&parsed.program).unwrap_err();
+    let text = format!("{error}");
+    assert!(
+        text.contains("undefined variable"),
+        "expected an undefined-variable error, got: {text}"
+    );
+}

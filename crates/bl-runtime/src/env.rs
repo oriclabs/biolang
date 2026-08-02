@@ -67,26 +67,67 @@ impl Environment {
         self.scopes[self.current].vars.insert(name, value);
     }
 
-    /// Look up a variable, walking the scope chain.
-    pub fn get(&self, name: &str, span: Option<Span>) -> Result<&Value> {
+    /// Look up a variable, walking the scope chain. Returns None if it is not
+    /// bound anywhere.
+    ///
+    /// Use this rather than `get` wherever a missing name is an ordinary answer
+    /// instead of an error. `get` pays for the "did you mean?" search on the way
+    /// out, which is worth it for a real mistake and ruinous in a loop: the
+    /// interpreter probes for marker bindings like `__const_x` on every
+    /// assignment, and those probes are expected to miss.
+    pub fn lookup(&self, name: &str) -> Option<&Value> {
         let mut scope_id = self.current;
         loop {
             if let Some(val) = self.scopes[scope_id].vars.get(name) {
-                return Ok(val);
+                return Some(val);
             }
             match self.scopes[scope_id].parent {
                 Some(parent) => scope_id = parent,
-                None => {
-                    let mut err =
-                        BioLangError::name_error(format!("undefined variable '{name}'"), span);
-                    // "Did you mean?" — find closest variable name
-                    if let Some(suggestion) = self.find_similar(name) {
-                        err = err.with_suggestion(format!("did you mean '{suggestion}'?"));
-                    }
-                    return Err(err);
-                }
+                None => return None,
             }
         }
+    }
+
+    /// Whether a name is bound in the current scope chain.
+    pub fn has(&self, name: &str) -> bool {
+        self.lookup(name).is_some()
+    }
+
+    /// Borrow a bound variable mutably, walking the scope chain.
+    ///
+    /// Updating a container through this leaves the binding as its only owner,
+    /// so `Arc::make_mut` writes in place. Reading the value out, editing the
+    /// copy and storing it back instead gives the Arc a second owner and copies
+    /// the whole container on every element write, which turns a loop that
+    /// assigns into an array from quadratic into cubic.
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut Value> {
+        let mut scope_id = self.current;
+        loop {
+            if self.scopes[scope_id].vars.contains_key(name) {
+                return self.scopes[scope_id].vars.get_mut(name);
+            }
+            match self.scopes[scope_id].parent {
+                Some(parent) => scope_id = parent,
+                None => return None,
+            }
+        }
+    }
+
+    /// Look up a variable, walking the scope chain.
+    pub fn get(&self, name: &str, span: Option<Span>) -> Result<&Value> {
+        // Borrow-checker note: the lookup is repeated rather than reusing
+        // `lookup`, because returning the borrow from it would hold `&self` for
+        // the whole function and `find_similar` needs it again on the error path.
+        if self.lookup(name).is_some() {
+            return Ok(self.lookup(name).expect("just checked"));
+        }
+        let mut err = BioLangError::name_error(format!("undefined variable '{name}'"), span);
+        // "Did you mean?" — find closest variable name. This walks every name in
+        // scope and is only reached when the lookup has already failed.
+        if let Some(suggestion) = self.find_similar(name) {
+            err = err.with_suggestion(format!("did you mean '{suggestion}'?"));
+        }
+        Err(err)
     }
 
     /// Find the most similar variable name using Levenshtein distance.
