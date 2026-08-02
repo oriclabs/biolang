@@ -7,10 +7,15 @@ that the min-features filter should drop.
 import gzip
 import os
 import random
+import argparse
 
 random.seed(5)
 
-OUT = "nsclc_like"
+parser = argparse.ArgumentParser(description="Create a deterministic 10x MEX fixture")
+parser.add_argument("--output", default="nsclc_like")
+args = parser.parse_args()
+
+OUT = args.output
 os.makedirs(OUT, exist_ok=True)
 
 N_POP, PER_POP = 4, 60
@@ -70,7 +75,9 @@ with gzip.open(f"{OUT}/matrix.mtx.gz", "wt") as f:
             f.write(f"{gi + 1} {ci + 1} {v}\n")   # MEX is 1-indexed, genes x cells
 
 with open(f"{OUT}/truth.csv", "w") as f:
+    f.write("barcode,cluster\n")
     for b, t in zip(barcodes, truth):
         f.write(f"{b},{t}\n")
 
 print(f"{n_genes} genes x {len(barcodes)} barcodes ({N_JUNK} junk), {nnz} nonzero")
+print(f"output: {os.path.abspath(OUT)}")

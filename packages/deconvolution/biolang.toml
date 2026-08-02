@@ -6,3 +6,6 @@ authors = ["BioLang"]
 
 [dependencies]
 rnaseq = { path = "../rnaseq" }
+
+[lib]
+entry = "src/mod.bl"

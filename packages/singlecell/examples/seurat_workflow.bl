@@ -24,20 +24,20 @@ println(f"Loaded {obj.n_cells} cells × {obj.n_genes} genes")
 # Seurat: PercentageFeatureSet(obj, pattern="^MT-") + VlnPlot + subset()
 
 let obj = sc.filter_cells(obj,
-    min_genes    = 200,
-    max_genes    = 2500,
-    max_pct_mito = 5.0)
+    min_genes: 200,
+    max_genes: 2500,
+    max_pct_mito: 5.0)
 
 println(f"After QC: {obj.n_cells} cells retained")
 
 # Optionally remove low-expressed genes
-let obj = sc.filter_genes(obj, min_cells = 3)
+let obj = sc.filter_genes(obj, min_cells: 3)
 println(f"After gene filtering: {obj.n_genes} genes")
 
 # ─── 3. Normalisation ─────────────────────────────────────────────────────────
 # Seurat: NormalizeData() — library-size normalize then log1p
 
-let obj = sc.normalize(obj, target = 10000.0)
+let obj = sc.normalize(obj, target: 10000.0)
 
 # Alternative: SCTransform (regularised NB residuals)
 # let obj = sc.sctransform(obj)
@@ -52,8 +52,9 @@ println(f"Top HVG: {obj.hvg_genes[0]}")
 # ─── 5. Embedding and clustering ──────────────────────────────────────────────
 # Seurat: ScaleData → RunPCA → FindNeighbors → FindClusters
 
-let obj = sc.neighbors(obj, k = 15)
-let obj = sc.cluster(obj)
+let obj = sc.run_pca(obj, 30)
+let obj = sc.neighbors(obj, k: 15)
+let obj = sc.cluster_leiden(obj, k: 15, resolution: 0.5)
 
 let n_clusters = obj.clusters |> sort() |> unique() |> len()
 println(f"Found {n_clusters} clusters")
@@ -93,7 +94,7 @@ println(f"Cell cycle: G1={n_g1}  S={n_s}  G2M={n_g2m}")
 # Seurat/DoubletFinder: doubletFinder_v3()
 
 let obj = sc.doublets(obj)
-let obj = sc.flag_doublets(obj, threshold = 0.5)
+let obj = sc.flag_doublets(obj, threshold: 0.5)
 let n_doublets = obj.is_doublet |> filter(|v| v) |> len()
 println(f"Putative doublets: {n_doublets}")
 
@@ -101,7 +102,7 @@ println(f"Putative doublets: {n_doublets}")
 # Seurat/Monocle: RunDiffusion + DiffusionMap
 
 # Use cell 0 as the root (typically a known progenitor)
-let obj = sc.pseudotime(obj, start_cell = 0)
+let obj = sc.pseudotime(obj, start_cell: 0)
 
 let pt = obj.pseudotime
 let reachable = pt |> filter(|v| v >= 0.0)
@@ -114,11 +115,12 @@ println(f"Pseudotime range: {min(reachable)} – {max(reachable)}")
 let obj_a = sc.load("data/sample_a/")
 let obj_b = sc.load("data/sample_b/")
 
-let merged = sc.merge(obj_a, obj_b, batch_a = 0, batch_b = 1)
+let merged = sc.merge(obj_a, obj_b, batch_a: 0, batch_b: 1)
 let merged = sc.normalize(merged)
 let merged = sc.variable_genes(merged)
 let merged = sc.integrate(merged, merged.batch_ids)
-let merged = sc.neighbors(merged, k = 15)
-let merged = sc.cluster(merged)
+let merged = sc.run_pca(merged, 30)
+let merged = sc.neighbors(merged, k: 15)
+let merged = sc.cluster_leiden(merged, k: 15, resolution: 0.5)
 
 println(f"Merged dataset: {merged.n_cells} cells, {n_clusters} clusters")

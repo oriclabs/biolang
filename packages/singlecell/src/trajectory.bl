@@ -12,7 +12,7 @@
 ##
 ## Adds obj.pseudotime (List<Float>).
 fn pseudotime(obj, start_cell) {
-    let embed = obj.hvg_matrix
+    let embed = obj.pca_scores
     let knn   = obj.knn
     let pt    = diffusion_pseudotime(embed, knn, start_cell)
     {... obj, pseudotime: pt}
@@ -29,15 +29,7 @@ fn order_by_pseudotime(obj) {
     # Sort cell indices by pseudotime; unreachable cells last
     let order = range(0, n) |> sort_by(|i| if pt[i] < 0.0 then 1e18 else pt[i])
 
-    let new_matrix   = order |> map(|i| obj.matrix[i])
-    let new_barcodes = order |> map(|i| obj.barcodes[i])
-    let new_pt       = order |> map(|i| pt[i])
-
-    let sorted_obj = {... obj, matrix: new_matrix, barcodes: new_barcodes,
-                                pseudotime: new_pt, n_cells: n}
-
-    # Preserve optional per-cell fields if present
-    sorted_obj
+    sc_subset_cells(obj, order)
 }
 
 ## pseudotime_bins(pt, n_bins) → List<Int>
@@ -78,7 +70,7 @@ fn smooth_along_pseudotime(obj, gene_idx, n_bins = 20) {
         if len(cell_idx) == 0 {
             0.0
         } else {
-            let vals = cell_idx |> map(|i| mat[i][gene_idx])
+            let vals = cell_idx |> map(|i| matrix_at(mat, i, gene_idx))
             mean(vals)
         }
     })

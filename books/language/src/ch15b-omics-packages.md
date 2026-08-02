@@ -6,25 +6,29 @@ Most operations use BioLang's native runtime; individual workflows may still
 call files, services, or external tools documented by that package.
 
 Install a local package with `bl install`, or declare it in `biolang.toml`.
-The current package entry file is `src/mod.bl`, so import that entry explicitly:
+Packages declaring `[lib].entry` can be imported by package name; other
+packages use their explicit `src/mod` entry:
 
 ```bash
 bl install packages/variants
 ```
 
 ```biolang
-import "variants/src/mod" as vcf
-import "rnaseq/src/mod"   as rna
+import "singlecell"       as sc
+import "variants" as vcf
+import "rnaseq"   as rna
 ```
 
 For a source checkout, set `BIOLANG_PATH` to the repository's `packages`
 directory before running examples. Installed packages are discovered under
-`~/.biolang/packages/`.
+`~/.biolang/packages/`. Use `bl examples <package> --copy <directory>` to make
+an independent working copy of examples bundled with an installed package.
 
 ## Current Package Catalog
 
-Every package uses the entry path `<name>/src/mod`. The table is the complete
-catalog in the current source tree:
+Every package exposes code from `src/mod.bl`; packages with `[lib].entry` also
+support the short package-name import. The table is the complete catalog in the
+current source tree:
 
 | Package | Primary use | Package | Primary use |
 |---|---|---|---|
@@ -60,7 +64,7 @@ Use it for germline QC pipelines or to feed variant tables into downstream
 population genetics analysis.
 
 ```biolang
-import "variants/src/mod" as vcf
+import "variants" as vcf
 
 let raw  = vcf.load("results/calls.vcf")
 vcf.qc_report(raw)
@@ -84,8 +88,8 @@ The `rnaseq` package loads Salmon and featureCounts output, normalizes counts,
 and prepares matrices for differential expression analysis with the `differential` package.
 
 ```biolang
-import "rnaseq/src/mod"       as rna
-import "differential/src/mod" as de
+import "rnaseq"       as rna
+import "differential" as de
 
 let counts = rna.from_featurecounts("results/counts.txt")
 rna.library_sizes(counts)
@@ -103,6 +107,51 @@ Key functions: `from_salmon`, `from_featurecounts`, `filter_genes`, `normalize_s
 
 ---
 
+## Single-cell RNA-seq
+
+The `singlecell` package provides a sparse 10x workflow with synchronized cell
+and gene metadata. Filtering, normalization, variable-gene selection, PCA,
+neighbor-graph construction, and Leiden clustering can run without converting
+the expression matrix to a dense cells-by-genes array.
+
+```biolang
+import "singlecell" as sc
+
+let cells = sc.load("filtered_feature_bc_matrix")
+let result = cells
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(200, 5000, 20.0)
+    |> sc.normalize(10000.0)
+    |> sc.variable_genes(2000)
+    |> sc.run_pca(30)
+    |> sc.neighbors(15)
+    |> sc.cluster_leiden(15, 0.5)
+
+println(sc.summary(result))
+write_text("umap.svg", sc.plot_umap(result))
+```
+
+Use `sc.merge` before integration when samples share the same gene order.
+`sc.integrate` corrects the PCA embedding and records batch labels. Native
+AnnData Zarr exchange preserves CSR `X` matrices and observation/variable
+index names:
+
+```biolang
+write_anndata("analysis.zarr", result)
+let restored = read_anndata("analysis.zarr")
+```
+
+Direct `.h5ad` I/O requires conversion with Python/anndata or a configured
+container. Arbitrary AnnData metadata columns and auxiliary layers are not yet
+copied by the native Zarr interchange. Validation scripts for Scanpy and Seurat are under
+`packages/singlecell/examples/validation`; compare cluster partitions by barcode using
+ARI rather than comparing arbitrary numeric cluster IDs.
+
+Key functions: `load`, `filter_genes`, `filter_cells`, `normalize`,
+`variable_genes`, `run_pca`, `neighbors`, `cluster_leiden`, `merge`, `integrate`
+
+---
+
 ## 3. Phylogenetics
 
 The `phylo` package reads Newick trees, computes patristic distances, and
@@ -110,7 +159,7 @@ reconstructs trees with UPGMA — useful for viral phylodynamics and species
 comparisons.
 
 ```biolang
-import "phylo/src/mod" as ph
+import "phylo" as ph
 
 let tree = ph.load("data/sarscov2_sequences.nwk")
 ph.n_leaves(tree)
@@ -133,7 +182,7 @@ The `chipseq` package processes NarrowPeak files from MACS3, computes FRiP
 and TSS enrichment QC metrics, and builds consensus peak sets across replicates.
 
 ```biolang
-import "chipseq/src/mod" as cs
+import "chipseq" as cs
 
 let ctrl    = cs.load_narrowpeak("results/ctrl_peaks.narrowPeak")
 let treated = cs.load_narrowpeak("results/treated_peaks.narrowPeak")
@@ -156,7 +205,7 @@ The `microbiome` package computes alpha and beta diversity indices, performs
 rarefaction, and collapses OTU tables to arbitrary taxonomic ranks.
 
 ```biolang
-import "microbiome/src/mod" as mb
+import "microbiome" as mb
 
 let otus     = read_csv("data/feature_table.tsv")
 let taxonomy = read_csv("data/taxonomy.tsv")
@@ -182,7 +231,7 @@ multiple-testing correction, permutation tests, bootstrap confidence
 intervals, and genomic inflation factors for GWAS.
 
 ```biolang
-import "statistics/src/mod" as stat
+import "statistics" as stat
 
 let p_values = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 0.9]
 
@@ -208,7 +257,7 @@ efficiency calculation, and geNorm stability scoring for reference gene
 selection.
 
 ```biolang
-import "qpcr/src/mod" as qpcr
+import "qpcr" as qpcr
 
 # Standard curve → amplification efficiency
 let standard_cts  = [15.2, 18.5, 21.8, 25.1, 28.4]
@@ -235,7 +284,7 @@ output through the full preprocessing pipeline and identifies differentially
 abundant proteins.
 
 ```biolang
-import "proteomics/src/mod" as prot
+import "proteomics" as prot
 
 # Load proteinGroups.txt → log2 → quantile normalize → impute
 let mat = prot.full_pipeline("data/proteinGroups.txt")
@@ -259,7 +308,7 @@ conversion, differentially methylated region (DMR) calling, CpG density, and
 epigenetic clock prediction.
 
 ```biolang
-import "methylation/src/mod" as meth
+import "methylation" as meth
 
 # beta_matrix: CpGs × samples
 # let m_matrix = beta_matrix |> rows |> map(fn(r) -> meth.to_mvalue(r))
@@ -288,7 +337,7 @@ builds residue contact maps, assigns secondary structure (DSSP-lite), and
 extracts Ramachandran phi/psi angles.
 
 ```biolang
-import "structure/src/mod" as st
+import "structure" as st
 
 let pred    = st.load("data/alphafold_prediction.pdb")
 let exp     = st.load("data/experimental.pdb")
@@ -313,7 +362,7 @@ degree centrality, Brandes betweenness, BFS shortest paths, connected
 components, and hypergeometric disease module enrichment.
 
 ```biolang
-import "network/src/mod" as net
+import "network" as net
 
 let ppi = net.load_string("data/9606.protein.links.v12.0.txt")
   |> net.filter_score(0.7)
@@ -341,7 +390,7 @@ tests, Weir-Cockerham Fst, Tajima's D, LD r², allele frequency spectrum, and
 nucleotide diversity — all computed directly from genotype matrices.
 
 ```biolang
-import "popgen/src/mod" as pg
+import "popgen" as pg
 
 # Hardy-Weinberg equilibrium test
 pg.hwe(360, 480, 160)
@@ -369,11 +418,11 @@ Key functions: `hwe`, `fst`, `tajima`, `ld`, `ld_matrix`, `afs`, `pi`, `watterso
 The `cnv` package implements copy number variation analysis from whole-genome or whole-exome sequencing read-depth data. Use it to call amplifications and deletions in tumor samples, compute allele-specific copy numbers from B-allele frequencies, and summarise genome-wide CNV burden.
 
 ```biolang
-import "cnv/src/mod" as cnv
+import "cnv" as cnv
 ```
 
 ```biolang
-import "cnv/src/mod" as cnv
+import "cnv" as cnv
 
 # Per-bin log2 ratios from mosdepth output
 # let ratios   = cnv.ratios(tumor_depths, normal_depths)
@@ -401,11 +450,11 @@ import "cnv/src/mod" as cnv
 The `hic` package provides tools for Hi-C chromatin conformation capture data: ICE normalization of raw contact matrices, insulation score computation for TAD detection, and distance-decay analysis. Use it any time you need to identify topologically associating domains or inspect 3D genome organisation.
 
 ```biolang
-import "hic/src/mod" as hic
+import "hic" as hic
 ```
 
 ```biolang
-import "hic/src/mod" as hic
+import "hic" as hic
 
 # contact_matrix: N×N Table (genomic bins × bins, values = contact counts)
 
@@ -431,11 +480,11 @@ import "hic/src/mod" as hic
 The `atac` package provides ATAC-seq quality control metrics derived from fragment size distributions. Use it to assess chromatin accessibility library quality — NFR enrichment, nucleosome phasing, and TSS enrichment — before proceeding to peak calling.
 
 ```biolang
-import "atac/src/mod" as atac
+import "atac" as atac
 ```
 
 ```biolang
-import "atac/src/mod" as atac
+import "atac" as atac
 
 # Fragment lengths from filtered BAM
 # let frag_lengths = read_csv("fragments.tsv") |> col("tlen") |> map(fn(x) -> abs(x))
@@ -465,11 +514,11 @@ import "atac/src/mod" as atac
 The `drug` package fits dose-response curves and computes drug combination synergy scores. Use it for GDSC/PRISM-style pharmacogenomics analysis, IC50 estimation from viability data, and Bliss or Loewe synergy scoring for combination screens.
 
 ```biolang
-import "drug/src/mod" as drug
+import "drug" as drug
 ```
 
 ```biolang
-import "drug/src/mod" as drug
+import "drug" as drug
 
 let concentrations = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
 let viabilities    = [98.0, 95.0, 88.0, 70.0, 45.0, 20.0, 8.0, 3.0]
@@ -494,11 +543,11 @@ drug.loewe(1.0, 2.0, 0.5, 1.0)
 The `gwas` package handles GWAS summary statistics: flexible column-name auto-detection, Manhattan and QQ plot data preparation, genomic inflation, and distance-based locus clumping. Use it to process output from PLINK, BOLT-LMM, SAIGE, or any standard GWAS tool.
 
 ```biolang
-import "gwas/src/mod" as gwas
+import "gwas" as gwas
 ```
 
 ```biolang
-import "gwas/src/mod" as gwas
+import "gwas" as gwas
 
 # Auto-detect column names (CHR/BP/SNP/P/BETA/SE/A1/A2/MAF)
 let ss = gwas.load("data/my_gwas_sumstats.txt")
@@ -526,11 +575,11 @@ gwas.qq(ss.pval)
 The `annotation` package parses GTF/GFF3 gene annotation files and performs genomic interval operations. Use it to annotate ChIP-seq or ATAC-seq peaks with nearest genes, extract promoter regions, compute interval overlaps, and build Ensembl-to-gene-name lookup tables.
 
 ```biolang
-import "annotation/src/mod" as ann
+import "annotation" as ann
 ```
 
 ```biolang
-import "annotation/src/mod" as ann
+import "annotation" as ann
 
 # Load GENCODE or Ensembl GTF (auto-detects GTF vs GFF3)
 let gtf   = ann.load("data/gencode.v45.annotation.gtf")

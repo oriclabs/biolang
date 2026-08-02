@@ -3,3 +3,6 @@ name = "variants"
 version = "0.1.0"
 description = "VCF variant analysis: parsing, filtering, annotation, Ti/Tv ratio, allele frequencies"
 authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

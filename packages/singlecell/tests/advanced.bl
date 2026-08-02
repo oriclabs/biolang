@@ -1,0 +1,151 @@
+import "singlecell" as sc
+
+# Four paired donors, two conditions, two cell types, three cells per profile.
+let donors = []
+let conditions = []
+let cell_types = []
+let barcodes = []
+let counts = []
+let index = 0
+
+for d in range(0, 4) {
+    for condition in ["control", "treated"] {
+        for cell_type in ["T", "B"] {
+            for replicate in range(0, 3) {
+                donors = push(donors, "D" + str(d + 1))
+                conditions = push(conditions, condition)
+                cell_types = push(cell_types, cell_type)
+                barcodes = push(barcodes, "cell-" + str(index))
+                let treatment_signal = if cell_type == "T" and condition == "treated" {
+                    12.0 + float(d * 3)
+                } else {
+                    0.0
+                }
+                counts = push(counts, [
+                    5.0 + float(d) + treatment_signal,
+                    70.0 + float(replicate),
+                    if cell_type == "B" { 24.0 } else { 3.0 },
+                    2.0
+                ])
+                index = index + 1
+            }
+        }
+    }
+}
+
+let obj = sc.from_matrix(counts, ["IFIT1", "ACTB", "MS4A1", "MT-ND1"], barcodes)
+let pb = sc.pseudobulk_profiles(obj, donors, conditions, cell_types, min_cells: 2)
+assert len(pb.profiles) == 16, "pseudobulk profile count is wrong"
+assert len(pb.logcpm_matrix) == 16, "pseudobulk matrix orientation is wrong"
+assert len(pb.logcpm_matrix[0]) == 4, "pseudobulk gene count is wrong"
+
+let de = sc.paired_pseudobulk_de(
+    obj, donors, conditions, cell_types,
+    target_type: "T", condition_a: "control", condition_b: "treated",
+    min_cells: 2
+)
+assert len(de) == 4, "paired DE did not return every gene"
+assert de[0].n_donors == 4, "paired DE lost donors"
+assert de[0].log2fc > 0.0, "IFIT1 treatment direction is wrong"
+
+# statistic and log2fc must agree in sign. They come from two different
+# expressions, and once disagreed for every gene: a volcano plot said "up"
+# while the t-statistic behind it said "down".
+for row in de {
+    if row.pvalue < 1.0 {
+        assert (row.statistic > 0.0) == (row.log2fc > 0.0),
+               "statistic and log2fc disagree in sign for " + row.gene
+    }
+}
+
+# Swapping the two conditions must invert the effect, not silently produce
+# something else — the reason these arguments are named at the call site.
+let de_flipped = sc.paired_pseudobulk_de(
+    obj, donors, conditions, cell_types,
+    target_type: "T", condition_a: "treated", condition_b: "control",
+    min_cells: 2
+)
+assert abs(de_flipped[0].log2fc + de[0].log2fc) < 1e-9,
+       "reversing the conditions should negate log2fc exactly"
+
+let donor_gene = sc.donor_gene_table(
+    obj, "IFIT1", donors, conditions, cell_types,
+    target_type: "T", condition_a: "control", condition_b: "treated",
+    min_cells: 2
+)
+assert len(donor_gene) == 8, "paired donor table is incomplete"
+
+let composition = sc.composition_table(donors, conditions, cell_types)
+assert len(composition) == 16, "composition table is incomplete"
+let composition_de = sc.paired_composition_test(
+    donors, conditions, cell_types,
+    condition_a: "control", condition_b: "treated", min_cells: 2
+)
+assert len(composition_de) == 2, "composition test lost a cell type"
+
+let prepared = obj
+    |> sc.normalize()
+    |> sc.variable_genes(4)
+    |> sc.run_pca(3)
+    |> sc.neighbors(4)
+    |> sc.cluster_leiden(4, 0.5)
+
+let diagnostics = sc.cluster_diagnostics(prepared)
+assert len(diagnostics.per_sample) == obj.n_cells, "silhouette output is incomplete"
+
+# A silhouette is undefined for a single cluster. It must say so rather than
+# report 0.0, which is a legitimate coefficient meaning "on the boundary".
+let collapsed = {... prepared, clusters: prepared.clusters |> map(|c| 0)}
+let undefined_diag = sc.cluster_diagnostics(collapsed)
+assert undefined_diag.mean_score == nil,
+       "one cluster must give nil, not a number that looks like a real score"
+assert contains(sc.plot_silhouette(undefined_diag), "not defined"),
+       "the plot must state that the silhouette is undefined"
+
+let stability = sc.cluster_stability(prepared, resolutions: [0.3, 0.5, 0.8], k: 4)
+assert len(stability) == 3, "resolution sweep is incomplete"
+
+# The first resolution has no predecessor, so claiming ARI 1.0 would make it
+# always look perfectly stable.
+assert stability[0].ari_previous == nil,
+       "the first resolution has nothing to compare against"
+assert stability[1].ari_previous != nil, "later rows should report a real ARI"
+
+assert contains(sc.plot_qc_violin(obj), "<svg"), "QC violin is not SVG"
+assert contains(sc.plot_qc_scatter(obj), "<svg"), "QC scatter is not SVG"
+assert contains(sc.plot_qc_dashboard(obj), "<svg"), "QC dashboard is not SVG"
+assert contains(sc.plot_embedding(prepared, conditions, "UMAP by condition"), "<svg"),
+       "grouped embedding is not SVG"
+assert contains(sc.plot_feature_split(prepared, "IFIT1", conditions), "<svg"),
+       "split feature plot is not SVG"
+assert contains(sc.plot_group_heatmap(
+    prepared, ["IFIT1", "MS4A1"], conditions
+), "<svg"), "group heatmap is not SVG"
+assert contains(sc.plot_volcano(de), "<svg"), "volcano plot is not SVG"
+assert contains(sc.plot_ma(de), "<svg"), "MA plot is not SVG"
+assert contains(sc.plot_donor_expression(
+    obj, "IFIT1", donors, conditions, cell_types,
+    target_type: "T", condition_a: "control", condition_b: "treated",
+    min_cells: 2
+), "<svg"), "paired donor plot is not SVG"
+assert contains(sc.plot_pseudobulk_pca(
+    obj, donors, conditions, cell_types, target_type: "T", min_cells: 2
+), "<svg"), "pseudobulk PCA is not SVG"
+assert contains(sc.plot_composition(donors, conditions, cell_types), "<svg"),
+       "composition plot is not SVG"
+assert contains(sc.plot_de_overlap([de, de], ["paired", "repeat"]), "<svg"),
+       "DE overlap plot is not SVG"
+assert contains(sc.plot_enrichment([
+    {pathway: "Interferon response", nes: 2.1},
+    {pathway: "Cell cycle", nes: -1.4}
+]), "<svg"), "enrichment plot is not SVG"
+assert contains(sc.plot_cluster_stability(stability), "<svg"),
+       "stability plot is not SVG"
+assert contains(sc.plot_silhouette(diagnostics), "<svg"),
+       "silhouette plot is not SVG"
+
+let ranked = sc.ranked_genes(de)
+assert nrow(ranked) == 4, "ranked gene table is incomplete"
+assert colnames(ranked) == ["gene", "score"], "ranked gene columns are wrong"
+
+println("singlecell advanced tests: ok")

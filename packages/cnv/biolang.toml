@@ -3,3 +3,6 @@ name = "cnv"
 version = "0.1.0"
 description = "Copy number variation analysis: log2 ratios, CBS segmentation, CN calls, allele-specific CNV"
 authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

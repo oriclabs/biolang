@@ -60,6 +60,19 @@ bl install ../shared
 bl install variants --git https://github.com/example/variants.git --branch main
 ```
 
+Packages may bundle runnable examples. They remain available after installation,
+without retaining the package source repository:
+
+```bash
+bl examples variants
+bl examples variants --copy variants-examples
+```
+
+The first command lists the installed package's example files. The second copies
+the complete tree, including nested data or validation files, into a new or
+empty working directory. During package development, the command also accepts a
+local package directory in place of the installed name.
+
 Version-only registry dependencies are recognized in the manifest but the
 current CLI does not fetch them from a registry.
 

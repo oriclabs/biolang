@@ -21,7 +21,7 @@ Run it with:
 We import the `singlecell` package and build a deterministic synthetic count matrix: 90 cells (30 T / 30 B / 30 monocyte) across 24 genes, where each cell's on-type marker genes are highly expressed. `MT-` genes give the QC step a mitochondrial fraction to work with.
 
 ```biolang
-import "singlecell/src/mod" as sc
+import "singlecell" as sc
 
 let gene_names = [
   "CD3D","CD3E","CD3G","TRAC","CD8A","IL7R","CCL5",          # T cell

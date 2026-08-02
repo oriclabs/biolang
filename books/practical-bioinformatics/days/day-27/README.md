@@ -23,7 +23,7 @@ bl scripts/analysis.bl
 - Using `import` and `import ... as` to organize code across files
 - Building a sequence utilities library with validation and error handling
 - Building a QC module for quality control workflows
-- Testing modules with `assert()`
+- Testing modules with the `assert` statement
 - Understanding the plugin architecture (subprocess JSON protocol)
 - Building a Python plugin that extends BioLang
 - Packaging and sharing tools

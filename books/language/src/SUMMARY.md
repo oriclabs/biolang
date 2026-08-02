@@ -5,6 +5,7 @@
 # Getting Started
 
 - [Installation & First Steps](./ch01-getting-started.md)
+- [Coming from R or Python](./ch00b-from-r-python.md)
 
 # Language Fundamentals
 

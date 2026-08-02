@@ -68,7 +68,12 @@
 ### Bioinformatics Course Package
 - [ ] "Learn BioLang in 30 Minutes" tutorial targeting biologists who know basic R/Python
 - [ ] 10 graduated exercises: sequence basics → file I/O → API queries → pipelines
-- [ ] Rosalind problem solutions as worked examples (first 20 problems)
+- [x] Rosalind Bioinformatics Armory pack — all 15 problems, 12 asserted (`packs/rosalind-armory/`)
+- [ ] Rosalind Bioinformatics Stronghold pack (107 problems) — best next target
+- [ ] Rosalind Bioinformatics Textbook Track pack (154 problems) — showcase only; the
+      course exists to have students implement these, and BioLang builtins short-circuit that
+- [ ] Rosalind Algorithmic Heights pack (34 problems) — language conformance probe, no bio content
+- [ ] Pack distribution: build artifacts, `packs/index.json`, `bl packs add`
 - [ ] Side-by-side comparisons: "How you'd do this in Python" vs BioLang
 - [ ] Downloadable sample datasets (small: < 10MB each) in `examples/sample-data/`
 

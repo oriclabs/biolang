@@ -1,0 +1,18 @@
+import "singlecell" as sc
+
+let raw = sc.load("validation_data")
+let result = raw
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(20, 5000, 25.0)
+    |> sc.normalize(10000.0)
+    |> sc.variable_genes(2000)
+    |> sc.run_pca(30)
+    |> sc.neighbors(15)
+    |> sc.cluster_leiden(15, 0.5)
+
+let lines = range(0, result.n_cells)
+    |> map(|i| result.barcodes[i] + "," + str(result.clusters[i]))
+write_text("validation_biolang_labels.csv", "barcode,cluster\n" + join(lines, "\n") + "\n")
+
+println("BIOLANG_VALIDATION_OK cells=" + str(result.n_cells) +
+        " clusters=" + str(len(unique(result.clusters))))

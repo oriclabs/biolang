@@ -3,3 +3,6 @@ name = "qpcr"
 version = "0.1.0"
 description = "RT-qPCR analysis: delta-delta Ct, efficiency, reference gene normalization, geNorm stability"
 authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

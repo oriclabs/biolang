@@ -5,15 +5,16 @@
 # Table whose columns are the groups. sc.plot_* does that conversion, so a
 # clustered object goes straight into a figure.
 #
-# Generate the demo 10x directory first, from packages/:
+# Generate the demo 10x directory from the copied example directory:
 #
-#   python singlecell/examples/make_demo_10x.py
+#   python make_demo_10x.py
+#   # creates ./nsclc_like/
 #
-# then:  bl run singlecell/examples/plots.bl
+# then:  bl run plots.bl
 
-import "singlecell/src/mod" as sc
+import "singlecell" as sc
 
-let raw = read_10x("nsclc_like")
+let raw = sc.load("nsclc_like")
 
 # min_genes is 20 rather than 200 only because this demo matrix has 168 genes.
 let res = sc.standard(raw, 0.5, 2000, 15, 20, nil, nil, nil, nil, true)
@@ -21,8 +22,8 @@ println("cells=" + str(res.n_cells) + "  clusters=" + str(res.n_clusters))
 println("")
 
 # ── embeddings ────────────────────────────────────────────────────────────────
-# plot_umap is Seurat's DimPlot; plot_feature is FeaturePlot (binned, because
-# umap_plot colours by a categorical column rather than a gradient).
+# plot_umap is Seurat's DimPlot; plot_feature is FeaturePlot with a continuous
+# expression color ramp.
 let marker = res.hvg_genes[0]
 write_text("umap.svg", sc.plot_umap(res))
 write_text("pca.svg", sc.plot_pca(res))

@@ -461,7 +461,7 @@ serialization.
 | Builtin | Description |
 |---|---|
 | `print(val) -> Nil` | Print a value followed by a newline |
-| `assert(cond, msg?) -> Nil` | Panic with `msg` if `cond` is false |
+| `assert cond, msg?` | Abort with `msg` if `cond` is false |
 | `sleep(ms) -> Nil` | Pause execution for `ms` milliseconds |
 | `now() -> Str` | Current UTC time in ISO 8601 format |
 | `timestamp() -> Int` | Current Unix timestamp in seconds; subtract two values to measure elapsed time |
@@ -497,7 +497,7 @@ available via the `singlecell`, `cellchat`, `spatial`, `velocity`,
 | `spatial_neighbors(coords, k)` | 2 | 2-D k-NN adjacency from spatial coordinates |
 | `spatial_moransi(expr_vec, spatial_adj)` | 2 | Moran's I spatial autocorrelation statistic |
 | `reference_classify(query, ref_matrix, ref_labels)` | 3 | Cosine k-NN label transfer from a reference dataset |
-| `pseudobulk_aggregate(matrix, cell_labels, sample_labels)` | 3 | Sum counts per (cluster, sample) for pseudobulk DE |
+| `pseudobulk_aggregate(matrix, cell_labels, sample_labels)` | 3 | Sum cells×genes counts per (cluster, sample); rows are genes |
 | `wnn_graph(matrix_a, matrix_b, k)` | 3 | Weighted nearest-neighbor graph for multimodal integration |
 | `velocity_estimate(spliced, unspliced)` | 2 | RNA velocity (β·u − s) per gene per cell |
 

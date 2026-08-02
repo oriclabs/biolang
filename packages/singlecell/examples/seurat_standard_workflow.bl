@@ -3,17 +3,18 @@
 #
 # Section numbering follows the R script so the two can be read side by side.
 #
-# Generate the demo 10x directory first, from packages/:
+# Generate the demo 10x directory from the copied example directory:
 #
-#   python singlecell/examples/make_demo_10x.py
+#   python make_demo_10x.py
+#   # creates ./nsclc_like/
 #
-# then:  bl run singlecell/examples/seurat_standard_workflow.bl
+# then:  bl run seurat_standard_workflow.bl
 
-import "singlecell/src/mod" as sc
+import "singlecell" as sc
 
 # ── Load ──────────────────────────────────────────────────────────────────────
 # R: Read10X_h5(...) then CreateSeuratObject(min.cells = 3, min.features = 200)
-let raw = read_10x("nsclc_like")
+let raw = sc.load("nsclc_like")
 println("loaded: " + str(raw.n_cells) + " cells x " + str(raw.n_genes) + " genes")
 
 # min_genes is 20 rather than Seurat's 200 only because this demo dataset has
@@ -33,17 +34,17 @@ println("median pct_mito   = " + str(round(median(q |> col("pct_mito")), 2)))
 let norm = obj |> sc.normalize(10000.0) |> sc.variable_genes(2000)
 println("top 10 variable genes: " + join(norm.hvg_genes |> take(10), ", "))
 
-# ── 5-6. Scale, PCA ───────────────────────────────────────────────────────────
-# R: ScaleData() ; RunPCA()
-let scaled = norm |> sc.scale()
-let pcs = pca(scaled.hvg_matrix, 15)
+# ── 5-6. PCA ──────────────────────────────────────────────────────────────────
+# PCA centers columns internally without materializing a dense scaled matrix.
+let reduced = norm |> sc.run_pca(15)
+let pcs = reduced.pca
 println("PC1-5 variance explained: " +
         join(pcs.explained_variance_ratio |> take(5)
              |> map(|v| str(round(v * 100.0, 1)) + "%"), " "))
 
 # ── 7. Clustering ─────────────────────────────────────────────────────────────
 # R: FindNeighbors(dims = 1:15) ; FindClusters(resolution = c(0.1,0.3,0.5,0.7,1))
-let graph = norm |> sc.neighbors(15)
+let graph = reduced |> sc.neighbors(15)
 println("")
 println("resolution sweep:")
 for r in [0.1, 0.3, 0.5, 0.7, 1.0] {
@@ -56,12 +57,12 @@ let labels = final.clusters
 
 # ── 8. UMAP ───────────────────────────────────────────────────────────────────
 # R: RunUMAP(dims = 1:15) ; DimPlot(reduction = "umap")
-let emb = umap(final.hvg_matrix, 2)
+let emb = umap(final.pca_scores, 2)
 println("")
 println("UMAP embedding: " + join(dim(emb) |> map(|d| str(d)), " x "))
 
 # ── Check against the known populations ───────────────────────────────────────
-let truth = read_lines("nsclc_like/truth.csv") |> filter(|s| len(s) > 0)
+let truth = read_lines("nsclc_like/truth.csv") |> drop(1) |> filter(|s| len(s) > 0)
             |> map(|line| split(line, ","))
 let tb = truth |> map(|r| r[0])
 let tp = truth |> map(|r| int(r[1]))

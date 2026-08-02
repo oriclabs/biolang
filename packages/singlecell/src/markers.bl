@@ -2,6 +2,8 @@
 #
 # Wraps cell_cycle_score, module_score, and doublet_score.
 
+import "singlecell/src/preprocess" as _pre
+
 ## cell_cycle(obj, s_genes, g2m_genes) → Record
 ##
 ## Score S-phase and G2M-phase gene sets per cell and assign a phase label.
@@ -9,7 +11,7 @@
 ## s_genes   — List<Int> indices of S-phase marker genes in obj.genes
 ## g2m_genes — List<Int> indices of G2M-phase marker genes in obj.genes
 ##
-## Adds obj.cell_cycle_info (List<Record{s_score, g2m_score, phase}>).
+## Adds obj.cell_cycle_info (Table{s_score, g2m_score, phase}, one row per cell).
 fn cell_cycle(obj, s_genes, g2m_genes) {
     let mat = obj.norm_matrix
     let scores = cell_cycle_score(mat, s_genes, g2m_genes)
@@ -35,8 +37,9 @@ fn gene_module_score(obj, gene_indices) {
 ##
 ## Adds obj.doublet_scores (List<Float> in [0, 1]).
 fn doublets(obj, n_sim = 500) {
-    let scores = doublet_score(obj.matrix, n_sim)
-    {... obj, doublet_scores: scores}
+    let prepared = if contains(keys(obj), "pca_scores") { obj } else { _pre.run_pca(obj) }
+    let scores = doublet_score(prepared.pca_scores, n_sim)
+    {... prepared, doublet_scores: scores}
 }
 
 ## flag_doublets(obj, threshold) → Record
@@ -50,13 +53,25 @@ fn flag_doublets(obj, threshold = 0.5) {
 
 ## marker_table(obj, cluster_a, cluster_b) → List<Record>
 ##
-## Marker genes between two clusters using a real Wilcoxon rank-sum
-## (Mann-Whitney U) test per gene, with Benjamini-Hochberg FDR correction
-## across all genes.
+## Marker genes for cluster_a relative to cluster_b, using a Wilcoxon rank-sum
+## (Mann-Whitney U) test per gene with Benjamini-Hochberg FDR correction across
+## all genes.
 ##
-## Returns List<Record{gene, mean_a, mean_b, log2fc, pvalue, padj, significant}>.
-## A gene is `significant` when its FDR-adjusted p-value < 0.05 and
-## |log2 fold-change| >= 1.0.
+## Direction follows Seurat's FindMarkers(ident.1 = a, ident.2 = b) and scanpy's
+## rank_genes_groups: **log2fc > 0 means the gene is higher in cluster_a**.
+##
+## log2fc is computed the way Seurat computes avg_log2FC — the inputs are
+## log1p-normalized, so the means are taken back to the expression scale with
+## expm1 before the ratio. A ratio of the log values would not be a fold change
+## and would compress large differences.
+##
+## Returns List<Record{gene, mean_a, mean_b, pct_a, pct_b, log2fc, pvalue, padj,
+## significant}>, where pct_* is the fraction of cells in that cluster with a
+## nonzero value — the specificity evidence a mean alone hides. A gene is
+## `significant` when padj < 0.05 and |log2fc| >= 1.0.
+##
+## This is exploratory, cluster-vs-cluster, and cell-level. It is not a
+## replicate-aware condition comparison: see pseudobulk().
 fn marker_table(obj, cluster_a, cluster_b) {
     let mat = obj.norm_matrix
     let cls = obj.clusters
@@ -65,18 +80,29 @@ fn marker_table(obj, cluster_a, cluster_b) {
     let idx_a = range(0, obj.n_cells) |> filter(|i| cls[i] == cluster_a)
     let idx_b = range(0, obj.n_cells) |> filter(|i| cls[i] == cluster_b)
 
-    let pseudo = 0.5
+    if len(idx_a) == 0 or len(idx_b) == 0 {
+        error("sc.marker_table(): cluster " +
+              (if len(idx_a) == 0 { str(cluster_a) } else { str(cluster_b) }) +
+              " has no cells. Present clusters: " + str(cls |> unique |> sort))
+    }
 
-    # Pass 1 — per-gene effect size and Wilcoxon rank-sum p-value.
+    # Seurat's pseudocount, applied on the expression scale after expm1.
+    let pseudo = 1.0
+
+    # Pass 1 — per-gene effect size, detection rate, and Wilcoxon p-value.
     let stats = []
     let pvals = []
 
     for j in range(0, n_g) {
-        let vals_a = idx_a |> map(|i| mat[i][j])
-        let vals_b = idx_b |> map(|i| mat[i][j])
+        let vals_a = idx_a |> map(|i| matrix_at(mat, i, j))
+        let vals_b = idx_b |> map(|i| matrix_at(mat, i, j))
         let m_a = mean(vals_a)
         let m_b = mean(vals_b)
-        let lfc = log2((m_b + pseudo) / (m_a + pseudo))
+
+        # Back to the expression scale, then the ratio: positive = up in A.
+        let e_a = mean(vals_a |> map(|v| exp(v) - 1.0))
+        let e_b = mean(vals_b |> map(|v| exp(v) - 1.0))
+        let lfc = log2((e_a + pseudo) / (e_b + pseudo))
 
         let w = wilcoxon(vals_a, vals_b)
         let p = w.pvalue
@@ -85,6 +111,8 @@ fn marker_table(obj, cluster_a, cluster_b) {
             gene:   obj.genes[j],
             mean_a: round(m_a, 4),
             mean_b: round(m_b, 4),
+            pct_a:  round(float(vals_a |> filter(|v| v > 0.0) |> len) / float(len(vals_a)), 4),
+            pct_b:  round(float(vals_b |> filter(|v| v > 0.0) |> len) / float(len(vals_b)), 4),
             log2fc: round(lfc, 4),
             pvalue: p
         })
@@ -101,4 +129,35 @@ fn marker_table(obj, cluster_a, cluster_b) {
          padj:        q,
          significant: q < 0.05 and abs(s.log2fc) >= 1.0}
     })
+}
+
+## pseudobulk(obj, sample_ids) → Table
+##
+## Sum raw counts within each (cluster, sample) pair and return a Table whose
+## columns are named "<cluster>__<sample>" and whose rows are genes, in
+## obj.genes order.
+##
+## This is the handoff point for replicate-aware differential expression. A
+## cell-level test treats cells from one donor as independent replicates and
+## reports implausibly small p-values for donor-specific differences; the
+## columns here are the actual experimental units. Feed them to a
+## negative-binomial model (the `differential` package, or edgeR/DESeq2) with
+## the study design attached.
+##
+## sample_ids — List, one donor/sample label per cell.
+fn pseudobulk(obj, sample_ids) {
+    if len(sample_ids) != obj.n_cells {
+        error("sc.pseudobulk(): got " + str(len(sample_ids)) +
+              " sample ids for " + str(obj.n_cells) + " cells")
+    }
+    if not contains(keys(obj), "clusters") {
+        error("sc.pseudobulk() needs cluster labels — cluster the object first")
+    }
+    # Sparse counts stay sparse: the builtin accumulates straight from the CSR
+    # nonzeros, so this does not densify a 10x matrix.
+    pseudobulk_aggregate(
+        obj.matrix,
+        obj.clusters |> map(|c| str(c)),
+        sample_ids |> map(|s| str(s))
+    )
 }

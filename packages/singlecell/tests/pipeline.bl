@@ -1,0 +1,55 @@
+import "singlecell" as sc
+
+let genes = ["A", "B", "C", "D", "E", "MT-ND1"]
+let barcodes = range(0, 12) |> map(|i| "cell-" + str(i))
+let counts = range(0, 12) |> map(|i| {
+    if i < 6 {
+        [12.0 + float(i), 10.0, 1.0, 0.0, 0.0, 1.0]
+    } else {
+        [0.0, 0.0, 1.0, 12.0 + float(i - 6), 10.0, 1.0]
+    }
+})
+
+let raw = sc.from_matrix(counts, genes, barcodes)
+let merged = sc.merge(raw, raw, 0, 1)
+assert merged.n_cells == 24, "merge cell count is wrong"
+assert nrow(merged.obs) == 24, "merge desynchronized obs"
+assert len(merged.batch_ids) == 24, "merge batch labels are wrong"
+
+let filtered = raw |> sc.filter_genes(2) |> sc.filter_cells(2, 10, 50.0)
+assert filtered.n_cells == 12, "cell filtering changed valid cells"
+assert filtered.n_genes == 6, "gene filtering changed expressed genes"
+assert nrow(filtered.obs) == filtered.n_cells, "obs is not synchronized"
+assert nrow(filtered.var) == filtered.n_genes, "var is not synchronized"
+
+let result = filtered
+    |> sc.normalize(10000.0)
+    |> sc.variable_genes(6)
+    |> sc.run_pca(3)
+    |> sc.neighbors(3)
+    |> sc.cluster_leiden(3, 0.5)
+
+assert len(result.pca_scores) == 12, "PCA score row count is wrong"
+assert len(result.pca_scores[0]) == 3, "PCA component count is wrong"
+assert len(result.knn) == 36, "kNN edge count is wrong"
+assert len(result.clusters) == 12, "cluster label count is wrong"
+assert len(unique(result.clusters)) == 2, "expected two synthetic populations"
+
+# Named-gene plots must read the full normalized matrix even when a gene was
+# not selected as an HVG.
+let plot_obj = filtered
+    |> sc.normalize(10000.0)
+    |> sc.variable_genes(2)
+    |> sc.run_pca(2)
+    |> sc.neighbors(3)
+    |> sc.cluster_leiden(3, 0.5)
+assert not contains(plot_obj.hvg_genes, "C"), "test gene unexpectedly selected as HVG"
+assert contains(sc.plot_feature(plot_obj, "C"), "<svg"), "feature plot lost a non-HVG gene"
+assert contains(sc.plot_violin(plot_obj, "C"), "<svg"), "violin plot lost a non-HVG gene"
+assert contains(sc.expr_dotplot(plot_obj, ["C"]), "<svg"), "dot plot lost a non-HVG gene"
+
+let ordered = result |> sc.pseudotime(0) |> sc.order_by_pseudotime()
+assert ordered.n_cells == 12, "pseudotime ordering changed cell count"
+assert nrow(ordered.obs) == 12, "pseudotime ordering desynchronized obs"
+
+println("singlecell package tests: ok")

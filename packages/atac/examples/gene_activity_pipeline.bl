@@ -16,8 +16,8 @@
 #
 # Note the paths below assume the generated files sit in the working directory.
 
-import "atac/src/mod" as atac
-import "singlecell/src/mod" as sc
+import "atac" as atac
+import "singlecell" as sc
 
 let genes = atac.from_gtf(read_text("genes.gtf"))
 println("genes in annotation: " + str(nrow(genes)))
@@ -57,7 +57,9 @@ let target = ids[best]
 
 let bin = labels |> map(|l| if l == target { 1 } else { 0 })
 let tmp = {... res, clusters: bin}
-let top = sc.marker_table(tmp, 0, 1)
+# (1, 0) = the target cluster vs the rest. log2fc is positive for the FIRST
+# argument, so the group we want markers for has to come first.
+let top = sc.marker_table(tmp, 1, 0)
     |> filter(|m| m.padj < 0.05 and m.log2fc >= 1.0)
     |> sort(|a, b| if a.log2fc > b.log2fc { -1 } else { 1 })
     |> take(20)

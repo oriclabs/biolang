@@ -7,3 +7,6 @@ authors = ["BioLang"]
 [dependencies]
 singlecell = { path = "../singlecell" }
 cellchat   = { path = "../cellchat" }
+
+[lib]
+entry = "src/mod.bl"

@@ -3,3 +3,6 @@ name = "immune"
 version = "0.1.0"
 description = "Immune repertoire analysis: TCR/BCR VDJ parsing, clonotype diversity, expansion, V/J usage"
 authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

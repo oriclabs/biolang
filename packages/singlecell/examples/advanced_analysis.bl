@@ -1,0 +1,109 @@
+# Advanced single-cell plots and donor-aware analysis
+#
+# This self-contained synthetic experiment has four donors measured before and
+# after treatment. Replace these lists with columns from your own sample sheet.
+
+import "singlecell" as sc
+
+let donors = []
+let conditions = []
+let cell_types = []
+let barcodes = []
+let counts = []
+let index = 0
+
+for d in range(0, 4) {
+    for condition in ["control", "treated"] {
+        for cell_type in ["T", "B"] {
+            for replicate in range(0, 8) {
+                donors = push(donors, "D" + str(d + 1))
+                conditions = push(conditions, condition)
+                cell_types = push(cell_types, cell_type)
+                barcodes = push(barcodes, "cell-" + str(index))
+                let interferon = if cell_type == "T" and condition == "treated" {
+                    10.0 + float(d * 2) + float(replicate % 3)
+                } else {
+                    0.0
+                }
+                counts = push(counts, [
+                    5.0 + interferon,
+                    60.0 + float(replicate),
+                    if cell_type == "B" { 22.0 } else { 2.0 },
+                    if cell_type == "T" { 18.0 } else { 3.0 },
+                    2.0 + float(replicate % 2)
+                ])
+                index = index + 1
+            }
+        }
+    }
+}
+
+let obj = sc.from_matrix(
+    counts,
+    ["IFIT1", "ACTB", "MS4A1", "CD3D", "MT-ND1"],
+    barcodes
+)
+
+let analysed = obj
+    |> sc.normalize()
+    |> sc.variable_genes(5)
+    |> sc.run_pca(4)
+    |> sc.neighbors(8)
+    |> sc.cluster_leiden(8, 0.6)
+
+# Named arguments throughout: target_type, condition_a, and condition_b are
+# three bare strings in a row. Swapping condition_a and condition_b silently
+# inverts every fold change and nothing raises.
+let de = sc.paired_pseudobulk_de(
+    obj, donors, conditions, cell_types,
+    target_type: "T", condition_a: "control", condition_b: "treated",
+    min_cells: 5
+)
+let composition_de = sc.paired_composition_test(
+    donors, conditions, cell_types,
+    condition_a: "control", condition_b: "treated", min_cells: 10
+)
+let diagnostics = sc.cluster_diagnostics(analysed)
+let stability = sc.cluster_stability(
+    analysed, resolutions: [0.2, 0.4, 0.6, 0.8, 1.0], k: 8
+)
+
+let output = "singlecell-results"
+if not is_dir(output) { mkdir(output) }
+
+write_text(path_join(output, "qc-dashboard.svg"), sc.plot_qc_dashboard(obj))
+write_text(path_join(output, "umap-condition.svg"),
+    sc.plot_embedding(analysed, conditions, "UMAP by treatment"))
+write_text(path_join(output, "feature-split.svg"),
+    sc.plot_feature_split(analysed, "IFIT1", conditions, "IFIT1 by treatment"))
+write_text(path_join(output, "group-heatmap.svg"),
+    sc.plot_group_heatmap(
+        analysed, ["IFIT1", "MS4A1", "CD3D"], cell_types,
+        "Lineage and response genes"
+    ))
+write_text(path_join(output, "volcano.svg"), sc.plot_volcano(de))
+write_text(path_join(output, "ma.svg"), sc.plot_ma(de))
+write_text(path_join(output, "paired-donors.svg"),
+    sc.plot_donor_expression(
+        obj, "IFIT1", donors, conditions, cell_types,
+        target_type: "T", condition_a: "control", condition_b: "treated",
+        min_cells: 5
+    ))
+write_text(path_join(output, "pseudobulk-pca.svg"),
+    sc.plot_pseudobulk_pca(
+        obj, donors, conditions, cell_types, target_type: "T", min_cells: 5))
+write_text(path_join(output, "composition.svg"),
+    sc.plot_composition(donors, conditions, cell_types))
+write_text(path_join(output, "cluster-stability.svg"),
+    sc.plot_cluster_stability(stability))
+write_text(path_join(output, "silhouette.svg"),
+    sc.plot_silhouette(diagnostics))
+
+write_csv(table(de), path_join(output, "paired-de.csv"))
+write_csv(table(composition_de), path_join(output, "composition-tests.csv"))
+write_csv(sc.ranked_genes(de), path_join(output, "ranked-genes.csv"))
+
+println("Wrote advanced analysis to " + output)
+println("Paired donors: " + str(de[0].n_donors))
+println("Top treatment effect: " +
+    str(de |> sort(|a, b| if a.log2fc > b.log2fc { -1 } else { 1 }) |> first()))

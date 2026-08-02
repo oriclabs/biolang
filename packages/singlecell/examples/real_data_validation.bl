@@ -15,7 +15,7 @@
 #     python /data/real_data_prep.py
 #
 # Then run this script from that same directory.
-import "singlecell/src/mod" as sc
+import "singlecell" as sc
 
 let genes    = read_lines("_real_genes.txt")    |> filter(|s| len(s) > 0)
 let barcodes = read_lines("_real_barcodes.txt") |> filter(|s| len(s) > 0)
@@ -125,7 +125,9 @@ for row in ref_marks {
     let want = range(1, len(row)) |> map(|i| row[i]) |> filter(|g| len(g) > 0)
     let bin = reflab |> map(|l| if l == c { 1 } else { 0 })
     let tmp = {... clustered, clusters: bin}
-    let got = sc.marker_table(tmp, 0, 1)
+    # (1, 0) = this reference cluster vs the rest. log2fc is positive for the
+    # FIRST argument, so the target group has to come first.
+    let got = sc.marker_table(tmp, 1, 0)
               |> filter(|m| m.padj < 0.05 and m.log2fc >= 1.0)
               |> sort(|a, b| if a.log2fc > b.log2fc { -1 } else { 1 })
               |> take(50)

@@ -1,0 +1,365 @@
+# singlecell/src/advanced.bl - replicate-aware and diagnostic analysis
+#
+# These routines keep exploratory cell-level marker testing separate from
+# condition comparisons where donors/samples are the experimental units.
+
+import "singlecell/src/preprocess" as _pre
+
+fn _check_metadata(obj, donors, conditions, cell_types, caller) {
+    if len(donors) != obj.n_cells or len(conditions) != obj.n_cells or
+       len(cell_types) != obj.n_cells {
+        error(caller + " needs one donor, condition, and cell-type label per cell")
+    }
+}
+
+fn _profile_name(cell_type, donor, condition) {
+    str(cell_type) + "__" + str(donor) + "@@" + str(condition)
+}
+
+## pseudobulk_profiles(obj, donors, conditions, cell_types, min_cells) -> Record
+##
+## Sum raw counts for each donor x condition x cell-type profile. The sparse
+## aggregation builtin is used, so a 10x matrix is not densified.
+##
+## Returns {counts, logcpm_matrix, profiles, genes}. `counts` is genes x
+## profiles. `logcpm_matrix` is profiles x genes and is suitable for PCA.
+fn pseudobulk_profiles(obj, donors, conditions, cell_types, min_cells = 10) {
+    _check_metadata(obj, donors, conditions, cell_types, "sc.pseudobulk_profiles()")
+
+    let donor_labels = donors |> map(|x| str(x))
+    let condition_labels = conditions |> map(|x| str(x))
+    let type_labels = cell_types |> map(|x| str(x))
+    let sample_labels = range(0, obj.n_cells)
+        |> map(|i| donor_labels[i] + "@@" + condition_labels[i])
+    let all_counts = pseudobulk_aggregate(obj.matrix, type_labels, sample_labels)
+
+    let profiles = []
+    for ct in type_labels |> unique |> sort {
+        for donor in donor_labels |> unique |> sort {
+            for condition in condition_labels |> unique |> sort {
+                let members = range(0, obj.n_cells) |> filter(|i|
+                    type_labels[i] == ct and donor_labels[i] == donor and
+                    condition_labels[i] == condition)
+                let column = _profile_name(ct, donor, condition)
+                if len(members) >= min_cells and contains(colnames(all_counts), column) {
+                    profiles = push(profiles, {
+                        name: column,
+                        donor: donor,
+                        condition: condition,
+                        cell_type: ct,
+                        n_cells: len(members)
+                    })
+                }
+            }
+        }
+    }
+
+    if len(profiles) == 0 {
+        error("sc.pseudobulk_profiles(): no profile has at least " +
+              str(min_cells) + " cells")
+    }
+
+    let columns = profiles |> map(|p| col(all_counts, p.name))
+    let libraries = columns |> map(|values| sum(values))
+    let logcpm = range(0, len(profiles)) |> map(|j|
+        range(0, obj.n_genes) |> map(|g|
+            log2(1.0 + 1000000.0 * columns[j][g] /
+                 (if libraries[j] > 0.0 { libraries[j] } else { 1.0 }))
+        )
+    )
+
+    {
+        counts: all_counts,
+        logcpm_matrix: logcpm,
+        profiles: range(0, len(profiles)) |> map(|i|
+            {... profiles[i], library_size: libraries[i]}),
+        genes: obj.genes
+    }
+}
+
+fn _paired_profiles(pb, target_type, condition_a, condition_b) {
+    let ct = str(target_type)
+    let a = str(condition_a)
+    let b = str(condition_b)
+    let donors_a = pb.profiles
+        |> filter(|p| p.cell_type == ct and p.condition == a)
+        |> map(|p| p.donor)
+    let donors_b = pb.profiles
+        |> filter(|p| p.cell_type == ct and p.condition == b)
+        |> map(|p| p.donor)
+    let paired = donors_a |> filter(|d| contains(donors_b, d)) |> unique |> sort
+    if len(paired) < 2 {
+        error("replicate-aware analysis needs at least two donors represented in both conditions")
+    }
+    paired
+}
+
+fn _profile_index(pb, cell_type, donor, condition) {
+    find_index(pb.profiles, |p|
+        p.cell_type == str(cell_type) and p.donor == str(donor) and
+        p.condition == str(condition))
+}
+
+## paired_pseudobulk_de(...) -> List<Record>
+##
+## Donor-aware condition testing within one cell type. Raw counts are summed
+## per donor and converted to log2 CPM; a paired t-test is then applied per
+## gene and corrected with Benjamini-Hochberg.
+##
+## This is a transparent exploratory paired model. For publication-grade
+## negative-binomial modelling and covariates, export `pseudobulk_profiles()`
+## to DESeq2/edgeR and use a design such as ~ donor + condition.
+fn paired_pseudobulk_de(obj, donors, conditions, cell_types, target_type,
+                        condition_a, condition_b, min_cells = 10) {
+    let pb = pseudobulk_profiles(
+        obj, donors, conditions, cell_types, min_cells
+    )
+    let paired = _paired_profiles(pb, target_type, condition_a, condition_b)
+    let idx_a = paired |> map(|d| _profile_index(pb, target_type, d, condition_a))
+    let idx_b = paired |> map(|d| _profile_index(pb, target_type, d, condition_b))
+
+    let base = []
+    let pvalues = []
+    for g in range(0, obj.n_genes) {
+        let vals_a = idx_a |> map(|i| pb.logcpm_matrix[i][g])
+        let vals_b = idx_b |> map(|i| pb.logcpm_matrix[i][g])
+        # ttest_paired(x, y) forms x - y, so passing (b, a) makes the
+        # t-statistic and log2fc agree in sign. Passing (a, b) and then
+        # reporting mean(b) - mean(a) puts the two fields in the same record
+        # on opposite conventions, which is how a volcano plot ends up
+        # disagreeing with the table behind it.
+        let test = ttest_paired(vals_b, vals_a)
+        let effect = mean(vals_b) - mean(vals_a)
+        base = push(base, {
+            gene: obj.genes[g],
+            mean_a: mean(vals_a),
+            mean_b: mean(vals_b),
+            log2fc: effect,
+            pvalue: test.pvalue,
+            statistic: test.statistic,
+            n_donors: len(paired)
+        })
+        pvalues = push(pvalues, test.pvalue)
+    }
+
+    let adjusted = p_adjust(pvalues, "bh")
+    range(0, len(base)) |> map(|i| {
+        let row = base[i]
+        {... row,
+         padj: adjusted[i],
+         significant: adjusted[i] < 0.05 and abs(row.log2fc) >= 1.0}
+    })
+}
+
+## donor_gene_table(...) -> List<Record>
+##
+## Per-donor log2 CPM for one gene, suitable for paired slope plots.
+fn donor_gene_table(obj, gene, donors, conditions, cell_types, target_type,
+                    condition_a, condition_b, min_cells = 10) {
+    let gi = find_index(obj.genes, |g| g == gene)
+    if gi < 0 { error("sc.donor_gene_table(): gene '" + gene + "' not found") }
+    let pb = pseudobulk_profiles(
+        obj, donors, conditions, cell_types, min_cells
+    )
+    let paired = _paired_profiles(pb, target_type, condition_a, condition_b)
+    let rows = []
+    for donor in paired {
+        let ia = _profile_index(pb, target_type, donor, condition_a)
+        let ib = _profile_index(pb, target_type, donor, condition_b)
+        rows = push(rows, {
+            donor: donor, condition: str(condition_a),
+            value: pb.logcpm_matrix[ia][gi], gene: gene
+        })
+        rows = push(rows, {
+            donor: donor, condition: str(condition_b),
+            value: pb.logcpm_matrix[ib][gi], gene: gene
+        })
+    }
+    rows
+}
+
+## composition_table(donors, conditions, cell_types) -> List<Record>
+##
+## Cell-type fractions for every donor-condition sample. Missing cell types are
+## represented by zero rather than silently disappearing.
+fn composition_table(donors, conditions, cell_types) {
+    if len(donors) != len(conditions) or len(donors) != len(cell_types) {
+        error("sc.composition_table() metadata lists must have equal length")
+    }
+    let ds = donors |> map(|x| str(x))
+    let cs = conditions |> map(|x| str(x))
+    let ts = cell_types |> map(|x| str(x))
+    let rows = []
+    for donor in ds |> unique |> sort {
+        for condition in cs |> unique |> sort {
+            let sample = range(0, len(ds))
+                |> filter(|i| ds[i] == donor and cs[i] == condition)
+            if len(sample) > 0 {
+                for ct in ts |> unique |> sort {
+                    let n = sample |> filter(|i| ts[i] == ct) |> len
+                    rows = push(rows, {
+                        donor: donor,
+                        condition: condition,
+                        cell_type: ct,
+                        n_cells: n,
+                        total_cells: len(sample),
+                        proportion: float(n) / float(len(sample))
+                    })
+                }
+            }
+        }
+    }
+    rows
+}
+
+## paired_composition_test(...) -> List<Record>
+##
+## Paired donor-level tests of cell-type proportions between two conditions.
+fn paired_composition_test(donors, conditions, cell_types,
+                           condition_a, condition_b, min_cells = 20) {
+    let rows = composition_table(donors, conditions, cell_types)
+    let a = str(condition_a)
+    let b = str(condition_b)
+    let available_a = rows
+        |> filter(|r| r.condition == a and r.total_cells >= min_cells)
+        |> map(|r| r.donor) |> unique
+    let available_b = rows
+        |> filter(|r| r.condition == b and r.total_cells >= min_cells)
+        |> map(|r| r.donor) |> unique
+    let paired = available_a |> filter(|d| contains(available_b, d)) |> sort
+    if len(paired) < 2 {
+        error("sc.paired_composition_test() needs at least two paired donors")
+    }
+
+    let base = []
+    let pvalues = []
+    for ct in rows |> map(|r| r.cell_type) |> unique |> sort {
+        let va = paired |> map(|d|
+            (rows |> filter(|r| r.donor == d and r.condition == a and
+                                  r.cell_type == ct) |> first()).proportion)
+        let vb = paired |> map(|d|
+            (rows |> filter(|r| r.donor == d and r.condition == b and
+                                  r.cell_type == ct) |> first()).proportion)
+        # (vb, va) so the statistic and `difference` share a sign convention.
+        let test = ttest_paired(vb, va)
+        base = push(base, {
+            cell_type: ct,
+            mean_a: mean(va),
+            mean_b: mean(vb),
+            difference: mean(vb) - mean(va),
+            statistic: test.statistic,
+            pvalue: test.pvalue,
+            n_donors: len(paired)
+        })
+        pvalues = push(pvalues, test.pvalue)
+    }
+    let adjusted = p_adjust(pvalues, "bh")
+    range(0, len(base)) |> map(|i|
+        {... base[i], padj: adjusted[i], significant: adjusted[i] < 0.05})
+}
+
+## cluster_diagnostics(obj) -> Record
+##
+## Silhouette coefficients in the PCA/integrated embedding.
+##
+## COST: this is exact, so it compares every cell to every other cell —
+## O(n_cells² x n_components). Roughly 23 seconds for 220 cells x 50 PCs, and
+## it grows quadratically: 10x the cells is 100x the work. `cluster_stability`
+## calls it once per resolution. Subsample before running either on a real
+## dataset; a few thousand cells is already minutes to hours.
+fn _distance(a, b) {
+    sqrt(sum(range(0, len(a)) |> map(|i| (a[i] - b[i]) ** 2.0)))
+}
+
+fn _silhouette(data, labels) {
+    let levels = labels |> unique |> sort
+    # A silhouette needs at least two clusters and at least one cluster with
+    # more than one member. Returning 0.0 here would be indistinguishable from
+    # a real result: 0.0 is a legitimate coefficient meaning "on the boundary
+    # between two clusters". nil says "not defined for this partition".
+    if len(levels) < 2 or len(levels) >= len(labels) {
+        return {mean_score: nil, per_sample: labels |> map(|_| nil),
+                undefined_reason: if len(levels) < 2 {
+                    "only one cluster — a silhouette needs at least two"
+                } else {
+                    "every cell is its own cluster"
+                }}
+    }
+    let scores = []
+    for i in range(0, len(data)) {
+        let same = range(0, len(data))
+            |> filter(|j| j != i and labels[j] == labels[i])
+        let a = if len(same) > 0 {
+            mean(same |> map(|j| _distance(data[i], data[j])))
+        } else {
+            0.0
+        }
+        let other_means = levels |> filter(|level| level != labels[i]) |> map(|level| {
+            let members = range(0, len(data)) |> filter(|j| labels[j] == level)
+            mean(members |> map(|j| _distance(data[i], data[j])))
+        })
+        let b = min(other_means)
+        let denom = max(a, b)
+        scores = push(scores, if denom > 0.0 { (b - a) / denom } else { 0.0 })
+    }
+    {mean_score: mean(scores), per_sample: scores}
+}
+
+fn cluster_diagnostics(obj) {
+    if not contains(keys(obj), "clusters") {
+        error("sc.cluster_diagnostics() needs cluster labels")
+    }
+    let prepared = if contains(keys(obj), "pca_scores") { obj } else { _pre.run_pca(obj) }
+    let result = _silhouette(_pre.embedding_of(prepared), prepared.clusters)
+    {... result,
+     clusters: prepared.clusters,
+     n_clusters: len(prepared.clusters |> unique)}
+}
+
+## cluster_stability(obj, resolutions, k) -> List<Record>
+##
+## Resolution sweep with adjacent-resolution ARI and mean silhouette score.
+##
+## `ari_previous` is nil on the first row — there is no previous partition to
+## compare against. Reporting 1.0 there would make the first resolution always
+## look perfectly stable.
+##
+## COST: runs cluster_diagnostics once per resolution, and that is quadratic in
+## cell count (see its note). Five resolutions on a few thousand cells is
+## already a long wait; subsample first.
+fn cluster_stability(obj, resolutions = [0.2, 0.5, 0.8, 1.0, 1.5], k = 15) {
+    let prepared = if contains(keys(obj), "knn") { obj } else { _pre.neighbors(obj, k) }
+    let rows = []
+    let previous = nil
+    for resolution in resolutions {
+        let fitted = _pre.cluster_leiden(prepared, k, resolution)
+        let diag = cluster_diagnostics(fitted)
+        rows = push(rows, {
+            resolution: resolution,
+            n_clusters: diag.n_clusters,
+            silhouette: diag.mean_score,
+            ari_previous: if previous == nil {
+                nil
+            } else {
+                ari(previous, fitted.clusters)
+            }
+        })
+        previous = fitted.clusters
+    }
+    rows
+}
+
+## ranked_genes(de_results) -> Table{gene, score}
+##
+## Signed ranking for the core gsea() builtin.
+fn ranked_genes(de_results) {
+    let rows = if typeof(de_results) == "Table" {
+        to_records(de_results)
+    } else {
+        de_results
+    }
+    table(rows |> map(|r| {
+        gene: r.gene,
+        score: r.log2fc * -log10(if r.pvalue > 1e-300 { r.pvalue } else { 1e-300 })
+    }) |> sort(|a, b| if a.score > b.score { -1 } else { 1 }))
+}

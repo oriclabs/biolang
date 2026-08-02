@@ -10,7 +10,7 @@
 #
 # Run:  BIOLANG_PATH=<repo>/packages  bl run sanbomics_walkthrough.bl
 
-import "singlecell/src/mod" as sc
+import "singlecell" as sc
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 0. Synthetic data: 90 cells (30 T / 30 B / 30 Monocyte) × 24 genes.
@@ -168,7 +168,7 @@ println("Provenance entries: " + str(len(provenance_log())))
 # doublets, the scVI latent, and leidenalg clustering are not natively
 # reproducible (trained models + RNG). Uncomment with docker/podman running:
 #
-#   import "scref/src/mod" as ref
+#   import "scref" as ref
 #   let dd  = ref.solo_doublets(scored)                 # SOLO (scVI) doublets
 #   let lat = ref.scvi_latent(normed, 10)               # scVI latent space
 #   let ref_clusters = ref.leidenalg_cluster(hvg, 1.0)  # exact leidenalg

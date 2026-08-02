@@ -37,5 +37,5 @@ fn marker_genes(matrix, cluster_labels, top_n = 50)      { _wx.marker_genes(matr
 # obj        — singlecell object with .matrix, .clusters, and .obs fields
 # sample_col — name of the column in obj.obs that identifies biological samples/donors
 fn pseudobulk_de(obj, sample_col) {
-    pseudobulk_aggregate(obj.matrix, obj.clusters, obj.obs[sample_col])
+    pseudobulk_aggregate(obj.matrix, obj.clusters, col(obj.obs, sample_col))
 }

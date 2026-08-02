@@ -7,3 +7,6 @@ authors = ["BioLang"]
 [dependencies]
 statistics = { path = "../statistics" }
 variants   = { path = "../variants" }
+
+[lib]
+entry = "src/mod.bl"

@@ -14,20 +14,39 @@
 ## Read a 10x Genomics MEX directory (barcodes.tsv, features.tsv, matrix.mtx,
 ## with optional .gz variants) and return a single-cell object.
 fn load(path) {
-    read_10x(path)
+    read_10x_sparse(path)
+}
+
+## Rows of a dense matrix as List<List<Float>>.
+##
+## `matrix(...)` builds a Matrix value, but the object model stores counts as
+## List<List> (dense) or SparseMatrix (from load). Normalising here keeps every
+## downstream step — merge, subset, matrix_at — looking at one of two shapes
+## instead of three.
+fn _as_rows(m) {
+    if typeof(m) == "Matrix" {
+        let shape = dim(m)
+        return range(0, shape[0]) |> map(|i| row(m, i))
+    }
+    m
 }
 
 ## from_matrix(matrix, genes, barcodes) → Record
 ##
 ## Construct a single-cell object from an existing dense matrix
-## (cells × genes, List<List<Float>>).
+## (cells × genes). Accepts either a `matrix(...)` value or a List<List<Float>>.
 fn from_matrix(matrix, genes, barcodes) {
+    let rows = _as_rows(matrix)
     {
-        matrix:   matrix,
+        matrix:   rows,
         genes:    genes,
         barcodes: barcodes,
-        n_cells:  len(matrix),
-        n_genes:  len(genes)
+        n_cells:  len(rows),
+        n_genes:  len(genes),
+        obs:       table(barcodes |> map(|barcode| {barcode: barcode})),
+        var:       table(genes |> map(|gene| {gene: gene})),
+        layers:    {counts: rows},
+        is_sparse: false
     }
 }
 
@@ -73,13 +92,9 @@ fn summary(obj) {
     let n_c = obj.n_cells
     let n_g = obj.n_genes
 
-    let lib_sizes = obj.matrix |> map(|row| sum(row))
-    let mean_lib  = mean(lib_sizes)
-
-    let n_detected = obj.matrix |> map(|row|
-        row |> filter(|v| v > 0.0) |> len()
-    )
-    let mean_genes = mean(n_detected)
+    let metrics = cell_qc(obj.matrix, obj.genes)
+    let mean_lib = mean(col(metrics, "total_counts"))
+    let mean_genes = mean(col(metrics, "n_genes"))
 
     {
         n_cells:        n_c,
@@ -88,6 +103,8 @@ fn summary(obj) {
         mean_genes_per_cell: mean_genes,
         has_norm:       "norm_matrix" in keys(obj),
         has_hvg:        "hvg" in keys(obj),
+        has_pca:        "pca_scores" in keys(obj),
+        has_neighbors:  "knn" in keys(obj),
         has_clusters:   "clusters" in keys(obj),
         has_pseudotime: "pseudotime" in keys(obj)
     }

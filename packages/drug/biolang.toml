@@ -3,3 +3,6 @@ name = "drug"
 version = "0.1.0"
 description = "Drug response analysis: IC50 fitting (4PL), Bliss/Loewe synergy, AUC, dose-response curves"
 authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

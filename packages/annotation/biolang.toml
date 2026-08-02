@@ -3,3 +3,6 @@ name = "annotation"
 version = "0.1.0"
 description = "Genomic annotation: GTF/GFF3 parsing, gene bodies, promoters, interval overlap, peak annotation"
 authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"
