@@ -1,0 +1,45 @@
+# Rosalind: CORR — Error Correction in Reads
+# https://rosalind.info/problems/corr/
+#
+# Given: A collection of reads of equal length. Each read either appears in the
+# dataset at least twice (counting reverse complements), or is a single-symbol
+# error away from exactly one such read.
+# Return: Every correction, as "wrong->right".
+
+let reads = ["TCATC", "TTCAT", "TCATC", "TGAAA", "GAGGA", "TTTCA", "ATCAA", "TTGAT", "TTTCC"]
+
+fn revcomp(read) { str(reverse_complement(dna(read))) }
+
+fn hamming_of(a, b) {
+    range(0, len(a)) |> count_if(|i| substr(a, i, 1) != substr(b, i, 1))
+}
+
+# A read is correct when it, plus its reverse complement, appears at least
+# twice across the dataset.
+fn occurrences(read) {
+    let direct = reads |> count_if(|r| r == read)
+    let reversed = reads |> count_if(|r| r == revcomp(read))
+    direct + reversed
+}
+
+let correct = reads |> filter(|r| occurrences(r) >= 2) |> unique()
+let wrong = reads |> filter(|r| occurrences(r) < 2) |> unique()
+
+# Each incorrect read is one substitution from exactly one correct read, in
+# either orientation.
+let corrections = wrong |> map(|bad| {
+    let targets = correct |> flat_map(|good| [good, revcomp(good)])
+    let repaired = targets |> filter(|t| hamming_of(bad, t) == 1) |> first()
+    bad ++ "->" ++ repaired
+})
+
+println("Result:")
+corrections |> each(|c| println("  " + c))
+println("Expected: TTCAT->TTGAT, GAGGA->GATGA, TTTCC->TTTCA")
+
+fn test_corr_error_correction() {
+    assert len(corrections) == 3, "CORR: got " + str(len(corrections))
+    assert corrections |> contains("TTCAT->TTGAT"), "CORR: missing TTCAT->TTGAT"
+    assert corrections |> contains("GAGGA->GATGA"), "CORR: missing GAGGA->GATGA"
+    assert corrections |> contains("TTTCC->TTTCA"), "CORR: missing TTTCC->TTTCA"
+}

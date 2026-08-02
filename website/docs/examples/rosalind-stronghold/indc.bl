@@ -1,0 +1,50 @@
+# Rosalind: INDC — Independent Segregation of Chromosomes
+# https://rosalind.info/problems/indc/
+#
+# Given: A positive integer n (n <= 50).
+# Return: An array A of length 2n where A[k] is the common logarithm of the
+# probability that at least k of Tom's 2n chromosomes came from his father.
+
+let n = 5
+let trials = 2 * n
+
+# Each chromosome is inherited from either parent with probability 1/2 and
+# independently of the others, so the count is Binomial(2n, 1/2).
+fn binomial_row(width) {
+    range(0, width) |> reduce(
+        |row, _| {
+            let extended = concat([0], row)
+            range(0, len(row) + 1) |> map(|i| {
+                let left = extended[i]
+                let right = if i < len(row) then row[i] else 0
+                left + right
+            })
+        },
+        [1]
+    )
+}
+
+let coefficients = binomial_row(trials)
+let total = float(sum(coefficients))
+
+# P(at least k) sums the tail from k upwards.
+let results = range(1, trials + 1) |> map(|k| {
+    let tail = range(k, trials + 1) |> map(|i| float(coefficients[i])) |> sum()
+    log10(tail / total)
+})
+
+println("Result:   " + (results |> map(|r| str(round(r, 3))) |> join(" ")))
+println("Expected: the binomial tail of 10 fair trials, ending log10(1/1024) = -3.010")
+
+fn test_indc_independent_segregation() {
+    assert len(results) == trials, "INDC: got " + str(len(results)) + " entries"
+    # P(at least 1) = 1 - 1/1024, and P(at least 2n) = 1/1024 exactly.
+    assert round(results[0], 4) == -0.0004, "INDC: first was " + str(results[0])
+    assert round(results[trials - 1], 3) == -3.01, "INDC: last was " + str(results[trials - 1])
+    # The tail must be non-increasing: a larger threshold cannot be likelier.
+    let i = 1
+    while i < trials {
+        assert results[i] <= results[i - 1], "INDC: tail increased at " + str(i)
+        i = i + 1
+    }
+}

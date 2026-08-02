@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-fade6fca.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0d7bde73.js"></script>
@@ -652,7 +652,7 @@ serialization.</p>
 </thead>
 <tbody>
 <tr><td><code>print(val) -&gt; Nil</code></td><td>Print a value followed by a newline</td></tr>
-<tr><td><code>assert(cond, msg?) -&gt; Nil</code></td><td>Panic with <code>msg</code> if <code>cond</code> is false</td></tr>
+<tr><td><code>assert cond, msg?</code></td><td>Abort with <code>msg</code> if <code>cond</code> is false</td></tr>
 <tr><td><code>sleep(ms) -&gt; Nil</code></td><td>Pause execution for <code>ms</code> milliseconds</td></tr>
 <tr><td><code>now() -&gt; Str</code></td><td>Current UTC time in ISO 8601 format</td></tr>
 <tr><td><code>timestamp() -&gt; Int</code></td><td>Current Unix timestamp in seconds; subtract two values to measure elapsed time</td></tr>
@@ -689,7 +689,7 @@ available via the <code>singlecell</code>, <code>cellchat</code>, <code>spatial<
 <tr><td><code>spatial_neighbors(coords, k)</code></td><td>2</td><td>2-D k-NN adjacency from spatial coordinates</td></tr>
 <tr><td><code>spatial_moransi(expr_vec, spatial_adj)</code></td><td>2</td><td>Moran’s I spatial autocorrelation statistic</td></tr>
 <tr><td><code>reference_classify(query, ref_matrix, ref_labels)</code></td><td>3</td><td>Cosine k-NN label transfer from a reference dataset</td></tr>
-<tr><td><code>pseudobulk_aggregate(matrix, cell_labels, sample_labels)</code></td><td>3</td><td>Sum counts per (cluster, sample) for pseudobulk DE</td></tr>
+<tr><td><code>pseudobulk_aggregate(matrix, cell_labels, sample_labels)</code></td><td>3</td><td>Sum cells×genes counts per (cluster, sample); rows are genes</td></tr>
 <tr><td><code>wnn_graph(matrix_a, matrix_b, k)</code></td><td>3</td><td>Weighted nearest-neighbor graph for multimodal integration</td></tr>
 <tr><td><code>velocity_estimate(spliced, unspliced)</code></td><td>2</td><td>RNA velocity (β·u − s) per gene per cell</td></tr>
 </tbody>

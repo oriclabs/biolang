@@ -1,0 +1,17 @@
+# Rosalind: HAMM — Counting Point Mutations
+# https://rosalind.info/problems/hamm/
+#
+# Given: Two DNA strings s and t of equal length.
+# Return: The Hamming distance between them.
+
+let s = dna"GAGCCTACTAACGGGAT"
+let t = dna"CATCGTAATGACGGCCT"
+
+let distance = hamming_distance(s, t)
+
+println("Result:   " + str(distance))
+println("Expected: 7")
+
+fn test_hamm_point_mutations() {
+    assert distance == 7, "HAMM: got " + str(distance)
+}

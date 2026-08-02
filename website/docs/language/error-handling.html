@@ -78,11 +78,11 @@ let loaded = paths
   |> map(|p| try { read_csv(p) } catch _ { nil })
   |> filter(|x| x != nil)</code></pre>
 
-        <h2>assert(condition, message)</h2>
+        <h2>assert condition, message</h2>
         <p>
-          <code>assert</code> takes two arguments: a boolean condition and an error message
-          string. If the condition is false, the assertion throws an error that can be caught
-          with <code>try</code>/<code>catch</code>:
+          <code>assert</code> is a statement containing a boolean condition and an optional
+          error message. If the condition is false, the assertion throws an error that can be
+          caught with <code>try</code>/<code>catch</code>:
         </p>
         <pre><code class="language-biolang"># Assertions that pass do nothing
 assert 1 + 1 == 2, "math works"

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Single-Cell — BioLang</title>
+  <title>Single-Cell - BioLang</title>
   <link rel="icon" href="../../assets/favicon.svg">
   <link rel="stylesheet" href="../../assets/styles.css">
   <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -22,278 +22,226 @@
         <span class="text-slate-300">Single-Cell</span>
       </nav>
       <article class="prose prose-invert max-w-none">
-        <h1>Single-Cell Analysis</h1>
-        <p>Single-cell RNA sequencing analysis in BioLang covers the full workflow from
-        raw count matrices through quality control, normalization, dimensionality
-        reduction, clustering, and marker gene identification.</p>
+        <h1>Single-Cell RNA-seq Analysis</h1>
+        <p>A single-cell count matrix records how many RNA molecules from each gene
+        were observed in each cell. Most entries are zero, so BioLang keeps 10x
+        matrices sparse through filtering, normalization, variable-gene selection,
+        and PCA.</p>
 
-        <h2>Loading Count Matrices</h2>
+        <h2>Load 10x Data</h2>
+        <p><code>sc.load</code> reads the Matrix Market file, gene features, and cell
+        barcodes. The result keeps raw counts in both <code>matrix</code> and
+        <code>layers.counts</code>, with cell metadata in <code>obs</code> and gene
+        metadata in <code>var</code>.</p>
+        <pre><code class="language-biolang">import "singlecell" as sc
 
-        <h3>Reading 10x Genomics output</h3>
-        <pre><code class="language-biolang"># Load 10x MEX format: barcodes, genes, and sparse matrix
-let barcodes = read_lines("filtered_feature_bc_matrix/barcodes.tsv")
-let genes_file = read_lines("filtered_feature_bc_matrix/features.tsv")
-let gene_names = genes_file |> map(|line| { line |> split("\t") |> last })
+let cells = sc.load("filtered_feature_bc_matrix")
+println(str(cells.n_cells) + " cells x " + str(cells.n_genes) + " genes")
+println(str(nnz(cells.matrix)) + " non-zero counts")</code></pre>
 
-# Read Matrix Market file and build sparse matrix
-let mtx_lines = read_lines("filtered_feature_bc_matrix/matrix.mtx")
-  |> filter(|line| { !(line |> starts_with("%")) })
-let header = mtx_lines |> first |> split(" ")
-let n_genes = header[0] |> int
-let n_cells = header[1] |> int
-let entries = mtx_lines |> tail(1)
-
-# Build sparse matrix from (row, col, value) triplets
-let rows = entries |> map(|line| {
-  let parts = line |> split(" ")
-  (parts[0] |> int) - 1
-})
-let cols = entries |> map(|line| {
-  let parts = line |> split(" ")
-  (parts[1] |> int) - 1
-})
-let vals = entries |> map(|line| {
-  let parts = line |> split(" ")
-  parts[2] |> float
-})
-let counts = sparse_matrix(rows, cols, vals)
-
-print(f"Loaded: {n_cells} cells x {n_genes} genes")
-print(f"Non-zero entries: {counts |> nnz}")
-print(f"Sparsity: {(1.0 - (counts |> nnz |> float) / (n_cells * n_genes |> float)) * 100.0 |> round(1)}%")</code></pre>
-
-        <h3>Reading from CSV</h3>
-        <pre><code class="language-biolang"># Load a dense count matrix (genes as columns, cells as rows)
-let counts_table = read_csv("data/counts.csv")
-let metadata = read_csv("data/sample_sheet.csv")
-
-print(f"Count matrix: {counts_table |> len} cells")
-print(f"Metadata fields: {metadata |> head(1) |> keys |> join(", ")}")</code></pre>
+        <h3>AnnData exchange</h3>
+        <p>BioLang reads and writes AnnData Zarr stores natively and preserves a
+        sparse <code>X</code> matrix plus observation and variable index names.
+        Arbitrary metadata columns and auxiliary layers are not yet copied.
+        Direct HDF5 <code>.h5ad</code> access requires Python/anndata or a
+        container conversion to Zarr.</p>
+        <pre><code class="language-biolang">let cells = read_anndata("study.zarr")
+write_anndata("study_biolang.zarr", cells)</code></pre>
 
         <h2>Quality Control</h2>
+        <p>Low-complexity cells may be empty droplets. Very high gene counts may
+        indicate two cells captured together. A high mitochondrial fraction often
+        signals a damaged cell. Thresholds depend on tissue and protocol, so inspect
+        the distributions before fixing them.</p>
+        <pre><code class="language-biolang">let metrics = cell_qc(cells.matrix, cells.genes)
+println("median genes per cell: " + str(median(col(metrics, "n_genes"))))
+println("median mitochondrial %: " + str(median(col(metrics, "pct_mito"))))
 
-        <h3>Cell and gene filtering</h3>
-        <pre><code class="language-biolang"># Assume counts is a sparse matrix (cells x genes) loaded above
-# Compute per-cell QC: total UMIs and genes detected
-let cell_totals = counts |> sparse_row_sums
-let genes_per_cell = counts |> to_dense |> mat_map(|x| { if x > 0.0 { 1.0 } else { 0.0 } }) |> row_sums
+let filtered = cells
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(200, 5000, 20.0)
 
-# Identify mitochondrial genes (names starting with "MT-")
-let mito_mask = gene_names |> map(|g| { if g |> starts_with("MT-") { 1.0 } else { 0.0 } })
+println(str(filtered.n_cells) + " cells retained")</code></pre>
 
-# Compute mito fraction per cell from dense matrix
-let dense = counts |> to_dense
-let mito_sums = range(0, n_cells) |> map(|i| {
-  let cell_row = row(dense, i)
-  zip(cell_row, mito_mask) |> map(|pair| { pair[0] * pair[1] }) |> sum
-})
-let pct_mito = zip(mito_sums, cell_totals) |> map(|pair| {
-  if pair[1] > 0.0 { pair[0] / pair[1] * 100.0 } else { 0.0 }
-})
+        <h2>Normalize and Select Genes</h2>
+        <p>Library-size normalization makes cells with different sequencing depths
+        comparable. <code>log1p</code> reduces the influence of very large counts.
+        Variable-gene selection focuses the later analysis on genes that distinguish
+        cells rather than genes that are nearly constant.</p>
+        <pre><code class="language-biolang">let prepared = filtered
+    |> sc.normalize(10000.0)
+    |> sc.variable_genes(2000)
 
-print("QC Summary:")
-print(f"  Median genes/cell: {genes_per_cell |> median |> round(0)}")
-print(f"  Median UMIs/cell:  {cell_totals |> median |> round(0)}")
-print(f"  Median %mito:      {pct_mito |> median |> round(1)}%")
+println(str(len(prepared.hvg_genes)) + " variable genes selected")</code></pre>
 
-# Filter cells by QC thresholds
-let keep_cells = range(0, n_cells) |> filter(|i| {
-  genes_per_cell[i] > 200.0 &&
-  genes_per_cell[i] &lt; 5000.0 &&
-  cell_totals[i] > 500.0 &&
-  pct_mito[i] &lt; 20.0
-})
-print(f"Cells passing QC: {keep_cells |> len} / {n_cells}")
+        <h2>PCA, Neighbors, and Leiden Clusters</h2>
+        <p>PCA compresses thousands of genes into a small set of components.
+        Neighbors are computed from those PCA scores. Leiden then finds communities
+        in the stored neighbor graph; it does not cluster the raw expression matrix
+        or rebuild the graph. The current exact neighbor search takes quadratic
+        time in the number of cells, so very large atlases should be sampled or
+        sent to a suitable remote backend.</p>
+        <pre><code class="language-biolang">let reduced = prepared |> sc.run_pca(30)
+let graphed = reduced |> sc.neighbors(15)
+let result = graphed |> sc.cluster_leiden(15, 0.5)
 
-# Filter genes (expressed in at least 3 cells)
-let gene_cell_counts = counts |> to_dense |> mat_map(|x| { if x > 0.0 { 1.0 } else { 0.0 } }) |> col_sums
-let keep_genes = range(0, n_genes) |> filter(|j| { gene_cell_counts[j] >= 3.0 })
-print(f"Genes retained: {keep_genes |> len} / {n_genes}")</code></pre>
+println("PCA components: " + str(result.pca.n_components))
+println("neighbor edges: " + str(len(result.knn)))
+println("clusters: " + str(len(unique(result.clusters))))</code></pre>
 
-        <h2>Normalization</h2>
-
-        <h3>Standard normalization pipeline</h3>
-        <pre><code class="language-biolang"># Library size normalization: scale each cell to target_sum, then log1p
-let target_sum = 10000.0
-let cell_totals = counts |> sparse_row_sums
-
-# Normalize: divide each cell's counts by its total, multiply by target
-let norm = counts |> normalize_sparse("total")
-let dense_norm = norm |> to_dense
-
-# Scale to target sum and log-transform
-let scaled = dense_norm |> mat_map(|x| { x * target_sum })
-let log_counts = scaled |> mat_map(|x| { log(x + 1.0) })
-
-print(f"Normalized matrix: {log_counts |> dim}")
-
-# Find highly variable genes (by variance across cells)
-let gene_means = log_counts |> col_means
-let gene_vars = range(0, n_genes) |> map(|j| {
-  let col_vals = mat_col(log_counts, j)
-  let mu = gene_means[j]
-  col_vals |> map(|x| { pow(x - mu, 2) }) |> mean
-})
-
-# Select top 2000 most variable genes
-let gene_indices = range(0, n_genes) |> sort_by(|a, b| { gene_vars[b] - gene_vars[a] })
-let hvg_indices = gene_indices |> take(2000)
-let hvg_names = hvg_indices |> map(|i| { gene_names[i] })
-print(f"Highly variable genes: {hvg_indices |> len}")</code></pre>
-
-        <h2>Dimensionality Reduction</h2>
-
-        <h3>PCA and UMAP</h3>
-        <pre><code class="language-biolang"># PCA on the log-normalized matrix (50 components)
-let pca_result = pca(log_counts, 50)
-let pc_coords = pca_result.coords       # cells x 50 matrix
-let pc_variance = pca_result.variance    # variance explained per PC
-
-# Check variance explained (elbow plot data)
-let total_var = pc_variance |> sum
-print("Variance explained by top PCs:")
-for i in 0..10 {
-  let pct = pc_variance[i] / total_var * 100.0
-  print(f"  PC{i + 1}: {pct |> round(2)}%")
-}
-
-# UMAP embedding from top 30 PCs
-let pc_30 = range(0, n_cells) |> map(|i| {
-  row(pc_coords, i) |> take(30)
-})
-let pc_matrix = matrix(pc_30)
-let umap_coords = umap(pc_matrix, 2)  # 2D embedding
-
-# Export UMAP coordinates
-let umap_table = range(0, n_cells) |> map(|i| {
-  let coords = row(umap_coords, i)
-  { cell: barcodes[i], umap1: coords[0], umap2: coords[1] }
-})
-umap_table |> write_tsv("umap_coordinates.tsv")
-print(f"UMAP coordinates saved for {n_cells} cells")</code></pre>
-
-        <h2>Clustering</h2>
-
-        <h3>Leiden clustering</h3>
-        <pre><code class="language-biolang"># Leiden clustering at multiple resolutions on PCA coordinates
-let resolutions = [0.3, 0.5, 0.8, 1.0, 1.5]
-
-for res in resolutions {
-  let clusters = leiden(pc_matrix, res)
-  let n_clusters = clusters |> unique |> len
-  print(f"Resolution {res}: {n_clusters} clusters")
-}
-
-# Use resolution 0.8 as default
-let clusters = leiden(pc_matrix, 0.8)
-
-# Cluster sizes
-let cluster_ids = clusters |> unique |> sort
-for cl in cluster_ids {
-  let size = clusters |> filter(|c| { c == cl }) |> len
-  let pct = size |> float / n_cells |> float * 100.0
-  print(f"  Cluster {cl}: {size} cells ({pct |> round(1)}%)")
+        <h3>Resolution sensitivity</h3>
+        <p>Cluster IDs are labels, not biological identities. Higher resolution
+        usually creates more clusters. Compare several values and check markers,
+        sample composition, and stability rather than selecting a number only
+        because the plot looks tidy.</p>
+        <pre><code class="language-biolang">for resolution in [0.2, 0.5, 0.8, 1.0] {
+    let labels = leiden_graph(graphed.knn, graphed.n_cells, resolution)
+    println("resolution " + str(resolution) + ": " +
+            str(len(unique(labels))) + " clusters")
 }</code></pre>
 
-        <h2>Marker Gene Detection</h2>
+        <h2>Markers and Annotation</h2>
+        <p>A marker is a gene whose expression differs between groups. Marker genes
+        support a cell-type interpretation, but no single marker is definitive.
+        Use multiple genes and biological context.</p>
+        <p><code>log2fc</code> is positive when the gene is higher in the
+        <em>first</em> cluster, matching Seurat's
+        <code>FindMarkers(ident.1, ident.2)</code>. The <code>pct_a</code> and
+        <code>pct_b</code> columns give the fraction of cells expressing the gene
+        in each cluster, which is the specificity evidence a mean hides.</p>
+        <pre><code class="language-biolang">let markers = sc.marker_table(result, 0, 1)
+let strongest = markers
+    |> filter(|row| row.padj &lt; 0.05)
+    |> sort(|a, b| if abs(a.log2fc) &gt; abs(b.log2fc) { -1 } else { 1 })
+    |> take(10)
 
-        <h3>Finding cluster markers with diff_expr</h3>
-        <pre><code class="language-biolang"># Differential expression between each cluster and the rest
-let cluster_ids = clusters |> unique |> sort
+for marker in strongest {
+    println(marker.gene + " log2FC=" + str(marker.log2fc) +
+            " FDR=" + str(marker.padj))
+}</code></pre>
 
-let all_markers = cluster_ids |> flat_map(|cl| {
-  # Split cells into this cluster vs rest
-  let in_cluster = range(0, n_cells) |> filter(|i| { clusters[i] == cl })
-  let out_cluster = range(0, n_cells) |> filter(|i| { clusters[i] != cl })
+        <h2>Plots</h2>
+        <p>UMAP is a view of local relationships, not proof of discrete cell types.
+        BioLang computes it from PCA scores and can color points using the stored
+        Leiden labels. The plotting API returns SVG text, so the same result can be
+        rendered inline in Desktop and notebooks or written as a publication-ready
+        vector file.</p>
+        <pre><code class="language-biolang">write_text("umap.svg", sc.plot_umap(result, "PBMC clusters"))
+write_text("pca.svg", sc.plot_pca(result, "PBMC PCA"))
+write_text("cd3d.svg", sc.plot_feature(result, "CD3D", "CD3D expression"))
+write_text("qc.svg", sc.plot_qc_dashboard(cells, "Cell quality"))</code></pre>
 
-  # Extract expression submatrices as lists of row vectors
-  let in_expr = in_cluster |> map(|i| { row(log_counts, i) })
-  let out_expr = out_cluster |> map(|i| { row(log_counts, i) })
+        <h3>Diagnostic and comparison plots</h3>
+        <p>The advanced plotting module covers the common views needed to inspect
+        quality, embeddings, differential expression, donor consistency, cell
+        composition, cluster stability, and enrichment. Split feature plots and
+        group heatmaps help distinguish a condition effect from a change in cell
+        abundance.</p>
+        <pre><code class="language-biolang"># conditions and cell_types contain one label per cell.
+write_text("condition.svg",
+    sc.plot_embedding(result, conditions, "Condition"))
+write_text("ifit1_by_condition.svg",
+    sc.plot_feature_split(result, "IFIT1", conditions, "IFIT1"))
+write_text("group_means.svg",
+    sc.plot_group_heatmap(result, ["IFIT1", "ISG15", "EPCAM"],
+                          conditions, "Mean expression"))</code></pre>
 
-  # diff_expr compares two groups and returns per-gene stats
-  let de = diff_expr(matrix(in_expr), matrix(out_expr))
+        <h2>Donor-Aware Advanced Analysis</h2>
+        <p>Cells from one donor are repeated observations, not independent
+        biological replicates. Aggregate raw counts by donor, condition, and cell
+        type before donor-level differential testing. This avoids treating
+        thousands of cells as thousands of independent patients.</p>
+        <pre><code class="language-biolang">let profiles = sc.pseudobulk_profiles(
+    result, donors, conditions, cell_types, 10
+)
 
-  # de is a list of {gene_index, log2fc, p_value}
-  de |> sort_by(|a, b| a.p_value - b.p_value)
-     |> take(20)
-     |> map(|m| { {
-       cluster: cl,
-       gene: gene_names[m.gene_index],
-       log2fc: m.log2fc |> round(3),
-       p_value: m.p_value
-     }})
-})
+let de = sc.paired_pseudobulk_de(
+    result, donors, conditions, cell_types, "T cell",
+    "control", "treated", 10
+)
 
-# Print top 5 markers per cluster
-for cl in cluster_ids {
-  let top = all_markers |> filter(|m| { m.cluster == cl }) |> take(5)
-  let genes = top |> map(|m| { m.gene }) |> join(", ")
-  print(f"Cluster {cl}: {genes}")
-}
+write_text("volcano.svg", sc.plot_volcano(de, "T-cell response"))
+write_text("ma.svg", sc.plot_ma(de, "T-cell mean-abundance"))
+write_text("donors.svg",
+    sc.plot_donor_expression(
+        result, "IFIT1", donors, conditions, cell_types, "T cell",
+        "control", "treated", 10
+    ))
+write_text("pseudobulk_pca.svg",
+    sc.plot_pseudobulk_pca(
+        result, donors, conditions, cell_types, "T cell", 10
+    ))</code></pre>
 
-all_markers |> write_tsv("cluster_markers.tsv")</code></pre>
+        <p><code>paired_pseudobulk_de</code> is an exploratory paired
+        log2-CPM t-test. Use its effect sizes and donor plots for exploration. For
+        confirmatory claims, export the raw pseudobulk counts and fit a
+        negative-binomial model with DESeq2, edgeR, or an equivalent validated
+        method.</p>
 
-        <h3>Cell type annotation</h3>
-        <pre><code class="language-biolang"># Annotate clusters based on known marker genes
-let known_markers = {
-  "T cells": ["CD3D", "CD3E", "CD4", "CD8A"],
-  "B cells": ["CD19", "MS4A1", "CD79A"],
-  "NK cells": ["NKG7", "GNLY", "KLRD1"],
-  "Monocytes": ["CD14", "LYZ", "S100A8"],
-  "Dendritic": ["FCER1A", "CST3", "CLEC10A"],
-  "Platelets": ["PPBP", "PF4"]
-}
+        <h3>Composition and clustering diagnostics</h3>
+        <pre><code class="language-biolang">let composition = sc.composition_table(
+    donors, conditions, cell_types
+)
+let composition_test = sc.paired_composition_test(
+    donors, conditions, cell_types, "control", "treated", 20
+)
+write_text("composition.svg",
+    sc.plot_composition(
+        donors, conditions, cell_types, "Cell-type composition"
+    ))
 
-let cluster_ids = clusters |> unique |> sort
-let cell_types_list = ["T cells", "B cells", "NK cells", "Monocytes", "Dendritic", "Platelets"]
+let stability = sc.cluster_stability(result, [0.2, 0.5, 0.8, 1.0], 15)
+write_text("stability.svg",
+    sc.plot_cluster_stability(stability, "Resolution stability"))
 
-let annotations = cluster_ids |> map(|cl| {
-  let cell_indices = range(0, n_cells) |> filter(|i| { clusters[i] == cl })
+let diagnostics = sc.cluster_diagnostics(result)
+write_text("silhouette.svg",
+    sc.plot_silhouette(diagnostics, "Cluster separation"))</code></pre>
 
-  let scores = cell_types_list |> map(|cell_type| {
-    let marker_genes = known_markers[cell_type]
-    let score = marker_genes |> map(|gene| {
-      if contains(gene_names, gene) {
-        let gi = find_index(gene_names, |name| name == gene)
-        cell_indices |> map(|ci| { row(log_counts, ci)[gi] }) |> mean
-      } else { 0.0 }
-    }) |> mean
-    { cell_type: cell_type, score: score }
-  }) |> sort_by(|a, b| b.score - a.score)
+        <h3>Run the complete example</h3>
+        <p>The packaged example creates a deterministic multi-donor data set,
+        executes every advanced analysis, and writes SVG and CSV results. It is the
+        runnable source for the variables used in the excerpts above.</p>
+        <pre><code class="language-text">bl examples singlecell --copy singlecell-examples
+cd singlecell-examples
+bl run advanced_analysis.bl</code></pre>
 
-  let best = scores |> first
-  print(f"Cluster {cl} => {best.cell_type} (score: {best.score |> round(3)})")
-  { cluster: cl, cell_type: best.cell_type }
-})
+        <h2>One-Call Exploration</h2>
+        <p><code>standard</code> is useful for a first look. It prints the explicit
+        pipeline and identifies which parameters are defaults. For a report or
+        publication, keep the expanded pipeline and record every threshold.</p>
+        <pre><code class="language-biolang">let result = sc.standard(
+    cells,
+    resolution: 0.5,
+    n_hvg: 2000,
+    k: 15,
+    min_genes: 200,
+    max_genes: 5000,
+    max_pct_mito: 20.0
+)</code></pre>
 
-let cell_types = clusters |> map(|cl| {
-  let annotation = annotations |> find(|item| item.cluster == cl)
-  annotation.cell_type
-})
-let type_counts = cell_types |> frequencies |> sort_by(|a, b| b.value - a.value)
-type_counts |> each(|ct| { print(f"{ct.key}: {ct.value} cells") })</code></pre>
+        <h2>Cross-Validation</h2>
+        <p>The installed package includes seeded Scanpy and Seurat workflows under
+        <code>examples/validation</code>. Compare cells by barcode and
+        partitions with adjusted Rand index. Do not compare raw cluster numbers or
+        PCA signs, because both can change without changing the biological
+        partition. Copy the package examples into an independent working directory;
+        no BioLang repository checkout is required.</p>
+        <pre><code class="language-text">bl examples singlecell --copy singlecell-examples
+cd singlecell-examples
+python make_demo_10x.py --output validation_data
+bl run validation/biolang_reference.bl
+python validation/scanpy_reference.py validation_data validation_scanpy_labels.csv
+python validation/compare_labels.py validation_scanpy_labels.csv validation_biolang_labels.csv
 
-        <h2>Saving Results</h2>
+# Cross-check the advanced paired test against SciPy and R.
+python validation/advanced_reference.py
+Rscript validation/advanced_reference.R</code></pre>
 
-        <pre><code class="language-biolang"># Export embeddings with cluster and cell type annotations
-let results = range(0, n_cells) |> map(|i| {
-  let coords = row(umap_coords, i)
-  {
-    cell: barcodes[i],
-    umap1: coords[0] |> round(4),
-    umap2: coords[1] |> round(4),
-    cluster: clusters[i],
-    cell_type: cell_types[i]
-  }
-})
-
-results |> write_tsv("cell_embeddings.tsv")
-print(f"Saved {results |> len} cells with UMAP coordinates, clusters, and cell types")
-
-# Also export the normalized expression matrix
-log_counts |> matrix_to_table |> write_csv("normalized_expression.csv")
-print("Normalized expression matrix saved")</code></pre>
-
+        <p>See the
+        <a href="../../books/single-cell-rna-seq/html/index.html">Single-Cell
+        RNA-seq with BioLang book</a> for interpretation, experimental design,
+        batch effects, reproducibility, and the complete API reference.</p>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="metagenomics.html" class="text-violet-400 hover:text-violet-300">&larr; Metagenomics</a>

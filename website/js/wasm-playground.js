@@ -404,24 +404,99 @@
     exMenu.innerHTML = html;
 
     exMenu.addEventListener('click', function (e) {
+      var packBtn = e.target.closest('[data-pack-ex]');
+      if (packBtn) {
+        loadPackProblem(packBtn.dataset.packEx, packBtn);
+        return;
+      }
       var btn = e.target.closest('[data-ex]');
       if (!btn) return;
       var idx = parseInt(btn.dataset.ex, 10);
       var ex = EXAMPLES[idx];
       if (ex && ex.code) {
-        editor.value = ex.code;
-        updateLineNumbers();
-        exMenu.classList.remove('open');
-        // Auto-reset and run
-        if (ready) {
-          wasm.reset();
-          varsBar.innerHTML = '';
-        }
-        runCode();
+        loadIntoEditor(ex.code);
       }
     });
   }
+
+  function loadIntoEditor(code) {
+    editor.value = code;
+    updateLineNumbers();
+    exMenu.classList.remove('open');
+    // Auto-reset and run
+    if (ready) {
+      wasm.reset();
+      varsBar.innerHTML = '';
+    }
+    runCode();
+  }
+
+  // ── Example packs ──
+  //
+  // The pack catalog is published alongside the site by scripts/build-packs.mjs,
+  // so new packs appear here without editing this file. Failure is silent by
+  // design: the playground's own examples are built in, and a missing catalog
+  // (offline, or a site built before packs existed) must not break them.
+
+  var packProblems = {};
+  var packBundles = {};
+
+  function packsBase() {
+    return (window.__blPacksBase || '/packs');
+  }
+
+  function loadPacksIntoMenu() {
+    fetch(packsBase() + '/index.json')
+      .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
+      .then(function (catalog) {
+        var html = '';
+        (catalog.packs || []).forEach(function (pack) {
+          html += '<button class="pg-ex-cat" disabled>' + escapeHtml(pack.name) + '</button>';
+          (pack.index || []).forEach(function (problem) {
+            var key = pack.id + ':' + problem.id;
+            packProblems[key] = { pack: pack, problem: problem };
+            // Say up front which ones need the network, so a reader does not
+            // discover it only after pressing Run and waiting on a request.
+            var suffix = problem.network ? ' · needs NCBI'
+              : problem.status !== 'solved' ? ' · partial'
+              : '';
+            html += '<button data-pack-ex="' + escapeHtml(key) + '">'
+              + escapeHtml(problem.id + ' — ' + problem.title) + escapeHtml(suffix)
+              + '</button>';
+          });
+        });
+        if (html) exMenu.insertAdjacentHTML('beforeend', html);
+      })
+      .catch(function () { /* no catalog published; built-in examples still work */ });
+  }
+
+  function loadPackProblem(key, btn) {
+    var entry = packProblems[key];
+    if (!entry) return;
+    var pack = entry.pack;
+    var cached = packBundles[pack.id];
+    if (cached) {
+      loadIntoEditor(cached.files[entry.problem.file] || '');
+      return;
+    }
+    var label = btn.textContent;
+    btn.textContent = 'Downloading ' + pack.name + '…';
+    fetch(packsBase() + '/' + pack.bundle.file)
+      .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
+      .then(function (bundle) {
+        packBundles[pack.id] = bundle;
+        btn.textContent = label;
+        loadIntoEditor(bundle.files[entry.problem.file] || '');
+      })
+      .catch(function () {
+        btn.textContent = label;
+        // Report rather than leaving a button that quietly does nothing.
+        if (statusText) statusText.textContent = 'Could not download ' + pack.name;
+      });
+  }
+
   buildExamplesMenu();
+  loadPacksIntoMenu();
 
   exToggle.addEventListener('click', function (e) {
     e.stopPropagation();

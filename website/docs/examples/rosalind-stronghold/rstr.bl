@@ -1,0 +1,36 @@
+# Rosalind: RSTR — Matching Random Motifs
+# https://rosalind.info/problems/rstr/
+#
+# Given: A positive integer N, a number x between 0 and 1, and a DNA string s.
+# Return: The probability that at least one of N random strings constructed
+# with GC content x matches s exactly.
+
+let n = 90
+let gc_content = 0.6
+let s = "ATAGCCGA"
+
+# At GC content x each of G and C appears with probability x/2, and each of A
+# and T with (1-x)/2.
+let single = range(0, len(s)) |> reduce(|acc, i| {
+    let base = substr(s, i, 1)
+    let is_gc = base == "G" or base == "C"
+    acc * (if is_gc then gc_content / 2.0 else (1.0 - gc_content) / 2.0)
+}, 1.0)
+
+# The N strings are independent, so the complement is the clean way in: the
+# chance that none of them matches is (1-p)^N.
+let result = 1.0 - pow(1.0 - single, float(n))
+
+println("P(one string matches): " + str(single))
+println("Result:   " + str(round(result, 5)))
+println("Expected: 0.00117 — s has 4 weak bases and 4 strong ones, so")
+println("          p = 0.2^4 x 0.3^4 = 1.296e-05, and 1-(1-p)^90 = 0.001166")
+
+fn test_rstr_random_motif_match() {
+    # p is the product of four A/T probabilities and four G/C ones.
+    assert abs(single - 0.00001296) < 0.0000001, "RSTR: p = " + str(single)
+    assert round(result, 5) == 0.00117, "RSTR: got " + str(result)
+    # More strings can only raise the chance of a match.
+    let fewer = 1.0 - pow(1.0 - single, 10.0)
+    assert fewer < result, "RSTR: fewer trials did not lower the probability"
+}

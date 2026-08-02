@@ -7,6 +7,15 @@
 export function evaluate(source: string): string;
 
 /**
+ * Format BioLang source into the canonical layout.
+ *
+ * The browser build has no language server, so without this the web workbench
+ * would be the one place `bl fmt` cannot reach — and a formatter people cannot
+ * rely on everywhere is one they stop running.
+ */
+export function format(source: string, indent: number): string;
+
+/**
  * Convert Python, R, Jupyter, or R Markdown and return a structured validation result.
  */
 export function import_source(source: string, format: string, filename: string): string;
@@ -25,6 +34,15 @@ export function list_builtins(): string;
  * List all variables in the current environment. Returns JSON array.
  */
 export function list_variables(): string;
+
+/**
+ * Quality metrics for a sequencing file preview, as JSON.
+ *
+ * Returns `null` when the format has no metrics or the sample is unusable.
+ * Shared with the Desktop build through `bl-qc` so both report the same
+ * numbers rather than two implementations quietly disagreeing.
+ */
+export function qc_metrics(kind: string, text: string): string;
 
 /**
  * Reset the interpreter state.
@@ -46,10 +64,12 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly evaluate: (a: number, b: number) => [number, number];
+    readonly format: (a: number, b: number, c: number) => [number, number];
     readonly import_source: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
     readonly init: () => void;
     readonly list_builtins: () => [number, number];
     readonly list_variables: () => [number, number];
+    readonly qc_metrics: (a: number, b: number, c: number, d: number) => [number, number];
     readonly reset: () => void;
     readonly tokenize: (a: number, b: number) => [number, number];
     readonly validate_import: (a: number, b: number, c: number) => [number, number];

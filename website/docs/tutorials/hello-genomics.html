@@ -123,7 +123,7 @@ print(forward)  # ATGCGATCG
 print(revcomp)  # CGATCGCAT
 
 # Verify: reverse complement of reverse complement is the original
-assert(reverse_complement(revcomp) == forward)</code></pre>
+assert reverse_complement(revcomp) == forward</code></pre>
         <p>
           The <code>reverse_complement()</code> function handles IUPAC ambiguity codes
           correctly: R becomes Y, S stays S, and so on.
@@ -143,7 +143,7 @@ print(type(rna_seq))    # RNA
 
 # You can also create RNA directly
 let direct_rna = rna"AUGCGAUCG"
-assert(rna_seq == direct_rna)</code></pre>
+assert rna_seq == direct_rna</code></pre>
         <p>
           Notice how the return type changes from <code>Dna</code> to <code>Rna</code>.
           BioLang's type system tracks molecule types so you cannot accidentally mix them

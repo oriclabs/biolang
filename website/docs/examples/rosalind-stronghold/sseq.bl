@@ -1,0 +1,31 @@
+# Rosalind: SSEQ — Finding a Spliced Motif
+# https://rosalind.info/problems/sseq/
+#
+# Given: Two DNA strings s and t.
+# Return: One collection of 1-based indices of s at which t appears as a
+# subsequence.
+
+let s = "ACGTACGTGACG"
+let t = "GTA"
+
+# Greedy left-to-right: taking the earliest possible match for each character
+# of t always leaves the most room for the rest.
+let indices = []
+let next_char = 0
+let i = 0
+while i < len(s) and next_char < len(t) {
+    if substr(s, i, 1) == substr(t, next_char, 1) {
+        indices = push(indices, i + 1)
+        next_char = next_char + 1
+    }
+    i = i + 1
+}
+
+println("Result:   " + (indices |> map(|x| str(x)) |> join(" ")))
+println("Expected: 3 4 5")
+
+fn test_sseq_spliced_motif() {
+    assert len(indices) == len(t), "SSEQ: matched " + str(len(indices)) + " of " + str(len(t))
+    let spelled = indices |> map(|p| substr(s, p - 1, 1)) |> join("")
+    assert spelled == t, "SSEQ: indices spell '" + spelled + "'"
+}

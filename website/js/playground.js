@@ -132,9 +132,22 @@
 
   // Distinct called names this build cannot provide. Empty when the builtin
   // list is unavailable, so an unknown state never blocks a run.
+  // Comments and string literals are prose, not code. Scanning them for calls
+  // reads any "word (" as a missing builtin — "renders as DNA(ACGT)" or
+  // "appears at least twice (counting ...)" both did — and wrongly disables the
+  // block as requiring file I/O or the network.
+  function blStripNonCode(code) {
+    return String(code)
+      .split("\n")
+      .map(function (line) { return line.replace(/#.*$/, ""); })
+      .join("\n")
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  }
+
   function blUnsupportedCalls(code) {
     var known = __blKnownBuiltins();
     if (!known) return [];
+    code = blStripNonCode(code);
     var local = __blLocalNames(code), bad = [], m;
     var re = /([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
     while ((m = re.exec(code))) {
@@ -448,7 +461,11 @@
     // re-runs idempotent — without it, running the same block twice would
     // accumulate state.
     if (wasm.reset) { try { wasm.reset(); } catch(_) {} }
-    if (typeof blockIndex === 'number') {
+    // Generated pack pages mark their blocks standalone: Rosalind problems are
+    // independent, so replaying the fourteen before this one would only burn a
+    // second or two reproducing state nothing here reads.
+    var standalone = pre && pre.hasAttribute('data-standalone');
+    if (typeof blockIndex === 'number' && !standalone) {
       for (var bi = 0; bi < blockIndex; bi++) {
         var prev = allBlocks[bi];
         if (!prev || prev.cliRequired) continue;

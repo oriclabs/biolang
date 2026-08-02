@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-e720ecec.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -199,7 +199,7 @@
 <li>How to use <code>import</code> and <code>import ... as</code> to organize code across files</li>
 <li>How to build a sequence utilities library with validation and error handling</li>
 <li>How to build a QC module for quality control workflows</li>
-<li>How to test your modules with <code>assert()</code></li>
+<li>How to test your modules with the <code>assert</code> statement</li>
 <li>How the BioLang plugin system works (subprocess JSON protocol)</li>
 <li>How to build a Python plugin that extends BioLang</li>
 <li>How to package and share your tools</li>
@@ -409,7 +409,7 @@ fn format_qc_report(summary) {
 </code></pre>
 <hr>
 <h2 id="section-4-testing-your-modules"><a class="header" href="#section-4-testing-your-modules">Section 4: Testing Your Modules</a></h2>
-<p>Testing is what separates a personal script from a reliable tool. BioLang’s <code>assert()</code> function is your primary testing mechanism.</p>
+<p>Testing is what separates a personal script from a reliable tool. BioLang’s <code>assert</code> statement is your primary testing mechanism.</p>
 <h3 id="writing-tests"><a class="header" href="#writing-tests">Writing Tests</a></h3>
 <p>Create <code>tests/test_seq.bl</code>:</p>
 <pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
@@ -417,26 +417,26 @@ import "lib/seq_utils.bl" as seq
 
 # --- validate_dna ---
 let valid = seq.validate_dna("atcg")
-assert(valid == "ATCG", "validate_dna should uppercase")
+assert valid == "ATCG", "validate_dna should uppercase"
 
 let caught = try { seq.validate_dna("ATXCG") } catch err { str(err) }
-assert(contains(caught, "Invalid"), "validate_dna should reject X")
+assert contains(caught, "Invalid"), "validate_dna should reject X"
 
 # --- classify_gc ---
 let high = seq.classify_gc("GCGCGCGCGC")
-assert(high.class == "high", "pure GC should be high")
-assert(high.gc == 1.0, "pure GC should have gc=1.0")
+assert high.class == "high", "pure GC should be high"
+assert high.gc == 1.0, "pure GC should have gc=1.0"
 
 let low = seq.classify_gc("AAAAAATTTT")
-assert(low.class == "low", "pure AT should be low")
+assert low.class == "low", "pure AT should be low"
 
 let balanced = seq.classify_gc("ATCGATCGAT")
-assert(balanced.class == "moderate", "ATCGATCGAT should be moderate")
+assert balanced.class == "moderate", "ATCGATCGAT should be moderate"
 
 # --- find_all_motifs ---
 let hits = seq.find_all_motifs("ATCGATCGATCG", "ATCG")
-assert(hits.count &gt; 0, "should find ATCG motif")
-assert(hits.motif == "ATCG", "motif should be uppercased")
+assert hits.count &gt; 0, "should find ATCG motif"
+assert hits.motif == "ATCG", "motif should be uppercased"
 
 # --- batch_gc ---
 let test_seqs = [
@@ -444,9 +444,9 @@ let test_seqs = [
     { id: "low", sequence: "AAAAAATTTT" }
 ]
 let results = seq.batch_gc(test_seqs)
-assert(len(results) == 2, "batch_gc should return 2 results")
-assert(results |&gt; filter(|r| r.class == "high") |&gt; len() == 1, "one high GC")
-assert(results |&gt; filter(|r| r.class == "low") |&gt; len() == 1, "one low GC")
+assert len(results) == 2, "batch_gc should return 2 results"
+assert results |&gt; filter(|r| r.class == "high") |&gt; len() == 1, "one high GC"
+assert results |&gt; filter(|r| r.class == "low") |&gt; len() == 1, "one low GC"
 </code></pre>
 <p>Create <code>tests/test_qc.bl</code>:</p>
 <pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
@@ -460,30 +460,30 @@ let test_seqs = [
 
 # --- length_stats ---
 let lstats = qc.length_stats(test_seqs)
-assert(lstats.count == 3, "should count 3 sequences")
-assert(lstats.min_len == 4, "min length should be 4")
+assert lstats.count == 3, "should count 3 sequences"
+assert lstats.min_len == 4, "min length should be 4"
 
 # --- gc_distribution ---
 let gc_dist = qc.gc_distribution(test_seqs)
-assert(gc_dist.mean_gc &gt; 0.0, "mean GC should be positive")
-assert(gc_dist.stdev_gc &gt; 0.0, "GC stdev should be positive")
+assert gc_dist.mean_gc &gt; 0.0, "mean GC should be positive"
+assert gc_dist.stdev_gc &gt; 0.0, "GC stdev should be positive"
 
 # --- flag_outliers ---
 let flagged = qc.flag_outliers(test_seqs, 10, 100, 0.3, 0.7)
 let short_flags = flagged |&gt; filter(|f| f.id == "short")
-assert(len(short_flags) == 1, "should find short sequence")
-assert(contains(str(short_flags), "too_short"), "short seq should be flagged")
+assert len(short_flags) == 1, "should find short sequence"
+assert contains(str(short_flags), "too_short"), "short seq should be flagged"
 
 # --- qc_summary ---
 let summary = qc.qc_summary(test_seqs)
-assert(summary.total == 3, "total should be 3")
-assert(summary.pass_rate &gt;= 0.0, "pass rate should be non-negative")
-assert(summary.pass_rate &lt;= 1.0, "pass rate should be at most 1.0")
+assert summary.total == 3, "total should be 3"
+assert summary.pass_rate &gt;= 0.0, "pass rate should be non-negative"
+assert summary.pass_rate &lt;= 1.0, "pass rate should be at most 1.0"
 
 # --- format_qc_report ---
 let report = qc.format_qc_report(summary)
-assert(len(report) &gt; 0, "report should have lines")
-assert(contains(report |&gt; join("\n"), "Sequences:"), "report should show count")
+assert len(report) &gt; 0, "report should have lines"
+assert contains(report |&gt; join("\n"), "Sequences:"), "report should show count"
 </code></pre>
 <h3 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h3>
 <pre><code class="language-bash">bl tests/test_seq.bl
@@ -911,7 +911,7 @@ bl add kmer-tools --path ./kmer-tools
 <p><strong>The <code>plugin.json</code> manifest is the contract.</strong> It declares the plugin’s name, version, runtime, entrypoint, and operations. BioLang uses it to discover and invoke the plugin.</p>
 </li>
 <li>
-<p><strong>Test your modules with <code>assert()</code>.</strong> One test file per module, covering normal inputs, edge cases, and error conditions.</p>
+<p><strong>Test your modules with <code>assert</code>.</strong> One test file per module, covering normal inputs, edge cases, and error conditions.</p>
 </li>
 <li>
 <p><strong>Return structured data from functions.</strong> Records are composable; formatted strings are not. Let the caller decide presentation.</p>

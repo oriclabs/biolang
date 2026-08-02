@@ -1,0 +1,223 @@
+---
+title: Rosalind — Bioinformatics Textbook Track
+version: 0.1.0
+abstract: A showcase of the Bioinformatics Textbook Track: canonical algorithms answered with BioLang builtins, 8 of 154 problems.
+---
+
+# Rosalind — Bioinformatics Textbook Track
+
+A showcase of the Bioinformatics Textbook Track: canonical algorithms answered with BioLang builtins, 8 of 154 problems. Generated from `packs/rosalind-textbook/pack.toml`.
+
+Run the whole notebook with `bl notebook rosalind-textbook.bln`.
+
+## BA1A — Compute the Number of Times a Pattern Appears in a Text
+
+[Problem statement](https://rosalind.info/problems/ba1a/)
+
+```biolang
+# Rosalind: BA1A — Compute the Number of Times a Pattern Appears in a Text
+# https://rosalind.info/problems/ba1a/
+#
+# Given: Strings Text and Pattern.
+# Return: Count(Text, Pattern), counting overlapping occurrences.
+
+let text = "GCGCG"
+let pattern = "GCG"
+
+# find_motif reports every start position, overlaps included, so the count is
+# just its length.
+let result = len(find_motif(text, pattern))
+
+println("Result:   " + str(result))
+println("Expected: 2")
+
+fn test_ba1a_pattern_count() {
+    assert result == 2, "BA1A: got " + str(result)
+}
+```
+
+## BA1B — Find the Most Frequent Words in a String
+
+[Problem statement](https://rosalind.info/problems/ba1b/)
+
+```biolang
+# Rosalind: BA1B — Find the Most Frequent Words in a String
+# https://rosalind.info/problems/ba1b/
+#
+# Given: A DNA string Text and an integer k.
+# Return: Every most frequent k-mer in Text.
+
+let text = "ACGTTGCATGTCGCATGATGCATGAGAGCT"
+let k = 4
+
+# Deliberately not kmer_count(): that tallies *canonical* k-mers, pooling each
+# one with its reverse complement, which is what you want when the strand is
+# unknown. Here GCAT and ATGC would merge into a single count of 4, while this
+# problem asks for literal occurrences. kmers() gives the raw windows.
+let windows = kmers(dna(text), k) |> map(|km| str(km))
+let distinct = windows |> unique()
+
+let tallies = distinct |> map(|km| { kmer: km, count: windows |> count_if(|w| w == km) })
+let best = tallies |> map(|e| e.count) |> max()
+let result = tallies |> filter(|e| e.count == best) |> map(|e| e.kmer) |> sort()
+
+println("Result:   " + (result |> join(" ")) + "  (each appearing " + str(best) + " times)")
+println("Expected: CATG GCAT")
+
+fn test_ba1b_most_frequent_words() {
+    assert len(result) == 2, "BA1B: got " + str(len(result)) + " k-mers"
+    assert result |> contains("CATG"), "BA1B: missing CATG"
+    assert result |> contains("GCAT"), "BA1B: missing GCAT"
+    assert best == 3, "BA1B: top count was " + str(best)
+    # Every window is counted exactly once.
+    let total = tallies |> map(|e| e.count) |> sum()
+    assert total == len(text) - k + 1, "BA1B: counts total " + str(total)
+}
+```
+
+## BA1C — Find the Reverse Complement of a String
+
+[Problem statement](https://rosalind.info/problems/ba1c/)
+
+```biolang
+# Rosalind: BA1C — Find the Reverse Complement of a String
+# https://rosalind.info/problems/ba1c/
+#
+# Given: A DNA string Pattern.
+# Return: The reverse complement of Pattern.
+
+let pattern = dna"AAAACCCGGT"
+
+let result = str(reverse_complement(pattern))
+
+println("Result:   " + result)
+println("Expected: ACCGGGTTTT")
+
+fn test_ba1c_reverse_complement() {
+    assert result == "ACCGGGTTTT", "BA1C: got " + result
+}
+```
+
+## BA1D — Find All Occurrences of a Pattern in a String
+
+[Problem statement](https://rosalind.info/problems/ba1d/)
+
+```biolang
+# Rosalind: BA1D — Find All Occurrences of a Pattern in a String
+# https://rosalind.info/problems/ba1d/
+#
+# Given: Strings Pattern and Genome.
+# Return: Every starting position where Pattern appears, zero-based.
+
+let pattern = "ATAT"
+let genome = "GATATATGCATATACTT"
+
+let positions = find_motif(genome, pattern)
+let result = positions |> map(|p| str(p)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 1 3 9")
+
+fn test_ba1d_pattern_positions() {
+    assert result == "1 3 9", "BA1D: got '" + result + "'"
+}
+```
+
+## BA1G — Compute the Hamming Distance Between Two Strings
+
+[Problem statement](https://rosalind.info/problems/ba1g/)
+
+```biolang
+# Rosalind: BA1G — Compute the Hamming Distance Between Two Strings
+# https://rosalind.info/problems/ba1g/
+#
+# Given: Two strings of equal length.
+# Return: Their Hamming distance.
+
+let p = "GGGCCGTTGGT"
+let q = "GGACCGTTGAC"
+
+let result = hamming_distance(p, q)
+
+println("Result:   " + str(result))
+println("Expected: 3")
+
+fn test_ba1g_hamming_distance() {
+    assert result == 3, "BA1G: got " + str(result)
+}
+```
+
+## BA3A — Generate the k-mer Composition of a String
+
+[Problem statement](https://rosalind.info/problems/ba3a/)
+
+```biolang
+# Rosalind: BA3A — Generate the k-mer Composition of a String
+# https://rosalind.info/problems/ba3a/
+#
+# Given: An integer k and a string Text.
+# Return: Composition_k(Text), the k-mers of Text in lexicographic order.
+
+let text = "CAATCCAAC"
+let k = 5
+
+let result = kmers(dna(text), k) |> map(|km| str(km)) |> sort()
+
+println("Result:")
+result |> each(|km| println("  " + km))
+println("Expected: AATCC ATCCA CAATC CCAAC TCCAA")
+
+fn test_ba3a_kmer_composition() {
+    assert len(result) == len(text) - k + 1, "BA3A: got " + str(len(result)) + " k-mers"
+    let joined = result |> join(" ")
+    assert joined == "AATCC ATCCA CAATC CCAAC TCCAA", "BA3A: got " + joined
+}
+```
+
+## BA4A — Translate an RNA String into an Amino Acid String
+
+[Problem statement](https://rosalind.info/problems/ba4a/)
+
+```biolang
+# Rosalind: BA4A — Translate an RNA String into an Amino Acid String
+# https://rosalind.info/problems/ba4a/
+#
+# Given: An RNA string Pattern.
+# Return: The translation of Pattern into an amino acid string.
+
+let pattern = rna"AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA"
+
+let result = str(translate(pattern))
+
+println("Result:   " + result)
+println("Expected: MAMAPRTEINSTRING")
+
+fn test_ba4a_translation() {
+    assert result == "MAMAPRTEINSTRING", "BA4A: got " + result
+}
+```
+
+## BA5G — Compute the Edit Distance Between Two Strings
+
+[Problem statement](https://rosalind.info/problems/ba5g/)
+
+```biolang
+# Rosalind: BA5G — Compute the Edit Distance Between Two Strings
+# https://rosalind.info/problems/ba5g/
+#
+# Given: Two amino acid strings.
+# Return: The edit distance between them.
+
+let s = "PLEASANTLY"
+let t = "MEANLY"
+
+let result = edit_distance(s, t)
+
+println("Result:   " + str(result))
+println("Expected: 5")
+
+fn test_ba5g_edit_distance() {
+    assert result == 5, "BA5G: got " + str(result)
+}
+```
+

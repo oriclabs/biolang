@@ -5,8 +5,8 @@
   <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
-  <title>The BioLang Programming Language</title>
-  <meta name="description" content="Read the free, open-source BioLang programming language reference online or download the PDF.">
+  <title>BioLang Books</title>
+  <meta name="description" content="Read the BioLang language reference and the practical single-cell RNA-seq guide online or download their PDFs.">
   <link rel="icon" href="assets/favicon.svg">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
@@ -14,10 +14,10 @@
   <div data-component="header" data-base-path="."></div>
 
   <main class="max-w-4xl mx-auto px-6 py-16">
-    <h1 class="text-4xl font-bold text-white mb-4">The BioLang Programming Language</h1>
+    <h1 class="text-4xl font-bold text-white mb-4">BioLang Books</h1>
     <p class="text-lg text-slate-400 mb-12">
-      The free, open-source reference for learning and using BioLang. Read it
-      online or download the PDF.
+      Learn the language, then apply it to a careful end-to-end biological
+      analysis. Read online or download the PDFs.
     </p>
 
     <section class="mb-10 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/50">
@@ -45,6 +45,38 @@
             Read Online
           </a>
           <a href="books/language/pdf/the-biolang-programming-language.pdf" download
+             class="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-700 hover:border-red-500/50 text-slate-300 hover:text-red-400 text-sm font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+            Download PDF
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="mb-10 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/50">
+      <div class="p-8">
+        <div class="text-xs font-semibold text-cyan-400 uppercase tracking-widest mb-3">Applied Analysis</div>
+        <h2 class="text-2xl font-bold text-white mb-3">Single-Cell RNA-seq with BioLang</h2>
+        <p class="text-slate-400 mb-6">
+          A plain-language guide from cells and count matrices to quality
+          control, clustering, annotation, multi-sample inference, validation,
+          scaling, and reproducible reporting.
+        </p>
+        <ul class="grid sm:grid-cols-2 gap-2 mb-7 text-sm text-slate-300">
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> Context for biologists, programmers, and clinicians</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> Deterministic laptop-sized case study</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> QC, sparse PCA, Leiden, UMAP, and markers</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> Every single-cell plot explained</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> Replicate-aware statistical guidance</li>
+          <li class="flex items-start gap-2"><span class="text-cyan-400 mt-0.5">&#9679;</span> Scanpy and Seurat cross-validation</li>
+        </ul>
+        <div class="flex flex-wrap gap-3">
+          <a href="books/single-cell-rna-seq/html/index.html" target="_blank" rel="noopener"
+             class="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            Read Online
+          </a>
+          <a href="books/single-cell-rna-seq/pdf/output.pdf" download
              class="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-700 hover:border-red-500/50 text-slate-300 hover:text-red-400 text-sm font-medium rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
             Download PDF
