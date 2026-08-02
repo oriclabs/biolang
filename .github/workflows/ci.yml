@@ -61,6 +61,15 @@ jobs:
       - name: Build pack artifacts
         run: node scripts/build-packs.mjs
 
+      # The docs record which problems run in a browser, worked out from the
+      # module's own builtin catalog. That catalog is generated rather than
+      # committed, so without this step a clean checkout regenerates the pages
+      # without the column and the staleness check below fails on a difference
+      # that says nothing about the code.
+      - name: Generate the browser builtin catalog
+        working-directory: website
+        run: node tests/write_wasm_builtins.mjs
+
       # The pack docs pages are committed so the repository stays browsable, so
       # they have to be regenerated whenever a pack changes. Same contract as the
       # help index below.
