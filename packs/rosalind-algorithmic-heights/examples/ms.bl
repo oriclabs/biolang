@@ -1,0 +1,53 @@
+# Rosalind: MS — Merge Sort
+# https://rosalind.info/problems/ms/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: A sorted array A[1..n].
+
+let a = [20, 19, 35, -18, 17, -20, 20, 1, 4, 4]
+
+fn merge(left, right) {
+    let out = []
+    let i = 0
+    let j = 0
+    while i < len(left) and j < len(right) {
+        # `<=` rather than `<` keeps equal elements in their original order,
+        # which is what makes this sort stable. The array holds 4 twice and 20
+        # twice, so the distinction is live here.
+        if left[i] <= right[j] {
+            out = push(out, left[i])
+            i = i + 1
+        } else {
+            out = push(out, right[j])
+            j = j + 1
+        }
+    }
+    while i < len(left) {
+        out = push(out, left[i])
+        i = i + 1
+    }
+    while j < len(right) {
+        out = push(out, right[j])
+        j = j + 1
+    }
+    out
+}
+
+fn merge_sort(xs) {
+    if len(xs) <= 1 {
+        xs
+    } else {
+        let middle = int(len(xs) / 2)
+        merge(merge_sort(slice(xs, 0, middle)), merge_sort(slice(xs, middle, len(xs))))
+    }
+}
+
+let sorted = merge_sort(a)
+let result = sorted |> map(|v| str(v)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -20 -18 1 4 4 17 19 20 20 35")
+
+fn test_ms_sorts_the_array() {
+    assert result == "-20 -18 1 4 4 17 19 20 20 35", "MS: got " + result
+}

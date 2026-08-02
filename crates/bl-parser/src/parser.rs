@@ -156,8 +156,27 @@ impl Parser {
             TokenKind::Ident(_) if self.is_compound_assignment() => self.parse_compound_assign(),
             TokenKind::Ident(_) if self.is_index_assignment() => self.parse_index_assign(),
             TokenKind::Ident(_) if self.is_assignment() => self.parse_assign(),
+            // `{}` written as a statement of its own stays an empty block, the
+            // way it has always been. In expression position it is an empty map
+            // — see is_record_literal. Only the empty pair is decided here: a
+            // statement starting `{ name: value }` still reaches the record
+            // lookahead, because the last expression of a function body is its
+            // return value and returning a record literal is ordinary.
+            TokenKind::LBrace if self.next_is_closing_brace() => {
+                let expr = self.parse_block_expr()?;
+                let span = expr.span;
+                Ok(Spanned::new(Stmt::Expr(expr), span))
+            }
             _ => self.parse_expr_stmt(),
         }
+    }
+
+    /// `{` immediately followed by `}`, with no key, spread or statement between.
+    fn next_is_closing_brace(&self) -> bool {
+        matches!(
+            self.tokens.get(self.pos + 1).map(|t| &t.kind),
+            Some(TokenKind::RBrace)
+        )
     }
 
     /// Check if current position is `type Name = ...` (type alias).
@@ -1560,6 +1579,18 @@ impl Parser {
             if matches!(&self.tokens[self.pos + 1].kind, TokenKind::DotDotDot) {
                 return true;
             }
+        }
+        // `{}` is an empty map. A block with no statements has no use in
+        // expression position, while opening an empty map and filling it in is
+        // ordinary, so this reading is the only one that means anything. Parsed
+        // as a block it evaluated to nil and the mistake only surfaced at the
+        // first use, as a type error naming a type the source never mentions.
+        // Statement bodies (`if`, `while`, `for`) and function bodies are parsed
+        // elsewhere, so an empty one of those is unaffected and still yields nil.
+        if self.pos + 1 < self.tokens.len()
+            && matches!(&self.tokens[self.pos + 1].kind, TokenKind::RBrace)
+        {
+            return true;
         }
         false
     }

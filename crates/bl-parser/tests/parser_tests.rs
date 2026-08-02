@@ -949,6 +949,24 @@ fn test_empty_block() {
     }
 }
 
+// ── empty map in expression position ─────────────────
+
+// Which of the two  means is decided by position, as it is in JavaScript.
+// A statement of its own is a block (see test_empty_block above); where a value
+// is expected it is an empty map, so a tally can be opened and filled in.
+
+#[test]
+fn test_empty_braces_in_value_position_are_a_map() {
+    let prog = parse("let counts = {}");
+    match &prog.stmts[0].node {
+        Stmt::Let { value, .. } => match &value.node {
+            Expr::Record(entries) => assert!(entries.is_empty()),
+            other => panic!("expected Record, got {other:?}"),
+        },
+        other => panic!("expected Let, got {other:?}"),
+    }
+}
+
 // ── empty list ────────────────────────────────────────────────
 
 #[test]

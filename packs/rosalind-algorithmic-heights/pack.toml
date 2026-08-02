@@ -1,0 +1,169 @@
+# BioLang example pack: Rosalind — Algorithmic Heights
+#
+# The fourth Rosalind track. Unlike the other three it is not bioinformatics at
+# all: it is the standard algorithms course — sorting, heaps, graph search,
+# shortest paths. That makes it a different kind of test of the language. There
+# is no builtin to reach for, so every problem is written in BioLang itself.
+#
+# See packs/rosalind-armory/pack.toml for the field meanings.
+
+[pack]
+id = "rosalind-algorithmic-heights"
+name = "Rosalind — Algorithmic Heights"
+version = "0.1.0"
+track = "algorithmic-heights"
+description = "The Algorithmic Heights track: sorting, heaps, graph search and shortest paths, written in BioLang rather than called from a builtin."
+list_url = "https://rosalind.info/problems/list-view/?location=algorithmic-heights"
+requires = ">=0.4"
+
+license = "MIT"
+statements_license = "Problem statements © rosalind.info — paraphrased and linked, not reproduced."
+
+[[problem]]
+id = "FIBO"
+title = "Fibonacci Numbers"
+file = "examples/fibo.bl"
+url = "https://rosalind.info/problems/fibo/"
+status = "solved"
+asserted = true
+topics = ["recursion", "dynamic-programming"]
+
+[[problem]]
+id = "BINS"
+title = "Binary Search"
+file = "examples/bins.bl"
+url = "https://rosalind.info/problems/bins/"
+status = "solved"
+asserted = true
+topics = ["searching"]
+
+[[problem]]
+id = "DEG"
+title = "Degree Array"
+file = "examples/deg.bl"
+url = "https://rosalind.info/problems/deg/"
+status = "solved"
+asserted = true
+topics = ["graphs"]
+
+[[problem]]
+id = "INS"
+title = "Insertion Sort"
+file = "examples/ins.bl"
+url = "https://rosalind.info/problems/ins/"
+status = "solved"
+asserted = true
+note = "The swap count is the number of inversions, so the same loop answers INV as well. Sorts in place, which the index assignment added for these packs is what makes possible."
+topics = ["sorting"]
+
+[[problem]]
+id = "DDEG"
+title = "Double-Degree Array"
+file = "examples/ddeg.bl"
+url = "https://rosalind.info/problems/ddeg/"
+status = "solved"
+asserted = true
+topics = ["graphs"]
+
+[[problem]]
+id = "MAJ"
+title = "Majority Element"
+file = "examples/maj.bl"
+url = "https://rosalind.info/problems/maj/"
+status = "solved"
+asserted = true
+note = "Writing this found that `{}` parsed as an empty block and evaluated to nil, so a tally could not be opened the obvious way. Fixed in the parser; `{}` in value position is now an empty map."
+topics = ["arrays"]
+
+[[problem]]
+id = "MER"
+title = "Merge Two Sorted Arrays"
+file = "examples/mer.bl"
+url = "https://rosalind.info/problems/mer/"
+status = "solved"
+asserted = true
+topics = ["sorting"]
+
+[[problem]]
+id = "2SUM"
+title = "2SUM"
+file = "examples/2sum.bl"
+url = "https://rosalind.info/problems/2sum/"
+status = "solved"
+asserted = true
+note = "Any valid pair is accepted, so the answers are checked against the definition rather than against the sample string: the scan reaches 8 and -8 first and reports 1 5 where the sample reports 2 4."
+topics = ["arrays"]
+
+[[problem]]
+id = "BFS"
+title = "Breadth-First Search"
+file = "examples/bfs.bl"
+url = "https://rosalind.info/problems/bfs/"
+status = "solved"
+asserted = true
+topics = ["graphs", "shortest-paths"]
+
+[[problem]]
+id = "CC"
+title = "Connected Components"
+file = "examples/cc.bl"
+url = "https://rosalind.info/problems/cc/"
+status = "solved"
+asserted = true
+topics = ["graphs"]
+
+[[problem]]
+id = "HEA"
+title = "Building a Heap"
+file = "examples/hea.bl"
+url = "https://rosalind.info/problems/hea/"
+status = "solved"
+asserted = true
+note = "Any permutation with the heap property is accepted, so the property is what is asserted. Floyd's construction reaches 7 3 5 1 2 where the sample shows 7 5 1 3 2."
+topics = ["heaps", "sorting"]
+
+[[problem]]
+id = "MS"
+title = "Merge Sort"
+file = "examples/ms.bl"
+url = "https://rosalind.info/problems/ms/"
+status = "solved"
+asserted = true
+topics = ["sorting", "recursion"]
+
+[[problem]]
+id = "PAR"
+title = "2-Way Partition"
+file = "examples/par.bl"
+url = "https://rosalind.info/problems/par/"
+status = "solved"
+asserted = true
+note = "Any valid partition is accepted, so the three conditions are asserted rather than one arrangement."
+topics = ["sorting"]
+
+[[problem]]
+id = "3SUM"
+title = "3SUM"
+file = "examples/3sum.bl"
+url = "https://rosalind.info/problems/3sum/"
+status = "solved"
+asserted = true
+topics = ["arrays"]
+
+[[problem]]
+id = "BIP"
+title = "Testing Bipartiteness"
+file = "examples/bip.bl"
+url = "https://rosalind.info/problems/bip/"
+status = "solved"
+asserted = true
+topics = ["graphs"]
+
+[[problem]]
+id = "DAG"
+title = "Testing Acyclicity"
+file = "examples/dag.bl"
+url = "https://rosalind.info/problems/dag/"
+status = "solved"
+asserted = true
+topics = ["graphs"]

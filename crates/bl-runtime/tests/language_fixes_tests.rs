@@ -150,3 +150,34 @@ fn assigning_into_a_non_container_is_an_error() {
         "expected a container error, got: {text}"
     );
 }
+
+// `{}` parsed as an empty block and evaluated to nil, so the natural way to
+// start a tally produced a value of the wrong type. Nothing failed at the
+// literal: the program ran on until the first use and reported a type error
+// naming Nil, which appears nowhere in the source.
+
+#[test]
+fn empty_braces_are_an_empty_map() {
+    let code = "let counts = {}\nlen(keys(counts))";
+    assert_eq!(eval_int(code), 0);
+}
+
+#[test]
+fn an_empty_map_can_be_filled_in() {
+    let code = "let counts = {}\ncounts[\"a\"] = 1\ncounts[\"b\"] = counts[\"a\"] + 1\ncounts[\"b\"]";
+    assert_eq!(eval_int(code), 2);
+}
+
+#[test]
+fn empty_statement_bodies_are_still_blocks() {
+    // The dispatch this fix changed is reached from expression position only.
+    // An empty `if` body must not silently become a map literal.
+    let code = "let hits = 0\nif hits == 0 { }\nwhile false { }\nhits + 7";
+    assert_eq!(eval_int(code), 7);
+}
+
+#[test]
+fn an_empty_function_body_still_returns_nil() {
+    let code = "fn nothing() { }\nstr(nothing())";
+    assert_eq!(eval_str(code), "nil");
+}
