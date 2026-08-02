@@ -8,6 +8,10 @@ use std::collections::HashMap;
 struct Scope {
     vars: HashMap<String, Value>,
     parent: Option<usize>,
+    /// Value of `Environment::handed_out` when this scope was created. Compared
+    /// on the way out to decide whether the scope can be reclaimed — see
+    /// `pop_scope`.
+    handed_out_at_birth: u64,
 }
 
 /// Environment with a scope chain for lexical scoping.
@@ -15,6 +19,10 @@ struct Scope {
 pub struct Environment {
     scopes: Vec<Scope>,
     current: usize,
+    /// How many times a scope id has been handed out to be stored elsewhere.
+    /// A closure keeps the id of the scope it was defined in, so once an id has
+    /// escaped, the scope it names has to stay alive.
+    handed_out: u64,
 }
 
 impl Environment {
@@ -22,14 +30,23 @@ impl Environment {
         let global = Scope {
             vars: HashMap::new(),
             parent: None,
+            handed_out_at_birth: 0,
         };
         Self {
             scopes: vec![global],
             current: 0,
+            handed_out: 0,
         }
     }
 
-    pub fn current_scope_id(&self) -> usize {
+    /// The current scope id, for a closure to capture.
+    ///
+    /// Every caller stores the id somewhere that outlives the scope, so this
+    /// counts as the scope escaping and pins everything created since — see
+    /// `pop_scope`. Callers that only want to read the id and drop it would
+    /// pin scopes unnecessarily, which costs memory but is never wrong.
+    pub fn current_scope_id(&mut self) -> usize {
+        self.handed_out += 1;
         self.current
     }
 
@@ -39,6 +56,7 @@ impl Environment {
         let new_scope = Scope {
             vars: HashMap::new(),
             parent: Some(self.current),
+            handed_out_at_birth: self.handed_out,
         };
         self.current = self.scopes.len();
         self.scopes.push(new_scope);
@@ -51,15 +69,51 @@ impl Environment {
         let new_scope = Scope {
             vars: HashMap::new(),
             parent: Some(parent),
+            handed_out_at_birth: self.handed_out,
         };
         self.current = self.scopes.len();
         self.scopes.push(new_scope);
         prev
     }
 
-    /// Pop back to a previous scope.
+    /// Pop back to a previous scope, reclaiming the one being left when it can
+    /// be shown that nothing else refers to it.
+    ///
+    /// Scopes live in a `Vec` and are named by index, so a scope cannot simply
+    /// be dropped: a closure may hold the index of the scope it was defined in.
+    /// The test is therefore whether any id was handed out during this scope's
+    /// lifetime. If none was, no closure can name this scope or any scope
+    /// created inside it, and every one of them is unreachable once we leave.
+    ///
+    /// Indices only grow, so those scopes are exactly the tail of the `Vec`.
+    /// The length check is belt and braces: if push and pop were ever unbalanced
+    /// the tail would not be what we think, and the right answer is to reclaim
+    /// nothing and keep the old behaviour rather than to free a live scope.
+    ///
+    /// Without this, a loop kept every scope it ever entered — around 900 bytes
+    /// an iteration, so a loop of a million left most of a gigabyte behind.
     pub fn pop_scope(&mut self, prev: usize) {
+        let leaving = self.current;
         self.current = prev;
+
+        let nothing_escaped = self
+            .scopes
+            .get(leaving)
+            .is_some_and(|scope| scope.handed_out_at_birth == self.handed_out);
+        let is_tail = leaving + 1 == self.scopes.len();
+
+        if nothing_escaped && is_tail && leaving > prev {
+            self.scopes.truncate(leaving);
+        }
+    }
+
+    /// How many scopes are currently held.
+    ///
+    /// Exposed so the reclamation in `pop_scope` can be asserted directly. A
+    /// loop that creates no closures should leave this flat however many times
+    /// it goes round.
+    pub fn scope_count(&self) -> usize {
+        self.scopes.len()
     }
 
     /// Define a variable in the current scope.

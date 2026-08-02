@@ -219,3 +219,65 @@ fn assigning_into_an_unbound_name_still_reports_it() {
         "expected an undefined-variable error, got: {text}"
     );
 }
+
+// Scopes are held in a Vec and named by index, so leaving one could not simply
+// drop it: a closure keeps the index of the scope it was defined in. Nothing
+// was ever reclaimed as a result, and a loop kept every scope it had entered —
+// about 900 bytes an iteration, so a million iterations left most of a gigabyte
+// behind. A scope is now reclaimed when no id was handed out during its
+// lifetime, which is exactly when no closure can name it.
+
+fn run_and_count_scopes(code: &str) -> usize {
+    let tokens = Lexer::new(code).tokenize().unwrap();
+    let parsed = Parser::new(tokens).parse().unwrap();
+    assert!(!parsed.has_errors(), "unexpected parse errors: {:?}", parsed.errors);
+    let mut interp = Interpreter::new();
+    interp.run(&parsed.program).unwrap();
+    interp.env().scope_count()
+}
+
+#[test]
+fn a_loop_that_captures_nothing_reclaims_its_scopes() {
+    let few = run_and_count_scopes("let t = 0\nlet i = 0\nwhile i < 50 {\n let x = i\n t = t + x\n i = i + 1\n}");
+    let many = run_and_count_scopes("let t = 0\nlet i = 0\nwhile i < 5000 {\n let x = i\n t = t + x\n i = i + 1\n}");
+    // A hundredfold more iterations must not mean more scopes retained.
+    assert_eq!(
+        few, many,
+        "scope count grew with the iteration count: {few} then {many}"
+    );
+}
+
+#[test]
+fn a_closure_made_in_a_loop_still_reads_its_own_capture() {
+    // The scopes behind these closures must survive the loop that made them.
+    let code = "let fns = []\nfor i in range(0, 5) {\n fns = push(fns, |x| x + i)\n}\nlet applied = fns |> map(|f| f(100))\nsum(applied)";
+    // 100+0 .. 104 summed is 510.
+    assert_eq!(eval_int(code), 510);
+}
+
+#[test]
+fn a_returned_closure_outlives_the_call_that_made_it() {
+    let code = "fn make_adder(n) {\n |x| x + n\n}\nlet add7 = make_adder(7)\nlet add100 = make_adder(100)\nadd7(1) + add100(1)";
+    assert_eq!(eval_int(code), 109);
+}
+
+#[test]
+fn nested_recursion_still_resolves_each_frame() {
+    // Run on a thread with a generous stack. The interpreter recurses on the
+    // Rust stack, and an unoptimised build of this test binary needs far more of
+    // it per level than the CLI does — 2 MB, a test thread's default, does not
+    // survive even ten levels here, while a debug CLI on 8 MB manages a hundred.
+    // Why the two differ by that much is not established.
+    //
+    // What is established: the ceiling is not this fix. A debug CLI manages 100
+    // levels and not 300 both with and without scope reclamation, checked by
+    // reverting env.rs and rebuilding.
+    let worker = std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(|| {
+            let code = "fn depth(n) {\n if n == 0 then 0 else 1 + depth(n - 1)\n}\ndepth(50)";
+            eval_int(code)
+        })
+        .expect("spawn a worker with a larger stack");
+    assert_eq!(worker.join().expect("the worker panicked"), 50);
+}
