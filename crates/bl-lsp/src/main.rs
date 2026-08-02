@@ -1,6 +1,7 @@
 mod analysis;
 mod backend;
 mod diagnostics;
+mod occurrences;
 
 use backend::BioLangBackend;
 use tower_lsp::{LspService, Server};

@@ -174,12 +174,7 @@ fn aggregate(
 /// Map the final super-node partition down to original nodes, then split any
 /// internally-disconnected community into connected components (belt-and-braces
 /// enforcement of the Leiden connectivity guarantee).
-fn finalize(
-    adjacency: &[Vec<f64>],
-    orig: &[Vec<usize>],
-    part: &[usize],
-    n: usize,
-) -> Vec<usize> {
+fn finalize(adjacency: &[Vec<f64>], orig: &[Vec<usize>], part: &[usize], n: usize) -> Vec<usize> {
     let mut label = vec![0usize; n];
     for (super_node, members) in orig.iter().enumerate() {
         for &o in members {
@@ -205,10 +200,7 @@ fn split_disconnected(adjacency: &[Vec<f64>], label: &[usize], n: usize) -> Vec<
         out[start] = next;
         while let Some(u) = queue.pop_front() {
             for v in 0..n {
-                if out[v] == usize::MAX
-                    && label[v] == lbl
-                    && adjacency[u][v] != 0.0
-                {
+                if out[v] == usize::MAX && label[v] == lbl && adjacency[u][v] != 0.0 {
                     out[v] = next;
                     queue.push_back(v);
                 }
@@ -233,6 +225,199 @@ fn relabel(labels: &[usize]) -> Vec<usize> {
             })
         })
         .collect()
+}
+
+/// Leiden community detection for a symmetric sparse adjacency list.
+///
+/// This follows the same local-move, refinement, and aggregation phases as
+/// [`leiden`] without materializing an n-by-n adjacency matrix.
+pub fn leiden_sparse(adjacency: &[Vec<(usize, f64)>], resolution: f64) -> Vec<usize> {
+    let n = adjacency.len();
+    if n == 0 {
+        return vec![];
+    }
+    let degrees: Vec<f64> = adjacency
+        .iter()
+        .map(|neighbors| neighbors.iter().map(|(_, weight)| weight).sum())
+        .collect();
+    let m = degrees.iter().sum::<f64>() / 2.0;
+    if m == 0.0 {
+        return (0..n).collect();
+    }
+
+    let original_adjacency = adjacency;
+    let mut graph = adjacency.to_vec();
+    let mut graph_degrees = degrees;
+    let mut original_nodes: Vec<Vec<usize>> = (0..n).map(|node| vec![node]).collect();
+
+    loop {
+        let partition = sparse_local_move(&graph, &graph_degrees, resolution, m);
+        let refined = sparse_refine(&graph, &graph_degrees, &partition, resolution, m);
+        let n_refined = refined.iter().copied().max().unwrap_or(0) + 1;
+        if n_refined == graph.len() {
+            return sparse_finalize(original_adjacency, &original_nodes, &partition, n);
+        }
+
+        let (next_graph, next_degrees, next_original_nodes) =
+            sparse_aggregate(&graph, &graph_degrees, &original_nodes, &refined, n_refined);
+        graph = next_graph;
+        graph_degrees = next_degrees;
+        original_nodes = next_original_nodes;
+    }
+}
+
+fn sparse_local_move(
+    adjacency: &[Vec<(usize, f64)>],
+    degrees: &[f64],
+    resolution: f64,
+    m: f64,
+) -> Vec<usize> {
+    let n = adjacency.len();
+    let mut communities: Vec<usize> = (0..n).collect();
+    let mut totals = degrees.to_vec();
+
+    for _ in 0..100 {
+        let mut improved = false;
+        for node in 0..n {
+            let current = communities[node];
+            totals[current] -= degrees[node];
+            let mut weights_by_community = HashMap::new();
+            for &(neighbor, weight) in &adjacency[node] {
+                if neighbor != node {
+                    *weights_by_community
+                        .entry(communities[neighbor])
+                        .or_insert(0.0) += weight;
+                }
+            }
+            let coefficient = resolution * degrees[node] / (2.0 * m);
+            let mut best = current;
+            let mut best_gain = weights_by_community.get(&current).copied().unwrap_or(0.0)
+                - coefficient * totals[current];
+            for (&candidate, &internal_weight) in &weights_by_community {
+                let gain = internal_weight - coefficient * totals[candidate];
+                if gain > best_gain + 1e-12 {
+                    best_gain = gain;
+                    best = candidate;
+                }
+            }
+            improved |= best != current;
+            communities[node] = best;
+            totals[best] += degrees[node];
+        }
+        if !improved {
+            break;
+        }
+    }
+    relabel(&communities)
+}
+
+fn sparse_refine(
+    adjacency: &[Vec<(usize, f64)>],
+    degrees: &[f64],
+    partition: &[usize],
+    resolution: f64,
+    m: f64,
+) -> Vec<usize> {
+    let n = adjacency.len();
+    let mut refined: Vec<usize> = (0..n).collect();
+    let mut totals = degrees.to_vec();
+
+    for node in 0..n {
+        let current = refined[node];
+        totals[current] -= degrees[node];
+        let mut weights_by_community = HashMap::new();
+        for &(neighbor, weight) in &adjacency[node] {
+            if neighbor != node && partition[neighbor] == partition[node] {
+                *weights_by_community.entry(refined[neighbor]).or_insert(0.0) += weight;
+            }
+        }
+        let coefficient = resolution * degrees[node] / (2.0 * m);
+        let mut best = current;
+        let mut best_gain = 0.0;
+        for (&candidate, &internal_weight) in &weights_by_community {
+            let gain = internal_weight - coefficient * totals[candidate];
+            if gain > best_gain + 1e-12 {
+                best_gain = gain;
+                best = candidate;
+            }
+        }
+        refined[node] = best;
+        totals[best] += degrees[node];
+    }
+    relabel(&refined)
+}
+
+fn sparse_aggregate(
+    adjacency: &[Vec<(usize, f64)>],
+    degrees: &[f64],
+    original_nodes: &[Vec<usize>],
+    refined: &[usize],
+    n_new: usize,
+) -> (Vec<Vec<(usize, f64)>>, Vec<f64>, Vec<Vec<usize>>) {
+    let mut edge_maps: Vec<HashMap<usize, f64>> = vec![HashMap::new(); n_new];
+    let mut new_degrees = vec![0.0; n_new];
+    let mut new_original_nodes = vec![Vec::new(); n_new];
+
+    for node in 0..adjacency.len() {
+        let source = refined[node];
+        new_degrees[source] += degrees[node];
+        new_original_nodes[source].extend_from_slice(&original_nodes[node]);
+        for &(neighbor, weight) in &adjacency[node] {
+            let target = refined[neighbor];
+            if source != target {
+                *edge_maps[source].entry(target).or_insert(0.0) += weight;
+            }
+        }
+    }
+
+    let graph = edge_maps
+        .into_iter()
+        .map(|edges| {
+            let mut neighbors: Vec<(usize, f64)> = edges.into_iter().collect();
+            neighbors.sort_by_key(|(neighbor, _)| *neighbor);
+            neighbors
+        })
+        .collect();
+    (graph, new_degrees, new_original_nodes)
+}
+
+fn sparse_finalize(
+    adjacency: &[Vec<(usize, f64)>],
+    original_nodes: &[Vec<usize>],
+    partition: &[usize],
+    n: usize,
+) -> Vec<usize> {
+    let mut labels = vec![0usize; n];
+    for (super_node, members) in original_nodes.iter().enumerate() {
+        for &original_node in members {
+            labels[original_node] = partition[super_node];
+        }
+    }
+
+    let mut connected = vec![usize::MAX; n];
+    let mut next_label = 0;
+    for start in 0..n {
+        if connected[start] != usize::MAX {
+            continue;
+        }
+        let expected_label = labels[start];
+        let mut queue = VecDeque::new();
+        queue.push_back(start);
+        connected[start] = next_label;
+        while let Some(node) = queue.pop_front() {
+            for &(neighbor, weight) in &adjacency[node] {
+                if weight != 0.0
+                    && connected[neighbor] == usize::MAX
+                    && labels[neighbor] == expected_label
+                {
+                    connected[neighbor] = next_label;
+                    queue.push_back(neighbor);
+                }
+            }
+        }
+        next_label += 1;
+    }
+    relabel(&connected)
 }
 
 /// Louvain community detection algorithm.
@@ -392,7 +577,11 @@ mod leiden_tests {
         // Triangle {0,1,2} and triangle {3,4,5} joined by a single edge 2-3.
         let g = graph(6, &[(0, 1), (1, 2), (0, 2), (3, 4), (4, 5), (3, 5), (2, 3)]);
         let labels = leiden(&g, 1.0);
-        assert_eq!(*labels.iter().max().unwrap() + 1, 2, "expected 2 communities: {labels:?}");
+        assert_eq!(
+            *labels.iter().max().unwrap() + 1,
+            2,
+            "expected 2 communities: {labels:?}"
+        );
         assert_eq!(labels[0], labels[1]);
         assert_eq!(labels[1], labels[2]);
         assert_eq!(labels[3], labels[4]);
@@ -405,13 +594,26 @@ mod leiden_tests {
         let g = graph(
             8,
             &[
-                (0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3),
-                (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7),
+                (0, 1),
+                (0, 2),
+                (0, 3),
+                (1, 2),
+                (1, 3),
+                (2, 3),
+                (4, 5),
+                (4, 6),
+                (4, 7),
+                (5, 6),
+                (5, 7),
+                (6, 7),
                 (3, 4),
             ],
         );
         let labels = leiden(&g, 1.0);
-        assert!(all_connected(&g, &labels), "communities not connected: {labels:?}");
+        assert!(
+            all_connected(&g, &labels),
+            "communities not connected: {labels:?}"
+        );
     }
 
     #[test]

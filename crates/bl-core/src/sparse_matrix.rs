@@ -135,6 +135,192 @@ impl SparseMatrix {
         sums
     }
 
+    /// Number of stored non-zero entries in each row.
+    pub fn row_nnz(&self) -> Vec<usize> {
+        self.indptr
+            .windows(2)
+            .map(|window| window[1] - window[0])
+            .collect()
+    }
+
+    /// Number of stored non-zero entries in each column.
+    pub fn col_nnz(&self) -> Vec<usize> {
+        let mut counts = vec![0usize; self.ncol];
+        for &column in &self.indices {
+            if column < self.ncol {
+                counts[column] += 1;
+            }
+        }
+        counts
+    }
+
+    /// Return a matrix containing the selected rows in the requested order.
+    pub fn subset_rows(&self, rows: &[usize]) -> Self {
+        let mut indptr = Vec::with_capacity(rows.len() + 1);
+        let mut indices = Vec::new();
+        let mut data = Vec::new();
+        indptr.push(0);
+
+        for &row in rows {
+            if row < self.nrow {
+                let start = self.indptr[row];
+                let end = self.indptr[row + 1];
+                indices.extend_from_slice(&self.indices[start..end]);
+                data.extend_from_slice(&self.data[start..end]);
+            }
+            indptr.push(indices.len());
+        }
+
+        Self {
+            indptr,
+            indices,
+            data,
+            nrow: rows.len(),
+            ncol: self.ncol,
+            row_names: self.row_names.as_ref().map(|names| {
+                rows.iter()
+                    .map(|&row| names.get(row).cloned().unwrap_or_default())
+                    .collect()
+            }),
+            col_names: self.col_names.clone(),
+        }
+    }
+
+    /// Return a matrix containing the selected columns in the requested order.
+    ///
+    /// Repeated source columns are not supported; the first requested occurrence
+    /// is retained.
+    pub fn subset_cols(&self, columns: &[usize]) -> Self {
+        let mut remap = vec![None; self.ncol];
+        for (new_column, &old_column) in columns.iter().enumerate() {
+            if old_column < self.ncol && remap[old_column].is_none() {
+                remap[old_column] = Some(new_column);
+            }
+        }
+
+        let mut indptr = Vec::with_capacity(self.nrow + 1);
+        let mut indices = Vec::new();
+        let mut data = Vec::new();
+        indptr.push(0);
+
+        for row in 0..self.nrow {
+            let start = self.indptr[row];
+            let end = self.indptr[row + 1];
+            let mut selected = Vec::new();
+            for position in start..end {
+                if let Some(new_column) = remap[self.indices[position]] {
+                    selected.push((new_column, self.data[position]));
+                }
+            }
+            selected.sort_by_key(|(column, _)| *column);
+            for (column, value) in selected {
+                indices.push(column);
+                data.push(value);
+            }
+            indptr.push(indices.len());
+        }
+
+        Self {
+            indptr,
+            indices,
+            data,
+            nrow: self.nrow,
+            ncol: columns.len(),
+            row_names: self.row_names.clone(),
+            col_names: self.col_names.as_ref().map(|names| {
+                columns
+                    .iter()
+                    .map(|&column| names.get(column).cloned().unwrap_or_default())
+                    .collect()
+            }),
+        }
+    }
+
+    /// Scale each row so its sum equals `target`, preserving zero rows.
+    pub fn normalize_rows(&self, target: f64) -> Self {
+        let row_sums = self.row_sums();
+        let mut data = self.data.clone();
+        for (row, total) in row_sums.into_iter().enumerate() {
+            if total == 0.0 {
+                continue;
+            }
+            let scale = target / total;
+            for value in &mut data[self.indptr[row]..self.indptr[row + 1]] {
+                *value *= scale;
+            }
+        }
+
+        Self {
+            indptr: self.indptr.clone(),
+            indices: self.indices.clone(),
+            data,
+            nrow: self.nrow,
+            ncol: self.ncol,
+            row_names: self.row_names.clone(),
+            col_names: self.col_names.clone(),
+        }
+    }
+
+    /// Apply a function to stored values while retaining the sparse structure.
+    pub fn map_nonzero(&self, transform: impl Fn(f64) -> f64) -> Self {
+        Self {
+            indptr: self.indptr.clone(),
+            indices: self.indices.clone(),
+            data: self.data.iter().copied().map(transform).collect(),
+            nrow: self.nrow,
+            ncol: self.ncol,
+            row_names: self.row_names.clone(),
+            col_names: self.col_names.clone(),
+        }
+    }
+
+    /// Append rows from another CSR matrix with the same columns.
+    pub fn append_rows(&self, other: &Self) -> Result<Self, String> {
+        if self.ncol != other.ncol {
+            return Err(format!(
+                "cannot append sparse matrices with {} and {} columns",
+                self.ncol, other.ncol
+            ));
+        }
+        if let (Some(left), Some(right)) = (&self.col_names, &other.col_names) {
+            if left != right {
+                return Err("cannot append sparse matrices with different column names".into());
+            }
+        }
+
+        let mut indptr = self.indptr.clone();
+        let offset = self.data.len();
+        indptr.extend(
+            other
+                .indptr
+                .iter()
+                .skip(1)
+                .map(|position| offset + position),
+        );
+        let mut indices = self.indices.clone();
+        indices.extend_from_slice(&other.indices);
+        let mut data = self.data.clone();
+        data.extend_from_slice(&other.data);
+        let row_names = match (&self.row_names, &other.row_names) {
+            (Some(left), Some(right)) => {
+                let mut names = left.clone();
+                names.extend(right.iter().cloned());
+                Some(names)
+            }
+            _ => None,
+        };
+
+        Ok(Self {
+            indptr,
+            indices,
+            data,
+            nrow: self.nrow + other.nrow,
+            ncol: self.ncol,
+            row_names,
+            col_names: self.col_names.clone().or_else(|| other.col_names.clone()),
+        })
+    }
+
     /// Convert to dense representation.
     pub fn to_dense(&self) -> Vec<Vec<f64>> {
         let mut dense = vec![vec![0.0; self.ncol]; self.nrow];

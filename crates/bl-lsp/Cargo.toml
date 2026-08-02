@@ -15,6 +15,8 @@ path = "src/main.rs"
 bl-core = { workspace = true }
 bl-lexer = { workspace = true }
 bl-parser = { workspace = true }
+bl-fmt = { workspace = true }
+bl-repl = { workspace = true }
 bl-runtime = { workspace = true, features = ["native"] }
 tower-lsp = "0.20"
 tokio = { version = "1", features = ["full"] }

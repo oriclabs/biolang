@@ -9,6 +9,7 @@
 //! wnn_graph, velocity_estimate.
 
 use bl_core::error::{BioLangError, ErrorKind, Result};
+use bl_core::sparse_matrix::SparseMatrix;
 use bl_core::value::{Arity, Table, Value};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
@@ -26,10 +27,18 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("gene_qc", Arity::Range(1, 2)),
         ("knn_graph", Arity::Range(1, 2)),
         ("leiden_cluster", Arity::Range(2, 3)),
+        ("leiden_graph", Arity::Exact(3)),
+        ("select_rows", Arity::Exact(2)),
         ("select_cols", Arity::Exact(2)),
+        ("matrix_at", Arity::Exact(3)),
+        ("sc_subset_cells", Arity::Exact(2)),
+        ("sc_subset_genes", Arity::Exact(2)),
+        ("sc_merge_objects", Arity::Exact(4)),
+        ("sc_pca", Arity::Range(1, 2)),
         ("doublet_score", Arity::Range(1, 2)),
         // Section 6 extensions: Seurat-compatible single-cell ops
         ("read_10x", Arity::Range(1, 2)),
+        ("read_10x_sparse", Arity::Range(1, 2)),
         ("cell_cycle_score", Arity::Exact(3)),
         ("module_score", Arity::Exact(2)),
         ("sc_sctransform", Arity::Exact(1)),
@@ -68,9 +77,17 @@ pub fn is_singlecell_builtin(name: &str) -> bool {
             | "gene_qc"
             | "knn_graph"
             | "leiden_cluster"
+            | "leiden_graph"
+            | "select_rows"
             | "select_cols"
+            | "matrix_at"
+            | "sc_subset_cells"
+            | "sc_subset_genes"
+            | "sc_merge_objects"
+            | "sc_pca"
             | "doublet_score"
             | "read_10x"
+            | "read_10x_sparse"
             | "cell_cycle_score"
             | "module_score"
             | "sc_sctransform"
@@ -101,9 +118,17 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "gene_qc" => builtin_gene_qc(args),
         "knn_graph" => builtin_knn_graph(args),
         "leiden_cluster" => builtin_leiden_cluster(args),
+        "leiden_graph" => builtin_leiden_graph(args),
+        "select_rows" => builtin_select_rows(args),
         "select_cols" => builtin_select_cols(args),
+        "matrix_at" => builtin_matrix_at(args),
+        "sc_subset_cells" => builtin_sc_subset_cells(args),
+        "sc_subset_genes" => builtin_sc_subset_genes(args),
+        "sc_merge_objects" => builtin_sc_merge_objects(args),
+        "sc_pca" => builtin_sc_pca(args),
         "doublet_score" => builtin_doublet_score(args),
         "read_10x" => builtin_read_10x(args),
+        "read_10x_sparse" => builtin_read_10x_sparse(args),
         "cell_cycle_score" => builtin_cell_cycle_score(args),
         "module_score" => builtin_module_score(args),
         "sc_sctransform" => builtin_sc_sctransform(args),
@@ -167,10 +192,26 @@ fn require_matrix(val: &Value, func: &str) -> Result<Vec<Vec<f64>>> {
             .iter()
             .map(|row| row.iter().map(|v| to_f64(v).unwrap_or(0.0)).collect())
             .collect()),
+        // `matrix(...)` is the idiomatic way to write a dense matrix literal, so
+        // every builtin that takes one should accept it rather than only the
+        // List<List> spelling.
+        Value::Matrix(m) => Ok((0..m.nrow)
+            .map(|i| m.data[i * m.ncol..(i + 1) * m.ncol].to_vec())
+            .collect()),
         _ => Err(BioLangError::type_error(
-            format!("{func}() requires List<List> or Table"),
+            format!("{func}() requires List<List>, Matrix, or Table"),
             None,
         )),
+    }
+}
+
+/// Like `require_matrix`, but also densifies a CSR input. Only for functions
+/// whose output is dense no matter what the input was — Pearson residuals are
+/// nonzero for observed zeros, so there is no sparse result to preserve.
+fn require_dense_matrix(val: &Value, func: &str) -> Result<Vec<Vec<f64>>> {
+    match val {
+        Value::SparseMatrix(sm) => Ok(sm.to_dense()),
+        other => require_matrix(other, func),
     }
 }
 
@@ -188,7 +229,8 @@ fn matrix_to_value(mat: Vec<Vec<f64>>) -> Value {
     Value::List(
         mat.into_iter()
             .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     )
 }
 
@@ -197,31 +239,450 @@ fn matrix_to_value(mat: Vec<Vec<f64>>) -> Value {
 // interpreted `mat |> map(|row| idx |> map(|j| row[j]))` double-loop that
 // dominates HVG selection on real-sized data (hundreds of thousands of
 // interpreted closure calls).
-fn builtin_select_cols(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "select_cols")?;
-    let indices: Vec<usize> = match &args[1] {
+enum SingleCellMatrix<'a> {
+    Dense(Vec<Vec<f64>>),
+    Sparse(&'a SparseMatrix),
+}
+
+impl SingleCellMatrix<'_> {
+    fn dimensions(&self) -> (usize, usize) {
+        match self {
+            Self::Dense(matrix) => (
+                matrix.len(),
+                matrix.first().map(|row| row.len()).unwrap_or(0),
+            ),
+            Self::Sparse(matrix) => (matrix.nrow, matrix.ncol),
+        }
+    }
+
+    fn column_moments(&self) -> (Vec<f64>, Vec<f64>) {
+        let (n_rows, n_columns) = self.dimensions();
+        let mut sums = vec![0.0; n_columns];
+        let mut sums_squared = vec![0.0; n_columns];
+        match self {
+            Self::Dense(matrix) => {
+                for row in matrix {
+                    for (column, value) in row.iter().copied().enumerate() {
+                        sums[column] += value;
+                        sums_squared[column] += value * value;
+                    }
+                }
+            }
+            Self::Sparse(matrix) => {
+                sums = matrix.col_sums();
+                for (&column, &value) in matrix.indices.iter().zip(&matrix.data) {
+                    sums_squared[column] += value * value;
+                }
+            }
+        }
+        if n_rows == 0 {
+            return (sums, sums_squared);
+        }
+        (sums, sums_squared)
+    }
+
+    fn value_at(&self, row: usize, column: usize) -> f64 {
+        match self {
+            Self::Dense(matrix) => matrix[row][column],
+            Self::Sparse(matrix) => matrix.get(row, column),
+        }
+    }
+
+    fn multiply_centered(&self, means: &[f64], vector: &[f64]) -> Vec<f64> {
+        let (n_rows, _) = self.dimensions();
+        let center: f64 = means
+            .iter()
+            .zip(vector)
+            .map(|(mean, weight)| mean * weight)
+            .sum();
+        match self {
+            Self::Dense(matrix) => matrix
+                .iter()
+                .map(|row| {
+                    row.iter()
+                        .zip(vector)
+                        .map(|(value, weight)| value * weight)
+                        .sum::<f64>()
+                        - center
+                })
+                .collect(),
+            Self::Sparse(matrix) => (0..n_rows)
+                .map(|row| {
+                    let value = (matrix.indptr[row]..matrix.indptr[row + 1])
+                        .map(|position| matrix.data[position] * vector[matrix.indices[position]])
+                        .sum::<f64>();
+                    value - center
+                })
+                .collect(),
+        }
+    }
+
+    fn transpose_multiply_centered(&self, means: &[f64], vector: &[f64]) -> Vec<f64> {
+        let (_, n_columns) = self.dimensions();
+        let mut result = vec![0.0; n_columns];
+        match self {
+            Self::Dense(matrix) => {
+                for (row, weight) in matrix.iter().zip(vector) {
+                    for (column, value) in row.iter().copied().enumerate() {
+                        result[column] += value * weight;
+                    }
+                }
+            }
+            Self::Sparse(matrix) => {
+                for (row, weight) in vector.iter().copied().enumerate() {
+                    for position in matrix.indptr[row]..matrix.indptr[row + 1] {
+                        result[matrix.indices[position]] += matrix.data[position] * weight;
+                    }
+                }
+            }
+        }
+        let vector_sum: f64 = vector.iter().sum();
+        for (value, mean) in result.iter_mut().zip(means) {
+            *value -= mean * vector_sum;
+        }
+        result
+    }
+}
+
+fn singlecell_matrix<'a>(value: &'a Value, func: &str) -> Result<SingleCellMatrix<'a>> {
+    if let Value::SparseMatrix(matrix) = value {
+        return Ok(SingleCellMatrix::Sparse(matrix));
+    }
+    let matrix = require_matrix(value, func)?;
+    let n_columns = matrix.first().map(|row| row.len()).unwrap_or(0);
+    if matrix.iter().any(|row| row.len() != n_columns) {
+        return Err(BioLangError::type_error(
+            format!("{func}() requires a rectangular matrix"),
+            None,
+        ));
+    }
+    Ok(SingleCellMatrix::Dense(matrix))
+}
+
+fn orthogonalize(vector: &mut [f64], basis: &[Vec<f64>]) {
+    for component in basis {
+        let projection: f64 = vector
+            .iter()
+            .zip(component)
+            .map(|(value, loading)| value * loading)
+            .sum();
+        for (value, loading) in vector.iter_mut().zip(component) {
+            *value -= projection * loading;
+        }
+    }
+}
+
+fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
+    let matrix = singlecell_matrix(&args[0], "sc_pca")?;
+    let requested = if args.len() > 1 {
+        let value = require_int(&args[1], "sc_pca")?;
+        if value < 1 {
+            return Err(BioLangError::type_error(
+                "sc_pca() n_components must be at least 1",
+                None,
+            ));
+        }
+        value as usize
+    } else {
+        50
+    };
+    let (n_cells, n_genes) = matrix.dimensions();
+    let n_components = requested.min(n_genes).min(n_cells.saturating_sub(1));
+    let (sums, sums_squared) = matrix.column_moments();
+    let means: Vec<f64> = if n_cells == 0 {
+        vec![0.0; n_genes]
+    } else {
+        sums.iter().map(|sum| sum / n_cells as f64).collect()
+    };
+    let total_variance = if n_cells > 1 {
+        sums_squared
+            .iter()
+            .zip(&means)
+            .map(|(sum_squared, mean)| {
+                ((sum_squared - n_cells as f64 * mean * mean) / (n_cells - 1) as f64).max(0.0)
+            })
+            .sum::<f64>()
+    } else {
+        0.0
+    };
+
+    let mut components: Vec<Vec<f64>> = Vec::with_capacity(n_components);
+    let mut score_columns: Vec<Vec<f64>> = Vec::with_capacity(n_components);
+    let mut explained_variance = Vec::with_capacity(n_components);
+
+    for component_index in 0..n_components {
+        let mut loading: Vec<f64> = (0..n_genes)
+            .map(|gene| (((gene + 1) * (component_index + 1)) as f64 * 1.618_033_988_75).sin())
+            .collect();
+        orthogonalize(&mut loading, &components);
+        let initial_norm = loading
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        if initial_norm <= 1e-12 {
+            break;
+        }
+        for value in &mut loading {
+            *value /= initial_norm;
+        }
+
+        for _ in 0..40 {
+            let scores = matrix.multiply_centered(&means, &loading);
+            let mut next = matrix.transpose_multiply_centered(&means, &scores);
+            orthogonalize(&mut next, &components);
+            let norm = next.iter().map(|value| value * value).sum::<f64>().sqrt();
+            if norm <= 1e-12 {
+                break;
+            }
+            for value in &mut next {
+                *value /= norm;
+            }
+            let change = next
+                .iter()
+                .zip(&loading)
+                .map(|(next_value, old_value)| (next_value - old_value).abs())
+                .fold(0.0, f64::max);
+            loading = next;
+            if change < 1e-8 {
+                break;
+            }
+        }
+
+        let scores = matrix.multiply_centered(&means, &loading);
+        let variance = if n_cells > 1 {
+            scores.iter().map(|value| value * value).sum::<f64>() / (n_cells - 1) as f64
+        } else {
+            0.0
+        };
+        if variance <= 1e-12 {
+            break;
+        }
+        components.push(loading);
+        score_columns.push(scores);
+        explained_variance.push(variance);
+    }
+
+    let actual_components = components.len();
+    let scores: Vec<Vec<f64>> = (0..n_cells)
+        .map(|cell| {
+            score_columns
+                .iter()
+                .map(|component| component[cell])
+                .collect()
+        })
+        .collect();
+    let loadings: Vec<Vec<f64>> = (0..n_genes)
+        .map(|gene| components.iter().map(|component| component[gene]).collect())
+        .collect();
+    let explained_variance_ratio: Vec<Value> = explained_variance
+        .iter()
+        .map(|variance| {
+            Value::Float(if total_variance > 0.0 {
+                variance / total_variance
+            } else {
+                0.0
+            })
+        })
+        .collect();
+
+    let mut result = HashMap::new();
+    result.insert("scores".to_string(), matrix_to_value(scores));
+    result.insert("loadings".to_string(), matrix_to_value(loadings));
+    result.insert(
+        "explained_variance".to_string(),
+        Value::List(
+            explained_variance
+                .into_iter()
+                .map(Value::Float)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
+    result.insert(
+        "explained_variance_ratio".to_string(),
+        Value::List(explained_variance_ratio.into()),
+    );
+    result.insert(
+        "mean".to_string(),
+        Value::List(
+            means
+                .into_iter()
+                .map(Value::Float)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
+    result.insert(
+        "n_components".to_string(),
+        Value::Int(actual_components as i64),
+    );
+    Ok(Value::Record(result.into()))
+}
+
+fn require_indices(val: &Value, func: &str) -> Result<Vec<usize>> {
+    match val {
         Value::List(items) => items
             .iter()
-            .map(|v| match v {
-                Value::Int(n) => Ok(*n as usize),
-                Value::Float(f) => Ok(*f as usize),
+            .map(|value| match value {
+                Value::Int(index) if *index >= 0 => Ok(*index as usize),
+                Value::Float(index) if *index >= 0.0 && index.fract() == 0.0 => Ok(*index as usize),
                 other => Err(BioLangError::type_error(
-                    format!("select_cols() indices must be Int, got {}", other.type_of()),
+                    format!(
+                        "{func}() indices must be non-negative Int values, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             })
-            .collect::<Result<Vec<usize>>>()?,
-        other => {
-            return Err(BioLangError::type_error(
-                format!("select_cols() requires a List of indices, got {}", other.type_of()),
-                None,
-            ))
+            .collect(),
+        other => Err(BioLangError::type_error(
+            format!(
+                "{func}() requires a List of indices, got {}",
+                other.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+fn builtin_select_rows(args: Vec<Value>) -> Result<Value> {
+    let indices = require_indices(&args[1], "select_rows")?;
+    match &args[0] {
+        Value::Table(table) => {
+            let mut rows = Vec::with_capacity(indices.len());
+            for &index in &indices {
+                let row = table.rows.get(index).ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::IndexOutOfBounds,
+                        format!(
+                            "select_rows() row index {index} is outside a table with {} rows",
+                            table.rows.len()
+                        ),
+                        None,
+                    )
+                })?;
+                rows.push(row.clone());
+            }
+            Ok(Value::Table(Table::new(table.columns.clone(), rows)))
         }
-    };
+        Value::SparseMatrix(matrix) => {
+            if let Some(index) = indices.iter().find(|&&index| index >= matrix.nrow) {
+                return Err(BioLangError::runtime(
+                    ErrorKind::IndexOutOfBounds,
+                    format!(
+                        "select_rows() row index {index} is outside a matrix with {} rows",
+                        matrix.nrow
+                    ),
+                    None,
+                ));
+            }
+            Ok(Value::SparseMatrix(matrix.subset_rows(&indices)))
+        }
+        _ => {
+            let matrix = require_matrix(&args[0], "select_rows")?;
+            let mut selected = Vec::with_capacity(indices.len());
+            for index in indices {
+                let row = matrix.get(index).ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::IndexOutOfBounds,
+                        format!(
+                            "select_rows() row index {index} is outside a matrix with {} rows",
+                            matrix.len()
+                        ),
+                        None,
+                    )
+                })?;
+                selected.push(row.clone());
+            }
+            Ok(matrix_to_value(selected))
+        }
+    }
+}
+
+fn builtin_matrix_at(args: Vec<Value>) -> Result<Value> {
+    let row = require_int(&args[1], "matrix_at")?;
+    let column = require_int(&args[2], "matrix_at")?;
+    if row < 0 || column < 0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::IndexOutOfBounds,
+            "matrix_at() indices must be non-negative",
+            None,
+        ));
+    }
+    let row = row as usize;
+    let column = column as usize;
+    match &args[0] {
+        Value::SparseMatrix(matrix) if row < matrix.nrow && column < matrix.ncol => {
+            Ok(Value::Float(matrix.get(row, column)))
+        }
+        Value::Matrix(matrix) if row < matrix.nrow && column < matrix.ncol => {
+            Ok(Value::Float(matrix.get(row, column)))
+        }
+        Value::List(rows) => rows
+            .get(row)
+            .and_then(|value| match value {
+                Value::List(values) => values.get(column),
+                _ => None,
+            })
+            .cloned()
+            .ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::IndexOutOfBounds,
+                    format!("matrix_at() index ({row}, {column}) is outside the matrix"),
+                    None,
+                )
+            }),
+        Value::Table(table) => table
+            .rows
+            .get(row)
+            .and_then(|values| values.get(column))
+            .cloned()
+            .ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::IndexOutOfBounds,
+                    format!("matrix_at() index ({row}, {column}) is outside the table"),
+                    None,
+                )
+            }),
+        other => Err(BioLangError::type_error(
+            format!(
+                "matrix_at() requires a matrix-like value, got {}",
+                other.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+fn builtin_select_cols(args: Vec<Value>) -> Result<Value> {
+    let indices = require_indices(&args[1], "select_cols")?;
+    if let Value::SparseMatrix(matrix) = &args[0] {
+        if let Some(index) = indices.iter().find(|&&index| index >= matrix.ncol) {
+            return Err(BioLangError::runtime(
+                ErrorKind::IndexOutOfBounds,
+                format!(
+                    "select_cols() column index {index} is outside a matrix with {} columns",
+                    matrix.ncol
+                ),
+                None,
+            ));
+        }
+        return Ok(Value::SparseMatrix(matrix.subset_cols(&indices)));
+    }
+
+    let mat = require_matrix(&args[0], "select_cols")?;
     let ncol = mat.first().map(|r| r.len()).unwrap_or(0);
+    if let Some(index) = indices.iter().find(|&&index| index >= ncol) {
+        return Err(BioLangError::runtime(
+            ErrorKind::IndexOutOfBounds,
+            format!("select_cols() column index {index} is outside a matrix with {ncol} columns"),
+            None,
+        ));
+    }
     let out: Vec<Vec<f64>> = mat
         .iter()
-        .map(|row| indices.iter().map(|&j| if j < ncol { row[j] } else { 0.0 }).collect())
+        .map(|row| indices.iter().map(|&j| row[j]).collect())
         .collect();
     Ok(matrix_to_value(out))
 }
@@ -230,8 +691,345 @@ fn builtin_select_cols(args: Vec<Value>) -> Result<Value> {
 
 // ── normalize_total(matrix, target=10000) ────────────────────────────
 
+fn subset_list(value: &Value, indices: &[usize], func: &str) -> Result<Value> {
+    let values = match value {
+        Value::List(values) => values,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("{func}() expected List, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+    let mut selected = Vec::with_capacity(indices.len());
+    for &index in indices {
+        selected.push(
+            values
+                .get(index)
+                .ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::IndexOutOfBounds,
+                        format!(
+                            "{func}() index {index} is outside a list with {} values",
+                            values.len()
+                        ),
+                        None,
+                    )
+                })?
+                .clone(),
+        );
+    }
+    Ok(Value::List(selected.into()))
+}
+
+fn builtin_sc_subset_cells(args: Vec<Value>) -> Result<Value> {
+    let object = match &args[0] {
+        Value::Record(object) => object,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "sc_subset_cells() requires a single-cell Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let indices = require_indices(&args[1], "sc_subset_cells")?;
+    let index_value = Value::List(
+        indices
+            .iter()
+            .map(|index| Value::Int(*index as i64))
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let mut result = object.as_ref().clone();
+
+    for field in [
+        "matrix",
+        "norm_matrix",
+        "hvg_matrix",
+        "scaled_matrix",
+        "integrated_matrix",
+        "pca_scores",
+        "umap",
+    ] {
+        if let Some(value) = object.get(field) {
+            result.insert(
+                field.to_string(),
+                builtin_select_rows(vec![value.clone(), index_value.clone()])?,
+            );
+        }
+    }
+    for field in [
+        "barcodes",
+        "clusters",
+        "pseudotime",
+        "doublet_scores",
+        "is_doublet",
+        "batch_ids",
+        "cell_cycle_info",
+        "module_scores",
+    ] {
+        if let Some(value) = object.get(field) {
+            result.insert(
+                field.to_string(),
+                subset_list(value, &indices, "sc_subset_cells")?,
+            );
+        }
+    }
+    if let Some(value) = object.get("obs") {
+        result.insert(
+            "obs".to_string(),
+            builtin_select_rows(vec![value.clone(), index_value.clone()])?,
+        );
+    }
+    if let Some(Value::Record(layers)) = object.get("layers") {
+        let mut selected_layers = layers.as_ref().clone();
+        for (name, value) in layers.iter() {
+            selected_layers.insert(
+                name.clone(),
+                builtin_select_rows(vec![value.clone(), index_value.clone()])?,
+            );
+        }
+        result.insert("layers".to_string(), Value::Record(selected_layers.into()));
+    }
+    result.remove("knn");
+    result.remove("cell_qc_table");
+    result.insert("n_cells".to_string(), Value::Int(indices.len() as i64));
+    Ok(Value::Record(result.into()))
+}
+
+fn builtin_sc_subset_genes(args: Vec<Value>) -> Result<Value> {
+    let object = match &args[0] {
+        Value::Record(object) => object,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "sc_subset_genes() requires a single-cell Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let indices = require_indices(&args[1], "sc_subset_genes")?;
+    let index_value = Value::List(
+        indices
+            .iter()
+            .map(|index| Value::Int(*index as i64))
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let mut result = object.as_ref().clone();
+
+    for field in [
+        "matrix",
+        "norm_matrix",
+        "scaled_matrix",
+        "integrated_matrix",
+    ] {
+        if let Some(value) = object.get(field) {
+            result.insert(
+                field.to_string(),
+                builtin_select_cols(vec![value.clone(), index_value.clone()])?,
+            );
+        }
+    }
+    if let Some(value) = object.get("genes") {
+        result.insert(
+            "genes".to_string(),
+            subset_list(value, &indices, "sc_subset_genes")?,
+        );
+    }
+    if let Some(value) = object.get("var") {
+        result.insert(
+            "var".to_string(),
+            builtin_select_rows(vec![value.clone(), index_value.clone()])?,
+        );
+    }
+    if let Some(Value::Record(layers)) = object.get("layers") {
+        let mut selected_layers = layers.as_ref().clone();
+        for (name, value) in layers.iter() {
+            selected_layers.insert(
+                name.clone(),
+                builtin_select_cols(vec![value.clone(), index_value.clone()])?,
+            );
+        }
+        result.insert("layers".to_string(), Value::Record(selected_layers.into()));
+    }
+    for field in [
+        "hvg",
+        "hvg_matrix",
+        "hvg_genes",
+        "pca",
+        "pca_scores",
+        "pca_loadings",
+        "knn",
+        "clusters",
+        "cluster_inertia",
+        "umap",
+        "pseudotime",
+        "gene_qc_table",
+        "cell_qc_table",
+    ] {
+        result.remove(field);
+    }
+    result.insert("n_genes".to_string(), Value::Int(indices.len() as i64));
+    Ok(Value::Record(result.into()))
+}
+
+fn append_matrix_values(left: &Value, right: &Value, func: &str) -> Result<Value> {
+    match (left, right) {
+        (Value::SparseMatrix(left), Value::SparseMatrix(right)) => left
+            .append_rows(right)
+            .map(Value::SparseMatrix)
+            .map_err(|message| BioLangError::type_error(format!("{func}(): {message}"), None)),
+        (Value::List(left), Value::List(right)) => {
+            let mut values = left.as_ref().clone();
+            values.extend(right.iter().cloned());
+            Ok(Value::List(values.into()))
+        }
+        (Value::Table(left), Value::Table(right)) if left.columns == right.columns => {
+            let mut rows = left.rows.clone();
+            rows.extend(right.rows.iter().cloned());
+            Ok(Value::Table(Table::new(left.columns.clone(), rows)))
+        }
+        _ => Err(BioLangError::type_error(
+            format!(
+                "{func}() cannot append {} and {}",
+                left.type_of(),
+                right.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+fn builtin_sc_merge_objects(args: Vec<Value>) -> Result<Value> {
+    let left = match &args[0] {
+        Value::Record(object) => object,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "sc_merge_objects() expected Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let right = match &args[1] {
+        Value::Record(object) => object,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "sc_merge_objects() expected Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    if left.get("genes") != right.get("genes") {
+        return Err(BioLangError::type_error(
+            "sc_merge_objects() requires identical genes in identical order",
+            None,
+        ));
+    }
+    let left_cells = left
+        .get("n_cells")
+        .and_then(|value| match value {
+            Value::Int(count) if *count >= 0 => Some(*count as usize),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            BioLangError::type_error("sc_merge_objects() left object has invalid n_cells", None)
+        })?;
+    let right_cells = right
+        .get("n_cells")
+        .and_then(|value| match value {
+            Value::Int(count) if *count >= 0 => Some(*count as usize),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            BioLangError::type_error("sc_merge_objects() right object has invalid n_cells", None)
+        })?;
+
+    let mut result = left.as_ref().clone();
+    let left_matrix = left.get("matrix").ok_or_else(|| {
+        BioLangError::type_error("sc_merge_objects() left object has no matrix", None)
+    })?;
+    let right_matrix = right.get("matrix").ok_or_else(|| {
+        BioLangError::type_error("sc_merge_objects() right object has no matrix", None)
+    })?;
+    result.insert(
+        "matrix".to_string(),
+        append_matrix_values(left_matrix, right_matrix, "sc_merge_objects")?,
+    );
+    if let (Some(left_barcodes), Some(right_barcodes)) =
+        (left.get("barcodes"), right.get("barcodes"))
+    {
+        result.insert(
+            "barcodes".to_string(),
+            append_matrix_values(left_barcodes, right_barcodes, "sc_merge_objects")?,
+        );
+    }
+    if let (Some(left_obs), Some(right_obs)) = (left.get("obs"), right.get("obs")) {
+        result.insert(
+            "obs".to_string(),
+            append_matrix_values(left_obs, right_obs, "sc_merge_objects")?,
+        );
+    }
+    if let (Some(Value::Record(left_layers)), Some(Value::Record(right_layers))) =
+        (left.get("layers"), right.get("layers"))
+    {
+        let mut layers = HashMap::new();
+        for (name, left_layer) in left_layers.iter() {
+            let right_layer = right_layers.get(name).ok_or_else(|| {
+                BioLangError::type_error(
+                    format!("sc_merge_objects() right object is missing layer '{name}'"),
+                    None,
+                )
+            })?;
+            layers.insert(
+                name.clone(),
+                append_matrix_values(left_layer, right_layer, "sc_merge_objects")?,
+            );
+        }
+        result.insert("layers".to_string(), Value::Record(layers.into()));
+    }
+    let mut batch_ids = Vec::with_capacity(left_cells + right_cells);
+    batch_ids.extend((0..left_cells).map(|_| args[2].clone()));
+    batch_ids.extend((0..right_cells).map(|_| args[3].clone()));
+    result.insert("batch_ids".to_string(), Value::List(batch_ids.into()));
+    result.insert(
+        "n_cells".to_string(),
+        Value::Int((left_cells + right_cells) as i64),
+    );
+    for field in [
+        "norm_matrix",
+        "hvg",
+        "hvg_matrix",
+        "hvg_genes",
+        "pca",
+        "pca_scores",
+        "pca_loadings",
+        "integrated_embedding",
+        "knn",
+        "clusters",
+        "cluster_inertia",
+        "umap",
+        "pseudotime",
+        "gene_qc_table",
+        "cell_qc_table",
+    ] {
+        result.remove(field);
+    }
+    Ok(Value::Record(result.into()))
+}
+
 fn builtin_normalize_total(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "normalize_total")?;
     let target = if args.len() > 1 {
         match &args[1] {
             Value::Float(f) => *f,
@@ -247,6 +1045,19 @@ fn builtin_normalize_total(args: Vec<Value>) -> Result<Value> {
         10_000.0
     };
 
+    if !target.is_finite() || target < 0.0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "normalize_total() target must be a finite non-negative number",
+            None,
+        ));
+    }
+
+    if let Value::SparseMatrix(matrix) = &args[0] {
+        return Ok(Value::SparseMatrix(matrix.normalize_rows(target)));
+    }
+
+    let mat = require_matrix(&args[0], "normalize_total")?;
     let normalized: Vec<Vec<f64>> = mat
         .into_iter()
         .map(|row| {
@@ -265,6 +1076,19 @@ fn builtin_normalize_total(args: Vec<Value>) -> Result<Value> {
 // ── log1p_transform(matrix) ──────────────────────────────────────────
 
 fn builtin_log1p_transform(args: Vec<Value>) -> Result<Value> {
+    if let Value::SparseMatrix(matrix) = &args[0] {
+        if matrix.data.iter().any(|value| *value < -1.0) {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "log1p_transform() values must be greater than or equal to -1",
+                None,
+            ));
+        }
+        return Ok(Value::SparseMatrix(
+            matrix.map_nonzero(|value| (value + 1.0).ln()),
+        ));
+    }
+
     let mat = require_matrix(&args[0], "log1p_transform")?;
     let transformed: Vec<Vec<f64>> = mat
         .into_iter()
@@ -276,45 +1100,52 @@ fn builtin_log1p_transform(args: Vec<Value>) -> Result<Value> {
 // ── highly_variable_genes(matrix, n=2000) ────────────────────────────
 
 fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "highly_variable_genes")?;
     let n_hvg = if args.len() > 1 {
-        require_int(&args[1], "highly_variable_genes")? as usize
+        let value = require_int(&args[1], "highly_variable_genes")?;
+        if value < 0 {
+            return Err(BioLangError::type_error(
+                "highly_variable_genes() n must be non-negative",
+                None,
+            ));
+        }
+        value as usize
     } else {
         2000
     };
 
-    if mat.is_empty() {
+    let (n_cells, n_genes, sums, sums_squared) = match &args[0] {
+        Value::SparseMatrix(matrix) => {
+            let mut sums_squared = vec![0.0; matrix.ncol];
+            for (&column, &value) in matrix.indices.iter().zip(&matrix.data) {
+                sums_squared[column] += value * value;
+            }
+            (matrix.nrow, matrix.ncol, matrix.col_sums(), sums_squared)
+        }
+        _ => {
+            let matrix = require_matrix(&args[0], "highly_variable_genes")?;
+            let n_genes = matrix.first().map(|row| row.len()).unwrap_or(0);
+            let mut sums = vec![0.0; n_genes];
+            let mut sums_squared = vec![0.0; n_genes];
+            for row in &matrix {
+                for (column, value) in row.iter().copied().enumerate() {
+                    sums[column] += value;
+                    sums_squared[column] += value * value;
+                }
+            }
+            (matrix.len(), n_genes, sums, sums_squared)
+        }
+    };
+
+    if n_cells == 0 || n_genes == 0 {
         return Ok(Value::List((vec![]).into()));
     }
-    let n_cells = mat.len() as f64;
-    let n_genes = mat[0].len();
-
-    // Per-gene mean
-    let mut means = vec![0.0f64; n_genes];
-    for row in &mat {
-        for (j, &v) in row.iter().enumerate() {
-            if j < n_genes {
-                means[j] += v;
-            }
-        }
-    }
-    for m in &mut means {
-        *m /= n_cells;
-    }
-
-    // Per-gene variance
-    let mut variances = vec![0.0f64; n_genes];
-    for row in &mat {
-        for (j, &v) in row.iter().enumerate() {
-            if j < n_genes {
-                let d = v - means[j];
-                variances[j] += d * d;
-            }
-        }
-    }
-    for v in &mut variances {
-        *v /= n_cells;
-    }
+    let n_cells_float = n_cells as f64;
+    let means: Vec<f64> = sums.iter().map(|sum| sum / n_cells_float).collect();
+    let variances: Vec<f64> = sums_squared
+        .iter()
+        .zip(&means)
+        .map(|(sum_squared, mean)| (sum_squared / n_cells_float - mean * mean).max(0.0))
+        .collect();
 
     // cv2 = variance / (mean^2 + 1e-10)
     let mut gene_cv2: Vec<(usize, f64)> = (0..n_genes)
@@ -339,8 +1170,6 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
 // ── cell_qc(matrix, gene_names?, mito_prefix="MT-") ─────────────────
 
 fn builtin_cell_qc(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "cell_qc")?;
-
     let gene_names: Option<Vec<String>> = if args.len() > 1 {
         match &args[1] {
             Value::List(names) => Some(
@@ -391,26 +1220,60 @@ fn builtin_cell_qc(args: Vec<Value>) -> Result<Value> {
         "pct_mito".to_string(),
     ];
 
-    let mut rows: Vec<Vec<Value>> = Vec::with_capacity(mat.len());
-    for (i, row) in mat.iter().enumerate() {
-        let total: f64 = row.iter().sum();
-        let n_genes_detected = row.iter().filter(|&&v| v > 0.0).count() as i64;
-        let mito_counts: f64 = mito_indices
-            .iter()
-            .map(|&idx| row.get(idx).copied().unwrap_or(0.0))
-            .sum();
-        let pct_mito = if total > 0.0 && gene_names.is_some() {
-            mito_counts / total * 100.0
-        } else {
-            0.0
-        };
-        rows.push(vec![
-            Value::Int(i as i64),
-            Value::Float(total),
-            Value::Int(n_genes_detected),
-            Value::Float(pct_mito),
-        ]);
-    }
+    let rows = match &args[0] {
+        Value::SparseMatrix(matrix) => {
+            let totals = matrix.row_sums();
+            let detected = matrix.row_nnz();
+            let is_mito: Vec<bool> = (0..matrix.ncol)
+                .map(|column| mito_indices.contains(&column))
+                .collect();
+            (0..matrix.nrow)
+                .map(|row| {
+                    let mito_counts: f64 = (matrix.indptr[row]..matrix.indptr[row + 1])
+                        .filter(|&position| is_mito[matrix.indices[position]])
+                        .map(|position| matrix.data[position])
+                        .sum();
+                    let pct_mito = if totals[row] > 0.0 && gene_names.is_some() {
+                        mito_counts / totals[row] * 100.0
+                    } else {
+                        0.0
+                    };
+                    vec![
+                        Value::Int(row as i64),
+                        Value::Float(totals[row]),
+                        Value::Int(detected[row] as i64),
+                        Value::Float(pct_mito),
+                    ]
+                })
+                .collect()
+        }
+        _ => {
+            let matrix = require_matrix(&args[0], "cell_qc")?;
+            matrix
+                .iter()
+                .enumerate()
+                .map(|(row_index, row)| {
+                    let total: f64 = row.iter().sum();
+                    let n_genes_detected = row.iter().filter(|&&value| value > 0.0).count();
+                    let mito_counts: f64 = mito_indices
+                        .iter()
+                        .map(|&index| row.get(index).copied().unwrap_or(0.0))
+                        .sum();
+                    let pct_mito = if total > 0.0 && gene_names.is_some() {
+                        mito_counts / total * 100.0
+                    } else {
+                        0.0
+                    };
+                    vec![
+                        Value::Int(row_index as i64),
+                        Value::Float(total),
+                        Value::Int(n_genes_detected as i64),
+                        Value::Float(pct_mito),
+                    ]
+                })
+                .collect()
+        }
+    };
 
     Ok(Value::Table(Table::new(columns, rows)))
 }
@@ -418,8 +1281,6 @@ fn builtin_cell_qc(args: Vec<Value>) -> Result<Value> {
 // ── gene_qc(matrix, gene_names?) ─────────────────────────────────────
 
 fn builtin_gene_qc(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "gene_qc")?;
-
     let columns = vec![
         "gene_idx".to_string(),
         "n_cells".to_string(),
@@ -427,31 +1288,40 @@ fn builtin_gene_qc(args: Vec<Value>) -> Result<Value> {
         "pct_dropout".to_string(),
     ];
 
-    if mat.is_empty() {
+    let (n_cells, n_genes, n_cells_expr, sums) = match &args[0] {
+        Value::SparseMatrix(matrix) => (
+            matrix.nrow,
+            matrix.ncol,
+            matrix.col_nnz(),
+            matrix.col_sums(),
+        ),
+        _ => {
+            let matrix = require_matrix(&args[0], "gene_qc")?;
+            let n_genes = matrix.first().map(|row| row.len()).unwrap_or(0);
+            let mut n_cells_expr = vec![0usize; n_genes];
+            let mut sums = vec![0.0f64; n_genes];
+            for row in &matrix {
+                for (column, value) in row.iter().copied().enumerate() {
+                    sums[column] += value;
+                    if value > 0.0 {
+                        n_cells_expr[column] += 1;
+                    }
+                }
+            }
+            (matrix.len(), n_genes, n_cells_expr, sums)
+        }
+    };
+
+    if n_cells == 0 || n_genes == 0 {
         return Ok(Value::Table(Table::new(columns, vec![])));
     }
 
-    let n_cells = mat.len() as f64;
-    let n_genes = mat[0].len();
-
-    let mut n_cells_expr = vec![0usize; n_genes];
-    let mut sums = vec![0.0f64; n_genes];
-
-    for row in &mat {
-        for (j, &v) in row.iter().enumerate() {
-            if j < n_genes {
-                sums[j] += v;
-                if v > 0.0 {
-                    n_cells_expr[j] += 1;
-                }
-            }
-        }
-    }
+    let n_cells_float = n_cells as f64;
 
     let mut rows: Vec<Vec<Value>> = Vec::with_capacity(n_genes);
     for j in 0..n_genes {
-        let mean_expr = sums[j] / n_cells;
-        let pct_dropout = (n_cells - n_cells_expr[j] as f64) / n_cells * 100.0;
+        let mean_expr = sums[j] / n_cells_float;
+        let pct_dropout = (n_cells_float - n_cells_expr[j] as f64) / n_cells_float * 100.0;
         rows.push(vec![
             Value::Int(j as i64),
             Value::Int(n_cells_expr[j] as i64),
@@ -531,37 +1401,122 @@ fn builtin_leiden_cluster(args: Vec<Value>) -> Result<Value> {
     if n == 0 {
         return Ok(Value::List((vec![]).into()));
     }
-    let k_actual = k.min(n.saturating_sub(1));
-
-    let dist = |a: &[f64], b: &[f64]| -> f64 {
-        a.iter()
-            .zip(b.iter())
-            .map(|(x, y)| (x - y) * (x - y))
-            .sum::<f64>()
-            .sqrt()
-    };
-
-    // Symmetric kNN adjacency: edge if j is a k-nearest neighbor of i or vice versa.
-    let mut adj = vec![vec![0.0f64; n]; n];
-    for i in 0..n {
-        let mut dists: Vec<(usize, f64)> = (0..n)
-            .filter(|&j| j != i)
-            .map(|j| (j, dist(&embeddings[i], &embeddings[j])))
-            .collect();
-        dists.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-        for (j, _) in dists.into_iter().take(k_actual) {
-            adj[i][j] = 1.0;
-            adj[j][i] = 1.0;
-        }
-    }
-
-    let labels = bl_core::bio_core::cluster_ops::leiden(&adj, resolution);
-    Ok(Value::List(
-        labels.into_iter().map(|c| Value::Int(c as i64)).collect::<Vec<_>>().into(),
-    ))
+    let edges = builtin_knn_graph(vec![matrix_to_value(embeddings), Value::Int(k as i64)])?;
+    builtin_leiden_graph(vec![edges, Value::Int(n as i64), Value::Float(resolution)])
 }
 
 // ── doublet_score(matrix, n_simulated=500) ───────────────────────────
+
+fn builtin_leiden_graph(args: Vec<Value>) -> Result<Value> {
+    let edges = match &args[0] {
+        Value::List(edges) => edges,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "leiden_graph() edges must be List<Record>, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let n_nodes = require_int(&args[1], "leiden_graph")?;
+    if n_nodes < 0 {
+        return Err(BioLangError::type_error(
+            "leiden_graph() n_nodes must be non-negative",
+            None,
+        ));
+    }
+    let resolution = to_f64(&args[2]).ok_or_else(|| {
+        BioLangError::type_error("leiden_graph() resolution must be numeric", None)
+    })?;
+    let n_nodes = n_nodes as usize;
+
+    let mut undirected: HashMap<(usize, usize), f64> = HashMap::new();
+    for edge in edges.iter() {
+        let record = match edge {
+            Value::Record(record) => record,
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "leiden_graph() edges must be Records, got {}",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        };
+        let source = record
+            .get("source")
+            .and_then(|value| match value {
+                Value::Int(index) if *index >= 0 => Some(*index as usize),
+                _ => None,
+            })
+            .ok_or_else(|| {
+                BioLangError::type_error(
+                    "leiden_graph() each edge requires a non-negative Int source",
+                    None,
+                )
+            })?;
+        let target = record
+            .get("target")
+            .and_then(|value| match value {
+                Value::Int(index) if *index >= 0 => Some(*index as usize),
+                _ => None,
+            })
+            .ok_or_else(|| {
+                BioLangError::type_error(
+                    "leiden_graph() each edge requires a non-negative Int target",
+                    None,
+                )
+            })?;
+        if source >= n_nodes || target >= n_nodes {
+            return Err(BioLangError::runtime(
+                ErrorKind::IndexOutOfBounds,
+                format!("leiden_graph() edge ({source}, {target}) is outside {n_nodes} nodes"),
+                None,
+            ));
+        }
+        if source == target {
+            continue;
+        }
+        let weight = if let Some(weight) = record.get("weight").and_then(to_f64) {
+            weight
+        } else {
+            let distance = record.get("distance").and_then(to_f64).unwrap_or(0.0);
+            1.0 / (1.0 + distance.max(0.0))
+        };
+        if !weight.is_finite() || weight <= 0.0 {
+            continue;
+        }
+        let pair = if source < target {
+            (source, target)
+        } else {
+            (target, source)
+        };
+        undirected
+            .entry(pair)
+            .and_modify(|stored| *stored = stored.max(weight))
+            .or_insert(weight);
+    }
+
+    let mut adjacency = vec![Vec::new(); n_nodes];
+    for ((source, target), weight) in undirected {
+        adjacency[source].push((target, weight));
+        adjacency[target].push((source, weight));
+    }
+    for neighbors in &mut adjacency {
+        neighbors.sort_by_key(|(neighbor, _)| *neighbor);
+    }
+    let labels = bl_core::bio_core::cluster_ops::leiden_sparse(&adjacency, resolution);
+    Ok(Value::List(
+        labels
+            .into_iter()
+            .map(|label| Value::Int(label as i64))
+            .collect::<Vec<_>>()
+            .into(),
+    ))
+}
 
 fn builtin_doublet_score(args: Vec<Value>) -> Result<Value> {
     let mat = require_matrix(&args[0], "doublet_score")?;
@@ -573,7 +1528,12 @@ fn builtin_doublet_score(args: Vec<Value>) -> Result<Value> {
 
     let n_cells = mat.len();
     if n_cells < 2 {
-        return Ok(Value::List(mat.iter().map(|_| Value::Float(0.0)).collect::<Vec<_>>().into()));
+        return Ok(Value::List(
+            mat.iter()
+                .map(|_| Value::Float(0.0))
+                .collect::<Vec<_>>()
+                .into(),
+        ));
     }
     let n_genes = mat[0].len();
 
@@ -648,7 +1608,11 @@ fn builtin_doublet_score(args: Vec<Value>) -> Result<Value> {
     }
 
     Ok(Value::List(
-        raw_scores.into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+        raw_scores
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -741,6 +1705,14 @@ fn parse_mtx_lines(lines: Vec<String>) -> Result<(usize, usize, Vec<(usize, usiz
 // ── read_10x(path) ───────────────────────────────────────────────────
 
 fn builtin_read_10x(args: Vec<Value>) -> Result<Value> {
+    read_10x_impl(args, false)
+}
+
+fn builtin_read_10x_sparse(args: Vec<Value>) -> Result<Value> {
+    read_10x_impl(args, true)
+}
+
+fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
     use std::path::Path;
     let dir_str = match &args[0] {
         Value::Str(s) => s.clone(),
@@ -756,7 +1728,11 @@ fn builtin_read_10x(args: Vec<Value>) -> Result<Value> {
     let find_file = |names: &[&str]| -> Option<std::path::PathBuf> {
         names.iter().find_map(|n| {
             let p = dir.join(n);
-            if p.exists() { Some(p) } else { None }
+            if p.exists() {
+                Some(p)
+            } else {
+                None
+            }
         })
     };
 
@@ -767,15 +1743,19 @@ fn builtin_read_10x(args: Vec<Value>) -> Result<Value> {
             None,
         )
     })?;
-    let features_path =
-        find_file(&["features.tsv.gz", "features.tsv", "genes.tsv.gz", "genes.tsv"])
-            .ok_or_else(|| {
-                BioLangError::runtime(
-                    ErrorKind::IOError,
-                    format!("read_10x(): features.tsv not found in {dir_str}"),
-                    None,
-                )
-            })?;
+    let features_path = find_file(&[
+        "features.tsv.gz",
+        "features.tsv",
+        "genes.tsv.gz",
+        "genes.tsv",
+    ])
+    .ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_10x(): features.tsv not found in {dir_str}"),
+            None,
+        )
+    })?;
     let matrix_path = find_file(&["matrix.mtx.gz", "matrix.mtx"]).ok_or_else(|| {
         BioLangError::runtime(
             ErrorKind::IOError,
@@ -784,7 +1764,7 @@ fn builtin_read_10x(args: Vec<Value>) -> Result<Value> {
         )
     })?;
 
-    let barcodes: Vec<String> = read_lines_from_path(&barcodes_path)?
+    let mut barcodes: Vec<String> = read_lines_from_path(&barcodes_path)?
         .into_iter()
         .filter(|l| !l.is_empty())
         .collect();
@@ -816,7 +1796,7 @@ fn builtin_read_10x(args: Vec<Value>) -> Result<Value> {
         2
     };
 
-    let genes: Vec<String> = read_lines_from_path(&features_path)?
+    let mut genes: Vec<String> = read_lines_from_path(&features_path)?
         .into_iter()
         .filter(|l| !l.is_empty())
         .map(|l| {
@@ -836,27 +1816,83 @@ fn builtin_read_10x(args: Vec<Value>) -> Result<Value> {
     let n_g = genes.len().max(n_genes_mtx);
     let n_c = barcodes.len().max(n_cells_mtx);
 
-    let mut matrix = vec![vec![0.0f64; n_g]; n_c];
-    for (gene_1, cell_1, val) in entries {
-        let g = gene_1.saturating_sub(1);
-        let c = cell_1.saturating_sub(1);
-        if g < n_g && c < n_c {
-            matrix[c][g] = val;
-        }
+    while genes.len() < n_g {
+        genes.push(format!("gene_{}", genes.len() + 1));
+    }
+    while barcodes.len() < n_c {
+        barcodes.push(format!("cell_{}", barcodes.len() + 1));
     }
 
+    let matrix_value = if sparse {
+        let mut rows = Vec::with_capacity(entries.len());
+        let mut columns = Vec::with_capacity(entries.len());
+        let mut values = Vec::with_capacity(entries.len());
+        for (gene_1, cell_1, value) in entries {
+            let gene = gene_1.saturating_sub(1);
+            let cell = cell_1.saturating_sub(1);
+            if gene < n_g && cell < n_c && value != 0.0 {
+                rows.push(cell);
+                columns.push(gene);
+                values.push(value);
+            }
+        }
+        let mut matrix = SparseMatrix::from_triplets(&rows, &columns, &values, n_c, n_g);
+        matrix.row_names = Some(barcodes.clone());
+        matrix.col_names = Some(genes.clone());
+        Value::SparseMatrix(matrix)
+    } else {
+        let mut matrix = vec![vec![0.0f64; n_g]; n_c];
+        for (gene_1, cell_1, value) in entries {
+            let gene = gene_1.saturating_sub(1);
+            let cell = cell_1.saturating_sub(1);
+            if gene < n_g && cell < n_c {
+                matrix[cell][gene] += value;
+            }
+        }
+        matrix_to_value(matrix)
+    };
+
+    let obs = Table::new(
+        vec!["barcode".to_string()],
+        barcodes
+            .iter()
+            .cloned()
+            .map(|barcode| vec![Value::Str(barcode)])
+            .collect(),
+    );
+    let var = Table::new(
+        vec!["gene".to_string()],
+        genes
+            .iter()
+            .cloned()
+            .map(|gene| vec![Value::Str(gene)])
+            .collect(),
+    );
+    let mut layers = HashMap::new();
+    layers.insert("counts".to_string(), matrix_value.clone());
+
     let mut rec = HashMap::new();
-    rec.insert("matrix".to_string(), matrix_to_value(matrix));
+    rec.insert("matrix".to_string(), matrix_value);
     rec.insert(
         "genes".to_string(),
         Value::List(genes.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
     );
     rec.insert(
         "barcodes".to_string(),
-        Value::List(barcodes.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
+        Value::List(
+            barcodes
+                .into_iter()
+                .map(Value::Str)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
+    rec.insert("obs".to_string(), Value::Table(obs));
+    rec.insert("var".to_string(), Value::Table(var));
+    rec.insert("layers".to_string(), Value::Record(layers.into()));
     rec.insert("n_cells".to_string(), Value::Int(n_c as i64));
     rec.insert("n_genes".to_string(), Value::Int(n_g as i64));
+    rec.insert("is_sparse".to_string(), Value::Bool(sparse));
     Ok(Value::Record((rec).into()))
 }
 
@@ -879,26 +1915,41 @@ fn gene_indices_from_value(val: &Value, func: &str) -> Result<Vec<usize>> {
     }
 }
 
-fn cell_mean_expression(row: &[f64], indices: &[usize]) -> f64 {
-    if indices.is_empty() {
-        return 0.0;
-    }
-    indices.iter().map(|&i| row.get(i).copied().unwrap_or(0.0)).sum::<f64>()
-        / indices.len() as f64
-}
-
 // ── cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) ────────
 
 fn builtin_cell_cycle_score(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "cell_cycle_score")?;
+    let matrix = singlecell_matrix(&args[0], "cell_cycle_score")?;
     let s_idx = gene_indices_from_value(&args[1], "cell_cycle_score")?;
     let g2m_idx = gene_indices_from_value(&args[2], "cell_cycle_score")?;
+    let (n_cells, n_genes) = matrix.dimensions();
+    if s_idx.iter().chain(&g2m_idx).any(|&index| index >= n_genes) {
+        return Err(BioLangError::runtime(
+            ErrorKind::IndexOutOfBounds,
+            "cell_cycle_score() gene index is outside the matrix",
+            None,
+        ));
+    }
 
-    let scores: Vec<Value> = mat
-        .iter()
-        .map(|row| {
-            let s_score = cell_mean_expression(row, &s_idx);
-            let g2m_score = cell_mean_expression(row, &g2m_idx);
+    let scores: Vec<Value> = (0..n_cells)
+        .map(|cell| {
+            let s_score = if s_idx.is_empty() {
+                0.0
+            } else {
+                s_idx
+                    .iter()
+                    .map(|&gene| matrix.value_at(cell, gene))
+                    .sum::<f64>()
+                    / s_idx.len() as f64
+            };
+            let g2m_score = if g2m_idx.is_empty() {
+                0.0
+            } else {
+                g2m_idx
+                    .iter()
+                    .map(|&gene| matrix.value_at(cell, gene))
+                    .sum::<f64>()
+                    / g2m_idx.len() as f64
+            };
             let phase = if s_score > g2m_score && s_score > 0.1 {
                 "S"
             } else if g2m_score >= s_score && g2m_score > 0.1 {
@@ -920,12 +1971,30 @@ fn builtin_cell_cycle_score(args: Vec<Value>) -> Result<Value> {
 // ── module_score(matrix, gene_indices) ───────────────────────────────
 
 fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "module_score")?;
+    let matrix = singlecell_matrix(&args[0], "module_score")?;
     let indices = gene_indices_from_value(&args[1], "module_score")?;
+    let (n_cells, n_genes) = matrix.dimensions();
+    if indices.iter().any(|&index| index >= n_genes) {
+        return Err(BioLangError::runtime(
+            ErrorKind::IndexOutOfBounds,
+            "module_score() gene index is outside the matrix",
+            None,
+        ));
+    }
 
-    let scores: Vec<Value> = mat
-        .iter()
-        .map(|row| Value::Float(cell_mean_expression(row, &indices)))
+    let scores: Vec<Value> = (0..n_cells)
+        .map(|cell| {
+            let score = if indices.is_empty() {
+                0.0
+            } else {
+                indices
+                    .iter()
+                    .map(|&gene| matrix.value_at(cell, gene))
+                    .sum::<f64>()
+                    / indices.len() as f64
+            };
+            Value::Float(score)
+        })
         .collect();
 
     Ok(Value::List((scores).into()))
@@ -935,7 +2004,7 @@ fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
 // Computes Pearson residuals under a simplified negative-binomial model.
 
 fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "sc_sctransform")?;
+    let mat = require_dense_matrix(&args[0], "sc_sctransform")?;
     let n_cells = mat.len();
     if n_cells == 0 {
         return Ok(Value::List((vec![]).into()));
@@ -1043,7 +2112,10 @@ fn builtin_sc_integrate(args: Vec<Value>) -> Result<Value> {
         .iter()
         .enumerate()
         .map(|(i, row)| {
-            let means = batch_means.get(&batch_ids[i]).map(|v| v.as_slice()).unwrap_or(&[]);
+            let means = batch_means
+                .get(&batch_ids[i])
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
             row.iter()
                 .enumerate()
                 .map(|(j, &v)| v - means.get(j).copied().unwrap_or(0.0))
@@ -1133,7 +2205,8 @@ fn builtin_diffusion_pseudotime(args: Vec<Value>) -> Result<Value> {
         dist_vec
             .into_iter()
             .map(|d| Value::Float(if d.is_infinite() { -1.0 } else { d }))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -1230,7 +2303,10 @@ fn builtin_lr_score(args: Vec<Value>) -> Result<Value> {
     // Group cell indices by cluster label
     let mut cluster_cells: HashMap<String, Vec<usize>> = HashMap::new();
     for (cell_idx, label) in cell_labels.iter().enumerate() {
-        cluster_cells.entry(label.clone()).or_default().push(cell_idx);
+        cluster_cells
+            .entry(label.clone())
+            .or_default()
+            .push(cell_idx);
     }
 
     // Compute mean expression per gene for each cluster
@@ -1266,13 +2342,16 @@ fn builtin_lr_score(args: Vec<Value>) -> Result<Value> {
                 let r_expr = r_means.get(ri).copied().unwrap_or(0.0);
                 let score = l_expr * r_expr;
                 if score > 0.0 {
-                    scored.push((score, vec![
-                        Value::Str(sender.clone()),
-                        Value::Str(receiver.clone()),
-                        Value::Int(li as i64),
-                        Value::Int(ri as i64),
-                        Value::Float(score),
-                    ]));
+                    scored.push((
+                        score,
+                        vec![
+                            Value::Str(sender.clone()),
+                            Value::Str(receiver.clone()),
+                            Value::Int(li as i64),
+                            Value::Int(ri as i64),
+                            Value::Float(score),
+                        ],
+                    ));
                 }
             }
         }
@@ -1380,7 +2459,9 @@ fn builtin_lr_aggregate(args: Vec<Value>) -> Result<Value> {
         };
         let score = to_f64(row.get(sc_col).unwrap_or(&Value::Float(0.0))).unwrap_or(0.0);
         if let Some(pathway) = pathway_lookup.get(&(li, ri)) {
-            let e = agg.entry((sender, receiver, pathway.clone())).or_insert((0.0, 0));
+            let e = agg
+                .entry((sender, receiver, pathway.clone()))
+                .or_insert((0.0, 0));
             e.0 += score;
             e.1 += 1;
         }
@@ -1394,13 +2475,16 @@ fn builtin_lr_aggregate(args: Vec<Value>) -> Result<Value> {
     let mut result: Vec<(f64, Vec<Value>)> = agg
         .into_iter()
         .map(|((sender, receiver, pathway), (total, n))| {
-            (total, vec![
-                Value::Str(sender),
-                Value::Str(receiver),
-                Value::Str(pathway),
-                Value::Float(total),
-                Value::Int(n as i64),
-            ])
+            (
+                total,
+                vec![
+                    Value::Str(sender),
+                    Value::Str(receiver),
+                    Value::Str(pathway),
+                    Value::Float(total),
+                    Value::Int(n as i64),
+                ],
+            )
         })
         .collect();
     result.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
@@ -1424,11 +2508,24 @@ fn builtin_spatial_neighbors(args: Vec<Value>) -> Result<Value> {
             let y_col = t.col_index("y").ok_or_else(|| {
                 BioLangError::type_error("spatial_neighbors() coords must have column 'y'", None)
             })?;
-            let xs: Vec<f64> = t.rows.iter().map(|r| to_f64(r.get(x_col).unwrap_or(&Value::Float(0.0))).unwrap_or(0.0)).collect();
-            let ys: Vec<f64> = t.rows.iter().map(|r| to_f64(r.get(y_col).unwrap_or(&Value::Float(0.0))).unwrap_or(0.0)).collect();
+            let xs: Vec<f64> = t
+                .rows
+                .iter()
+                .map(|r| to_f64(r.get(x_col).unwrap_or(&Value::Float(0.0))).unwrap_or(0.0))
+                .collect();
+            let ys: Vec<f64> = t
+                .rows
+                .iter()
+                .map(|r| to_f64(r.get(y_col).unwrap_or(&Value::Float(0.0))).unwrap_or(0.0))
+                .collect();
             (xs, ys)
         }
-        _ => return Err(BioLangError::type_error("spatial_neighbors() coords must be Table with x,y columns", None)),
+        _ => {
+            return Err(BioLangError::type_error(
+                "spatial_neighbors() coords must be Table with x,y columns",
+                None,
+            ))
+        }
     };
 
     let k = if args.len() > 1 {
@@ -1439,7 +2536,10 @@ fn builtin_spatial_neighbors(args: Vec<Value>) -> Result<Value> {
 
     let n = xs.len();
     let k_actual = k.min(n.saturating_sub(1));
-    let columns: Vec<String> = ["cell", "neighbor", "distance"].iter().map(|s| s.to_string()).collect();
+    let columns: Vec<String> = ["cell", "neighbor", "distance"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
 
     if n == 0 {
         return Ok(Value::Table(Table::new(columns, vec![])));
@@ -1457,7 +2557,11 @@ fn builtin_spatial_neighbors(args: Vec<Value>) -> Result<Value> {
             .collect();
         dists.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
         for (j, d) in dists.into_iter().take(k_actual) {
-            rows.push(vec![Value::Int(i as i64), Value::Int(j as i64), Value::Float(d)]);
+            rows.push(vec![
+                Value::Int(i as i64),
+                Value::Int(j as i64),
+                Value::Float(d),
+            ]);
         }
     }
 
@@ -1472,7 +2576,12 @@ fn builtin_spatial_neighbors(args: Vec<Value>) -> Result<Value> {
 fn builtin_spatial_moransi(args: Vec<Value>) -> Result<Value> {
     let expr: Vec<f64> = match &args[0] {
         Value::List(list) => list.iter().map(|v| to_f64(v).unwrap_or(0.0)).collect(),
-        _ => return Err(BioLangError::type_error("spatial_moransi() expr_vec must be List<Float>", None)),
+        _ => {
+            return Err(BioLangError::type_error(
+                "spatial_moransi() expr_vec must be List<Float>",
+                None,
+            ))
+        }
     };
     let n = expr.len();
 
@@ -1481,10 +2590,16 @@ fn builtin_spatial_moransi(args: Vec<Value>) -> Result<Value> {
     match &args[1] {
         Value::Table(t) => {
             let c_col = t.col_index("cell").ok_or_else(|| {
-                BioLangError::type_error("spatial_moransi() spatial_adj missing 'cell' column", None)
+                BioLangError::type_error(
+                    "spatial_moransi() spatial_adj missing 'cell' column",
+                    None,
+                )
             })?;
             let nb_col = t.col_index("neighbor").ok_or_else(|| {
-                BioLangError::type_error("spatial_moransi() spatial_adj missing 'neighbor' column", None)
+                BioLangError::type_error(
+                    "spatial_moransi() spatial_adj missing 'neighbor' column",
+                    None,
+                )
             })?;
             for row in &t.rows {
                 let c = match row.get(c_col) {
@@ -1503,7 +2618,12 @@ fn builtin_spatial_moransi(args: Vec<Value>) -> Result<Value> {
                 }
             }
         }
-        _ => return Err(BioLangError::type_error("spatial_moransi() spatial_adj must be Table from spatial_neighbors()", None)),
+        _ => {
+            return Err(BioLangError::type_error(
+                "spatial_moransi() spatial_adj must be Table from spatial_neighbors()",
+                None,
+            ))
+        }
     }
 
     if n == 0 || total_w == 0 {
@@ -1539,11 +2659,19 @@ fn builtin_reference_classify(args: Vec<Value>) -> Result<Value> {
     let q_mat = require_matrix(&args[0], "reference_classify")?; // mat[gene][query_cell]
     let r_mat = require_matrix(&args[1], "reference_classify")?; // mat[gene][ref_cell]
     let ref_labels: Vec<String> = match &args[2] {
-        Value::List(list) => list.iter().map(|v| match v {
-            Value::Str(s) => s.clone(),
-            other => format!("{other}"),
-        }).collect(),
-        _ => return Err(BioLangError::type_error("reference_classify() ref_labels must be List<Str>", None)),
+        Value::List(list) => list
+            .iter()
+            .map(|v| match v {
+                Value::Str(s) => s.clone(),
+                other => format!("{other}"),
+            })
+            .collect(),
+        _ => {
+            return Err(BioLangError::type_error(
+                "reference_classify() ref_labels must be List<Str>",
+                None,
+            ))
+        }
     };
 
     let n_genes_q = q_mat.len();
@@ -1561,38 +2689,62 @@ fn builtin_reference_classify(args: Vec<Value>) -> Result<Value> {
     if ref_labels.len() != n_ref {
         return Err(BioLangError::runtime(
             ErrorKind::ArityError,
-            format!("reference_classify(): ref_labels length {} != n_ref_cells {n_ref}", ref_labels.len()),
+            format!(
+                "reference_classify(): ref_labels length {} != n_ref_cells {n_ref}",
+                ref_labels.len()
+            ),
             None,
         ));
     }
 
     let k = 5usize.min(n_ref);
-    let columns: Vec<String> = ["cell", "label", "confidence"].iter().map(|s| s.to_string()).collect();
+    let columns: Vec<String> = ["cell", "label", "confidence"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
     let mut rows: Vec<Vec<Value>> = Vec::new();
 
     for qc in 0..n_query {
-        let qvec: Vec<f64> = (0..n_genes).map(|g| q_mat[g].get(qc).copied().unwrap_or(0.0)).collect();
+        let qvec: Vec<f64> = (0..n_genes)
+            .map(|g| q_mat[g].get(qc).copied().unwrap_or(0.0))
+            .collect();
         let q_norm: f64 = qvec.iter().map(|&v| v * v).sum::<f64>().sqrt();
 
-        let mut sims: Vec<(usize, f64)> = (0..n_ref).map(|rc| {
-            let dot: f64 = (0..n_genes).map(|g| qvec[g] * r_mat[g].get(rc).copied().unwrap_or(0.0)).sum();
-            let r_norm: f64 = (0..n_genes).map(|g| {
-                let v = r_mat[g].get(rc).copied().unwrap_or(0.0);
-                v * v
-            }).sum::<f64>().sqrt();
-            let sim = if q_norm > 1e-10 && r_norm > 1e-10 { dot / (q_norm * r_norm) } else { 0.0 };
-            (rc, sim)
-        }).collect();
+        let mut sims: Vec<(usize, f64)> = (0..n_ref)
+            .map(|rc| {
+                let dot: f64 = (0..n_genes)
+                    .map(|g| qvec[g] * r_mat[g].get(rc).copied().unwrap_or(0.0))
+                    .sum();
+                let r_norm: f64 = (0..n_genes)
+                    .map(|g| {
+                        let v = r_mat[g].get(rc).copied().unwrap_or(0.0);
+                        v * v
+                    })
+                    .sum::<f64>()
+                    .sqrt();
+                let sim = if q_norm > 1e-10 && r_norm > 1e-10 {
+                    dot / (q_norm * r_norm)
+                } else {
+                    0.0
+                };
+                (rc, sim)
+            })
+            .collect();
         sims.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let mut counts: HashMap<String, usize> = HashMap::new();
         for &(rc, _) in sims.iter().take(k) {
             *counts.entry(ref_labels[rc].clone()).or_insert(0) += 1;
         }
-        let (best_label, best_count) = counts.into_iter()
+        let (best_label, best_count) = counts
+            .into_iter()
             .max_by_key(|(_, c)| *c)
             .unwrap_or_else(|| ("unknown".to_string(), 0));
-        let confidence = if k > 0 { best_count as f64 / k as f64 } else { 0.0 };
+        let confidence = if k > 0 {
+            best_count as f64 / k as f64
+        } else {
+            0.0
+        };
 
         rows.push(vec![
             Value::Int(qc as i64),
@@ -1607,37 +2759,62 @@ fn builtin_reference_classify(args: Vec<Value>) -> Result<Value> {
 // ── Pseudobulk aggregation ───────────────────────────────────────────
 
 // ── pseudobulk_aggregate(matrix, cell_labels, sample_labels) ─────────
-// matrix: Table genes × cells; sums counts per (cluster, sample) group
+// matrix: cells × genes — the orientation every single-cell object uses, so
+// obj.matrix can be passed straight in. CSR input is summed without densifying.
+// Sums counts per (cluster, sample) group.
 // Returns Table: columns = "cluster__sample", rows = genes
 
 fn builtin_pseudobulk_aggregate(args: Vec<Value>) -> Result<Value> {
-    let mat = require_matrix(&args[0], "pseudobulk_aggregate")?; // mat[gene][cell]
-    let n_genes = mat.len();
-    let n_cells = if n_genes > 0 { mat[0].len() } else { 0 };
-
     let parse_str_list = |v: &Value, name: &str| -> Result<Vec<String>> {
         match v {
-            Value::List(list) => Ok(list.iter().map(|v| match v {
-                Value::Str(s) => s.clone(),
-                other => format!("{other}"),
-            }).collect()),
-            _ => Err(BioLangError::type_error(format!("pseudobulk_aggregate() {name} must be List<Str>"), None)),
+            Value::List(list) => Ok(list
+                .iter()
+                .map(|v| match v {
+                    Value::Str(s) => s.clone(),
+                    other => format!("{other}"),
+                })
+                .collect()),
+            _ => Err(BioLangError::type_error(
+                format!("pseudobulk_aggregate() {name} must be List<Str>"),
+                None,
+            )),
         }
     };
     let cell_labels = parse_str_list(&args[1], "cell_labels")?;
     let sample_labels = parse_str_list(&args[2], "sample_labels")?;
 
+    // Dense input is materialized as rows-of-cells; CSR stays sparse and is
+    // accumulated below straight from its nonzeros.
+    let sparse = match &args[0] {
+        Value::SparseMatrix(sm) => Some(sm),
+        _ => None,
+    };
+    let dense: Vec<Vec<f64>> = match sparse {
+        Some(_) => Vec::new(),
+        None => require_matrix(&args[0], "pseudobulk_aggregate")?,
+    };
+    let (n_cells, n_genes) = match sparse {
+        Some(sm) => (sm.nrow, sm.ncol),
+        None => (dense.len(), dense.first().map(|r| r.len()).unwrap_or(0)),
+    };
+
     if cell_labels.len() != n_cells {
         return Err(BioLangError::runtime(
             ErrorKind::ArityError,
-            format!("pseudobulk_aggregate(): cell_labels length {} != n_cells {n_cells}", cell_labels.len()),
+            format!(
+                "pseudobulk_aggregate(): cell_labels length {} != n_cells {n_cells}",
+                cell_labels.len()
+            ),
             None,
         ));
     }
     if sample_labels.len() != n_cells {
         return Err(BioLangError::runtime(
             ErrorKind::ArityError,
-            format!("pseudobulk_aggregate(): sample_labels length {} != n_cells {n_cells}", sample_labels.len()),
+            format!(
+                "pseudobulk_aggregate(): sample_labels length {} != n_cells {n_cells}",
+                sample_labels.len()
+            ),
             None,
         ));
     }
@@ -1650,28 +2827,44 @@ fn builtin_pseudobulk_aggregate(args: Vec<Value>) -> Result<Value> {
         .collect();
     group_keys.sort();
     let n_groups = group_keys.len();
-    let group_to_col: HashMap<String, usize> = group_keys.iter().enumerate().map(|(i, k)| (k.clone(), i)).collect();
+    let group_to_col: HashMap<String, usize> = group_keys
+        .iter()
+        .enumerate()
+        .map(|(i, k)| (k.clone(), i))
+        .collect();
 
-    // Group → cell indices
-    let mut group_cells: Vec<Vec<usize>> = vec![vec![]; n_groups];
-    for c in 0..n_cells {
-        let key = format!("{}__{}", cell_labels[c], sample_labels[c]);
-        if let Some(&col) = group_to_col.get(&key) {
-            group_cells[col].push(c);
+    // Cell → group column
+    let cell_group: Vec<usize> = (0..n_cells)
+        .map(|c| group_to_col[&format!("{}__{}", cell_labels[c], sample_labels[c])])
+        .collect();
+
+    // Accumulate into a genes × groups panel, one pass over the cells.
+    let mut sums = vec![vec![0.0f64; n_groups]; n_genes];
+    match sparse {
+        Some(sm) => {
+            for c in 0..n_cells {
+                let col = cell_group[c];
+                for pos in sm.indptr[c]..sm.indptr[c + 1] {
+                    sums[sm.indices[pos]][col] += sm.data[pos];
+                }
+            }
+        }
+        None => {
+            for (c, row) in dense.iter().enumerate() {
+                let col = cell_group[c];
+                for (g, &v) in row.iter().enumerate() {
+                    if g < n_genes {
+                        sums[g][col] += v;
+                    }
+                }
+            }
         }
     }
 
-    // Sum counts: one row per gene, one column per group
-    let mut rows: Vec<Vec<Value>> = Vec::with_capacity(n_genes);
-    for g in 0..n_genes {
-        let row: Vec<Value> = (0..n_groups).map(|col| {
-            let sum: f64 = group_cells[col].iter()
-                .map(|&c| mat[g].get(c).copied().unwrap_or(0.0))
-                .sum();
-            Value::Float(sum)
-        }).collect();
-        rows.push(row);
-    }
+    let rows: Vec<Vec<Value>> = sums
+        .into_iter()
+        .map(|row| row.into_iter().map(Value::Float).collect())
+        .collect();
 
     Ok(Value::Table(Table::new(group_keys, rows)))
 }
@@ -1698,43 +2891,63 @@ fn builtin_wnn_graph(args: Vec<Value>) -> Result<Value> {
     }
     let n = n_a;
     let k_actual = k.min(n.saturating_sub(1));
-    let columns: Vec<String> = ["cell", "neighbor", "weight"].iter().map(|s| s.to_string()).collect();
+    let columns: Vec<String> = ["cell", "neighbor", "weight"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
 
     if n == 0 || k_actual == 0 {
         return Ok(Value::Table(Table::new(columns, vec![])));
     }
 
     let euclid = |a: &[f64], b: &[f64]| -> f64 {
-        a.iter().zip(b.iter()).map(|(x, y)| (x - y) * (x - y)).sum::<f64>().sqrt()
+        a.iter()
+            .zip(b.iter())
+            .map(|(x, y)| (x - y) * (x - y))
+            .sum::<f64>()
+            .sqrt()
     };
 
     // k-NN for each modality
     let knn = |mat: &[Vec<f64>]| -> Vec<Vec<(usize, f64)>> {
-        (0..n).map(|i| {
-            let mut dists: Vec<(usize, f64)> = (0..n).filter(|&j| j != i)
-                .map(|j| (j, euclid(&mat[i], &mat[j])))
-                .collect();
-            dists.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-            dists.into_iter().take(k_actual).collect()
-        }).collect()
+        (0..n)
+            .map(|i| {
+                let mut dists: Vec<(usize, f64)> = (0..n)
+                    .filter(|&j| j != i)
+                    .map(|j| (j, euclid(&mat[i], &mat[j])))
+                    .collect();
+                dists.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+                dists.into_iter().take(k_actual).collect()
+            })
+            .collect()
     };
 
     let knn_a = knn(&mat_a);
     let knn_b = knn(&mat_b);
 
     // Per-cell modality weight α_i
-    let alpha: Vec<f64> = (0..n).map(|i| {
-        let mean_a = if knn_a[i].is_empty() { 0.0 } else {
-            knn_a[i].iter().map(|(_, d)| d).sum::<f64>() / knn_a[i].len() as f64
-        };
-        let mean_b = if knn_b[i].is_empty() { 0.0 } else {
-            knn_b[i].iter().map(|(_, d)| d).sum::<f64>() / knn_b[i].len() as f64
-        };
-        let ea = (-mean_a).exp();
-        let eb = (-mean_b).exp();
-        let denom = ea + eb;
-        if denom > 1e-12 { ea / denom } else { 0.5 }
-    }).collect();
+    let alpha: Vec<f64> = (0..n)
+        .map(|i| {
+            let mean_a = if knn_a[i].is_empty() {
+                0.0
+            } else {
+                knn_a[i].iter().map(|(_, d)| d).sum::<f64>() / knn_a[i].len() as f64
+            };
+            let mean_b = if knn_b[i].is_empty() {
+                0.0
+            } else {
+                knn_b[i].iter().map(|(_, d)| d).sum::<f64>() / knn_b[i].len() as f64
+            };
+            let ea = (-mean_a).exp();
+            let eb = (-mean_b).exp();
+            let denom = ea + eb;
+            if denom > 1e-12 {
+                ea / denom
+            } else {
+                0.5
+            }
+        })
+        .collect();
 
     // Merge edges from both modalities, keep top-k by weight
     let mut rows: Vec<Vec<Value>> = Vec::new();
@@ -1750,7 +2963,11 @@ fn builtin_wnn_graph(args: Vec<Value>) -> Result<Value> {
         let mut sorted: Vec<(usize, f64)> = edges.into_iter().collect();
         sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         for (j, w) in sorted.into_iter().take(k_actual) {
-            rows.push(vec![Value::Int(i as i64), Value::Int(j as i64), Value::Float(w)]);
+            rows.push(vec![
+                Value::Int(i as i64),
+                Value::Int(j as i64),
+                Value::Float(w),
+            ]);
         }
     }
 
@@ -1772,7 +2989,10 @@ fn builtin_velocity_estimate(args: Vec<Value>) -> Result<Value> {
     if n_genes != unspliced.len() {
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
-            format!("velocity_estimate(): spliced has {n_genes} genes but unspliced has {}", unspliced.len()),
+            format!(
+                "velocity_estimate(): spliced has {n_genes} genes but unspliced has {}",
+                unspliced.len()
+            ),
             None,
         ));
     }
@@ -1783,23 +3003,30 @@ fn builtin_velocity_estimate(args: Vec<Value>) -> Result<Value> {
     if n_cells != unspliced[0].len() {
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
-            format!("velocity_estimate(): spliced has {n_cells} cells but unspliced has {}", unspliced[0].len()),
+            format!(
+                "velocity_estimate(): spliced has {n_cells} cells but unspliced has {}",
+                unspliced[0].len()
+            ),
             None,
         ));
     }
 
     const EPS: f64 = 1e-6;
-    let result: Vec<Vec<f64>> = (0..n_genes).map(|g| {
-        let s_row = &spliced[g];
-        let u_row = &unspliced[g];
-        let mean_s = s_row.iter().sum::<f64>() / n_cells.max(1) as f64;
-        let mean_u = u_row.iter().sum::<f64>() / n_cells.max(1) as f64;
-        let beta = mean_s / (mean_u + EPS);
-        (0..n_cells).map(|c| {
-            u_row.get(c).copied().unwrap_or(0.0) * beta
-                - s_row.get(c).copied().unwrap_or(0.0)
-        }).collect()
-    }).collect();
+    let result: Vec<Vec<f64>> = (0..n_genes)
+        .map(|g| {
+            let s_row = &spliced[g];
+            let u_row = &unspliced[g];
+            let mean_s = s_row.iter().sum::<f64>() / n_cells.max(1) as f64;
+            let mean_u = u_row.iter().sum::<f64>() / n_cells.max(1) as f64;
+            let beta = mean_s / (mean_u + EPS);
+            (0..n_cells)
+                .map(|c| {
+                    u_row.get(c).copied().unwrap_or(0.0) * beta
+                        - s_row.get(c).copied().unwrap_or(0.0)
+                })
+                .collect()
+        })
+        .collect();
 
     Ok(matrix_to_value(result))
 }
@@ -2494,7 +3721,10 @@ fn builtin_mutational_signature(args: Vec<Value>) -> Result<Value> {
         .collect();
 
     let mut result = HashMap::new();
-    result.insert("contributions".to_string(), Value::List((contributions).into()));
+    result.insert(
+        "contributions".to_string(),
+        Value::List((contributions).into()),
+    );
     result.insert("r_squared".to_string(), Value::Float(r_squared));
     result.insert("total_mutations".to_string(), Value::Float(total_mutations));
     Ok(Value::Record((result).into()))

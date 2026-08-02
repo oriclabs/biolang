@@ -16,6 +16,7 @@ bl-core = { workspace = true }
 bl-lexer = { workspace = true }
 bl-parser = { workspace = true }
 bl-runtime = { workspace = true, features = ["native"] }
+bl-fmt = { workspace = true }
 bl-repl = { workspace = true }
 bl-import = { workspace = true }
 clap = { version = "4", features = ["derive"] }

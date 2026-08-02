@@ -1133,6 +1133,39 @@ fn test_import_directory_module() {
 }
 
 #[test]
+fn test_import_package_manifest_entry() {
+    let dir = tempfile::tempdir().unwrap();
+    let pkg_dir = dir.path().join("mypackage");
+    std::fs::create_dir_all(pkg_dir.join("src")).unwrap();
+    std::fs::write(
+        pkg_dir.join("biolang.toml"),
+        r#"[package]
+name = "mypackage"
+version = "0.1.0"
+
+[lib]
+entry = "src/mod.bl"
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        pkg_dir.join("src").join("mod.bl"),
+        "fn greeting(name) { \"hello \" + name }",
+    )
+    .unwrap();
+
+    let main_src = r#"import "mypackage" as pkg
+        pkg.greeting("BioLang")"#;
+
+    let tokens = Lexer::new(main_src).tokenize().unwrap();
+    let program = Parser::new(tokens).parse().unwrap().program;
+    let mut interp = Interpreter::new();
+    interp.set_current_file(Some(dir.path().join("main.bl")));
+    let result = interp.run(&program).unwrap();
+    assert_eq!(result, Value::Str("hello BioLang".to_string()));
+}
+
+#[test]
 fn test_import_not_found() {
     use bl_core::error::ErrorKind;
 

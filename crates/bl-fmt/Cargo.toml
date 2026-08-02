@@ -1,0 +1,14 @@
+[package]
+name = "bl-fmt"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Canonical source formatter for BioLang"
+
+[dependencies]
+
+[dev-dependencies]
+bl-lexer = { workspace = true }
+bl-parser = { workspace = true }

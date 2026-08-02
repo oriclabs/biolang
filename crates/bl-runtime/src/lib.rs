@@ -70,6 +70,10 @@ pub mod enrich;
 #[cfg(feature = "native")]
 pub mod fs;
 #[cfg(feature = "native")]
+pub mod references;
+#[cfg(feature = "native")]
+pub mod interop;
+#[cfg(feature = "native")]
 pub mod http;
 #[cfg(feature = "native")]
 pub mod llm;

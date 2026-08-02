@@ -1,23 +1,44 @@
-use bl_core::value::Value;
+use bl_core::sparse_matrix::SparseMatrix;
+use bl_core::value::{Table, Value};
 use bl_runtime::singlecell::call_singlecell_builtin;
 use std::collections::HashMap;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 fn float_list(vals: &[f64]) -> Value {
-    Value::List(vals.iter().map(|&v| Value::Float(v)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|&v| Value::Float(v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn int_list(vals: &[i64]) -> Value {
-    Value::List(vals.iter().map(|&v| Value::Int(v)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|&v| Value::Int(v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn str_list(vals: &[&str]) -> Value {
-    Value::List(vals.iter().map(|&v| Value::Str(v.to_string())).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|&v| Value::Str(v.to_string()))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn matrix(rows: Vec<Vec<f64>>) -> Value {
-    Value::List(rows.into_iter().map(float_list_from_vec).collect::<Vec<_>>().into())
+    Value::List(
+        rows.into_iter()
+            .map(float_list_from_vec)
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn float_list_from_vec(v: Vec<f64>) -> Value {
@@ -91,6 +112,202 @@ fn knn_edge(src: i64, tgt: i64, dist: f64) -> Value {
 }
 
 // ─── read_10x ────────────────────────────────────────────────────────────────
+
+fn sparse_matrix(rows: Vec<Vec<f64>>) -> Value {
+    Value::SparseMatrix(SparseMatrix::from_dense(&rows))
+}
+
+fn sparse_single_cell_object(counts: Vec<Vec<f64>>, genes: &[&str], barcodes: &[&str]) -> Value {
+    let matrix = sparse_matrix(counts);
+    let obs = Value::Table(Table::new(
+        vec!["barcode".to_string()],
+        barcodes
+            .iter()
+            .map(|barcode| vec![Value::Str((*barcode).to_string())])
+            .collect(),
+    ));
+    let var = Value::Table(Table::new(
+        vec!["gene".to_string()],
+        genes
+            .iter()
+            .map(|gene| vec![Value::Str((*gene).to_string())])
+            .collect(),
+    ));
+    let mut layers = HashMap::new();
+    layers.insert("counts".to_string(), matrix.clone());
+    let mut object = HashMap::new();
+    object.insert("matrix".to_string(), matrix);
+    object.insert("genes".to_string(), str_list(genes));
+    object.insert("barcodes".to_string(), str_list(barcodes));
+    object.insert("obs".to_string(), obs);
+    object.insert("var".to_string(), var);
+    object.insert("layers".to_string(), Value::Record(layers.into()));
+    object.insert("n_cells".to_string(), Value::Int(barcodes.len() as i64));
+    object.insert("n_genes".to_string(), Value::Int(genes.len() as i64));
+    Value::Record(object.into())
+}
+
+#[test]
+fn sparse_object_merge_keeps_layers_annotations_and_batches_in_sync() {
+    let left = sparse_single_cell_object(
+        vec![vec![2.0, 0.0], vec![0.0, 3.0]],
+        &["A", "B"],
+        &["L1", "L2"],
+    );
+    let right = sparse_single_cell_object(vec![vec![4.0, 1.0]], &["A", "B"], &["R1"]);
+
+    let merged = call_singlecell_builtin(
+        "sc_merge_objects",
+        vec![
+            left,
+            right,
+            Value::Str("sample-a".into()),
+            Value::Str("sample-b".into()),
+        ],
+    )
+    .unwrap();
+
+    assert_eq!(get_int(&merged, "n_cells"), 3);
+    assert_eq!(get_list(&merged, "barcodes").len(), 3);
+    assert_eq!(get_list(&merged, "batch_ids").len(), 3);
+    match &merged {
+        Value::Record(object) => {
+            assert!(matches!(
+                object.get("matrix"),
+                Some(Value::SparseMatrix(matrix)) if matrix.nrow == 3 && matrix.ncol == 2
+            ));
+            assert!(matches!(
+                object.get("obs"),
+                Some(Value::Table(table)) if table.rows.len() == 3
+            ));
+            assert!(matches!(
+                object.get("layers"),
+                Some(Value::Record(layers))
+                    if matches!(
+                        layers.get("counts"),
+                        Some(Value::SparseMatrix(matrix)) if matrix.nrow == 3
+                    )
+            ));
+        }
+        other => panic!("expected Record, got {other:?}"),
+    }
+}
+
+#[test]
+fn sparse_preprocessing_preserves_sparsity() {
+    let counts = sparse_matrix(vec![
+        vec![1.0, 0.0, 3.0],
+        vec![0.0, 2.0, 0.0],
+        vec![4.0, 0.0, 1.0],
+    ]);
+    let normalized =
+        call_singlecell_builtin("normalize_total", vec![counts.clone(), Value::Float(10.0)])
+            .unwrap();
+    let logged = call_singlecell_builtin("log1p_transform", vec![normalized.clone()]).unwrap();
+
+    match normalized {
+        Value::SparseMatrix(matrix) => {
+            assert_eq!(matrix.nnz(), 5);
+            assert_eq!(matrix.row_sums(), vec![10.0, 10.0, 10.0]);
+        }
+        other => panic!("expected sparse normalized matrix, got {other:?}"),
+    }
+    assert!(matches!(logged, Value::SparseMatrix(_)));
+
+    let rows =
+        call_singlecell_builtin("select_rows", vec![counts.clone(), int_list(&[2, 0])]).unwrap();
+    let columns = call_singlecell_builtin("select_cols", vec![rows, int_list(&[2, 0])]).unwrap();
+    match columns {
+        Value::SparseMatrix(matrix) => {
+            assert_eq!(matrix.to_dense(), vec![vec![1.0, 4.0], vec![3.0, 1.0]]);
+        }
+        other => panic!("expected sparse subset, got {other:?}"),
+    }
+}
+
+#[test]
+fn sparse_qc_and_hvg_match_expected_dimensions() {
+    let counts = sparse_matrix(vec![
+        vec![5.0, 0.0, 1.0],
+        vec![3.0, 2.0, 0.0],
+        vec![0.0, 4.0, 0.0],
+    ]);
+    let cell_qc = call_singlecell_builtin(
+        "cell_qc",
+        vec![counts.clone(), str_list(&["MT-A", "B", "C"])],
+    )
+    .unwrap();
+    match cell_qc {
+        Value::Table(table) => {
+            assert_eq!(table.rows.len(), 3);
+            assert_eq!(as_float(&table.rows[0][1]), 6.0);
+            assert_eq!(as_int(&table.rows[0][2]), 2);
+            assert!((as_float(&table.rows[0][3]) - 83.333_333).abs() < 1e-4);
+        }
+        other => panic!("expected QC table, got {other:?}"),
+    }
+
+    let gene_qc = call_singlecell_builtin("gene_qc", vec![counts.clone()]).unwrap();
+    match gene_qc {
+        Value::Table(table) => {
+            assert_eq!(table.rows.len(), 3);
+            assert_eq!(as_int(&table.rows[0][1]), 2);
+        }
+        other => panic!("expected gene QC table, got {other:?}"),
+    }
+    let hvg =
+        call_singlecell_builtin("highly_variable_genes", vec![counts, Value::Int(2)]).unwrap();
+    assert!(matches!(hvg, Value::List(ref values) if values.len() == 2));
+}
+
+#[test]
+fn sparse_pca_returns_compact_scores_and_loadings() {
+    let counts = sparse_matrix(vec![
+        vec![8.0, 7.0, 0.0, 0.0],
+        vec![7.0, 8.0, 0.0, 0.0],
+        vec![0.0, 0.0, 8.0, 7.0],
+        vec![0.0, 0.0, 7.0, 8.0],
+    ]);
+    let pca = call_singlecell_builtin("sc_pca", vec![counts, Value::Int(2)]).unwrap();
+    let scores = get_list(&pca, "scores");
+    let loadings = get_list(&pca, "loadings");
+    assert_eq!(scores.len(), 4);
+    assert!(scores
+        .iter()
+        .all(|row| matches!(row, Value::List(values) if values.len() == 2)));
+    assert_eq!(loadings.len(), 4);
+    assert_eq!(get_int(&pca, "n_components"), 2);
+    let explained = get_list(&pca, "explained_variance_ratio");
+    assert!(explained.iter().map(as_float).sum::<f64>() <= 1.0 + 1e-9);
+}
+
+#[test]
+fn leiden_graph_clusters_two_connected_groups() {
+    let edges = vec![
+        knn_edge(0, 1, 0.1),
+        knn_edge(1, 2, 0.1),
+        knn_edge(0, 2, 0.1),
+        knn_edge(3, 4, 0.1),
+        knn_edge(4, 5, 0.1),
+        knn_edge(3, 5, 0.1),
+        knn_edge(2, 3, 10.0),
+    ];
+    let labels = call_singlecell_builtin(
+        "leiden_graph",
+        vec![Value::List(edges.into()), Value::Int(6), Value::Float(1.0)],
+    )
+    .unwrap();
+    match labels {
+        Value::List(labels) => {
+            assert_eq!(labels.len(), 6);
+            assert_eq!(as_int(&labels[0]), as_int(&labels[1]));
+            assert_eq!(as_int(&labels[1]), as_int(&labels[2]));
+            assert_eq!(as_int(&labels[3]), as_int(&labels[4]));
+            assert_ne!(as_int(&labels[0]), as_int(&labels[3]));
+        }
+        other => panic!("expected labels, got {other:?}"),
+    }
+}
 
 #[test]
 fn test_read_10x_missing_directory() {
@@ -214,6 +431,30 @@ fn test_read_10x_from_temp_dir() {
     };
     assert!((as_float(&cell2[0]) - 0.0).abs() < 1e-9);
     assert!((as_float(&cell2[1]) - 7.0).abs() < 1e-9);
+
+    let sparse = call_singlecell_builtin(
+        "read_10x_sparse",
+        vec![Value::Str(path.to_str().unwrap().to_string())],
+    )
+    .expect("read_10x_sparse");
+    match &sparse {
+        Value::Record(record) => {
+            match record.get("matrix").unwrap() {
+                Value::SparseMatrix(matrix) => {
+                    assert_eq!((matrix.nrow, matrix.ncol, matrix.nnz()), (3, 2, 4));
+                    assert_eq!(matrix.get(0, 0), 5.0);
+                    assert_eq!(matrix.get(0, 1), 1.0);
+                    assert_eq!(matrix.row_names.as_ref().unwrap()[0], "AAACCTGAGAAACCAT-1");
+                    assert_eq!(matrix.col_names.as_ref().unwrap()[0], "GENE1");
+                }
+                other => panic!("expected sparse matrix, got {other:?}"),
+            }
+            assert!(matches!(record.get("obs"), Some(Value::Table(_))));
+            assert!(matches!(record.get("var"), Some(Value::Table(_))));
+            assert!(matches!(record.get("layers"), Some(Value::Record(_))));
+        }
+        other => panic!("expected single-cell record, got {other:?}"),
+    }
 }
 
 // ─── cell_cycle_score ────────────────────────────────────────────────────────
@@ -226,8 +467,8 @@ fn test_cell_cycle_score_s_phase() {
         vec![0.0, 5.0, 0.0], // cell 1: high G2M
         vec![0.0, 0.0, 0.1], // cell 2: G1 (low expression)
     ]);
-    let s_genes   = int_list(&[0]);    // gene 0
-    let g2m_genes = int_list(&[1]);    // gene 1
+    let s_genes = int_list(&[0]); // gene 0
+    let g2m_genes = int_list(&[1]); // gene 1
 
     let result = call_singlecell_builtin("cell_cycle_score", vec![mat, s_genes, g2m_genes]);
     assert!(result.is_ok());
@@ -248,7 +489,7 @@ fn test_cell_cycle_score_s_phase() {
 #[test]
 fn test_cell_cycle_score_empty_gene_sets() {
     let mat = matrix(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
-    let s_genes   = int_list(&[]);
+    let s_genes = int_list(&[]);
     let g2m_genes = int_list(&[]);
 
     let result = call_singlecell_builtin("cell_cycle_score", vec![mat, s_genes, g2m_genes]);
@@ -267,10 +508,11 @@ fn test_cell_cycle_score_empty_gene_sets() {
 #[test]
 fn test_cell_cycle_score_fields_present() {
     let mat = matrix(vec![vec![1.0, 0.5]]);
-    let s_genes   = int_list(&[0]);
+    let s_genes = int_list(&[0]);
     let g2m_genes = int_list(&[1]);
 
-    let result = call_singlecell_builtin("cell_cycle_score", vec![mat, s_genes, g2m_genes]).unwrap();
+    let result =
+        call_singlecell_builtin("cell_cycle_score", vec![mat, s_genes, g2m_genes]).unwrap();
     let scores = match result {
         Value::List(s) => s,
         other => panic!("{other:?}"),
@@ -416,10 +658,10 @@ fn test_sc_integrate_removes_batch_mean() {
     // Batch 0: mean gene0 = 2.0, mean gene1 = 4.0
     // Batch 1: mean gene0 = 10.0, mean gene1 = 20.0
     let mat = matrix(vec![
-        vec![1.0, 3.0],  // batch 0, cell 0
-        vec![3.0, 5.0],  // batch 0, cell 1
-        vec![8.0, 18.0], // batch 1, cell 2
-        vec![12.0, 22.0],// batch 1, cell 3
+        vec![1.0, 3.0],   // batch 0, cell 0
+        vec![3.0, 5.0],   // batch 0, cell 1
+        vec![8.0, 18.0],  // batch 1, cell 2
+        vec![12.0, 22.0], // batch 1, cell 3
     ]);
     let batch_ids = int_list(&[0, 0, 1, 1]);
 
@@ -451,10 +693,7 @@ fn test_sc_integrate_removes_batch_mean() {
 #[test]
 fn test_sc_integrate_single_batch() {
     // Single batch → subtract mean → centered output
-    let mat = matrix(vec![
-        vec![2.0, 4.0],
-        vec![4.0, 8.0],
-    ]);
+    let mat = matrix(vec![vec![2.0, 4.0], vec![4.0, 8.0]]);
     let batch_ids = int_list(&[0, 0]);
 
     let result = call_singlecell_builtin("sc_integrate", vec![mat, batch_ids]).unwrap();
@@ -490,18 +729,20 @@ fn test_sc_integrate_empty() {
 // ─── diffusion_pseudotime ─────────────────────────────────────────────────────
 
 fn make_edges(pairs: &[(i64, i64, f64)]) -> Value {
-    Value::List(pairs.iter().map(|&(s, t, d)| knn_edge(s, t, d)).collect::<Vec<_>>().into())
+    Value::List(
+        pairs
+            .iter()
+            .map(|&(s, t, d)| knn_edge(s, t, d))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 #[test]
 fn test_diffusion_pseudotime_linear_chain() {
     // 5 cells in a chain: 0—1—2—3—4 with unit weights
-    let embeddings = matrix(vec![
-        vec![0.0], vec![1.0], vec![2.0], vec![3.0], vec![4.0],
-    ]);
-    let edges = make_edges(&[
-        (0, 1, 1.0), (1, 2, 1.0), (2, 3, 1.0), (3, 4, 1.0),
-    ]);
+    let embeddings = matrix(vec![vec![0.0], vec![1.0], vec![2.0], vec![3.0], vec![4.0]]);
+    let edges = make_edges(&[(0, 1, 1.0), (1, 2, 1.0), (2, 3, 1.0), (3, 4, 1.0)]);
     let start_cell = Value::Int(0);
 
     let result =
@@ -525,11 +766,12 @@ fn test_diffusion_pseudotime_shortest_path() {
     // 4-cell diamond: 0→1 (cost 10), 0→2 (cost 1), 2→3 (cost 1), 1→3 (cost 1)
     // Shortest from 0 to 3: 0→2→3 (cost 2)
     let embeddings = matrix(vec![
-        vec![0.0, 0.0], vec![1.0, 0.0], vec![0.0, 1.0], vec![1.0, 1.0],
+        vec![0.0, 0.0],
+        vec![1.0, 0.0],
+        vec![0.0, 1.0],
+        vec![1.0, 1.0],
     ]);
-    let edges = make_edges(&[
-        (0, 1, 10.0), (0, 2, 1.0), (2, 3, 1.0), (1, 3, 1.0),
-    ]);
+    let edges = make_edges(&[(0, 1, 10.0), (0, 2, 1.0), (2, 3, 1.0), (1, 3, 1.0)]);
     let result = call_singlecell_builtin(
         "diffusion_pseudotime",
         vec![embeddings, edges, Value::Int(0)],
@@ -548,9 +790,7 @@ fn test_diffusion_pseudotime_shortest_path() {
 #[test]
 fn test_diffusion_pseudotime_unreachable_cell() {
     // Cells 0, 1 connected; cells 2, 3 are isolated
-    let embeddings = matrix(vec![
-        vec![0.0], vec![1.0], vec![5.0], vec![6.0],
-    ]);
+    let embeddings = matrix(vec![vec![0.0], vec![1.0], vec![5.0], vec![6.0]]);
     let edges = make_edges(&[(0, 1, 1.0)]);
     let result = call_singlecell_builtin(
         "diffusion_pseudotime",
@@ -572,9 +812,11 @@ fn test_diffusion_pseudotime_unreachable_cell() {
 fn test_diffusion_pseudotime_empty_cells() {
     let embeddings = matrix(vec![]);
     let edges = make_edges(&[]);
-    let result =
-        call_singlecell_builtin("diffusion_pseudotime", vec![embeddings, edges, Value::Int(0)])
-            .unwrap();
+    let result = call_singlecell_builtin(
+        "diffusion_pseudotime",
+        vec![embeddings, edges, Value::Int(0)],
+    )
+    .unwrap();
     assert_eq!(result, Value::List((vec![]).into()));
 }
 
@@ -649,22 +891,27 @@ fn test_lr_score_basic() {
     }
 
     // Rows should be sorted descending by score
-    let scores: Vec<f64> = table.rows.iter().map(|r| match &r[score_col] {
-        Value::Float(f) => *f,
-        Value::Int(n) => *n as f64,
-        _ => 0.0,
-    }).collect();
+    let scores: Vec<f64> = table
+        .rows
+        .iter()
+        .map(|r| match &r[score_col] {
+            Value::Float(f) => *f,
+            Value::Int(n) => *n as f64,
+            _ => 0.0,
+        })
+        .collect();
     for window in scores.windows(2) {
-        assert!(window[0] >= window[1], "rows not sorted descending: {:?}", scores);
+        assert!(
+            window[0] >= window[1],
+            "rows not sorted descending: {:?}",
+            scores
+        );
     }
 }
 
 #[test]
 fn test_lr_score_all_zero_returns_empty() {
-    let mat = matrix(vec![
-        vec![0.0, 0.0],
-        vec![0.0, 0.0],
-    ]);
+    let mat = matrix(vec![vec![0.0, 0.0], vec![0.0, 0.0]]);
     let labels = str_list(&["A", "A"]);
     let lr_pairs = Value::List((vec![lr_pair(0, 1)]).into());
 
@@ -706,14 +953,34 @@ fn make_score_table() -> Value {
     use bl_core::value::Table;
     // Table: sender, receiver, ligand_idx, receptor_idx, score
     let columns = vec![
-        "sender".to_string(), "receiver".to_string(),
-        "ligand_idx".to_string(), "receptor_idx".to_string(),
+        "sender".to_string(),
+        "receiver".to_string(),
+        "ligand_idx".to_string(),
+        "receptor_idx".to_string(),
         "score".to_string(),
     ];
     let rows = vec![
-        vec![Value::Str("A".into()), Value::Str("B".into()), Value::Int(0), Value::Int(1), Value::Float(3.0)],
-        vec![Value::Str("A".into()), Value::Str("B".into()), Value::Int(2), Value::Int(3), Value::Float(1.5)],
-        vec![Value::Str("B".into()), Value::Str("A".into()), Value::Int(0), Value::Int(1), Value::Float(2.0)],
+        vec![
+            Value::Str("A".into()),
+            Value::Str("B".into()),
+            Value::Int(0),
+            Value::Int(1),
+            Value::Float(3.0),
+        ],
+        vec![
+            Value::Str("A".into()),
+            Value::Str("B".into()),
+            Value::Int(2),
+            Value::Int(3),
+            Value::Float(1.5),
+        ],
+        vec![
+            Value::Str("B".into()),
+            Value::Str("A".into()),
+            Value::Int(0),
+            Value::Int(1),
+            Value::Float(2.0),
+        ],
     ];
     Value::Table(Table::new(columns, rows))
 }
@@ -722,7 +989,9 @@ fn make_pathway_table() -> Value {
     use bl_core::value::Table;
     // pathway_map: ligand_idx, receptor_idx, pathway
     let columns = vec![
-        "ligand_idx".to_string(), "receptor_idx".to_string(), "pathway".to_string(),
+        "ligand_idx".to_string(),
+        "receptor_idx".to_string(),
+        "pathway".to_string(),
     ];
     let rows = vec![
         vec![Value::Int(0), Value::Int(1), Value::Str("VEGF".into())],
@@ -761,7 +1030,10 @@ fn test_lr_aggregate_basic() {
         Value::Int(n) => *n as f64,
         other => panic!("{other:?}"),
     };
-    assert!((top_score - 3.0).abs() < 1e-9, "top score should be 3.0, got {top_score}");
+    assert!(
+        (top_score - 3.0).abs() < 1e-9,
+        "top score should be 3.0, got {top_score}"
+    );
 }
 
 #[test]
@@ -769,12 +1041,19 @@ fn test_lr_aggregate_no_pathway_match() {
     // Score table references pair (5, 6) which is not in pathway_map → empty output
     use bl_core::value::Table;
     let score_cols = vec![
-        "sender".to_string(), "receiver".to_string(),
-        "ligand_idx".to_string(), "receptor_idx".to_string(), "score".to_string(),
+        "sender".to_string(),
+        "receiver".to_string(),
+        "ligand_idx".to_string(),
+        "receptor_idx".to_string(),
+        "score".to_string(),
     ];
-    let score_rows = vec![
-        vec![Value::Str("A".into()), Value::Str("B".into()), Value::Int(5), Value::Int(6), Value::Float(2.0)],
-    ];
+    let score_rows = vec![vec![
+        Value::Str("A".into()),
+        Value::Str("B".into()),
+        Value::Int(5),
+        Value::Int(6),
+        Value::Float(2.0),
+    ]];
     let scores = Value::Table(Table::new(score_cols, score_rows));
     let pathway_map = make_pathway_table(); // only knows about (0,1) and (2,3)
 
@@ -783,7 +1062,11 @@ fn test_lr_aggregate_no_pathway_match() {
         Value::Table(t) => t,
         other => panic!("{other:?}"),
     };
-    assert_eq!(table.rows.len(), 0, "expected empty table when no pathway matches");
+    assert_eq!(
+        table.rows.len(),
+        0,
+        "expected empty table when no pathway matches"
+    );
 }
 
 // ─── integration: existing builtins still work ────────────────────────────────
@@ -808,10 +1091,7 @@ fn test_normalize_total_unchanged() {
 fn test_module_score_wrong_arg() {
     let result = call_singlecell_builtin(
         "module_score",
-        vec![
-            matrix(vec![vec![1.0]]),
-            Value::Str("bad".to_string()),
-        ],
+        vec![matrix(vec![vec![1.0]]), Value::Str("bad".to_string())],
     );
     assert!(result.is_err());
 }
@@ -843,14 +1123,23 @@ fn test_spatial_neighbors_basic() {
     ];
     let coords = Value::Table(Table::new(cols, rows));
     let result = call_singlecell_builtin("spatial_neighbors", vec![coords, Value::Int(2)]).unwrap();
-    let t = match result { Value::Table(t) => t, other => panic!("{other:?}") };
+    let t = match result {
+        Value::Table(t) => t,
+        other => panic!("{other:?}"),
+    };
     // Each spot should have 2 neighbors (k=2, n-1=2)
     assert_eq!(t.rows.len(), 6, "3 spots × 2 neighbors = 6 rows");
     // Spot 0's nearest neighbor should be spot 1 (distance 1.0)
     let spot0: Vec<&Vec<Value>> = t.rows.iter().filter(|r| r[0] == Value::Int(0)).collect();
     assert_eq!(spot0.len(), 2);
-    let neighbor_of_0: i64 = match spot0[0][1] { Value::Int(n) => n, _ => panic!() };
-    assert_eq!(neighbor_of_0, 1, "spot 0's nearest neighbor should be spot 1");
+    let neighbor_of_0: i64 = match spot0[0][1] {
+        Value::Int(n) => n,
+        _ => panic!(),
+    };
+    assert_eq!(
+        neighbor_of_0, 1,
+        "spot 0's nearest neighbor should be spot 1"
+    );
 }
 
 #[test]
@@ -858,7 +1147,10 @@ fn test_spatial_neighbors_empty_coords() {
     use bl_core::value::Table;
     let coords = Value::Table(Table::new(vec!["x".to_string(), "y".to_string()], vec![]));
     let result = call_singlecell_builtin("spatial_neighbors", vec![coords]).unwrap();
-    let t = match result { Value::Table(t) => t, other => panic!("{other:?}") };
+    let t = match result {
+        Value::Table(t) => t,
+        other => panic!("{other:?}"),
+    };
     assert_eq!(t.rows.len(), 0);
 }
 
@@ -881,8 +1173,14 @@ fn test_spatial_moransi_perfectly_correlated() {
     // Expression perfectly matches spatial position
     let expr = float_list(&[1.0, 2.0, 3.0, 4.0]);
     let result = call_singlecell_builtin("spatial_moransi", vec![expr, neighbors]).unwrap();
-    let i = match result { Value::Float(f) => f, other => panic!("{other:?}") };
-    assert!(i > 0.3, "expected positive Moran's I for spatially correlated expression, got {i}");
+    let i = match result {
+        Value::Float(f) => f,
+        other => panic!("{other:?}"),
+    };
+    assert!(
+        i > 0.3,
+        "expected positive Moran's I for spatially correlated expression, got {i}"
+    );
 }
 
 #[test]
@@ -898,7 +1196,10 @@ fn test_spatial_moransi_constant_expression_returns_zero() {
         call_singlecell_builtin("spatial_neighbors", vec![coords, Value::Int(1)]).unwrap();
     let expr = float_list(&[5.0, 5.0]); // constant → denom = 0
     let result = call_singlecell_builtin("spatial_moransi", vec![expr, neighbors]).unwrap();
-    let i = match result { Value::Float(f) => f, other => panic!("{other:?}") };
+    let i = match result {
+        Value::Float(f) => f,
+        other => panic!("{other:?}"),
+    };
     assert_eq!(i, 0.0);
 }
 
@@ -917,12 +1218,22 @@ fn test_reference_classify_basic() {
         vec![0.0], // gene 1
     ]);
     let labels = str_list(&["A", "A", "B"]);
-    let result = call_singlecell_builtin("reference_classify", vec![query_mat, ref_mat, labels]).unwrap();
-    let t = match result { Value::Table(t) => t, other => panic!("{other:?}") };
+    let result =
+        call_singlecell_builtin("reference_classify", vec![query_mat, ref_mat, labels]).unwrap();
+    let t = match result {
+        Value::Table(t) => t,
+        other => panic!("{other:?}"),
+    };
     assert_eq!(t.rows.len(), 1);
-    let label = match &t.rows[0][1] { Value::Str(s) => s.clone(), other => panic!("{other:?}") };
+    let label = match &t.rows[0][1] {
+        Value::Str(s) => s.clone(),
+        other => panic!("{other:?}"),
+    };
     assert_eq!(label, "A");
-    let conf = match &t.rows[0][2] { Value::Float(f) => *f, other => panic!("{other:?}") };
+    let conf = match &t.rows[0][2] {
+        Value::Float(f) => *f,
+        other => panic!("{other:?}"),
+    };
     assert!(conf > 0.0 && conf <= 1.0);
 }
 
@@ -930,25 +1241,73 @@ fn test_reference_classify_basic() {
 
 #[test]
 fn test_pseudobulk_aggregate_basic() {
-    // 2 genes, 4 cells: 2 from cluster A sample S1, 1 from A/S2, 1 from B/S1
+    // 4 cells × 2 genes: 2 from cluster A sample S1, 1 from A/S2, 1 from B/S1
     let mat = matrix(vec![
-        vec![1.0, 3.0, 5.0, 0.0], // gene 0
-        vec![2.0, 4.0, 0.0, 6.0], // gene 1
+        vec![1.0, 2.0], // cell 0
+        vec![3.0, 4.0], // cell 1
+        vec![5.0, 0.0], // cell 2
+        vec![0.0, 6.0], // cell 3
     ]);
     let cell_labels = str_list(&["A", "A", "A", "B"]);
     let sample_labels = str_list(&["S1", "S1", "S2", "S1"]);
     let result = call_singlecell_builtin(
         "pseudobulk_aggregate",
         vec![mat, cell_labels, sample_labels],
-    ).unwrap();
-    let t = match result { Value::Table(t) => t, other => panic!("{other:?}") };
+    )
+    .unwrap();
+    let t = match result {
+        Value::Table(t) => t,
+        other => panic!("{other:?}"),
+    };
     // Columns should be: A__S1, A__S2, B__S1 (sorted)
     assert_eq!(t.columns, vec!["A__S1", "A__S2", "B__S1"]);
     assert_eq!(t.rows.len(), 2, "one row per gene");
     // gene 0: A__S1 = 1+3=4, A__S2 = 5, B__S1 = 0
     let a_s1_idx = t.col_index("A__S1").unwrap();
-    let sum_g0_a_s1 = match &t.rows[0][a_s1_idx] { Value::Float(f) => *f, other => panic!("{other:?}") };
-    assert!((sum_g0_a_s1 - 4.0).abs() < 1e-9, "A__S1 sum for gene0 should be 4, got {sum_g0_a_s1}");
+    let sum_g0_a_s1 = match &t.rows[0][a_s1_idx] {
+        Value::Float(f) => *f,
+        other => panic!("{other:?}"),
+    };
+    assert!(
+        (sum_g0_a_s1 - 4.0).abs() < 1e-9,
+        "A__S1 sum for gene0 should be 4, got {sum_g0_a_s1}"
+    );
+}
+
+#[test]
+fn test_pseudobulk_aggregate_sparse_matches_dense() {
+    // Same cells × genes counts as the dense case, as CSR — the sparse path
+    // must not change the answer, and it is the only path a loaded 10x object
+    // ever takes.
+    let dense = vec![
+        vec![1.0, 2.0],
+        vec![3.0, 4.0],
+        vec![5.0, 0.0],
+        vec![0.0, 6.0],
+    ];
+    let cell_labels = str_list(&["A", "A", "A", "B"]);
+    let sample_labels = str_list(&["S1", "S1", "S2", "S1"]);
+
+    let from_dense = call_singlecell_builtin(
+        "pseudobulk_aggregate",
+        vec![
+            matrix(dense.clone()),
+            cell_labels.clone(),
+            sample_labels.clone(),
+        ],
+    )
+    .unwrap();
+    let from_sparse = call_singlecell_builtin(
+        "pseudobulk_aggregate",
+        vec![
+            Value::SparseMatrix(SparseMatrix::from_dense(&dense)),
+            cell_labels,
+            sample_labels,
+        ],
+    )
+    .unwrap();
+
+    assert_eq!(from_dense, from_sparse);
 }
 
 // ─── wnn_graph ───────────────────────────────────────────────────────────────
@@ -956,23 +1315,21 @@ fn test_pseudobulk_aggregate_basic() {
 #[test]
 fn test_wnn_graph_basic() {
     // 3 cells × 2 dims each; modality A perfectly separates all cells; modality B is noise
-    let mat_a = matrix(vec![
-        vec![0.0, 0.0],
-        vec![10.0, 0.0],
-        vec![20.0, 0.0],
-    ]);
-    let mat_b = matrix(vec![
-        vec![1.0, 0.0],
-        vec![1.1, 0.0],
-        vec![1.2, 0.0],
-    ]);
+    let mat_a = matrix(vec![vec![0.0, 0.0], vec![10.0, 0.0], vec![20.0, 0.0]]);
+    let mat_b = matrix(vec![vec![1.0, 0.0], vec![1.1, 0.0], vec![1.2, 0.0]]);
     let result = call_singlecell_builtin("wnn_graph", vec![mat_a, mat_b, Value::Int(2)]).unwrap();
-    let t = match result { Value::Table(t) => t, other => panic!("{other:?}") };
+    let t = match result {
+        Value::Table(t) => t,
+        other => panic!("{other:?}"),
+    };
     // 3 cells × up to 2 neighbors = up to 6 edges
     assert!(t.rows.len() > 0, "expected edges in WNN graph");
     // All weights should be in (0, 1]
     for row in &t.rows {
-        let w = match &row[2] { Value::Float(f) => *f, other => panic!("{other:?}") };
+        let w = match &row[2] {
+            Value::Float(f) => *f,
+            other => panic!("{other:?}"),
+        };
         assert!(w > 0.0 && w <= 1.0, "edge weight {w} out of range (0, 1]");
     }
 }
@@ -1003,8 +1360,20 @@ fn test_velocity_estimate_basic() {
         Value::List(cells) => cells.clone(),
         other => panic!("{other:?}"),
     };
-    let v00 = match &g0[0] { Value::Float(f) => *f, other => panic!("{other:?}") };
-    let v01 = match &g0[1] { Value::Float(f) => *f, other => panic!("{other:?}") };
-    assert!((v00 - 1.0).abs() < 1e-4, "velocity[0][0] should be ~1.0, got {v00}");
-    assert!((v01 - (-1.0)).abs() < 1e-4, "velocity[0][1] should be ~-1.0, got {v01}");
+    let v00 = match &g0[0] {
+        Value::Float(f) => *f,
+        other => panic!("{other:?}"),
+    };
+    let v01 = match &g0[1] {
+        Value::Float(f) => *f,
+        other => panic!("{other:?}"),
+    };
+    assert!(
+        (v00 - 1.0).abs() < 1e-4,
+        "velocity[0][0] should be ~1.0, got {v00}"
+    );
+    assert!(
+        (v01 - (-1.0)).abs() < 1e-4,
+        "velocity[0][1] should be ~-1.0, got {v01}"
+    );
 }

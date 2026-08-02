@@ -13,7 +13,8 @@
 //! Blosc chunks using the `snappy` inner codec are the one remaining gap.
 
 use bl_core::error::{BioLangError, ErrorKind, Result};
-use bl_core::value::{Arity, Value};
+use bl_core::sparse_matrix::SparseMatrix;
+use bl_core::value::{Arity, Table, Value};
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -136,13 +137,15 @@ impl ZArray {
             Some("gzip") => {
                 let mut d = flate2::read::GzDecoder::new(&raw[..]);
                 let mut out = Vec::new();
-                d.read_to_end(&mut out).map_err(|e| io_err(format!("gzip: {e}")))?;
+                d.read_to_end(&mut out)
+                    .map_err(|e| io_err(format!("gzip: {e}")))?;
                 Ok(out)
             }
             Some("zlib") => {
                 let mut d = flate2::read::ZlibDecoder::new(&raw[..]);
                 let mut out = Vec::new();
-                d.read_to_end(&mut out).map_err(|e| io_err(format!("zlib: {e}")))?;
+                d.read_to_end(&mut out)
+                    .map_err(|e| io_err(format!("zlib: {e}")))?;
                 Ok(out)
             }
             Some("blosc") => crate::blosc::decompress(&raw),
@@ -154,7 +157,11 @@ impl ZArray {
         let name = if coords.is_empty() {
             "0".to_string()
         } else {
-            coords.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(".")
+            coords
+                .iter()
+                .map(|c| c.to_string())
+                .collect::<Vec<_>>()
+                .join(".")
         };
         let path = self.dir.join(&name);
         if !path.exists() {
@@ -333,14 +340,19 @@ fn read_anndata_dir(root: &Path) -> Result<Value> {
     }
     let x_dir = root.join("X");
 
-    let (matrix, n_obs, n_var) = if x_dir.join(".zarray").exists() {
+    let (mut matrix, n_obs, n_var, is_sparse) = if x_dir.join(".zarray").exists() {
         // Dense 2D X.
         let arr = open_array(&x_dir)?;
         if arr.shape.len() != 2 {
             return Err(io_err("X must be 2-dimensional"));
         }
         let (r, c) = (arr.shape[0], arr.shape[1]);
-        (reshape(arr.read_numeric()?, r, c), r, c)
+        (
+            dense_matrix_value(reshape(arr.read_numeric()?, r, c)),
+            r,
+            c,
+            false,
+        )
     } else if x_dir.join(".zgroup").exists() {
         // Sparse CSR/CSC X.
         let attrs = read_json(&x_dir.join(".zattrs")).unwrap_or(serde_json::Value::Null);
@@ -359,38 +371,76 @@ fn read_anndata_dir(root: &Path) -> Result<Value> {
             .iter()
             .map(|v| *v as usize)
             .collect();
-        let matrix = if enc.contains("csc") {
-            csc_to_dense(&data, &indices, &indptr, n_obs, n_var)
+        let sparse = if enc.contains("csc") {
+            sparse_from_csc(data, indices, indptr, n_obs, n_var)?
         } else {
-            csr_to_dense(&data, &indices, &indptr, n_obs, n_var)
+            sparse_from_csr(data, indices, indptr, n_obs, n_var)?
         };
-        (matrix, n_obs, n_var)
+        (Value::SparseMatrix(sparse), n_obs, n_var, true)
     } else {
-        return Err(io_err(format!("no X array or group under {}", root.display())));
+        return Err(io_err(format!(
+            "no X array or group under {}",
+            root.display()
+        )));
     };
 
     let genes = read_index(&root.join("var"), n_var)?;
     let barcodes = read_index(&root.join("obs"), n_obs)?;
-
-    let matrix_val = Value::List(
-        matrix
-            .into_iter()
-            .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
-    );
+    if let Value::SparseMatrix(sparse) = &mut matrix {
+        sparse.row_names = Some(barcodes.clone());
+        sparse.col_names = Some(genes.clone());
+    }
 
     let mut rec = HashMap::new();
-    rec.insert("matrix".into(), matrix_val);
+    rec.insert("matrix".into(), matrix.clone());
     rec.insert(
         "genes".into(),
-        Value::List(genes.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
+        Value::List(
+            genes
+                .iter()
+                .cloned()
+                .map(Value::Str)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     rec.insert(
         "barcodes".into(),
-        Value::List(barcodes.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
+        Value::List(
+            barcodes
+                .iter()
+                .cloned()
+                .map(Value::Str)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     rec.insert("n_cells".into(), Value::Int(n_obs as i64));
     rec.insert("n_genes".into(), Value::Int(n_var as i64));
+    rec.insert("is_sparse".into(), Value::Bool(is_sparse));
+    rec.insert(
+        "obs".into(),
+        Value::Table(Table::new(
+            vec!["barcode".into()],
+            barcodes
+                .iter()
+                .map(|barcode| vec![Value::Str(barcode.clone())])
+                .collect(),
+        )),
+    );
+    rec.insert(
+        "var".into(),
+        Value::Table(Table::new(
+            vec!["gene".into()],
+            genes
+                .iter()
+                .map(|gene| vec![Value::Str(gene.clone())])
+                .collect(),
+        )),
+    );
+    let mut layers = HashMap::new();
+    layers.insert("X".into(), matrix);
+    rec.insert("layers".into(), Value::Record(layers.into()));
     Ok(Value::Record((rec).into()))
 }
 
@@ -419,40 +469,68 @@ fn reshape(flat: Vec<f64>, rows: usize, cols: usize) -> Vec<Vec<f64>> {
     out
 }
 
-fn csr_to_dense(
-    data: &[f64],
-    indices: &[usize],
-    indptr: &[usize],
-    n_obs: usize,
-    n_var: usize,
-) -> Vec<Vec<f64>> {
-    let mut m = vec![vec![0.0; n_var]; n_obs];
-    for r in 0..n_obs {
-        for k in indptr[r]..indptr[r + 1] {
-            if indices[k] < n_var {
-                m[r][indices[k]] = data[k];
-            }
-        }
-    }
-    m
+fn dense_matrix_value(matrix: Vec<Vec<f64>>) -> Value {
+    Value::List(
+        matrix
+            .into_iter()
+            .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
-fn csc_to_dense(
-    data: &[f64],
-    indices: &[usize],
-    indptr: &[usize],
+fn sparse_from_csr(
+    data: Vec<f64>,
+    indices: Vec<usize>,
+    indptr: Vec<usize>,
     n_obs: usize,
     n_var: usize,
-) -> Vec<Vec<f64>> {
-    let mut m = vec![vec![0.0; n_var]; n_obs];
+) -> Result<SparseMatrix> {
+    if indptr.len() != n_obs + 1
+        || data.len() != indices.len()
+        || indptr.last().copied() != Some(data.len())
+        || indices.iter().any(|index| *index >= n_var)
+    {
+        return Err(io_err("invalid CSR arrays in AnnData X"));
+    }
+    Ok(SparseMatrix {
+        indptr,
+        indices,
+        data,
+        nrow: n_obs,
+        ncol: n_var,
+        row_names: None,
+        col_names: None,
+    })
+}
+
+fn sparse_from_csc(
+    data: Vec<f64>,
+    indices: Vec<usize>,
+    indptr: Vec<usize>,
+    n_obs: usize,
+    n_var: usize,
+) -> Result<SparseMatrix> {
+    if indptr.len() != n_var + 1
+        || data.len() != indices.len()
+        || indptr.last().copied() != Some(data.len())
+        || indices.iter().any(|index| *index >= n_obs)
+    {
+        return Err(io_err("invalid CSC arrays in AnnData X"));
+    }
+    let mut rows = Vec::with_capacity(data.len());
+    let mut columns = Vec::with_capacity(data.len());
+    let mut values = Vec::with_capacity(data.len());
     for c in 0..n_var {
         for k in indptr[c]..indptr[c + 1] {
-            if indices[k] < n_obs {
-                m[indices[k]][c] = data[k];
-            }
+            rows.push(indices[k]);
+            columns.push(c);
+            values.push(data[k]);
         }
     }
-    m
+    Ok(SparseMatrix::from_triplets(
+        &rows, &columns, &values, n_obs, n_var,
+    ))
 }
 
 // ── AnnData write ────────────────────────────────────────────────────────────
@@ -462,28 +540,56 @@ fn write_anndata_dir(root: &Path, obj: &Value) -> Result<()> {
         Value::Record(m) | Value::Map(m) => m,
         other => {
             return Err(BioLangError::type_error(
-                format!("write_anndata() requires a single-cell object (Record), got {}", other.type_of()),
+                format!(
+                    "write_anndata() requires a single-cell object (Record), got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
 
-    let matrix = get_matrix(rec)?;
-    let n_obs = matrix.len();
-    let n_var = matrix.first().map(|r| r.len()).unwrap_or(0);
+    let matrix = rec
+        .get("matrix")
+        .ok_or_else(|| io_err("write_anndata(): object has no 'matrix' field"))?;
+    let (n_obs, n_var) = match matrix {
+        Value::SparseMatrix(matrix) => (matrix.nrow, matrix.ncol),
+        Value::List(_) => {
+            let dense = get_matrix(rec)?;
+            (dense.len(), dense.first().map(|row| row.len()).unwrap_or(0))
+        }
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "write_anndata(): 'matrix' must be a Matrix or SparseMatrix, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
     let genes = get_str_list(rec, "genes", n_var);
     let barcodes = get_str_list(rec, "barcodes", n_obs);
 
     std::fs::create_dir_all(root).map_err(|e| io_err(format!("mkdir: {e}")))?;
-    write_json(&root.join(".zgroup"), &serde_json::json!({"zarr_format": 2}))?;
+    write_json(
+        &root.join(".zgroup"),
+        &serde_json::json!({"zarr_format": 2}),
+    )?;
     write_json(
         &root.join(".zattrs"),
         &serde_json::json!({"encoding-type": "anndata", "encoding-version": "0.1.0"}),
     )?;
 
-    // X (dense, gzip, single chunk).
-    let flat: Vec<f64> = matrix.iter().flatten().copied().collect();
-    write_numeric_array(&root.join("X"), &[n_obs, n_var], &flat)?;
+    match matrix {
+        Value::SparseMatrix(matrix) => write_sparse_matrix(&root.join("X"), matrix)?,
+        Value::List(_) => {
+            let dense = get_matrix(rec)?;
+            let flat: Vec<f64> = dense.iter().flatten().copied().collect();
+            write_numeric_array(&root.join("X"), &[n_obs, n_var], &flat)?;
+        }
+        _ => unreachable!(),
+    }
 
     // var / obs dataframes with a string _index.
     write_dataframe(&root.join("var"), &genes)?;
@@ -499,7 +605,10 @@ fn get_matrix(rec: &HashMap<String, Value>) -> Result<Vec<Vec<f64>>> {
         Value::List(r) => r,
         other => {
             return Err(BioLangError::type_error(
-                format!("write_anndata(): 'matrix' must be a List of rows, got {}", other.type_of()),
+                format!(
+                    "write_anndata(): 'matrix' must be a List of rows, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -519,7 +628,10 @@ fn get_matrix(rec: &HashMap<String, Value>) -> Result<Vec<Vec<f64>>> {
             ),
             other => {
                 return Err(BioLangError::type_error(
-                    format!("write_anndata(): matrix rows must be Lists, got {}", other.type_of()),
+                    format!(
+                        "write_anndata(): matrix rows must be Lists, got {}",
+                        other.type_of()
+                    ),
                     None,
                 ))
             }
@@ -548,7 +660,8 @@ fn write_json(path: &Path, value: &serde_json::Value) -> Result<()> {
 
 fn gzip(data: &[u8]) -> Result<Vec<u8>> {
     let mut enc = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
-    enc.write_all(data).map_err(|e| io_err(format!("gzip: {e}")))?;
+    enc.write_all(data)
+        .map_err(|e| io_err(format!("gzip: {e}")))?;
     enc.finish().map_err(|e| io_err(format!("gzip: {e}")))
 }
 
@@ -573,6 +686,45 @@ fn write_numeric_array(dir: &Path, shape: &[usize], flat: &[f64]) -> Result<()> 
     let chunk_name = vec!["0"; shape.len().max(1)].join(".");
     std::fs::write(dir.join(chunk_name), gzip(&bytes)?)
         .map_err(|e| io_err(format!("write chunk: {e}")))
+}
+
+fn write_usize_array(dir: &Path, flat: &[usize]) -> Result<()> {
+    std::fs::create_dir_all(dir).map_err(|e| io_err(format!("mkdir: {e}")))?;
+    let zarray = serde_json::json!({
+        "zarr_format": 2,
+        "shape": [flat.len()],
+        "chunks": [flat.len().max(1)],
+        "dtype": "<i8",
+        "compressor": {"id": "gzip", "level": 5},
+        "fill_value": 0,
+        "order": "C",
+        "filters": serde_json::Value::Null,
+    });
+    write_json(&dir.join(".zarray"), &zarray)?;
+
+    let mut bytes = Vec::with_capacity(flat.len() * 8);
+    for value in flat {
+        let value = i64::try_from(*value)
+            .map_err(|_| io_err("sparse index exceeds AnnData int64 range"))?;
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    std::fs::write(dir.join("0"), gzip(&bytes)?).map_err(|e| io_err(format!("write chunk: {e}")))
+}
+
+fn write_sparse_matrix(dir: &Path, matrix: &SparseMatrix) -> Result<()> {
+    std::fs::create_dir_all(dir).map_err(|e| io_err(format!("mkdir: {e}")))?;
+    write_json(&dir.join(".zgroup"), &serde_json::json!({"zarr_format": 2}))?;
+    write_json(
+        &dir.join(".zattrs"),
+        &serde_json::json!({
+            "encoding-type": "csr_matrix",
+            "encoding-version": "0.1.0",
+            "shape": [matrix.nrow, matrix.ncol],
+        }),
+    )?;
+    write_numeric_array(&dir.join("data"), &[matrix.data.len()], &matrix.data)?;
+    write_usize_array(&dir.join("indices"), &matrix.indices)?;
+    write_usize_array(&dir.join("indptr"), &matrix.indptr)
 }
 
 fn write_dataframe(dir: &Path, index: &[String]) -> Result<()> {
@@ -611,8 +763,7 @@ fn write_string_array(dir: &Path, strings: &[String]) -> Result<()> {
         bytes.extend_from_slice(&(s.len() as u32).to_le_bytes());
         bytes.extend_from_slice(s.as_bytes());
     }
-    std::fs::write(dir.join("0"), gzip(&bytes)?)
-        .map_err(|e| io_err(format!("write chunk: {e}")))
+    std::fs::write(dir.join("0"), gzip(&bytes)?).map_err(|e| io_err(format!("write chunk: {e}")))
 }
 
 #[cfg(test)]
@@ -632,25 +783,55 @@ mod tests {
     }
 
     fn sc_object() -> Value {
-        let matrix = Value::List((vec![
-            Value::List((vec![Value::Float(0.0), Value::Float(2.0), Value::Float(3.0)]).into()),
-            Value::List((vec![Value::Float(4.0), Value::Float(0.0), Value::Float(6.0)]).into()),
-        ]).into());
+        let matrix = Value::List(
+            (vec![
+                Value::List((vec![Value::Float(0.0), Value::Float(2.0), Value::Float(3.0)]).into()),
+                Value::List((vec![Value::Float(4.0), Value::Float(0.0), Value::Float(6.0)]).into()),
+            ])
+            .into(),
+        );
         let mut rec = HashMap::new();
         rec.insert("matrix".into(), matrix);
         rec.insert(
             "genes".into(),
-            Value::List((vec![
-                Value::Str("GeneA".into()),
-                Value::Str("GeneB".into()),
-                Value::Str("GeneC".into()),
-            ]).into()),
+            Value::List(
+                (vec![
+                    Value::Str("GeneA".into()),
+                    Value::Str("GeneB".into()),
+                    Value::Str("GeneC".into()),
+                ])
+                .into(),
+            ),
         );
         rec.insert(
             "barcodes".into(),
             Value::List((vec![Value::Str("CELL_1".into()), Value::Str("CELL_2".into())]).into()),
         );
         Value::Record((rec).into())
+    }
+
+    fn sparse_sc_object() -> Value {
+        let mut matrix = SparseMatrix::from_dense(&[vec![0.0, 2.0, 3.0], vec![4.0, 0.0, 6.0]]);
+        matrix.row_names = Some(vec!["CELL_1".into(), "CELL_2".into()]);
+        matrix.col_names = Some(vec!["GeneA".into(), "GeneB".into(), "GeneC".into()]);
+        let mut rec = HashMap::new();
+        rec.insert("matrix".into(), Value::SparseMatrix(matrix));
+        rec.insert(
+            "genes".into(),
+            Value::List(
+                vec![
+                    Value::Str("GeneA".into()),
+                    Value::Str("GeneB".into()),
+                    Value::Str("GeneC".into()),
+                ]
+                .into(),
+            ),
+        );
+        rec.insert(
+            "barcodes".into(),
+            Value::List(vec![Value::Str("CELL_1".into()), Value::Str("CELL_2".into())].into()),
+        );
+        Value::Record(rec.into())
     }
 
     fn field<'a>(v: &'a Value, key: &str) -> &'a Value {
@@ -676,18 +857,24 @@ mod tests {
         };
         assert_eq!(genes[0], Value::Str("GeneA".into()));
         assert_eq!(genes[2], Value::Str("GeneC".into()));
-        assert_eq!(field(&back, "barcodes"), &Value::List((vec![
-            Value::Str("CELL_1".into()),
-            Value::Str("CELL_2".into())
-        ]).into()));
+        assert_eq!(
+            field(&back, "barcodes"),
+            &Value::List((vec![Value::Str("CELL_1".into()), Value::Str("CELL_2".into())]).into())
+        );
 
         // Matrix values (including the zeros) survive.
         let rows = match field(&back, "matrix") {
             Value::List(r) => r.clone(),
             _ => panic!(),
         };
-        assert_eq!(rows[0], Value::List((vec![Value::Float(0.0), Value::Float(2.0), Value::Float(3.0)]).into()));
-        assert_eq!(rows[1], Value::List((vec![Value::Float(4.0), Value::Float(0.0), Value::Float(6.0)]).into()));
+        assert_eq!(
+            rows[0],
+            Value::List((vec![Value::Float(0.0), Value::Float(2.0), Value::Float(3.0)]).into())
+        );
+        assert_eq!(
+            rows[1],
+            Value::List((vec![Value::Float(4.0), Value::Float(0.0), Value::Float(6.0)]).into())
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -699,7 +886,11 @@ mod tests {
         let dir = tmp_dir("csr");
         std::fs::create_dir_all(dir.join("X")).unwrap();
         write_json(&dir.join(".zgroup"), &serde_json::json!({"zarr_format":2})).unwrap();
-        write_json(&dir.join("X").join(".zgroup"), &serde_json::json!({"zarr_format":2})).unwrap();
+        write_json(
+            &dir.join("X").join(".zgroup"),
+            &serde_json::json!({"zarr_format":2}),
+        )
+        .unwrap();
         write_json(
             &dir.join("X").join(".zattrs"),
             &serde_json::json!({"encoding-type":"csr_matrix","shape":[2,3]}),
@@ -708,16 +899,57 @@ mod tests {
         write_numeric_array(&dir.join("X").join("data"), &[4], &[2.0, 3.0, 4.0, 6.0]).unwrap();
         write_numeric_array(&dir.join("X").join("indices"), &[4], &[1.0, 2.0, 0.0, 2.0]).unwrap();
         write_numeric_array(&dir.join("X").join("indptr"), &[3], &[0.0, 2.0, 4.0]).unwrap();
-        write_dataframe(&dir.join("var"), &["GeneA".into(), "GeneB".into(), "GeneC".into()]).unwrap();
+        write_dataframe(
+            &dir.join("var"),
+            &["GeneA".into(), "GeneB".into(), "GeneC".into()],
+        )
+        .unwrap();
         write_dataframe(&dir.join("obs"), &["CELL_1".into(), "CELL_2".into()]).unwrap();
 
         let back = read_anndata_dir(&dir).unwrap();
-        let rows = match field(&back, "matrix") {
-            Value::List(r) => r.clone(),
-            _ => panic!(),
+        let matrix = match field(&back, "matrix") {
+            Value::SparseMatrix(matrix) => matrix,
+            other => panic!("expected sparse matrix, got {other:?}"),
         };
-        assert_eq!(rows[0], Value::List((vec![Value::Float(0.0), Value::Float(2.0), Value::Float(3.0)]).into()));
-        assert_eq!(rows[1], Value::List((vec![Value::Float(4.0), Value::Float(0.0), Value::Float(6.0)]).into()));
+        assert_eq!(
+            matrix.to_dense(),
+            vec![vec![0.0, 2.0, 3.0], vec![4.0, 0.0, 6.0]]
+        );
+        assert_eq!(field(&back, "is_sparse"), &Value::Bool(true));
+        assert!(matches!(field(&back, "obs"), Value::Table(table) if table.rows.len() == 2));
+        assert!(matches!(field(&back, "var"), Value::Table(table) if table.rows.len() == 3));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn round_trip_sparse_without_densifying() {
+        let dir = tmp_dir("sparse_rt");
+        write_anndata_dir(&dir, &sparse_sc_object()).unwrap();
+        let back = read_anndata_dir(&dir).unwrap();
+
+        let matrix = match field(&back, "matrix") {
+            Value::SparseMatrix(matrix) => matrix,
+            other => panic!("expected sparse matrix, got {other:?}"),
+        };
+        assert_eq!((matrix.nrow, matrix.ncol, matrix.nnz()), (2, 3, 4));
+        assert_eq!(
+            matrix.to_dense(),
+            vec![vec![0.0, 2.0, 3.0], vec![4.0, 0.0, 6.0]]
+        );
+        assert_eq!(
+            matrix.row_names.as_deref(),
+            Some(&["CELL_1".to_string(), "CELL_2".to_string()][..])
+        );
+        assert_eq!(
+            matrix.col_names.as_deref(),
+            Some(
+                &[
+                    "GeneA".to_string(),
+                    "GeneB".to_string(),
+                    "GeneC".to_string(),
+                ][..]
+            )
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

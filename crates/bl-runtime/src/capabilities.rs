@@ -53,7 +53,9 @@ impl Backend {
             Backend::NativeFeature(f) => format!("rebuild with `cargo build --features {f}`"),
             Backend::LocalTool(t) => format!("install `{t}` and put it on PATH"),
             Backend::Python(m) => format!("`pip install {m}` (or use a container)"),
-            Backend::Container(i) => format!("install a container runtime, then `bl` will pull `{i}`"),
+            Backend::Container(i) => {
+                format!("install a container runtime, then `bl` will pull `{i}`")
+            }
         }
     }
 }
@@ -108,11 +110,7 @@ pub fn registry() -> Vec<Capability> {
         Capability {
             name: "read_anndata_h5ad",
             description: "Read/write AnnData .h5ad (HDF5)",
-            backends: vec![
-                NativeFeature("h5ad"),
-                Python("anndata"),
-                Container("biocontainers/anndata"),
-            ],
+            backends: vec![Python("anndata"), Container("biocontainers/anndata")],
             fidelity: ReferenceEquivalent,
         },
         Capability {
@@ -214,14 +212,7 @@ fn tool_succeeds(cmd: &str, args: &[&str]) -> bool {
 
 /// Cargo features compiled into this build that gate native capabilities.
 fn compiled_features() -> Vec<&'static str> {
-    let mut features = Vec::new();
-    if cfg!(feature = "h5ad") {
-        features.push("h5ad");
-    }
-    if cfg!(feature = "zarr") {
-        features.push("zarr");
-    }
-    features
+    Vec::new()
 }
 
 /// Best-effort total physical RAM in GB.
@@ -347,9 +338,7 @@ pub fn backend_available(backend: &Backend, env: &EnvReport) -> bool {
         Backend::Native => true,
         Backend::NativeFeature(f) => env.compiled_features.contains(f),
         Backend::LocalTool(t) => *env.tools_on_path.get(*t).unwrap_or(&false),
-        Backend::Python(m) => {
-            env.python.is_some() && *env.python_modules.get(*m).unwrap_or(&false)
-        }
+        Backend::Python(m) => env.python.is_some() && *env.python_modules.get(*m).unwrap_or(&false),
         Backend::Container(_) => env.container_runtime.is_some() && env.container_daemon_up,
     }
 }
@@ -501,7 +490,9 @@ pub fn doctor_report() -> String {
     }
     out.push_str(&format!(
         "  container runtime : {}{}\n",
-        env.container_runtime.clone().unwrap_or_else(|| "none".into()),
+        env.container_runtime
+            .clone()
+            .unwrap_or_else(|| "none".into()),
         match env.container_runtime {
             Some(_) if env.container_daemon_up => " (running)",
             Some(_) => " (not running)",
@@ -531,16 +522,8 @@ pub fn doctor_report() -> String {
             Some(b) => ("[ok]  ", b.label()),
             None => ("[--]  ", decision.reason.clone()),
         };
-        out.push_str(&format!(
-            "  {mark}{:<26} {}\n",
-            cap.name,
-            detail
-        ));
-        out.push_str(&format!(
-            "        {:<26} ({})\n",
-            "",
-            cap.fidelity.label()
-        ));
+        out.push_str(&format!("  {mark}{:<26} {}\n", cap.name, detail));
+        out.push_str(&format!("        {:<26} ({})\n", "", cap.fidelity.label()));
         if decision.backend.is_none() {
             // List how to enable each declared backend.
             for b in &cap.backends {
@@ -585,7 +568,10 @@ mod tests {
     fn falls_back_to_python_when_native_feature_missing() {
         // read_anndata_h5ad: [NativeFeature(h5ad), Python(anndata), Container]
         let env = env_with(true, &[("anndata", true)], false);
-        let cap = registry().into_iter().find(|c| c.name == "read_anndata_h5ad").unwrap();
+        let cap = registry()
+            .into_iter()
+            .find(|c| c.name == "read_anndata_h5ad")
+            .unwrap();
         let d = select_backend(&cap, &env, &SelectionContext::default());
         assert_eq!(d.backend, Some(Backend::Python("anndata")));
     }
@@ -593,7 +579,10 @@ mod tests {
     #[test]
     fn none_available_reports_fix_hint() {
         let env = env_with(false, &[], false);
-        let cap = registry().into_iter().find(|c| c.name == "integrate_scvi").unwrap();
+        let cap = registry()
+            .into_iter()
+            .find(|c| c.name == "integrate_scvi")
+            .unwrap();
         let d = select_backend(&cap, &env, &SelectionContext::default());
         assert!(d.backend.is_none());
         assert!(d.reason.contains("pip install") || d.reason.contains("container"));
@@ -603,16 +592,33 @@ mod tests {
     fn strict_mode_prefers_container() {
         // read_anndata_h5ad with both python and container available.
         let env = env_with(true, &[("anndata", true)], true);
-        let cap = registry().into_iter().find(|c| c.name == "read_anndata_h5ad").unwrap();
-        let d = select_backend(&cap, &env, &SelectionContext { strict: true, ..Default::default() });
+        let cap = registry()
+            .into_iter()
+            .find(|c| c.name == "read_anndata_h5ad")
+            .unwrap();
+        let d = select_backend(
+            &cap,
+            &env,
+            &SelectionContext {
+                strict: true,
+                ..Default::default()
+            },
+        );
         assert!(matches!(d.backend, Some(Backend::Container(_))));
     }
 
     #[test]
     fn warns_when_exploration_native_exceeds_ceiling() {
         let env = env_with(false, &[], false);
-        let cap = registry().into_iter().find(|c| c.name == "embed_umap").unwrap();
-        let ctx = SelectionContext { n_cells: Some(5_000_000), ram_gb: Some(16.0), ..Default::default() };
+        let cap = registry()
+            .into_iter()
+            .find(|c| c.name == "embed_umap")
+            .unwrap();
+        let ctx = SelectionContext {
+            n_cells: Some(5_000_000),
+            ram_gb: Some(16.0),
+            ..Default::default()
+        };
         let d = select_backend(&cap, &env, &ctx);
         assert_eq!(d.backend, Some(Backend::Native));
         assert!(!d.warnings.is_empty());

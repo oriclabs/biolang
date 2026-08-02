@@ -140,8 +140,11 @@ impl BioHelper {
     /// Longest common prefix of every word starting with `prefix`, plus how
     /// many matched. Used to show ghost text for an ambiguous prefix.
     fn common_completion(&self, prefix: &str) -> Option<(String, usize)> {
-        let matches: Vec<&String> =
-            self.words.iter().filter(|w| w.starts_with(prefix)).collect();
+        let matches: Vec<&String> = self
+            .words
+            .iter()
+            .filter(|w| w.starts_with(prefix))
+            .collect();
         let (first, rest) = matches.split_first()?;
         let mut common = (*first).clone();
         for w in rest {
@@ -151,7 +154,11 @@ impl BioHelper {
                 .take_while(|((_, a), (_, b))| a == b)
                 .count();
             common.truncate(
-                common.char_indices().nth(keep).map(|(i, _)| i).unwrap_or(common.len()),
+                common
+                    .char_indices()
+                    .nth(keep)
+                    .map(|(i, _)| i)
+                    .unwrap_or(common.len()),
             );
             if common.len() <= prefix.len() {
                 break; // nothing further is shared; the count is still exact
@@ -331,6 +338,7 @@ struct ConsoleVariable {
     type_name: String,
     preview: String,
     size_bytes: usize,
+    members: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -494,9 +502,7 @@ fn evaluate_console_request(
             let console_value = if matches!(value, Value::Nil) {
                 None
             } else {
-                interpreter
-                    .env_mut()
-                    .define("_".to_string(), value.clone());
+                interpreter.env_mut().define("_".to_string(), value.clone());
                 Some(console_value(&value))
             };
             ConsoleResponse {
@@ -538,6 +544,7 @@ fn console_environment(interpreter: &Interpreter) -> ConsoleEnvironment {
             type_name: value.type_of().to_string(),
             preview: value_preview(value),
             size_bytes: estimate_value_bytes(value),
+            members: value_members(value),
         })
         .collect::<Vec<_>>();
     variables.sort_by(|left, right| left.name.cmp(&right.name));
@@ -545,6 +552,32 @@ fn console_environment(interpreter: &Interpreter) -> ConsoleEnvironment {
         total_bytes: variables.iter().map(|variable| variable.size_bytes).sum(),
         variables,
     }
+}
+
+fn value_members(value: &Value) -> Vec<String> {
+    let mut members = match value {
+        Value::Record(fields) | Value::Map(fields) => fields.keys().cloned().collect(),
+        Value::Table(table) => table.columns.clone(),
+        Value::Gene { .. } => vec![
+            "symbol", "gene_id", "chrom", "start", "end", "strand", "biotype", "description",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect(),
+        Value::Variant { .. } => vec![
+            "chrom", "pos", "id", "ref_allele", "alt_allele", "quality", "filter", "info",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect(),
+        Value::Genome { .. } => vec!["name", "species", "assembly", "chromosomes"]
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+        _ => Vec::new(),
+    };
+    members.sort();
+    members
 }
 
 fn console_value(value: &Value) -> ConsoleValue {
@@ -598,8 +631,7 @@ fn estimate_value_bytes(value: &Value) -> usize {
                 .sum::<usize>()
         }
         Value::Table(table) => {
-            base
-                + table.columns.iter().map(String::len).sum::<usize>()
+            base + table.columns.iter().map(String::len).sum::<usize>()
                 + table
                     .rows
                     .iter()
@@ -1119,7 +1151,11 @@ impl Repl {
     /// `:workspace [file]` — save variable VALUES (not the commands that made
     /// them; that is what `:save` does).
     fn cmd_workspace_save(&mut self, arg: &str) {
-        let path = if arg.is_empty() { Self::default_workspace_path() } else { arg.to_string() };
+        let path = if arg.is_empty() {
+            Self::default_workspace_path()
+        } else {
+            arg.to_string()
+        };
         let vars: Vec<(&str, &Value)> = self
             .interpreter
             .env()
@@ -1159,7 +1195,11 @@ impl Repl {
 
     /// `:restore [file]` — bring saved values back into the session.
     fn cmd_workspace_load(&mut self, arg: &str) {
-        let path = if arg.is_empty() { Self::default_workspace_path() } else { arg.to_string() };
+        let path = if arg.is_empty() {
+            Self::default_workspace_path()
+        } else {
+            arg.to_string()
+        };
         match bl_runtime::workspace::load(&path) {
             Ok(vars) => {
                 let n = vars.len();
@@ -1170,14 +1210,9 @@ impl Repl {
                     }
                     self.interpreter.env_mut().define(name, value);
                 }
-                println!(
-                    "{GREEN}Restored {n} variable(s){RESET} from {CYAN}{path}{RESET}"
-                );
+                println!("{GREEN}Restored {n} variable(s){RESET} from {CYAN}{path}{RESET}");
                 if !replaced.is_empty() {
-                    println!(
-                        "{DIM}Overwrote existing: {}{RESET}",
-                        replaced.join(", ")
-                    );
+                    println!("{DIM}Overwrote existing: {}{RESET}", replaced.join(", "));
                 }
             }
             Err(e) => eprintln!("{RED}{e}{RESET}"),
@@ -1529,10 +1564,25 @@ fn fallback_signature(name: &str, arity: &BuiltinArityMetadata) -> String {
 }
 
 fn signature_parts(signature: &str) -> (Vec<String>, Option<String>) {
-    let call = signature.split('→').next().unwrap_or(signature).trim();
-    let parameters = call
-        .split_once('(')
-        .and_then(|(_, rest)| rest.rsplit_once(')').map(|(parameters, _)| parameters))
+    let parameters = signature
+        .find('(')
+        .and_then(|open| {
+            let mut depth = 0usize;
+            signature[open + 1..]
+                .char_indices()
+                .find_map(|(index, character)| match character {
+                    '(' | '[' | '{' | '<' => {
+                        depth += 1;
+                        None
+                    }
+                    ')' if depth == 0 => Some(&signature[open + 1..open + 1 + index]),
+                    ')' | ']' | '}' | '>' => {
+                        depth = depth.saturating_sub(1);
+                        None
+                    }
+                    _ => None,
+                })
+        })
         .filter(|parameters| !parameters.trim().is_empty())
         .map(|parameters| {
             parameters
@@ -1542,7 +1592,8 @@ fn signature_parts(signature: &str) -> (Vec<String>, Option<String>) {
         })
         .unwrap_or_default();
     let return_type = signature
-        .split_once('→')
+        .split_once("->")
+        .or_else(|| signature.split_once('→'))
         .map(|(_, value)| value.trim().to_string())
         .filter(|value| !value.is_empty());
     (parameters, return_type)
@@ -1910,6 +1961,32 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
         "diff_expr",
         "diff_expr(counts, [\"A\",\"A\",\"B\",\"B\"])  # → DE results",
         "Table",
+    ),
+    (
+        "read_10x_sparse",
+        "let cells = read_10x_sparse(\"filtered_feature_bc_matrix\")",
+        "Record",
+    ),
+    (
+        "cell_qc",
+        "cell_qc(cells.matrix, cells.genes)  # -> Table",
+        "Table",
+    ),
+    (
+        "normalize_total",
+        "normalize_total(cells.matrix, 10000.0) |> log1p_transform()",
+        "SparseMatrix",
+    ),
+    (
+        "sc_pca",
+        "let pcs = sc_pca(log_counts, 30)  # pcs.scores is cells x components",
+        "Record",
+    ),
+    ("knn_graph", "let edges = knn_graph(pcs.scores, 15)", "List"),
+    (
+        "leiden_graph",
+        "leiden_graph(edges, cells.n_cells, 0.5)",
+        "List",
     ),
 ];
 
@@ -2395,7 +2472,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("float", "float(value) → Float", "core"),
     ("str", "str(value) → Str", "core"),
     ("bool", "bool(value) → Bool", "core"),
-    ("assert", "assert(condition, message)", "core"),
+    ("assert", "assert condition, message?", "core"),
     ("debug", "debug(value)", "core"),
     ("env", "env(name) → Str|Nil", "core"),
     ("sleep", "sleep(ms)", "core"),
@@ -2609,15 +2686,35 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("umap_plot", "umap_plot(points, opts?) → Str (SVG)", "plot"),
     ("pca_plot", "pca_plot(points, opts?) → Str (SVG)", "plot"),
     ("violin", "violin(data, opts?) → Str (SVG)", "plot"),
-    ("clustered_heatmap", "clustered_heatmap(data, opts?) → Str (SVG)", "plot"),
+    (
+        "clustered_heatmap",
+        "clustered_heatmap(data, opts?) → Str (SVG)",
+        "plot",
+    ),
     ("density", "density(data, opts?) → Str (SVG)", "plot"),
     ("boxplot", "boxplot(data, opts?) → Str (ASCII)", "plot"),
     ("sparkline", "sparkline(data) → Str (ASCII)", "plot"),
-    ("heatmap_ascii", "heatmap_ascii(table, opts?) → Str (ASCII)", "plot"),
-    ("quality_plot", "quality_plot(quality, opts?) → Str (ASCII)", "plot"),
-    ("bar_chart", "bar_chart(labels_to_values) → Nil (prints ASCII)", "plot"),
+    (
+        "heatmap_ascii",
+        "heatmap_ascii(table, opts?) → Str (ASCII)",
+        "plot",
+    ),
+    (
+        "quality_plot",
+        "quality_plot(quality, opts?) → Str (ASCII)",
+        "plot",
+    ),
+    (
+        "bar_chart",
+        "bar_chart(labels_to_values) → Nil (prints ASCII)",
+        "plot",
+    ),
     // Sequence dot-matrix, NOT the expression dot plot of scanpy/Seurat.
-    ("dotplot", "dotplot(seq1, seq2, opts?) → Str (sequence dot-matrix)", "plot"),
+    (
+        "dotplot",
+        "dotplot(seq1, seq2, opts?) → Str (sequence dot-matrix)",
+        "plot",
+    ),
     // Matrix
     ("matrix", "matrix(nested_lists) → Matrix", "matrix"),
     ("zeros", "zeros(nrow, ncol) → Matrix", "matrix"),
@@ -3179,6 +3276,172 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
         "normalize_sparse(m, method) → SparseMatrix ('log1p_cpm'|'scale')",
         "sparse",
     ),
+    // Single-cell RNA-seq
+    (
+        "read_10x",
+        "read_10x(path, gene_column?) -> Record (dense)",
+        "singlecell",
+    ),
+    (
+        "read_10x_sparse",
+        "read_10x_sparse(path, gene_column?) -> Record (CSR counts, obs, var, layers)",
+        "singlecell",
+    ),
+    (
+        "read_anndata",
+        "read_anndata(zarr_path) -> Record (native dense or CSR AnnData Zarr)",
+        "singlecell",
+    ),
+    (
+        "write_anndata",
+        "write_anndata(zarr_path, object) -> Nil (preserves CSR sparsity)",
+        "singlecell",
+    ),
+    (
+        "normalize_total",
+        "normalize_total(matrix, target?) -> matrix (row library-size normalization)",
+        "singlecell",
+    ),
+    (
+        "log1p_transform",
+        "log1p_transform(matrix) -> matrix (preserves CSR sparsity)",
+        "singlecell",
+    ),
+    (
+        "highly_variable_genes",
+        "highly_variable_genes(matrix, n?) -> List[Int] (dispersion-ranked columns)",
+        "singlecell",
+    ),
+    (
+        "cell_qc",
+        "cell_qc(matrix, gene_names?, mito_prefix?) -> Table",
+        "singlecell",
+    ),
+    (
+        "gene_qc",
+        "gene_qc(matrix, gene_names?) -> Table",
+        "singlecell",
+    ),
+    (
+        "select_rows",
+        "select_rows(matrix|table, indices) -> matrix|table",
+        "singlecell",
+    ),
+    (
+        "select_cols",
+        "select_cols(matrix, indices) -> matrix",
+        "singlecell",
+    ),
+    (
+        "matrix_at",
+        "matrix_at(matrix, row, column) -> Value",
+        "singlecell",
+    ),
+    (
+        "sc_subset_cells",
+        "sc_subset_cells(object, indices) -> Record (synchronized metadata/layers)",
+        "singlecell",
+    ),
+    (
+        "sc_subset_genes",
+        "sc_subset_genes(object, indices) -> Record (invalidates reductions)",
+        "singlecell",
+    ),
+    (
+        "sc_merge_objects",
+        "sc_merge_objects(left, right, left_batch, right_batch) -> Record",
+        "singlecell",
+    ),
+    (
+        "sc_pca",
+        "sc_pca(matrix, n_components?) -> {scores, loadings, explained_variance_ratio, ...}",
+        "singlecell",
+    ),
+    (
+        "knn_graph",
+        "knn_graph(embedding, k?) -> List[{source, target, distance}]",
+        "singlecell",
+    ),
+    (
+        "leiden_cluster",
+        "leiden_cluster(embedding, k, resolution?) -> List[Int]",
+        "singlecell",
+    ),
+    (
+        "leiden_graph",
+        "leiden_graph(edges, n_nodes, resolution) -> List[Int]",
+        "singlecell",
+    ),
+    (
+        "doublet_score",
+        "doublet_score(matrix, n_simulated?) -> List[Float]",
+        "singlecell",
+    ),
+    (
+        "cell_cycle_score",
+        "cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) -> List[Record]",
+        "singlecell",
+    ),
+    (
+        "module_score",
+        "module_score(matrix, gene_indices) -> List[Float]",
+        "singlecell",
+    ),
+    (
+        "sc_sctransform",
+        "sc_sctransform(matrix) -> matrix",
+        "singlecell",
+    ),
+    (
+        "sc_integrate",
+        "sc_integrate(embedding, batch_ids) -> matrix",
+        "singlecell",
+    ),
+    (
+        "diffusion_pseudotime",
+        "diffusion_pseudotime(embedding, edges, start_cell) -> List[Float]",
+        "singlecell",
+    ),
+    (
+        "lr_score",
+        "lr_score(matrix, labels, ligand_receptor_pairs) -> List[Record]",
+        "singlecell",
+    ),
+    (
+        "lr_aggregate",
+        "lr_aggregate(scores, pathway_map) -> List[Record]",
+        "singlecell",
+    ),
+    (
+        "spatial_neighbors",
+        "spatial_neighbors(coordinates, k?) -> List[Record]",
+        "singlecell",
+    ),
+    (
+        "spatial_moransi",
+        "spatial_moransi(expression, edges) -> Float",
+        "singlecell",
+    ),
+    (
+        "reference_classify",
+        "reference_classify(query, reference_profiles, labels) -> List[Record]",
+        "singlecell",
+    ),
+    (
+        "pseudobulk_aggregate",
+        "pseudobulk_aggregate(matrix, sample_ids, groups) -> Record",
+        "singlecell",
+    ),
+    (
+        "wnn_graph",
+        "wnn_graph(rna_edges, protein_edges, rna_weight) -> List[Record]",
+        "singlecell",
+    ),
+    (
+        "velocity_estimate",
+        "velocity_estimate(spliced, unspliced) -> matrix",
+        "singlecell",
+    ),
     // GAP 6: Typed table columns
     (
         "table_col_types",
@@ -3298,6 +3561,7 @@ const CATEGORIES: &[(&str, &str)] = &[
     ("coord", "Coordinate Systems (BED/VCF/GFF/SAM)"),
     ("kmer", "K-mer Analysis"),
     ("sparse", "Sparse Matrix"),
+    ("singlecell", "Single-Cell RNA-seq"),
     ("stream", "Streaming"),
     ("provenance", "Data Provenance"),
 ];

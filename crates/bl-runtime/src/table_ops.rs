@@ -36,6 +36,7 @@ pub fn table_builtin_list() -> Vec<(&'static str, Arity)> {
         ("classify_variants", Arity::Exact(1)),
         ("value_counts", Arity::Exact(2)),
         ("describe", Arity::Exact(1)),
+        ("glimpse", Arity::Exact(1)),
         // Combine
         ("bio_join", Arity::Range(2, 4)),
         ("concat", Arity::AtLeast(2)),
@@ -120,6 +121,7 @@ pub fn is_table_builtin(name: &str) -> bool {
             | "classify_variants"
             | "value_counts"
             | "describe"
+            | "glimpse"
             | "bio_join"
             | "concat"
             | "bind_cols"
@@ -195,6 +197,7 @@ pub fn call_table_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "classify_variants" => builtin_classify_variants(args),
         "value_counts" => builtin_value_counts(args),
         "describe" => builtin_describe(args),
+        "glimpse" => builtin_glimpse(args),
         "bio_join" => builtin_bio_join(args),
         "concat" => builtin_concat(args),
         "bind_cols" => builtin_bind_cols(args),
@@ -3608,4 +3611,53 @@ fn builtin_bed_closest(args: Vec<Value>) -> Result<Value> {
     }
 
     Ok(Value::Table(Table::new(out_cols, out_rows)))
+}
+
+/// `glimpse(table)` — one line per column with its type and leading values.
+///
+/// This is `dplyr::glimpse` and `DataFrame.info`, the first thing an R or
+/// Python user types when a table appears. BioLang's `str()` converts a value
+/// to a string and `describe()` gives statistics; neither answers "what is in
+/// this thing", which is what glimpse is for.
+fn builtin_glimpse(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "glimpse")?;
+    let types = table.column_types();
+    let width = table
+        .columns
+        .iter()
+        .map(|name| name.chars().count())
+        .max()
+        .unwrap_or(0);
+    // dplyr aligns the values past the widest type label; ragged columns defeat
+    // the point of a one-line-per-column view.
+    let type_width = types
+        .iter()
+        .map(|name| name.chars().count() + 2)
+        .max()
+        .unwrap_or(0);
+
+    let mut lines = vec![
+        format!("Rows: {}", table.rows.len()),
+        format!("Columns: {}", table.columns.len()),
+    ];
+    for (index, name) in table.columns.iter().enumerate() {
+        // Enough values to recognise the column, not so many that the line wraps.
+        let preview: Vec<String> = table
+            .rows
+            .iter()
+            .take(8)
+            .map(|row| format!("{}", row[index]))
+            .collect();
+        let mut joined = preview.join(", ");
+        if table.rows.len() > preview.len() {
+            joined.push_str(", ...");
+        }
+        let label = format!("<{}>", types[index]);
+        lines.push(format!(
+            "$ {name:<width$} {label:<type_width$} {joined}",
+            width = width,
+            type_width = type_width
+        ));
+    }
+    Ok(Value::Str(lines.join("\n")))
 }

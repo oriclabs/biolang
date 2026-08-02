@@ -339,6 +339,67 @@ fn test_gsea_wrong_gene_sets_type() {
     assert!(result.is_err());
 }
 
+// ── Reproducibility ─────────────────────────────────────────────
+
+fn gsea_run(seed: Option<i64>) -> Value {
+    let table = ranked_table(vec![
+        ("A", 3.0),
+        ("B", 2.0),
+        ("C", 1.0),
+        ("D", -1.0),
+        ("E", -2.0),
+        ("F", -3.0),
+    ]);
+    // Several sets, so a HashMap-ordered loop would advance the shared RNG in
+    // a different order from run to run.
+    let sets = gene_sets(vec![
+        ("up", vec!["A", "B"]),
+        ("zz", vec!["E", "F"]),
+        ("down", vec!["D", "E"]),
+        ("mid", vec!["B", "C", "D"]),
+    ]);
+    let mut args = vec![table, sets];
+    if let Some(s) = seed {
+        args.push(Value::Int(s));
+    }
+    call_enrich_builtin("gsea", args).unwrap()
+}
+
+#[test]
+fn test_gsea_is_deterministic_without_a_seed() {
+    // p-values come from a permutation test; seeding from the clock would make
+    // two runs on identical input disagree, which no reproducible analysis can
+    // accept. Repeated so a HashMap ordering flip has a chance to show up.
+    let first = gsea_run(None);
+    for _ in 0..5 {
+        assert_eq!(first, gsea_run(None), "gsea() must repeat exactly");
+    }
+}
+
+#[test]
+fn test_gsea_seed_is_honored_and_changes_the_null() {
+    assert_eq!(gsea_run(Some(7)), gsea_run(Some(7)), "same seed must repeat");
+    assert_ne!(
+        gsea_run(Some(7)),
+        gsea_run(Some(99)),
+        "a different seed should draw a different permutation null"
+    );
+}
+
+#[test]
+fn test_gsea_rejects_a_non_integer_seed() {
+    let table = ranked_table(vec![("A", 1.0)]);
+    let result = call_enrich_builtin(
+        "gsea",
+        vec![
+            table,
+            gene_sets(vec![("s1", vec!["A"])]),
+            Value::Str("abc".to_string()),
+        ],
+    );
+    assert!(result.is_err(), "seed must be an Int");
+}
+
 // ── Unknown builtin ─────────────────────────────────────────────
 
 #[test]

@@ -380,3 +380,62 @@ fn test_from_dense_non_square() {
     assert_eq!(sm.get(0, 3), 2.0);
     assert_eq!(sm.get(1, 1), 3.0);
 }
+
+#[test]
+fn test_subset_rows_and_columns_preserve_requested_order_and_names() {
+    let mut matrix = SparseMatrix::from_dense(&[
+        vec![1.0, 0.0, 2.0],
+        vec![0.0, 3.0, 0.0],
+        vec![4.0, 0.0, 5.0],
+    ]);
+    matrix.row_names = Some(vec!["a".into(), "b".into(), "c".into()]);
+    matrix.col_names = Some(vec!["x".into(), "y".into(), "z".into()]);
+
+    let selected = matrix.subset_rows(&[2, 0]).subset_cols(&[2, 0]);
+    assert_eq!(selected.to_dense(), vec![vec![5.0, 4.0], vec![2.0, 1.0]]);
+    assert_eq!(selected.row_names.unwrap(), vec!["c", "a"]);
+    assert_eq!(selected.col_names.unwrap(), vec!["z", "x"]);
+}
+
+#[test]
+fn test_sparse_counts_and_row_normalization() {
+    let matrix = SparseMatrix::from_dense(&[
+        vec![1.0, 0.0, 3.0],
+        vec![0.0, 0.0, 0.0],
+        vec![0.0, 2.0, 0.0],
+    ]);
+    assert_eq!(matrix.row_nnz(), vec![2, 0, 1]);
+    assert_eq!(matrix.col_nnz(), vec![1, 1, 1]);
+
+    let normalized = matrix.normalize_rows(10.0);
+    assert_eq!(normalized.row_sums(), vec![10.0, 0.0, 10.0]);
+    assert_eq!(normalized.nnz(), matrix.nnz());
+}
+
+#[test]
+fn test_map_nonzero_preserves_sparse_structure() {
+    let matrix = SparseMatrix::from_dense(&[vec![0.0, 3.0], vec![7.0, 0.0]]);
+    let transformed = matrix.map_nonzero(|value| (value + 1.0).ln());
+    assert_eq!(transformed.indptr, matrix.indptr);
+    assert_eq!(transformed.indices, matrix.indices);
+    assert_eq!(transformed.nnz(), 2);
+    assert!((transformed.get(0, 1) - 4.0_f64.ln()).abs() < 1e-12);
+}
+
+#[test]
+fn test_append_sparse_rows() {
+    let mut left = SparseMatrix::from_dense(&[vec![1.0, 0.0], vec![0.0, 2.0]]);
+    left.row_names = Some(vec!["a".into(), "b".into()]);
+    left.col_names = Some(vec!["x".into(), "y".into()]);
+    let mut right = SparseMatrix::from_dense(&[vec![3.0, 4.0]]);
+    right.row_names = Some(vec!["c".into()]);
+    right.col_names = Some(vec!["x".into(), "y".into()]);
+
+    let merged = left.append_rows(&right).unwrap();
+    assert_eq!(
+        merged.to_dense(),
+        vec![vec![1.0, 0.0], vec![0.0, 2.0], vec![3.0, 4.0]]
+    );
+    assert_eq!(merged.row_names.unwrap(), vec!["a", "b", "c"]);
+    assert_eq!(merged.col_names.unwrap(), vec!["x", "y"]);
+}

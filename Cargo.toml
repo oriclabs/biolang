@@ -14,6 +14,9 @@ members = [
     "crates/bl-lsp",
     "crates/bl-import",
     "crates/bl-cli",
+    "crates/bl-fmt",
+    "crates/bl-qc",
+    "crates/bl-refs",
     "crates/bl-wasm",
 ]
 
@@ -44,3 +47,7 @@ bl-repl = { path = "crates/bl-repl" }
 bl-lsp = { path = "crates/bl-lsp" }
 bl-import = { path = "crates/bl-import" }
 bl-cli = { path = "crates/bl-cli" }
+bl-fmt = { path = "crates/bl-fmt" }
+bl-qc = { path = "crates/bl-qc" }
+bl-refs = { path = "crates/bl-refs" }
+serde = { version = "1", features = ["derive"] }
