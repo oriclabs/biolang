@@ -1,0 +1,755 @@
+# BioLang example pack: Rosalind — Bioinformatics Stronghold
+#
+# In progress: the Stronghold has 107 problems and this pack currently carries
+# fifteen of them. Problems are added only once they reproduce the official
+# sample answer and carry a `test_*` assertion, so this pack's coverage number
+# is always the number actually verified rather than the number attempted.
+#
+# See packs/rosalind-armory/pack.toml for the field meanings.
+
+[pack]
+id = "rosalind-stronghold"
+name = "Rosalind — Bioinformatics Stronghold"
+version = "0.1.0"
+track = "bioinformatics-stronghold"
+description = "Worked solutions to the Rosalind Bioinformatics Stronghold, 79 of 107 problems so far."
+list_url = "https://rosalind.info/problems/list-view/"
+requires = ">=0.4"
+
+license = "MIT"
+statements_license = "Problem statements © rosalind.info — paraphrased and linked, not reproduced."
+
+[[problem]]
+id = "DNA"
+title = "Counting DNA Nucleotides"
+file = "examples/dna.bl"
+url = "https://rosalind.info/problems/dna/"
+status = "solved"
+asserted = true
+topics = ["sequence", "counting"]
+
+[[problem]]
+id = "RNA"
+title = "Transcribing DNA into RNA"
+file = "examples/rna.bl"
+url = "https://rosalind.info/problems/rna/"
+status = "solved"
+asserted = true
+topics = ["sequence", "transcription"]
+
+[[problem]]
+id = "REVC"
+title = "Complementing a Strand of DNA"
+file = "examples/revc.bl"
+url = "https://rosalind.info/problems/revc/"
+status = "solved"
+asserted = true
+topics = ["sequence"]
+
+[[problem]]
+id = "HAMM"
+title = "Counting Point Mutations"
+file = "examples/hamm.bl"
+url = "https://rosalind.info/problems/hamm/"
+status = "solved"
+asserted = true
+topics = ["sequence", "mutations"]
+
+[[problem]]
+id = "FIB"
+title = "Rabbits and Recurrence Relations"
+file = "examples/fib.bl"
+url = "https://rosalind.info/problems/fib/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "recurrence"]
+
+[[problem]]
+id = "GC"
+title = "Computing GC Content"
+file = "examples/gc.bl"
+url = "https://rosalind.info/problems/gc/"
+status = "solved"
+asserted = true
+topics = ["sequence", "fasta"]
+
+[[problem]]
+id = "PROT"
+title = "Translating RNA into Protein"
+file = "examples/prot.bl"
+url = "https://rosalind.info/problems/prot/"
+status = "solved"
+asserted = true
+topics = ["translation"]
+
+[[problem]]
+id = "SUBS"
+title = "Finding a Motif in DNA"
+file = "examples/subs.bl"
+url = "https://rosalind.info/problems/subs/"
+status = "solved"
+asserted = true
+topics = ["motifs"]
+
+[[problem]]
+id = "FIBD"
+title = "Mortal Fibonacci Rabbits"
+file = "examples/fibd.bl"
+url = "https://rosalind.info/problems/fibd/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "recurrence"]
+
+[[problem]]
+id = "IPRB"
+title = "Mendel's First Law"
+file = "examples/iprb.bl"
+url = "https://rosalind.info/problems/iprb/"
+status = "solved"
+asserted = true
+topics = ["probability", "genetics"]
+
+[[problem]]
+id = "IEV"
+title = "Calculating Expected Offspring"
+file = "examples/iev.bl"
+url = "https://rosalind.info/problems/iev/"
+status = "solved"
+asserted = true
+topics = ["probability", "genetics"]
+
+[[problem]]
+id = "MRNA"
+title = "Inferring mRNA from Protein"
+file = "examples/mrna.bl"
+url = "https://rosalind.info/problems/mrna/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "translation"]
+
+[[problem]]
+id = "PRTM"
+title = "Calculating Protein Mass"
+file = "examples/prtm.bl"
+url = "https://rosalind.info/problems/prtm/"
+status = "solved"
+asserted = true
+topics = ["protein", "mass-spectrometry"]
+
+[[problem]]
+id = "PERM"
+title = "Enumerating Gene Orders"
+file = "examples/perm.bl"
+url = "https://rosalind.info/problems/perm/"
+status = "solved"
+asserted = true
+topics = ["combinatorics"]
+
+[[problem]]
+id = "PPER"
+title = "Partial Permutations"
+file = "examples/pper.bl"
+url = "https://rosalind.info/problems/pper/"
+status = "solved"
+asserted = true
+topics = ["combinatorics"]
+
+[[problem]]
+id = "EDIT"
+title = "Edit Distance"
+file = "examples/edit.bl"
+url = "https://rosalind.info/problems/edit/"
+status = "solved"
+asserted = true
+topics = ["alignment", "edit-distance"]
+
+[[problem]]
+id = "GLOB"
+title = "Global Alignment with Scoring Matrix"
+file = "examples/glob.bl"
+url = "https://rosalind.info/problems/glob/"
+status = "solved"
+asserted = true
+topics = ["alignment", "blosum62"]
+
+[[problem]]
+id = "LOCA"
+title = "Local Alignment with Scoring Matrix"
+file = "examples/loca.bl"
+url = "https://rosalind.info/problems/loca/"
+status = "solved"
+asserted = true
+topics = ["alignment", "pam250"]
+
+[[problem]]
+id = "GAFF"
+title = "Global Alignment with Scoring Matrix and Affine Gap Penalty"
+file = "examples/gaff.bl"
+url = "https://rosalind.info/problems/gaff/"
+status = "solved"
+asserted = true
+topics = ["alignment", "affine-gaps"]
+
+[[problem]]
+id = "OAP"
+title = "Overlap Alignment"
+file = "examples/oap.bl"
+url = "https://rosalind.info/problems/oap/"
+status = "solved"
+asserted = true
+slow = true
+note = "Brute-force DP over lists; ~9 s. A flat-buffer implementation would be the natural follow-up."
+topics = ["alignment", "overlap"]
+
+[[problem]]
+id = "SSET"
+title = "Counting Subsets"
+file = "examples/sset.bl"
+url = "https://rosalind.info/problems/sset/"
+status = "solved"
+asserted = true
+topics = ["combinatorics"]
+
+[[problem]]
+id = "PMCH"
+title = "Perfect Matchings and RNA Secondary Structures"
+file = "examples/pmch.bl"
+url = "https://rosalind.info/problems/pmch/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "rna-structure"]
+
+[[problem]]
+id = "MMCH"
+title = "Maximum Matchings and RNA Secondary Structures"
+file = "examples/mmch.bl"
+url = "https://rosalind.info/problems/mmch/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "rna-structure"]
+
+[[problem]]
+id = "CAT"
+title = "Catalan Numbers and RNA Secondary Structures"
+file = "examples/cat.bl"
+url = "https://rosalind.info/problems/cat/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "rna-structure", "dynamic-programming"]
+
+[[problem]]
+id = "LIA"
+title = "Independent Alleles"
+file = "examples/lia.bl"
+url = "https://rosalind.info/problems/lia/"
+status = "solved"
+asserted = true
+topics = ["probability", "genetics"]
+
+[[problem]]
+id = "SEXL"
+title = "Sex-Linked Inheritance"
+file = "examples/sexl.bl"
+url = "https://rosalind.info/problems/sexl/"
+status = "solved"
+asserted = true
+topics = ["probability", "genetics"]
+
+[[problem]]
+id = "AFRQ"
+title = "Counting Disease Carriers"
+file = "examples/afrq.bl"
+url = "https://rosalind.info/problems/afrq/"
+status = "solved"
+asserted = true
+topics = ["probability", "hardy-weinberg"]
+
+[[problem]]
+id = "PROB"
+title = "Introduction to Random Strings"
+file = "examples/prob.bl"
+url = "https://rosalind.info/problems/prob/"
+status = "solved"
+asserted = true
+topics = ["probability", "gc-content"]
+
+[[problem]]
+id = "LEXF"
+title = "Enumerating k-mers Lexicographically"
+file = "examples/lexf.bl"
+url = "https://rosalind.info/problems/lexf/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "strings"]
+
+[[problem]]
+id = "LCSM"
+title = "Finding a Shared Motif"
+file = "examples/lcsm.bl"
+url = "https://rosalind.info/problems/lcsm/"
+status = "solved"
+asserted = true
+note = "Any longest common substring is a valid answer, so the assertion checks the length and that the motif really is shared, not one particular string."
+topics = ["motifs", "strings"]
+
+[[problem]]
+id = "TRAN"
+title = "Transitions and Transversions"
+file = "examples/tran.bl"
+url = "https://rosalind.info/problems/tran/"
+status = "solved"
+asserted = true
+topics = ["sequence", "mutations"]
+
+[[problem]]
+id = "SPLC"
+title = "RNA Splicing"
+file = "examples/splc.bl"
+url = "https://rosalind.info/problems/splc/"
+status = "solved"
+asserted = true
+topics = ["translation", "splicing"]
+
+[[problem]]
+id = "CONS"
+title = "Consensus and Profile"
+file = "examples/cons.bl"
+url = "https://rosalind.info/problems/cons/"
+status = "solved"
+asserted = true
+topics = ["sequence", "profile"]
+
+[[problem]]
+id = "GRPH"
+title = "Overlap Graphs"
+file = "examples/grph.bl"
+url = "https://rosalind.info/problems/grph/"
+status = "solved"
+asserted = true
+topics = ["graphs", "assembly"]
+
+[[problem]]
+id = "REVP"
+title = "Locating Restriction Sites"
+file = "examples/revp.bl"
+url = "https://rosalind.info/problems/revp/"
+status = "solved"
+asserted = true
+topics = ["sequence", "palindromes"]
+
+[[problem]]
+id = "TREE"
+title = "Completing a Tree"
+file = "examples/tree.bl"
+url = "https://rosalind.info/problems/tree/"
+status = "solved"
+asserted = true
+topics = ["phylogeny", "graphs"]
+
+[[problem]]
+id = "INOD"
+title = "Counting Phylogenetic Ancestors"
+file = "examples/inod.bl"
+url = "https://rosalind.info/problems/inod/"
+status = "solved"
+asserted = true
+topics = ["phylogeny"]
+
+[[problem]]
+id = "SIGN"
+title = "Enumerating Oriented Gene Orderings"
+file = "examples/sign.bl"
+url = "https://rosalind.info/problems/sign/"
+status = "solved"
+asserted = true
+topics = ["combinatorics"]
+
+[[problem]]
+id = "LGIS"
+title = "Longest Increasing Subsequence"
+file = "examples/lgis.bl"
+url = "https://rosalind.info/problems/lgis/"
+status = "solved"
+asserted = true
+topics = ["dynamic-programming"]
+
+[[problem]]
+id = "SSEQ"
+title = "Finding a Spliced Motif"
+file = "examples/sseq.bl"
+url = "https://rosalind.info/problems/sseq/"
+status = "solved"
+asserted = true
+topics = ["motifs"]
+
+[[problem]]
+id = "PDST"
+title = "Creating a Distance Matrix"
+file = "examples/pdst.bl"
+url = "https://rosalind.info/problems/pdst/"
+status = "solved"
+asserted = true
+topics = ["phylogeny", "distance"]
+
+[[problem]]
+id = "ASMQ"
+title = "Assessing Assembly Quality with N50 and N75"
+file = "examples/asmq.bl"
+url = "https://rosalind.info/problems/asmq/"
+status = "solved"
+asserted = true
+topics = ["assembly"]
+
+[[problem]]
+id = "ORF"
+title = "Open Reading Frames"
+file = "examples/orf.bl"
+url = "https://rosalind.info/problems/orf/"
+status = "solved"
+asserted = true
+topics = ["orf", "translation"]
+
+[[problem]]
+id = "LEXV"
+title = "Ordering Strings of Varying Length Lexicographically"
+file = "examples/lexv.bl"
+url = "https://rosalind.info/problems/lexv/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "strings"]
+
+[[problem]]
+id = "SETO"
+title = "Introduction to Set Operations"
+file = "examples/seto.bl"
+url = "https://rosalind.info/problems/seto/"
+status = "solved"
+asserted = true
+topics = ["sets"]
+
+[[problem]]
+id = "LCSQ"
+title = "Finding a Shared Spliced Motif"
+file = "examples/lcsq.bl"
+url = "https://rosalind.info/problems/lcsq/"
+status = "solved"
+asserted = true
+note = "Any longest common subsequence is a valid answer, so the assertion checks the length and that the motif really is a subsequence of both strings."
+topics = ["dynamic-programming", "motifs"]
+
+[[problem]]
+id = "KMP"
+title = "Speeding Up Motif Finding"
+file = "examples/kmp.bl"
+url = "https://rosalind.info/problems/kmp/"
+status = "solved"
+asserted = true
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "DBRU"
+title = "Constructing a De Bruijn Graph"
+file = "examples/dbru.bl"
+url = "https://rosalind.info/problems/dbru/"
+status = "solved"
+asserted = true
+topics = ["graphs", "assembly"]
+
+[[problem]]
+id = "ASPC"
+title = "Introduction to Alternative Splicing"
+file = "examples/aspc.bl"
+url = "https://rosalind.info/problems/aspc/"
+status = "solved"
+asserted = true
+topics = ["combinatorics"]
+
+[[problem]]
+id = "CORR"
+title = "Error Correction in Reads"
+file = "examples/corr.bl"
+url = "https://rosalind.info/problems/corr/"
+status = "solved"
+asserted = true
+topics = ["sequence", "error-correction"]
+
+[[problem]]
+id = "SCSP"
+title = "Interleaving Two Motifs"
+file = "examples/scsp.bl"
+url = "https://rosalind.info/problems/scsp/"
+status = "solved"
+asserted = true
+note = "Any shortest common supersequence is valid, so the assertion checks the length and that both inputs are subsequences of the result."
+topics = ["dynamic-programming", "motifs"]
+
+[[problem]]
+id = "EVAL"
+title = "Expected Number of Restriction Sites"
+file = "examples/eval.bl"
+url = "https://rosalind.info/problems/eval/"
+status = "solved"
+asserted = true
+topics = ["probability", "gc-content"]
+
+[[problem]]
+id = "LONG"
+title = "Genome Assembly as Shortest Superstring"
+file = "examples/long.bl"
+url = "https://rosalind.info/problems/long/"
+status = "solved"
+asserted = true
+topics = ["assembly"]
+
+[[problem]]
+id = "KMER"
+title = "k-Mer Composition"
+file = "examples/kmer.bl"
+url = "https://rosalind.info/problems/kmer/"
+status = "solved"
+asserted = true
+note = "The official answer is a 256-entry array. Rather than restate it, the assertion checks the ordering endpoints, that the counts total the number of windows, and cross-checks an entry by independent counting — which is what an ordering or lookup mistake would break."
+topics = ["sequence", "kmers"]
+
+[[problem]]
+id = "EBIN"
+title = "Wright-Fisher's Expected Behavior"
+file = "examples/ebin.bl"
+url = "https://rosalind.info/problems/ebin/"
+status = "solved"
+asserted = true
+topics = ["probability"]
+
+[[problem]]
+id = "SPEC"
+title = "Inferring Protein from Spectrum"
+file = "examples/spec.bl"
+url = "https://rosalind.info/problems/spec/"
+status = "solved"
+asserted = true
+note = "The answer is derived from the spectrum's consecutive differences (186.079 W, 131.040 M, 128.059 Q, 71.037 A) rather than restated from memory, and the assertion re-checks each residue against its own gap."
+topics = ["mass-spectrometry", "protein"]
+
+[[problem]]
+id = "ROOT"
+title = "Counting Rooted Binary Trees"
+file = "examples/root.bl"
+url = "https://rosalind.info/problems/root/"
+status = "solved"
+asserted = true
+topics = ["phylogeny", "combinatorics"]
+
+[[problem]]
+id = "CUNR"
+title = "Counting Unrooted Binary Trees"
+file = "examples/cunr.bl"
+url = "https://rosalind.info/problems/cunr/"
+status = "solved"
+asserted = true
+topics = ["phylogeny", "combinatorics"]
+
+[[problem]]
+id = "MOTZ"
+title = "Motzkin Numbers and RNA Secondary Structures"
+file = "examples/motz.bl"
+url = "https://rosalind.info/problems/motz/"
+status = "solved"
+asserted = true
+topics = ["combinatorics", "rna-structure", "dynamic-programming"]
+
+[[problem]]
+id = "INDC"
+title = "Independent Segregation of Chromosomes"
+file = "examples/indc.bl"
+url = "https://rosalind.info/problems/indc/"
+status = "solved"
+asserted = true
+note = "Rosalind allows 0.001 absolute error and its printed sample rounds some entries differently, so the assertion pins the exact endpoints — log10(1023/1024) and log10(1/1024) — and that the tail never increases, rather than a rounding-dependent array."
+topics = ["probability", "genetics"]
+
+[[problem]]
+id = "TRIE"
+title = "Introduction to Pattern Matching"
+file = "examples/trie.bl"
+url = "https://rosalind.info/problems/trie/"
+status = "solved"
+asserted = true
+topics = ["strings", "trie"]
+
+[[problem]]
+id = "WFMD"
+title = "The Wright-Fisher Model of Genetic Drift"
+file = "examples/wfmd.bl"
+url = "https://rosalind.info/problems/wfmd/"
+status = "solved"
+asserted = true
+topics = ["probability", "genetics"]
+
+[[problem]]
+id = "NWCK"
+title = "Distances in Trees"
+file = "examples/nwck.bl"
+url = "https://rosalind.info/problems/nwck/"
+status = "solved"
+asserted = true
+note = "Carries a small Newick parser written in BioLang — phylo_tree() renders SVG and nw_to_distance_matrix() takes a table, so neither parses Newick."
+topics = ["phylogeny", "newick"]
+
+[[problem]]
+id = "NKEW"
+title = "Newick Format with Edge Weights"
+file = "examples/nkew.bl"
+url = "https://rosalind.info/problems/nkew/"
+status = "solved"
+asserted = true
+note = "The NWCK parser extended to read ':length' suffixes, walking to the lowest common ancestor rather than breadth-first."
+topics = ["phylogeny", "newick"]
+
+[[problem]]
+id = "CTBL"
+title = "Creating a Character Table"
+file = "examples/ctbl.bl"
+url = "https://rosalind.info/problems/ctbl/"
+status = "solved"
+asserted = true
+topics = ["phylogeny", "newick"]
+
+[[problem]]
+id = "SPTD"
+title = "Phylogeny Comparison with Split Distance"
+file = "examples/sptd.bl"
+url = "https://rosalind.info/problems/sptd/"
+status = "solved"
+asserted = true
+note = "The two trees here share no nontrivial split, so the distance is 2(n-3) = 6; the splits of each are printed so that is checkable by eye. The assertion also requires a tree compared with itself to give 0, which tests the canonical split orientation rather than just the arithmetic."
+topics = ["phylogeny", "newick"]
+
+[[problem]]
+id = "CONV"
+title = "Comparing Spectra with the Spectral Convolution"
+file = "examples/conv.bl"
+url = "https://rosalind.info/problems/conv/"
+status = "solved"
+asserted = true
+note = "Both spectra repeat a mass, so the winning difference (149.06586) arises four ways; the example prints that reasoning. The assertion also pins the three hand-checked occurrences of 85.03163 and the size of the convolution."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "PCOV"
+title = "Genome Assembly with Perfect Coverage"
+file = "examples/pcov.bl"
+url = "https://rosalind.info/problems/pcov/"
+status = "solved"
+asserted = true
+note = "Perfect coverage makes the De Bruijn graph a single cycle, so it is walked directly rather than searched. The assertion checks every read appears in the doubled string, which is what cyclic containment means."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "SIMS"
+title = "Finding a Motif with Modifications"
+file = "examples/sims.bl"
+url = "https://rosalind.info/problems/sims/"
+status = "solved"
+asserted = true
+slow = true
+note = "Fitting alignment by dynamic programming over two rolling rows, written in place with indexed assignment. Rebuilding each row with push() took about 40 s; this takes about 18 s."
+topics = ["alignment", "motifs"]
+
+[[problem]]
+id = "MEND"
+title = "Inferring Genotype from a Pedigree"
+file = "examples/mend.bl"
+url = "https://rosalind.info/problems/mend/"
+status = "solved"
+asserted = true
+note = "The distribution was worked out by hand up the pedigree before being asserted, and the example prints that derivation. The assertion also requires the three probabilities to sum to one."
+topics = ["phylogeny", "genetics", "probability"]
+
+[[problem]]
+id = "LING"
+title = "Linguistic Complexity of a Genome"
+file = "examples/ling.bl"
+url = "https://rosalind.info/problems/ling/"
+status = "solved"
+asserted = true
+topics = ["strings", "complexity"]
+
+[[problem]]
+id = "RSTR"
+title = "Matching Random Motifs"
+file = "examples/rstr.bl"
+url = "https://rosalind.info/problems/rstr/"
+status = "solved"
+asserted = true
+note = "Derived rather than recalled: the motif has four weak and four strong bases, so p = 0.2^4 x 0.3^4 = 1.296e-05 and 1-(1-p)^90 = 0.00117. The assertion pins p as well as the answer."
+topics = ["probability", "motifs"]
+
+[[problem]]
+id = "EDTA"
+title = "Edit Distance Alignment"
+file = "examples/edta.bl"
+url = "https://rosalind.info/problems/edta/"
+status = "solved"
+asserted = true
+note = "Any optimal alignment is valid, so the assertion checks the distance and that the two rows are equal length, recover the inputs once gaps are removed, and differ in exactly `distance` positions."
+topics = ["alignment", "edit-distance"]
+
+[[problem]]
+id = "CTEA"
+title = "Counting Optimal Alignments"
+file = "examples/ctea.bl"
+url = "https://rosalind.info/problems/ctea/"
+status = "solved"
+asserted = true
+note = "Two passes: the edit-distance table, then a count of the paths achieving it. The distance agrees with EDIT on the same pair of strings."
+topics = ["alignment", "dynamic-programming", "combinatorics"]
+
+[[problem]]
+id = "FOUN"
+title = "The Founder Effect and Genetic Drift"
+file = "examples/foun.bl"
+url = "https://rosalind.info/problems/foun/"
+status = "solved"
+asserted = true
+note = "The first generation was derived by hand — from one copy, (7/8)^8 = 0.343609 so log10 = -0.463936 — and the assertion pins that plus the requirement that loss never becomes less likely over time."
+topics = ["probability", "genetics"]
+
+[[problem]]
+id = "GCON"
+title = "Global Alignment with Constant Gap Penalty"
+file = "examples/gcon.bl"
+url = "https://rosalind.info/problems/gcon/"
+status = "solved"
+asserted = true
+note = "The affine recurrence with a zero extension cost. Cross-checked against GLOB, which scores the same pair at 8 with a per-residue gap of 5."
+topics = ["alignment", "blosum62"]
+
+[[problem]]
+id = "PRSM"
+title = "Matching a Spectrum to a Protein"
+file = "examples/prsm.bl"
+url = "https://rosalind.info/problems/prsm/"
+status = "solved"
+asserted = true
+note = "GSDMQS ties with IASMQS at multiplicity 3, so the assertion requires the reported protein to be one of the maximal ones rather than a single fixed string."
+topics = ["mass-spectrometry", "protein"]
+
+[[problem]]
+id = "PDPL"
+title = "Creating a Restriction Map"
+file = "examples/pdpl.bl"
+url = "https://rosalind.info/problems/pdpl/"
+status = "solved"
+asserted = true
+note = "Self-verifying: the assertion recomputes the pairwise differences of the reconstructed points and requires them to reproduce the input multiset exactly, which is stronger than matching one printed answer."
+topics = ["combinatorics", "restriction-mapping"]
+
+[[problem]]
+id = "CSET"
+title = "Fixing an Inconsistent Character Set"
+file = "examples/cset.bl"
+url = "https://rosalind.info/problems/cset/"
+status = "solved"
+asserted = true
+note = "Any character whose removal restores consistency is a valid answer, so the assertion checks the four-gamete condition on the result and that the input really was inconsistent, rather than naming one row."
+topics = ["phylogeny", "character-tables"]

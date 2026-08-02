@@ -1,0 +1,17 @@
+# Rosalind: EDIT — Edit Distance
+# https://rosalind.info/problems/edit/
+#
+# Given: Two protein strings s and t.
+# Return: The edit distance between them.
+
+let s = "PLEASANTLY"
+let t = "MEANLY"
+
+let distance = edit_distance(s, t)
+
+println("Result:   " + str(distance))
+println("Expected: 5")
+
+fn test_edit_distance() {
+    assert distance == 5, "EDIT: got " + str(distance)
+}

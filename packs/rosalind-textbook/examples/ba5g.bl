@@ -1,0 +1,17 @@
+# Rosalind: BA5G — Compute the Edit Distance Between Two Strings
+# https://rosalind.info/problems/ba5g/
+#
+# Given: Two amino acid strings.
+# Return: The edit distance between them.
+
+let s = "PLEASANTLY"
+let t = "MEANLY"
+
+let result = edit_distance(s, t)
+
+println("Result:   " + str(result))
+println("Expected: 5")
+
+fn test_ba5g_edit_distance() {
+    assert result == 5, "BA5G: got " + str(result)
+}

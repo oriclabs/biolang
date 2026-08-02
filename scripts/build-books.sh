@@ -46,6 +46,12 @@ build_book "data-wrangling/book"    "data-wrangling"         "data-wrangling-for
 build_book "genomic-visualization/book" "genomic-visualization" "genomic-visualization-in-practice.pdf"     "Genomic Visualization in Practice"
 build_book "proteomics-structural/book" "proteomics-structural" "proteomics-structural-biology-in-practice.pdf" "Proteomics & Structural Biology in Practice"
 build_book "reproducible-pipelines/book" "reproducible-pipelines" "reproducible-pipelines-in-practice.pdf"  "Reproducible Pipelines in Practice"
+echo "=== Building Single-Cell RNA-seq with BioLang ==="
+cd "$ROOT/books/single-cell-rna-seq"
+mdbook build
+echo "  HTML: website/books/single-cell-rna-seq/html/"
+echo "  PDF: website/books/single-cell-rna-seq/pdf/output.pdf"
+echo ""
 
 echo "=== Done ==="
 echo "All books built. Check website/ for HTML and PDF outputs."

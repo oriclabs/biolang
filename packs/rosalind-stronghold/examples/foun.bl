@@ -1,0 +1,60 @@
+# Rosalind: FOUN — The Founder Effect and Genetic Drift
+# https://rosalind.info/problems/foun/
+#
+# Given: Positive integers N and m, and an array A of m allele counts.
+# Return: An N x m matrix whose (i, j) entry is the common logarithm of the
+# probability that the recessive allele is lost entirely after i+1 generations,
+# starting from A[j] copies in a population of N diploid individuals.
+
+let n = 4
+let counts = [0, 1, 2]
+let alleles = 2 * n
+
+fn factorial(x) { range(1, x + 1) |> reduce(|acc, i| acc * i, 1) }
+fn choose(total, taken) { factorial(total) / (factorial(taken) * factorial(total - taken)) }
+
+# One Wright-Fisher generation: from i copies, the next count is
+# Binomial(2N, i / 2N) — every allele is drawn afresh.
+fn step(distribution) {
+    range(0, alleles + 1) |> map(|j| {
+        range(0, alleles + 1) |> map(|i| {
+            let p = float(i) / float(alleles)
+            distribution[i] * float(choose(alleles, j)) * pow(p, float(j)) * pow(1.0 - p, float(alleles - j))
+        }) |> sum()
+    })
+}
+
+# Each row is one further generation; each column one starting count.
+let rows = counts |> map(|start| {
+    let distribution = range(0, alleles + 1) |> map(|i| if i == start then 1.0 else 0.0)
+    range(0, n) |> map(|_| {
+        distribution = step(distribution)
+        log10(distribution[0])
+    })
+})
+
+println("Result (rows are starting counts, columns are generations):")
+range(0, len(counts)) |> each(|j| {
+    println("  from " + str(counts[j]) + ": " + (rows[j] |> map(|v| str(round(v, 6))) |> join(" ")))
+})
+println("")
+println("Expected, generation 1: 0.0  -0.463935  -0.999510")
+println("  from 1 copy:  (7/8)^8 = 0.343609, log10 = -0.463936")
+println("  from 2 copies: (6/8)^8 = 0.100113, log10 = -0.999510")
+
+fn test_foun_founder_effect() {
+    # An allele already absent stays absent, so the probability is 1 and its
+    # logarithm 0 in every generation.
+    # Bound first: `x |> count_if(f) == n` reads the comparison as count_if's
+    # second argument rather than as a test of its result.
+    let certain = rows[0] |> count_if(|v| v == 0.0)
+    assert certain == n, "FOUN: the zero-copy column is not certain"
+    assert round(rows[1][0], 6) == -0.463936, "FOUN: one copy, one generation = " + str(rows[1][0])
+    assert round(rows[2][0], 6) == -0.99951, "FOUN: two copies, one generation = " + str(rows[2][0])
+    # Loss can only become more likely with time, so each row is non-decreasing.
+    let i = 1
+    while i < n {
+        assert rows[1][i] >= rows[1][i - 1], "FOUN: loss became less likely at generation " + str(i)
+        i = i + 1
+    }
+}

@@ -1,0 +1,18 @@
+# Rosalind: SSET — Counting Subsets
+# https://rosalind.info/problems/sset/
+#
+# Given: A positive integer n <= 1000.
+# Return: The total number of subsets of {1, 2, ..., n}, modulo 1,000,000.
+
+let n = 3
+let modulus = 1000000
+
+# 2^n, reduced at every step so the value never grows beyond the modulus.
+let result = range(0, n) |> reduce(|acc, _| (acc * 2) % modulus, 1)
+
+println("Result:   " + str(result))
+println("Expected: 8")
+
+fn test_sset_subset_count() {
+    assert result == 8, "SSET: got " + str(result)
+}

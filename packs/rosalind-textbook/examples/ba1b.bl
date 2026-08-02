@@ -1,0 +1,32 @@
+# Rosalind: BA1B — Find the Most Frequent Words in a String
+# https://rosalind.info/problems/ba1b/
+#
+# Given: A DNA string Text and an integer k.
+# Return: Every most frequent k-mer in Text.
+
+let text = "ACGTTGCATGTCGCATGATGCATGAGAGCT"
+let k = 4
+
+# Deliberately not kmer_count(): that tallies *canonical* k-mers, pooling each
+# one with its reverse complement, which is what you want when the strand is
+# unknown. Here GCAT and ATGC would merge into a single count of 4, while this
+# problem asks for literal occurrences. kmers() gives the raw windows.
+let windows = kmers(dna(text), k) |> map(|km| str(km))
+let distinct = windows |> unique()
+
+let tallies = distinct |> map(|km| { kmer: km, count: windows |> count_if(|w| w == km) })
+let best = tallies |> map(|e| e.count) |> max()
+let result = tallies |> filter(|e| e.count == best) |> map(|e| e.kmer) |> sort()
+
+println("Result:   " + (result |> join(" ")) + "  (each appearing " + str(best) + " times)")
+println("Expected: CATG GCAT")
+
+fn test_ba1b_most_frequent_words() {
+    assert len(result) == 2, "BA1B: got " + str(len(result)) + " k-mers"
+    assert result |> contains("CATG"), "BA1B: missing CATG"
+    assert result |> contains("GCAT"), "BA1B: missing GCAT"
+    assert best == 3, "BA1B: top count was " + str(best)
+    # Every window is counted exactly once.
+    let total = tallies |> map(|e| e.count) |> sum()
+    assert total == len(text) - k + 1, "BA1B: counts total " + str(total)
+}

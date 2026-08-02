@@ -1,0 +1,20 @@
+# Rosalind: BA3A — Generate the k-mer Composition of a String
+# https://rosalind.info/problems/ba3a/
+#
+# Given: An integer k and a string Text.
+# Return: Composition_k(Text), the k-mers of Text in lexicographic order.
+
+let text = "CAATCCAAC"
+let k = 5
+
+let result = kmers(dna(text), k) |> map(|km| str(km)) |> sort()
+
+println("Result:")
+result |> each(|km| println("  " + km))
+println("Expected: AATCC ATCCA CAATC CCAAC TCCAA")
+
+fn test_ba3a_kmer_composition() {
+    assert len(result) == len(text) - k + 1, "BA3A: got " + str(len(result)) + " k-mers"
+    let joined = result |> join(" ")
+    assert joined == "AATCC ATCCA CAATC CCAAC TCCAA", "BA3A: got " + joined
+}

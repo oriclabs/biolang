@@ -1,0 +1,36 @@
+# Rosalind: LEXV — Ordering Strings of Varying Length Lexicographically
+# https://rosalind.info/problems/lexv/
+#
+# Given: An ordered alphabet of at most 10 symbols and a positive integer n.
+# Return: All strings of length at most n from that alphabet, ordered by the
+# alphabet's own order rather than by ASCII.
+
+let alphabet = ["D", "N", "A"]
+let n = 3
+
+# Pre-order walk of the trie: emit a string, then everything that extends it.
+# That places "D" before "DD", which is what "varying length" ordering means
+# here — a prefix sorts before anything built on it.
+fn extensions(prefix, symbols, remaining) {
+    if remaining == 0 {
+        []
+    } else {
+        symbols |> flat_map(|s| {
+            let word = prefix ++ s
+            concat([word], extensions(word, symbols, remaining - 1))
+        })
+    }
+}
+
+let words = extensions("", alphabet, n)
+
+println("Result:   " + str(len(words)) + " strings")
+println("First 8:  " + (take(words, 8) |> join(" ")))
+println("Expected: 39 strings, starting D DD DDD DDN DDA DN DND DNN")
+
+fn test_lexv_varying_length_order() {
+    assert len(words) == 39, "LEXV: got " + str(len(words))
+    let first_eight = take(words, 8) |> join(" ")
+    assert first_eight == "D DD DDD DDN DDA DN DND DNN", "LEXV: order was " + first_eight
+    assert words[38] == "AAA", "LEXV: last was " + words[38]
+}

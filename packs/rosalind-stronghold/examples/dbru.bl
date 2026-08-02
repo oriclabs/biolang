@@ -1,0 +1,28 @@
+# Rosalind: DBRU — Constructing a De Bruijn Graph
+# https://rosalind.info/problems/dbru/
+#
+# Given: A collection of up to 1000 DNA strings of equal length, all distinct.
+# Return: The adjacency list of the De Bruijn graph on S union S_rc, where each
+# k-mer contributes an edge from its prefix to its suffix.
+
+let reads = ["TGAT", "CATG", "TCAT", "ATGC", "CATC", "CATC"]
+
+# The graph is built on the reads together with their reverse complements,
+# as a set — the duplicate CATC and the shared CATG collapse.
+let with_reverse = reads |> flat_map(|r| [r, str(reverse_complement(dna(r)))]) |> unique()
+
+let edges = with_reverse
+    |> map(|kmer| substr(kmer, 0, len(kmer) - 1) ++ " -> " ++ substr(kmer, 1, len(kmer) - 1))
+    |> unique()
+    |> sort()
+
+println("Result:   " + str(len(edges)) + " edges")
+edges |> each(|e| println("  (" + replace(e, " -> ", ", ") + ")"))
+println("Expected: 9 edges, starting (ATC, TCA) (ATG, TGA) (ATG, TGC)")
+
+fn test_dbru_de_bruijn_graph() {
+    assert len(edges) == 9, "DBRU: got " + str(len(edges))
+    assert edges[0] == "ATC -> TCA", "DBRU: first edge " + edges[0]
+    assert edges |> contains("GCA -> CAT"), "DBRU: missing GCA -> CAT"
+    assert edges |> contains("TGA -> GAT"), "DBRU: missing TGA -> GAT"
+}

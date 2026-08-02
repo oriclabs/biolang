@@ -1,0 +1,92 @@
+# BioLang example pack: Rosalind — Bioinformatics Textbook Track
+#
+# A showcase, not a course companion. See README.md: the point is to show which
+# canonical algorithms BioLang already carries as builtins, and where it does
+# not. Anyone actually taking the course should implement these themselves.
+#
+# See packs/rosalind-armory/pack.toml for the field meanings.
+
+[pack]
+id = "rosalind-textbook"
+name = "Rosalind — Bioinformatics Textbook Track"
+version = "0.1.0"
+track = "bioinformatics-textbook-track"
+description = "A showcase of the Bioinformatics Textbook Track: canonical algorithms answered with BioLang builtins, 8 of 154 problems."
+list_url = "https://rosalind.info/problems/list-view/?location=bioinformatics-textbook-track"
+requires = ">=0.4"
+
+license = "MIT"
+statements_license = "Problem statements © rosalind.info — paraphrased and linked, not reproduced."
+
+[[problem]]
+id = "BA1A"
+title = "Compute the Number of Times a Pattern Appears in a Text"
+file = "examples/ba1a.bl"
+url = "https://rosalind.info/problems/ba1a/"
+status = "solved"
+asserted = true
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA1B"
+title = "Find the Most Frequent Words in a String"
+file = "examples/ba1b.bl"
+url = "https://rosalind.info/problems/ba1b/"
+status = "solved"
+asserted = true
+note = "Shows a real distinction: kmer_count() tallies canonical k-mers, pooling each with its reverse complement, so it reports GCAT and ATGC as one count of 4. This problem wants literal occurrences, so it counts the raw windows from kmers()."
+topics = ["strings", "kmers"]
+
+[[problem]]
+id = "BA1C"
+title = "Find the Reverse Complement of a String"
+file = "examples/ba1c.bl"
+url = "https://rosalind.info/problems/ba1c/"
+status = "solved"
+asserted = true
+topics = ["sequence"]
+
+[[problem]]
+id = "BA1D"
+title = "Find All Occurrences of a Pattern in a String"
+file = "examples/ba1d.bl"
+url = "https://rosalind.info/problems/ba1d/"
+status = "solved"
+asserted = true
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA1G"
+title = "Compute the Hamming Distance Between Two Strings"
+file = "examples/ba1g.bl"
+url = "https://rosalind.info/problems/ba1g/"
+status = "solved"
+asserted = true
+topics = ["sequence", "mutations"]
+
+[[problem]]
+id = "BA3A"
+title = "Generate the k-mer Composition of a String"
+file = "examples/ba3a.bl"
+url = "https://rosalind.info/problems/ba3a/"
+status = "solved"
+asserted = true
+topics = ["kmers", "assembly"]
+
+[[problem]]
+id = "BA4A"
+title = "Translate an RNA String into an Amino Acid String"
+file = "examples/ba4a.bl"
+url = "https://rosalind.info/problems/ba4a/"
+status = "solved"
+asserted = true
+topics = ["translation"]
+
+[[problem]]
+id = "BA5G"
+title = "Compute the Edit Distance Between Two Strings"
+file = "examples/ba5g.bl"
+url = "https://rosalind.info/problems/ba5g/"
+status = "solved"
+asserted = true
+topics = ["alignment", "edit-distance"]

@@ -1,0 +1,49 @@
+# Rosalind: ORF — Open Reading Frames
+# https://rosalind.info/problems/orf/
+#
+# Given: A DNA string s of length at most 1 kbp.
+# Return: Every distinct protein that can be translated from an ORF of s,
+# considering both strands.
+
+let s = "AGCCATGTAGCTAACTCAGGTTACATGGGGATGACCCCGCGACTTGGATTAGAGTCTCTTTTGGAATAAGCCTGAATGATCCGAGTAGCATCTCAG"
+
+let stop_codons = ["TAA", "TAG", "TGA"]
+
+# Find the in-frame stop, then translate the segment in one call. An ORF that
+# runs off the end without a stop does not count.
+fn orf_from(strand, start) {
+    let i = start
+    let stop_at = -1
+    while i + 3 <= len(strand) and stop_at < 0 {
+        if stop_codons |> contains(substr(strand, i, 3)) then stop_at = i
+        i = i + 3
+    }
+    if stop_at < 0 {
+        ""
+    } else {
+        str(translate(dna(substr(strand, start, stop_at - start))))
+    }
+}
+
+fn orfs_of(strand) {
+    range(0, len(strand) - 2)
+        |> filter(|i| substr(strand, i, 3) == "ATG")
+        |> map(|i| orf_from(strand, i))
+        |> filter(|p| p != "")
+}
+
+let reverse_strand = str(reverse_complement(dna(s)))
+
+let proteins = concat(orfs_of(s), orfs_of(reverse_strand)) |> unique()
+
+println("Result:   " + str(len(proteins)) + " distinct proteins")
+proteins |> each(|p| println("  " + p))
+println("Expected: 4 — MLLGSFRLIPKETLIQVAGSSPCNLS, M, MGMTPRLGLESLLE, MTPRLGLESLLE")
+
+fn test_orf_open_reading_frames() {
+    assert len(proteins) == 4, "ORF: got " + str(len(proteins))
+    assert proteins |> contains("MLLGSFRLIPKETLIQVAGSSPCNLS"), "ORF: missing the long reverse-strand protein"
+    assert proteins |> contains("MGMTPRLGLESLLE"), "ORF: missing MGMTPRLGLESLLE"
+    assert proteins |> contains("MTPRLGLESLLE"), "ORF: missing MTPRLGLESLLE"
+    assert proteins |> contains("M"), "ORF: missing the single-residue ORF"
+}

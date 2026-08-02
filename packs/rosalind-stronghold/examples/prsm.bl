@@ -1,0 +1,62 @@
+# Rosalind: PRSM — Matching a Spectrum to a Protein
+# https://rosalind.info/problems/prsm/
+#
+# Given: A collection of protein strings and a multiset R of masses.
+# Return: The largest multiplicity of any protein's complete spectrum convolved
+# with R, and a protein achieving it.
+
+let proteins = ["GSDMQS", "VWICN", "IASMQS", "PVSMGAD"]
+let spectrum = [445.17838, 115.02694, 186.07931, 314.13789, 317.1198, 215.09061]
+
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+
+fn mass_of(peptide) {
+    range(0, len(peptide)) |> reduce(|acc, i| acc + monoisotopic[substr(peptide, i, 1)], 0.0)
+}
+
+# The complete spectrum is every prefix and every suffix mass — the fragments a
+# spectrometer would see if the peptide broke at each bond in turn.
+fn complete_spectrum(peptide) {
+    let prefixes = range(1, len(peptide)) |> map(|k| mass_of(substr(peptide, 0, k)))
+    let suffixes = range(1, len(peptide)) |> map(|k| mass_of(substr(peptide, len(peptide) - k, k)))
+    concat(prefixes, suffixes)
+}
+
+# Convolving the two multisets, the winning shift is the parent mass offset;
+# its multiplicity is how many fragments line up.
+fn best_multiplicity(peptide) {
+    let own = complete_spectrum(peptide)
+    let shifts = spectrum |> flat_map(|r| own |> map(|m| round(r - m, 5)))
+    let tallies = shifts |> unique() |> map(|d| shifts |> count_if(|x| x == d))
+    max(tallies)
+}
+
+let scored = proteins |> map(|p| { protein: p, score: best_multiplicity(p) })
+let best = scored |> sort_by(|e| e.score) |> reverse() |> first()
+
+println("Scores:")
+scored |> each(|e| println("  " + e.protein + ": " + str(e.score)))
+println("Result:   " + str(best.score))
+println("          " + best.protein)
+println("Expected: 3 and IASMQS")
+println("")
+println("Note: GSDMQS also reaches 3, so the maximum is shared. Rosalind accepts")
+println("any protein achieving it; which one is reported here depends on the")
+println("order of the input rather than on anything meaningful.")
+
+let maximal = scored |> filter(|e| e.score == best.score) |> map(|e| e.protein)
+
+fn test_prsm_spectrum_to_protein() {
+    assert best.score == 3, "PRSM: multiplicity " + str(best.score)
+    # The tie is real, so require the winner to be one of the maximal proteins
+    # rather than one particular string.
+    assert maximal |> contains(best.protein), "PRSM: winner is not maximal"
+    assert maximal |> contains("IASMQS"), "PRSM: IASMQS is not among the maximal proteins"
+    # A complete spectrum holds two fragments per bond.
+    assert len(complete_spectrum("IASMQS")) == 2 * (len("IASMQS") - 1), "PRSM: spectrum size is wrong"
+}

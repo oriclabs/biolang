@@ -1,0 +1,52 @@
+# Rosalind: GLOB — Global Alignment with Scoring Matrix
+# https://rosalind.info/problems/glob/
+#
+# Given: Two protein strings.
+# Return: The maximum global alignment score using BLOSUM62 and a constant
+# gap penalty of 5.
+
+let s = "PLEASANTLY"
+let t = "MEANLY"
+let gap = -5.0
+
+let blosum = score_matrix("blosum62")
+let residues = blosum.row_names
+let width = blosum.ncol
+
+fn residue_index(names, ch) {
+    (range(0, len(names)) |> filter(|i| names[i] == ch))[0]
+}
+
+fn substitution(mat, names, cols, a, b) {
+    mat.data[residue_index(names, a) * cols + residue_index(names, b)]
+}
+
+# Needleman-Wunsch with a linear gap penalty. Rows walk s, columns walk t.
+fn global_score(a, b, mat, names, cols, gap_penalty) {
+    let previous = range(0, len(b) + 1) |> map(|j| float(j) * gap_penalty)
+    let i = 1
+    while i <= len(a) {
+        let current = [float(i) * gap_penalty]
+        let ai = substr(a, i - 1, 1)
+        let j = 1
+        while j <= len(b) {
+            let diagonal = previous[j - 1] + substitution(mat, names, cols, ai, substr(b, j - 1, 1))
+            let up = previous[j] + gap_penalty
+            let left = current[j - 1] + gap_penalty
+            current = push(current, max([diagonal, up, left]))
+            j = j + 1
+        }
+        previous = current
+        i = i + 1
+    }
+    previous[len(b)]
+}
+
+let result = global_score(s, t, blosum, residues, width, gap)
+
+println("Result:   " + str(int(result)))
+println("Expected: 8")
+
+fn test_glob_blosum62_global_alignment() {
+    assert int(result) == 8, "GLOB: got " + str(result)
+}

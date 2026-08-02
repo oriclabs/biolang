@@ -1,0 +1,41 @@
+# Rosalind: WFMD — The Wright-Fisher Model of Genetic Drift
+# https://rosalind.info/problems/wfmd/
+#
+# Given: Positive integers N, m, g and k.
+# Return: The probability that in a population of N diploid individuals
+# initially carrying m copies of a dominant allele, at least k copies of the
+# recessive allele remain after g generations.
+
+let n = 4
+let m = 6
+let g = 2
+let k = 1
+
+let alleles = 2 * n
+
+fn factorial(x) { range(1, x + 1) |> reduce(|acc, i| acc * i, 1) }
+fn choose(total, taken) { factorial(total) / (factorial(taken) * factorial(total - taken)) }
+
+# One generation: given i recessive copies now, the next count is
+# Binomial(2N, i / 2N) — every allele is redrawn independently.
+fn step(distribution) {
+    range(0, alleles + 1) |> map(|j| {
+        range(0, alleles + 1) |> map(|i| {
+            let p = float(i) / float(alleles)
+            distribution[i] * float(choose(alleles, j)) * pow(p, float(j)) * pow(1.0 - p, float(alleles - j))
+        }) |> sum()
+    })
+}
+
+# The population starts with m dominant copies, so 2N - m recessive ones.
+let start = range(0, alleles + 1) |> map(|i| if i == alleles - m then 1.0 else 0.0)
+let after = range(0, g) |> reduce(|d, _| step(d), start)
+
+let result = range(k, alleles + 1) |> map(|i| after[i]) |> sum()
+
+println("Result:   " + str(round(result, 3)))
+println("Expected: 0.772")
+
+fn test_wfmd_genetic_drift() {
+    assert round(result, 3) == 0.772, "WFMD: got " + str(result)
+}

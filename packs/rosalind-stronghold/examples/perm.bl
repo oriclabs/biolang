@@ -1,0 +1,31 @@
+# Rosalind: PERM — Enumerating Gene Orders
+# https://rosalind.info/problems/perm/
+#
+# Given: A positive integer n <= 7.
+# Return: The total number of permutations of length n, followed by a list of
+# all such permutations.
+
+let n = 3
+
+fn permutations_of(items) {
+    if len(items) <= 1 {
+        [items]
+    } else {
+        range(0, len(items)) |> flat_map(|i| {
+            let chosen = items[i]
+            let rest = concat(take(items, i), drop(items, i + 1))
+            permutations_of(rest) |> map(|p| concat([chosen], p))
+        })
+    }
+}
+
+let orders = permutations_of(range(1, n + 1))
+
+println("Result:   " + str(len(orders)))
+println("Expected: 6")
+orders |> each(|p| println("  " + (p |> map(|x| str(x)) |> join(" "))))
+
+fn test_perm_permutation_count() {
+    assert len(orders) == 6, "PERM: got " + str(len(orders))
+    assert len(unique(orders |> map(|p| join(map(p, |x| str(x)), " ")))) == 6, "PERM: duplicates"
+}

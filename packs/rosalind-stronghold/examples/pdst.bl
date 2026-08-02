@@ -1,0 +1,32 @@
+# Rosalind: PDST — Creating a Distance Matrix
+# https://rosalind.info/problems/pdst/
+#
+# Given: A collection of DNA strings of equal length in FASTA format.
+# Return: The matrix D of p-distances, where D[i][j] is the proportion of
+# positions at which strings i and j differ.
+
+let strings = [
+    "TTTCCATTTA",
+    "GATTCATTTC",
+    "TTTCCATTTT",
+    "GTTCCATTTA"
+]
+
+fn p_distance(a, b) {
+    let differing = range(0, len(a)) |> count_if(|i| substr(a, i, 1) != substr(b, i, 1))
+    float(differing) / float(len(a))
+}
+
+let matrix = strings |> map(|a| strings |> map(|b| p_distance(a, b)))
+
+println("Result:")
+matrix |> each(|row| println("  " + (row |> map(|d| str(round(d, 5))) |> join(" "))))
+println("Expected first row: 0.00000 0.40000 0.10000 0.10000")
+
+fn test_pdst_distance_matrix() {
+    assert round(matrix[0][0], 5) == 0.0, "PDST: diagonal not zero"
+    assert round(matrix[0][1], 5) == 0.4, "PDST: [0][1] was " + str(matrix[0][1])
+    assert round(matrix[0][2], 5) == 0.1, "PDST: [0][2] was " + str(matrix[0][2])
+    assert round(matrix[0][3], 5) == 0.1, "PDST: [0][3] was " + str(matrix[0][3])
+    assert round(matrix[1][0], 5) == round(matrix[0][1], 5), "PDST: not symmetric"
+}
