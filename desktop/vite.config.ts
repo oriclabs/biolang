@@ -95,5 +95,21 @@ export default defineConfig({
     target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari13",
     minify: process.env.TAURI_ENV_DEBUG ? false : "esbuild",
     sourcemap: Boolean(process.env.TAURI_ENV_DEBUG),
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          const normalized = id.replaceAll("\\", "/");
+          if (normalized.includes("/monaco-editor/") || normalized.includes("/@monaco-editor/")) return "monaco";
+          if (normalized.includes("/node_modules/react/")
+            || normalized.includes("/node_modules/react-dom/")
+            || normalized.includes("/node_modules/scheduler/")) return "react";
+          if (normalized.includes("/node_modules/lucide-react/")) return "icons";
+          if (normalized.includes("/src/generated/help-index.json")) return "help-index";
+          if (normalized.includes("/src/generated/builtin-metadata.json")
+            || normalized.includes("/src/generated/package-metadata.json")) return "biolang-metadata";
+          return undefined;
+        },
+      },
+    },
   },
 });

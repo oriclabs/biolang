@@ -42,11 +42,13 @@ export function TerminalPane() {
     const fit = new FitAddon();
     terminal.loadAddon(fit);
     terminal.open(container);
-    fit.fit();
     terminalRef.current = terminal;
     fitRef.current = fit;
 
     let disposed = false;
+    let fitFrame = 0;
+    let lastWidth = -1;
+    let lastHeight = -1;
     let unlisten: () => void = () => undefined;
     const pendingOutput: Array<{ sessionId: number; data: string }> = [];
     const writeOutput = (data: string) => {
@@ -98,13 +100,32 @@ export function TerminalPane() {
       const sessionId = sessionRef.current;
       if (sessionId && isDesktop) void bridge.resizeTerminal(sessionId, cols, rows);
     });
-    const observer = new ResizeObserver(() => {
-      window.requestAnimationFrame(() => fit.fit());
-    });
+    const scheduleFit = () => {
+      const bounds = container.getBoundingClientRect();
+      const width = Math.round(bounds.width);
+      const height = Math.round(bounds.height);
+      if (width < 20 || height < 20 || (width === lastWidth && height === lastHeight)) return;
+      lastWidth = width;
+      lastHeight = height;
+      window.cancelAnimationFrame(fitFrame);
+      fitFrame = window.requestAnimationFrame(() => {
+        if (disposed || !container.isConnected) return;
+        const dimensions = fit.proposeDimensions();
+        if (
+          dimensions
+          && (dimensions.cols !== terminal.cols || dimensions.rows !== terminal.rows)
+        ) {
+          fit.fit();
+        }
+      });
+    };
+    const observer = new ResizeObserver(scheduleFit);
     observer.observe(container);
+    scheduleFit();
 
     return () => {
       disposed = true;
+      window.cancelAnimationFrame(fitFrame);
       observer.disconnect();
       input.dispose();
       resize.dispose();

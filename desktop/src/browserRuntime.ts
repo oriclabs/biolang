@@ -1,8 +1,11 @@
 import type {
   CodeImportResult,
+  JobTraceEntry,
+  PreviewMetrics,
   ConsoleEnvironment,
   ConsoleResponse,
   ImportValidationReport,
+  StructuredResult,
 } from "./types";
 
 interface WasmEvaluation {
@@ -11,18 +14,28 @@ interface WasmEvaluation {
   type?: string;
   output?: string;
   error?: string;
+  structured?: StructuredResult;
+  // Typed results promoted from print/println, in display order, with the
+  // program's own return value appended when it is structured.
+  results?: StructuredResult[];
+  // Printed values tagged with the line that printed them, for the inline
+  // annotations the editor draws after a run.
+  trace?: JobTraceEntry[];
 }
 
 interface WasmVariable {
   name: string;
   type: string;
   preview: string;
+  members?: string[];
 }
 
 interface BioLangWasm {
   default: (input?: URL) => Promise<unknown>;
   init: () => void;
   evaluate: (source: string) => string;
+  format: (source: string, indent: number) => string;
+  qc_metrics: (kind: string, text: string) => string;
   import_source: (source: string, format: string, filename: string) => string;
   list_variables: () => string;
   reset: () => void;
@@ -63,6 +76,18 @@ async function runtime(): Promise<BioLangWasm> {
   runtimePromise = (async () => {
     window.__blFetch = {
       sync(url: string) {
+        if (/^https?:\/\//i.test(url)) {
+          try {
+            const request = new XMLHttpRequest();
+            request.open("GET", url, false);
+            request.setRequestHeader("Accept", "application/json,text/plain,text/*,*/*");
+            request.send();
+            if (request.status >= 200 && request.status < 300) return request.responseText;
+            return `ERROR:HTTP ${request.status || "network"} while fetching ${url}`;
+          } catch (error) {
+            return `ERROR:Browser network request failed for ${url}: ${String(error)}`;
+          }
+        }
         const normalized = normalizeWorkspacePath(url);
         const content = fileReader(normalized);
         return content === undefined
@@ -86,6 +111,21 @@ export async function evaluateBrowserSource(
   const wasm = await runtime();
   if (reset) wasm.reset();
   return JSON.parse(wasm.evaluate(source)) as WasmEvaluation;
+}
+
+/** Canonical layout for a document, from the same formatter `bl fmt` runs. */
+export async function formatBrowserSource(source: string, indent: number): Promise<string> {
+  const wasm = await runtime();
+  return wasm.format(source, indent);
+}
+
+/** Sequencing quality metrics, from the same `bl-qc` the Desktop build uses. */
+export async function browserQcMetrics(
+  kind: string,
+  text: string,
+): Promise<PreviewMetrics | undefined> {
+  const wasm = await runtime();
+  return JSON.parse(wasm.qc_metrics(kind, text)) as PreviewMetrics ?? undefined;
 }
 
 export async function importBrowserSource(
@@ -115,6 +155,7 @@ function consoleEnvironment(variables: WasmVariable[]): ConsoleEnvironment {
     typeName: variable.type,
     preview: variable.preview,
     sizeBytes: new TextEncoder().encode(variable.preview).byteLength,
+    members: variable.members ?? [],
   }));
   return {
     variables: mapped,

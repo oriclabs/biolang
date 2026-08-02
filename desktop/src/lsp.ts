@@ -4,10 +4,13 @@ import { bridge, onLspMessage } from "./bridge";
 import {
   completionReplacementRange,
   diagnosticMarkerRange,
+  lspRangeToMonaco,
   pathToFileUri,
   startLspListening,
   type LspRange,
 } from "./lspProtocol";
+import { aliasDocumentation, matchingAliases } from "./aliases";
+import { callSnippet, parametersFromSignature, scaffoldSnippets } from "./snippets";
 import type { Problem } from "./types";
 
 type JsonObject = Record<string, unknown>;
@@ -45,6 +48,14 @@ export class BioLangLspClient {
             synchronization: { didSave: true },
             completion: { completionItem: { documentationFormat: ["markdown", "plaintext"] } },
             hover: { contentFormat: ["markdown", "plaintext"] },
+            signatureHelp: {
+              signatureInformation: { documentationFormat: ["markdown", "plaintext"] },
+            },
+            definition: { dynamicRegistration: false },
+            references: { dynamicRegistration: false },
+            rename: { dynamicRegistration: false, prepareSupport: true },
+            formatting: { dynamicRegistration: false },
+            codeAction: { dynamicRegistration: false },
           },
         },
         clientInfo: { name: "BioLang Desktop", version: "0.1.0" },
@@ -97,23 +108,76 @@ export class BioLangLspClient {
     return {
       triggerCharacters: [".", ":", "|"],
       provideCompletionItems: async (model, position) => {
-        if (!this.ready) return { suggestions: [] };
+        if (!this.ready || !this.monaco) return { suggestions: [] };
         const result = (await this.request("textDocument/completion", {
           textDocument: { uri: this.documentUri(this.pathFromModel(model)) },
           position: { line: position.lineNumber - 1, character: position.column - 1 },
         })) as JsonObject[] | { items?: JsonObject[] } | null;
         const items = Array.isArray(result) ? result : result?.items ?? [];
         const word = model.getWordUntilPosition(position);
+        const range = completionReplacementRange(position.lineNumber, position.column, word.startColumn);
         return {
-          suggestions: items.map((item) => ({
-            label: String(item.label ?? ""),
-            kind: this.completionKind(Number(item.kind ?? 1)),
-            detail: item.detail ? String(item.detail) : undefined,
-            insertText: String(item.insertText ?? item.label ?? ""),
-            range: completionReplacementRange(position.lineNumber, position.column, word.startColumn),
-          })),
+          suggestions: [
+            ...items.map((item) => this.completionItem(item, range)),
+            // Same dplyr and pandas aliases the browser build offers, so the
+            // migration path does not depend on which runtime is behind you.
+            ...matchingAliases(word.word).map((alias) => ({
+              label: alias.foreign,
+              kind: this.monaco!.languages.CompletionItemKind.Reference,
+              detail: `${alias.origin} → ${alias.biolang}`,
+              documentation: { value: aliasDocumentation(alias) },
+              insertText: alias.biolang,
+              range,
+              sortText: `0_alias_${alias.foreign}`,
+            })),
+            ...scaffoldSnippets.map((snippet) => ({
+              label: snippet.label,
+              kind: this.monaco!.languages.CompletionItemKind.Snippet,
+              detail: snippet.detail,
+              documentation: { value: snippet.documentation },
+              insertText: snippet.body,
+              insertTextRules: this.monaco!.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              range,
+              sortText: `1_${snippet.label}`,
+            })),
+          ],
         };
       },
+    };
+  }
+
+  /**
+   * Turn one LSP completion into a Monaco one, upgrading plain function names
+   * into call snippets.
+   *
+   * The server sends `detail` as the signature but `insertText` as the bare
+   * name, so accepting a completion left the author to type the whole argument
+   * list themselves. When the server already sends a snippet (`insertTextFormat`
+   * 2) its text wins untouched.
+   */
+  private completionItem(
+    item: JsonObject,
+    range: MonacoEditor.IRange,
+  ): MonacoEditor.languages.CompletionItem {
+    const label = String(item.label ?? "");
+    const detail = item.detail ? String(item.detail) : undefined;
+    const kind = this.completionKind(Number(item.kind ?? 1));
+    const serverSnippet = Number(item.insertTextFormat ?? 1) === 2;
+    const insertText = String(item.insertText ?? item.label ?? "");
+    const callable = !serverSnippet
+      && kind === this.monaco?.languages.CompletionItemKind.Function
+      && detail?.includes("(");
+    return {
+      label,
+      kind,
+      detail,
+      documentation: this.markdownValue(item.documentation),
+      insertText: callable ? callSnippet(label, parametersFromSignature(detail!)) : insertText,
+      insertTextRules: callable || serverSnippet
+        ? this.monaco!.languages.CompletionItemInsertTextRule.InsertAsSnippet
+        : undefined,
+      sortText: item.sortText ? String(item.sortText) : undefined,
+      range,
     };
   }
 
@@ -135,6 +199,187 @@ export class BioLangLspClient {
         };
       },
     };
+  }
+
+  signatureHelpProvider(): MonacoEditor.languages.SignatureHelpProvider {
+    return {
+      signatureHelpTriggerCharacters: ["(", ","],
+      signatureHelpRetriggerCharacters: [","],
+      provideSignatureHelp: async (model, position) => {
+        if (!this.ready) return null;
+        const result = (await this.request("textDocument/signatureHelp", {
+          textDocument: { uri: this.documentUri(this.pathFromModel(model)) },
+          position: { line: position.lineNumber - 1, character: position.column - 1 },
+          context: { triggerKind: 1, isRetrigger: false },
+        })) as JsonObject | null;
+        const signatures = Array.isArray(result?.signatures)
+          ? result.signatures as JsonObject[]
+          : [];
+        if (!signatures.length) return null;
+        return {
+          value: {
+            signatures: signatures.map((signature) => ({
+              label: String(signature.label ?? ""),
+              documentation: this.markdownValue(signature.documentation),
+              parameters: Array.isArray(signature.parameters)
+                ? (signature.parameters as JsonObject[]).map((parameter) => ({
+                    label: String(parameter.label ?? ""),
+                    documentation: this.markdownValue(parameter.documentation),
+                  }))
+                : [],
+              activeParameter: Number(signature.activeParameter ?? 0),
+            })),
+            activeSignature: Number(result?.activeSignature ?? 0),
+            activeParameter: Number(result?.activeParameter ?? 0),
+          },
+          dispose: () => undefined,
+        };
+      },
+    };
+  }
+
+  definitionProvider(): MonacoEditor.languages.DefinitionProvider {
+    return {
+      provideDefinition: async (model, position) => {
+        if (!this.ready || !this.monaco) return null;
+        const result = (await this.request("textDocument/definition", {
+          textDocument: { uri: this.documentUri(this.pathFromModel(model)) },
+          position: { line: position.lineNumber - 1, character: position.column - 1 },
+        })) as JsonObject | JsonObject[] | null;
+        const locations = Array.isArray(result) ? result : result ? [result] : [];
+        return locations.flatMap((location) => {
+          const range = location.range as {
+            start?: { line?: number; character?: number };
+            end?: { line?: number; character?: number };
+          } | undefined;
+          if (!range?.start || !range.end) return [];
+          return [{
+            uri: this.monaco!.Uri.parse(String(location.uri ?? "")),
+            range: {
+              startLineNumber: Number(range.start.line ?? 0) + 1,
+              startColumn: Number(range.start.character ?? 0) + 1,
+              endLineNumber: Number(range.end.line ?? 0) + 1,
+              endColumn: Number(range.end.character ?? 0) + 1,
+            },
+          }];
+        });
+      },
+    };
+  }
+
+  referenceProvider(): MonacoEditor.languages.ReferenceProvider {
+    return {
+      provideReferences: async (model, position, context) => {
+        if (!this.ready || !this.monaco) return [];
+        const result = (await this.request("textDocument/references", {
+          textDocument: { uri: this.documentUri(this.pathFromModel(model)) },
+          position: { line: position.lineNumber - 1, character: position.column - 1 },
+          context: { includeDeclaration: context.includeDeclaration },
+        })) as JsonObject[] | null;
+        return (result ?? []).flatMap((location) => {
+          const range = lspRangeToMonaco(location.range);
+          return range ? [{ uri: model.uri, range }] : [];
+        });
+      },
+    };
+  }
+
+  renameProvider(): MonacoEditor.languages.RenameProvider {
+    return {
+      provideRenameEdits: async (model, position, newName) => {
+        if (!this.ready || !this.monaco) return null;
+        const result = (await this.request("textDocument/rename", {
+          textDocument: { uri: this.documentUri(this.pathFromModel(model)) },
+          position: { line: position.lineNumber - 1, character: position.column - 1 },
+          newName,
+        })) as { changes?: Record<string, JsonObject[]> } | null;
+        const edits = Object.values(result?.changes ?? {}).flat();
+        if (!edits.length) {
+          return { edits: [], rejectReason: "Nothing to rename here." };
+        }
+        return {
+          edits: edits.flatMap((edit) => {
+            const range = lspRangeToMonaco(edit.range);
+            return range
+              ? [{ resource: model.uri, versionId: undefined, textEdit: { range, text: String(edit.newText ?? "") } }]
+              : [];
+          }),
+        };
+      },
+      resolveRenameLocation: async (model, position) => {
+        if (!this.ready) return null;
+        const result = (await this.request("textDocument/prepareRename", {
+          textDocument: { uri: this.documentUri(this.pathFromModel(model)) },
+          position: { line: position.lineNumber - 1, character: position.column - 1 },
+        })) as JsonObject | null;
+        const range = lspRangeToMonaco(result?.range ?? result);
+        if (!range) {
+          // Builtins and package exports live in files this rename cannot
+          // reach, and the server declines them for that reason.
+          return { range: new this.monaco!.Range(position.lineNumber, position.column, position.lineNumber, position.column), text: "", rejectReason: "This symbol is not defined in this file." };
+        }
+        return { range, text: model.getValueInRange(range) };
+      },
+    };
+  }
+
+  documentFormattingProvider(): MonacoEditor.languages.DocumentFormattingEditProvider {
+    return {
+      provideDocumentFormattingEdits: async (model, options) => {
+        if (!this.ready) return [];
+        const result = (await this.request("textDocument/formatting", {
+          textDocument: { uri: this.documentUri(this.pathFromModel(model)) },
+          options: {
+            tabSize: options.tabSize,
+            insertSpaces: options.insertSpaces,
+          },
+        })) as JsonObject[] | null;
+        return (result ?? []).flatMap((edit) => {
+          const range = lspRangeToMonaco(edit.range);
+          return range ? [{ range, text: String(edit.newText ?? "") }] : [];
+        });
+      },
+    };
+  }
+
+  codeActionProvider(): MonacoEditor.languages.CodeActionProvider {
+    return {
+      provideCodeActions: async (model, range, context) => {
+        if (!this.ready) return { actions: [], dispose: () => undefined };
+        const result = (await this.request("textDocument/codeAction", {
+          textDocument: { uri: this.documentUri(this.pathFromModel(model)) },
+          range: {
+            start: { line: range.startLineNumber - 1, character: range.startColumn - 1 },
+            end: { line: range.endLineNumber - 1, character: range.endColumn - 1 },
+          },
+          context: { diagnostics: [], triggerKind: context.trigger },
+        })) as JsonObject[] | null;
+        const actions = (result ?? []).flatMap((action) => {
+          const changes = (action.edit as { changes?: Record<string, JsonObject[]> } | undefined)?.changes ?? {};
+          const edits = Object.values(changes).flat().flatMap((edit) => {
+            const editRange = lspRangeToMonaco(edit.range);
+            return editRange
+              ? [{ resource: model.uri, versionId: undefined, textEdit: { range: editRange, text: String(edit.newText ?? "") } }]
+              : [];
+          });
+          if (!edits.length) return [];
+          return [{
+            title: String(action.title ?? "BioLang fix"),
+            kind: String(action.kind ?? "quickfix"),
+            edit: { edits },
+          }];
+        });
+        return { actions, dispose: () => undefined };
+      },
+    };
+  }
+
+  private markdownValue(value: unknown): MonacoEditor.IMarkdownString | string | undefined {
+    if (typeof value === "string") return value;
+    if (value && typeof value === "object") {
+      return { value: String((value as JsonObject).value ?? "") };
+    }
+    return undefined;
   }
 
   private async request(method: string, params: unknown): Promise<unknown> {

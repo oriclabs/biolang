@@ -17,6 +17,7 @@ import {
   summarizeConversion,
   type ImportOutputKind,
 } from "../codeImport";
+import { countNeedingReview, findImportIssues } from "../importIssues";
 import { registerBioLang } from "../language";
 import type { CodeImportResult, ImportValidationReport } from "../types";
 

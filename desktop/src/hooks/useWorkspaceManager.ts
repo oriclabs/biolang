@@ -25,7 +25,18 @@ export function useWorkspaceManager(showNotice: (message: string) => void) {
     setRecentWorkspaces((current) => [root, ...current.filter((path) => path !== root)].slice(0, 8));
   }, []);
 
+  const restoreBackendTrust = useCallback(async (root: string) => {
+    if (!isDesktop || !trustedWorkspaces.includes(root)) return;
+    try {
+      await bridge.setWorkspaceTrust(root, true);
+    } catch (error) {
+      setTrustedWorkspaces((current) => current.filter((path) => path !== root));
+      showNotice(`Could not restore workspace trust: ${String(error)}`);
+    }
+  }, [showNotice, trustedWorkspaces]);
+
   const activate = useCallback(async (next: WorkspaceSnapshot) => {
+    await restoreBackendTrust(next.root);
     setWorkspace(next);
     const [nextPackages, nextEnvironment, nextGitStatus] = await Promise.all([
       bridge.packages(),
@@ -36,12 +47,13 @@ export function useWorkspaceManager(showNotice: (message: string) => void) {
     setEnvironment(nextEnvironment);
     setGitStatus(nextGitStatus);
     remember(next.root);
-  }, [remember]);
+  }, [remember, restoreBackendTrust]);
 
   const initialize = useCallback(async () => {
     const [next, nextEnvironment] = await Promise.all([bridge.workspace(), bridge.environment()]);
     setEnvironment(nextEnvironment);
     if (next) {
+      await restoreBackendTrust(next.root);
       setWorkspace(next);
       const [nextPackages, nextGitStatus] = await Promise.all([bridge.packages(), bridge.gitStatus()]);
       setPackages(nextPackages);
@@ -49,7 +61,7 @@ export function useWorkspaceManager(showNotice: (message: string) => void) {
       remember(next.root);
     }
     return next ?? undefined;
-  }, [remember]);
+  }, [remember, restoreBackendTrust]);
 
   const select = useCallback(() => bridge.selectWorkspace(), []);
 
@@ -89,23 +101,34 @@ export function useWorkspaceManager(showNotice: (message: string) => void) {
     return next;
   }, []);
 
-  const trust = useCallback((trusted: boolean) => {
-    if (!workspace) return;
+  /**
+   * Mark a workspace trusted (or revoke trust).
+   *
+   * `root` is optional so callers that just finished opening a folder can trust
+   * it before React has re-rendered with the new workspace state — needed for
+   * welcome-example "open and run" on Desktop.
+   */
+  const trust = useCallback(async (trusted: boolean, root?: string): Promise<boolean> => {
+    const target = root ?? workspace?.root;
+    if (!target) return false;
+    if (isDesktop) {
+      try {
+        await bridge.setWorkspaceTrust(target, trusted);
+      } catch (error) {
+        showNotice(String(error));
+        return false;
+      }
+    }
     setTrustedWorkspaces((current) => trusted
-      ? [...new Set([...current, workspace.root])]
-      : current.filter((path) => path !== workspace.root));
-  }, [workspace]);
+      ? [...new Set([...current, target])]
+      : current.filter((path) => path !== target));
+    return true;
+  }, [showNotice, workspace?.root]);
 
   useEffect(() => {
     window.localStorage.setItem("biolang.desktop.recentWorkspaces", JSON.stringify(recentWorkspaces));
     window.localStorage.setItem("biolang.desktop.trustedWorkspaces", JSON.stringify(trustedWorkspaces));
   }, [recentWorkspaces, trustedWorkspaces]);
-
-  useEffect(() => {
-    if (!workspace || !isDesktop) return;
-    void bridge.setWorkspaceTrust(workspace.root, workspaceTrusted)
-      .catch((error) => showNotice(String(error)));
-  }, [showNotice, workspace, workspaceTrusted]);
 
   return {
     workspace,

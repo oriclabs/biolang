@@ -128,7 +128,7 @@
       "arity": {
         "kind": "range",
         "minimum": 2,
-        "maximum": 6
+        "maximum": 7
       },
       "metadataQuality": "curated"
     },
@@ -471,13 +471,10 @@
     },
     {
       "name": "assert",
-      "signature": "assert(condition, message)",
+      "signature": "assert condition, message?",
       "category": "core",
       "summary": "BioLang core builtin.",
-      "parameters": [
-        "condition",
-        "message"
-      ],
+      "parameters": [],
       "returnType": null,
       "example": null,
       "arity": {
@@ -1428,41 +1425,41 @@
     },
     {
       "name": "cell_cycle_score",
-      "signature": "cell_cycle_score(arg1, arg2, arg3)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) -> List[Record]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3"
+        "matrix",
+        "s_gene_indices",
+        "g2m_gene_indices"
       ],
-      "returnType": null,
+      "returnType": "List[Record]",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "cell_qc",
-      "signature": "cell_qc(arg1, arg2?, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "cell_qc(matrix, gene_names?, mito_prefix?) -> Table",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2?",
-        "arg3?"
+        "matrix",
+        "gene_names?",
+        "mito_prefix?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Table",
+      "example": "cell_qc(cells.matrix, cells.genes)  # -> Table",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "cell_type_correlation",
@@ -3592,22 +3589,22 @@
     },
     {
       "name": "diffusion_pseudotime",
-      "signature": "diffusion_pseudotime(arg1, arg2, arg3)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "diffusion_pseudotime(embedding, edges, start_cell) -> List[Float]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3"
+        "embedding",
+        "edges",
+        "start_cell"
       ],
-      "returnType": null,
+      "returnType": "List[Float]",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "dim",
@@ -3861,21 +3858,21 @@
     },
     {
       "name": "doublet_score",
-      "signature": "doublet_score(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "doublet_score(matrix, n_simulated?) -> List[Float]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "matrix",
+        "n_simulated?"
       ],
-      "returnType": null,
+      "returnType": "List[Float]",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "download",
@@ -5579,21 +5576,21 @@
     },
     {
       "name": "gene_qc",
-      "signature": "gene_qc(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "gene_qc(matrix, gene_names?) -> Table",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "matrix",
+        "gene_names?"
       ],
-      "returnType": null,
+      "returnType": "Table",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "genome",
@@ -5769,6 +5766,23 @@
         "kind": "range",
         "minimum": 1,
         "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "glimpse",
+      "signature": "glimpse(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
       },
       "metadataQuality": "runtime"
     },
@@ -6122,9 +6136,9 @@
       "returnType": "Table",
       "example": null,
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 2,
-        "maximum": 2
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -6484,21 +6498,21 @@
     },
     {
       "name": "highly_variable_genes",
-      "signature": "highly_variable_genes(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "highly_variable_genes(matrix, n?) -> List[Int] (dispersion-ranked columns)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "matrix",
+        "n?"
       ],
-      "returnType": null,
+      "returnType": "List[Int] (dispersion-ranked columns)",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "hist",
@@ -6769,6 +6783,21 @@
         "maximum": 1
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "interop_status",
+      "signature": "interop_status()",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 0 argument(s).",
+      "parameters": [],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 0,
+        "maximum": 0
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "intersect",
@@ -8107,21 +8136,21 @@
     },
     {
       "name": "knn_graph",
-      "signature": "knn_graph(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "knn_graph(embedding, k?) -> List[{source, target, distance}]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "embedding",
+        "k?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "List",
+      "example": "let edges = knn_graph(pcs.scores, 15)",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "ks_test",
@@ -8288,22 +8317,41 @@
     },
     {
       "name": "leiden_cluster",
-      "signature": "leiden_cluster(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "leiden_cluster(embedding, k, resolution?) -> List[Int]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "embedding",
+        "k",
+        "resolution?"
       ],
-      "returnType": null,
+      "returnType": "List[Int]",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "leiden_graph",
+      "signature": "leiden_graph(edges, n_nodes, resolution) -> List[Int]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "edges",
+        "n_nodes",
+        "resolution"
+      ],
+      "returnType": "List",
+      "example": "leiden_graph(edges, cells.n_cells, 0.5)",
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "len",
@@ -8522,20 +8570,20 @@
     },
     {
       "name": "log1p_transform",
-      "signature": "log1p_transform(arg1)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "log1p_transform(matrix) -> matrix (preserves CSR sparsity)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1"
+        "matrix"
       ],
-      "returnType": null,
+      "returnType": "matrix (preserves CSR sparsity)",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "log2",
@@ -8680,40 +8728,40 @@
     },
     {
       "name": "lr_aggregate",
-      "signature": "lr_aggregate(arg1, arg2)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "lr_aggregate(scores, pathway_map) -> List[Record]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2"
+        "scores",
+        "pathway_map"
       ],
-      "returnType": null,
+      "returnType": "List[Record]",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "lr_score",
-      "signature": "lr_score(arg1, arg2, arg3)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "lr_score(matrix, labels, ligand_receptor_pairs) -> List[Record]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3"
+        "matrix",
+        "labels",
+        "ligand_receptor_pairs"
       ],
-      "returnType": null,
+      "returnType": "List[Record]",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "ma_plot",
@@ -8980,6 +9028,25 @@
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "matrix_at",
+      "signature": "matrix_at(matrix, row, column) -> Value",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "matrix",
+        "row",
+        "column"
+      ],
+      "returnType": "Value",
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -9312,21 +9379,21 @@
     },
     {
       "name": "module_score",
-      "signature": "module_score(arg1, arg2)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "module_score(matrix, gene_indices) -> List[Float]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2"
+        "matrix",
+        "gene_indices"
       ],
-      "returnType": null,
+      "returnType": "List[Float]",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "month",
@@ -10128,21 +10195,21 @@
     },
     {
       "name": "normalize_total",
-      "signature": "normalize_total(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "normalize_total(matrix, target?) -> matrix (row library-size normalization)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "matrix",
+        "target?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "SparseMatrix",
+      "example": "normalize_total(cells.matrix, 10000.0) |> log1p_transform()",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "normalize_variant",
@@ -10806,9 +10873,9 @@
       "returnType": "Str",
       "example": null,
       "arity": {
-        "kind": "exact",
+        "kind": "atLeast",
         "minimum": 2,
-        "maximum": 2
+        "maximum": null
       },
       "metadataQuality": "curated"
     },
@@ -11551,22 +11618,22 @@
     },
     {
       "name": "pseudobulk_aggregate",
-      "signature": "pseudobulk_aggregate(arg1, arg2, arg3)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "pseudobulk_aggregate(matrix, sample_ids, groups) -> Record",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3"
+        "matrix",
+        "sample_ids",
+        "groups"
       ],
-      "returnType": null,
+      "returnType": "Record",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "pubmed_abstract",
@@ -11692,6 +11759,24 @@
         "maximum": 3
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "py",
+      "signature": "py(arg1, ...)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "..."
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "atLeast",
+        "minimum": 1,
+        "maximum": null
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "qc_report",
@@ -11894,6 +11979,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "r",
+      "signature": "r(arg1, ...)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "..."
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "atLeast",
+        "minimum": 1,
+        "maximum": null
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "rainfall",
       "signature": "rainfall(arg1, arg2?)",
       "category": "runtime",
@@ -12074,38 +12177,56 @@
     },
     {
       "name": "read_10x",
-      "signature": "read_10x(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "read_10x(path, gene_column?) -> Record (dense)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "path",
+        "gene_column?"
       ],
-      "returnType": null,
+      "returnType": "Record (dense)",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "read_10x_sparse",
+      "signature": "read_10x_sparse(path, gene_column?) -> Record (CSR counts, obs, var, layers)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "path",
+        "gene_column?"
+      ],
+      "returnType": "Record",
+      "example": "let cells = read_10x_sparse(\"filtered_feature_bc_matrix\")",
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "read_anndata",
-      "signature": "read_anndata(arg1)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "read_anndata(zarr_path) -> Record (native dense or CSR AnnData Zarr)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1"
+        "zarr_path"
       ],
-      "returnType": null,
+      "returnType": "Record (native dense or CSR AnnData Zarr)",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "read_bam",
@@ -12471,6 +12592,39 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "ref",
+      "signature": "ref(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "ref_builds",
+      "signature": "ref_builds()",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 0 argument(s).",
+      "parameters": [],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 0,
+        "maximum": 0
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "ref_genome",
       "signature": "ref_genome(name|\"list\", path?) → {path, name, description}",
       "category": "fs",
@@ -12490,22 +12644,22 @@
     },
     {
       "name": "reference_classify",
-      "signature": "reference_classify(arg1, arg2, arg3)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "reference_classify(query, reference_profiles, labels) -> List[Record]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3"
+        "query",
+        "reference_profiles",
+        "labels"
       ],
-      "returnType": null,
+      "returnType": "List[Record]",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "reference_normalize",
@@ -13373,38 +13527,112 @@
     },
     {
       "name": "sc_integrate",
-      "signature": "sc_integrate(arg1, arg2)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "sc_integrate(embedding, batch_ids) -> matrix",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2"
+        "embedding",
+        "batch_ids"
       ],
-      "returnType": null,
+      "returnType": "matrix",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "sc_merge_objects",
+      "signature": "sc_merge_objects(left, right, left_batch, right_batch) -> Record",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "left",
+        "right",
+        "left_batch",
+        "right_batch"
+      ],
+      "returnType": "Record",
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 4,
+        "maximum": 4
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "sc_pca",
+      "signature": "sc_pca(matrix, n_components?) -> {scores, loadings, explained_variance_ratio, ...}",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "matrix",
+        "n_components?"
+      ],
+      "returnType": "Record",
+      "example": "let pcs = sc_pca(log_counts, 30)  # pcs.scores is cells x components",
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "sc_sctransform",
-      "signature": "sc_sctransform(arg1)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "sc_sctransform(matrix) -> matrix",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1"
+        "matrix"
       ],
-      "returnType": null,
+      "returnType": "matrix",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "sc_subset_cells",
+      "signature": "sc_subset_cells(object, indices) -> Record (synchronized metadata/layers)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "object",
+        "indices"
+      ],
+      "returnType": "Record (synchronized metadata/layers)",
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "sc_subset_genes",
+      "signature": "sc_subset_genes(object, indices) -> Record (invalidates reductions)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "object",
+        "indices"
+      ],
+      "returnType": "Record (invalidates reductions)",
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "scan",
@@ -13551,21 +13779,39 @@
     },
     {
       "name": "select_cols",
-      "signature": "select_cols(arg1, arg2)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "select_cols(matrix, indices) -> matrix",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2"
+        "matrix",
+        "indices"
       ],
-      "returnType": null,
+      "returnType": "matrix",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "select_rows",
+      "signature": "select_rows(matrix|table, indices) -> matrix|table",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "matrix|table",
+        "indices"
+      ],
+      "returnType": "matrix|table",
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "semi_join",
@@ -14100,39 +14346,39 @@
     },
     {
       "name": "spatial_moransi",
-      "signature": "spatial_moransi(arg1, arg2)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "spatial_moransi(expression, edges) -> Float",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2"
+        "expression",
+        "edges"
       ],
-      "returnType": null,
+      "returnType": "Float",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "spatial_neighbors",
-      "signature": "spatial_neighbors(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "spatial_neighbors(coordinates, k?) -> List[Record]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "coordinates",
+        "k?"
       ],
-      "returnType": null,
+      "returnType": "List[Record]",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "spearman",
@@ -16507,21 +16753,21 @@
     },
     {
       "name": "velocity_estimate",
-      "signature": "velocity_estimate(arg1, arg2)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "velocity_estimate(spliced, unspliced) -> matrix",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2"
+        "spliced",
+        "unspliced"
       ],
-      "returnType": null,
+      "returnType": "matrix",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "venn",
@@ -16776,40 +17022,40 @@
     },
     {
       "name": "wnn_graph",
-      "signature": "wnn_graph(arg1, arg2, arg3)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "wnn_graph(rna_edges, protein_edges, rna_weight) -> List[Record]",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3"
+        "rna_edges",
+        "protein_edges",
+        "rna_weight"
       ],
-      "returnType": null,
+      "returnType": "List[Record]",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "write_anndata",
-      "signature": "write_anndata(arg1, arg2)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "write_anndata(zarr_path, object) -> Nil (preserves CSR sparsity)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "arg1",
-        "arg2"
+        "zarr_path",
+        "object"
       ],
-      "returnType": null,
+      "returnType": "Nil (preserves CSR sparsity)",
       "example": null,
       "arity": {
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "write_bed",

@@ -1,5 +1,7 @@
 import type { BeforeMount, Monaco, OnMount } from "@monaco-editor/react";
 import {
+  ChevronDown,
+  ChevronRight,
   Check,
   CircleStop,
   Copy,
@@ -56,7 +58,7 @@ function ConsoleResult({ response }: { response: ConsoleResponse }) {
       {value.truncated && <span className="console-truncated">Showing the first {value.rows.length} rows</span>}
     </div>}
     {value?.kind === "sequence" && <div className="console-sequence">
-      <header><span>{value.typeName}</span><button type="button" title="Copy sequence" aria-label="Copy sequence" onClick={() => void navigator.clipboard.writeText(value.sequence ?? "")}><Copy size={11} /></button></header>
+      <header><span>{value.typeName}</span><button type="button" title="Copy sequence" aria-label="Copy sequence" onClick={() => void bridge.copyText(value.sequence ?? "")}><Copy size={11} /></button></header>
       <pre>{value.sequence}</pre>
       {value.truncated && <span className="console-truncated">Sequence preview truncated</span>}
     </div>}
@@ -64,6 +66,12 @@ function ConsoleResult({ response }: { response: ConsoleResponse }) {
     <small className="console-duration">{response.status === "ok" ? <Check size={10} /> : <CircleStop size={10} />}{response.durationMs} ms</small>
   </div>;
 }
+
+/**
+ * Code pushed in from the editor by Shift+Enter. The id is what makes a repeat
+ * of the identical selection run a second time.
+ */
+export type ConsoleSubmission = { id: number; source: string };
 
 export function ConsolePane({
   workspaceRoot,
@@ -75,6 +83,7 @@ export function ConsolePane({
   onDocumentChange,
   onDocumentUnmount,
   showNotice,
+  submission,
 }: {
   workspaceRoot: string;
   editorTheme: string;
@@ -85,6 +94,7 @@ export function ConsolePane({
   onDocumentChange: (path: string, content: string) => void;
   onDocumentUnmount: (path: string) => void;
   showNotice: (message: string) => void;
+  submission?: ConsoleSubmission;
 }) {
   const transcriptKey = storageKey("transcript", workspaceRoot);
   const historyKey = storageKey("history", workspaceRoot);
@@ -100,11 +110,14 @@ export function ConsolePane({
   const requestGeneration = useRef(0);
   const nextEntryId = useRef(Date.now());
   const editorRef = useRef<MonacoEditor.editor.IStandaloneCodeEditor>();
+  const intelligenceDisposablesRef = useRef<MonacoEditor.IDisposable[]>([]);
+  const environmentRef = useRef(environment);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const runRef = useRef<() => void>(() => undefined);
   const stopRef = useRef<() => void>(() => undefined);
   const busyRef = useRef(false);
   const recallHistoryRef = useRef<(direction: -1 | 1) => void>(() => undefined);
+  environmentRef.current = environment;
 
   useEffect(() => {
     let disposed = false;
@@ -117,6 +130,8 @@ export function ConsolePane({
       .catch((error) => showNotice(String(error)));
     return () => {
       disposed = true;
+      for (const disposable of intelligenceDisposablesRef.current) disposable.dispose();
+      intelligenceDisposablesRef.current = [];
       onDocumentUnmount(consoleDocumentPath);
     };
   }, [onDocumentUnmount, showNotice, workspaceRoot]);
@@ -136,16 +151,18 @@ export function ConsolePane({
     window.localStorage.setItem(historyKey, JSON.stringify(history.slice(-200)));
   }, [history, historyKey]);
 
-  const run = useCallback(async () => {
-    const input = source.trim();
+  const runSource = useCallback(async (candidate: string, clearInput: boolean) => {
+    const input = candidate.trim();
     if (!input || busy) return;
     const id = ++nextEntryId.current;
     const generation = requestGeneration.current;
     setTranscript((current) => [...current, { id, source: input }]);
     setHistory((current) => [...current.filter((item) => item !== input), input].slice(-200));
     setHistoryIndex(-1);
-    setSource("");
-    onDocumentChange(consoleDocumentPath, "");
+    if (clearInput) {
+      setSource("");
+      onDocumentChange(consoleDocumentPath, "");
+    }
     setBusy(true);
     try {
       const response = await bridge.evaluateConsole(input);
@@ -170,9 +187,30 @@ export function ConsolePane({
       setConnected(false);
     } finally {
       if (generation === requestGeneration.current) setBusy(false);
-      window.requestAnimationFrame(() => editorRef.current?.focus());
+      // Only pull focus back for input the console owns. Code sent from the
+      // file editor has to leave the caret where it is, or stepping through a
+      // script line by line would need a click between every line.
+      if (clearInput) window.requestAnimationFrame(() => editorRef.current?.focus());
     }
-  }, [busy, environment, onDocumentChange, source]);
+  }, [busy, environment, onDocumentChange]);
+
+  const run = useCallback(() => runSource(source, true), [runSource, source]);
+
+  // Code sent from the editor evaluates without disturbing whatever half-typed
+  // expression is sitting in the console input.
+  const lastSubmissionRef = useRef(0);
+  // Captured on the first render, before any effect has had a chance to consume
+  // it: code already waiting here means the pane was opened by Shift+Enter from
+  // the file editor rather than by someone wanting to type at the prompt.
+  const openedBySubmissionRef = useRef(Boolean(submission));
+  useEffect(() => {
+    // `busy` is a dependency rather than an early bail so that code sent while
+    // an evaluation is still running is held and dispatched afterwards instead
+    // of being marked consumed and silently dropped.
+    if (!submission || submission.id === lastSubmissionRef.current || busy) return;
+    lastSubmissionRef.current = submission.id;
+    void runSource(submission.source, false);
+  }, [busy, runSource, submission]);
 
   const stop = useCallback(async () => {
     if (!busy) return;
@@ -241,6 +279,70 @@ export function ConsolePane({
 
   const onMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
+    if (!intelligenceDisposablesRef.current.length) {
+      intelligenceDisposablesRef.current = [
+        monaco.languages.registerCompletionItemProvider("biolang", {
+          triggerCharacters: ["."],
+          provideCompletionItems(model, position) {
+            if (!model.uri.path.endsWith(consoleDocumentPath)) return { suggestions: [] };
+            const before = model.getValueInRange({
+              startLineNumber: position.lineNumber,
+              startColumn: 1,
+              endLineNumber: position.lineNumber,
+              endColumn: position.column,
+            });
+            const target = before.match(/([A-Za-z_]\w*)\.[A-Za-z_]*$/)?.[1];
+            const word = model.getWordUntilPosition(position);
+            const range = {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn: word.startColumn,
+              endColumn: position.column,
+            };
+            if (target) {
+              const variable = environmentRef.current.variables.find((entry) => entry.name === target);
+              return {
+                suggestions: (variable?.members ?? [])
+                  .filter((member) => !member.startsWith("_"))
+                  .map((member) => ({
+                    label: member,
+                    kind: monaco.languages.CompletionItemKind.Field,
+                    detail: `runtime field of ${target}`,
+                    insertText: member,
+                    range,
+                  })),
+              };
+            }
+            return {
+              suggestions: environmentRef.current.variables.map((variable) => ({
+                label: variable.name,
+                kind: monaco.languages.CompletionItemKind.Variable,
+                detail: variable.typeName,
+                documentation: { value: `Current value: \`${variable.preview}\`` },
+                insertText: variable.name,
+                range,
+                sortText: `0_${variable.name}`,
+              })),
+            };
+          },
+        }),
+        monaco.languages.registerHoverProvider("biolang", {
+          provideHover(model, position) {
+            if (!model.uri.path.endsWith(consoleDocumentPath)) return null;
+            const word = model.getWordAtPosition(position)?.word;
+            if (!word) return null;
+            const variable = environmentRef.current.variables.find((entry) => entry.name === word);
+            if (!variable) return null;
+            return {
+              contents: [
+                { value: `**${variable.name}**: \`${variable.typeName}\`` },
+                { value: `Current value: \`${variable.preview}\`` },
+              ],
+            };
+          },
+        }),
+      ];
+    }
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => runRef.current());
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
       if (busyRef.current) {
@@ -261,8 +363,22 @@ export function ConsolePane({
       else editor.trigger("console", "cursorDown", null);
     });
     void onDocumentMount(consoleDocumentPath, source, monaco);
-    editor.focus();
+    // Mounting because the file editor pushed code in must not move focus: the
+    // author is stepping through a script and expects the caret to stay there.
+    if (!openedBySubmissionRef.current) editor.focus();
   }, [onDocumentMount, source]);
+
+  // Clicking a name evaluates it, which is what View() means in practice: the
+  // transcript already renders tables and sequences, and unlike a throwaway
+  // viewer window the result stays in the record of what was inspected.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpanded = (name: string) => {
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (!next.delete(name)) next.add(name);
+      return next;
+    });
+  };
 
   const sessionLabel = connected ? `${environment.variables.length} object${environment.variables.length === 1 ? "" : "s"}` : "starting";
   const environmentRows = useMemo(() => environment.variables, [environment.variables]);
@@ -335,10 +451,36 @@ export function ConsolePane({
       <div className="console-variable-head"><span>Name</span><span>Type</span><span>Size</span></div>
       <div className="console-variables">
         {environmentRows.length
-          ? environmentRows.map((variable) => <div className="console-variable" key={variable.name} title={variable.preview}>
-              <span><i />{variable.name}<small>{variable.preview}</small></span>
-              <code>{variable.typeName}</code>
-              <span>{formatConsoleBytes(variable.sizeBytes)}</span>
+          ? environmentRows.map((variable) => <div className="console-variable-entry" key={variable.name}>
+              <div className="console-variable">
+                {variable.members.length
+                  ? <button
+                      type="button"
+                      className="console-variable-disclosure"
+                      aria-label={`${expanded.has(variable.name) ? "Hide" : "Show"} fields of ${variable.name}`}
+                      aria-expanded={expanded.has(variable.name)}
+                      onClick={() => toggleExpanded(variable.name)}
+                    >{expanded.has(variable.name) ? <ChevronDown size={11} /> : <ChevronRight size={11} />}</button>
+                  : <i className="console-variable-bullet" />}
+                <button
+                  type="button"
+                  className="console-variable-open"
+                  title={`Evaluate ${variable.name}`}
+                  onClick={() => void runSource(variable.name, false)}
+                >
+                  <span>{variable.name}<small>{variable.preview}</small></span>
+                  <code>{variable.typeName}</code>
+                  <span className="console-variable-size">{formatConsoleBytes(variable.sizeBytes)}</span>
+                </button>
+              </div>
+              {expanded.has(variable.name) && <div className="console-variable-members">
+                {variable.members.map((member) => <button
+                  type="button"
+                  key={member}
+                  title={`Evaluate ${variable.name}.${member}`}
+                  onClick={() => void runSource(`${variable.name}.${member}`, false)}
+                >{member}</button>)}
+              </div>}
             </div>)
           : <div className="console-no-variables">No user objects in this session.</div>}
       </div>

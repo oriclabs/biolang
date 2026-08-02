@@ -1,7 +1,7 @@
 import { SomerClient, type Job as SomerJob } from "@somer/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { bridge, onJobFinished, onJobOutput } from "../bridge";
-import { appendJobLog, normalizeJobLog, remoteJobLog } from "../jobLogs";
+import { bridge, isDesktop, onJobArtifacts, onJobFinished, onJobOutput, onJobResult, onJobTrace } from "../bridge";
+import { appendJobLog, normalizeJobLog, remoteJobLog, stripCliProgress } from "../jobLogs";
 import { languageForPath } from "../language";
 import {
   createNotebookRunPlan,
@@ -10,23 +10,73 @@ import {
   type NotebookRunPlan,
 } from "../notebooks";
 import { snapshotDelta } from "../somerOutput";
+import { createJobProvenance } from "../runProvenance";
 import type {
   BottomPanel,
   EnvironmentInfo,
   Job,
+  JobArtifact,
+  JobFinishedEvent,
+  JobLogChunk,
   NotebookCellOutput,
   OpenFile,
+  PackageInfo,
+  ResultPageData,
+  ResultPageRequest,
   SomerProfile,
+  StructuredResult,
 } from "../types";
 import { viewerForPath } from "../viewers";
 import { parseWorkflow, workflowToBioLang } from "../workflows";
 
 const ansiPattern = new RegExp("\\u001b\\[[0-9;]*m", "g");
 
+function remoteResults(results: SomerJob["results"]): StructuredResult[] {
+  return (results ?? []).map((result, resultIndex) => ({
+    ...result,
+    id: typeof result.id === "string" ? result.id : `result-${resultIndex + 1}`,
+    name: typeof result.name === "string" ? result.name : `${result.kind} ${resultIndex + 1}`,
+    resultIndex,
+  })) as StructuredResult[];
+}
+
+function resultCell(value: unknown): unknown {
+  if (value && typeof value === "object") {
+    const result = value as { value?: unknown; display?: unknown };
+    if ("value" in result) return result.value;
+    if (typeof result.display === "string") return result.display;
+  }
+  return value;
+}
+
 interface LocalJobContext {
   path: string;
   router?: NotebookOutputRouter;
   cellIndexes?: number[];
+}
+
+function completeLocalJob(job: Job, event: JobFinishedEvent): Job {
+  const status = event.exitCode === 0
+    ? "succeeded"
+    : event.exitCode == null
+      ? "cancelled"
+      : "failed";
+  const message = `\n${event.exitCode === 0
+    ? "Process completed"
+    : event.exitCode == null
+      ? "Process cancelled"
+      : `Process exited with code ${event.exitCode}`} in ${(event.durationMs / 1000).toFixed(2)}s.\n`;
+  return {
+    ...job,
+    status,
+    exitCode: event.exitCode,
+    durationMs: event.durationMs,
+    log: appendJobLog(
+      job.log,
+      event.exitCode === 0 ? "success" : event.exitCode == null ? "system" : "stderr",
+      message,
+    ),
+  };
 }
 
 function storedJobs(): Job[] {
@@ -45,8 +95,20 @@ function storedJobs(): Job[] {
   }
 }
 
+function retainedJobs(jobs: Job[]): Job[] {
+  const pinned = jobs.filter((job) => job.pinned);
+  const recent = jobs.filter((job) => !job.pinned).slice(0, isDesktop ? 500 : 100);
+  return [...pinned, ...recent].map((job) => ({
+    ...job,
+    log: job.log.length > 2_000
+      ? job.log.slice(-2_000)
+      : job.log,
+  }));
+}
+
 export function useJobManager({
   environment,
+  packages,
   workspaceTrusted,
   somerProfiles,
   somerTokens,
@@ -56,9 +118,11 @@ export function useJobManager({
   setActivePath,
   setBottomPanel,
   setBottomVisible,
+  showOutput,
   showNotice,
 }: {
   environment: EnvironmentInfo | undefined;
+  packages: PackageInfo[];
   workspaceTrusted: boolean;
   somerProfiles: SomerProfile[];
   somerTokens: Record<string, string>;
@@ -68,15 +132,21 @@ export function useJobManager({
   setActivePath: React.Dispatch<React.SetStateAction<string | undefined>>;
   setBottomPanel: React.Dispatch<React.SetStateAction<BottomPanel>>;
   setBottomVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  showOutput: () => void;
   showNotice: (message: string) => void;
 }) {
   const [notebookCellOutputs, setNotebookCellOutputs] = useState<
     Record<string, Record<number, NotebookCellOutput>>
   >({});
-  const [jobs, setJobs] = useState<Job[]>(storedJobs);
+  const [jobs, setJobs] = useState<Job[]>(() => isDesktop ? [] : storedJobs());
+  const [historyLoaded, setHistoryLoaded] = useState(!isDesktop);
   const [selectedJobId, setSelectedJobId] = useState<string>();
   const [connectionState, setConnectionState] = useState<Record<string, string>>({});
   const localJobContexts = useRef(new Map<number, LocalJobContext>());
+  const pendingLocalLogs = useRef(new Map<number, JobLogChunk[]>());
+  const pendingLocalResults = useRef(new Map<number, StructuredResult[]>());
+  const pendingLocalArtifacts = useRef(new Map<number, JobArtifact[]>());
+  const pendingLocalFinishes = useRef(new Map<number, JobFinishedEvent>());
   const remotePollControllers = useRef(new Map<string, AbortController>());
   const workspaceGeneration = useRef(0);
   const newestJobId = jobs[0]?.id;
@@ -120,6 +190,22 @@ export function useJobManager({
   const clearJobLog = useCallback((jobId: string) => {
     setJobs((current) => current.map((job) =>
       job.id === jobId ? { ...job, log: [] } : job));
+  }, []);
+
+  const pinJob = useCallback((jobId: string, pinned: boolean) => {
+    setJobs((current) => current.map((job) => job.id === jobId ? { ...job, pinned } : job));
+  }, []);
+
+  const renameJob = useCallback((jobId: string, displayName: string) => {
+    const name = displayName.trim();
+    setJobs((current) => current.map((job) =>
+      job.id === jobId ? { ...job, displayName: name || undefined } : job));
+  }, []);
+
+  const deleteJob = useCallback((jobId: string) => {
+    setJobs((current) => current.filter((job) => job.id !== jobId));
+    setSelectedJobId((current) => current === jobId ? undefined : current);
+    void bridge.deleteRunHistory(jobId);
   }, []);
 
   const recordDesktopTask = useCallback((
@@ -203,34 +289,110 @@ export function useJobManager({
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("biolang.desktop.jobs", JSON.stringify(jobs.slice(0, 100)));
-  }, [jobs]);
+    if (!isDesktop) return;
+    let disposed = false;
+    void bridge.loadRunHistory().then((stored) => {
+      if (disposed) return;
+      const migrated = stored.length ? stored : storedJobs();
+      setJobs(migrated.map((job) => ({
+        ...job,
+        status: job.status === "running" ? "disconnected" : job.status,
+        log: normalizeJobLog(job.log),
+      })));
+      setHistoryLoaded(true);
+    }).catch(() => setHistoryLoaded(true));
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!historyLoaded) return;
+    const timer = window.setTimeout(() => {
+      const retained = retainedJobs(jobs);
+      void bridge.saveRunHistory(retained).catch(() => {
+        if (isDesktop) return;
+        const compact = retained.slice(0, 25).map((job) => ({
+          ...job,
+          log: job.log.slice(-200),
+          provenance: job.provenance ? { ...job.provenance, sourceSnapshot: undefined } : undefined,
+        }));
+        localStorage.setItem("biolang.desktop.jobs", JSON.stringify(compact));
+      });
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [historyLoaded, jobs]);
 
   useEffect(() => {
     let disposed = false;
     let unlistenOutput: () => void = () => undefined;
+    let unlistenResult: () => void = () => undefined;
+    let unlistenTrace: () => void = () => undefined;
+    let unlistenArtifacts: () => void = () => undefined;
     let unlistenFinished: () => void = () => undefined;
     void onJobOutput((event) => {
-      const data = event.data.replace(ansiPattern, "");
+      const data = stripCliProgress(event.data.replace(ansiPattern, ""));
+      if (!data) return;
       const context = localJobContexts.current.get(event.jobId);
+      if (!context) {
+        const pending = pendingLocalLogs.current.get(event.jobId) ?? [];
+        pendingLocalLogs.current.set(event.jobId, appendJobLog(pending, event.stream, data));
+        return;
+      }
       const routed = context?.router
         ? event.stream === "stdout"
           ? context.router.stdout(data)
           : context.router.stderr(data)
         : { visible: data, chunks: [] };
-      if (context) {
-        appendNotebookChunks(context.path, routed.chunks);
-        setJobs((current) => current.map((job) =>
-          job.id === `local:${event.jobId}`
-            ? { ...job, log: appendJobLog(job.log, event.stream, routed.visible) }
-            : job));
-      }
+      appendNotebookChunks(context.path, routed.chunks);
+      setJobs((current) => current.map((job) =>
+        job.id === `local:${event.jobId}`
+          ? { ...job, log: appendJobLog(job.log, event.stream, routed.visible) }
+          : job));
     }).then((dispose) => {
       if (disposed) dispose();
       else unlistenOutput = dispose;
     });
+    void onJobArtifacts((event) => {
+      if (!localJobContexts.current.has(event.jobId)) {
+        pendingLocalArtifacts.current.set(event.jobId, event.artifacts);
+        return;
+      }
+      setJobs((current) => current.map((job) =>
+        job.id === `local:${event.jobId}` ? { ...job, artifacts: event.artifacts } : job));
+    }).then((dispose) => {
+      if (disposed) dispose();
+      else unlistenArtifacts = dispose;
+    });
+    void onJobResult((event) => {
+      if (!localJobContexts.current.has(event.jobId)) {
+        const pending = pendingLocalResults.current.get(event.jobId) ?? [];
+        pendingLocalResults.current.set(event.jobId, [...pending, event.value]);
+        return;
+      }
+      setJobs((current) => current.map((job) =>
+        job.id === `local:${event.jobId}`
+          ? { ...job, results: [...(job.results ?? []), event.value] }
+          : job));
+    }).then((dispose) => {
+      if (disposed) dispose();
+      else unlistenResult = dispose;
+    });
+    void onJobTrace((event) => {
+      setJobs((current) => current.map((job) =>
+        job.id === `local:${event.jobId}`
+          ? { ...job, trace: [...(job.trace ?? []), ...event.entries] }
+          : job));
+    }).then((dispose) => {
+      if (disposed) dispose();
+      else unlistenTrace = dispose;
+    });
     void onJobFinished((event) => {
       const context = localJobContexts.current.get(event.jobId);
+      if (!context) {
+        pendingLocalFinishes.current.set(event.jobId, event);
+        return;
+      }
       if (context?.router) {
         const routed = context.router.flush();
         if (routed.visible) {
@@ -251,33 +413,15 @@ export function useJobManager({
       setJobs((current) =>
         current.map((job) =>
           job.id === `local:${event.jobId}`
-            ? (() => {
-                const status = event.exitCode === 0
-                  ? "succeeded"
-                  : event.exitCode == null
-                    ? "cancelled"
-                    : "failed";
-                const message = `\n${event.exitCode === 0
-                  ? "Process completed"
-                  : event.exitCode == null
-                    ? "Process cancelled"
-                    : `Process exited with code ${event.exitCode}`} in ${(event.durationMs / 1000).toFixed(2)}s.\n`;
-                return {
-                  ...job,
-                  status,
-                  exitCode: event.exitCode,
-                  durationMs: event.durationMs,
-                  log: appendJobLog(
-                    job.log,
-                    event.exitCode === 0 ? "success" : event.exitCode == null ? "system" : "stderr",
-                    message,
-                  ),
-                };
-              })()
+            ? completeLocalJob(job, event)
             : job,
         ),
       );
       localJobContexts.current.delete(event.jobId);
+      pendingLocalLogs.current.delete(event.jobId);
+      pendingLocalResults.current.delete(event.jobId);
+      pendingLocalArtifacts.current.delete(event.jobId);
+      pendingLocalFinishes.current.delete(event.jobId);
     }).then((dispose) => {
       if (disposed) dispose();
       else unlistenFinished = dispose;
@@ -285,6 +429,9 @@ export function useJobManager({
     return () => {
       disposed = true;
       unlistenOutput();
+      unlistenResult();
+      unlistenTrace();
+      unlistenArtifacts();
       unlistenFinished();
     };
   }, [appendNotebookChunks, finishNotebookRun]);
@@ -302,7 +449,8 @@ export function useJobManager({
   ) => {
     const notebook = file.viewer === "notebook";
     const workflow = file.viewer === "workflow";
-    if ((!file.path.endsWith(".bl") && !notebook && !workflow) || runningJob) return;
+    const script = file.path.endsWith(".bl") || (file.untitled && file.language === "biolang");
+    if ((!script && !notebook && !workflow) || runningJob) return;
     if (!workspaceTrusted) {
       showNotice("Trust this workspace before executing code");
       return;
@@ -321,19 +469,32 @@ export function useJobManager({
         return;
       }
       if (notebookPlan) beginNotebookRun(file.path, notebookPlan);
-      setBottomPanel("output");
-      setBottomVisible(true);
+      showOutput();
+      const backendName = targetId === "local"
+        ? "Local"
+        : somerProfiles.find((profile) => profile.id === targetId)?.name ?? "SOMER";
+      const provenance = await createJobProvenance(
+        file,
+        environment,
+        packages,
+        backendName,
+        targetId,
+      );
       if (targetId === "local") {
-        if (file.content !== file.savedContent) {
+        if (!file.untitled && file.content !== file.savedContent) {
           await bridge.writeFile(file.path, file.content);
           setOpenFiles((files) => files.map((candidate) =>
             candidate.path === file.path ? { ...candidate, savedContent: candidate.content } : candidate));
         }
         const id = notebookPlan
-          ? await bridge.runNotebookSource(notebookPlan.notebookSource)
+          ? isDesktop
+            ? await bridge.runNotebookSource(notebookPlan.notebookSource)
+            : await bridge.runSource(notebookPlan.scriptSource)
           : workflow
             ? await bridge.runWorkflow(file.path)
-            : await bridge.runFile(file.path);
+            : file.untitled
+              ? await bridge.runSource(file.content)
+              : await bridge.runFile(file.path);
         localJobContexts.current.set(id, {
           path: file.path,
           router: notebookPlan
@@ -345,19 +506,47 @@ export function useJobManager({
             : undefined,
           cellIndexes: notebookPlan?.reportedCellIndexes,
         });
+        const pendingLog = pendingLocalLogs.current.get(id) ?? [];
+        const pendingResults = pendingLocalResults.current.get(id) ?? [];
+        const pendingArtifacts = pendingLocalArtifacts.current.get(id) ?? [];
+        const pendingFinish = pendingLocalFinishes.current.get(id);
+        pendingLocalLogs.current.delete(id);
+        pendingLocalResults.current.delete(id);
+        pendingLocalArtifacts.current.delete(id);
+        pendingLocalFinishes.current.delete(id);
+        let initialLog: JobLogChunk[] = [{ stream: "system", text: `running ${file.name}\n` }];
+        for (const chunk of pendingLog) {
+          initialLog = appendJobLog(initialLog, chunk.stream, chunk.text);
+        }
+        const initialJob: Job = {
+          id: `local:${id}`,
+          file: file.path,
+          status: "running",
+          startedAt: Date.now(),
+          backend: "Local",
+          targetId: "local",
+          cellIndex: selectedCellIndex,
+          log: initialLog,
+          results: pendingResults,
+          artifacts: pendingArtifacts,
+          provenance,
+        };
         setJobs((current) => [
-          {
-            id: `local:${id}`,
-            file: file.path,
-            status: "running",
-            startedAt: Date.now(),
-            backend: "Local",
-            targetId: "local",
-            cellIndex: selectedCellIndex,
-            log: [],
-          },
+          pendingFinish ? completeLocalJob(initialJob, pendingFinish) : initialJob,
           ...current,
         ]);
+        if (pendingFinish) {
+          if (notebookPlan) {
+            finishNotebookRun(
+              file.path,
+              notebookPlan.reportedCellIndexes,
+              pendingFinish.exitCode === 0
+                ? "succeeded"
+                : pendingFinish.exitCode == null ? "cancelled" : "failed",
+            );
+          }
+          localJobContexts.current.delete(id);
+        }
         return;
       }
       const profile = somerProfiles.find((candidate) => candidate.id === targetId);
@@ -374,6 +563,12 @@ export function useJobManager({
         name: file.name,
         entrypoint: workflow || notebook ? `${file.name}.generated.bl` : file.name,
         source: remoteSource,
+        tags: {
+          "biolang.file": file.path,
+          "biolang.sourceSha256": provenance.sourceHash ?? "",
+          "biolang.version": provenance.biolangVersion ?? "",
+          "biolang.packages": JSON.stringify(provenance.packages),
+        },
         runtimeVersion: environment?.blVersion?.replace(/^bl\s*/i, ""),
         resources: { profile: profile.resourceProfile },
       });
@@ -393,6 +588,7 @@ export function useJobManager({
           targetId: profile.id,
           cellIndex: selectedCellIndex,
           log: [{ stream: "system", text: `Submitted ${file.name} to ${profile.name}.\n` }],
+          provenance,
         },
         ...current,
       ]);
@@ -449,9 +645,22 @@ export function useJobManager({
             exitCode: remote.exitCode,
             durationMs: terminal ? Date.now() - startedAt : undefined,
             log,
+            results: remoteResults(remote.results),
           };
         }));
         if (firstTerminal) {
+          void client.artifacts(submitted.id).then((artifacts) => {
+            setJobs((current) => current.map((job) => job.id === id ? {
+              ...job,
+              artifacts: (artifacts ?? []).map((artifact) => ({
+                name: artifact.name,
+                size: artifact.size,
+                mediaType: artifact.mediaType,
+                sha256: artifact.sha256,
+                downloadUrl: artifact.downloadUrl,
+              })),
+            } : job));
+          }).catch(() => undefined);
           if (notebookPlan) {
             finishNotebookRun(file.path, notebookPlan.reportedCellIndexes, remote.status as NotebookCellOutput["status"]);
           }
@@ -486,17 +695,20 @@ export function useJobManager({
         log: [{ stream: "stderr", text: `${String(error)}\n` }],
       }, ...current]);
       setSelectedJobId(id);
-      setBottomVisible(true);
+      showOutput();
     }
   }, [
     environment?.blVersion,
+    environment?.workspace,
     appendNotebookChunks,
     beginNotebookRun,
     finishNotebookRun,
     profileBaseUrl,
+    packages,
     runningJob,
     setBottomPanel,
     setBottomVisible,
+    showOutput,
     setOpenFiles,
     showNotice,
     somerProfiles,
@@ -575,10 +787,10 @@ export function useJobManager({
     }
   }, [profileBaseUrl, somerTokens]);
 
-  const syncSomerHistory = useCallback(async () => {
+  const syncSomerHistory = useCallback(async (announce = true) => {
     const configured = somerProfiles.filter((profile) => somerTokens[profile.id]?.trim());
     if (!configured.length) {
-      showNotice("Add a SOMER credential before syncing remote history");
+      if (announce) showNotice("Add a SOMER credential before syncing remote history");
       return;
     }
     try {
@@ -586,22 +798,55 @@ export function useJobManager({
         const token = somerTokens[profile.id].trim();
         const client = new SomerClient({ baseUrl: await profileBaseUrl(profile), token });
         const remoteJobs = await client.listJobs();
-        return remoteJobs.map((remote): Job => {
+        return Promise.all(remoteJobs.map(async (remote): Promise<Job> => {
           const startedAt = Date.parse(remote.startedAt ?? remote.createdAt);
           const finishedAt = remote.finishedAt ? Date.parse(remote.finishedAt) : undefined;
+          const artifacts = remote.status === "succeeded" || remote.status === "failed"
+            ? await client.artifacts(remote.id).catch(() => [])
+            : [];
+          let syncedPackages: Record<string, string> = {};
+          try {
+            syncedPackages = JSON.parse(remote.tags?.["biolang.packages"] ?? "{}") as Record<string, string>;
+          } catch {
+            syncedPackages = {};
+          }
           return {
             id: `somer:${remote.id}`,
             remoteId: remote.id,
-            file: remote.entrypoint || remote.name,
+            file: remote.tags?.["biolang.file"] || remote.entrypoint || remote.name,
             status: remote.status === "queued" ? "running" : remote.status,
             startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
             durationMs: finishedAt && Number.isFinite(startedAt) ? Math.max(0, finishedAt - startedAt) : undefined,
             exitCode: remote.exitCode,
             backend: profile.name,
             targetId: profile.id,
-            log: remoteJobLog(remote.stdout, remote.stderr),
+            log: remote.status === "succeeded" || remote.status === "failed" || remote.status === "cancelled"
+              ? appendJobLog(
+                  remoteJobLog(remote.stdout, remote.stderr),
+                  remote.status === "succeeded" ? "success" : remote.status === "failed" ? "stderr" : "system",
+                  `\nRemote job ${remote.status} on ${profile.name}.\n`,
+                )
+              : remoteJobLog(remote.stdout, remote.stderr),
+            results: remoteResults(remote.results),
+            artifacts: artifacts.map((artifact) => ({
+              name: artifact.name,
+              size: artifact.size,
+              mediaType: artifact.mediaType,
+              sha256: artifact.sha256,
+              downloadUrl: artifact.downloadUrl,
+            })),
+            provenance: {
+              biolangVersion: remote.runtimeVersion || remote.tags?.["biolang.version"],
+              packages: syncedPackages,
+              backend: profile.name,
+              targetId: profile.id,
+              sourceHash: remote.tags?.["biolang.sourceSha256"],
+              entrypoint: remote.entrypoint,
+              parameters: {},
+              capturedAt: remote.createdAt,
+            },
           };
-        });
+        }));
       }))).flat();
       setJobs((current) => {
         const importedIds = new Set(imported.map((job) => job.id));
@@ -609,11 +854,18 @@ export function useJobManager({
           .sort((left, right) => right.startedAt - left.startedAt)
           .slice(0, 100);
       });
-      showNotice(`Synced ${imported.length} SOMER job${imported.length === 1 ? "" : "s"}`);
+      if (announce) showNotice(`Synced ${imported.length} SOMER job${imported.length === 1 ? "" : "s"}`);
     } catch (error) {
-      showNotice(`Cannot sync SOMER history: ${String(error)}`);
+      if (announce) showNotice(`Cannot sync SOMER history: ${String(error)}`);
     }
   }, [profileBaseUrl, showNotice, somerProfiles, somerTokens]);
+
+  useEffect(() => {
+    if (!somerProfiles.some((profile) => somerTokens[profile.id]?.trim())) return;
+    void syncSomerHistory(false);
+    const timer = window.setInterval(() => void syncSomerHistory(false), 60_000);
+    return () => window.clearInterval(timer);
+  }, [syncSomerHistory, somerProfiles, somerTokens]);
 
   const selectJob = useCallback(async (job: Job) => {
     setSelectedJobId(job.id);
@@ -622,20 +874,127 @@ export function useJobManager({
     const token = profile && somerTokens[profile.id]?.trim();
     if (!profile || !token) return;
     try {
-      const remote = await new SomerClient({
+      const client = new SomerClient({
         baseUrl: await profileBaseUrl(profile),
         token,
-      }).getJob(job.remoteId);
+      });
+      const remote = await client.getJob(job.remoteId);
+      const artifacts = await client.artifacts(job.remoteId).catch(() => []);
+      const refreshedLog = remote.status === "succeeded"
+        || remote.status === "failed"
+        || remote.status === "cancelled"
+        ? appendJobLog(
+            remoteJobLog(remote.stdout, remote.stderr),
+            remote.status === "succeeded" ? "success" : remote.status === "failed" ? "stderr" : "system",
+            `\nRemote job ${remote.status} on ${profile.name}.\n`,
+          )
+        : remoteJobLog(remote.stdout, remote.stderr);
       setJobs((current) => current.map((candidate) => candidate.id === job.id ? {
         ...candidate,
         status: remote.status === "queued" ? "running" : remote.status,
         exitCode: remote.exitCode,
-        log: remoteJobLog(remote.stdout, remote.stderr),
+        log: refreshedLog,
+        results: remoteResults(remote.results),
+        artifacts: (artifacts ?? []).map((artifact) => ({
+          name: artifact.name,
+          size: artifact.size,
+          mediaType: artifact.mediaType,
+          sha256: artifact.sha256,
+          downloadUrl: artifact.downloadUrl,
+        })),
       } : candidate));
     } catch (error) {
       showNotice(`Cannot refresh SOMER job: ${String(error)}`);
     }
   }, [profileBaseUrl, showNotice, somerProfiles, somerTokens]);
+
+  const readJobArtifact = useCallback(async (job: Job, artifact: JobArtifact) => {
+    if (job.remoteId && job.targetId) {
+      const profile = somerProfiles.find((candidate) => candidate.id === job.targetId);
+      const token = profile && somerTokens[profile.id]?.trim();
+      if (!profile || !token) throw new Error("The SOMER credential for this artifact is unavailable");
+      const client = new SomerClient({
+        baseUrl: await profileBaseUrl(profile),
+        token,
+      });
+      return client.downloadArtifact(job.remoteId, artifact.downloadUrl
+        ? {
+            name: artifact.name,
+            size: artifact.size ?? 0,
+            downloadUrl: artifact.downloadUrl,
+            mediaType: artifact.mediaType,
+            sha256: artifact.sha256,
+          }
+        : artifact.name);
+    }
+    if (!artifact.path) throw new Error("This artifact has no local path");
+    return bridge.readWorkspaceBinary(artifact.path);
+  }, [profileBaseUrl, somerProfiles, somerTokens]);
+
+  const saveJobArtifact = useCallback(async (job: Job, artifact: JobArtifact) => {
+    const bytes = await readJobArtifact(job, artifact);
+    return bridge.exportBinary(artifact.name, bytes, artifact.mediaType);
+  }, [readJobArtifact]);
+
+  const readJobArtifactPreview = useCallback(async (
+    job: Job,
+    artifact: JobArtifact,
+    length = 1024 * 1024,
+  ) => {
+    if (job.remoteId && job.targetId) {
+      const profile = somerProfiles.find((candidate) => candidate.id === job.targetId);
+      const token = profile && somerTokens[profile.id]?.trim();
+      if (!profile || !token) throw new Error("The SOMER credential for this artifact is unavailable");
+      const client = new SomerClient({ baseUrl: await profileBaseUrl(profile), token });
+      return client.downloadArtifactRange(job.remoteId, artifact.downloadUrl
+        ? {
+            name: artifact.name,
+            size: artifact.size ?? 0,
+            downloadUrl: artifact.downloadUrl,
+            mediaType: artifact.mediaType,
+            sha256: artifact.sha256,
+          }
+        : artifact.name, 0, length);
+    }
+    if (!artifact.path) throw new Error("This artifact has no local path");
+    return bridge.readWorkspaceBinaryRange(artifact.path, 0, length);
+  }, [profileBaseUrl, somerProfiles, somerTokens]);
+
+  const readResultPage = useCallback(async (
+    job: Job,
+    resultIndex: number,
+    request: ResultPageRequest,
+  ): Promise<ResultPageData> => {
+    if (!job.remoteId || !job.targetId) {
+      const result = job.results?.[resultIndex];
+      if (typeof result?.dataRef === "string") {
+        const page = await bridge.readJsonlPage(result.dataRef, request);
+        return {
+          ...page,
+          columns: Array.isArray(result.columns) ? result.columns : [],
+          rows: page.rows.map((row) => row.map(resultCell)),
+        };
+      }
+      const rows = Array.isArray(result?.rows) ? result.rows : [];
+      return {
+        columns: Array.isArray(result?.columns) ? result.columns : [],
+        rows: rows.slice(request.offset, request.offset + request.limit),
+        offset: request.offset,
+        limit: request.limit,
+        totalRows: Number(result?.totalRows ?? rows.length),
+        filteredRows: rows.length,
+      };
+    }
+    const profile = somerProfiles.find((candidate) => candidate.id === job.targetId);
+    const token = profile && somerTokens[profile.id]?.trim();
+    if (!profile || !token) throw new Error("The SOMER credential for this result is unavailable");
+    const client = new SomerClient({ baseUrl: await profileBaseUrl(profile), token });
+    const page = await client.resultPage(job.remoteId, resultIndex, request);
+    return {
+      ...page,
+      rows: page.rows.map((row) => row.map(resultCell)),
+    };
+  }, [profileBaseUrl, somerProfiles, somerTokens]);
 
   return {
     notebookCellOutputs,
@@ -654,6 +1013,13 @@ export function useJobManager({
     selectJob,
     abortRemotePolling,
     clearJobLog,
+    pinJob,
+    renameJob,
+    deleteJob,
+    readJobArtifact,
+    readJobArtifactPreview,
+    saveJobArtifact,
+    readResultPage,
     recordDesktopTask,
   };
 }

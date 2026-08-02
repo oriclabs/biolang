@@ -1,11 +1,12 @@
 use base64::Engine;
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
@@ -134,6 +135,45 @@ struct JobOutput {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+struct JobResult {
+    job_id: u64,
+    value: serde_json::Value,
+}
+
+/// One printed value with the source line that produced it, for the editor's
+/// inline run annotations.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct JobTrace {
+    job_id: u64,
+    entries: Vec<JobTraceEntry>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct JobTraceEntry {
+    line: u32,
+    text: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct JobArtifact {
+    name: String,
+    path: String,
+    size: u64,
+    media_type: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct JobArtifacts {
+    job_id: u64,
+    artifacts: Vec<JobArtifact>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct JobFinished {
     job_id: u64,
     exit_code: Option<i32>,
@@ -178,6 +218,8 @@ struct DataPreview {
     truncated: bool,
     total_bytes: u64,
     provenance: Option<FileProvenance>,
+    /// Quality metrics for formats where a table of raw lines says nothing.
+    metrics: Option<bl_qc::PreviewMetrics>,
 }
 
 #[derive(Clone, Serialize)]
@@ -206,6 +248,16 @@ struct ImportRecord {
     imported_at_ms: u128,
     size: u64,
     sha256: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FileChecksum {
+    path: String,
+    size: u64,
+    modified_ms: Option<u128>,
+    sha256: Option<String>,
+    checksum_status: &'static str,
 }
 
 #[derive(Deserialize)]
@@ -533,11 +585,27 @@ fn find_binary(root: &Path, name: &str) -> Option<PathBuf> {
         }
     }
 
-    for ancestor in root.ancestors().take(6) {
-        for profile in ["debug", "release"] {
-            let candidate = ancestor.join("target").join(profile).join(&executable);
-            if candidate.is_file() {
-                return Some(candidate);
+    let mut search_roots = vec![root.to_path_buf()];
+    if let Ok(current) = std::env::current_dir() {
+        search_roots.push(current);
+    }
+    if let Ok(current_exe) = std::env::current_exe() {
+        if let Some(parent) = current_exe.parent() {
+            search_roots.push(parent.to_path_buf());
+        }
+    }
+
+    let mut checked = HashSet::new();
+    for search_root in search_roots {
+        for ancestor in search_root.ancestors().take(8) {
+            if !checked.insert(ancestor.to_path_buf()) {
+                continue;
+            }
+            for profile in ["debug", "release"] {
+                let candidate = ancestor.join("target").join(profile).join(&executable);
+                if candidate.is_file() {
+                    return Some(candidate);
+                }
             }
         }
     }
@@ -548,6 +616,427 @@ fn find_binary(root: &Path, name: &str) -> Option<PathBuf> {
     } else {
         None
     }
+}
+
+fn biolang_path(root: &Path, bl: &Path) -> Option<std::ffi::OsString> {
+    let mut paths = std::env::var_os("BIOLANG_PATH")
+        .map(|value| std::env::split_paths(&value).collect::<Vec<_>>())
+        .unwrap_or_default();
+    let mut search_roots = vec![root.to_path_buf()];
+    if let Ok(current) = std::env::current_dir() {
+        search_roots.push(current);
+    }
+    if let Some(parent) = bl.parent() {
+        search_roots.push(parent.to_path_buf());
+    }
+
+    for search_root in search_roots {
+        for ancestor in search_root.ancestors().take(8) {
+            let packages = ancestor.join("packages");
+            if packages.is_dir() && !paths.contains(&packages) {
+                paths.push(packages);
+            }
+        }
+    }
+    std::env::join_paths(paths).ok()
+}
+
+/// Credential names the workbench offers to store.
+///
+/// A fixed list rather than anything the user types: these are the variables
+/// `bl-apis` and the LLM builtins actually read, so an entry that is not here
+/// would be stored and then silently ignored.
+const CREDENTIAL_NAMES: &[&str] = &[
+    "NCBI_API_KEY",
+    "COSMIC_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "LLM_API_KEY",
+    "GITHUB_TOKEN",
+    "TELEGRAM_BOT_TOKEN",
+];
+
+fn credential_entry(name: &str) -> Result<keyring::Entry, String> {
+    if !CREDENTIAL_NAMES.contains(&name) {
+        return Err(format!("{name} is not a BioLang credential"));
+    }
+    keyring::Entry::new("org.biolang.desktop.credentials", name)
+        .map_err(|error| format!("Credential storage is unavailable: {error}"))
+}
+
+fn credential_value(name: &str) -> Option<String> {
+    credential_entry(name)
+        .ok()
+        .and_then(|entry| entry.get_password().ok())
+        .filter(|value| !value.is_empty())
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CredentialStatus {
+    name: String,
+    /// True when a value is stored. The value itself is never sent to the UI.
+    configured: bool,
+    /// True when the surrounding process already exports it, in which case the
+    /// stored value is redundant.
+    from_environment: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ReferenceBuild {
+    name: String,
+    assets: std::collections::BTreeMap<String, String>,
+    /// Which asset paths are missing, so a stale registry is visible.
+    missing: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RestoreRequest {
+    #[serde(default)]
+    packages: std::collections::BTreeMap<String, String>,
+    biolang_version: Option<String>,
+    source_snapshot: Option<String>,
+    entrypoint: Option<String>,
+    #[serde(default)]
+    inputs: Vec<RestoreInput>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RestoreInput {
+    path: String,
+    sha256: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RestoreDrift {
+    kind: String,
+    name: String,
+    recorded: String,
+    current: String,
+    /// True when the workbench can put this back.
+    restorable: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RestoreReport {
+    /// True when the workspace was actually inspected, so an empty `drift`
+    /// means "nothing changed" rather than "could not check".
+    checked: bool,
+    drift: Vec<RestoreDrift>,
+    /// Why some drift cannot be undone, so the report does not overpromise.
+    notes: Vec<String>,
+}
+
+/// Installed package versions, read from the workspace package directories.
+fn installed_package_versions(root: &Path) -> HashMap<String, String> {
+    let mut versions = HashMap::new();
+    for directory in [root.join("packages"), root.join(".biolang").join("packages")] {
+        let Ok(entries) = fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let Ok(text) = fs::read_to_string(entry.path().join("biolang.toml")) else {
+                continue;
+            };
+            let Ok(parsed) = text.parse::<toml::Value>() else {
+                continue;
+            };
+            let package = parsed.get("package");
+            if let (Some(name), Some(version)) = (
+                package.and_then(|value| value.get("name")).and_then(|v| v.as_str()),
+                package.and_then(|value| value.get("version")).and_then(|v| v.as_str()),
+            ) {
+                versions.insert(name.to_string(), version.to_string());
+            }
+        }
+    }
+    versions
+}
+
+/// Compare the workspace as it is now with the state a run recorded.
+///
+/// This is the question provenance was collected to answer — why the same
+/// script gives different numbers than it did last month — and until now the
+/// data was only ever stored, never used.
+#[tauri::command]
+fn compare_run_environment(
+    request: RestoreRequest,
+    state: State<'_, AppState>,
+) -> Result<RestoreReport, String> {
+    let root = workspace_root(&state)?;
+    let mut drift = Vec::new();
+    let mut notes = Vec::new();
+
+    let installed = installed_package_versions(&root);
+    for (name, recorded) in &request.packages {
+        let current = installed
+            .get(name)
+            .cloned()
+            .unwrap_or_else(|| "not installed".to_string());
+        if &current != recorded {
+            drift.push(RestoreDrift {
+                kind: "package".into(),
+                name: name.clone(),
+                recorded: recorded.clone(),
+                current,
+                restorable: true,
+            });
+        }
+    }
+
+    if let Some(recorded) = request.biolang_version.as_deref() {
+        let current = find_binary(&root, "bl")
+            .and_then(|bl| {
+                Command::new(bl).arg("--version").output().ok().map(|output| {
+                    String::from_utf8_lossy(&output.stdout)
+                        .split_whitespace()
+                        .last()
+                        .unwrap_or("unknown")
+                        .to_string()
+                })
+            })
+            .unwrap_or_else(|| "unknown".to_string());
+        if current != recorded {
+            drift.push(RestoreDrift {
+                kind: "biolang".into(),
+                name: "BioLang".into(),
+                recorded: recorded.to_string(),
+                current,
+                restorable: false,
+            });
+            notes.push(
+                "The BioLang version cannot be changed from here. Install the recorded release to match it."
+                    .into(),
+            );
+        }
+    }
+
+    for input in &request.inputs {
+        let Some(recorded) = input.sha256.as_deref() else {
+            continue;
+        };
+        let current = resolve_existing_path(&root, &input.path)
+            .ok()
+            .and_then(|path| sha256_file(&path).ok())
+            .unwrap_or_else(|| "missing".to_string());
+        if current != recorded {
+            drift.push(RestoreDrift {
+                kind: "input".into(),
+                name: input.path.clone(),
+                recorded: recorded.chars().take(12).collect(),
+                current: current.chars().take(12).collect(),
+                restorable: false,
+            });
+        }
+    }
+    if drift.iter().any(|entry| entry.kind == "input") {
+        notes.push(
+            "Input data changed. Provenance stores checksums, not the files, so the data has to come from your own archive."
+                .into(),
+        );
+    }
+
+    if let (Some(snapshot), Some(entrypoint)) = (
+        request.source_snapshot.as_deref(),
+        request.entrypoint.as_deref(),
+    ) {
+        let current = resolve_existing_path(&root, entrypoint)
+            .ok()
+            .and_then(|path| fs::read_to_string(path).ok());
+        if current.as_deref() != Some(snapshot) {
+            drift.push(RestoreDrift {
+                kind: "source".into(),
+                name: entrypoint.to_string(),
+                recorded: "as recorded".into(),
+                current: if current.is_some() {
+                    "edited since".into()
+                } else {
+                    "missing".into()
+                },
+                restorable: true,
+            });
+        }
+    }
+
+    Ok(RestoreReport {
+        checked: true,
+        drift,
+        notes,
+    })
+}
+
+/// Pin `biolang.toml` to the recorded package versions, and optionally put the
+/// recorded script back.
+///
+/// Deliberately narrow. It does not touch input data or the interpreter version
+/// because it cannot, and a restore that silently skipped half the state would
+/// be worse than one that says what it did.
+#[tauri::command]
+fn restore_run_environment(
+    request: RestoreRequest,
+    restore_source: bool,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    require_trusted_workspace(&state)?;
+    let root = workspace_root(&state)?;
+    let mut done: Vec<String> = Vec::new();
+
+    if !request.packages.is_empty() {
+        let manifest_path = root.join("biolang.toml");
+        let text = fs::read_to_string(&manifest_path)
+            .map_err(|error| format!("Cannot read biolang.toml: {error}"))?;
+        let mut manifest: toml::Value = text
+            .parse()
+            .map_err(|error| format!("Cannot parse biolang.toml: {error}"))?;
+        let table = manifest
+            .as_table_mut()
+            .ok_or_else(|| "biolang.toml is not a table".to_string())?;
+        let dependencies = table
+            .entry("dependencies".to_string())
+            .or_insert_with(|| toml::Value::Table(toml::map::Map::new()))
+            .as_table_mut()
+            .ok_or_else(|| "biolang.toml dependencies is not a table".to_string())?;
+        for (name, version) in &request.packages {
+            dependencies.insert(name.clone(), toml::Value::String(version.clone()));
+        }
+        fs::write(&manifest_path, manifest.to_string())
+            .map_err(|error| format!("Cannot write biolang.toml: {error}"))?;
+        done.push(format!(
+            "pinned {} package(s) in biolang.toml",
+            request.packages.len()
+        ));
+    }
+
+    if restore_source {
+        if let (Some(snapshot), Some(entrypoint)) = (
+            request.source_snapshot.as_deref(),
+            request.entrypoint.as_deref(),
+        ) {
+            fs::write(root.join(entrypoint), snapshot)
+                .map_err(|error| format!("Cannot restore {entrypoint}: {error}"))?;
+            done.push(format!("restored {entrypoint} from the run snapshot"));
+        }
+    }
+
+    if done.is_empty() {
+        return Ok("Nothing to restore".into());
+    }
+    Ok(done.join("; "))
+}
+
+#[tauri::command]
+fn list_reference_builds() -> Vec<ReferenceBuild> {
+    let mut builds: Vec<ReferenceBuild> = bl_refs::load()
+        .into_iter()
+        .map(|(name, assets)| {
+            let missing = assets
+                .iter()
+                .filter(|(key, path)| {
+                    // `description` is prose, not a path.
+                    key.as_str() != bl_refs::DESCRIPTION_KEY && !Path::new(path).exists()
+                })
+                .map(|(key, _)| key.clone())
+                .collect();
+            ReferenceBuild {
+                name,
+                assets: assets.into_iter().collect(),
+                missing,
+            }
+        })
+        .collect();
+    builds.sort_by(|left, right| left.name.cmp(&right.name));
+    builds
+}
+
+#[tauri::command]
+fn save_reference_build(
+    name: String,
+    assets: std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err("A reference build needs a name".into());
+    }
+    let mut registry = bl_refs::load();
+    registry.insert(
+        name,
+        assets
+            .into_iter()
+            .filter(|(_, value)| !value.trim().is_empty())
+            .collect(),
+    );
+    bl_refs::save(&registry)
+        .map_err(|error| format!("Cannot write the reference registry: {error}"))
+}
+
+#[tauri::command]
+fn delete_reference_build(name: String) -> Result<(), String> {
+    let mut registry = bl_refs::load();
+    registry.remove(&name);
+    bl_refs::save(&registry)
+        .map_err(|error| format!("Cannot write the reference registry: {error}"))
+}
+
+#[tauri::command]
+fn list_credentials() -> Vec<CredentialStatus> {
+    CREDENTIAL_NAMES
+        .iter()
+        .map(|name| CredentialStatus {
+            name: (*name).to_string(),
+            configured: credential_value(name).is_some(),
+            from_environment: std::env::var(name).is_ok_and(|value| !value.is_empty()),
+        })
+        .collect()
+}
+
+#[tauri::command]
+fn set_credential(name: String, value: String) -> Result<(), String> {
+    if value.is_empty() {
+        return delete_credential(name);
+    }
+    credential_entry(&name)?
+        .set_password(&value)
+        .map_err(|error| format!("Cannot store {name}: {error}"))
+}
+
+#[tauri::command]
+fn delete_credential(name: String) -> Result<(), String> {
+    let entry = credential_entry(&name)?;
+    match entry.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(error) => Err(format!("Cannot remove {name}: {error}")),
+    }
+}
+
+fn configure_biolang_command(command: &mut Command, root: &Path, bl: &Path) {
+    if let Some(path) = biolang_path(root, bl) {
+        command.env("BIOLANG_PATH", path);
+    }
+    // Stored credentials reach BioLang as environment variables because that is
+    // what `bl-apis` already reads. A variable exported by the surrounding shell
+    // wins, so a workspace-specific key set outside the app is not overridden.
+    for name in CREDENTIAL_NAMES {
+        if std::env::var(name).is_ok_and(|value| !value.is_empty()) {
+            continue;
+        }
+        if let Some(value) = credential_value(name) {
+            command.env(name, value);
+        }
+    }
+}
+
+#[tauri::command]
+fn write_clipboard(text: String) -> Result<(), String> {
+    let mut clipboard =
+        arboard::Clipboard::new().map_err(|error| format!("Clipboard is unavailable: {error}"))?;
+    clipboard
+        .set_text(text)
+        .map_err(|error| format!("Cannot copy text: {error}"))
 }
 
 #[tauri::command]
@@ -565,6 +1054,41 @@ fn select_workspace(state: State<'_, AppState>) -> Result<Option<WorkspaceSnapsh
         .lock()
         .map_err(|_| "Workspace state is unavailable")? = Some(canonical);
     workspace_snapshot(state)
+}
+
+/// Absolute path picker for settings (references, SSH identity). Not scoped to
+/// the workspace root — callers store absolute paths intentionally.
+#[tauri::command]
+fn pick_path(
+    title: Option<String>,
+    filters: Option<Vec<FileFilter>>,
+) -> Result<Option<String>, String> {
+    let mut dialog = rfd::FileDialog::new();
+    if let Some(title) = title {
+        dialog = dialog.set_title(title);
+    }
+    if let Some(filters) = filters {
+        for filter in filters {
+            if filter.extensions.is_empty() {
+                continue;
+            }
+            let extensions: Vec<&str> = filter
+                .extensions
+                .iter()
+                .map(|extension| extension.as_str())
+                .collect();
+            dialog = dialog.add_filter(&filter.name, &extensions);
+        }
+    }
+    Ok(dialog
+        .pick_file()
+        .map(|path| path.to_string_lossy().into_owned()))
+}
+
+#[derive(Clone, serde::Deserialize)]
+struct FileFilter {
+    name: String,
+    extensions: Vec<String>,
 }
 
 #[tauri::command]
@@ -635,6 +1159,103 @@ fn workspace_snapshot(state: State<'_, AppState>) -> Result<Option<WorkspaceSnap
         entries,
         truncated,
     }))
+}
+
+#[tauri::command]
+/// Run a git subcommand in the workspace, returning stdout.
+///
+/// Paths are passed after `--` so a file named like a flag cannot be read as
+/// one, and every write is gated on workspace trust.
+fn git(root: &Path, args: &[&str], paths: &[String]) -> Result<String, String> {
+    let mut command = Command::new("git");
+    command.args(args).current_dir(root);
+    if !paths.is_empty() {
+        command.arg("--");
+        command.args(paths);
+    }
+    let output = command
+        .output()
+        .map_err(|error| format!("Cannot run git: {error}"))?;
+    if output.status.success() {
+        return Ok(String::from_utf8_lossy(&output.stdout).to_string());
+    }
+    let message = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    Err(if message.is_empty() {
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    } else {
+        message
+    })
+}
+
+#[tauri::command]
+fn git_stage(paths: Vec<String>, state: State<'_, AppState>) -> Result<(), String> {
+    require_trusted_workspace(&state)?;
+    let root = workspace_root(&state)?;
+    if paths.is_empty() {
+        return Err("Select at least one file to stage".into());
+    }
+    git(&root, &["add", "--"], &paths).map(|_| ())
+}
+
+#[tauri::command]
+fn git_unstage(paths: Vec<String>, state: State<'_, AppState>) -> Result<(), String> {
+    require_trusted_workspace(&state)?;
+    let root = workspace_root(&state)?;
+    if paths.is_empty() {
+        return Err("Select at least one file to unstage".into());
+    }
+    // `restore --staged` rather than `reset`, so an unstage on a repository with
+    // no commits yet does not fail against a missing HEAD.
+    git(&root, &["restore", "--staged", "--"], &paths).map(|_| ())
+}
+
+#[tauri::command]
+fn git_commit(message: String, state: State<'_, AppState>) -> Result<String, String> {
+    require_trusted_workspace(&state)?;
+    let root = workspace_root(&state)?;
+    let message = message.trim().to_string();
+    if message.is_empty() {
+        return Err("A commit needs a message".into());
+    }
+    let staged = git(&root, &["diff", "--cached", "--name-only"], &[])?;
+    if staged.trim().is_empty() {
+        return Err("Nothing staged to commit".into());
+    }
+    git(&root, &["commit", "-m", &message], &[])
+}
+
+/// Unified diff for one file, staged or unstaged.
+#[tauri::command]
+fn git_diff(
+    path: String,
+    staged: bool,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let root = workspace_root(&state)?;
+    let mut args = vec!["diff"];
+    if staged {
+        args.push("--cached");
+    }
+    let diff = git(&root, &args, &[path.clone()])?;
+    if !diff.trim().is_empty() {
+        return Ok(diff);
+    }
+
+    // An untracked file has nothing to diff against, and `--no-index` against
+    // the null device is unreliable across platforms. Rendering it as all-new
+    // here keeps the pane honest without shelling out again.
+    let resolved = resolve_existing_path(&root, &path)?;
+    let Ok(content) = fs::read_to_string(&resolved) else {
+        return Ok(String::new());
+    };
+    let lines: Vec<&str> = content.lines().collect();
+    let mut rendered = format!("--- /dev/null\n+++ b/{path}\n@@ -0,0 +1,{} @@\n", lines.len());
+    for line in lines {
+        rendered.push('+');
+        rendered.push_str(line);
+        rendered.push('\n');
+    }
+    Ok(rendered)
 }
 
 #[tauri::command]
@@ -765,6 +1386,83 @@ fn rename_entry(
     ))
 }
 
+/// Move a file or folder into another directory inside the workspace.
+///
+/// `destination_directory` is relative to the workspace root; empty string means the root.
+#[tauri::command]
+fn move_entry(
+    path: String,
+    destination_directory: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let root = workspace_root(&state)?;
+    let source = resolve_existing_path(&root, &path)?;
+    if source == root {
+        return Err("Cannot move the workspace root".into());
+    }
+    let dest_dir = if destination_directory.trim().is_empty() {
+        root.clone()
+    } else {
+        let directory = resolve_existing_path(&root, &destination_directory)?;
+        if !directory.is_dir() {
+            return Err("Drop target must be a folder".into());
+        }
+        directory
+    };
+    if source.is_dir() && dest_dir.starts_with(&source) {
+        return Err("Cannot move a folder into itself".into());
+    }
+    let name = source
+        .file_name()
+        .ok_or_else(|| "Entry has no name".to_string())?;
+    let destination = dest_dir.join(name);
+    if destination == source {
+        return Ok(relative_display(
+            source.strip_prefix(&root).unwrap_or(&source),
+        ));
+    }
+    if destination.exists() {
+        return Err(format!(
+            "{} already exists in the destination",
+            name.to_string_lossy()
+        ));
+    }
+    fs::rename(&source, &destination).map_err(|error| format!("Cannot move {path}: {error}"))?;
+    Ok(relative_display(
+        destination.strip_prefix(&root).unwrap_or(&destination),
+    ))
+}
+
+/// Create a new workspace file (parents as needed) and write its full content.
+///
+/// Used by Explorer OS drag-and-drop imports into `data/` (and other folders).
+#[tauri::command]
+fn write_new_file(path: String, content: Vec<u8>, state: State<'_, AppState>) -> Result<String, String> {
+    let root = workspace_root(&state)?;
+    let target = root.join(&path);
+    let parent = target
+        .parent()
+        .ok_or_else(|| "Invalid workspace path".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("Cannot create parent folders for {path}: {error}"))?;
+    let parent = parent
+        .canonicalize()
+        .map_err(|error| format!("Cannot access parent directory: {error}"))?;
+    if !parent.starts_with(&root) {
+        return Err("Path is outside the active workspace".into());
+    }
+    if target.exists() {
+        return Err(format!("{path} already exists"));
+    }
+    fs::write(&target, content).map_err(|error| format!("Cannot write {path}: {error}"))?;
+    let canonical = target
+        .canonicalize()
+        .map_err(|error| format!("Cannot verify written file: {error}"))?;
+    Ok(relative_display(
+        canonical.strip_prefix(&root).unwrap_or(&canonical),
+    ))
+}
+
 #[tauri::command]
 fn delete_entry(path: String, state: State<'_, AppState>) -> Result<(), String> {
     let root = workspace_root(&state)?;
@@ -887,7 +1585,122 @@ fn open_external(url: String) -> Result<(), String> {
         .map_err(|error| format!("Cannot open documentation link: {error}"))
 }
 
-fn search_directory(root: &Path, directory: &Path, query: &str, hits: &mut Vec<SearchHit>) {
+/// Build the matching expression for a workspace search.
+///
+/// Shared by search and replace so the set of hits shown is exactly the set
+/// that gets rewritten — a mismatch there silently edits code nobody looked at.
+fn search_regex(
+    query: &str,
+    case_sensitive: bool,
+    whole_word: bool,
+    is_regex: bool,
+) -> Result<regex::Regex, String> {
+    let body = if is_regex {
+        query.to_string()
+    } else {
+        regex::escape(query)
+    };
+    let source = if whole_word {
+        format!(r"\b(?:{body})\b")
+    } else {
+        body
+    };
+    regex::RegexBuilder::new(&source)
+        .case_insensitive(!case_sensitive)
+        .build()
+        .map_err(|error| format!("Invalid search pattern: {error}"))
+}
+
+/// Walk the workspace, yielding readable text files under the size cap.
+fn each_text_file(root: &Path, directory: &Path, visit: &mut impl FnMut(&Path) -> bool) -> bool {
+    let Ok(entries) = fs::read_dir(directory) else {
+        return true;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        if matches!(
+            name.as_str(),
+            ".git" | "node_modules" | "target" | "dist" | ".idea"
+        ) {
+            continue;
+        }
+        let path = entry.path();
+        let Ok(metadata) = entry.metadata() else {
+            continue;
+        };
+        if metadata.is_dir() {
+            if !each_text_file(root, &path, visit) {
+                return false;
+            }
+            continue;
+        }
+        if metadata.len() > MAX_SEARCH_FILE_BYTES {
+            continue;
+        }
+        if !visit(&path) {
+            return false;
+        }
+    }
+    true
+}
+
+#[tauri::command]
+fn replace_in_workspace(
+    query: String,
+    replacement: String,
+    case_sensitive: bool,
+    whole_word: bool,
+    regex: bool,
+    state: State<'_, AppState>,
+) -> Result<usize, String> {
+    let root = workspace_root(&state)?;
+    let query = query.trim();
+    if query.len() < 2 {
+        return Ok(0);
+    }
+    let pattern = search_regex(query, case_sensitive, whole_word, regex)?;
+    // A literal search must not let `$1` in the replacement expand: someone
+    // replacing a price with "$1" means the text "$1".
+    let replacement = if regex {
+        replacement.clone()
+    } else {
+        replacement.replace('$', "$$")
+    };
+
+    let mut changed = 0usize;
+    let mut failure: Option<String> = None;
+    each_text_file(&root, &root, &mut |path| {
+        let Ok(content) = fs::read_to_string(path) else {
+            return true;
+        };
+        if !pattern.is_match(&content) {
+            return true;
+        }
+        let next = pattern.replace_all(&content, replacement.as_str());
+        match fs::write(path, next.as_ref()) {
+            Ok(()) => {
+                changed += 1;
+                true
+            }
+            Err(error) => {
+                failure = Some(format!("{}: {error}", path.display()));
+                false
+            }
+        }
+    });
+
+    match failure {
+        Some(error) => Err(error),
+        None => Ok(changed),
+    }
+}
+
+fn search_directory(
+    root: &Path,
+    directory: &Path,
+    pattern: &regex::Regex,
+    hits: &mut Vec<SearchHit>,
+) {
     if hits.len() >= MAX_SEARCH_RESULTS {
         return;
     }
@@ -910,7 +1723,7 @@ fn search_directory(root: &Path, directory: &Path, query: &str, hits: &mut Vec<S
             continue;
         };
         if metadata.is_dir() {
-            search_directory(root, &path, query, hits);
+            search_directory(root, &path, pattern, hits);
             continue;
         }
         if metadata.len() > MAX_SEARCH_FILE_BYTES {
@@ -923,8 +1736,8 @@ fn search_directory(root: &Path, directory: &Path, query: &str, hits: &mut Vec<S
             let Ok(line) = line else {
                 break;
             };
-            let lowercase = line.to_lowercase();
-            if let Some(column) = lowercase.find(query) {
+            if let Some(found) = pattern.find(&line) {
+                let column = found.start();
                 hits.push(SearchHit {
                     path: relative_display(path.strip_prefix(root).unwrap_or(&path)),
                     line: line_index + 1,
@@ -940,14 +1753,21 @@ fn search_directory(root: &Path, directory: &Path, query: &str, hits: &mut Vec<S
 }
 
 #[tauri::command]
-fn search_workspace(query: String, state: State<'_, AppState>) -> Result<Vec<SearchHit>, String> {
+fn search_workspace(
+    query: String,
+    case_sensitive: bool,
+    whole_word: bool,
+    regex: bool,
+    state: State<'_, AppState>,
+) -> Result<Vec<SearchHit>, String> {
     let root = workspace_root(&state)?;
-    let query = query.trim().to_lowercase();
+    let query = query.trim();
     if query.len() < 2 {
         return Ok(Vec::new());
     }
+    let pattern = search_regex(query, case_sensitive, whole_word, regex)?;
     let mut hits = Vec::new();
-    search_directory(&root, &root, &query, &mut hits);
+    search_directory(&root, &root, &pattern, &mut hits);
     Ok(hits)
 }
 
@@ -1093,6 +1913,7 @@ fn media_preview(
         truncated: total_bytes > MAX_MEDIA_PREVIEW_BYTES,
         total_bytes,
         provenance: Some(file_provenance(root, relative_path, extension, metadata)),
+        metrics: None,
     }))
 }
 
@@ -1130,6 +1951,7 @@ fn build_preview(root: &Path, path: &str) -> Result<DataPreview, String> {
         truncated: total_bytes > MAX_PREVIEW_BYTES,
         total_bytes,
         provenance: Some(file_provenance(root, path, &extension, &metadata)),
+        metrics: None,
     };
     match extension.as_str() {
         "fasta" | "fa" | "fna" | "faa" => {
@@ -1162,6 +1984,7 @@ fn build_preview(root: &Path, path: &str) -> Result<DataPreview, String> {
             preview
                 .summary
                 .push(format!("{} reads sampled", preview.rows.len()));
+            preview.metrics = bl_qc::metrics_for("fastq", &text);
         }
         "vcf" => {
             let mut columns = Vec::new();
@@ -1186,6 +2009,7 @@ fn build_preview(root: &Path, path: &str) -> Result<DataPreview, String> {
             preview
                 .summary
                 .push(format!("{} variants sampled", preview.rows.len()));
+            preview.metrics = bl_qc::metrics_for("vcf", &text);
         }
         "bed" => {
             preview.kind = "bed".into();
@@ -1373,6 +2197,42 @@ fn sha256_file(path: &Path) -> Result<String, String> {
     Ok(format!("{:x}", digest.finalize()))
 }
 
+#[tauri::command]
+fn checksum_workspace_files(
+    paths: Vec<String>,
+    state: State<'_, AppState>,
+) -> Result<Vec<FileChecksum>, String> {
+    let root = workspace_root(&state)?;
+    let checksums = paths
+        .into_iter()
+        .take(128)
+        .filter_map(|path| {
+            let resolved = resolve_existing_path(&root, &path).ok()?;
+            let metadata = fs::metadata(&resolved).ok()?;
+            if !metadata.is_file() {
+                return None;
+            }
+            let modified_ms = metadata
+                .modified()
+                .ok()
+                .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+                .map(|duration| duration.as_millis());
+            let (sha256, checksum_status) = match sha256_file(&resolved) {
+                Ok(value) => (Some(value), "complete"),
+                Err(_) => (None, "unavailable"),
+            };
+            Some(FileChecksum {
+                path,
+                size: metadata.len(),
+                modified_ms,
+                sha256,
+                checksum_status,
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(checksums)
+}
+
 fn unique_import_target(directory: &Path, name: &str) -> PathBuf {
     let source = Path::new(name);
     let stem = source
@@ -1525,12 +2385,17 @@ fn locate_bl(state: &State<'_, AppState>) -> Result<PathBuf, String> {
         .and_then(|guard| guard.clone())
         .or_else(|| std::env::current_dir().ok())
         .unwrap_or_else(|| PathBuf::from("."));
-    find_binary(&root, "bl")
-        .ok_or_else(|| "BioLang executable not found. Build BioLang or set BIOLANG_BIN.".to_string())
+    find_binary(&root, "bl").ok_or_else(|| {
+        "BioLang executable not found. Build BioLang or set BIOLANG_BIN.".to_string()
+    })
 }
 
 /// Parse a `bl import --json` invocation's captured output into an `ImportResult`.
-fn parse_import_output(status: std::process::ExitStatus, stdout: &[u8], stderr: &[u8]) -> Result<ImportResult, String> {
+fn parse_import_output(
+    status: std::process::ExitStatus,
+    stdout: &[u8],
+    stderr: &[u8],
+) -> Result<ImportResult, String> {
     if !status.success() {
         let message = String::from_utf8_lossy(stderr);
         let message = message.trim();
@@ -1732,6 +2597,135 @@ fn export_text(
 }
 
 #[tauri::command]
+fn export_binary(
+    suggested_name: String,
+    content: Vec<u8>,
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    let root = workspace_root(&state)?;
+    let safe_name = Path::new(&suggested_name)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("biolang-run.zip");
+    let selected = rfd::FileDialog::new()
+        .set_directory(&root)
+        .set_file_name(safe_name)
+        .save_file();
+    let Some(destination) = selected else {
+        return Ok(None);
+    };
+    fs::write(&destination, content)
+        .map_err(|error| format!("Cannot export {}: {error}", destination.display()))?;
+    Ok(Some(destination.display().to_string()))
+}
+
+fn run_history_connection(app: &AppHandle) -> Result<Connection, String> {
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("Cannot locate application data: {error}"))?;
+    fs::create_dir_all(&directory)
+        .map_err(|error| format!("Cannot create application data directory: {error}"))?;
+    let connection = Connection::open(directory.join("run-history.sqlite3"))
+        .map_err(|error| format!("Cannot open run history: {error}"))?;
+    connection
+        .execute_batch(
+            "PRAGMA journal_mode=WAL;
+             PRAGMA synchronous=NORMAL;
+             CREATE TABLE IF NOT EXISTS runs (
+               id TEXT PRIMARY KEY,
+               started_at INTEGER NOT NULL,
+               pinned INTEGER NOT NULL DEFAULT 0,
+               payload TEXT NOT NULL,
+               updated_at INTEGER NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS runs_started_at ON runs(started_at DESC);",
+        )
+        .map_err(|error| format!("Cannot initialize run history: {error}"))?;
+    Ok(connection)
+}
+
+#[tauri::command]
+fn load_run_history(app: AppHandle) -> Result<Vec<Value>, String> {
+    let connection = run_history_connection(&app)?;
+    let mut statement = connection
+        .prepare(
+            "SELECT payload FROM runs
+             ORDER BY pinned DESC, started_at DESC
+             LIMIT 500",
+        )
+        .map_err(|error| format!("Cannot read run history: {error}"))?;
+    let rows = statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Cannot query run history: {error}"))?;
+    let mut jobs = Vec::new();
+    for row in rows {
+        let payload = row.map_err(|error| format!("Cannot read run history row: {error}"))?;
+        if let Ok(value) = serde_json::from_str(&payload) {
+            jobs.push(value);
+        }
+    }
+    Ok(jobs)
+}
+
+#[tauri::command]
+fn save_run_history(jobs: Vec<Value>, app: AppHandle) -> Result<(), String> {
+    let mut connection = run_history_connection(&app)?;
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("Cannot update run history: {error}"))?;
+    let updated_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .min(i64::MAX as u128) as i64;
+    for job in jobs.iter().take(500) {
+        let Some(id) = job.get("id").and_then(Value::as_str) else {
+            continue;
+        };
+        let started_at = job
+            .get("startedAt")
+            .and_then(Value::as_i64)
+            .unwrap_or_default();
+        let pinned = i64::from(
+            job.get("pinned")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+        );
+        let payload = serde_json::to_string(job)
+            .map_err(|error| format!("Cannot serialize run history: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO runs(id, started_at, pinned, payload, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
+                 ON CONFLICT(id) DO UPDATE SET
+                   started_at=excluded.started_at,
+                   pinned=excluded.pinned,
+                   payload=excluded.payload,
+                   updated_at=excluded.updated_at",
+                params![id, started_at, pinned, payload, updated_at],
+            )
+            .map_err(|error| format!("Cannot save run history: {error}"))?;
+    }
+    transaction
+        .commit()
+        .map_err(|error| format!("Cannot commit run history: {error}"))?;
+    let _ = app.emit("run-history-changed", ());
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_run_history(job_id: String, app: AppHandle) -> Result<(), String> {
+    let connection = run_history_connection(&app)?;
+    connection
+        .execute("DELETE FROM runs WHERE id = ?1", params![job_id])
+        .map_err(|error| format!("Cannot delete run history: {error}"))?;
+    let _ = app.emit("run-history-changed", ());
+    Ok(())
+}
+
+#[tauri::command]
 fn read_file(path: String, state: State<'_, AppState>) -> Result<String, String> {
     let root = workspace_root(&state)?;
     let resolved = resolve_existing_path(&root, &path)?;
@@ -1744,6 +2738,124 @@ fn read_file(path: String, state: State<'_, AppState>) -> Result<String, String>
         ));
     }
     fs::read_to_string(&resolved).map_err(|error| format!("Cannot read {path}: {error}"))
+}
+
+#[tauri::command]
+fn read_workspace_binary(path: String, state: State<'_, AppState>) -> Result<Vec<u8>, String> {
+    let root = workspace_root(&state)?;
+    let resolved = resolve_existing_path(&root, &path)?;
+    let metadata = fs::metadata(&resolved).map_err(|error| error.to_string())?;
+    if !metadata.is_file() {
+        return Err("Artifact path is not a file".into());
+    }
+    if metadata.len() > 256 * 1024 * 1024 {
+        return Err("Artifacts larger than 256 MiB must be opened from the workspace".into());
+    }
+    fs::read(&resolved).map_err(|error| format!("Cannot read artifact {path}: {error}"))
+}
+
+#[tauri::command]
+fn read_workspace_binary_range(
+    path: String,
+    offset: u64,
+    length: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<u8>, String> {
+    let root = workspace_root(&state)?;
+    let resolved = resolve_existing_path(&root, &path)?;
+    let metadata = fs::metadata(&resolved).map_err(|error| error.to_string())?;
+    if !metadata.is_file() {
+        return Err("Artifact path is not a file".into());
+    }
+    let length = length.clamp(1, 8 * 1024 * 1024);
+    let mut file = fs::File::open(&resolved)
+        .map_err(|error| format!("Cannot open artifact {path}: {error}"))?;
+    file.seek(SeekFrom::Start(offset.min(metadata.len())))
+        .map_err(|error| format!("Cannot seek artifact {path}: {error}"))?;
+    let mut bytes = vec![0_u8; length.min(metadata.len().saturating_sub(offset) as usize)];
+    file.read_exact(&mut bytes)
+        .map_err(|error| format!("Cannot read artifact {path}: {error}"))?;
+    Ok(bytes)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct JsonlPage {
+    rows: Vec<Vec<Value>>,
+    offset: usize,
+    limit: usize,
+    total_rows: usize,
+    filtered_rows: usize,
+}
+
+#[tauri::command]
+fn read_jsonl_page(
+    path: String,
+    offset: usize,
+    limit: usize,
+    search: Option<String>,
+    sort_column: Option<usize>,
+    descending: bool,
+    state: State<'_, AppState>,
+) -> Result<JsonlPage, String> {
+    let root = workspace_root(&state)?;
+    let resolved = resolve_existing_path(&root, &path)?;
+    let file = fs::File::open(&resolved)
+        .map_err(|error| format!("Cannot open result data {path}: {error}"))?;
+    let search = search.map(|value| value.trim().to_lowercase()).filter(|value| !value.is_empty());
+    let offset = offset;
+    let limit = limit.clamp(1, 1_000);
+    let mut total_rows = 0_usize;
+    let mut filtered_rows = 0_usize;
+    let mut page = Vec::with_capacity(limit);
+    let mut sortable = sort_column.map(|_| Vec::new());
+    for line in BufReader::new(file).lines() {
+        let line = line.map_err(|error| format!("Cannot read result data {path}: {error}"))?;
+        if line.trim().is_empty() {
+            continue;
+        }
+        total_rows += 1;
+        if search.as_deref().is_some_and(|needle| !line.to_lowercase().contains(needle)) {
+            continue;
+        }
+        let row = serde_json::from_str::<Vec<Value>>(&line)
+            .map_err(|error| format!("Invalid result row {total_rows}: {error}"))?;
+        if let Some(rows) = sortable.as_mut() {
+            rows.push(row);
+        } else {
+            if filtered_rows >= offset && page.len() < limit {
+                page.push(row);
+            }
+            filtered_rows += 1;
+        }
+    }
+    if let (Some(column), Some(mut rows)) = (sort_column, sortable) {
+        rows.sort_by(|left, right| {
+            let scalar = |row: &Vec<Value>| row
+                .get(column)
+                .map(|value| value.get("value").unwrap_or(value))
+                .cloned();
+            let left_value = scalar(left);
+            let right_value = scalar(right);
+            let ordering = match (
+                left_value.as_ref().and_then(Value::as_f64),
+                right_value.as_ref().and_then(Value::as_f64),
+            ) {
+                (Some(left), Some(right)) => left.total_cmp(&right),
+                _ => left_value.map(|value| value.to_string()).cmp(&right_value.map(|value| value.to_string())),
+            };
+            if descending { ordering.reverse() } else { ordering }
+        });
+        filtered_rows = rows.len();
+        page = rows.into_iter().skip(offset).take(limit).collect();
+    }
+    Ok(JsonlPage {
+        rows: page,
+        offset,
+        limit,
+        total_rows,
+        filtered_rows,
+    })
 }
 
 #[tauri::command]
@@ -1862,7 +2974,8 @@ fn stream_reader<R: Read + Send + 'static>(
     app: AppHandle,
     job_id: u64,
     stream: &'static str,
-) {
+    structured: bool,
+) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let mut reader = BufReader::new(reader);
         let mut buffer = Vec::new();
@@ -1871,6 +2984,89 @@ fn stream_reader<R: Read + Send + 'static>(
             match reader.read_until(b'\n', &mut buffer) {
                 Ok(0) | Err(_) => break,
                 Ok(_) => {
+                    if structured {
+                        if let Ok(event) = serde_json::from_slice::<serde_json::Value>(&buffer) {
+                            if event.get("protocol").and_then(|value| value.as_str())
+                                == Some("biolang.events/v1")
+                            {
+                                match event.get("event").and_then(|value| value.as_str()) {
+                                    Some("output") => {
+                                        let event_stream = event
+                                            .get("stream")
+                                            .and_then(|value| value.as_str())
+                                            .unwrap_or("stdout");
+                                        let stream = if event_stream == "stderr" {
+                                            "stderr"
+                                        } else {
+                                            "stdout"
+                                        };
+                                        let data = event
+                                            .get("text")
+                                            .and_then(|value| value.as_str())
+                                            .unwrap_or_default()
+                                            .to_string();
+                                        let _ = app.emit(
+                                            "job-output",
+                                            JobOutput { job_id, stream, data },
+                                        );
+                                    }
+                                    Some("result") => {
+                                        if let Some(value) = event.get("value") {
+                                            if value.get("kind").and_then(|kind| kind.as_str())
+                                                != Some("nil")
+                                            {
+                                                let _ = app.emit(
+                                                    "job-result",
+                                                    JobResult {
+                                                        job_id,
+                                                        value: value.clone(),
+                                                    },
+                                                );
+                                            }
+                                        }
+                                    }
+                                    Some("trace") => {
+                                        // Emitted one per printed value. They
+                                        // are forwarded singly rather than
+                                        // batched so annotations appear as a
+                                        // long run progresses.
+                                        if let (Some(line), Some(text)) = (
+                                            event.get("line").and_then(|value| value.as_u64()),
+                                            event.get("text").and_then(|value| value.as_str()),
+                                        ) {
+                                            let _ = app.emit(
+                                                "job-trace",
+                                                JobTrace {
+                                                    job_id,
+                                                    entries: vec![JobTraceEntry {
+                                                        line: line as u32,
+                                                        text: text.to_string(),
+                                                    }],
+                                                },
+                                            );
+                                        }
+                                    }
+                                    Some("error") => {
+                                        let data = event
+                                            .get("message")
+                                            .and_then(|value| value.as_str())
+                                            .unwrap_or("BioLang execution failed")
+                                            .to_string();
+                                        let _ = app.emit(
+                                            "job-output",
+                                            JobOutput {
+                                                job_id,
+                                                stream: "stderr",
+                                                data: format!("{data}\n"),
+                                            },
+                                        );
+                                    }
+                                    _ => {}
+                                }
+                                continue;
+                            }
+                        }
+                    }
                     let _ = app.emit(
                         "job-output",
                         JobOutput {
@@ -1882,7 +3078,7 @@ fn stream_reader<R: Read + Send + 'static>(
                 }
             }
         }
-    });
+    })
 }
 
 fn start_biolang_job(
@@ -1918,14 +3114,25 @@ fn spawn_biolang_job(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<u64, String> {
-    let child = Command::new(bl)
-        .arg(command)
+    let job_id = state.id();
+    let files_before = workspace_file_snapshot(&root);
+    let mut process = Command::new(&bl);
+    configure_biolang_command(&mut process, &root, &bl);
+    let structured = command == "run";
+    process.arg(command)
         .arg(&script)
+        .args(structured.then_some("--events"))
         .current_dir(&root)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .stdin(Stdio::null())
-        .spawn();
+        .stdin(Stdio::null());
+    if structured {
+        process.env(
+            "BIOLANG_RESULT_DIR",
+            format!("results/run-{job_id}"),
+        );
+    }
+    let child = process.spawn();
     let mut child = match child {
         Ok(child) => child,
         Err(error) => {
@@ -1936,13 +3143,14 @@ fn spawn_biolang_job(
         }
     };
 
-    let job_id = state.id();
-    if let Some(stdout) = child.stdout.take() {
-        stream_reader(stdout, app.clone(), job_id, "stdout");
-    }
-    if let Some(stderr) = child.stderr.take() {
-        stream_reader(stderr, app.clone(), job_id, "stderr");
-    }
+    let stdout_reader = child
+        .stdout
+        .take()
+        .map(|stdout| stream_reader(stdout, app.clone(), job_id, "stdout", structured));
+    let stderr_reader = child
+        .stderr
+        .take()
+        .map(|stderr| stream_reader(stderr, app.clone(), job_id, "stderr", false));
 
     let child = Arc::new(Mutex::new(child));
     state
@@ -1954,6 +3162,8 @@ fn spawn_biolang_job(
     let handle = app.clone();
     thread::spawn(move || {
         let started = Instant::now();
+        let mut stdout_reader = stdout_reader;
+        let mut stderr_reader = stderr_reader;
         loop {
             let status = child
                 .lock()
@@ -1961,6 +3171,25 @@ fn spawn_biolang_job(
                 .and_then(|mut child| child.try_wait().ok())
                 .flatten();
             if let Some(status) = status {
+                // A process may exit before the reader threads dispatch their
+                // final lines. Drain both pipes before the terminal event.
+                if let Some(reader) = stdout_reader.take() {
+                    let _ = reader.join();
+                }
+                if let Some(reader) = stderr_reader.take() {
+                    let _ = reader.join();
+                }
+                let artifacts = changed_workspace_files(
+                    &root,
+                    &files_before,
+                    cleanup_path.as_deref().unwrap_or(&script),
+                );
+                if !artifacts.is_empty() {
+                    let _ = handle.emit(
+                        "job-artifacts",
+                        JobArtifacts { job_id, artifacts },
+                    );
+                }
                 let _ = handle.emit(
                     "job-finished",
                     JobFinished {
@@ -1986,9 +3215,108 @@ fn spawn_biolang_job(
     Ok(job_id)
 }
 
+fn workspace_file_snapshot(root: &Path) -> HashMap<PathBuf, (u64, u128)> {
+    let mut files = HashMap::new();
+    let mut directories = vec![root.to_path_buf()];
+    while let Some(directory) = directories.pop() {
+        let Ok(entries) = fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let relative = path.strip_prefix(root).unwrap_or(&path);
+            if relative.components().next().is_some_and(|component| {
+                matches!(component, std::path::Component::Normal(name) if name == ".git" || name == ".biolang" || name == "target" || name == "node_modules")
+            }) {
+                continue;
+            }
+            let Ok(metadata) = entry.metadata() else {
+                continue;
+            };
+            if metadata.is_dir() {
+                directories.push(path);
+            } else if metadata.is_file() {
+                let modified = metadata
+                    .modified()
+                    .ok()
+                    .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+                    .map(|value| value.as_millis())
+                    .unwrap_or_default();
+                files.insert(relative.to_path_buf(), (metadata.len(), modified));
+            }
+        }
+    }
+    files
+}
+
+fn changed_workspace_files(
+    root: &Path,
+    before: &HashMap<PathBuf, (u64, u128)>,
+    script: &Path,
+) -> Vec<JobArtifact> {
+    let script = script.strip_prefix(root).unwrap_or(script);
+    let after = workspace_file_snapshot(root);
+    let mut artifacts = after
+        .into_iter()
+        .filter(|(path, metadata)| path != script && before.get(path) != Some(metadata))
+        .map(|(path, (size, _))| {
+            let display = relative_display(&path);
+            JobArtifact {
+                name: path
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or("artifact")
+                    .to_string(),
+                path: display,
+                size,
+                media_type: desktop_media_type(&path).map(str::to_string),
+            }
+        })
+        .collect::<Vec<_>>();
+    artifacts.sort_by(|left, right| left.path.cmp(&right.path));
+    artifacts
+}
+
+fn desktop_media_type(path: &Path) -> Option<&'static str> {
+    match path.extension()?.to_str()?.to_ascii_lowercase().as_str() {
+        "svg" => Some("image/svg+xml"),
+        "png" => Some("image/png"),
+        "jpg" | "jpeg" => Some("image/jpeg"),
+        "pdf" => Some("application/pdf"),
+        "html" | "htm" => Some("text/html"),
+        "json" => Some("application/json"),
+        "jsonl" | "ndjson" => Some("application/x-ndjson"),
+        "csv" => Some("text/csv"),
+        "tsv" => Some("text/tab-separated-values"),
+        "txt" | "log" | "md" | "bl" => Some("text/plain"),
+        _ => None,
+    }
+}
+
 #[tauri::command]
 fn run_file(path: String, app: AppHandle, state: State<'_, AppState>) -> Result<u64, String> {
     start_biolang_job(path, "run", &[".bl"], app, state)
+}
+
+#[tauri::command]
+fn run_source(source: String, app: AppHandle, state: State<'_, AppState>) -> Result<u64, String> {
+    require_trusted_workspace(&state)?;
+    if source.len() as u64 > MAX_TEXT_FILE_BYTES {
+        return Err("Script execution source is too large".into());
+    }
+    let root = workspace_root(&state)?;
+    let bl = find_binary(&root, "bl").ok_or_else(|| {
+        "BioLang executable not found. Build BioLang or set BIOLANG_BIN.".to_string()
+    })?;
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let path =
+        std::env::temp_dir().join(format!("biolang-desktop-{}-{nonce}.bl", std::process::id()));
+    fs::write(&path, source)
+        .map_err(|error| format!("Cannot prepare script execution: {error}"))?;
+    spawn_biolang_job(path.clone(), "run", root, bl, Some(path), app, state)
 }
 
 #[tauri::command]
@@ -2337,9 +3665,11 @@ fn install_packages(state: State<'_, AppState>) -> Result<String, String> {
     let bl = find_binary(&root, "bl").ok_or_else(|| {
         "BioLang executable not found. Build BioLang or set BIOLANG_BIN.".to_string()
     })?;
-    let output = Command::new(bl)
+    let mut command = Command::new(&bl);
+    configure_biolang_command(&mut command, &root, &bl);
+    let output = command
         .arg("install")
-        .current_dir(root)
+        .current_dir(&root)
         .output()
         .map_err(|error| format!("Cannot run package installation: {error}"))?;
     let mut text = String::from_utf8_lossy(&output.stdout).to_string();
@@ -2351,11 +3681,117 @@ fn install_packages(state: State<'_, AppState>) -> Result<String, String> {
     }
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TestResult {
+    file: String,
+    name: String,
+    label: String,
+    passed: bool,
+    duration_ms: Option<u64>,
+    message: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TestRunSummary {
+    results: Vec<TestResult>,
+    passed: usize,
+    failed: usize,
+    duration_ms: u64,
+}
+
+/// Run `bl test --events` over the workspace or a single file.
+///
+/// Blocking rather than streamed: a suite over analysis code finishes in
+/// seconds, and the JSON Lines protocol already gives one clean event per test.
+#[tauri::command]
+fn run_workspace_tests(
+    path: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<TestRunSummary, String> {
+    require_trusted_workspace(&state)?;
+    let root = workspace_root(&state)?;
+    let bl = find_binary(&root, "bl").ok_or_else(|| {
+        "BioLang executable not found. Build BioLang or set BIOLANG_BIN.".to_string()
+    })?;
+    let mut command = Command::new(&bl);
+    configure_biolang_command(&mut command, &root, &bl);
+    command.arg("test").arg("--events");
+    if let Some(path) = path.as_deref() {
+        command.arg(path);
+    }
+    let output = command
+        .current_dir(&root)
+        .output()
+        .map_err(|error| format!("Cannot run tests: {error}"))?;
+
+    let mut results = Vec::new();
+    let mut passed = 0usize;
+    let mut failed = 0usize;
+    let mut duration_ms = 0u64;
+    for line in String::from_utf8_lossy(&output.stdout).lines() {
+        let Ok(event) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+        let text = |key: &str| {
+            event
+                .get(key)
+                .and_then(|value| value.as_str())
+                .map(str::to_string)
+        };
+        match event.get("event").and_then(|value| value.as_str()) {
+            Some(kind @ ("testPassed" | "testFailed")) => {
+                let ok = kind == "testPassed";
+                if ok {
+                    passed += 1;
+                } else {
+                    failed += 1;
+                }
+                results.push(TestResult {
+                    file: text("file").unwrap_or_default(),
+                    name: text("name").unwrap_or_default(),
+                    label: text("label").or_else(|| text("name")).unwrap_or_default(),
+                    passed: ok,
+                    duration_ms: event.get("durationMs").and_then(|value| value.as_u64()),
+                    message: text("message"),
+                });
+            }
+            Some("testFinished") => {
+                duration_ms = event
+                    .get("durationMs")
+                    .and_then(|value| value.as_u64())
+                    .unwrap_or_default();
+            }
+            _ => {}
+        }
+    }
+
+    // A non-zero exit with no parsed results means the runner itself failed,
+    // which is a different thing from a test failing and must not look green.
+    if results.is_empty() && !output.status.success() {
+        let mut message = String::from_utf8_lossy(&output.stderr).to_string();
+        if message.trim().is_empty() {
+            message = String::from_utf8_lossy(&output.stdout).to_string();
+        }
+        return Err(message.trim().to_string());
+    }
+
+    Ok(TestRunSummary {
+        results,
+        passed,
+        failed,
+        duration_ms,
+    })
+}
+
 fn spawn_console(root: &Path) -> Result<Arc<ConsoleProcess>, String> {
     let bl = find_binary(root, "bl").ok_or_else(|| {
         "BioLang executable not found. Build BioLang or set BIOLANG_BIN.".to_string()
     })?;
-    let mut child = Command::new(bl)
+    let mut command = Command::new(&bl);
+    configure_biolang_command(&mut command, root, &bl);
+    let mut child = command
         .args(["repl", "--json"])
         .current_dir(root)
         .stdin(Stdio::piped())
@@ -2697,9 +4133,11 @@ fn start_lsp(app: AppHandle, state: State<'_, AppState>) -> Result<bool, String>
             .ok_or_else(|| "BioLang LSP executable not found".to_string())?;
         (bl, vec!["lsp".into()])
     };
-    let mut child = Command::new(executable)
+    let mut command = Command::new(&executable);
+    configure_biolang_command(&mut command, &root, &executable);
+    let mut child = command
         .args(arguments)
-        .current_dir(root)
+        .current_dir(&root)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -2778,35 +4216,62 @@ pub fn run() {
         .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
             select_workspace,
+            pick_path,
             open_workspace,
             close_workspace,
             set_workspace_trust,
             workspace_snapshot,
             git_status,
             get_somer_secret,
+            list_credentials,
+            compare_run_environment,
+            restore_run_environment,
+            list_reference_builds,
+            save_reference_build,
+            delete_reference_build,
+            run_workspace_tests,
+            git_stage,
+            git_unstage,
+            git_commit,
+            git_diff,
+            set_credential,
+            delete_credential,
             set_somer_secret,
             delete_somer_secret,
             start_somer_tunnel,
             stop_somer_tunnel,
             create_entry,
             rename_entry,
+            move_entry,
+            write_new_file,
             delete_entry,
             duplicate_entry,
             reveal_entry,
             open_external,
             search_workspace,
+            replace_in_workspace,
             preview_file,
             import_files,
+            checksum_workspace_files,
             import_code,
             import_code_url,
             validate_import_code,
             export_preview,
             export_text,
+            export_binary,
+            load_run_history,
+            save_run_history,
+            delete_run_history,
             read_file,
+            read_workspace_binary,
+            read_workspace_binary_range,
+            read_jsonl_page,
             write_file,
             save_file_as,
+            write_clipboard,
             get_environment,
             run_file,
+            run_source,
             run_notebook,
             run_notebook_source,
             run_workflow,

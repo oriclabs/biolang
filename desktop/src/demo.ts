@@ -85,6 +85,31 @@ println(motifs)
   ]
 }
 `,
+  "assignment.toml": `title = "Week 1 — Sequence basics"
+instructions = "Finish the functions in sequence_basics.bl until every check passes. Use Check my work as often as you like."
+
+[[task]]
+name = "GC content is a fraction"
+test = "test_gc_content_is_a_fraction"
+hint = "gc_content returns a value between 0 and 1, not a percentage."
+
+[[task]]
+name = "Reverse complement round-trips"
+test = "test_reverse_complement_round_trips"
+hint = "Applying reverse_complement twice should give back the original sequence."
+`,
+  "sequence_basics.bl": `# Week 1 — finish these so the checks pass.
+let sequence = dna"ATGCGTACGTTAGCGATCGATCG"
+
+fn test_gc_content_is_a_fraction() {
+    let gc = gc_content(sequence)
+    assert gc > 0.0 and gc < 1.0, "gc_content should return a fraction"
+}
+
+fn test_reverse_complement_round_trips() {
+    assert reverse_complement(reverse_complement(sequence)) == sequence
+}
+`,
   "data/sequences.fasta": `>ori_candidate
 TAAACGTGAGAGAAACGTGCTGATTACACTTGTTCGTGTGGTAT
 >control
@@ -94,6 +119,15 @@ CCAGATCGCGATACGTTACATACATGATAGAC
 BRCA1,12.4,14.8
 TP53,8.1,7.9
 MYC,21.0,19.6
+`,
+  "data/reads.fastq": `@read_1
+TAAACGTGAGAGAAACGTGC
++
+IIIIIIIIIIIIIIIIIIII
+@read_2
+GATTACACTTGTTCGTGTGG
++
+IIIIIIIIIIIIIIIIIIII
 `,
   "data/cohort.vcf": `##fileformat=VCFv4.3
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER
@@ -136,6 +170,7 @@ export const demoWorkspace: WorkspaceSnapshot = {
       children: [
         file("sequences.fasta", "data/sequences.fasta", demoFiles["data/sequences.fasta"].length),
         file("expression.csv", "data/expression.csv", demoFiles["data/expression.csv"].length),
+        file("reads.fastq", "data/reads.fastq", demoFiles["data/reads.fastq"].length),
         file("cohort.vcf", "data/cohort.vcf", demoFiles["data/cohort.vcf"].length),
         file("genes.gff3", "data/genes.gff3", demoFiles["data/genes.gff3"].length),
         file("species.nwk", "data/species.nwk", demoFiles["data/species.nwk"].length),
@@ -163,6 +198,8 @@ export const demoWorkspace: WorkspaceSnapshot = {
       ],
     },
     file("analysis.bl", "analysis.bl", demoFiles["analysis.bl"].length),
+    file("assignment.toml", "assignment.toml", demoFiles["assignment.toml"].length),
+    file("sequence_basics.bl", "sequence_basics.bl", demoFiles["sequence_basics.bl"].length),
     file("biolang.toml", "biolang.toml", demoFiles["biolang.toml"].length),
     file("README.md", "README.md", demoFiles["README.md"].length),
   ],

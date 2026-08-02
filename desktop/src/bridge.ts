@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
   browserConsoleResponse,
+  browserQcMetrics,
   evaluateBrowserSource,
   importBrowserSource,
   resetBrowserConsole,
@@ -9,7 +10,15 @@ import {
   validateBrowserImport,
 } from "./browserRuntime";
 import { loadBrowserWorkspace, saveBrowserWorkspace } from "./browserWorkspace";
+import { credentialCatalog, type CredentialStatus } from "./credentials";
+import {
+  defaultSearchOptions,
+  replacementFor,
+  searchPattern,
+  type SearchOptions,
+} from "./searchOptions";
 import { demoFiles, demoPackages, demoWorkspace } from "./demo";
+import { packFileEntries, packWorkspaceFiles, type PackBundle } from "./packs";
 import type {
   DataPreview,
   CodeImportResult,
@@ -18,8 +27,18 @@ import type {
   EnvironmentInfo,
   GitStatusSnapshot,
   JobFinishedEvent,
+  Job,
+  JobInputProvenance,
+  JobProvenance,
   JobOutputEvent,
+  JobResultEvent,
+  JobTraceEvent,
+  JobArtifactsEvent,
   PackageInfo,
+  ReferenceBuild,
+  RestoreReport,
+  ResultPageData,
+  ResultPageRequest,
   SearchHit,
   TerminalOutputEvent,
   WorkspaceSnapshot,
@@ -70,6 +89,44 @@ async function persistBrowserWorkspace(): Promise<void> {
   });
 }
 
+/**
+ * Add a downloaded example pack to the browser workspace.
+ *
+ * Idempotent: re-opening the same deep link replaces the pack's folder rather
+ * than appending a second copy, so a shared link is safe to follow twice. The
+ * restore runs first because a pack must merge into whatever the user already
+ * has, not overwrite it.
+ */
+export async function installPackIntoWorkspace(bundle: PackBundle): Promise<void> {
+  if (isDesktop) throw new Error("Example packs install into the browser workspace only");
+  // Serialised: two installs that overlap would both await the restore, both
+  // find no existing folder, and both append one — which React then reports as
+  // duplicate keys. StrictMode makes that the normal case in development.
+  const run = packInstalls.then(() => installPackNow(bundle));
+  packInstalls = run.then(() => undefined, () => undefined);
+  return run;
+}
+
+let packInstalls: Promise<void> = Promise.resolve();
+
+async function installPackNow(bundle: PackBundle): Promise<void> {
+  await restoreBrowserWorkspace();
+
+  const prefix = `${bundle.id}/`;
+  for (const path of Object.keys(demoFiles)) {
+    if (path.startsWith(prefix)) delete demoFiles[path];
+  }
+  Object.assign(demoFiles, packWorkspaceFiles(bundle));
+
+  const tree = packFileEntries(bundle);
+  const existing = demoWorkspace.entries.findIndex((entry) => entry.path === bundle.id);
+  if (existing >= 0) demoWorkspace.entries[existing] = tree;
+  else demoWorkspace.entries.push(tree);
+
+  demoSelected = true;
+  await persistBrowserWorkspace();
+}
+
 function browserImportFormat(filename: string) {
   const lower = filename.toLowerCase();
   if (lower.endsWith(".ipynb")) return "ipynb";
@@ -104,6 +161,35 @@ function dispatchBrowserJobOutput(jobId: number, stream: "stdout" | "stderr", da
   }));
 }
 
+function emitBrowserJobResult(jobId: number, value: unknown) {
+  window.dispatchEvent(new CustomEvent("demo-job-result", {
+    detail: { jobId, value },
+  }));
+}
+
+function dispatchBrowserJobResult(
+  jobId: number,
+  value: string,
+  returned: boolean,
+  type?: string,
+  structured?: import("./types").StructuredResult,
+  results?: import("./types").StructuredResult[],
+) {
+  // Values passed to print/println arrive here as typed results, so a script
+  // written the idiomatic way fills the Tables and Plots views rather than
+  // only the text log. The runtime already appends the program's own return
+  // value to this list, so `structured` needs no second emission.
+  for (const displayed of results ?? []) emitBrowserJobResult(jobId, displayed);
+  // `println(...)` returns Nil. Emitting a fallback for it would report a
+  // phantom extra result next to the table the user actually printed.
+  if (structured || !returned) return;
+  const trimmed = value.trim();
+  if (!trimmed) return;
+  emitBrowserJobResult(jobId, trimmed.startsWith("<svg")
+    ? { kind: "plot", format: "svg", data: value }
+    : { kind: "string", value, type });
+}
+
 function finishBrowserJob(jobId: number, exitCode: number | null, startedAt: number) {
   window.dispatchEvent(new CustomEvent("demo-job-finished", {
     detail: {
@@ -125,11 +211,30 @@ function runBrowserSource(source: string): number {
           return;
         }
         dispatchBrowserJobOutput(jobId, "stdout", result.output ?? "");
+        if (result.trace?.length) {
+          window.dispatchEvent(new CustomEvent("demo-job-trace", {
+            detail: { jobId, entries: result.trace },
+          }));
+        }
         if (result.ok) {
-          if (
-            result.value
-            && !["null", "nil", "Nil", "()", "None"].includes(result.value)
-          ) {
+          const returned = Boolean(result.value)
+            && !["null", "nil", "Nil", "()", "None"].includes(result.value ?? "");
+          // Printed results stand on their own: `println(table)` returns Nil,
+          // so gating the whole dispatch on a returned value hid them.
+          if (returned || result.results?.length) {
+            dispatchBrowserJobResult(
+              jobId,
+              result.value ?? "",
+              returned,
+              result.type,
+              result.structured,
+              result.results,
+            );
+          }
+          // Echo the return value only when it is not already on show as a
+          // typed result. Repeating it dumped whole SVG documents into the
+          // text log next to the plot they render as.
+          if (returned && !result.structured) {
             dispatchBrowserJobOutput(
               jobId,
               "stdout",
@@ -194,6 +299,23 @@ export const bridge = {
     return structuredClone(demoWorkspace);
   },
 
+  /**
+   * Pick an absolute filesystem path outside the workspace model.
+   *
+   * Used for reference FASTA/GTF and SSH identity files. Browser returns null:
+   * there is no host filesystem to browse.
+   */
+  async pickPath(options?: {
+    title?: string;
+    filters?: Array<{ name: string; extensions: string[] }>;
+  }): Promise<string | null> {
+    if (!isDesktop) return null;
+    return invoke("pick_path", {
+      title: options?.title,
+      filters: options?.filters ?? [],
+    });
+  },
+
   async openWorkspace(path: string): Promise<WorkspaceSnapshot> {
     if (isDesktop) return invoke("open_workspace", { path });
     await restoreBrowserWorkspace();
@@ -212,6 +334,90 @@ export const bridge = {
 
   async setWorkspaceTrust(root: string, trusted: boolean): Promise<void> {
     if (isDesktop) return invoke("set_workspace_trust", { root, trusted });
+  },
+
+  async compareRunEnvironment(provenance: JobProvenance): Promise<RestoreReport> {
+    if (isDesktop) return invoke("compare_run_environment", { request: provenance });
+    return {
+      checked: false,
+      drift: [],
+      notes: ["Comparing a run environment requires BioLang Desktop."],
+    };
+  },
+
+  async restoreRunEnvironment(provenance: JobProvenance, restoreSource: boolean): Promise<string> {
+    if (isDesktop) {
+      return invoke("restore_run_environment", { request: provenance, restoreSource });
+    }
+    throw new Error("Restoring a run environment requires BioLang Desktop");
+  },
+
+  async listReferenceBuilds(): Promise<ReferenceBuild[]> {
+    if (isDesktop) return invoke("list_reference_builds");
+    // The registry is a file in the home directory; the browser has neither.
+    return [];
+  },
+
+  async saveReferenceBuild(name: string, assets: Record<string, string>): Promise<void> {
+    if (isDesktop) return invoke("save_reference_build", { name, assets });
+    throw new Error("Reference builds require BioLang Desktop");
+  },
+
+  async deleteReferenceBuild(name: string): Promise<void> {
+    if (isDesktop) return invoke("delete_reference_build", { name });
+  },
+
+  async gitStage(paths: string[]): Promise<void> {
+    if (isDesktop) return invoke("git_stage", { paths });
+    throw new Error("Git requires BioLang Desktop");
+  },
+
+  async gitUnstage(paths: string[]): Promise<void> {
+    if (isDesktop) return invoke("git_unstage", { paths });
+    throw new Error("Git requires BioLang Desktop");
+  },
+
+  async gitCommit(message: string): Promise<string> {
+    if (isDesktop) return invoke("git_commit", { message });
+    throw new Error("Git requires BioLang Desktop");
+  },
+
+  async gitDiff(path: string, staged: boolean): Promise<string> {
+    if (isDesktop) return invoke("git_diff", { path, staged });
+    return "";
+  },
+
+  async runWorkspaceTests(path?: string): Promise<{
+    results: import("./types").TestResult[];
+    passed: number;
+    failed: number;
+    durationMs: number;
+  }> {
+    if (isDesktop) return invoke("run_workspace_tests", { path });
+    // The browser build has no `bl` binary; the WASM runtime evaluates one
+    // program at a time and cannot walk a workspace.
+    throw new Error("Running tests requires BioLang Desktop");
+  },
+
+  async listCredentials(): Promise<CredentialStatus[]> {
+    if (isDesktop) return invoke("list_credentials");
+    // The browser build has no keyring and no child process to inject into, so
+    // a stored key could not reach the WASM runtime anyway. Reporting them as
+    // unconfigured is honest; the Settings UI explains why.
+    return credentialCatalog.map((credential) => ({
+      name: credential.name,
+      configured: false,
+      fromEnvironment: false,
+    }));
+  },
+
+  async setCredential(name: string, value: string): Promise<void> {
+    if (isDesktop) return invoke("set_credential", { name, value });
+    throw new Error("Credentials require BioLang Desktop");
+  },
+
+  async deleteCredential(name: string): Promise<void> {
+    if (isDesktop) return invoke("delete_credential", { name });
   },
 
   async getSomerSecret(profileId: string): Promise<string | null> {
@@ -292,6 +498,79 @@ export const bridge = {
     return nextPath;
   },
 
+  /**
+   * Move a workspace entry into `destinationDirectory` ("" = workspace root).
+   * Keeps the original basename.
+   */
+  async moveEntry(path: string, destinationDirectory: string): Promise<string> {
+    if (isDesktop) {
+      return invoke("move_entry", { path, destinationDirectory });
+    }
+    await restoreBrowserWorkspace();
+    const normalized = path.replaceAll("\\", "/");
+    const dest = destinationDirectory.replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    const separator = normalized.lastIndexOf("/");
+    const parent = separator >= 0 ? normalized.slice(0, separator) : "";
+    if (parent === dest) return normalized;
+    if (dest === normalized || dest.startsWith(`${normalized}/`)) {
+      throw new Error("Cannot move a folder into itself");
+    }
+    const sourceEntries = findDemoDirectory(parent);
+    const index = sourceEntries.findIndex((candidate) => candidate.path === normalized);
+    if (index < 0) throw new Error(`${path} was not found`);
+    const [entry] = sourceEntries.splice(index, 1);
+    const destEntries = findDemoDirectory(dest);
+    if (destEntries.some((candidate) => candidate.name === entry.name)) {
+      throw new Error(`${entry.name} already exists in the destination`);
+    }
+    const nextPath = dest ? `${dest}/${entry.name}` : entry.name;
+    destEntries.push(entry);
+    rebaseDemoEntry(entry, nextPath);
+    await persistBrowserWorkspace();
+    return nextPath;
+  },
+
+  /**
+   * Create a new file with content (parents created as needed). Used by OS drop.
+   */
+  async writeNewFile(path: string, content: string | Uint8Array): Promise<string> {
+    if (isDesktop) {
+      const bytes = typeof content === "string"
+        ? Array.from(new TextEncoder().encode(content))
+        : Array.from(content);
+      return invoke("write_new_file", { path, content: bytes });
+    }
+    await restoreBrowserWorkspace();
+    const normalized = path.replaceAll("\\", "/");
+    const separator = normalized.lastIndexOf("/");
+    const parent = separator >= 0 ? normalized.slice(0, separator) : "";
+    const name = separator >= 0 ? normalized.slice(separator + 1) : normalized;
+    if (parent) {
+      const parts = parent.split("/").filter(Boolean);
+      let cursor = "";
+      for (const part of parts) {
+        const next = cursor ? `${cursor}/${part}` : part;
+        try {
+          findDemoDirectory(next);
+        } catch {
+          const siblings = findDemoDirectory(cursor);
+          if (!siblings.some((entry) => entry.name === part)) {
+            siblings.push({ name: part, path: next, kind: "directory", size: 0, children: [] });
+          }
+        }
+        cursor = next;
+      }
+    }
+    const entries = findDemoDirectory(parent);
+    if (entries.some((entry) => entry.name === name)) throw new Error(`${path} already exists`);
+    entries.push({ name, path: normalized, kind: "file", size: 0, children: [] });
+    demoFiles[normalized] = typeof content === "string"
+      ? content
+      : new TextDecoder().decode(content);
+    await persistBrowserWorkspace();
+    return normalized;
+  },
+
   async deleteEntry(path: string): Promise<void> {
     if (isDesktop) return invoke("delete_entry", { path });
     await restoreBrowserWorkspace();
@@ -339,19 +618,65 @@ export const bridge = {
     window.open(url, "_blank", "noopener,noreferrer");
   },
 
-  async searchWorkspace(query: string): Promise<SearchHit[]> {
-    if (isDesktop) return invoke("search_workspace", { query });
+  async searchWorkspace(
+    query: string,
+    options: SearchOptions = defaultSearchOptions,
+  ): Promise<SearchHit[]> {
+    if (isDesktop) {
+      return invoke("search_workspace", {
+        query,
+        caseSensitive: options.caseSensitive,
+        wholeWord: options.wholeWord,
+        regex: options.regex,
+      });
+    }
     await restoreBrowserWorkspace();
-    const needle = query.trim().toLowerCase();
-    if (needle.length < 2) return [];
+    const pattern = searchPattern(query.trim(), options);
+    if (!pattern) return [];
     const hits: SearchHit[] = [];
     for (const [path, content] of Object.entries(demoFiles)) {
       for (const [index, line] of content.split(/\r?\n/).entries()) {
-        const column = line.toLowerCase().indexOf(needle);
-        if (column >= 0) hits.push({ path, line: index + 1, column: column + 1, preview: line.trim() });
+        pattern.lastIndex = 0;
+        const match = pattern.exec(line);
+        if (match) hits.push({ path, line: index + 1, column: match.index + 1, preview: line.trim() });
       }
     }
     return hits.slice(0, 200);
+  },
+
+  /**
+   * Rewrite every match across the workspace and report how many files changed.
+   *
+   * Search without replace meant leaving the app for `sed` to rename anything
+   * across a project, which is exactly the point at which people stop treating
+   * an editor as their editor.
+   */
+  async replaceInWorkspace(
+    query: string,
+    replacement: string,
+    options: SearchOptions = defaultSearchOptions,
+  ): Promise<number> {
+    if (isDesktop) {
+      return invoke("replace_in_workspace", {
+        query,
+        replacement,
+        caseSensitive: options.caseSensitive,
+        wholeWord: options.wholeWord,
+        regex: options.regex,
+      });
+    }
+    await restoreBrowserWorkspace();
+    const pattern = searchPattern(query.trim(), options);
+    if (!pattern) return 0;
+    let changed = 0;
+    for (const [path, content] of Object.entries(demoFiles)) {
+      const next = replacementFor(content, pattern, replacement, options);
+      if (next === content) continue;
+      demoFiles[path] = next;
+      changed += 1;
+    }
+    if (changed) await persistBrowserWorkspace();
+    return changed;
   },
 
   async previewFile(path: string): Promise<DataPreview> {
@@ -396,6 +721,38 @@ export const bridge = {
         truncated: false,
         totalBytes: content.length,
         provenance,
+      };
+    }
+    if (extension === "fastq" || extension === "fq") {
+      const lines = content.split(/\r?\n/);
+      const rows: string[][] = [];
+      for (let index = 0; index + 3 < lines.length; index += 4) {
+        if (!lines[index].startsWith("@")) continue;
+        rows.push([lines[index].slice(1), String(lines[index + 1].length), String(lines[index + 3].length)]);
+      }
+      return {
+        kind: "fastq",
+        columns: ["Read", "Length", "Quality length"],
+        rows,
+        summary: [`${rows.length} reads sampled`],
+        truncated: false,
+        totalBytes: content.length,
+        provenance,
+        metrics: await browserQcMetrics("fastq", content),
+      };
+    }
+    if (extension === "vcf") {
+      const lines = content.split(/\r?\n/);
+      const header = lines.find((line) => line.startsWith("#CHROM"));
+      return {
+        kind: "vcf",
+        columns: header ? header.slice(1).split("\t") : [],
+        rows: lines.filter((line) => line && !line.startsWith("#")).map((line) => line.split("\t")),
+        summary: [`${lines.filter((line) => line && !line.startsWith("#")).length} variants sampled`],
+        truncated: false,
+        totalBytes: content.length,
+        provenance,
+        metrics: await browserQcMetrics("vcf", content),
       };
     }
     if (extension === "gff" || extension === "gff3" || extension === "gtf") {
@@ -538,6 +895,55 @@ export const bridge = {
     return anchor.download;
   },
 
+  async exportBinary(suggestedName: string, content: Uint8Array, mediaType = "application/octet-stream"): Promise<string | null> {
+    if (isDesktop) return invoke("export_binary", { suggestedName, content: Array.from(content) });
+    const blob = new Blob([content], { type: mediaType });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = suggestedName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    return anchor.download;
+  },
+
+  async loadRunHistory(): Promise<Job[]> {
+    if (isDesktop) return invoke("load_run_history");
+    try {
+      const value = JSON.parse(localStorage.getItem("biolang.desktop.jobs") ?? "[]");
+      return Array.isArray(value) ? value as Job[] : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveRunHistory(jobs: Job[]): Promise<void> {
+    if (isDesktop) return invoke("save_run_history", { jobs });
+    localStorage.setItem("biolang.desktop.jobs", JSON.stringify(jobs));
+  },
+
+  async deleteRunHistory(jobId: string): Promise<void> {
+    if (isDesktop) return invoke("delete_run_history", { jobId });
+    const jobs = await bridge.loadRunHistory();
+    localStorage.setItem(
+      "biolang.desktop.jobs",
+      JSON.stringify(jobs.filter((job) => job.id !== jobId)),
+    );
+  },
+
+  async checksumWorkspaceFiles(paths: string[]): Promise<JobInputProvenance[]> {
+    if (isDesktop) return invoke("checksum_workspace_files", { paths });
+    await restoreBrowserWorkspace();
+    return paths.flatMap((path) => {
+      const content = demoFiles[path];
+      return content === undefined ? [] : [{
+        path,
+        size: new TextEncoder().encode(content).byteLength,
+        checksumStatus: "unavailable" as const,
+      }];
+    });
+  },
+
   async environment(): Promise<EnvironmentInfo> {
     if (isDesktop) return invoke("get_environment");
     await restoreBrowserWorkspace();
@@ -552,11 +958,66 @@ export const bridge = {
     return value;
   },
 
+  async readWorkspaceBinary(path: string): Promise<Uint8Array> {
+    if (isDesktop) return new Uint8Array(await invoke<number[]>("read_workspace_binary", { path }));
+    await restoreBrowserWorkspace();
+    const value = demoFiles[path];
+    if (value === undefined) throw new Error(`Cannot read ${path}`);
+    return new TextEncoder().encode(value);
+  },
+
+  async readWorkspaceBinaryRange(path: string, offset = 0, length = 1024 * 1024): Promise<Uint8Array> {
+    if (isDesktop) {
+      return new Uint8Array(await invoke<number[]>("read_workspace_binary_range", { path, offset, length }));
+    }
+    await restoreBrowserWorkspace();
+    const value = demoFiles[path];
+    if (value === undefined) throw new Error(`Cannot read ${path}`);
+    return new TextEncoder().encode(value).slice(offset, offset + length);
+  },
+
+  async readJsonlPage(path: string, request: ResultPageRequest): Promise<ResultPageData> {
+    if (isDesktop) {
+      const page = await invoke<Omit<ResultPageData, "columns">>("read_jsonl_page", {
+        path,
+        offset: request.offset,
+        limit: request.limit,
+        search: request.search,
+        sortColumn: request.sortColumn,
+        descending: request.descending ?? false,
+      });
+      return { ...page, columns: [] };
+    }
+    await restoreBrowserWorkspace();
+    const content = demoFiles[path];
+    if (content === undefined) throw new Error(`Cannot read ${path}`);
+    const needle = request.search?.trim().toLowerCase();
+    const rows = content.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line) as unknown[])
+      .filter((row) => !needle || JSON.stringify(row).toLowerCase().includes(needle));
+    if (request.sortColumn !== undefined) {
+      rows.sort((left, right) => String(left[request.sortColumn!]).localeCompare(String(right[request.sortColumn!]), undefined, { numeric: true })
+        * (request.descending ? -1 : 1));
+    }
+    return {
+      columns: [],
+      rows: rows.slice(request.offset, request.offset + request.limit),
+      offset: request.offset,
+      limit: request.limit,
+      totalRows: rows.length,
+      filteredRows: rows.length,
+    };
+  },
+
   async writeFile(path: string, content: string): Promise<void> {
     if (isDesktop) return invoke("write_file", { path, content });
     await restoreBrowserWorkspace();
     demoFiles[path] = content;
     await persistBrowserWorkspace();
+  },
+
+  async copyText(text: string): Promise<void> {
+    if (isDesktop) return invoke("write_clipboard", { text });
+    await navigator.clipboard.writeText(text);
   },
 
   async saveFileAs(path: string, content: string): Promise<string | null> {
@@ -572,6 +1033,11 @@ export const bridge = {
     await restoreBrowserWorkspace();
     const source = demoFiles[path];
     if (source === undefined) throw new Error(`Cannot read ${path}`);
+    return runBrowserSource(source);
+  },
+
+  async runSource(source: string): Promise<number> {
+    if (isDesktop) return invoke("run_source", { source });
     return runBrowserSource(source);
   },
 
@@ -688,6 +1154,25 @@ export async function onJobOutput(callback: (event: JobOutputEvent) => void): Pr
   return () => window.removeEventListener("demo-job-output", handler);
 }
 
+export async function onJobResult(callback: (event: JobResultEvent) => void): Promise<UnlistenFn> {
+  if (isDesktop) return listen<JobResultEvent>("job-result", ({ payload }) => callback(payload));
+  const handler = (event: Event) => callback((event as CustomEvent<JobResultEvent>).detail);
+  window.addEventListener("demo-job-result", handler);
+  return () => window.removeEventListener("demo-job-result", handler);
+}
+
+export async function onJobTrace(callback: (event: JobTraceEvent) => void): Promise<UnlistenFn> {
+  if (isDesktop) return listen<JobTraceEvent>("job-trace", ({ payload }) => callback(payload));
+  const handler = (event: Event) => callback((event as CustomEvent<JobTraceEvent>).detail);
+  window.addEventListener("demo-job-trace", handler);
+  return () => window.removeEventListener("demo-job-trace", handler);
+}
+
+export async function onJobArtifacts(callback: (event: JobArtifactsEvent) => void): Promise<UnlistenFn> {
+  if (isDesktop) return listen<JobArtifactsEvent>("job-artifacts", ({ payload }) => callback(payload));
+  return () => undefined;
+}
+
 export async function onJobFinished(
   callback: (event: JobFinishedEvent) => void,
 ): Promise<UnlistenFn> {
@@ -695,6 +1180,13 @@ export async function onJobFinished(
   const handler = (event: Event) => callback((event as CustomEvent<JobFinishedEvent>).detail);
   window.addEventListener("demo-job-finished", handler);
   return () => window.removeEventListener("demo-job-finished", handler);
+}
+
+export async function onRunHistoryChanged(callback: () => void): Promise<UnlistenFn> {
+  if (isDesktop) return listen("run-history-changed", callback);
+  const handler = () => callback();
+  window.addEventListener("storage", handler);
+  return () => window.removeEventListener("storage", handler);
 }
 
 export async function onTerminalOutput(

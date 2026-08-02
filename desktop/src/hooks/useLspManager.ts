@@ -1,6 +1,7 @@
 import type { Monaco, OnMount } from "@monaco-editor/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type * as MonacoEditor from "monaco-editor";
+import { registerBrowserIntelligence } from "../browserIntelligence";
 import { isDesktop } from "../bridge";
 import { registerBioLang } from "../language";
 import { BioLangLspClient } from "../lsp";
@@ -10,6 +11,12 @@ import type { OpenFile, Problem, WorkspaceSnapshot } from "../types";
 type LspState = "off" | "starting" | "ready" | "error";
 
 export const notebookVirtualRoot = "__notebook__/";
+
+function isBioLangDocument(path: string) {
+  return path.endsWith(".bl")
+    || path.startsWith("__untitled__/")
+    || path.startsWith(notebookVirtualRoot);
+}
 
 export function useLspManager({
   workspace,
@@ -31,6 +38,7 @@ export function useLspManager({
   const openedRef = useRef(new Set<string>());
   const notebookDocumentsRef = useRef(new Map<string, string>());
   const providerDisposablesRef = useRef<MonacoEditor.IDisposable[]>([]);
+  const browserProviderDisposablesRef = useRef<MonacoEditor.IDisposable[]>([]);
   const startPromiseRef = useRef<Promise<boolean>>();
   const lifecycleRef = useRef(0);
 
@@ -66,7 +74,7 @@ export function useLspManager({
   }, []);
 
   const openDocument = useCallback(async (path: string, content: string) => {
-    if (!path.endsWith(".bl") || !clientRef.current.isReady()) return;
+    if (!isBioLangDocument(path) || !clientRef.current.isReady()) return;
     if (openedRef.current.has(path)) {
       queueChange(path, content, true);
       return;
@@ -105,6 +113,12 @@ export function useLspManager({
     monacoRef.current = monaco;
   }, []);
 
+  const ensureBrowserIntelligence = useCallback((monaco: Monaco) => {
+    if (isDesktop || browserProviderDisposablesRef.current.length) return;
+    browserProviderDisposablesRef.current = registerBrowserIntelligence(monaco);
+    setState("ready");
+  }, []);
+
   const startClient = useCallback(async (monaco: Monaco) => {
     monacoRef.current = monaco;
     if (clientRef.current.isReady()) return true;
@@ -127,6 +141,12 @@ export function useLspManager({
         providerDisposablesRef.current = [
           monaco.languages.registerCompletionItemProvider("biolang", clientRef.current.completionProvider()),
           monaco.languages.registerHoverProvider("biolang", clientRef.current.hoverProvider()),
+          monaco.languages.registerSignatureHelpProvider("biolang", clientRef.current.signatureHelpProvider()),
+          monaco.languages.registerDefinitionProvider("biolang", clientRef.current.definitionProvider()),
+          monaco.languages.registerReferenceProvider("biolang", clientRef.current.referenceProvider()),
+          monaco.languages.registerRenameProvider("biolang", clientRef.current.renameProvider()),
+          monaco.languages.registerDocumentFormattingEditProvider("biolang", clientRef.current.documentFormattingProvider()),
+          monaco.languages.registerCodeActionProvider("biolang", clientRef.current.codeActionProvider()),
         ];
         setState("ready");
         for (const file of openFiles) await openDocument(file.path, file.content);
@@ -147,14 +167,19 @@ export function useLspManager({
 
   const editorMounted: OnMount = useCallback(async (editor, monaco) => {
     editorRef.current = editor;
+    ensureBrowserIntelligence(monaco);
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Space, () => {
+      void editor.getAction("editor.action.triggerSuggest")?.run();
+    });
     await startClient(monaco);
-  }, [startClient]);
+  }, [ensureBrowserIntelligence, startClient]);
 
   const notebookCellMounted = useCallback(async (path: string, content: string, monaco: Monaco) => {
     notebookDocumentsRef.current.set(path, content);
+    ensureBrowserIntelligence(monaco);
     const started = await startClient(monaco);
     if (started) await openDocument(path, content);
-  }, [openDocument, startClient]);
+  }, [ensureBrowserIntelligence, openDocument, startClient]);
 
   const notebookCellChanged = useCallback((path: string, content: string) => {
     notebookDocumentsRef.current.set(path, content);
@@ -171,12 +196,14 @@ export function useLspManager({
     void startClient(monacoRef.current);
   }, [startClient, trusted]);
 
-  useEffect(() => () => {
-    lifecycleRef.current += 1;
-    for (const timer of changeTimersRef.current.values()) window.clearTimeout(timer);
-    changeTimersRef.current.clear();
-    disposeProviders();
-    clientRef.current.stop();
+  useEffect(() => {
+    return () => {
+      lifecycleRef.current += 1;
+      for (const timer of changeTimersRef.current.values()) window.clearTimeout(timer);
+      changeTimersRef.current.clear();
+      disposeProviders();
+      clientRef.current.stop();
+    };
   }, [disposeProviders]);
 
   return {

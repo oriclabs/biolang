@@ -1,4 +1,6 @@
 import type { Monaco } from "@monaco-editor/react";
+import { registerPipelineLens } from "./pipelineLens";
+import { describeLiteral, literalAt } from "./sequence";
 
 export const biolangKeywords = [
   "let",
@@ -90,11 +92,34 @@ export function registerBioLang(monaco: Monaco): void {
     },
   });
 
+  // Registered here rather than alongside the symbol providers because it is
+  // pure text analysis: it needs no workspace, no language server, and no
+  // package metadata, so it should work identically in Desktop and in the
+  // browser build.
+  monaco.languages.registerHoverProvider("biolang", {
+    provideHover(model, position) {
+      const line = model.getLineContent(position.lineNumber);
+      const literal = literalAt(line, position.column);
+      if (!literal) return null;
+      return {
+        range: new monaco.Range(
+          position.lineNumber,
+          literal.startColumn,
+          position.lineNumber,
+          literal.endColumn,
+        ),
+        contents: describeLiteral(literal).map((value) => ({ value })),
+      };
+    },
+  });
+
+  registerPipelineLens(monaco);
+
   monaco.editor.defineTheme("biolang-dark", {
     base: "vs-dark",
     inherit: true,
     rules: [
-      { token: "comment", foreground: "66717F", fontStyle: "italic" },
+      { token: "comment", foreground: "7C8797", fontStyle: "italic" },
       { token: "keyword", foreground: "C792EA" },
       { token: "type", foreground: "65C7B4" },
       { token: "type.identifier", foreground: "65C7B4", fontStyle: "bold" },
@@ -106,7 +131,7 @@ export function registerBioLang(monaco: Monaco): void {
     colors: {
       "editor.background": "#15181d",
       "editor.foreground": "#d6dae1",
-      "editorLineNumber.foreground": "#515966",
+      "editorLineNumber.foreground": "#7d8798",
       "editorLineNumber.activeForeground": "#aeb6c2",
       "editorCursor.foreground": "#62d0bd",
       "editor.selectionBackground": "#294f4b",
@@ -114,6 +139,38 @@ export function registerBioLang(monaco: Monaco): void {
       "editor.lineHighlightBackground": "#1a1e24",
       "editorIndentGuide.background1": "#292e36",
       "editorIndentGuide.activeBackground1": "#444c58",
+      "editorBracketHighlight.foreground1": "#9fb4cc",
+      "editorBracketHighlight.foreground2": "#b995d6",
+      "editorBracketHighlight.foreground3": "#8fcfc1",
+    },
+  });
+  monaco.editor.defineTheme("biolang-light", {
+    base: "vs",
+    inherit: true,
+    rules: [
+      { token: "comment", foreground: "68737D", fontStyle: "italic" },
+      { token: "keyword", foreground: "7651A8" },
+      { token: "type", foreground: "087F70" },
+      { token: "type.identifier", foreground: "087F70", fontStyle: "bold" },
+      { token: "string", foreground: "497A20" },
+      { token: "string.bio", foreground: "087F70" },
+      { token: "number", foreground: "A75A00" },
+      { token: "operator", foreground: "286DA8" },
+    ],
+    colors: {
+      "editor.background": "#ffffff",
+      "editor.foreground": "#27313a",
+      "editorLineNumber.foreground": "#6a7480",
+      "editorLineNumber.activeForeground": "#4c5964",
+      "editorCursor.foreground": "#087f70",
+      "editor.selectionBackground": "#bfe8df",
+      "editor.inactiveSelectionBackground": "#dcece8",
+      "editor.lineHighlightBackground": "#f4f7f8",
+      "editorIndentGuide.background1": "#e2e6e9",
+      "editorBracketHighlight.foreground1": "#43536b",
+      "editorBracketHighlight.foreground2": "#6f45a4",
+      "editorBracketHighlight.foreground3": "#12695a",
+      "editorIndentGuide.activeBackground1": "#aeb7be",
     },
   });
 }

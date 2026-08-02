@@ -1,7 +1,13 @@
 import { ArrowUpDown, ChevronLeft, ChevronRight, Copy, Dna, Download, FileSearch, Grid3X3, Search, Table2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { bridge } from "../bridge";
 import type { DataPreview } from "../types";
 import { previewExportFormats } from "../viewers";
+import { PreviewMetricsPanel } from "./PreviewMetrics";
+
+const StructureViewer = lazy(() => import("./StructureViewer").then((module) => ({
+  default: module.StructureViewer,
+})));
 
 function reverseComplement(sequence: string) {
   const complements: Record<string, string> = {
@@ -127,6 +133,7 @@ export function DataPreviewPane({
         <span>{(preview.totalBytes / 1024).toFixed(1)} KB</span>
         {preview.truncated && <b>Sampled preview</b>}
       </header>
+      {preview.metrics && <PreviewMetricsPanel metrics={preview.metrics} sampled={preview.truncated} />}
       <div className="preview-tools">
         {!!preview.columns.length && <label><Search size={13} /><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter preview" /></label>}
         {!!preview.columns.length && <span>{rows.length} rows shown</span>}
@@ -146,7 +153,7 @@ export function DataPreviewPane({
             <button type="button" className={sequenceMode === "forward" ? "active" : ""} onClick={() => setSequenceMode("forward")}>Forward</button>
             <button type="button" className={sequenceMode === "reverse" ? "active" : ""} onClick={() => setSequenceMode("reverse")}>Reverse complement</button>
           </div>
-          <button type="button" className="preview-icon-button" title="Copy sequence" aria-label="Copy sequence" onClick={() => void navigator.clipboard.writeText(sequence ?? "")}><Copy size={13} /></button>
+          <button type="button" className="preview-icon-button" title="Copy sequence" aria-label="Copy sequence" onClick={() => void bridge.copyText(sequence ?? "")}><Copy size={13} /></button>
         </>}
         <div className="preview-export">
           <select aria-label="Export format" value={exportFormat} onChange={(event) => setExportFormat(event.target.value)}>
@@ -183,7 +190,14 @@ export function DataPreviewPane({
         <strong>Newick tree</strong>
         <pre>{preview.content}</pre>
       </div>}
-      {preview.kind === "structure" && !!preview.rows.length && <StructurePreview preview={preview} />}
+      {preview.kind === "structure" && preview.content && (
+        <Suspense fallback={<div className="structure-viewer"><div className="structure-status">Loading molecular viewer...</div></div>}>
+          <StructureViewer
+            source={preview.content}
+            format={preview.provenance?.format ?? "pdb"}
+          />
+        </Suspense>
+      )}
       {!!preview.columns.length && <div className="preview-table-wrap">
         <table className="preview-table">
           <thead><tr>{preview.columns.map((column, index) => <th key={`${column}-${index}`}><button type="button" onClick={() => sort(index)}>{column}<ArrowUpDown size={11} /></button></th>)}</tr></thead>
@@ -209,36 +223,4 @@ export function DataPreviewPane({
       </footer>}
     </div>
   );
-}
-
-function StructurePreview({ preview }: { preview: DataPreview }) {
-  const points = useMemo(() => {
-    const xIndex = preview.columns.indexOf("X");
-    const yIndex = preview.columns.indexOf("Y");
-    if (xIndex < 0 || yIndex < 0) return [];
-    const raw = preview.rows.map((row) => ({
-      x: Number(row[xIndex]),
-      y: Number(row[yIndex]),
-      element: row[preview.columns.indexOf("Element")] || row[preview.columns.indexOf("Atom")] || "C",
-    })).filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
-    if (!raw.length) return [];
-    const minX = Math.min(...raw.map((point) => point.x));
-    const maxX = Math.max(...raw.map((point) => point.x));
-    const minY = Math.min(...raw.map((point) => point.y));
-    const maxY = Math.max(...raw.map((point) => point.y));
-    return raw.map((point) => ({
-      ...point,
-      left: 4 + ((point.x - minX) / Math.max(1, maxX - minX)) * 92,
-      top: 4 + ((point.y - minY) / Math.max(1, maxY - minY)) * 92,
-    }));
-  }, [preview]);
-  if (!points.length) return null;
-  return <div className="structure-preview" aria-label="Structure projection">
-    {points.slice(0, 500).map((point, index) => <i
-      key={index}
-      title={point.element}
-      data-element={point.element.toUpperCase().slice(0, 1)}
-      style={{ left: `${point.left}%`, top: `${point.top}%` }}
-    />)}
-  </div>;
 }

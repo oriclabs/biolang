@@ -17,6 +17,7 @@ import {
   jobLogText,
   latestJobForFile,
   normalizeJobLog,
+  stripCliProgress,
 } from "../src/jobLogs";
 import {
   convertImportOutput,
@@ -26,6 +27,9 @@ import {
 } from "../src/codeImport";
 import { snapshotDelta } from "../src/somerOutput";
 import { formatConsoleBytes } from "../src/console";
+import { buildOutputExport, outputExportOptions } from "../src/outputExport";
+import { availableOutputTabs, outputPlots, outputTables, semanticResultPairs } from "../src/outputModel";
+import { buildRunBundle, createZip } from "../src/runBundle";
 import type { Job } from "../src/types";
 import {
   topologicalWorkflowNodes,
@@ -35,6 +39,17 @@ import {
 } from "../src/workflows";
 
 test.use({ viewport: { width: 1440, height: 900 } });
+
+async function choosePythonImport(page: import("@playwright/test").Page) {
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("menuitem", { name: "Import Script from File..." }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({
+    name: "analysis.py",
+    mimeType: "text/x-python",
+    buffer: Buffer.from('sequence = "ATCGATCG"\nprint(gc_content(sequence))\n'),
+  });
+}
 
 test("job logs migrate, retain stream types, and select the latest file run", () => {
   const migrated = normalizeJobLog("legacy output\n");
@@ -73,6 +88,285 @@ test("remote output cursors continue across bounded SOMER snapshots", () => {
   expect(snapshotDelta("abcdef", 0, 3)).toEqual({ data: "def", cursor: 6 });
   expect(snapshotDelta("defghi", 3, 6)).toEqual({ data: "ghi", cursor: 9 });
   expect(snapshotDelta("tail", 100, 20)).toEqual({ data: "tail", cursor: 104 });
+});
+
+test("desktop removes duplicate CLI progress while retaining program output", () => {
+  expect(stripCliProgress("▶ running s1.bl\n")).toBe("");
+  expect(stripCliProgress("✓ done in 53.47ms\n")).toBe("");
+  expect(stripCliProgress("{\n  \"n_cells\": 265\n}\n")).toBe("{\n  \"n_cells\": 265\n}\n");
+});
+
+test("output export preserves logs and exposes rich formats when available", () => {
+  const chunks = [
+    { stream: "system" as const, text: "running analysis.bl\n" },
+    { stream: "stdout" as const, text: "{\"cells\":265}\n" },
+    { stream: "stdout" as const, text: '<svg xmlns="http://www.w3.org/2000/svg"></svg>\n' },
+  ];
+  const options = outputExportOptions(chunks).map((option) => option.format);
+  expect(options).toEqual(["log", "text", "svg", "html"]);
+  expect(buildOutputExport(chunks, "text")).not.toContain("running analysis.bl");
+  expect(buildOutputExport(chunks, "svg")).toContain("<svg");
+  expect(buildOutputExport(chunks, "html")).toContain("<!doctype html>");
+
+  const jsonOnly = [{ stream: "stdout" as const, text: "{\"cells\":265}\n" }];
+  expect(outputExportOptions(jsonOnly).map((option) => option.format)).toContain("json");
+  expect(buildOutputExport(jsonOnly, "json")).toContain('"cells": 265');
+});
+
+test("structured run results expose tables, plots, and contextual tabs", () => {
+  const job: Job = {
+    id: "structured",
+    file: "analysis.bl",
+    status: "succeeded",
+    startedAt: 10,
+    backend: "Local",
+    log: [{ stream: "stderr", text: "analysis.bl:3:5: invalid value\n" }],
+    results: [
+      {
+        kind: "table",
+        columns: ["gene", "count"],
+        rows: [[{ kind: "string", value: "TP53" }, { kind: "integer", value: 4 }]],
+        totalRows: 1,
+      },
+      {
+        kind: "plot",
+        format: "svg",
+        data: '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>',
+      },
+    ],
+    provenance: {
+      packages: { singlecell: "0.1.0" },
+      backend: "Local",
+      entrypoint: "analysis.bl",
+      parameters: {},
+    },
+  };
+  expect(outputTables(job)[0].rows).toEqual([["TP53", 4]]);
+  expect(outputPlots(job)).toHaveLength(1);
+  expect(availableOutputTabs(job)).toEqual([
+    "summary",
+    "text",
+    "tables",
+    "plots",
+    "errors",
+    "provenance",
+  ]);
+});
+
+test("run comparison matches stable result identities instead of emission order", () => {
+  const run = (id: string, results: Job["results"]): Job => ({
+    id,
+    file: "analysis.bl",
+    status: "succeeded",
+    startedAt: 1,
+    backend: "Local",
+    log: [],
+    results,
+  });
+  const pairs = semanticResultPairs(
+    run("a", [
+      { kind: "float", id: "qc-score", name: "QC score", value: 0.8 },
+      { kind: "integer", id: "cells", name: "Cells", value: 100 },
+    ]),
+    run("b", [
+      { kind: "integer", id: "cells", name: "Cells", value: 120 },
+      { kind: "float", id: "qc-score", name: "QC score", value: 0.9 },
+    ]),
+  );
+  expect(pairs.map((pair) => pair.key)).toEqual(["cells", "qc-score"]);
+  expect(pairs[0].left?.value).toBe(100);
+  expect(pairs[0].right?.value).toBe(120);
+});
+
+test("run bundles are valid ZIP containers with reproducibility files", () => {
+  const bareZip = createZip([{ name: "hello.txt", content: "hello" }], 0);
+  expect(Array.from(bareZip.slice(0, 4))).toEqual([0x50, 0x4b, 0x03, 0x04]);
+
+  const bundle = buildRunBundle({
+    id: "bundle",
+    file: "analysis.bl",
+    status: "succeeded",
+    startedAt: 1_700_000_000_000,
+    durationMs: 20,
+    backend: "Local",
+    log: [{ stream: "stdout", text: "complete\n" }],
+    provenance: {
+      biolangVersion: "1.0.0",
+      packages: {},
+      backend: "Local",
+      entrypoint: "analysis.bl",
+      sourceSnapshot: "let result = 42\n",
+      parameters: {},
+    },
+    artifacts: [{ name: "plots/qc.svg", size: 11, mediaType: "image/svg+xml" }],
+  }, new Map([["plots/qc.svg", new TextEncoder().encode("<svg></svg>")]]));
+  const archiveText = new TextDecoder().decode(bundle.bytes);
+  expect(bundle.name).toMatch(/analysis\.bl.*\.zip$/);
+  expect(archiveText).toContain("provenance.json");
+  expect(archiveText).toContain("environment.json");
+  expect(archiveText).toContain("checksums.sha256");
+  expect(archiveText).toContain("REPRODUCE.txt");
+  expect(archiveText).toContain("source.bl");
+  expect(archiveText).toContain("output.log");
+  expect(archiveText).toContain("artifacts/plots/qc.svg");
+  expect(archiveText).toContain("<svg></svg>");
+});
+
+test("detached Output opens recorded runs without loading the IDE shell", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("biolang.desktop.jobs", JSON.stringify([{
+      id: "detached-run",
+      file: "plots.bl",
+      displayName: "QC plots",
+      status: "succeeded",
+      startedAt: Date.now(),
+      durationMs: 40,
+      backend: "Local",
+      log: [{ stream: "stdout", text: "analysis complete\n" }],
+      results: [{
+        kind: "plot",
+        format: "svg",
+        data: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20"/></svg>',
+      }],
+    }]));
+  });
+  await page.goto("http://127.0.0.1:1420/?detachedOutput=1&jobId=detached-run");
+  await expect(page.locator(".detached-output-shell")).toBeVisible();
+  await expect(page.locator(".app-shell")).toHaveCount(0);
+  await expect(page.getByText("analysis complete")).toBeVisible();
+  await page.getByRole("button", { name: "plots" }).click();
+  await expect(page.locator(".detached-plots img")).toBeVisible();
+});
+
+test("Output moves independently and drags between bottom, right, and editor", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("biolang.desktop.experienceMode", JSON.stringify("expert"));
+    localStorage.setItem("biolang.desktop.outputLocation", JSON.stringify("bottom"));
+    localStorage.setItem("biolang.desktop.bottomVisible", JSON.stringify(false));
+  });
+  await page.goto("http://127.0.0.1:1420");
+
+  await page.getByRole("button", { name: "View", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Output at Right" }).click();
+  await expect(page.locator(".output-side-panel")).toHaveCount(0);
+  await page.getByRole("main").getByRole("button", { name: "Open Browser Workspace" }).click();
+  await expect(page.locator(".output-side-panel")).toBeVisible();
+  await expect(page.locator(".bottom-panel")).toHaveCount(0);
+  await expect(page.getByLabel("More Output actions")).toBeVisible();
+
+  await expect(page.locator('.tree-row[data-path="analysis.bl"]')).toBeVisible();
+  await page.locator('.tree-row[data-path="analysis.bl"]').click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Run", exact: true }).click();
+  await expect(page.locator(".output-view")).toContainText("Process completed", { timeout: 20_000 });
+  await page.locator(".editor-tab", { hasText: "analysis.bl" }).click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "Run", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Run", exact: true }).click();
+  await page.getByRole("menuitem", { name: "BioLang Console Ctrl+Shift+`", exact: true }).click();
+  await expect(page.locator(".console-pane")).toBeVisible();
+  await expect(page.locator(".output-side-panel")).toBeVisible();
+  await expect(page.getByLabel("Dock shared panel right")).toHaveCount(0);
+  await expect(page.locator(".workbench")).not.toHaveClass(/panel-dock-right/);
+
+  const dragOutputTo = async (label: "editor" | "bottom") => {
+    const handle = await page.getByLabel("Drag Output to dock").boundingBox();
+    expect(handle).not.toBeNull();
+    await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(handle!.x - 12, handle!.y + handle!.height / 2, { steps: 3 });
+    const target = page.getByLabel(`Dock Output in ${label}`);
+    await expect(target).toBeVisible();
+    const bounds = await target.boundingBox();
+    expect(bounds).not.toBeNull();
+    await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2, { steps: 6 });
+    await expect(target).toHaveClass(/active/);
+    await page.mouse.up();
+  };
+
+    await dragOutputTo("editor");
+    await expect(page.locator(".output-editor-tab")).toBeVisible();
+    await expect(page.locator(".output-pane-editor")).toBeVisible();
+    await expect(page.locator(".console-pane")).toBeVisible();
+
+    await page.locator(".editor-tab", { hasText: "analysis.bl" }).getByRole("button", { name: "analysis.bl", exact: true }).click();
+    await expect(page.locator(".output-editor-tab")).toBeVisible();
+    await expect(page.locator(".output-editor-tab")).not.toHaveClass(/active/);
+    await expect(page.locator(".output-pane-editor")).toHaveCount(0);
+    await page.locator(".output-editor-tab").getByRole("button", { name: "Output", exact: true }).click();
+    await expect(page.locator(".output-editor-tab")).toHaveClass(/active/);
+    await expect(page.locator(".output-pane-editor")).toBeVisible();
+
+    await dragOutputTo("bottom");
+    await expect(page.locator(".bottom-panel")).toBeVisible();
+  await expect(page.locator(".output-side-panel")).toHaveCount(0);
+});
+
+test("View menu controls persistent bottom-panel tabs", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("biolang.desktop.experienceMode", JSON.stringify("expert"));
+    localStorage.setItem("biolang.desktop.outputLocation", JSON.stringify("bottom"));
+    localStorage.setItem("biolang.desktop.bottomVisible", JSON.stringify(true));
+  });
+  await page.goto("http://127.0.0.1:1420");
+  await page.getByRole("main").getByRole("button", { name: "Open Browser Workspace" }).click();
+
+  const panelTabs = page.locator(".panel-tabs");
+  await panelTabs.getByRole("button", { name: "problems", exact: true }).click();
+  await page.getByRole("button", { name: "View", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Problems Tab", exact: true }).click();
+  await expect(panelTabs.getByRole("button", { name: "problems", exact: true })).toHaveCount(0);
+  await expect(panelTabs.getByRole("button", { name: "output", exact: true })).toHaveClass(/active/);
+
+  await page.getByRole("button", { name: "View", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Console Tab", exact: true }).click();
+  await expect(panelTabs.getByRole("button", { name: "console", exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".panel-tabs").getByRole("button", { name: "console", exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "View", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Console Tab", exact: true }).click();
+  await expect(page.locator(".panel-tabs").getByRole("button", { name: "console", exact: true })).toBeVisible();
+});
+
+test("welcome hints stay compact and Help removes irrelevant editor chrome", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await page.addInitScript(() => {
+    localStorage.setItem("biolang.desktop.experienceMode", JSON.stringify("expert"));
+    localStorage.setItem("biolang.desktop.bottomVisible", JSON.stringify(true));
+  });
+  await page.goto("http://127.0.0.1:1420");
+
+  await expect(page.locator(".bottom-panel")).toHaveCount(0);
+  await expect(page.getByLabel("Run active BioLang file")).toHaveCount(0);
+  await expect(page.locator(".welcome-comparison")).not.toHaveAttribute("open", "");
+  await expect(page.getByRole("button", { name: "View", exact: true })).toBeVisible();
+
+  await page.getByRole("main").getByRole("button", { name: "Open Browser Workspace" }).click();
+  await page.locator('.tree-row[data-path="analysis.bl"]').click();
+  await expect(page.getByLabel("Run active BioLang file")).toBeVisible();
+  await page.getByRole("button", { name: "output", exact: true }).click();
+  await page.locator(".activity-bar").getByLabel("Help Center").click();
+
+  await expect(page.getByLabel("Run active BioLang file")).toHaveCount(0);
+  await expect(page.locator(".bottom-panel")).toBeHidden();
+  await expect(page.locator(".help-tab")).toBeVisible();
+});
+
+test("plot output exposes zoom and scientific export controls", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("main").getByRole("button", { name: "Open Browser Workspace" }).click();
+  await page.locator('.tree-row[data-path="analysis.bl"]').click();
+  const editor = page.locator(".monaco-editor").first();
+  await expect(editor).toBeVisible({ timeout: 20_000 });
+  await editor.click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.insertText('phylo_tree("(TP53:1,BRCA1:1);")');
+  await page.getByLabel("Run active BioLang file").click();
+  await expect(page.getByRole("img", { name: "BioLang plot output" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByLabel("Zoom in")).toBeVisible();
+  await expect(page.getByRole("button", { name: "SVG", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "PNG", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Print or save plot as PDF")).toBeVisible();
 });
 
 test("console memory labels remain compact and readable", () => {
@@ -302,9 +596,9 @@ test("workflow DAGs sort dependencies and generate all incoming branches", () =>
 
 test("core desktop workflow remains inside the workbench", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await expect(page.getByText("No folder open", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "BioLang Desktop" })).toBeVisible();
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await expect(page.getByText("No workspace open", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "BioLang Studio Web" })).toBeVisible();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await expect(page.getByText("analysis.bl", { exact: true }).first()).toBeVisible();
   await page.getByText("analysis.bl", { exact: true }).first().click();
   await expect(page.locator(".editor-tab")).toHaveCount(1);
@@ -321,8 +615,7 @@ test("core desktop workflow remains inside the workbench", async ({ page }) => {
   await expect(page.getByText("uniprot_entry(accession) → Record", { exact: true })).toBeVisible();
 
   await page.getByLabel("Run active BioLang file").click();
-  await expect(page.locator(".output-view").locator("..").getByRole("status")).toContainText("Running on Local");
-  await expect(page.getByText("GC content: 0.4783", { exact: false })).toBeVisible({ timeout: 3_000 });
+  await expect(page.locator(".output-view").getByText("GC content: 0.4090909090909091", { exact: false })).toBeVisible({ timeout: 3_000 });
   await expect(page.getByText("Process completed", { exact: false })).toBeVisible({ timeout: 3_000 });
   await expect(page.locator(".output-run-content").getByRole("status")).toHaveCount(0);
   await page.locator(".panel-tabs").getByRole("button", { name: "jobs" }).click();
@@ -331,16 +624,16 @@ test("core desktop workflow remains inside the workbench", async ({ page }) => {
 
   await page.getByLabel("Packages").click();
   await expect(page.getByText("oric", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Install dependencies" }).last()).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Install dependencies" }).last()).toBeDisabled();
 
   await page.keyboard.press("Control+Shift+P");
-  await expect(page.getByPlaceholder("Type a command")).toBeVisible();
+  await expect(page.getByPlaceholder("Search files, > for commands, @ for symbols")).toBeVisible();
   await expect(page.getByText("BioLang: Run Active File", { exact: true })).toBeVisible();
 });
 
 test("Explorer expands and collapses the complete workspace tree", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await expect(page.getByText("sequences.fasta", { exact: true })).toBeVisible();
   await page.getByLabel("Collapse all folders").click();
@@ -355,7 +648,7 @@ test("Explorer expands and collapses the complete workspace tree", async ({ page
   await expect(page.getByText("sequences.fasta", { exact: true })).toBeHidden();
 
   await page.keyboard.press("Control+Shift+P");
-  await page.getByPlaceholder("Type a command").fill("expand all folders");
+  await page.getByPlaceholder("Search files, > for commands, @ for symbols").fill(">expand all folders");
   await page.getByText("Explorer: Expand All Folders", { exact: true }).click();
   await expect(page.getByText("sequences.fasta", { exact: true })).toBeVisible();
 
@@ -367,32 +660,31 @@ test("Explorer expands and collapses the complete workspace tree", async ({ page
 
 test("output follows the active file and preserves stream coloring in job history", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.locator('.tree-row[data-path="analysis.bl"]').click();
   await page.getByLabel("Run active BioLang file").click();
   await expect(page.locator(".output-view")).toContainText("Process completed", { timeout: 3_000 });
-  await expect(page.locator(".output-run-view > header")).toContainText("analysis.bl");
-  await expect(page.locator(".output-view .job-log-chunk.stderr")).toContainText("running analysis.bl");
-  await expect(page.locator(".output-view .job-log-chunk.stderr")).toHaveCSS("color", "rgb(240, 138, 138)");
-  await expect(page.locator(".output-view .job-log-chunk.stdout")).toContainText("GC content: 0.4783");
+  await expect(page.locator(".output-pane-toolbar")).toContainText("analysis.bl");
+  await expect(page.locator(".output-view .job-log-chunk.system")).toContainText("running analysis.bl");
+  await expect(page.locator(".output-view .job-log-chunk.stdout")).toContainText("GC content: 0.4090909090909091");
 
   await page.locator('.tree-row[data-path="pipelines/qc.bl"]').click();
   await page.getByLabel("Run active BioLang file").click();
   await expect(page.locator(".output-view")).toContainText("Process completed", { timeout: 3_000 });
-  await expect(page.locator(".output-run-view > header")).toContainText("qc.bl");
-  await expect(page.locator(".output-view")).toContainText("running pipelines/qc.bl");
+  await expect(page.locator(".output-pane-toolbar")).toContainText("qc.bl");
+  await expect(page.locator(".output-view")).toContainText("running qc.bl");
   await expect(page.locator(".output-view")).not.toContainText("running analysis.bl");
 
   await page.locator('.tree-row[data-path="analysis.bl"]').click();
-  await expect(page.locator(".output-run-view > header")).toContainText("analysis.bl");
+  await expect(page.locator(".output-pane-toolbar")).toContainText("analysis.bl");
   await expect(page.locator(".output-view")).toContainText("running analysis.bl");
-  await expect(page.locator(".output-view")).not.toContainText("running pipelines/qc.bl");
+  await expect(page.locator(".output-view")).not.toContainText("running qc.bl");
 
   await page.locator(".panel-tabs").getByRole("button", { name: "jobs" }).click();
   await page.getByLabel("View logs for analysis.bl").click();
-  await expect(page.locator(".job-log-view")).toContainText("GC content: 0.4783");
-  await expect(page.locator(".job-log-view .job-log-chunk.stderr")).toHaveCSS("color", "rgb(240, 138, 138)");
+  await expect(page.locator(".job-log-view")).toContainText("GC content: 0.4090909090909091");
+  await expect(page.locator(".job-log-view .job-log-chunk.system")).toContainText("running analysis.bl");
 });
 
 test("centered navigation switches between persisted learner and expert modes", async ({ page }) => {
@@ -420,8 +712,26 @@ test("centered navigation switches between persisted learner and expert modes", 
 });
 
 test("external database browser runs examples through the BioLang backend", async ({ page }) => {
+  await page.route("https://eutils.ncbi.nlm.nih.gov/**", async (route) => {
+    const url = new URL(route.request().url());
+    await route.fulfill({
+      contentType: "application/json",
+      body: url.pathname.endsWith("/esearch.fcgi")
+        ? JSON.stringify({ esearchresult: { idlist: ["672"] } })
+        : JSON.stringify({
+            result: {
+              "672": {
+                name: "BRCA1",
+                description: "BRCA1 DNA repair associated",
+                organism: { scientificname: "Homo sapiens" },
+                chromosome: "17",
+              },
+            },
+          }),
+    });
+  });
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByLabel("Bio APIs").click();
 
   await expect(page.getByRole("group", { name: "API browser scope" })).toBeVisible();
@@ -433,6 +743,7 @@ test("external database browser runs examples through the BioLang backend", asyn
   await expect(page.locator(".panel-tabs").getByRole("button", { name: "jobs" })).toHaveClass(/active/);
   await expect(page.locator(".job-log-view")).toContainText("API test/ncbi_gene");
   await expect(page.locator(".job-log-view")).toContainText("Process completed", { timeout: 3_000 });
+  await expect(page.locator(".job-log-view")).toContainText("BRCA1");
 
   await page.getByRole("button", { name: "All builtins" }).click();
   await page.getByPlaceholder("Search functions").fill("gc_content");
@@ -441,9 +752,9 @@ test("external database browser runs examples through the BioLang backend", asyn
 
 test("code import previews validation and saves converted BioLang", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Import Script from File..." }).click();
+  await choosePythonImport(page);
 
   await expect(page.getByRole("region", { name: "Import code" })).toBeVisible();
   await expect(page.getByText("Syntax valid", { exact: true })).toBeVisible();
@@ -451,21 +762,25 @@ test("code import previews validation and saves converted BioLang", async ({ pag
   await expect(page.locator(".import-review-editors > section").nth(0).locator(".monaco-editor")).toContainText("gc_content");
   await expect(page.locator(".import-review-editors > section").nth(1).locator(".monaco-editor")).toContainText("gc_content");
   await page.getByRole("group", { name: "Import output format" }).getByRole("button", { name: "Notebook" }).click();
-  await expect(page.getByLabel("Output file")).toHaveValue("converted-analysis.bln");
+  await expect(page.getByLabel("Output file")).toHaveValue("analysis.bln");
   await expect(page.getByText("Validation outdated", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Revalidate", exact: true }).last().click();
   await expect(page.getByText("Syntax valid", { exact: true })).toBeVisible();
   await page.getByLabel("Import destination folder").selectOption("reports");
   await page.getByRole("button", { name: "Save and Open" }).click();
 
-  await expect(page.locator(".editor-tab", { hasText: "converted-analysis.bln" })).toBeVisible();
+  await expect(page.locator(".editor-tab", { hasText: "analysis.bln" })).toBeVisible();
   await expect(page.locator(".notebook-pane")).toBeVisible();
   await expect(page.getByText("Imported and validated analysis.py", { exact: true })).toBeVisible();
 });
 
 test("URL script import downloads into the same validation review", async ({ page }) => {
+  await page.route("https://example.org/remote-analysis.py", (route) => route.fulfill({
+    contentType: "text/x-python",
+    body: 'sequence = "ATCGATCG"\nprint(gc_content(sequence))\n',
+  }));
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Import Script from URL..." }).click();
 
@@ -481,30 +796,30 @@ test("URL script import downloads into the same validation review", async ({ pag
 
 test("edited imports require revalidation and can be saved only as reviewed drafts", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Import Script from File..." }).click();
+  await choosePythonImport(page);
 
   const converted = page.getByLabel("Converted BioLang preview");
   await converted.focus();
   await converted.press("Control+A");
-  await page.keyboard.type("INVALID");
+  await page.keyboard.type("let =");
   await expect(page.getByText("Validation outdated", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Revalidate", exact: true }).last().click();
-  await expect(page.getByText("Unexpected token INVALID", { exact: true })).toBeVisible();
+  await expect(page.locator(".import-diagnostics")).toContainText("expected identifier");
   await expect(page.getByRole("button", { name: "Save Draft" })).toBeVisible();
 
   await page.getByLabel("Output file").fill("review-needed.bl");
   await page.getByLabel("Import destination folder").selectOption("reports");
   await page.getByRole("button", { name: "Save Draft" }).click();
   await expect(page.locator(".editor-tab", { hasText: "review-needed.bl" })).toBeVisible();
-  await expect(page.locator(".monaco-editor")).toContainText("INVALID");
+  await expect(page.locator(".monaco-editor")).toContainText("let =");
   await expect(page.getByText("Imported analysis.py as a draft", { exact: true })).toBeVisible();
 });
 
 test("Save As creates a workspace copy and moves the active editor", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByText("analysis.bl", { exact: true }).first().click();
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 20_000 });
 
@@ -520,7 +835,7 @@ test("Save As creates a workspace copy and moves the active editor", async ({ pa
 test("compact desktop layout has no horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 700 });
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByText("analysis.bl", { exact: true }).first().click();
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 20_000 });
   const dimensions = await page.evaluate(() => ({
@@ -535,7 +850,7 @@ test("compact desktop layout has no horizontal overflow", async ({ page }) => {
 
 test("Explorer creates, renames, and deletes a file", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.getByLabel("New file").click();
   await expect(page.locator(".editor-tab", { hasText: "Untitled-1.bl" })).toBeVisible();
@@ -559,9 +874,25 @@ test("Explorer creates, renames, and deletes a file", async ({ page }) => {
   await expect(page.locator(".tree-row", { hasText: "renamed.bl" })).toHaveCount(0);
 });
 
+test("untitled BioLang buffers run without being saved", async ({ page }) => {
+  await page.goto("http://127.0.0.1:1420");
+  await page.locator(".workspace-welcome").getByRole("button", { name: /Open (Folder|Browser Workspace)/ }).click();
+
+  await page.getByLabel("New file").click();
+  await expect(page.locator(".editor-tab", { hasText: "Untitled-1.bl" })).toBeVisible();
+  await page.locator(".monaco-editor").click();
+  await page.keyboard.insertText('println("untitled works")');
+  await expect(page.getByLabel("Run active BioLang file")).toBeEnabled();
+  await page.getByLabel("Run active BioLang file").click();
+
+  await expect(page.locator(".output-view")).toContainText("untitled works", { timeout: 3_000 });
+  await expect(page.locator(".output-view")).toContainText("Process completed", { timeout: 3_000 });
+  await expect(page.locator('.tree-row[data-path^="__untitled__"]')).toHaveCount(0);
+});
+
 test("renaming a demo directory rebases all descendant paths", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.locator('.tree-row[data-path="data"]').click({ button: "right" });
   await page.getByRole("menuitem", { name: "Rename..." }).click();
@@ -580,11 +911,15 @@ test("renaming a demo directory rebases all descendant paths", async ({ page }) 
 
 test("workspace content search opens the matching source location", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.getByLabel("Search").click();
   await page.getByPlaceholder("Search file contents").fill("gc_content");
-  await expect(page.getByText("analysis.bl:4:10", { exact: true })).toBeVisible();
+  // Hits group under a per-file heading, so each row carries only line:column.
+  const analysisGroup = page.locator(".search-file-group")
+    .filter({ has: page.locator(".search-file-heading > span", { hasText: /^analysis\.bl$/ }) });
+  await expect(analysisGroup.locator(".search-file-heading")).toBeVisible();
+  await expect(analysisGroup.getByText("4:10", { exact: true })).toBeVisible();
   await expect(page.locator(".content-hit").first()).toContainText("let gc = gc_content(sequence)");
   await page.locator(".content-hit").first().click();
 
@@ -594,7 +929,7 @@ test("workspace content search opens the matching source location", async ({ pag
 
 test("bio and tabular files open in bounded interactive previews", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.getByText("sequences.fasta", { exact: true }).click();
   await expect(page.locator(".preview-kind")).toHaveText("FASTA");
@@ -620,7 +955,7 @@ test("bio and tabular files open in bounded interactive previews", async ({ page
 
 test("extended biological viewers expose provenance and visualization modes", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.getByText("genes.gff3", { exact: true }).click();
   await expect(page.locator(".preview-kind")).toHaveText("GFF");
@@ -633,7 +968,20 @@ test("extended biological viewers expose provenance and visualization modes", as
 
   await page.getByText("helix.pdb", { exact: true }).click();
   await expect(page.locator(".preview-kind")).toHaveText("STRUCTURE");
-  await expect(page.getByLabel("Structure projection")).toBeVisible();
+  await expect(page.getByLabel("Interactive molecular structure")).toBeVisible();
+  await page.getByLabel("Structure representation").selectOption("ball+stick");
+  await expect(page.locator(".structure-stage canvas")).toHaveCount(1);
+  await expect.poll(() => page.locator(".structure-stage canvas").evaluate((canvas: HTMLCanvasElement) => {
+    const context = canvas.getContext("webgl2") || canvas.getContext("webgl");
+    if (!context) return 0;
+    const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+    context.readPixels(0, 0, canvas.width, canvas.height, context.RGBA, context.UNSIGNED_BYTE, pixels);
+    let colored = 0;
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index] !== 16 || pixels[index + 1] !== 21 || pixels[index + 2] !== 25) colored += 1;
+    }
+    return colored;
+  }), { timeout: 10_000 }).toBeGreaterThan(100);
 
   await page.getByText("species.nwk", { exact: true }).click();
   await expect(page.getByText("Newick tree", { exact: true })).toBeVisible();
@@ -642,7 +990,7 @@ test("extended biological viewers expose provenance and visualization modes", as
 
 test("literate notebooks edit and run through the workbench", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByText("origin-analysis.bl.md", { exact: true }).click();
 
   await expect(page.locator(".notebook-pane")).toBeVisible();
@@ -651,8 +999,8 @@ test("literate notebooks edit and run through the workbench", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Origin candidate analysis" })).toBeVisible();
   await page.getByRole("button", { name: "Run all" }).click();
   await expect(page.locator(".notebook-cell-output")).toHaveCount(2);
-  await expect(page.locator(".notebook-cell").nth(0).locator(".notebook-cell-output")).toContainText("GC content: 0.4783");
-  await expect(page.locator(".notebook-cell").nth(1).locator(".notebook-cell-output")).toContainText("ACGT: 2");
+  await expect(page.locator(".notebook-cell").nth(0).locator(".notebook-cell-output")).toContainText("GC content: 0.4090909090909091");
+  await expect(page.locator(".notebook-cell").nth(1).locator(".notebook-cell-output")).toContainText("ACGT | 2");
   await expect(page.locator(".bottom-panel")).toContainText("Process completed");
 
   await page.getByRole("button", { name: "Run code cell 2" }).click();
@@ -664,7 +1012,7 @@ test("literate notebooks edit and run through the workbench", async ({ page }) =
   await page.getByRole("button", { name: "Run code cell 1" }).click();
   await expect(page.locator(".notebook-cell").nth(0).locator(".notebook-cell-output")).toContainText("Output hidden by directive");
 
-  await page.getByLabel("Source").click();
+  await page.getByLabel("Source", { exact: true }).click();
   await expect(page.locator(".notebook-source .monaco-editor")).toBeVisible();
   await page.getByLabel("Notebook").click();
   await expect(page.locator(".notebook-cell .monaco-editor")).toHaveCount(2);
@@ -672,18 +1020,17 @@ test("literate notebooks edit and run through the workbench", async ({ page }) =
 
 test("source pipelines and typed workflows have dedicated visual surfaces", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.getByText("qc.bl", { exact: true }).click();
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator('.tree-row[data-path="analysis.bl"] .git-status')).toHaveText("M");
   await page.getByRole("button", { name: "Pipeline", exact: true }).click();
   await expect(page.locator(".pipeline-viewer")).toBeVisible();
   await expect(page.locator(".pipeline-viewer")).toContainText("read_fastq");
   await expect(page.locator(".pipeline-viewer")).toContainText("filter");
   await expect(page.locator(".pipeline-viewer")).toContainText("take");
   await expect(page.locator(".pipeline-viewer")).toContainText("each");
-  await page.getByRole("button", { name: "Source" }).click();
+  await page.getByRole("button", { name: "Source", exact: true }).click();
   await expect(page.locator(".monaco-editor")).toBeVisible();
 
   await page.getByText("sequence-qc.blflow", { exact: true }).click();
@@ -697,13 +1044,15 @@ test("source pipelines and typed workflows have dedicated visual surfaces", asyn
 
 test("Explorer duplicates a file and exposes native file actions", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.locator('.tree-row[data-path="analysis.bl"]').click({ button: "right" });
   await expect(page.getByRole("menu", { name: "analysis.bl actions" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Open", exact: true })).toBeFocused();
   await expect(page.getByRole("menuitem", { name: "Copy Relative Path" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Reveal in File Manager" })).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: "Run", exact: true })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: "Rename..." })).toBeFocused();
   await page.getByRole("menuitem", { name: "Duplicate" }).click();
@@ -728,7 +1077,7 @@ test("Explorer duplicates a file and exposes native file actions", async ({ page
 
 test("context menus stay in the viewport and editor tabs support close actions", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   const analysis = page.locator('.tree-row[data-path="analysis.bl"]');
   await analysis.evaluate((element) => element.dispatchEvent(new MouseEvent("contextmenu", {
     bubbles: true,
@@ -755,12 +1104,13 @@ test("workbench controls expose symbols, shortcuts, output state, and resizable 
   await page.keyboard.press("Control+`");
   await expect(page.locator(".toast")).toContainText("Open a workspace");
 
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.locator('.tree-row[data-path="analysis.bl"]').click();
   await expect(page.locator(".outline-item", { hasText: "sequence" })).toBeVisible();
 
   await page.keyboard.press("Control+Shift+O");
-  await expect(page.locator(".command-palette")).toContainText("Symbol: sequence");
+  await expect(page.locator(".command-palette")).toContainText("sequence");
+  await expect(page.locator(".command-palette")).toContainText("Binding · line 2");
   await page.keyboard.press("Escape");
 
   await page.keyboard.press("Control+,");
@@ -781,11 +1131,19 @@ test("workbench controls expose symbols, shortcuts, output state, and resizable 
 
   await page.getByLabel("Toggle bottom panel").click();
   await page.getByRole("button", { name: "output", exact: true }).click();
-  await page.getByLabel("Clear output").click();
-  await expect(page.locator(".output-view")).toHaveText("No output yet.");
+  await page.getByLabel("Run active BioLang file").click();
+  await expect(page.locator(".output-view")).toContainText("Process completed", { timeout: 3_000 });
+  await page.getByLabel("More Output actions").click();
+  await page.locator(".output-compact-menu").getByRole("button", { name: "Clear output", exact: true }).click();
+  await expect(page.locator(".output-view")).toHaveText("This run produced no output.");
   await page.getByLabel("Maximize panel").click();
   await expect(page.locator(".workbench")).toHaveClass(/panel-maximized/);
+  await expect(page.locator(".editor-workspace")).toHaveCSS("visibility", "hidden");
   await page.getByLabel("Restore panel").click();
+  await expect(page.locator(".workbench")).not.toHaveClass(/panel-maximized/);
+  await page.getByLabel("Maximize panel").click();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".workbench")).not.toHaveClass(/panel-maximized/);
 
   await page.getByRole("button", { name: "Help", exact: true }).click();
   await page.getByRole("menuitem", { name: "Keyboard Shortcuts" }).click();
@@ -794,9 +1152,31 @@ test("workbench controls expose symbols, shortcuts, output state, and resizable 
   await expect(page.locator(".shortcuts-dialog")).toHaveCount(0);
 });
 
+test("learner Output is compact, bottom dock has one close action, and data previews reclaim empty output space", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("biolang.desktop.experienceMode", JSON.stringify("learner"));
+  });
+  await page.goto("http://127.0.0.1:1420");
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
+  await page.locator('.tree-row[data-path="analysis.bl"]').click();
+  await page.getByLabel("Run active BioLang file").click();
+  await expect(page.locator(".output-pane-bottom")).toBeVisible();
+  await expect(page.locator(".output-pane-bottom").getByLabel("More Output actions")).toBeVisible();
+  await expect(page.locator(".output-pane-bottom").getByLabel("Pin run")).toBeHidden();
+  await page.locator(".output-pane-bottom").getByLabel("More Output actions").click();
+  await expect(page.locator(".output-pane-bottom").getByRole("button", { name: "Clear output" })).toBeVisible();
+  await expect(page.locator(".output-pane-bottom").getByRole("button", { name: "Export reproducibility bundle" })).toBeVisible();
+  await expect(page.getByLabel("Close panel")).toHaveCount(1);
+  await expect(page.locator(".output-pane-bottom").getByLabel("Close Output")).toHaveCount(0);
+
+  await page.getByText("sequences.fasta", { exact: true }).click();
+  await expect(page.locator(".preview-kind")).toHaveText("FASTA");
+  await expect(page.locator(".bottom-panel")).toBeHidden();
+});
+
 test("recent workspaces reopen without a folder picker", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Close Folder", exact: true }).click();
@@ -809,21 +1189,39 @@ test("recent workspaces reopen without a folder picker", async ({ page }) => {
 
 test("terminal panel manages multiple persistent sessions", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
 
   await page.getByRole("button", { name: "Run", exact: true }).click();
-  await page.getByRole("menuitem", { name: "New Terminal Ctrl+`", exact: true }).click();
-  await expect(page.locator(".terminal-tabs")).toContainText("Terminal 1");
-  await page.getByLabel("New terminal").click();
-  await expect(page.locator(".terminal-tabs")).toContainText("Terminal 2");
-  await expect(page.locator(".terminal-session")).toHaveCount(2);
-  await page.getByLabel("Close Terminal 2").click();
-  await expect(page.locator(".terminal-session")).toHaveCount(1);
+  await expect(page.getByRole("menuitem", { name: "New Terminal Ctrl+`", exact: true })).toBeDisabled();
+});
+
+test("terminal owns its scrollbar without continuously changing layout", async ({ page }) => {
+  await page.goto("http://127.0.0.1:1420");
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
+  await page.getByLabel("Toggle bottom panel").click();
+  await page.locator(".panel-tabs").getByRole("button", { name: "terminal", exact: true }).click();
+
+  const panelContent = page.locator(".terminal-panel-content");
+  const terminal = page.locator(".terminal-host");
+  await expect(terminal).toBeVisible();
+  await expect(page.locator(".terminal-wrap")).toHaveAttribute("data-state", "ready");
+  await expect(panelContent).toHaveCSS("overflow", "hidden");
+
+  const dimensions = await terminal.evaluate(async (element) => {
+    const samples = new Set<string>();
+    for (let frame = 0; frame < 30; frame += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const bounds = element.getBoundingClientRect();
+      samples.add(`${bounds.width}:${bounds.height}`);
+    }
+    return [...samples];
+  });
+  expect(dimensions).toHaveLength(1);
 });
 
 test("BioLang Console retains session objects and exposes environment memory", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: /Open (Folder|Browser Workspace)/ }).click();
 
   await page.getByRole("button", { name: "Run", exact: true }).click();
   await page.getByRole("menuitem", { name: "BioLang Console Ctrl+Shift+`", exact: true }).click();
@@ -889,7 +1287,7 @@ test("Help navigation follows internal links and resets stale searches", async (
 
 test("Help examples open source and insert into an active BioLang file", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByText("analysis.bl", { exact: true }).first().click();
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 20_000 });
 
@@ -944,6 +1342,10 @@ test("SOMER profile runs the active file on a remote backend", async ({ page }) 
       });
       return;
     }
+    if (url.pathname.endsWith("/0196a649-f013-7a83-9118-a194796c3321/artifacts")) {
+      await route.fulfill({ json: { artifacts: [] } });
+      return;
+    }
     if (url.pathname.includes("0196a649-f013-7a83-9118-a194796c3321")) {
       await route.fulfill({
         json: {
@@ -960,23 +1362,29 @@ test("SOMER profile runs the active file on a remote backend", async ({ page }) 
   });
 
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByText("analysis.bl", { exact: true }).first().click();
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 20_000 });
 
   await page.locator(".activity-bar").getByLabel("Settings").click();
+  await page.getByRole("tab", { name: "Remote" }).click();
   await page.getByLabel("Bearer token").fill("test-token");
   await page.getByRole("button", { name: "Test connection" }).click();
   await expect(page.getByText("SOMER 0.1.0 as Developer")).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
-  await page.getByLabel("Execution target").selectOption("somer-lab");
+  await page.getByLabel("Execution target for Run").selectOption("somer-lab");
   await page.getByLabel("Run active BioLang file").click();
+  // First remote run confirms the target.
+  const confirm = page.getByRole("alertdialog");
+  if (await confirm.isVisible().catch(() => false)) {
+    await confirm.getByRole("button", { name: /Run on/i }).click();
+  }
   await expect(page.getByText("Remote GC content: 0.4783", { exact: false })).toBeVisible();
-  await expect(page.getByText("Remote job succeeded on SOMER Lab.", { exact: false })).toBeVisible();
   await page.locator(".panel-tabs").getByRole("button", { name: "jobs" }).click();
   await page.getByLabel("View logs for analysis.bl").click();
   await expect(page.locator(".job-log-view")).toContainText("Remote GC content: 0.4783");
+  await expect(page.locator(".job-log-view")).toContainText("Remote job succeeded on SOMER Lab.");
 });
 
 test("SOMER cancellation uses the stable target id after a profile rename", async ({ page }) => {
@@ -1007,18 +1415,24 @@ test("SOMER cancellation uses the stable target id after a profile rename", asyn
   });
 
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByText("analysis.bl", { exact: true }).first().click();
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 20_000 });
   await page.locator(".activity-bar").getByLabel("Settings").click();
+  await page.getByRole("tab", { name: "Remote" }).click();
   await page.getByLabel("Bearer token").fill("test-token");
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByLabel("Execution target").selectOption("somer-lab");
+  await page.getByLabel("Execution target for Run").selectOption("somer-lab");
   await page.getByLabel("Run active BioLang file").click();
+  const confirm = page.getByRole("alertdialog");
+  if (await confirm.isVisible().catch(() => false)) {
+    await confirm.getByRole("button", { name: /Run on/i }).click();
+  }
   await expect(page.getByText("Submitted analysis.bl to SOMER Lab.", { exact: false })).toBeVisible();
 
   await page.locator(".activity-bar").getByLabel("Settings").click();
-  await page.getByLabel("Name").fill("Renamed SOMER");
+  await page.getByRole("tab", { name: "Remote" }).click();
+  await page.locator(".settings-dialog").getByRole("textbox", { name: "Name" }).fill("Renamed SOMER");
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByLabel("Stop running job").click();
   await expect.poll(() => cancelled).toBe(true);
@@ -1045,14 +1459,19 @@ test("closing a workspace aborts SOMER polling and leaves the job disconnected",
   });
 
   await page.goto("http://127.0.0.1:1420");
-  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Folder" }).click();
+  await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.getByText("analysis.bl", { exact: true }).first().click();
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 20_000 });
   await page.locator(".activity-bar").getByLabel("Settings").click();
+  await page.getByRole("tab", { name: "Remote" }).click();
   await page.getByLabel("Bearer token").fill("test-token");
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByLabel("Execution target").selectOption("somer-lab");
+  await page.getByLabel("Execution target for Run").selectOption("somer-lab");
   await page.getByLabel("Run active BioLang file").click();
+  const confirm = page.getByRole("alertdialog");
+  if (await confirm.isVisible().catch(() => false)) {
+    await confirm.getByRole("button", { name: /Run on/i }).click();
+  }
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Close Folder", exact: true }).click();

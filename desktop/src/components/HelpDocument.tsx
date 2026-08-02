@@ -2,6 +2,7 @@ import { BookOpen, Check, Code2, Copy, FileCode2, FolderOpen, Library, Sparkles 
 import { Children, isValidElement, type ReactNode, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { bridge } from "../bridge";
 import type { HelpEntry, HelpKind } from "../types";
 
 const kindLabels: Record<HelpKind, string> = {
@@ -39,7 +40,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
 
   return <div className="help-code">
     <div><span><Code2 size={13} />{label}</span><button type="button" aria-label={`Copy ${label} code`} onClick={() => {
-      void navigator.clipboard.writeText(code).then(() => {
+      void bridge.copyText(code).then(() => {
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1_500);
       });

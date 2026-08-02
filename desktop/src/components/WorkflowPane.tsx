@@ -1,5 +1,6 @@
 import { CircleStop, Copy, Plus, Play, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { bridge } from "../bridge";
 import metadata from "../generated/builtin-metadata.json";
 import {
   emptyWorkflow,
@@ -121,7 +122,7 @@ export function WorkflowPane({
         title="Copy generated BioLang"
         aria-label="Copy generated BioLang"
         disabled={Boolean(validationErrors.length)}
-        onClick={() => void navigator.clipboard.writeText(workflowToBioLang(workflow))}
+        onClick={() => void bridge.copyText(workflowToBioLang(workflow))}
       ><Copy size={13} /></button>
       {running
         ? <button type="button" className="danger" onClick={() => void onStop()}><CircleStop size={13} />Stop</button>

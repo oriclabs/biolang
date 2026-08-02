@@ -1,0 +1,3195 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "name": "annotation",
+      "version": "0.1.0",
+      "description": "Genomic annotation: GTF/GFF3 parsing, gene bodies, promoters, interval overlap, peak annotation",
+      "exports": [
+        {
+          "name": "annotate",
+          "signature": "annotate(peaks, gtf)",
+          "summary": "BioLang package function annotate.",
+          "fields": [],
+          "sourcePath": "packages/annotation/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "genes",
+          "signature": "genes(gtf)",
+          "summary": "BioLang package function genes.",
+          "fields": [],
+          "sourcePath": "packages/annotation/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "id_map",
+          "signature": "id_map(gtf)",
+          "summary": "BioLang package function id_map.",
+          "fields": [],
+          "sourcePath": "packages/annotation/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "load",
+          "signature": "load(path)",
+          "summary": "BioLang package function load.",
+          "fields": [],
+          "sourcePath": "packages/annotation/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "overlap",
+          "signature": "overlap(query, subject)",
+          "summary": "BioLang package function overlap.",
+          "fields": [],
+          "sourcePath": "packages/annotation/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "promoters",
+          "signature": "promoters(gtf, up=2000, down=200)",
+          "summary": "BioLang package function promoters.",
+          "fields": [],
+          "sourcePath": "packages/annotation/src/mod.bl",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "name": "atac",
+      "version": "0.1.0",
+      "description": "ATAC-seq quality control: fragment size distribution, NFR enrichment, TSS enrichment, nucleosome fractions",
+      "exports": [
+        {
+          "name": "activity",
+          "signature": "activity(fragments, genes, upstream = 2000, downstream = 0, barcodes = nil) -> Record",
+          "summary": "BioLang package function activity.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 34
+        },
+        {
+          "name": "from_gtf",
+          "signature": "from_gtf(gtf_text) -> Table",
+          "summary": "BioLang package function from_gtf.",
+          "returnType": "Table",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 40
+        },
+        {
+          "name": "nfr",
+          "signature": "nfr(lengths)",
+          "summary": "BioLang package function nfr.",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 27
+        },
+        {
+          "name": "nucleosomes",
+          "signature": "nucleosomes(lengths)",
+          "summary": "BioLang package function nucleosomes.",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 28
+        },
+        {
+          "name": "peaks",
+          "signature": "peaks(fragments, peak_table, barcodes = nil) -> Record",
+          "summary": "BioLang package function peaks.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 37
+        },
+        {
+          "name": "qc",
+          "signature": "qc(lengths)",
+          "summary": "BioLang package function qc.",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 30
+        },
+        {
+          "name": "sizes",
+          "signature": "sizes(lengths)",
+          "summary": "BioLang package function sizes.",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 26
+        },
+        {
+          "name": "tss",
+          "signature": "tss(lengths, dists, flank=2000)",
+          "summary": "BioLang package function tss.",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "name": "cellchat",
+      "version": "0.1.0",
+      "description": "Cell-cell communication analysis via ligand-receptor scoring",
+      "exports": [
+        {
+          "name": "between",
+          "signature": "between(scores, sender, receiver)",
+          "summary": "BioLang package function between.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 41
+        },
+        {
+          "name": "lr_database",
+          "signature": "lr_database()",
+          "summary": "BioLang package function lr_database.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 60
+        },
+        {
+          "name": "pathways",
+          "signature": "pathways(scores)",
+          "summary": "BioLang package function pathways.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 55
+        },
+        {
+          "name": "receivers",
+          "signature": "receivers(scores)",
+          "summary": "BioLang package function receivers.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 49
+        },
+        {
+          "name": "resolve",
+          "signature": "resolve(lr_db, genes)",
+          "summary": "BioLang package function resolve.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 63
+        },
+        {
+          "name": "score",
+          "signature": "score(obj)",
+          "summary": "BioLang package function score.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 32
+        },
+        {
+          "name": "score_pairs",
+          "signature": "score_pairs(obj, lr_pairs)",
+          "summary": "BioLang package function score_pairs.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 35
+        },
+        {
+          "name": "senders",
+          "signature": "senders(scores)",
+          "summary": "BioLang package function senders.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 46
+        },
+        {
+          "name": "summary",
+          "signature": "summary(scores)",
+          "summary": "BioLang package function summary.",
+          "fields": [
+            "senders",
+            "receivers"
+          ],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 52
+        },
+        {
+          "name": "top",
+          "signature": "top(scores, n = 20)",
+          "summary": "BioLang package function top.",
+          "fields": [],
+          "sourcePath": "packages/cellchat/src/mod.bl",
+          "line": 38
+        }
+      ]
+    },
+    {
+      "name": "celltypes",
+      "version": "0.1.0",
+      "description": "Automated cell type annotation via reference atlas label transfer",
+      "exports": [
+        {
+          "name": "confidence_table",
+          "signature": "confidence_table(obj)",
+          "summary": "BioLang package function confidence_table.",
+          "fields": [],
+          "sourcePath": "packages/celltypes/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "from_reference",
+          "signature": "from_reference(obj, ref_matrix, ref_labels)",
+          "summary": "BioLang package function from_reference.",
+          "fields": [],
+          "sourcePath": "packages/celltypes/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "get_labels",
+          "signature": "get_labels(obj)",
+          "summary": "BioLang package function get_labels.",
+          "fields": [],
+          "sourcePath": "packages/celltypes/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "low_confidence",
+          "signature": "low_confidence(obj, t = 0.6)",
+          "summary": "BioLang package function low_confidence.",
+          "fields": [],
+          "sourcePath": "packages/celltypes/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "score_markers",
+          "signature": "score_markers(obj, marker_sets)",
+          "summary": "BioLang package function score_markers.",
+          "fields": [],
+          "sourcePath": "packages/celltypes/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "top_type_per_cell",
+          "signature": "top_type_per_cell(obj)",
+          "summary": "BioLang package function top_type_per_cell.",
+          "fields": [],
+          "sourcePath": "packages/celltypes/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "type_counts",
+          "signature": "type_counts(obj)",
+          "summary": "BioLang package function type_counts.",
+          "fields": [],
+          "sourcePath": "packages/celltypes/src/mod.bl",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "name": "chipseq",
+      "version": "0.1.0",
+      "description": "ChIP-seq and ATAC-seq: peak merging, consensus peaks, FRiP score, TSS enrichment, annotation",
+      "exports": [
+        {
+          "name": "annotate",
+          "signature": "annotate(peaks_table, genes)",
+          "summary": "BioLang package function annotate.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "consensus",
+          "signature": "consensus(peak_list, min_samples=2)",
+          "summary": "BioLang package function consensus.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "filter_blacklist",
+          "signature": "filter_blacklist(peaks_table, bl)",
+          "summary": "BioLang package function filter_blacklist.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "frip",
+          "signature": "frip(reads_in_peaks, total_reads)",
+          "summary": "BioLang package function frip.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "load_bed",
+          "signature": "load_bed(path)",
+          "summary": "BioLang package function load_bed.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "load_narrowpeak",
+          "signature": "load_narrowpeak(path)",
+          "summary": "BioLang package function load_narrowpeak.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "mean_peak_size",
+          "signature": "mean_peak_size(table)",
+          "summary": "BioLang package function mean_peak_size.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 28
+        },
+        {
+          "name": "merge",
+          "signature": "merge(table)",
+          "summary": "BioLang package function merge.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "n_peaks",
+          "signature": "n_peaks(table)",
+          "summary": "BioLang package function n_peaks.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "peak_sizes",
+          "signature": "peak_sizes(table)",
+          "summary": "BioLang package function peak_sizes.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 27
+        },
+        {
+          "name": "qc_report",
+          "signature": "qc_report(peaks_table, reads_in_peaks, total_reads)",
+          "summary": "BioLang package function qc_report.",
+          "fields": [
+            "n_peaks",
+            "mean_peak_size",
+            "frip",
+            "total_reads"
+          ],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 29
+        },
+        {
+          "name": "tss_score",
+          "signature": "tss_score(signal, flank=1000)",
+          "summary": "BioLang package function tss_score.",
+          "fields": [],
+          "sourcePath": "packages/chipseq/src/mod.bl",
+          "line": 26
+        }
+      ]
+    },
+    {
+      "name": "clustering",
+      "version": "0.1.0",
+      "description": "Cell and sample clustering: k-means, hierarchical, and graph-based Leiden/Louvain",
+      "exports": [
+        {
+          "name": "cut_tree",
+          "signature": "cut_tree(dendrogram, k) -> List<Int>",
+          "summary": "BioLang package function cut_tree.",
+          "returnType": "List<Int>",
+          "fields": [],
+          "sourcePath": "packages/clustering/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "hierarchical",
+          "signature": "hierarchical(data, linkage = \"ward\", metric = \"euclidean\") -> List<Record>",
+          "summary": "BioLang package function hierarchical.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/clustering/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "kmeans",
+          "signature": "kmeans(data, k, max_iter = 300, seed = 42) -> Record",
+          "summary": "BioLang package function kmeans.",
+          "returnType": "Record",
+          "fields": [
+            "labels",
+            "centroids",
+            "inertia",
+            "iterations"
+          ],
+          "sourcePath": "packages/clustering/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "kmeans_elbow",
+          "signature": "kmeans_elbow(data, k_range, max_iter = 100) -> List<Record>",
+          "summary": "BioLang package function kmeans_elbow.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/clustering/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "leiden",
+          "signature": "leiden(adjacency, resolution = 1.0, seed = 42) -> List<Int>",
+          "summary": "BioLang package function leiden.",
+          "returnType": "List<Int>",
+          "fields": [],
+          "sourcePath": "packages/clustering/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "silhouette",
+          "signature": "silhouette(data, labels) -> Record",
+          "summary": "BioLang package function silhouette.",
+          "returnType": "Record",
+          "fields": [
+            "mean_score",
+            "per_sample"
+          ],
+          "sourcePath": "packages/clustering/src/mod.bl",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "name": "cnv",
+      "version": "0.1.0",
+      "description": "Copy number variation analysis: log2 ratios, CBS segmentation, CN calls, allele-specific CNV",
+      "exports": [
+        {
+          "name": "allelic",
+          "signature": "allelic(baf, ratio)",
+          "summary": "BioLang package function allelic.",
+          "fields": [],
+          "sourcePath": "packages/cnv/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "call",
+          "signature": "call(segments, ploidy=2)",
+          "summary": "BioLang package function call.",
+          "fields": [],
+          "sourcePath": "packages/cnv/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "ratios",
+          "signature": "ratios(tumor, normal)",
+          "summary": "BioLang package function ratios.",
+          "fields": [],
+          "sourcePath": "packages/cnv/src/mod.bl",
+          "line": 13
+        },
+        {
+          "name": "segment",
+          "signature": "segment(ratios)",
+          "summary": "BioLang package function segment.",
+          "fields": [],
+          "sourcePath": "packages/cnv/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "summary",
+          "signature": "summary(segments)",
+          "summary": "BioLang package function summary.",
+          "fields": [],
+          "sourcePath": "packages/cnv/src/mod.bl",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "name": "crispr",
+      "version": "0.1.0",
+      "description": "CRISPR screen analysis: guide counting, MAGeCK scoring, gene essentiality, QC",
+      "exports": [
+        {
+          "name": "essential",
+          "signature": "essential(score_table, n=20)",
+          "summary": "BioLang package function essential.",
+          "fields": [],
+          "sourcePath": "packages/crispr/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "guide_gc",
+          "signature": "guide_gc(seq)",
+          "summary": "BioLang package function guide_gc.",
+          "fields": [],
+          "sourcePath": "packages/crispr/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "hits",
+          "signature": "hits(counts, ctrl, trt, n=20)",
+          "summary": "BioLang package function hits.",
+          "fields": [],
+          "sourcePath": "packages/crispr/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "lfc",
+          "signature": "lfc(counts, ctrl, trt)",
+          "summary": "BioLang package function lfc.",
+          "fields": [],
+          "sourcePath": "packages/crispr/src/mod.bl",
+          "line": 13
+        },
+        {
+          "name": "load",
+          "signature": "load(path)",
+          "summary": "BioLang package function load.",
+          "fields": [],
+          "sourcePath": "packages/crispr/src/mod.bl",
+          "line": 12
+        },
+        {
+          "name": "qc",
+          "signature": "qc(counts)",
+          "summary": "BioLang package function qc.",
+          "fields": [],
+          "sourcePath": "packages/crispr/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "score",
+          "signature": "score(counts, ctrl, trt)",
+          "summary": "BioLang package function score.",
+          "fields": [],
+          "sourcePath": "packages/crispr/src/mod.bl",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "name": "deconvolution",
+      "version": "0.1.0",
+      "description": "Bulk RNA-seq cell type deconvolution: NNLS, marker scoring, purity estimation",
+      "exports": [
+        {
+          "name": "correlation",
+          "signature": "correlation(fractions)",
+          "summary": "BioLang package function correlation.",
+          "fields": [],
+          "sourcePath": "packages/deconvolution/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "markers",
+          "signature": "markers(bulk, marker_map)",
+          "summary": "BioLang package function markers.",
+          "fields": [],
+          "sourcePath": "packages/deconvolution/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "nnls",
+          "signature": "nnls(mixture, reference)",
+          "summary": "BioLang package function nnls.",
+          "fields": [],
+          "sourcePath": "packages/deconvolution/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "purity",
+          "signature": "purity(fractions, tumor_col)",
+          "summary": "BioLang package function purity.",
+          "fields": [],
+          "sourcePath": "packages/deconvolution/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "run",
+          "signature": "run(bulk, reference)",
+          "summary": "BioLang package function run.",
+          "fields": [],
+          "sourcePath": "packages/deconvolution/src/mod.bl",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "differential",
+      "version": "0.1.0",
+      "description": "Differential expression analysis for RNA-seq and single-cell data",
+      "exports": [
+        {
+          "name": "auroc",
+          "signature": "auroc(scores_a, scores_b) -> Float",
+          "summary": "BioLang package function auroc.",
+          "returnType": "Float",
+          "fields": [],
+          "sourcePath": "packages/differential/src/mod.bl",
+          "line": 26
+        },
+        {
+          "name": "de_wald",
+          "signature": "de_wald(norm_counts, group_a_cols, group_b_cols) -> List<Record>",
+          "summary": "BioLang package function de_wald.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/differential/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "de_wilcoxon",
+          "signature": "de_wilcoxon(matrix, group_a_indices, group_b_indices, min_cells = 10) -> List<Record>",
+          "summary": "BioLang package function de_wilcoxon.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/differential/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "deseq2_norm",
+          "signature": "deseq2_norm(count_matrix) -> List<Record>",
+          "summary": "BioLang package function deseq2_norm.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/differential/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "marker_genes",
+          "signature": "marker_genes(matrix, cluster_labels, top_n = 50) -> List<Record>",
+          "summary": "BioLang package function marker_genes.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/differential/src/mod.bl",
+          "line": 27
+        },
+        {
+          "name": "pseudo_bulk",
+          "signature": "pseudo_bulk(matrix, cell_labels, sample_labels) -> List<Record>",
+          "summary": "BioLang package function pseudo_bulk.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/differential/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "pseudobulk_de",
+          "signature": "pseudobulk_de(obj, sample_col)",
+          "summary": "BioLang package function pseudobulk_de.",
+          "fields": [],
+          "sourcePath": "packages/differential/src/mod.bl",
+          "line": 39
+        },
+        {
+          "name": "size_factors",
+          "signature": "size_factors(count_matrix) -> List<Float>",
+          "summary": "BioLang package function size_factors.",
+          "returnType": "List<Float>",
+          "fields": [],
+          "sourcePath": "packages/differential/src/mod.bl",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "name": "drug",
+      "version": "0.1.0",
+      "description": "Drug response analysis: IC50 fitting (4PL), Bliss/Loewe synergy, AUC, dose-response curves",
+      "exports": [
+        {
+          "name": "auc",
+          "signature": "auc(concs, viabs)",
+          "summary": "BioLang package function auc.",
+          "fields": [],
+          "sourcePath": "packages/drug/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "bliss",
+          "signature": "bliss(viab_a, viab_b, viab_combo)",
+          "summary": "BioLang package function bliss.",
+          "fields": [],
+          "sourcePath": "packages/drug/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "curve",
+          "signature": "curve(concs, ic50, slope, top=100.0, bottom=0.0)",
+          "summary": "BioLang package function curve.",
+          "fields": [],
+          "sourcePath": "packages/drug/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "fit",
+          "signature": "fit(concs, viabs)",
+          "summary": "BioLang package function fit.",
+          "fields": [],
+          "sourcePath": "packages/drug/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "loewe",
+          "signature": "loewe(ic50_a, ic50_b, conc_a, conc_b, obs=50.0)",
+          "summary": "BioLang package function loewe.",
+          "fields": [],
+          "sourcePath": "packages/drug/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "rank",
+          "signature": "rank(ic50_table)",
+          "summary": "BioLang package function rank.",
+          "fields": [],
+          "sourcePath": "packages/drug/src/mod.bl",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "name": "grn",
+      "version": "0.1.0",
+      "description": "Gene regulatory network inference: co-expression and TF activity scoring (SCENIC-lite)",
+      "exports": [
+        {
+          "name": "coexpression",
+          "signature": "coexpression(obj, tf_indices, min_corr = 0.3)",
+          "summary": "BioLang package function coexpression.",
+          "fields": [],
+          "sourcePath": "packages/grn/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "score_activity",
+          "signature": "score_activity(obj, regulons)",
+          "summary": "BioLang package function score_activity.",
+          "fields": [],
+          "sourcePath": "packages/grn/src/mod.bl",
+          "line": 29
+        },
+        {
+          "name": "top_targets",
+          "signature": "top_targets(network, tf_idx, n = 20)",
+          "summary": "BioLang package function top_targets.",
+          "fields": [],
+          "sourcePath": "packages/grn/src/mod.bl",
+          "line": 28
+        },
+        {
+          "name": "top_tfs_per_cluster",
+          "signature": "top_tfs_per_cluster(obj, n = 5)",
+          "summary": "BioLang package function top_tfs_per_cluster.",
+          "fields": [],
+          "sourcePath": "packages/grn/src/mod.bl",
+          "line": 30
+        }
+      ]
+    },
+    {
+      "name": "gwas",
+      "version": "0.1.0",
+      "description": "GWAS analysis: summary stat loading, Manhattan/QQ plot data, LD clumping, genome-wide significant loci",
+      "exports": [
+        {
+          "name": "clump",
+          "signature": "clump(sumstats, p=5e-8, window=250)",
+          "summary": "BioLang package function clump.",
+          "fields": [],
+          "sourcePath": "packages/gwas/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "hits",
+          "signature": "hits(sumstats, p=5e-8)",
+          "summary": "BioLang package function hits.",
+          "fields": [],
+          "sourcePath": "packages/gwas/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "lambda",
+          "signature": "lambda(pvals)",
+          "summary": "BioLang package function lambda.",
+          "fields": [],
+          "sourcePath": "packages/gwas/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "load",
+          "signature": "load(path)",
+          "summary": "BioLang package function load.",
+          "fields": [],
+          "sourcePath": "packages/gwas/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "manhattan",
+          "signature": "manhattan(sumstats)",
+          "summary": "BioLang package function manhattan.",
+          "fields": [],
+          "sourcePath": "packages/gwas/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "qq",
+          "signature": "qq(pvals)",
+          "summary": "BioLang package function qq.",
+          "fields": [],
+          "sourcePath": "packages/gwas/src/mod.bl",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "name": "hic",
+      "version": "0.1.0",
+      "description": "Hi-C chromatin conformation: ICE normalization, insulation score, TAD boundary calling, distance decay",
+      "exports": [
+        {
+          "name": "boundaries",
+          "signature": "boundaries(scores, delta=0.1)",
+          "summary": "BioLang package function boundaries.",
+          "fields": [],
+          "sourcePath": "packages/hic/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "decay",
+          "signature": "decay(matrix)",
+          "summary": "BioLang package function decay.",
+          "fields": [],
+          "sourcePath": "packages/hic/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "expected",
+          "signature": "expected(matrix)",
+          "summary": "BioLang package function expected.",
+          "fields": [],
+          "sourcePath": "packages/hic/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "insulation",
+          "signature": "insulation(matrix, window=10)",
+          "summary": "BioLang package function insulation.",
+          "fields": [],
+          "sourcePath": "packages/hic/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "normalize",
+          "signature": "normalize(matrix)",
+          "summary": "BioLang package function normalize.",
+          "fields": [],
+          "sourcePath": "packages/hic/src/mod.bl",
+          "line": 13
+        },
+        {
+          "name": "obs_over_expected",
+          "signature": "obs_over_expected(matrix)",
+          "summary": "BioLang package function obs_over_expected.",
+          "fields": [
+            "observed"
+          ],
+          "sourcePath": "packages/hic/src/mod.bl",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "name": "immune",
+      "version": "0.1.0",
+      "description": "Immune repertoire analysis: TCR/BCR VDJ parsing, clonotype diversity, expansion, V/J usage",
+      "exports": [
+        {
+          "name": "cdr3_lengths",
+          "signature": "cdr3_lengths(vdj)",
+          "summary": "BioLang package function cdr3_lengths.",
+          "fields": [],
+          "sourcePath": "packages/immune/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "diversity",
+          "signature": "diversity(vdj)",
+          "summary": "BioLang package function diversity.",
+          "fields": [],
+          "sourcePath": "packages/immune/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "expansion",
+          "signature": "expansion(vdj, threshold=0.01)",
+          "summary": "BioLang package function expansion.",
+          "fields": [],
+          "sourcePath": "packages/immune/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "load",
+          "signature": "load(path)",
+          "summary": "BioLang package function load.",
+          "fields": [],
+          "sourcePath": "packages/immune/src/mod.bl",
+          "line": 13
+        },
+        {
+          "name": "shared",
+          "signature": "shared(tables)",
+          "summary": "BioLang package function shared.",
+          "fields": [],
+          "sourcePath": "packages/immune/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "top_clones",
+          "signature": "top_clones(vdj, n=10)",
+          "summary": "BioLang package function top_clones.",
+          "fields": [],
+          "sourcePath": "packages/immune/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "vj_usage",
+          "signature": "vj_usage(vdj)",
+          "summary": "BioLang package function vj_usage.",
+          "fields": [],
+          "sourcePath": "packages/immune/src/mod.bl",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "name": "longread",
+      "version": "0.1.0",
+      "description": "Long-read sequencing QC: Nanopore/PacBio FASTQ stats, N50, length histograms, quality filtering",
+      "exports": [
+        {
+          "name": "filter",
+          "signature": "filter(fastq_text, min_length=1000, min_quality=7.0)",
+          "summary": "BioLang package function filter.",
+          "fields": [],
+          "sourcePath": "packages/longread/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "gc_per_read",
+          "signature": "gc_per_read(fastq_text)",
+          "summary": "BioLang package function gc_per_read.",
+          "fields": [],
+          "sourcePath": "packages/longread/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "length_hist",
+          "signature": "length_hist(lengths, bins=20)",
+          "summary": "BioLang package function length_hist.",
+          "fields": [],
+          "sourcePath": "packages/longread/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "n50",
+          "signature": "n50(lengths)",
+          "summary": "BioLang package function n50.",
+          "fields": [],
+          "sourcePath": "packages/longread/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "quality_dist",
+          "signature": "quality_dist(fastq_text)",
+          "summary": "BioLang package function quality_dist.",
+          "fields": [],
+          "sourcePath": "packages/longread/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "stats",
+          "signature": "stats(fastq_text)",
+          "summary": "BioLang package function stats.",
+          "fields": [],
+          "sourcePath": "packages/longread/src/mod.bl",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "metabolomics",
+      "version": "0.1.0",
+      "description": "LC-MS metabolomics: m/z matching, isotope correction, feature grouping, pathway enrichment",
+      "exports": [
+        {
+          "name": "enrich",
+          "signature": "enrich(metabolites, pathway_db)",
+          "summary": "BioLang package function enrich.",
+          "fields": [],
+          "sourcePath": "packages/metabolomics/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "group",
+          "signature": "group(table, mz_ppm=5.0, rt_tol=0.1)",
+          "summary": "BioLang package function group.",
+          "fields": [],
+          "sourcePath": "packages/metabolomics/src/mod.bl",
+          "line": 13
+        },
+        {
+          "name": "isotopes",
+          "signature": "isotopes(intensities, n_carbons)",
+          "summary": "BioLang package function isotopes.",
+          "fields": [],
+          "sourcePath": "packages/metabolomics/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "log_transform",
+          "signature": "log_transform(table)",
+          "summary": "BioLang package function log_transform.",
+          "fields": [],
+          "sourcePath": "packages/metabolomics/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "match_mz",
+          "signature": "match_mz(mz, db, ppm=5.0)",
+          "summary": "BioLang package function match_mz.",
+          "fields": [],
+          "sourcePath": "packages/metabolomics/src/mod.bl",
+          "line": 12
+        },
+        {
+          "name": "normalize",
+          "signature": "normalize(table, method=\"median\")",
+          "summary": "BioLang package function normalize.",
+          "fields": [],
+          "sourcePath": "packages/metabolomics/src/mod.bl",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "name": "methylation",
+      "version": "0.1.0",
+      "description": "DNA methylation: beta/M-value conversion, DMR calling, CpG density, epigenetic clocks",
+      "exports": [
+        {
+          "name": "clock_age",
+          "signature": "clock_age(beta_vec, coefs)",
+          "summary": "BioLang package function clock_age.",
+          "fields": [],
+          "sourcePath": "packages/methylation/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "density",
+          "signature": "density(positions, window=500)",
+          "summary": "BioLang package function density.",
+          "fields": [],
+          "sourcePath": "packages/methylation/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "diff_cpgs",
+          "signature": "diff_cpgs(beta_matrix, group_a, group_b)",
+          "summary": "BioLang package function diff_cpgs.",
+          "fields": [],
+          "sourcePath": "packages/methylation/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "find_dmrs",
+          "signature": "find_dmrs(beta_matrix, group_a, group_b, min_delta=0.2, min_cpgs=3)",
+          "summary": "BioLang package function find_dmrs.",
+          "fields": [],
+          "sourcePath": "packages/methylation/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "significant_cpgs",
+          "signature": "significant_cpgs(result, min_delta=0.2, padj=0.05)",
+          "summary": "BioLang package function significant_cpgs.",
+          "fields": [],
+          "sourcePath": "packages/methylation/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "to_beta",
+          "signature": "to_beta(m_vec)",
+          "summary": "BioLang package function to_beta.",
+          "fields": [],
+          "sourcePath": "packages/methylation/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "to_mvalue",
+          "signature": "to_mvalue(beta_vec)",
+          "summary": "BioLang package function to_mvalue.",
+          "fields": [],
+          "sourcePath": "packages/methylation/src/mod.bl",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "microbiome",
+      "version": "0.1.0",
+      "description": "Microbiome analysis: 16S/shotgun diversity, taxonomic profiling, differential abundance",
+      "exports": [
+        {
+          "name": "alpha",
+          "signature": "alpha(counts, method=\"shannon\")",
+          "summary": "BioLang package function alpha.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "alpha_table",
+          "signature": "alpha_table(matrix, method=\"shannon\")",
+          "summary": "BioLang package function alpha_table.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "beta",
+          "signature": "beta(matrix, method=\"bray_curtis\")",
+          "summary": "BioLang package function beta.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "collapse",
+          "signature": "collapse(table, level=\"genus\")",
+          "summary": "BioLang package function collapse.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "filter_taxa",
+          "signature": "filter_taxa(table, min_prev=0.1, min_abund=0.001)",
+          "summary": "BioLang package function filter_taxa.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 26
+        },
+        {
+          "name": "rarefy",
+          "signature": "rarefy(counts, depth)",
+          "summary": "BioLang package function rarefy.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "rarefy_matrix",
+          "signature": "rarefy_matrix(matrix, depth)",
+          "summary": "BioLang package function rarefy_matrix.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "rel_abundance",
+          "signature": "rel_abundance(counts)",
+          "summary": "BioLang package function rel_abundance.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "top_taxa",
+          "signature": "top_taxa(table, n=10, level=\"genus\")",
+          "summary": "BioLang package function top_taxa.",
+          "fields": [],
+          "sourcePath": "packages/microbiome/src/mod.bl",
+          "line": 25
+        }
+      ]
+    },
+    {
+      "name": "motif",
+      "version": "0.1.0",
+      "description": "Transcription factor motif analysis: IUPAC scanning, PWM construction, motif enrichment",
+      "exports": [
+        {
+          "name": "consensus",
+          "signature": "consensus(pwm_table)",
+          "summary": "BioLang package function consensus.",
+          "fields": [],
+          "sourcePath": "packages/motif/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "enrich",
+          "signature": "enrich(fg, bg, pattern)",
+          "summary": "BioLang package function enrich.",
+          "fields": [],
+          "sourcePath": "packages/motif/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "gc",
+          "signature": "gc(seq, window=100)",
+          "summary": "BioLang package function gc.",
+          "fields": [],
+          "sourcePath": "packages/motif/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "iupac",
+          "signature": "iupac(seq, pattern)",
+          "summary": "BioLang package function iupac.",
+          "fields": [],
+          "sourcePath": "packages/motif/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "pwm",
+          "signature": "pwm(aligned_seqs)",
+          "summary": "BioLang package function pwm.",
+          "fields": [],
+          "sourcePath": "packages/motif/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "scan",
+          "signature": "scan(seq, pwm_table, t=0.8)",
+          "summary": "BioLang package function scan.",
+          "fields": [],
+          "sourcePath": "packages/motif/src/mod.bl",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "name": "multimodal",
+      "version": "0.1.0",
+      "description": "Multi-modal single-cell integration: CITE-seq, Multiome, Weighted Nearest Neighbor",
+      "exports": [
+        {
+          "name": "cluster_wnn",
+          "signature": "cluster_wnn(obj, resolution = 0.5)",
+          "summary": "BioLang package function cluster_wnn.",
+          "fields": [],
+          "sourcePath": "packages/multimodal/src/mod.bl",
+          "line": 33
+        },
+        {
+          "name": "from_citeseq",
+          "signature": "from_citeseq(rna, adt, genes, proteins, barcodes)",
+          "summary": "BioLang package function from_citeseq.",
+          "fields": [
+            "matrix",
+            "adt_matrix",
+            "genes",
+            "proteins",
+            "barcodes",
+            "modality"
+          ],
+          "sourcePath": "packages/multimodal/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "get_wnn",
+          "signature": "get_wnn(obj)",
+          "summary": "BioLang package function get_wnn.",
+          "fields": [],
+          "sourcePath": "packages/multimodal/src/mod.bl",
+          "line": 34
+        },
+        {
+          "name": "normalize_adt",
+          "signature": "normalize_adt(obj, target = 10000.0)",
+          "summary": "BioLang package function normalize_adt.",
+          "fields": [],
+          "sourcePath": "packages/multimodal/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "wnn",
+          "signature": "wnn(obj, k = 20)",
+          "summary": "BioLang package function wnn.",
+          "fields": [],
+          "sourcePath": "packages/multimodal/src/mod.bl",
+          "line": 28
+        },
+        {
+          "name": "wnn_rna_atac",
+          "signature": "wnn_rna_atac(obj, k = 20)",
+          "summary": "BioLang package function wnn_rna_atac.",
+          "fields": [],
+          "sourcePath": "packages/multimodal/src/mod.bl",
+          "line": 31
+        }
+      ]
+    },
+    {
+      "name": "network",
+      "version": "0.1.0",
+      "description": "Biological network analysis: PPI networks, centrality, shortest paths, community detection, disease modules",
+      "exports": [
+        {
+          "name": "betweenness",
+          "signature": "betweenness(edges)",
+          "summary": "BioLang package function betweenness.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "components",
+          "signature": "components(edges)",
+          "summary": "BioLang package function components.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "degree",
+          "signature": "degree(edges)",
+          "summary": "BioLang package function degree.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "enrichment",
+          "signature": "enrichment(gene_list, edges, bg)",
+          "summary": "BioLang package function enrichment.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "filter_score",
+          "signature": "filter_score(net, min=0.4)",
+          "summary": "BioLang package function filter_score.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "hub_genes",
+          "signature": "hub_genes(edges, n=20)",
+          "summary": "BioLang package function hub_genes.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "largest_component",
+          "signature": "largest_component(edges)",
+          "summary": "BioLang package function largest_component.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "load_csv",
+          "signature": "load_csv(path)",
+          "summary": "BioLang package function load_csv.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "load_string",
+          "signature": "load_string(path)",
+          "summary": "BioLang package function load_string.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 14
+        },
+        {
+          "name": "path",
+          "signature": "path(edges, src, tgt)",
+          "summary": "BioLang package function path.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "subnetwork",
+          "signature": "subnetwork(net, genes)",
+          "summary": "BioLang package function subnetwork.",
+          "fields": [],
+          "sourcePath": "packages/network/src/mod.bl",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "name": "oric",
+      "version": "0.1.0",
+      "description": "Origin of replication prediction for bacterial genomes",
+      "exports": [
+        {
+          "name": "at_content",
+          "signature": "at_content(seq) -> Float",
+          "summary": "BioLang package function at_content.",
+          "returnType": "Float",
+          "fields": [],
+          "sourcePath": "packages/oric/src/mod.bl",
+          "line": 28
+        },
+        {
+          "name": "find_dnaa_boxes",
+          "signature": "find_dnaa_boxes(seq, pattern = DNAA_BOX_CONSENSUS, max_mismatches = 1) -> List<{pos, strand, matched, mismatches}>",
+          "summary": "BioLang package function find_dnaa_boxes.",
+          "returnType": "List<{pos, strand, matched, mismatches}>",
+          "fields": [],
+          "sourcePath": "packages/oric/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "find_skew_maximum",
+          "signature": "find_skew_maximum(profile) -> {pos, cumulative_skew}",
+          "summary": "BioLang package function find_skew_maximum.",
+          "returnType": "{pos, cumulative_skew}",
+          "fields": [],
+          "sourcePath": "packages/oric/src/mod.bl",
+          "line": 27
+        },
+        {
+          "name": "find_skew_minimum",
+          "signature": "find_skew_minimum(profile) -> {pos, cumulative_skew}",
+          "summary": "BioLang package function find_skew_minimum.",
+          "returnType": "{pos, cumulative_skew}",
+          "fields": [],
+          "sourcePath": "packages/oric/src/mod.bl",
+          "line": 26
+        },
+        {
+          "name": "gc_skew_profile",
+          "signature": "gc_skew_profile(seq, window_size = 1000) -> List<{pos, end, g, c, skew, cumulative_skew}>",
+          "summary": "BioLang package function gc_skew_profile.",
+          "returnType": "List<{pos, end, g, c, skew, cumulative_skew}>",
+          "fields": [],
+          "sourcePath": "packages/oric/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "plot_skew",
+          "signature": "plot_skew(seq, window_size = 1000)",
+          "summary": "BioLang package function plot_skew.",
+          "fields": [],
+          "sourcePath": "packages/oric/src/mod.bl",
+          "line": 38
+        },
+        {
+          "name": "predict_oric",
+          "signature": "predict_oric(seq, window_size = 1000, search_radius = 500, dnaa_pattern = DNAA_BOX_CONSENSUS, max_mismatches = 1) -> Record",
+          "summary": "BioLang package function predict_oric.",
+          "returnType": "Record",
+          "fields": [
+            "candidate_pos",
+            "candidate_end",
+            "skew_max",
+            "skew_min",
+            "dnaa_boxes",
+            "dnaa_box_count",
+            "at_fraction",
+            "search_radius",
+            "confidence",
+            "note"
+          ],
+          "sourcePath": "packages/oric/src/mod.bl",
+          "line": 30
+        },
+        {
+          "name": "scan_oric_table",
+          "signature": "scan_oric_table(seq, window_size = 1000, step = 500) -> Table",
+          "summary": "BioLang package function scan_oric_table.",
+          "returnType": "Table",
+          "fields": [],
+          "sourcePath": "packages/oric/src/mod.bl",
+          "line": 34
+        }
+      ]
+    },
+    {
+      "name": "pathway",
+      "version": "0.1.0",
+      "description": "Gene set enrichment analysis and over-representation using GO, KEGG, and Reactome",
+      "exports": [
+        {
+          "name": "bubble_plot",
+          "signature": "bubble_plot(result, n = 15)",
+          "summary": "BioLang package function bubble_plot.",
+          "fields": [],
+          "sourcePath": "packages/pathway/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "fdr_filter",
+          "signature": "fdr_filter(ora_result, threshold = 0.05) -> List<Record>",
+          "summary": "BioLang package function fdr_filter.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/pathway/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "gsea_preranked",
+          "signature": "gsea_preranked(ranked_genes, gene_sets) -> List<Record>",
+          "summary": "BioLang package function gsea_preranked.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/pathway/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "leading_edge",
+          "signature": "leading_edge(gsea_result, pathway_name) -> List<String>",
+          "summary": "BioLang package function leading_edge.",
+          "returnType": "List<String>",
+          "fields": [],
+          "sourcePath": "packages/pathway/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "ora",
+          "signature": "ora(gene_list, gene_sets, universe_size = 20000) -> List<Record>",
+          "summary": "BioLang package function ora.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/pathway/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "plot_enrichment",
+          "signature": "plot_enrichment(gsea_result, pathway_name)",
+          "summary": "BioLang package function plot_enrichment.",
+          "fields": [],
+          "sourcePath": "packages/pathway/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "top_pathways",
+          "signature": "top_pathways(result, n = 20) -> List<Record>",
+          "summary": "BioLang package function top_pathways.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/pathway/src/mod.bl",
+          "line": 24
+        }
+      ]
+    },
+    {
+      "name": "phylo",
+      "version": "0.1.0",
+      "description": "Phylogenetics: Newick tree parsing, pairwise distances, UPGMA tree building",
+      "exports": [
+        {
+          "name": "build_upgma",
+          "signature": "build_upgma(labels, dmat)",
+          "summary": "BioLang package function build_upgma.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "distance",
+          "signature": "distance(t, a, b)",
+          "summary": "BioLang package function distance.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "distance_matrix",
+          "signature": "distance_matrix(t)",
+          "summary": "BioLang package function distance_matrix.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "faith_pd",
+          "signature": "faith_pd(t)",
+          "summary": "BioLang package function faith_pd.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "from_string",
+          "signature": "from_string(nw_str)",
+          "summary": "BioLang package function from_string.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "leaves",
+          "signature": "leaves(t)",
+          "summary": "BioLang package function leaves.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "load",
+          "signature": "load(path)",
+          "summary": "BioLang package function load.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "mean_pairwise_distance",
+          "signature": "mean_pairwise_distance(t, taxa)",
+          "summary": "BioLang package function mean_pairwise_distance.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 26
+        },
+        {
+          "name": "n_leaves",
+          "signature": "n_leaves(t)",
+          "summary": "BioLang package function n_leaves.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "nearest_taxon_distance",
+          "signature": "nearest_taxon_distance(t)",
+          "summary": "BioLang package function nearest_taxon_distance.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 27
+        }
+      ]
+    },
+    {
+      "name": "popgen",
+      "version": "0.1.0",
+      "description": "Population genetics: HWE test, Fst, Tajima's D, LD (r²), allele frequency spectrum, nucleotide diversity",
+      "exports": [
+        {
+          "name": "afs",
+          "signature": "afs(geno_matrix)",
+          "summary": "BioLang package function afs.",
+          "fields": [],
+          "sourcePath": "packages/popgen/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "fst",
+          "signature": "fst(ac1, ac2, n1, n2)",
+          "summary": "BioLang package function fst.",
+          "fields": [],
+          "sourcePath": "packages/popgen/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "hwe",
+          "signature": "hwe(n_aa, n_ab, n_bb)",
+          "summary": "BioLang package function hwe.",
+          "fields": [],
+          "sourcePath": "packages/popgen/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "ld",
+          "signature": "ld(geno_a, geno_b)",
+          "summary": "BioLang package function ld.",
+          "fields": [],
+          "sourcePath": "packages/popgen/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "ld_matrix",
+          "signature": "ld_matrix(geno_matrix)",
+          "summary": "BioLang package function ld_matrix.",
+          "fields": [],
+          "sourcePath": "packages/popgen/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "pi",
+          "signature": "pi(geno_matrix)",
+          "summary": "BioLang package function pi.",
+          "fields": [],
+          "sourcePath": "packages/popgen/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "tajima",
+          "signature": "tajima(n_seg, n_seq, len)",
+          "summary": "BioLang package function tajima.",
+          "fields": [],
+          "sourcePath": "packages/popgen/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "watterson_theta",
+          "signature": "watterson_theta(n_seg, n_seq)",
+          "summary": "BioLang package function watterson_theta.",
+          "fields": [],
+          "sourcePath": "packages/popgen/src/mod.bl",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "name": "proteomics",
+      "version": "0.1.0",
+      "description": "Mass spectrometry proteomics: MaxQuant loading, normalization, imputation, differential abundance",
+      "exports": [
+        {
+          "name": "full_pipeline",
+          "signature": "full_pipeline(path)",
+          "summary": "BioLang package function full_pipeline.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "impute",
+          "signature": "impute(matrix, pct=0.01)",
+          "summary": "BioLang package function impute.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "load",
+          "signature": "load(path)",
+          "summary": "BioLang package function load.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "log2_transform",
+          "signature": "log2_transform(matrix)",
+          "summary": "BioLang package function log2_transform.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "preprocess",
+          "signature": "preprocess(matrix)",
+          "summary": "BioLang package function preprocess.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "quantile_normalize",
+          "signature": "quantile_normalize(matrix)",
+          "summary": "BioLang package function quantile_normalize.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "significant",
+          "signature": "significant(result, fc=1.0, padj=0.05)",
+          "summary": "BioLang package function significant.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "ttest",
+          "signature": "ttest(matrix, group_a, group_b)",
+          "summary": "BioLang package function ttest.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "volcano",
+          "signature": "volcano(result, fc=1.0, p=0.05)",
+          "summary": "BioLang package function volcano.",
+          "fields": [],
+          "sourcePath": "packages/proteomics/src/mod.bl",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "name": "qpcr",
+      "version": "0.1.0",
+      "description": "RT-qPCR analysis: delta-delta Ct, efficiency, reference gene normalization, geNorm stability",
+      "exports": [
+        {
+          "name": "best_reference",
+          "signature": "best_reference(ct_table, ref_indices)",
+          "summary": "BioLang package function best_reference.",
+          "fields": [],
+          "sourcePath": "packages/qpcr/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "dct",
+          "signature": "dct(sample_ct, ref_ct)",
+          "summary": "BioLang package function dct.",
+          "fields": [],
+          "sourcePath": "packages/qpcr/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "ddct",
+          "signature": "ddct(sample_dct, control_dct)",
+          "summary": "BioLang package function ddct.",
+          "fields": [],
+          "sourcePath": "packages/qpcr/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "efficiency",
+          "signature": "efficiency(cts, log_dilutions)",
+          "summary": "BioLang package function efficiency.",
+          "fields": [],
+          "sourcePath": "packages/qpcr/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "normalize",
+          "signature": "normalize(ct_table, ref_indices)",
+          "summary": "BioLang package function normalize.",
+          "fields": [],
+          "sourcePath": "packages/qpcr/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "stability",
+          "signature": "stability(ct_table, ref_indices)",
+          "summary": "BioLang package function stability.",
+          "fields": [],
+          "sourcePath": "packages/qpcr/src/mod.bl",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "name": "rnaseq",
+      "version": "0.1.0",
+      "description": "Bulk RNA-seq: Salmon/featureCounts loading, normalization, QC, feeding into differential analysis",
+      "exports": [
+        {
+          "name": "correlation",
+          "signature": "correlation(matrix)",
+          "summary": "BioLang package function correlation.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "filter_genes",
+          "signature": "filter_genes(matrix, min_count=10, min_samples=2)",
+          "summary": "BioLang package function filter_genes.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "from_csv",
+          "signature": "from_csv(path)",
+          "summary": "BioLang package function from_csv.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "from_featurecounts",
+          "signature": "from_featurecounts(path)",
+          "summary": "BioLang package function from_featurecounts.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "from_salmon",
+          "signature": "from_salmon(path)",
+          "summary": "BioLang package function from_salmon.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "library_sizes",
+          "signature": "library_sizes(matrix)",
+          "summary": "BioLang package function library_sizes.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "normalize_sf",
+          "signature": "normalize_sf(matrix)",
+          "summary": "BioLang package function normalize_sf.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 27
+        },
+        {
+          "name": "normalize_tpm",
+          "signature": "normalize_tpm(matrix, lengths)",
+          "summary": "BioLang package function normalize_tpm.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 26
+        },
+        {
+          "name": "size_factors",
+          "signature": "size_factors(matrix)",
+          "summary": "BioLang package function size_factors.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 28
+        },
+        {
+          "name": "tpm",
+          "signature": "tpm(matrix, lengths)",
+          "summary": "BioLang package function tpm.",
+          "fields": [],
+          "sourcePath": "packages/rnaseq/src/mod.bl",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "name": "scref",
+      "version": "0.1.0",
+      "description": "Reference single-cell methods (scanpy/scvi-tools/leidenalg) run reproducibly in containers",
+      "exports": [
+        {
+          "name": "_run",
+          "signature": "_run(obj, image, script)",
+          "summary": "BioLang package function _run.",
+          "fields": [],
+          "sourcePath": "packages/scref/src/mod.bl",
+          "line": 33
+        },
+        {
+          "name": "available",
+          "signature": "available() -> Record{runtime, image_dir}",
+          "summary": "Report the detected container runtime (runtime is Nil if none).",
+          "returnType": "Record{runtime, image_dir}",
+          "fields": [],
+          "sourcePath": "packages/scref/src/mod.bl",
+          "line": 27
+        },
+        {
+          "name": "leidenalg_cluster",
+          "signature": "leidenalg_cluster(obj, resolution = 1.0, n_neighbors = 15, image = SCANPY_IMAGE) -> Record",
+          "summary": "Reproduce Scanpy's `sc.tl.leiden` (leidenalg) exactly. Runs PCA → neighbors →",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/scref/src/mod.bl",
+          "line": 51
+        },
+        {
+          "name": "pull",
+          "signature": "pull(image) -> Record",
+          "summary": "Pre-pull an image so the first analysis call doesn't wait on a download.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/scref/src/mod.bl",
+          "line": 117
+        },
+        {
+          "name": "scvi_latent",
+          "signature": "scvi_latent(obj, n_latent = 10, image = SCVI_IMAGE) -> Record",
+          "summary": "Train scVI in the container and return obj with obj.scvi_latent",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/scref/src/mod.bl",
+          "line": 72
+        },
+        {
+          "name": "solo_doublets",
+          "signature": "solo_doublets(obj, image = SCVI_IMAGE) -> Record",
+          "summary": "Reproduce the tutorial's SOLO (scVI) doublet detection. Returns obj with",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/scref/src/mod.bl",
+          "line": 95
+        }
+      ]
+    },
+    {
+      "name": "singlecell",
+      "version": "0.2.0",
+      "description": "Single-cell RNA-seq analysis, donor-aware statistics, diagnostics, and publication-ready visualization",
+      "exports": [
+        {
+          "name": "cell_cycle",
+          "signature": "cell_cycle(obj, s_genes, g2m_genes) -> Record",
+          "summary": "BioLang package function cell_cycle.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 87
+        },
+        {
+          "name": "cluster",
+          "signature": "cluster(obj, k = 0) -> Record",
+          "summary": "BioLang package function cluster.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 82
+        },
+        {
+          "name": "cluster_diagnostics",
+          "signature": "cluster_diagnostics(obj)",
+          "summary": "Calculate per-cell and mean silhouette coefficients for current clusters.",
+          "fields": [
+            "clusters",
+            "n_clusters"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 127
+        },
+        {
+          "name": "cluster_leiden",
+          "signature": "cluster_leiden(obj, k = 15, resolution = 1.0) -> Record",
+          "summary": "BioLang package function cluster_leiden.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 83
+        },
+        {
+          "name": "cluster_stability",
+          "signature": "cluster_stability(obj, resolutions = [0.2, 0.5, 0.8, 1.0, 1.5], k = 15) -> List<Record>",
+          "summary": "Sweep Leiden resolutions and report cluster count, silhouette, and ARI.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 129
+        },
+        {
+          "name": "composition_table",
+          "signature": "composition_table(donors, conditions, cell_types) -> List<Record>",
+          "summary": "Calculate cell-type counts and proportions for every donor-condition sample.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 116
+        },
+        {
+          "name": "donor_gene_table",
+          "signature": "donor_gene_table(obj, gene, donors, conditions, cell_types, target_type, condition_a, condition_b, min_cells = 10) -> List<Record>",
+          "summary": "Return paired donor log2-CPM values for one gene and two conditions.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 108
+        },
+        {
+          "name": "doublets",
+          "signature": "doublets(obj, n_sim = 500) -> Record",
+          "summary": "BioLang package function doublets.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 89
+        },
+        {
+          "name": "expr_dotplot",
+          "signature": "expr_dotplot(obj, genes, title = \"expression dot plot\") -> Str (SVG)",
+          "summary": "BioLang package function expr_dotplot.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 165
+        },
+        {
+          "name": "filter_cells",
+          "signature": "filter_cells(obj, min_genes = 200, max_genes = 5000, max_pct_mito = 25.0) -> Record",
+          "summary": "BioLang package function filter_cells.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 72
+        },
+        {
+          "name": "filter_genes",
+          "signature": "filter_genes(obj, min_cells = 3) -> Record",
+          "summary": "BioLang package function filter_genes.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 75
+        },
+        {
+          "name": "flag_doublets",
+          "signature": "flag_doublets(obj, threshold = 0.5) -> Record",
+          "summary": "BioLang package function flag_doublets.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 90
+        },
+        {
+          "name": "from_matrix",
+          "signature": "from_matrix(matrix, genes, barcodes) -> Record",
+          "summary": "BioLang package function from_matrix.",
+          "returnType": "Record",
+          "fields": [
+            "matrix",
+            "genes",
+            "barcodes",
+            "n_cells",
+            "n_genes",
+            "obs",
+            "var",
+            "layers",
+            "is_sparse"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 56
+        },
+        {
+          "name": "gene_module_score",
+          "signature": "gene_module_score(obj, gene_indices) -> Record",
+          "summary": "BioLang package function gene_module_score.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 88
+        },
+        {
+          "name": "get_barcodes",
+          "signature": "get_barcodes(obj) -> List<Str>",
+          "summary": "BioLang package function get_barcodes.",
+          "returnType": "List<Str>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 62
+        },
+        {
+          "name": "get_clusters",
+          "signature": "get_clusters(obj) -> List<Int>",
+          "summary": "BioLang package function get_clusters.",
+          "returnType": "List<Int>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 64
+        },
+        {
+          "name": "get_doublet_scores",
+          "signature": "get_doublet_scores(obj) -> List<Float>",
+          "summary": "BioLang package function get_doublet_scores.",
+          "returnType": "List<Float>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 66
+        },
+        {
+          "name": "get_genes",
+          "signature": "get_genes(obj) -> List<Str>",
+          "summary": "BioLang package function get_genes.",
+          "returnType": "List<Str>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 61
+        },
+        {
+          "name": "get_hvg_genes",
+          "signature": "get_hvg_genes(obj) -> List<Str>",
+          "summary": "BioLang package function get_hvg_genes.",
+          "returnType": "List<Str>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 63
+        },
+        {
+          "name": "get_matrix",
+          "signature": "get_matrix(obj) -> List<List<Float>>",
+          "summary": "BioLang package function get_matrix.",
+          "returnType": "List<List<Float>>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 59
+        },
+        {
+          "name": "get_norm_matrix",
+          "signature": "get_norm_matrix(obj) -> List<List<Float>>",
+          "summary": "BioLang package function get_norm_matrix.",
+          "returnType": "List<List<Float>>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 60
+        },
+        {
+          "name": "get_pseudotime",
+          "signature": "get_pseudotime(obj) -> List<Float>",
+          "summary": "BioLang package function get_pseudotime.",
+          "returnType": "List<Float>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 65
+        },
+        {
+          "name": "integrate",
+          "signature": "integrate(obj, batch_ids) -> Record",
+          "summary": "BioLang package function integrate.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 137
+        },
+        {
+          "name": "integrate_from_column",
+          "signature": "integrate_from_column(obj, batch_col) -> Record",
+          "summary": "BioLang package function integrate_from_column.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 138
+        },
+        {
+          "name": "load",
+          "signature": "load(path) -> Record",
+          "summary": "BioLang package function load.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 55
+        },
+        {
+          "name": "marker_table",
+          "signature": "marker_table(obj, cluster_a, cluster_b) -> List<Record>",
+          "summary": "BioLang package function marker_table.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 91
+        },
+        {
+          "name": "merge",
+          "signature": "merge(obj_a, obj_b, batch_a = 0, batch_b = 1) -> Record",
+          "summary": "BioLang package function merge.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 139
+        },
+        {
+          "name": "n_cells",
+          "signature": "n_cells(obj) -> Int",
+          "summary": "BioLang package function n_cells.",
+          "returnType": "Int",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 57
+        },
+        {
+          "name": "n_genes",
+          "signature": "n_genes(obj) -> Int",
+          "summary": "BioLang package function n_genes.",
+          "returnType": "Int",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 58
+        },
+        {
+          "name": "neighbors",
+          "signature": "neighbors(obj, k = 15) -> Record",
+          "summary": "BioLang package function neighbors.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 81
+        },
+        {
+          "name": "normalize",
+          "signature": "normalize(obj, target = 10000.0) -> Record",
+          "summary": "BioLang package function normalize.",
+          "returnType": "Record",
+          "fields": [
+            "norm_matrix",
+            "layers"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 76
+        },
+        {
+          "name": "order_by_pseudotime",
+          "signature": "order_by_pseudotime(obj) -> Record",
+          "summary": "BioLang package function order_by_pseudotime.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 146
+        },
+        {
+          "name": "paired_composition_test",
+          "signature": "paired_composition_test(donors, conditions, cell_types, condition_a, condition_b, min_cells = 20) -> List<Record>",
+          "summary": "Test donor-paired changes in cell-type proportions between two conditions.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 120
+        },
+        {
+          "name": "paired_pseudobulk_de",
+          "signature": "paired_pseudobulk_de(obj, donors, conditions, cell_types, target_type, condition_a, condition_b, min_cells = 10) -> List<Record>",
+          "summary": "Test a condition effect within one cell type using paired donor profiles.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 100
+        },
+        {
+          "name": "plot_cluster_stability",
+          "signature": "plot_cluster_stability(stability, title = \"Cluster resolution stability\") -> Str (SVG)",
+          "summary": "Render silhouette across a Leiden resolution sweep.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 231
+        },
+        {
+          "name": "plot_composition",
+          "signature": "plot_composition(donors, conditions, cell_types, title = \"Cell-type composition by sample\") -> Str (SVG)",
+          "summary": "Render stacked cell-type proportions for every donor-condition sample.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 217
+        },
+        {
+          "name": "plot_de_overlap",
+          "signature": "plot_de_overlap(result_sets, names, title = \"Differential-expression set intersections\") -> Str (SVG)",
+          "summary": "Render UpSet-style intersections across significant DE gene sets.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 222
+        },
+        {
+          "name": "plot_donor_expression",
+          "signature": "plot_donor_expression(obj, gene, donors, conditions, cell_types, target_type, condition_a, condition_b, min_cells = 10) -> Str (SVG)",
+          "summary": "Render paired per-donor expression trajectories for one gene.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 202
+        },
+        {
+          "name": "plot_elbow",
+          "signature": "plot_elbow(obj, n_pcs = 15) -> prints an ordered ASCII bar chart",
+          "summary": "BioLang package function plot_elbow.",
+          "returnType": "prints an ordered ASCII bar chart",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 163
+        },
+        {
+          "name": "plot_embedding",
+          "signature": "plot_embedding(obj, groups, title = \"UMAP\") -> Str (SVG)",
+          "summary": "Render a UMAP coloured by arbitrary per-cell group labels.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 181
+        },
+        {
+          "name": "plot_enrichment",
+          "signature": "plot_enrichment(results, title = \"Ranked gene-set enrichment\") -> Str (SVG)",
+          "summary": "Render signed enrichment scores as a labelled lollipop plot.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 227
+        },
+        {
+          "name": "plot_feature",
+          "signature": "plot_feature(obj, gene, title = nil) -> Str (SVG)",
+          "summary": "BioLang package function plot_feature.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 160
+        },
+        {
+          "name": "plot_feature_split",
+          "signature": "plot_feature_split(obj, gene, groups, title = nil) -> Str (SVG)",
+          "summary": "Render one gene on split UMAP panels sharing a common expression scale.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 185
+        },
+        {
+          "name": "plot_group_heatmap",
+          "signature": "plot_group_heatmap(obj, genes, groups, title = \"Mean expression by group\") -> Str (SVG)",
+          "summary": "Render mean expression of selected genes across arbitrary cell groups.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 189
+        },
+        {
+          "name": "plot_ma",
+          "signature": "plot_ma(results, title = \"MA plot\", fc_cutoff = 1.0, padj_cutoff = 0.05) -> Str (SVG)",
+          "summary": "Render mean expression against log2 fold change for a DE result table.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 198
+        },
+        {
+          "name": "plot_markers",
+          "signature": "plot_markers(obj, n_per_cluster = 5) -> Str (SVG)",
+          "summary": "BioLang package function plot_markers.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 162
+        },
+        {
+          "name": "plot_pca",
+          "signature": "plot_pca(obj, title = \"PCA\") -> Str (SVG)",
+          "summary": "BioLang package function plot_pca.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 159
+        },
+        {
+          "name": "plot_proportions",
+          "signature": "plot_proportions(obj, groups = nil) -> prints an ordered ASCII bar chart",
+          "summary": "BioLang package function plot_proportions.",
+          "returnType": "prints an ordered ASCII bar chart",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 164
+        },
+        {
+          "name": "plot_pseudobulk_pca",
+          "signature": "plot_pseudobulk_pca(obj, donors, conditions, cell_types, target_type = nil, min_cells = 10) -> Str (SVG)",
+          "summary": "Render donor-labelled PCA of pseudobulk profiles, coloured by condition.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 210
+        },
+        {
+          "name": "plot_qc_dashboard",
+          "signature": "plot_qc_dashboard(obj, title = \"Single-cell quality dashboard\") -> Str (SVG)",
+          "summary": "Render distributions and the counts-versus-genes relationship in one SVG.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 177
+        },
+        {
+          "name": "plot_qc_scatter",
+          "signature": "plot_qc_scatter(obj, title = \"Counts, genes, and mitochondrial fraction\") -> Str (SVG)",
+          "summary": "Render counts versus detected genes, coloured by mitochondrial fraction.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 173
+        },
+        {
+          "name": "plot_qc_violin",
+          "signature": "plot_qc_violin(obj, title = \"Cell quality distributions\") -> Str (SVG)",
+          "summary": "Render QC metric distributions as an SVG violin plot.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 169
+        },
+        {
+          "name": "plot_silhouette",
+          "signature": "plot_silhouette(diagnostics, title = \"Cell silhouette coefficients\") -> Str (SVG)",
+          "summary": "Render per-cell silhouette coefficients grouped by cluster.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 235
+        },
+        {
+          "name": "plot_umap",
+          "signature": "plot_umap(obj, title = \"UMAP\") -> Str (SVG)",
+          "summary": "BioLang package function plot_umap.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 158
+        },
+        {
+          "name": "plot_violin",
+          "signature": "plot_violin(obj, gene) -> Str (SVG)",
+          "summary": "BioLang package function plot_violin.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 161
+        },
+        {
+          "name": "plot_volcano",
+          "signature": "plot_volcano(results, title = \"Differential expression\", fc_cutoff = 1.0, padj_cutoff = 0.05) -> Str (SVG)",
+          "summary": "Render effect size against adjusted significance for a DE result table.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 193
+        },
+        {
+          "name": "pseudobulk",
+          "signature": "pseudobulk(obj, sample_ids) -> Table",
+          "summary": "BioLang package function pseudobulk.",
+          "returnType": "Table",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 94
+        },
+        {
+          "name": "pseudobulk_profiles",
+          "signature": "pseudobulk_profiles(obj, donors, conditions, cell_types, min_cells = 10) -> Record",
+          "summary": "Build raw and log-CPM donor-condition-cell-type pseudobulk profiles.",
+          "returnType": "Record",
+          "fields": [
+            "counts",
+            "logcpm_matrix",
+            "profiles",
+            "genes"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 96
+        },
+        {
+          "name": "pseudotime",
+          "signature": "pseudotime(obj, start_cell) -> Record",
+          "summary": "BioLang package function pseudotime.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 145
+        },
+        {
+          "name": "pseudotime_bins",
+          "signature": "pseudotime_bins(pt, n_bins = 10) -> List<Int>",
+          "summary": "BioLang package function pseudotime_bins.",
+          "returnType": "List<Int>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 147
+        },
+        {
+          "name": "qc",
+          "signature": "qc(obj) -> Record",
+          "summary": "BioLang package function qc.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 71
+        },
+        {
+          "name": "ranked_genes",
+          "signature": "ranked_genes(de_results) -> Table{gene, score}",
+          "summary": "Prepare a signed gene-ranking table for the core gsea() function.",
+          "returnType": "Table{gene, score}",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 133
+        },
+        {
+          "name": "run_pca",
+          "signature": "run_pca(obj, n_pcs = 50) -> Record",
+          "summary": "BioLang package function run_pca.",
+          "returnType": "Record",
+          "fields": [
+            "pca",
+            "pca_scores",
+            "pca_loadings"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 80
+        },
+        {
+          "name": "scale",
+          "signature": "scale(obj) -> Record",
+          "summary": "BioLang package function scale.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 79
+        },
+        {
+          "name": "sctransform",
+          "signature": "sctransform(obj) -> Record",
+          "summary": "BioLang package function sctransform.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 77
+        },
+        {
+          "name": "smooth_along_pseudotime",
+          "signature": "smooth_along_pseudotime(obj, gene_idx, n_bins = 20) -> List<Float>",
+          "summary": "BioLang package function smooth_along_pseudotime.",
+          "returnType": "List<Float>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 148
+        },
+        {
+          "name": "standard",
+          "signature": "standard(obj, resolution = nil, n_hvg = nil, k = nil, min_genes = nil, max_genes = nil, max_pct_mito = nil, min_cells = nil, target = nil, quiet = false) -> Record",
+          "summary": "BioLang package function standard.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 43
+        },
+        {
+          "name": "summary",
+          "signature": "summary(obj) -> Record",
+          "summary": "BioLang package function summary.",
+          "returnType": "Record",
+          "fields": [
+            "n_cells",
+            "n_genes",
+            "mean_lib_size",
+            "mean_genes_per_cell",
+            "has_norm",
+            "has_hvg",
+            "has_pca",
+            "has_neighbors",
+            "has_clusters",
+            "has_pseudotime"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 67
+        },
+        {
+          "name": "sweep",
+          "signature": "sweep(obj, resolutions = [0.1, 0.3, 0.5, 0.7, 1.0], n_hvg = nil, k = nil) -> List<Record>",
+          "summary": "BioLang package function sweep.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 49
+        },
+        {
+          "name": "variable_genes",
+          "signature": "variable_genes(obj, n = 2000) -> Record",
+          "summary": "BioLang package function variable_genes.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 78
+        }
+      ]
+    },
+    {
+      "name": "spatial",
+      "version": "0.1.0",
+      "description": "Spatial transcriptomics analysis: spatially variable genes, neighborhood enrichment, ligand-receptor overlay",
+      "exports": [
+        {
+          "name": "get_coords",
+          "signature": "get_coords(obj)",
+          "summary": "BioLang package function get_coords.",
+          "fields": [],
+          "sourcePath": "packages/spatial/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "load_coords",
+          "signature": "load_coords(obj, csv)",
+          "summary": "BioLang package function load_coords.",
+          "fields": [],
+          "sourcePath": "packages/spatial/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "neighbors",
+          "signature": "neighbors(obj, k = 6)",
+          "summary": "BioLang package function neighbors.",
+          "fields": [],
+          "sourcePath": "packages/spatial/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "niche_enrichment",
+          "signature": "niche_enrichment(obj)",
+          "summary": "BioLang package function niche_enrichment.",
+          "fields": [],
+          "sourcePath": "packages/spatial/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "top_neighbors_of",
+          "signature": "top_neighbors_of(obj, cluster)",
+          "summary": "BioLang package function top_neighbors_of.",
+          "fields": [],
+          "sourcePath": "packages/spatial/src/mod.bl",
+          "line": 26
+        },
+        {
+          "name": "top_svg",
+          "signature": "top_svg(obj, n = 50)",
+          "summary": "BioLang package function top_svg.",
+          "fields": [],
+          "sourcePath": "packages/spatial/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "variable_genes",
+          "signature": "variable_genes(obj, min_expr = 0.1)",
+          "summary": "BioLang package function variable_genes.",
+          "fields": [],
+          "sourcePath": "packages/spatial/src/mod.bl",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "name": "statistics",
+      "version": "0.1.0",
+      "description": "Statistical tests: multiple testing correction, Fisher exact, chi-square, permutation, bootstrap, logistic regression",
+      "exports": [
+        {
+          "name": "bh",
+          "signature": "bh(p_values)",
+          "summary": "BioLang package function bh.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "bonferroni",
+          "signature": "bonferroni(p_values)",
+          "summary": "BioLang package function bonferroni.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "bootstrap",
+          "signature": "bootstrap(values, n=1000, conf=0.95)",
+          "summary": "BioLang package function bootstrap.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "chi2",
+          "signature": "chi2(observed, expected)",
+          "summary": "BioLang package function chi2.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "fisher",
+          "signature": "fisher(a, b, c, d)",
+          "summary": "BioLang package function fisher.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "inflation",
+          "signature": "inflation(p_values)",
+          "summary": "BioLang package function inflation.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "pearson",
+          "signature": "pearson(x, y)",
+          "summary": "BioLang package function pearson.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 23
+        },
+        {
+          "name": "permtest",
+          "signature": "permtest(a, b, n=1000)",
+          "summary": "BioLang package function permtest.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "significant",
+          "signature": "significant(p_values, t=0.05)",
+          "summary": "BioLang package function significant.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "name": "structure",
+      "version": "0.1.0",
+      "description": "Protein structure analysis: PDB parsing, RMSD, contact maps, secondary structure, Ramachandran angles",
+      "exports": [
+        {
+          "name": "backbone",
+          "signature": "backbone(pdb_table)",
+          "summary": "BioLang package function backbone.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "ca_atoms",
+          "signature": "ca_atoms(pdb_table)",
+          "summary": "BioLang package function ca_atoms.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "chain",
+          "signature": "chain(pdb_table, id)",
+          "summary": "BioLang package function chain.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "contacts",
+          "signature": "contacts(pdb_table, dist=8.0)",
+          "summary": "BioLang package function contacts.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "load",
+          "signature": "load(path)",
+          "summary": "BioLang package function load.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "ramachandran",
+          "signature": "ramachandran(pdb_table)",
+          "summary": "BioLang package function ramachandran.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "residues",
+          "signature": "residues(pdb_table)",
+          "summary": "BioLang package function residues.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "rmsd",
+          "signature": "rmsd(pdb_a, pdb_b)",
+          "summary": "BioLang package function rmsd.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "ss",
+          "signature": "ss(pdb_table)",
+          "summary": "BioLang package function ss.",
+          "fields": [],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "ss_composition",
+          "signature": "ss_composition(pdb_table)",
+          "summary": "BioLang package function ss_composition.",
+          "fields": [
+            "helix",
+            "sheet",
+            "coil",
+            "n_residues"
+          ],
+          "sourcePath": "packages/structure/src/mod.bl",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "name": "survival",
+      "version": "0.1.0",
+      "description": "Kaplan-Meier survival curves and Cox proportional hazards models",
+      "exports": [
+        {
+          "name": "c_index",
+          "signature": "c_index(times, events, predicted_risk) -> Record",
+          "summary": "BioLang package function c_index.",
+          "returnType": "Record",
+          "fields": [
+            "c_index",
+            "concordant_pairs",
+            "discordant_pairs",
+            "tied_pairs",
+            "total_pairs"
+          ],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 29
+        },
+        {
+          "name": "cox",
+          "signature": "cox(times, events, covariates, covariate_names = nil) -> Record",
+          "summary": "BioLang package function cox.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "cox_univariate",
+          "signature": "cox_univariate(times, events, covariate_table) -> List<Record>",
+          "summary": "BioLang package function cox_univariate.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 27
+        },
+        {
+          "name": "hazard_ratio_table",
+          "signature": "hazard_ratio_table(cox_result) -> List<Record>",
+          "summary": "BioLang package function hazard_ratio_table.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 28
+        },
+        {
+          "name": "km",
+          "signature": "km(times, events) -> Record",
+          "summary": "BioLang package function km.",
+          "returnType": "Record",
+          "fields": [
+            "steps",
+            "n_total",
+            "n_events",
+            "n_censored",
+            "times",
+            "events"
+          ],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "km_by_group",
+          "signature": "km_by_group(times, events, groups) -> List<Record>",
+          "summary": "BioLang package function km_by_group.",
+          "returnType": "List<Record>",
+          "fields": [],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "km_compare",
+          "signature": "km_compare(result_a, result_b) -> Record",
+          "summary": "BioLang package function km_compare.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "median_survival",
+          "signature": "median_survival(km_result) -> Record",
+          "summary": "BioLang package function median_survival.",
+          "returnType": "Record",
+          "fields": [
+            "median",
+            "lower_ci",
+            "upper_ci"
+          ],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "restricted_mean",
+          "signature": "restricted_mean(km_result, tau) -> Float",
+          "summary": "BioLang package function restricted_mean.",
+          "returnType": "Float",
+          "fields": [],
+          "sourcePath": "packages/survival/src/mod.bl",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "name": "variants",
+      "version": "0.1.0",
+      "description": "VCF variant analysis: parsing, filtering, annotation, Ti/Tv ratio, allele frequencies",
+      "exports": [
+        {
+          "name": "afs",
+          "signature": "afs(table, field=\"AF\")",
+          "summary": "BioLang package function afs.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 24
+        },
+        {
+          "name": "by_chrom",
+          "signature": "by_chrom(table, chrom)",
+          "summary": "BioLang package function by_chrom.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "common",
+          "signature": "common(table, min_af=0.05)",
+          "summary": "BioLang package function common.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 26
+        },
+        {
+          "name": "filter",
+          "signature": "filter(table, min_qual=0.0, require_pass=false)",
+          "summary": "BioLang package function filter.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "in_region",
+          "signature": "in_region(table, chrom, start, end)",
+          "summary": "BioLang package function in_region.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "indels_only",
+          "signature": "indels_only(table)",
+          "summary": "BioLang package function indels_only.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 19
+        },
+        {
+          "name": "load",
+          "signature": "load(path)",
+          "summary": "BioLang package function load.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "load_filtered",
+          "signature": "load_filtered(path, min_qual=20.0, require_pass=true)",
+          "summary": "BioLang package function load_filtered.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 16
+        },
+        {
+          "name": "qc_report",
+          "signature": "qc_report(table)",
+          "summary": "BioLang package function qc_report.",
+          "fields": [
+            "total",
+            "pass",
+            "snps",
+            "indels",
+            "titv_ratio"
+          ],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 27
+        },
+        {
+          "name": "rare",
+          "signature": "rare(table, max_af=0.01)",
+          "summary": "BioLang package function rare.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 25
+        },
+        {
+          "name": "snps_only",
+          "signature": "snps_only(table)",
+          "summary": "BioLang package function snps_only.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "summary",
+          "signature": "summary(table)",
+          "summary": "BioLang package function summary.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 22
+        },
+        {
+          "name": "titv",
+          "signature": "titv(table)",
+          "summary": "BioLang package function titv.",
+          "fields": [],
+          "sourcePath": "packages/variants/src/mod.bl",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "name": "velocity",
+      "version": "0.1.0",
+      "description": "RNA velocity: infer transcriptional dynamics from spliced/unspliced counts",
+      "exports": [
+        {
+          "name": "estimate",
+          "signature": "estimate(obj)",
+          "summary": "BioLang package function estimate.",
+          "fields": [],
+          "sourcePath": "packages/velocity/src/mod.bl",
+          "line": 18
+        },
+        {
+          "name": "get_arrows",
+          "signature": "get_arrows(obj)",
+          "summary": "BioLang package function get_arrows.",
+          "fields": [],
+          "sourcePath": "packages/velocity/src/mod.bl",
+          "line": 21
+        },
+        {
+          "name": "get_velocity",
+          "signature": "get_velocity(obj)",
+          "summary": "BioLang package function get_velocity.",
+          "fields": [],
+          "sourcePath": "packages/velocity/src/mod.bl",
+          "line": 20
+        },
+        {
+          "name": "project",
+          "signature": "project(obj, k = 10)",
+          "summary": "BioLang package function project.",
+          "fields": [],
+          "sourcePath": "packages/velocity/src/mod.bl",
+          "line": 19
+        }
+      ]
+    }
+  ]
+}

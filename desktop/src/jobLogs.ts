@@ -1,6 +1,14 @@
 import type { Job, JobLogChunk, JobLogStream } from "./types";
 
 const streams = new Set<JobLogStream>(["stdout", "stderr", "system", "success"]);
+const cliProgressLine = /^\s*(?:▶\s+running\b|✓\s+done in\b).*$/u;
+
+export function stripCliProgress(text: string): string {
+  return text
+    .split(/(?<=\n)/)
+    .filter((line) => !cliProgressLine.test(line.trimEnd()))
+    .join("");
+}
 
 export function normalizeJobLog(value: unknown): JobLogChunk[] {
   if (typeof value === "string") {

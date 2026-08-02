@@ -21,6 +21,31 @@ export function evaluate(source) {
 }
 
 /**
+ * Format BioLang source into the canonical layout.
+ *
+ * The browser build has no language server, so without this the web workbench
+ * would be the one place `bl fmt` cannot reach — and a formatter people cannot
+ * rely on everywhere is one they stop running.
+ * @param {string} source
+ * @param {number} indent
+ * @returns {string}
+ */
+export function format(source, indent) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.format(ptr0, len0, indent);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Convert Python, R, Jupyter, or R Markdown and return a structured validation result.
  * @param {string} source
  * @param {string} format
@@ -84,6 +109,33 @@ export function list_variables() {
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * Quality metrics for a sequencing file preview, as JSON.
+ *
+ * Returns `null` when the format has no metrics or the sample is unusable.
+ * Shared with the Desktop build through `bl-qc` so both report the same
+ * numbers rather than two implementations quietly disagreeing.
+ * @param {string} kind
+ * @param {string} text
+ * @returns {string}
+ */
+export function qc_metrics(kind, text) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(kind, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(text, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.qc_metrics(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 

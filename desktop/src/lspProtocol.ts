@@ -54,6 +54,21 @@ export function completionReplacementRange(
   };
 }
 
+/**
+ * Convert an LSP range to Monaco's 1-based coordinates, or undefined when the
+ * value is not a range at all — servers are free to answer with null.
+ */
+export function lspRangeToMonaco(value: unknown) {
+  const range = value as Partial<LspRange> | null | undefined;
+  if (!range?.start || !range.end) return undefined;
+  return {
+    startLineNumber: range.start.line + 1,
+    startColumn: range.start.character + 1,
+    endLineNumber: range.end.line + 1,
+    endColumn: range.end.character + 1,
+  };
+}
+
 export function diagnosticMarkerRange(range: LspRange) {
   const sameLine = range.start.line === range.end.line;
   return {
